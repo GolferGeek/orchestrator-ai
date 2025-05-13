@@ -1,0 +1,1 @@
+# This file makes 'hr_assistant' a Python package. 
