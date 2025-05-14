@@ -7,19 +7,20 @@ from unittest.mock import AsyncMock
 import inspect
 import sys
 
+# Configure pytest-asyncio mode
+pytest_plugins = ["pytest_asyncio"]
+pytestmark = pytest.mark.asyncio(loop_scope="session")
+
 # Import the app factory and the ORIGINAL provider functions (for keys in dependency_overrides)
 from ..main import create_app, get_original_openai_service, get_original_http_client, get_original_task_store_service, FastAPI, load_agent_services
 from ..llm.openai_service import OpenAIService
 from ..a2a_protocol.task_store import TaskStoreService
 
-@pytest_asyncio.fixture(scope="session")
-def event_loop():
-    print("[CONFTEST_EVENT_LOOP] Creating session event loop")
-    import asyncio
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    print("[CONFTEST_EVENT_LOOP] Closing session event loop")
-    loop.close()
+# Don't redefine the event_loop fixture - use the built-in one
+# Configure session-scope event loop in conftest.py
+def pytest_configure(config):
+    """Configure pytest to use session-scoped event loops."""
+    config.option.asyncio_default_fixture_loop_scope = "session"
 
 @pytest_asyncio.fixture(scope="session")
 async def mock_openai_service_session_scope() -> AsyncMock:
