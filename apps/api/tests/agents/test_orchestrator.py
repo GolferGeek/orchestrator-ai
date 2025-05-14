@@ -110,10 +110,10 @@ async def test_orchestrator_llm_delegates_to_metrics(
     assert "text" in sent_task_data["response_message"]["parts"][0]
     text_response = sent_task_data["response_message"]["parts"][0]["text"]
     
-    # Since the metrics agent is mocked and may not respond properly in tests, we should check
-    # for any text indicating delegation was attempted - it could be error or success
-    assert any(term in text_response for term in ["metrics", "Metrics", "delegate", "agent", "business/metrics"]), \
-        f"Expected delegation-related terms not found in response: {text_response}"
+    # Check for successful content from the metrics agent
+    # This test now confirms that the real metrics agent (via MCP) was called and responded successfully.
+    assert "sales figures" in text_response.lower() or "total revenue" in text_response.lower(), \
+        f"Expected successful metrics agent response not found in: {text_response}"
 
 @pytest.mark.asyncio
 async def test_orchestrator_llm_clarify(
