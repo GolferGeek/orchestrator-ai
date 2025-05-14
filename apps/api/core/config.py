@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     AGENT_ID_METRICS: str = "metrics-agent-v1"
     # Add other settings here as needed
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding='utf-8', extra='ignore')
+    # pydantic-settings will automatically load from .env if python-dotenv is installed.
+    # The model_config attribute can be used for more advanced configurations if needed in Pydantic v2.
+    # For now, the default behavior should be sufficient.
+
+    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
 
 settings = Settings() 

@@ -1,8 +1,19 @@
 fastapi
-uvicorn[standard]
+PyYAML>=6.0.1 # Explicitly pin PyYAML to a version known to build/install
+uvicorn[standard]>=0.20.0 # Pin to a newer version to avoid metadata issues
 python-dotenv
+
+# Pydantic v2 for CrewAI and pydantic-settings
+pydantic>=2.4.2,<3.0.0
 pydantic-settings
+
 pytest
 httpx
 openai
-pytest-asyncio 
+pytest-asyncio
+
+# CrewAI and its dependencies
+crewai[tools,embeddings]>=0.30.0,<0.120.0 # Updated to a more recent version range and added extras
+crewai-tools>=0.2.0,<0.46.0 # Updated to a more recent version range
+langchain-openai # Will pull in compatible langchain, langchain-core 
+setuptools # For pkg_resources, potentially needed by a sub-dependency 

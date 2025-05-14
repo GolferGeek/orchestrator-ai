@@ -5,9 +5,9 @@ import httpx
 import uuid
 import os
 
-from api.a2a_protocol.base_agent import A2AAgentBaseService
-from api.a2a_protocol.task_store import TaskStoreService # Not strictly needed here if base class handles it
-from api.a2a_protocol.types import (
+from apps.api.a2a_protocol.base_agent import A2AAgentBaseService
+from apps.api.a2a_protocol.task_store import TaskStoreService # Not strictly needed here if base class handles it
+from apps.api.a2a_protocol.types import (
     AgentCard,
     AgentCapability,
     Message,
@@ -16,7 +16,7 @@ from api.a2a_protocol.types import (
     ErrorCode,
     TaskState
 )
-from api.llm.openai_service import OpenAIService
+from apps.api.llm.openai_service import OpenAIService
 
 AGENT_VERSION = "0.1.0"
 

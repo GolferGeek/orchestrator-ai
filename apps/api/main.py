@@ -1,18 +1,67 @@
-from fastapi import FastAPI, HTTPException
+import sys # Add sys import
+import os # os is already imported, ensure it's here
+import httpx # Ensure httpx is imported at the module level
+
+print(f"--- DIAGNOSTIC INFO START ---")
+print(f"Python executable being used: {sys.executable}")
+print(f"PYTHONPATH: {os.environ.get('PYTHONPATH')}")
+print(f"Current working directory: {os.getcwd()}")
+try:
+    print("Attempting to import httpx_sse...")
+    import httpx_sse
+    print(f"Successfully imported httpx_sse. Version: {getattr(httpx_sse, '__version__', 'unknown')}")
+    print(f"httpx_sse location: {httpx_sse.__file__}")
+    
+    print("Attempting to import httpx directly after httpx_sse...")
+    import httpx
+    print(f"Successfully imported httpx. Version: {getattr(httpx, '__version__', 'unknown')}")
+    print(f"httpx location: {httpx.__file__}")
+
+    if hasattr(httpx.Response, 'aiter_sse'):
+        print("IMMEDIATELY AFTER IMPORTS: httpx.Response HAS aiter_sse attribute.")
+    else:
+        print("IMMEDIATELY AFTER IMPORTS: httpx.Response DOES NOT HAVE aiter_sse attribute.")
+except ImportError as e:
+    print(f"Failed to import httpx_sse or httpx: {e}")
+except Exception as e:
+    print(f"An unexpected error occurred during httpx_sse/httpx import diagnostics: {e}")
+
+try:
+    import tiktoken
+    print(f"Successfully imported tiktoken. Version: {getattr(tiktoken, '__version__', 'unknown')}")
+    print(f"tiktoken location: {tiktoken.__file__}")
+except ImportError as e:
+    print(f"Failed to import tiktoken: {e}")
+except Exception as e:
+    print(f"An unexpected error occurred during tiktoken import diagnostics: {e}")
+
+print(f"--- DIAGNOSTIC INFO END ---")
+
+from fastapi import FastAPI, HTTPException, APIRouter
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-import os
 import importlib.util
 from pathlib import Path
-import httpx
 from typing import Optional, Callable, Any
 from functools import partial
 from contextlib import asynccontextmanager
+import logging # Import the logging module
 
-from api.a2a_protocol.task_store import TaskStoreService
-from api.a2a_protocol.types import JSONRPCError, ErrorCode, AgentCard, Task
-from api.llm.openai_service import OpenAIService
-from api.core.config import settings
+# Configure basic logging for the application
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Adjusted imports to be relative to the apps.api package
+from .a2a_protocol.task_store import TaskStoreService
+from .a2a_protocol.types import JSONRPCError, ErrorCode, AgentCard, Task
+from .llm.openai_service import OpenAIService
+from .core.config import settings
+
+# Import the MCP router from its new location
+from .shared.mcp.mcp_routes import mcp_router
 
 # Load environment variables from .env file - still okay at module level
 load_dotenv()
@@ -58,7 +107,7 @@ def get_original_http_client() -> httpx.AsyncClient:
 def process_agent_module(
     app_to_configure: FastAPI, # Added app_to_configure
     agent_module_dir: Path,
-    module_base_path_str: str,
+    module_base_path_str: str, # This will now be like ".agents.category.agentname"
     tags: list[str],
     category_name: Optional[str] = None,
     openai_service_provider: Callable[[], Optional[OpenAIService]] = get_original_openai_service,
@@ -67,15 +116,40 @@ def process_agent_module(
 ):
     print(f"[PROCESS_AGENT_MODULE] For {agent_module_dir.name}: using openai_provider: {openai_service_provider.__name__}, http_client_provider: {http_client_provider.__name__}")
     agent_main_py = agent_module_dir / "main.py"
-    module_name = f"{module_base_path_str}.main"
-    
+    # module_name is constructed by load_agent_services to be relative to apps.api
+    module_name = module_base_path_str 
+
     spec = importlib.util.spec_from_file_location(module_name, agent_main_py)
     if not (spec and spec.loader):
-        print(f"[PROCESS_AGENT_MODULE] Warning: Could not create spec for {agent_main_py}")
+        print(f"[PROCESS_AGENT_MODULE] Warning: Could not create spec for {agent_main_py} with module name {module_name}")
         return
 
+    # To use relative imports within the dynamically loaded agent module itself (if it needs to import from its siblings or parent within apps.api.agents)
+    # its __name__ should be set correctly. import_module does this better.
+    # For now, let's assume agent main.py uses absolute imports from apps.api or careful relative ones.
     module = importlib.util.module_from_spec(spec)
+    # Set package for relative imports if agent modules use them, relative to apps.api
+    # The package for apps.api.agents.orchestrator.main would be apps.api.agents.orchestrator
+    module.__package__ = module_name.rsplit('.', 1)[0] if '.' in module_name else 'apps.api'
+
     spec.loader.exec_module(module)
+
+    # Attempt to include a router defined as 'agent_router' in the module or its 'routes' submodule
+    router_to_include = None
+    if hasattr(module, 'agent_router') and isinstance(module.agent_router, APIRouter):
+        router_to_include = module.agent_router
+        print(f"[PROCESS_AGENT_MODULE] Found 'agent_router' in {module_name}")
+    elif hasattr(module, 'routes') and hasattr(module.routes, 'agent_router') and isinstance(module.routes.agent_router, APIRouter):
+        router_to_include = module.routes.agent_router
+        print(f"[PROCESS_AGENT_MODULE] Found 'agent_router' in {module_name}.routes")
+    
+    if router_to_include:
+        # Determine prefix. The router itself might have a prefix, ensure it aligns.
+        # The router in metrics_agent/routes.py already has the full prefix.
+        # So we might not need to add another prefix here, or ensure it's idempotent.
+        # For now, let's assume the loaded router has its full desired prefix.
+        app_to_configure.include_router(router_to_include)
+        print(f"[PROCESS_AGENT_MODULE] Included agent_router from {agent_module_dir.name}")
 
     agent_service_class_name_candidate = f"{agent_module_dir.name.replace('_', '').title()}Service"
     if not hasattr(module, agent_service_class_name_candidate) and hasattr(module, "AgentService"):
@@ -99,9 +173,8 @@ def process_agent_module(
                     init_params["openai_service"] = current_openai_service
             
             agent_service_instance = agent_service_class(**init_params)
-            print(f"[PROCESS_AGENT_MODULE] Instantiated {agent_service_class.__name__} for {agent_module_dir.name} with http_client: {type(current_http_client)}, openai_service: {type(current_openai_service) if 'current_openai_service' in locals() else 'N/A'}")
+            # print(f"[PROCESS_AGENT_MODULE] Instantiated {agent_service_class.__name__} for {agent_module_dir.name} with http_client: {type(current_http_client)}, openai_service: {type(current_openai_service) if 'current_openai_service' in locals() else 'N/A'}")
 
-            from fastapi import APIRouter # Local import to avoid circularity if APIRouter is used elsewhere globally
             router = APIRouter()
             base_prefix = f"/agents/{category_name}/{agent_module_dir.name}" if category_name else f"/agents/{agent_module_dir.name}"
 
@@ -115,12 +188,26 @@ def process_agent_module(
                 router.add_api_route("/tasks/{task_id}", agent_service_instance.handle_task_cancel, methods=["DELETE"], response_model=dict, tags=tags)
             
             if hasattr(module, "get_agent_discovery") and callable(getattr(module, "get_agent_discovery")):
+                 # This uses the router from the service instance, not the module-level one found above.
+                 # We might need to decide on one pattern or allow both carefully.
+                 # For now, this specific well-known route remains tied to the service instance if defined.
                  router.add_api_route("/.well-known/agent.json", getattr(module, "get_agent_discovery"), methods=["GET"], tags=tags, include_in_schema=False)
             elif hasattr(agent_service_instance, "get_agent_card"):
                  router.add_api_route("/.well-known/agent.json", agent_service_instance.get_agent_card, methods=["GET"], response_model=AgentCard, tags=tags, include_in_schema=False)
 
             if router.routes:
-                app_to_configure.include_router(router, prefix=base_prefix, tags=tags)
+                # This includes the router populated by the service instance methods.
+                # If a module-level router_to_include was already added, this might lead to duplicated prefixes or routes.
+                # We should ensure that an agent uses EITHER a module-level 'agent_router' OR the service-based routing, not both for the same paths.
+                # For now, if router_to_include was found, maybe we skip this service-based router?
+                # Or, the service based router should have a different prefix/purpose.
+                # Let's assume if router_to_include exists, it handles all main routes.
+                if not router_to_include: # Only add service-based router if no module-level router was found
+                    app_to_configure.include_router(router, prefix=base_prefix, tags=tags)
+                    print(f"[PROCESS_AGENT_MODULE] Included service-based router for {agent_module_dir.name}")
+                elif router.routes: # Service has routes, but module router already included
+                    print(f"[PROCESS_AGENT_MODULE] Warning: Module-level 'agent_router' included for {agent_module_dir.name}. Additional service-based routes are defined but NOT being automatically prefixed and included by this part of the logic to avoid conflict. Ensure they are handled or merged correctly.")
+
         except Exception as e:
             print(f"[PROCESS_AGENT_MODULE] Error for {agent_module_dir.name}: {e}")
             import traceback
@@ -130,7 +217,8 @@ def process_agent_module(
 
 def load_agent_services(app_to_configure: FastAPI):
     print(f"[LOAD_AGENT_SERVICES] Called for app: {id(app_to_configure)}. Overrides: {app_to_configure.dependency_overrides}")
-    agents_dir = Path(__file__).parent / "agents"
+    # Path to agents directory relative to this file (apps/api/main.py)
+    agents_base_dir = Path(__file__).parent / "agents"
 
     # Resolve actual providers by checking THIS app instance's dependency_overrides
     actual_openai_provider = app_to_configure.dependency_overrides.get(get_original_openai_service, get_original_openai_service)
@@ -140,19 +228,22 @@ def load_agent_services(app_to_configure: FastAPI):
     print(f"[LOAD_AGENT_SERVICES] For app {id(app_to_configure)}, resolved openai_provider: {actual_openai_provider.__name__}")
     print(f"[LOAD_AGENT_SERVICES] For app {id(app_to_configure)}, resolved http_client_provider: {actual_http_client_provider.__name__}")
 
-    for agent_category_dir in agents_dir.iterdir():
+    for agent_category_dir in agents_base_dir.iterdir():
         if agent_category_dir.is_dir() and (agent_category_dir / "__init__.py").exists():
             shared_providers = {
                 "openai_service_provider": actual_openai_provider,
                 "http_client_provider": actual_http_client_provider,
                 "task_store_provider": actual_task_store_provider
             }
+            # Construct module path relative to apps.api (which is effectively the current top-level package for execution via start.py)
             if agent_category_dir.name == "orchestrator":
-                process_agent_module(app_to_configure, agent_category_dir, f"api.agents.{agent_category_dir.name}", [agent_category_dir.name.replace('_', ' ').title()], **shared_providers)
+                module_path_for_import = f"apps.api.agents.{agent_category_dir.name}.main"
+                process_agent_module(app_to_configure, agent_category_dir, module_path_for_import, [agent_category_dir.name.replace('_', ' ').title()], **shared_providers)
                 continue
             for agent_dir in agent_category_dir.iterdir():
                 if agent_dir.is_dir() and (agent_dir / "__init__.py").exists() and (agent_dir / "main.py").exists():
-                    process_agent_module(app_to_configure, agent_dir, f"api.agents.{agent_category_dir.name}.{agent_dir.name}", 
+                    module_path_for_import = f"apps.api.agents.{agent_category_dir.name}.{agent_dir.name}.main"
+                    process_agent_module(app_to_configure, agent_dir, module_path_for_import, 
                                          [f"{agent_category_dir.name.replace('_', ' ').title()} - {agent_dir.name.replace('_', ' ').title()}"], 
                                          category_name=agent_category_dir.name, **shared_providers)
 
@@ -165,6 +256,10 @@ async def lifespan(app: FastAPI):
     # The http_client_provider will retrieve from app.state or the override.
     app.state.http_client = httpx.AsyncClient()
     print(f"[LIFESPAN_MANAGER] Created app.state.http_client: {app.state.http_client} for app {id(app)}")
+
+    # It's generally better to register routers directly in create_app
+    # unless their setup truly depends on lifespan resources not available at app creation.
+    # For shared utility routers like MCP, create_app is suitable.
 
     print(f"[LIFESPAN_MANAGER] Loading agent services for app {id(app)}.")
     load_agent_services(app_to_configure=app)
@@ -190,6 +285,11 @@ def create_app() -> FastAPI:
         lifespan=lifespan  # Use the lifespan context manager
     )
     print(f"[CREATE_APP] New app instance created: {id(new_app)}")
+
+    # --- Include Shared Utility Routers ---
+    # This is a good place for non-agent-specific utility endpoints like the MCP
+    new_app.include_router(mcp_router) # MCP routes for context-based streaming
+    print(f"[CREATE_APP] Included shared MCP router for app {id(new_app)}.")
 
     @new_app.exception_handler(JSONRPCError)
     async def jsonrpc_exception_handler(request: Any, exc: JSONRPCError):

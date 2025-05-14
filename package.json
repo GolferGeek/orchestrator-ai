@@ -6,7 +6,8 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,py}\"",
-    "api": "bash ./scripts/setup_api.sh"
+    "api": "cd apps/api && python3 -m pdm run python start.py",
+    "configure:api": "./setup_api_env.sh"
   },
   "devDependencies": {
     "prettier": "^3.0.0",

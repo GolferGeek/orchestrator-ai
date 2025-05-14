@@ -34,28 +34,7 @@ Establish a fully functional development foundation for an agent-based system us
 
 ---
 
-## 📍 Phase 2: Frontend Agent Interface (Orchestrator-First)
-
-### 🎯 Goal  
-Create a Vue 3 interface that puts the **Orchestrator** front and center. The user interacts with a single chat-style interface — the orchestrator handles everything.
-
-### 🧱 Tasks
-- Build an orchestrator-first chat interface
-- Add push-to-talk input (browser STT to start)
-- Only show available agents when asked
-- Visualize agent responses in message thread
-
-### 📎 Deliverables  
-| Deliverable                  | Description                                 |
-|------------------------------|---------------------------------------------|
-| Chat-style orchestrator UI   | One prompt input, one thread view           |
-| Push-to-talk input           | Simple browser voice integration            |
-| Agent discovery via prompt   | Agent list only appears when requested      |
-| Agent response rendering     | Show which agent answered which message     |
-
----
-
-## 📍 Phase 3: Context-Based Agent Bootstrapping
+## 📍 Phase 2: Context-Based Agent Bootstrapping
 
 ### 🎯 Goal  
 Use markdown files as immediate agent knowledge bases for LLM prompting, enabling useful output from each agent without building full APIs or vector databases.
@@ -89,6 +68,27 @@ markdown_context/
 | FastAPI LLM routes             | Prompt LLMs using markdown + user input   |
 | `openai_utils.py`              | (Optional) wrapper for model calls        |
 | Updated `agent.json` examples  | Add skill examples to reflect markdown    |
+
+---
+
+## 📍 Phase 3: Frontend Agent Interface (Orchestrator-First)
+
+### 🎯 Goal  
+Create a Vue 3 interface that puts the **Orchestrator** front and center. The user interacts with a single chat-style interface — the orchestrator handles everything.
+
+### 🧱 Tasks
+- Build an orchestrator-first chat interface
+- Add push-to-talk input (browser STT to start)
+- Only show available agents when asked
+- Visualize agent responses in message thread
+
+### 📎 Deliverables  
+| Deliverable                  | Description                                 |
+|------------------------------|---------------------------------------------|
+| Chat-style orchestrator UI   | One prompt input, one thread view           |
+| Push-to-talk input           | Simple browser voice integration            |
+| Agent discovery via prompt   | Agent list only appears when requested      |
+| Agent response rendering     | Show which agent answered which message     |
 
 ---
 
