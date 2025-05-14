@@ -1,0 +1,45 @@
+---
+name: "Testing Standards"
+description: "Guidelines for writing unit, integration, and end-to-end tests for both backend and frontend."
+globs: ["tests/**/*.py", "apps/web/**/__tests__/*.spec.js"]
+alwaysApply: true
+---
+
+# Testing Standards
+
+## General Principles
+- Write tests for all new features and bug fixes.
+- Tests should be reliable, readable, and maintainable.
+- Aim for a balanced testing pyramid (unit, integration, E2E).
+- Ensure tests can run independently and in any order.
+
+## Unit Tests
+- Focus on testing individual functions, methods, or components in isolation.
+- Mock external dependencies to avoid side effects and ensure test speed.
+- Use clear and descriptive test names.
+- Each test should verify a single piece of behavior.
+- **Python**: Use `pytest` as the primary testing framework. Store tests in the `tests/unit` directory or alongside the code they test (e.g., `tests/apps/api/agents/test_agent_routes.py`).
+- **Vue**: Use Vitest or Jest for component and utility function unit tests. Store tests in `__tests__` directories or alongside the component files (e.g., `src/components/__tests__/MyComponent.spec.js`).
+
+## Integration Tests
+- Test the interaction between multiple components or modules.
+- For FastAPI, use `TestClient` to test API endpoints, including request/response validation and interaction with services.
+- Store Python integration tests in `tests/integration`.
+- Minimize mocking; use real dependencies where feasible (e.g., a test database).
+
+## End-to-End (E2E) Tests
+- Test complete user flows through the application.
+- Use tools like Cypress or Playwright for frontend E2E testing.
+- E2E tests are typically slower and more brittle, so focus on critical paths.
+
+## Test Organization
+- Maintain a clear directory structure for tests (e.g., `tests/unit`, `tests/integration`).
+- Use descriptive file names for test files (e.g., `test_user_service.py`, `LoginFlow.e2e.js`).
+
+## Code Coverage
+- Strive for high code coverage, but prioritize quality of tests over quantity.
+- Use coverage tools to identify untested code paths.
+
+## Continuous Integration (CI)
+- Integrate tests into the CI pipeline to run automatically on every push/PR.
+- Ensure builds fail if tests do not pass.

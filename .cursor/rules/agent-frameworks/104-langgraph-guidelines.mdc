@@ -1,0 +1,44 @@
+---
+name: "LangGraph Guidelines"
+description: "Best practices for building stateful, multi-actor applications with LangGraph."
+globs: ["*/*langgraph*/**.py", "*/*_graph.py"]
+alwaysApply: false
+---
+
+# LangGraph Guidelines
+
+## Core Concepts
+- **Stateful Graphs**: LangGraph is designed for building stateful, multi-actor applications like agents.
+- **Nodes**: Represent functions or callables that perform actions (e.g., calling an LLM, a tool, or updating state).
+- **Edges**: Define the flow of control between nodes. Edges can be conditional.
+- **State**: A central object (often a Pydantic model or TypedDict) that is passed between nodes and updated by them.
+- **CompiledGraph**: The executable graph object.
+
+## Graph Definition
+- **State Definition**: Define a TypedDict or Pydantic model to represent the graph's state. This state is modified by nodes.
+- **Nodes**: Implement nodes as functions that take the current state as input and return a dictionary of updates to the state.
+  - Use `functools.partial` or lambdas if nodes need access to external resources not in the state.
+- **Adding Nodes**: Use `graph.add_node("node_name", node_function)`.
+- **Edges**: 
+  - **Entry Point**: `graph.set_entry_point("start_node_name")`.
+  - **Normal Edges**: `graph.add_edge("source_node", "destination_node")` for unconditional transitions.
+  - **Conditional Edges**: `graph.add_conditional_edges("source_node_for_decision", condition_function, {"path_a": "node_for_path_a", "path_b": "node_for_path_b"})`.
+    - The `condition_function` takes the current state and returns the name of the next edge/node to follow.
+  - **Finish Point**: Define nodes that can be terminal states using `END` (e.g., `graph.add_edge("some_node", END)`).
+
+## Compiling and Running
+- **Compilation**: `app = graph.compile()`.
+- **Execution**: `app.invoke({"initial_state_key": value})` for single runs.
+- **Streaming**: Use `app.stream()` or `app.astream()` to get intermediate results from nodes as they execute.
+
+## Best Practices
+- **Modularity**: Keep nodes focused on a single task or decision.
+- **State Management**: Design the state object carefully. It's the primary way information flows through the graph.
+- **Error Handling**: Implement error handling within nodes or as separate paths in the graph.
+- **Debugging**: Utilize the streaming capabilities (`astream_log`) to inspect intermediate states and transitions. Langsmith integration is highly recommended.
+- **Loops**: LangGraph naturally supports cycles/loops, which are essential for agentic behavior (e.g., re-prompting, tool use cycles).
+- **Human-in-the-Loop**: Design nodes that can pause execution and wait for human input if needed.
+
+## Comparison to LCEL
+- LangGraph is built on top of LCEL but provides a higher-level abstraction for cyclic graphs and state management, which are common in agent development.
+- Use LCEL for simpler, linear chains; use LangGraph for more complex, stateful, and potentially cyclic agentic flows.

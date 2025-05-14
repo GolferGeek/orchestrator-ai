@@ -1,0 +1,57 @@
+---
+name: "Python API Standards"
+description: "Guidelines for Python backend development using FastAPI, Pydantic, and asynchronous programming."
+globs: ["apps/api/**/*.py", "shared/**/*.py"]
+alwaysApply: true
+---
+
+# Python API Standards
+
+## General Principles
+- Follow PEP 8 for code style.
+- Write clear, concise, and maintainable code.
+- Embrace asynchronous programming (`async`/`await`) for I/O-bound operations.
+- Use type hints for all function signatures and variables.
+
+## FastAPI Best Practices
+- Use Pydantic models for request and response validation.
+- Leverage FastAPI's dependency injection system for managing resources and dependencies.
+- Organize routes logically, typically by resource or functionality.
+- Use `APIRouter` to group related routes and include them in the main `FastAPI` app.
+- Implement proper status codes for HTTP responses (e.g., 200, 201, 400, 404, 500).
+- Use `HTTPException` for standard HTTP errors.
+
+## Route Organization
+- Group related endpoints in separate Python modules (e.g., `apps/api/agents/[agent_name]/routes.py`).
+- Use descriptive names for route functions.
+- Keep route functions focused on handling the request and returning a response; delegate business logic to service layers or utility functions.
+
+## Error Handling
+- Implement centralized error handling using exception handlers or middleware where appropriate.
+- Provide meaningful error messages to clients without exposing sensitive internal details.
+- Log errors with sufficient context for debugging.
+
+## Pydantic Model Usage
+- Define Pydantic models for all request bodies, query parameters, and response payloads.
+- Use field validators for complex validation logic.
+- Utilize response_model to serialize and validate outgoing data.
+
+## Asynchronous Programming
+- Use `async def` for all route handlers and I/O-bound operations.
+- Use `await` for calling asynchronous functions.
+- Be mindful of blocking calls within async functions; use `run_in_threadpool` if necessary for synchronous libraries.
+
+## Dependency Injection
+- Use FastAPI's `Depends` for injecting dependencies like database sessions, configuration, or service classes.
+- Define dependencies as callable functions or classes.
+
+## Logging
+- Use the standard `logging` module.
+- Configure logging levels appropriately for different environments (DEBUG in dev, INFO/WARNING in prod).
+- Include relevant information in log messages, such as request IDs, timestamps, and context-specific data.
+
+## Testing
+- Write unit tests for business logic and utility functions.
+- Write integration tests for API endpoints using FastAPI's `TestClient`.
+- Aim for high test coverage.
+- Use fixtures for setting up test data and dependencies.

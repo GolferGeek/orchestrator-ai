@@ -1,0 +1,50 @@
+---
+name: "OpenAI SDK Guidelines"
+description: "Best practices for using the OpenAI Python SDK to build agent capabilities."
+globs: ["**/llm_mcp.py", "**/openai_utils.py", "*/*openai*/**.py"]
+alwaysApply: false
+---
+
+# OpenAI Agent SDK Guidelines
+
+## General Principles
+- Utilize the official OpenAI Python SDK for interactions with OpenAI models (GPT-3.x, GPT-4, Embeddings, etc.).
+- Keep API keys secure using environment variables and never commit them.
+- Handle API errors gracefully (e.g., rate limits, server errors, authentication issues).
+
+## Client Initialization
+- Initialize the OpenAI client once and reuse it where possible (e.g., using FastAPI dependency injection).
+- Configure necessary parameters like API key, organization (if applicable).
+
+## Model Usage
+- **Chat Completions (`gpt-3.5-turbo`, `gpt-4`, etc.)**:
+  - Structure prompts clearly with system, user, and assistant messages.
+  - Use appropriate parameters like `temperature`, `max_tokens`, `top_p` based on the desired output (creative vs. factual).
+  - Be mindful of token limits and context window sizes.
+- **Embeddings (`text-embedding-ada-002`, etc.)**:
+  - Use for semantic search, clustering, and other text similarity tasks.
+  - Batch requests where possible for efficiency.
+- **Function Calling**:
+  - Define functions clearly with JSON schema for parameters.
+  - Handle function call responses from the model and execute the corresponding local functions.
+
+## Prompt Engineering
+- Develop clear, specific, and effective prompts.
+- For complex tasks, consider few-shot prompting or chain-of-thought prompting techniques.
+- Iterate on prompts based on model responses.
+
+## Streaming Responses
+- For interactive applications (like chatbots), use streaming for chat completions to provide faster perceived responsiveness.
+
+## Error Handling and Retries
+- Implement retry mechanisms with exponential backoff for transient API errors.
+- Catch specific OpenAI exceptions (e.g., `openai.error.RateLimitError`, `openai.error.AuthenticationError`).
+
+## Cost Management
+- Be aware of the pricing for different models and API calls.
+- Optimize token usage by keeping prompts concise and using `max_tokens` appropriately.
+- Monitor API usage through the OpenAI dashboard.
+
+## Versioning
+- Pin the OpenAI SDK version in `requirements.txt` to ensure stable behavior.
+- Be aware of potential breaking changes when upgrading the SDK.

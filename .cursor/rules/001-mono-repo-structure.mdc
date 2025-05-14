@@ -1,0 +1,50 @@
+---
+name: "Mono-Repo Structure"
+description: "Guidelines for directory organization, package management, and dependencies in our A2A agent framework"
+globs: ["**/*.json", "**/*.md", "**/*/"]
+alwaysApply: true
+---
+
+# Mono-Repo Structure Guidelines
+
+## Directory Structure
+
+- The project is organized as a monorepo using Turborepo
+- Each agent has its own directory under `apps/api/agents/`
+- Shared code lives in `shared/` directory
+- All agents must expose a `.well-known/agent.json` file for A2A compatibility
+
+## Agent Structure
+- Each agent follows this basic structure:
+  ```
+  apps/api/agents/[agent_name]/
+  ├── .well-known/
+  │   └── agent.json     # A2A-compatible agent definition
+  ├── routes.py          # FastAPI routes for the agent
+  └── README.md          # Agent documentation
+  ```
+
+## Markdown Context Structure
+- Agent knowledge bases are stored in `markdown_context/` at project root
+- Each agent has a corresponding markdown file: `markdown_context/[agent_name].md`
+- No context file should exceed 1MB in size
+
+## Package Management
+- Use pnpm for Node.js package management
+- Use pip and requirements.txt for Python dependencies
+- Dependencies should be scoped to relevant workspaces
+
+## Importing Guidelines
+- Prefer relative imports within the same agent
+- Use absolute imports for shared code
+- Always import shared utilities from their public exports
+
+## Commit Guidelines
+- Use conventional commit messages
+- Reference related issues when applicable
+- Keep commits focused on a single agent or feature
+
+## Configuration
+- Environment variables in `.env` files (never committed)
+- Agent-specific configuration in their respective directories
+- Shared configuration in `shared/config/`

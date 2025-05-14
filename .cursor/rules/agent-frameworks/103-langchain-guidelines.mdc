@@ -1,0 +1,56 @@
+---
+name: "Langchain Guidelines"
+description: "Best practices for developing LLM applications with Langchain."
+globs: ["*/*langchain*/**.py", "*/*_chain.py"]
+alwaysApply: false
+---
+
+# Langchain Guidelines
+
+## Core Components
+- **Models (LLMs, ChatModels, Embeddings)**: Interface with various language models.
+- **Prompts (PromptTemplates, ChatPromptTemplate)**: Manage and optimize inputs to models.
+- **Chains (LLMChain, SequentialChain)**: Combine LLMs and prompts for sequences of calls.
+- **Indexes (DocumentLoaders, TextSplitters, VectorStores, Retrievers)**: Structure and retrieve data for LLMs.
+- **Memory**: Enable chains and agents to remember previous interactions.
+- **Agents**: Allow LLMs to make decisions, take actions, and observe results.
+- **Callbacks**: Log and stream intermediate steps of any chain.
+
+## General Principles
+- Understand the specific Langchain module you are using (e.g., `langchain-core`, `langchain-openai`, `langchain-community`).
+- Favor LCEL (Langchain Expression Language) for composing chains due to its composability and built-in streaming/batch/async support.
+- Keep track of Langchain versions, as the library evolves rapidly.
+
+## Model Usage
+- Choose appropriate models (LLMs vs. ChatModels) based on the task.
+- Configure model parameters (e.g., `temperature`, `model_name`) explicitly.
+
+## Prompt Management
+- Use `PromptTemplate` or `ChatPromptTemplate` for dynamic prompt generation.
+- Clearly define input variables in templates.
+- For chat models, structure prompts with `SystemMessage`, `HumanMessage`, and `AIMessage`.
+
+## Chain Construction (LCEL)
+- Use the pipe operator (`|`) to connect components (prompts, models, output parsers).
+- Leverage `RunnablePassthrough` and `RunnableParallel` for complex data flows.
+- Use `StrOutputParser` or custom output parsers to format model outputs.
+
+## RAG (Retrieval Augmented Generation)
+- **Document Loading**: Use appropriate `DocumentLoader` (e.g., `PyPDFLoader`, `WebBaseLoader`).
+- **Text Splitting**: Choose a `TextSplitter` (e.g., `RecursiveCharacterTextSplitter`) with appropriate chunk size and overlap.
+- **Vector Stores**: Select a vector store (e.g., FAISS, Chroma) and embedding model.
+- **Retrievers**: Configure retrievers (e.g., `as_retriever()`) with search parameters like `k`.
+- Construct RAG chains using LCEL, typically: `{"context": retriever, "question": RunnablePassthrough()} | prompt | model | StrOutputParser()`.
+
+## Agents
+- Understand the different agent types (e.g., ReAct, OpenAI Functions Agent).
+- Define tools clearly with names, descriptions, and Pydantic models for arguments if needed.
+- Be cautious with agents that can execute arbitrary code or interact with external systems.
+
+## Memory
+- Choose appropriate memory types (e.g., `ConversationBufferMemory`) for the application.
+- Integrate memory correctly into chains or agents.
+
+## Debugging and Observability
+- Use Langsmith (https://smith.langchain.com/) for tracing, monitoring, and debugging Langchain applications.
+- Utilize `verbose=True` (where available) or callbacks for local debugging.

@@ -1,0 +1,51 @@
+---
+name: "CrewAI Guidelines"
+description: "Best practices for building multi-agent systems with CrewAI."
+globs: ["*/*crew*/**.py", "*/*_crew.py"]
+alwaysApply: false
+---
+
+# CrewAI Guidelines
+
+## Core Concepts
+- **Agents**: Define specialized agents with distinct roles, goals, and backstories.
+- **Tasks**: Break down complex problems into smaller, manageable tasks assigned to agents.
+- **Tools**: Equip agents with tools (functions) to interact with external systems or perform specific actions.
+- **Crews**: Assemble agents into crews to collaborate on solving tasks.
+- **Process**: Define the workflow sequence (e.g., sequential, hierarchical).
+
+## Agent Definition
+- Provide a clear `role` for each agent.
+- Define a specific `goal` that the agent aims to achieve.
+- Write a concise `backstory` to give context and personality to the agent.
+- Set `allow_delegation` to `True` or `False` based on whether the agent can delegate tasks to others.
+- Use `verbose=True` during development for better insight into agent actions.
+
+## Task Definition
+- Write a clear `description` for each task, including expected inputs and outputs.
+- Assign an `agent` responsible for executing the task.
+- Provide `expected_output` to guide the agent and for validation.
+
+## Tool Creation
+- Define tools as Python functions.
+- Use the `@tool` decorator from `crewai_tools`.
+- Ensure tools have clear names and docstrings explaining their purpose, arguments, and return values.
+- Tools should be focused and perform a single, well-defined action.
+
+## Crew Composition
+- Select agents appropriate for the overall goal of the crew.
+- Define the `tasks` to be executed by the crew.
+- Choose a `process` (e.g., `Process.sequential`) that fits the workflow.
+- Consider using a `manager_llm` for more complex crew coordination if needed.
+
+## Running and Debugging
+- Use the `kickoff()` method to start the crew's execution.
+- Utilize `verbose=True` (for agents and/or crew) to understand the decision-making process.
+- Inspect the output of each task and agent interaction.
+
+## Best Practices
+- Start with simple crews and gradually increase complexity.
+- Clearly define the responsibilities and capabilities of each agent.
+- Ensure tasks are well-defined and achievable by the assigned agents.
+- Design tools to be robust and handle potential errors.
+- Iterate on agent roles, goals, tasks, and tools based on observed performance.

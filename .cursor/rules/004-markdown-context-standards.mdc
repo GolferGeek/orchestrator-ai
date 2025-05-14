@@ -1,0 +1,37 @@
+---
+name: "Markdown Context Standards"
+description: "Guidelines for creating and maintaining agent knowledge bases using Markdown files."
+globs: ["markdown_context/**/*.md"]
+alwaysApply: true
+---
+
+# Markdown Context Standards
+
+## Purpose
+- Markdown context files serve as the primary knowledge base for agents in the early bootstrapping phase.
+- They allow for rapid prototyping and iteration before implementing more complex RAG or API integrations.
+
+## File Location
+- All agent context files must be located in the `markdown_context/` directory at the project root.
+- Each agent should have its own markdown file named `[agent_name].md` (e.g., `metrics_agent.md`).
+
+## Formatting Requirements
+- Use standard Markdown syntax.
+- Organize content logically using headings (H1, H2, H3, etc.) for structure.
+- Use clear and concise language.
+
+## Content Guidelines
+- **Agent Persona/Role**: Define the agent's role, expertise, and tone.
+- **Key Information**: Include core data, facts, or knowledge relevant to the agent's function.
+  - For `metrics_agent`: Sample metrics, definitions, calculation methods, interpretation guidelines.
+  - For `write_blog_post`: Blog post structures, style guides, SEO keywords, example opening/closing paragraphs.
+- **Capabilities & Limitations**: Clearly state what the agent can and cannot do based on the provided context.
+- **Example Interactions**: Provide a few examples of user queries and expected agent responses based *only* on the markdown content. This helps in understanding the agent's intended behavior.
+- **Data Formatting**: For structured data (like tables or lists of items), use Markdown tables or formatted lists for easy parsing by an LLM.
+
+## Size Limitations
+- No single context file should exceed 1MB. This is a practical limit to ensure efficient processing by LLMs and to encourage focused, relevant context.
+
+## Maintenance
+- Regularly review and update context files as the project evolves.
+- Ensure consistency between the agent's `agent.json` description and its markdown context capabilities.
