@@ -1,26 +1,20 @@
 # apps/api/agents/hr/hr_assistant/main.py
-from datetime import datetime, timezone
-from typing import Optional
 import logging # Added for logging
-from pathlib import Path # Added import for Path
 
 import httpx # For http_client dependency
 from fastapi import APIRouter, Depends, HTTPException
 
-from apps.api.a2a_protocol.base_agent import A2AAgentBaseService
-from apps.api.a2a_protocol.task_store import TaskStoreService, TaskAndHistory # Added TaskAndHistory
+from apps.api.a2a_protocol.task_store import TaskStoreService # TaskAndHistory removed
 from apps.api.a2a_protocol.types import (
     AgentCard,
     AgentCapability,
-    Message,
     TextPart,
     TaskSendParams, # Changed from TaskRequestBody
     Task,
-    TaskStatus,  # Added import
-    TaskState    # Added import
+    JSONRPCError # Kept for now, though ideal base class behavior might make it redundant
 )
 # from ....core.config import settings # Not directly used in metrics/main.py for agent-specific logic
-from apps.api.shared.mcp.mcp_client import MCPClient, MCPError, MCPConnectionError, MCPTimeoutError
+from apps.api.shared.mcp.mcp_client import MCPClient # Specific errors handled by base
 from apps.api.main import get_original_http_client # Import the http_client provider
 from apps.api.agents.base.mcp_context_agent_base import MCPContextAgentBaseService # Import the new base class
 
@@ -129,8 +123,6 @@ async def process_tasks_route(
     This endpoint now delegates to the base class's handle_task_send method,
     which orchestrates task creation, status updates, and calls the overridden process_message.
     """
-    # current_task_id = task_request.id # ID from TaskSendParams (default_factory generates one if not provided)
-    
     # Log the incoming request details safely
     log_input_text = "No text part found or text part is empty."
     if task_request.message.parts and isinstance(task_request.message.parts[0].root, TextPart):
@@ -141,44 +133,19 @@ async def process_tasks_route(
         # Delegate to the base service's task handling logic
         # handle_task_send will call our overridden process_message internally.
         task_response = await service.handle_task_send(params=task_request)
-        if task_response:
-            logger.info(f"HR Assistant /tasks endpoint successfully processed task {task_request.id}. Returning Task object. Final state: {task_response.status.state}")
-            return task_response
-        else:
-            # This case should ideally be handled within handle_task_send by returning a failed Task object
+        if not task_response: # Should ideally not happen if base class is robust
             logger.error(f"HR Assistant /tasks endpoint: handle_task_send returned None for task {task_request.id}. This is unexpected.")
             raise HTTPException(status_code=500, detail="Task processing failed to return a valid task object.")
 
-    except JSONRPCError as rpc_error:
-        logger.error(f"HR Assistant /tasks endpoint: JSONRPCError for task {task_request.id}: {rpc_error.message}", exc_info=True)
-        # Convert JSONRPCError to HTTPException or return a Task object with error status
-        # For now, re-raising as a generic HTTP 500 might be too vague. 
-        # The base handle_task_send should ideally return a Task object even on errors.
-        # However, if it raises, we catch it.
-        # Let's construct a Task response reflecting the error.
-        return Task(
-            id=task_request.id if task_request.id else str(uuid.uuid4()),
-            status=TaskStatus(state=TaskState.FAILED, timestamp=datetime.now(timezone.utc).isoformat(), message=rpc_error.message),
-            request_message=task_request.message,
-            response_message=Message(role="agent", parts=[TextPart(text=rpc_error.message)], timestamp=datetime.now(timezone.utc).isoformat()),
-            created_at=datetime.now(timezone.utc).isoformat(), # Best guess
-            updated_at=datetime.now(timezone.utc).isoformat(),
-            session_id=task_request.session_id
-        )
-    except HTTPException: # Re-raise known HTTP exceptions
+        logger.info(f"HR Assistant /tasks endpoint successfully processed task {task_request.id}. Returning Task object. Final state: {task_response.status.state}")
+        return task_response
+    except HTTPException: # Re-raise HTTPExceptions explicitly
         raise
-    except Exception as e:
-        logger.error(f"HR Assistant /tasks endpoint: Unexpected error for task {task_request.id}: {e}", exc_info=True)
-        # Fallback for truly unexpected errors not caught by handle_task_send's error handling
-        return Task(
-            id=task_request.id if task_request.id else str(uuid.uuid4()),
-            status=TaskStatus(state=TaskState.FAILED, timestamp=datetime.now(timezone.utc).isoformat(), message=str(e)),
-            request_message=task_request.message,
-            response_message=Message(role="agent", parts=[TextPart(text=str(e))], timestamp=datetime.now(timezone.utc).isoformat()),
-            created_at=datetime.now(timezone.utc).isoformat(), # Best guess
-            updated_at=datetime.now(timezone.utc).isoformat(),
-            session_id=task_request.session_id
-        )
+    except Exception as e: # Catch any other unexpected error from handle_task_send or above
+        logger.error(f"HR Assistant /tasks endpoint: Unexpected error during task processing for task ID {task_request.id}: {e}", exc_info=True)
+        # This path implies handle_task_send itself failed catastrophically, not just an error within process_message.
+        # It's better to raise an HTTPException than to try and construct a Task here, as the state is unknown.
+        raise HTTPException(status_code=500, detail=f"An unexpected server error occurred during task processing: {str(e)}")
 
 # Example of how another route might use the task store for GETting a task
 # @agent_router.get("/tasks/{task_id}", response_model=Task)

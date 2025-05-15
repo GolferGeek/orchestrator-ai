@@ -107,8 +107,7 @@ class MCPContextAgentBaseService(A2AAgentBaseService):
             response_text = await self.mcp_client.query_agent_aggregate(
                 agent_id=self.mcp_target_agent_id,
                 user_query=query_for_mcp,
-                session_id=session_id,
-                parent_task_id=task_id
+                session_id=session_id
             )
             self.logger.info(f"(Task {task_id}): Received aggregated response from MCPClient for target agent '{self.mcp_target_agent_id}'.")
         except MCPConnectionError as e_conn:

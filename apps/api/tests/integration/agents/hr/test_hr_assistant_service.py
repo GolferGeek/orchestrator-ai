@@ -75,8 +75,7 @@ async def test_hr_assistant_process_message_success(client_and_app: tuple[httpx.
     mock_query_aggregate.assert_called_once_with(
         agent_id=MCP_TARGET_AGENT_ID_FOR_HR_QUERIES, 
         user_query=expected_query_for_mcp,
-        session_id=None, # Assuming session_id is None if not provided in payload
-        parent_task_id=ANY # Task ID is generated, so we use ANY
+        session_id=None # Assuming session_id is None if not provided in payload
     )
 
 @pytest.mark.asyncio

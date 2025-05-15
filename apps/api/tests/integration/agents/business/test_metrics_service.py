@@ -2,16 +2,24 @@ import pytest
 from unittest.mock import AsyncMock
 import httpx # For client type hint
 from fastapi import FastAPI # For app type hint
-# Import only AGENT_VERSION as it's the only top-level constant
-from apps.api.agents.business.metrics.main import AGENT_VERSION as METRICS_AGENT_VERSION
+from pathlib import Path # For loading context file
+from unittest.mock import ANY # For asserting generated task_id
+
+# Import agent-specific constants from the Metrics agent's main module
+from apps.api.agents.business.metrics.main import (
+    AGENT_ID as METRICS_AGENT_ID,
+    AGENT_NAME as METRICS_AGENT_NAME,
+    AGENT_VERSION as METRICS_AGENT_VERSION,
+    AGENT_DESCRIPTION as METRICS_AGENT_DESCRIPTION, # Import new constant
+    MCP_TARGET_AGENT_ID as METRICS_MCP_TARGET_ID,  # Import new constant
+    CONTEXT_FILE_NAME as METRICS_CONTEXT_FILE    # Import new constant
+)
 from apps.api.a2a_protocol.types import Message, TextPart
 from apps.api.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError
 
-# Define expected ID and Name as literals based on MetricsService.get_agent_card()
-EXPECTED_METRICS_AGENT_ID = "metrics-agent-v1"
-EXPECTED_METRICS_AGENT_NAME = "Metrics Agent"
-
-# Removed local client and metrics_service_instance fixtures
+# Helper to get project root for loading the context file in tests
+PROJECT_ROOT = Path(__file__).resolve().parents[6] # agents/business/tests/integration -> business -> agents -> api -> apps -> orchestrator-ai
+METRICS_CONTEXT_FILE_PATH = PROJECT_ROOT / "markdown_context" / METRICS_CONTEXT_FILE
 
 @pytest.mark.asyncio
 async def test_get_metrics_agent_card(client_and_app: tuple[httpx.AsyncClient, FastAPI]):
@@ -20,8 +28,9 @@ async def test_get_metrics_agent_card(client_and_app: tuple[httpx.AsyncClient, F
     response = await client.get("/agents/business/metrics/agent-card")
     assert response.status_code == 200
     agent_card = response.json()
-    assert agent_card["id"] == EXPECTED_METRICS_AGENT_ID
-    assert agent_card["name"] == EXPECTED_METRICS_AGENT_NAME
+    assert agent_card["id"] == METRICS_AGENT_ID
+    assert agent_card["name"] == METRICS_AGENT_NAME
+    assert agent_card["description"] == METRICS_AGENT_DESCRIPTION # Assert new constant
     assert agent_card["version"] == METRICS_AGENT_VERSION # This comes from the imported constant
     assert agent_card["type"] == "specialized"
     assert "/agents/business/metrics/tasks" in agent_card["endpoints"]
@@ -34,6 +43,12 @@ async def test_metrics_process_message_success(client_and_app: tuple[httpx.Async
     client, _ = client_and_app
     mocked_mcp_response = "Total active users: 1500"
     
+    # Read the actual metrics context content for the assertion
+    try:
+        actual_metrics_context_content = METRICS_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        pytest.fail(f"Test setup error: Metrics context file not found at {METRICS_CONTEXT_FILE_PATH}")
+
     mock_query_aggregate = mocker.patch(
         "apps.api.agents.business.metrics.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
@@ -54,9 +69,10 @@ async def test_metrics_process_message_success(client_and_app: tuple[httpx.Async
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     assert actual_response_text == mocked_mcp_response
 
+    expected_query_for_mcp = f"{actual_metrics_context_content}\n\nUser Query: {user_query}"
     mock_query_aggregate.assert_called_once_with(
-        agent_id="metrics_agent",
-        user_query=user_query,
+        agent_id=METRICS_MCP_TARGET_ID, # Use the constant
+        user_query=expected_query_for_mcp,
         session_id=None
     )
 
@@ -76,7 +92,8 @@ async def test_metrics_process_message_mcp_connection_error(client_and_app: tupl
     assert "parts" in response_data_full["response_message"]
     assert len(response_data_full["response_message"]["parts"]) >= 1
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    expected_error_message = "Connection Error: Could not connect to the metrics processing service (MCP). Please ensure it's running."
+    error_detail = "Failed to connect to MCP" # Match the side_effect
+    expected_error_message = f"Connection Error: Could not connect to the target processing service. Details: {error_detail}"
     assert actual_response_text == expected_error_message
 
 @pytest.mark.asyncio
@@ -95,7 +112,8 @@ async def test_metrics_process_message_mcp_timeout_error(client_and_app: tuple[h
     assert "parts" in response_data_full["response_message"]
     assert len(response_data_full["response_message"]["parts"]) >= 1
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    expected_error_message = "The request to the metrics processing service (MCP) timed out."
+    error_detail = "Request to MCP timed out" # Match the side_effect
+    expected_error_message = f"The request to the target processing service timed out. Details: {error_detail}"
     assert actual_response_text == expected_error_message
 
 @pytest.mark.asyncio
@@ -114,7 +132,9 @@ async def test_metrics_process_message_mcp_generic_error(client_and_app: tuple[h
     assert "parts" in response_data_full["response_message"]
     assert len(response_data_full["response_message"]["parts"]) >= 1
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    assert "Error from metrics processing service (MCP): An MCP specific error occurred for metrics" in actual_response_text
+    error_detail = "An MCP specific error occurred for metrics" # Match the side_effect
+    expected_error_message = f"Error from target processing service: {error_detail}"
+    assert actual_response_text == expected_error_message
 
 @pytest.mark.asyncio
 async def test_metrics_process_message_unexpected_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
@@ -131,6 +151,6 @@ async def test_metrics_process_message_unexpected_error(client_and_app: tuple[ht
     response_data_full = response.json()
     assert "response_message" in response_data_full
     assert response_data_full["response_message"]["role"] == "agent"
-    # Corrected expected message based on actual service code
-    expected_service_error_message = "An unexpected error occurred while trying to reach the metrics processing service (MCP)."
+    # error_details is defined in the test as "Metrics specific unexpected error"
+    expected_service_error_message = f"An unexpected error occurred while trying to reach the target processing service. Details: {error_details}"
     assert response_data_full["response_message"]["parts"][0]["text"] == expected_service_error_message 
