@@ -22,6 +22,7 @@ from apps.api.a2a_protocol.types import (
 # from ....core.config import settings # Not directly used in metrics/main.py for agent-specific logic
 from apps.api.shared.mcp.mcp_client import MCPClient, MCPError, MCPConnectionError, MCPTimeoutError
 from apps.api.main import get_original_http_client # Import the http_client provider
+from apps.api.agents.base.mcp_context_agent_base import MCPContextAgentBaseService # Import the new base class
 
 # Agent specific metadata
 AGENT_ID = "hr-assistant-agent-v1"
@@ -32,6 +33,7 @@ AGENT_VERSION = "0.1.0"
 # It's assumed the MCP knows an agent by this ID (e.g., "knowledge_agent_hr_domain")
 # that is primed with or has access to the HR knowledge base (hr_assistant_agent.md or equivalent).
 MCP_TARGET_AGENT_ID_FOR_HR_QUERIES = "knowledge_agent_hr_domain" 
+HR_CONTEXT_FILE_NAME = "hr_assistant_agent.md" # Define the context file name
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -41,7 +43,7 @@ logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
-class HRAssistantService(A2AAgentBaseService):
+class HRAssistantService(MCPContextAgentBaseService):
     """HR Assistant Agent Service that queries the MCP for context-aware responses."""
 
     def __init__(
@@ -49,14 +51,17 @@ class HRAssistantService(A2AAgentBaseService):
         mcp_client: MCPClient, # Specific to this service
         task_store: TaskStoreService, # From base
         http_client: httpx.AsyncClient, # From base
-        agent_name: str = AGENT_NAME # From base, can default to module constant
+        # agent_name is handled by base, mcp_target_agent_id and context_file_name are new
     ):
-        super().__init__(task_store=task_store, http_client=http_client, agent_name=agent_name)
-        self.mcp_client = mcp_client
-        self.logger = logging.getLogger(AGENT_NAME) # Use specific agent name for logger
-        if not self.logger.hasHandlers(): # Ensure handlers are set if not already
-            logging.basicConfig(level=logging.INFO)
-            self.logger.info(f"{AGENT_NAME} logger re-initialized during HRAssistantService instantiation.")
+        super().__init__(
+            task_store=task_store,
+            http_client=http_client,
+            agent_name=AGENT_NAME, # Pass the constant
+            mcp_client=mcp_client,
+            mcp_target_agent_id=MCP_TARGET_AGENT_ID_FOR_HR_QUERIES,
+            context_file_name=HR_CONTEXT_FILE_NAME
+        )
+        # Logger is initialized in the base class with AGENT_NAME
 
     async def get_agent_card(self) -> AgentCard:
         """Provides the agent's capabilities and metadata."""
@@ -73,76 +78,11 @@ class HRAssistantService(A2AAgentBaseService):
                     description="Answers HR-related questions by relaying them to an MCP, using HR context."
                 )
             ],
-            endpoints=["/agents/hr/hr_assistant/tasks"]
+            endpoints=[f"/agents/hr/hr_assistant/tasks"]
         )
 
-    async def process_message(self, message: Message, task_id: str, session_id: Optional[str] = None) -> Message:
-        """Processes an incoming message by querying the MCP with HR context."""
-        self.logger.info(f"HRAssistantService (task {task_id}): Processing message. Content starts with: '{message.parts[0].root.text[:50] if message.parts and isinstance(message.parts[0].root, TextPart) else '[Non-text part or empty]'}'")
-
-        user_query = ""
-        if message.parts and isinstance(message.parts[0].root, TextPart):
-            user_query = message.parts[0].root.text
-        else:
-            self.logger.warning(f"Task {task_id} received with no usable text part in the message.")
-            return Message(role="agent", parts=[TextPart(text="No valid query found in the message.")], timestamp=datetime.now(timezone.utc).isoformat())
-
-        if not user_query:
-            self.logger.warning(f"Task {task_id} has an empty user query.")
-            return Message(role="agent", parts=[TextPart(text="Received an empty query.")], timestamp=datetime.now(timezone.utc).isoformat())
-
-        hr_context_str = self.load_hr_context()
-        # Combine user query with context for the MCP target agent
-        # The MCP target agent (e.g., knowledge_agent_hr_domain) will receive this combined query.
-        query_for_mcp = f"{hr_context_str}\n\nUser Query: {user_query}"
-        
-        self.logger.info(f"HRAssistantService (task {task_id}): Relaying query to MCPClient targeting agent '{MCP_TARGET_AGENT_ID_FOR_HR_QUERIES}'")
-        response_text = ""
-
-        try:
-            # Use the mcp_client (passed during __init__) to query the target agent on the MCP
-            response_text = await self.mcp_client.query_agent_aggregate(
-                agent_id=MCP_TARGET_AGENT_ID_FOR_HR_QUERIES, 
-                user_query=query_for_mcp, # Send the combined context and query
-                session_id=session_id,
-                parent_task_id=task_id 
-            )
-            self.logger.info(f"HRAssistantService (task {task_id}): Received aggregated response from MCPClient for target agent '{MCP_TARGET_AGENT_ID_FOR_HR_QUERIES}'.")
-        except MCPConnectionError as e_conn:
-            self.logger.error(f"HRAssistantService (task {task_id}): MCPClient Connection Error for target agent '{MCP_TARGET_AGENT_ID_FOR_HR_QUERIES}': {e_conn}")
-            response_text = f"Connection Error: Could not connect to the HR processing service (MCP). Details: {e_conn}"
-        except MCPTimeoutError as e_timeout:
-            self.logger.error(f"HRAssistantService (task {task_id}): MCPClient Read Timeout for target agent '{MCP_TARGET_AGENT_ID_FOR_HR_QUERIES}': {e_timeout}")
-            response_text = f"The request to the HR processing service (MCP) timed out. Details: {e_timeout}"
-        except MCPError as e_mcp:
-            self.logger.error(f"HRAssistantService (task {task_id}): MCPClient Error for target agent '{MCP_TARGET_AGENT_ID_FOR_HR_QUERIES}': {e_mcp} (Status: {e_mcp.status_code if hasattr(e_mcp, 'status_code') else 'N/A'})")
-            response_text = f"Error from HR processing service (MCP): {str(e_mcp)}"
-        except Exception as e_generic:
-            self.logger.exception(f"HRAssistantService (task {task_id}): Unexpected error using MCPClient for target agent '{MCP_TARGET_AGENT_ID_FOR_HR_QUERIES}': {str(e_generic)}")
-            response_text = f"An unexpected error occurred while trying to reach the HR processing service (MCP). Details: {e_generic}"
-
-        return Message(
-            role="agent",
-            parts=[TextPart(text=response_text)],
-            timestamp=datetime.now(timezone.utc).isoformat()
-        )
-
-    def load_hr_context(self) -> str:
-        """Loads HR-specific context from the markdown file."""
-        # Path(__file__) is apps/api/agents/hr/hr_assistant/main.py
-        # We need to go up 6 levels to reach the project root.
-        # main.py -> hr_assistant -> hr -> agents -> api -> apps -> project_root
-        project_root = Path(__file__).resolve().parents[5]
-        context_file_path = project_root / "markdown_context" / "hr_assistant_agent.md"
-        try:
-            with open(context_file_path, "r", encoding="utf-8") as f:
-                return f.read()
-        except FileNotFoundError:
-            self.logger.error(f"HR context file not found at {context_file_path}")
-            return "HR context not available (file not found). This agent may not function as expected."
-        except Exception as e:
-            self.logger.exception(f"Error loading HR context from {context_file_path}: {e}")
-            return "Error loading HR context. This agent may not function as expected."
+    # process_message is now inherited from MCPContextAgentBaseService
+    # load_context (formerly load_hr_context) is now inherited from MCPContextAgentBaseService
 
 # Create an APIRouter instance for the HR Assistant Agent
 agent_router = APIRouter(
@@ -165,8 +105,9 @@ async def get_hr_assistant_service(
     return HRAssistantService(
         mcp_client=mcp_client,
         task_store=task_store,
-        http_client=http_client,
-        agent_name=AGENT_NAME # Pass the agent name explicitly
+        http_client=http_client
+        # agent_name, mcp_target_agent_id, and context_file_name are set in HRAssistantService.__init__
+        # using constants when calling super().__init__
     )
 
 

@@ -98,7 +98,7 @@ async def test_hr_assistant_process_message_mcp_connection_error(client_and_app:
     
     assert "response_message" in response_data_full
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    expected_error_message = f"Connection Error: Could not connect to the HR processing service (MCP). Details: {error_detail}"
+    expected_error_message = f"Connection Error: Could not connect to the target processing service. Details: {error_detail}"
     assert actual_response_text == expected_error_message
 
 @pytest.mark.asyncio
@@ -119,7 +119,7 @@ async def test_hr_assistant_process_message_mcp_timeout_error(client_and_app: tu
     response_data_full = response.json()
     
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    expected_error_message = f"The request to the HR processing service (MCP) timed out. Details: {error_detail}"
+    expected_error_message = f"The request to the target processing service timed out. Details: {error_detail}"
     assert actual_response_text == expected_error_message
 
 @pytest.mark.asyncio
@@ -140,8 +140,8 @@ async def test_hr_assistant_process_message_mcp_generic_error(client_and_app: tu
     response_data_full = response.json()
     
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    expected_error_message = f"Error from HR processing service (MCP): {error_detail}"
-    assert actual_response_text == expected_error_message # Changed from 'in' to direct equality
+    expected_error_message = f"Error from target processing service: {str(error_detail)}"
+    assert actual_response_text == expected_error_message
 
 @pytest.mark.asyncio
 async def test_hr_assistant_process_message_unexpected_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
@@ -161,7 +161,7 @@ async def test_hr_assistant_process_message_unexpected_error(client_and_app: tup
     response_data_full = response.json()
     
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    expected_service_error_message = f"An unexpected error occurred while trying to reach the HR processing service (MCP). Details: {error_detail}"
+    expected_service_error_message = f"An unexpected error occurred while trying to reach the target processing service. Details: {error_detail}"
     assert actual_response_text == expected_service_error_message
 
 # TODO: Consider adding tests for:
