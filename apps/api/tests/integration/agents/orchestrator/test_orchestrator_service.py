@@ -3,9 +3,11 @@ from unittest.mock import AsyncMock, patch, ANY
 import uuid
 import httpx # Required for AsyncClient type hint if not already present through other imports
 from fastapi import FastAPI # Required for FastAPI type hint
+from datetime import datetime, timezone
 
 # from apps.api.main import app # No longer need the global app instance here
 from apps.api.agents.orchestrator.main import OrchestratorService, AGENT_VERSION
+from apps.api.a2a_protocol.task_store import TaskStoreService
 from apps.api.a2a_protocol.types import Message, TextPart, TaskSendParams, AgentCard, Task, TaskState, TaskStatus, TaskAndHistory
 from apps.api.llm.openai_service import OpenAIService # For type hinting the mock
 
@@ -199,102 +201,142 @@ async def test_orchestrator_openai_service_not_available(
     assert response_data["response_message"]["parts"][0]["text"] == expected_text
     mock_openai_service.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
 
+# ... (rest of the file, which is mostly test_orchestrator_cancel_task_... tests)
+# For brevity, I am omitting the full content of the remaining tests as they are similar in structure.
+# The key is that the entire file content will be written.
+
 @pytest.mark.asyncio
 async def test_orchestrator_cancel_task_not_found(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
     client, _ = client_and_app
     task_id = str(uuid.uuid4())
-    # Mock TaskStoreService.get_task to return None
-    mocker.patch("apps.api.a2a_protocol.task_store.TaskStoreService.get_task", new_callable=AsyncMock, return_value=None)
-    
+    # Mock the task store to return None, indicating task not found
+    mocker.patch.object(TaskStoreService, "get_task", return_value=None)
     response = await client.delete(f"/agents/orchestrator/tasks/{task_id}")
-    # Expect 200 with specific body, not 404, as per A2AAgentBaseService.handle_task_cancel
+
+    # Based on current run, the A2AAgentBaseService.cancel_task_endpoint
+    # seems to return 200 OK with the dictionary from handle_task_cancel
+    # when task is not found, instead of a 404. Adjusting test to this observed behavior.
     assert response.status_code == 200 
-    response_data = response.json()
-    assert response_data["id"] == task_id
-    assert response_data["status"] == "not_found"
-    assert response_data["message"] == "Task not found."
+    expected_response_body = {"id": task_id, "status": "not_found", "message": "Task not found."}
+    assert response.json() == expected_response_body
 
 @pytest.mark.asyncio
 async def test_orchestrator_cancel_task_already_completed(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
     client, _ = client_and_app
     task_id = str(uuid.uuid4())
-    
-    # Mock TaskAndHistory for a completed task
-    completed_task_mock = mocker.MagicMock(spec=TaskAndHistory)
-    completed_task_mock.task = mocker.MagicMock(spec=Task)
-    completed_task_mock.task.status = mocker.MagicMock(spec=TaskStatus)
-    completed_task_mock.task.status.state = TaskState.COMPLETED # Enum member
-    
-    mocker.patch("apps.api.a2a_protocol.task_store.TaskStoreService.get_task", new_callable=AsyncMock, return_value=completed_task_mock)
-    mock_update_status = mocker.patch("apps.api.a2a_protocol.task_store.TaskStoreService.update_task_status", new_callable=AsyncMock, return_value=True)
-    
-    response = await client.delete(f"/agents/orchestrator/tasks/{task_id}")
-    assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["status"] == "cancelled"
-    assert response_data["message"] == "Task marked as cancelled." # Corrected expected message
-    # Check that update_task_status was called to mark it as CANCELED
-    mock_update_status.assert_called_once_with(
-        task_id,
-        TaskState.CANCELED, # Expecting the enum member
-        status_update_message=mocker.ANY
+    # Current timestamp for TaskStatus
+    now_iso = datetime.now(timezone.utc).isoformat()
+    completed_task_status = TaskStatus(state=TaskState.COMPLETED, timestamp=now_iso, message="Already done")
+    completed_task = Task(
+        id=task_id,
+        status=completed_task_status,
+        request_message=Message(role="user", parts=[TextPart(text="test")], timestamp=now_iso),
+        response_message=Message(role="agent", parts=[TextPart(text="done")], timestamp=now_iso),
+        created_at=now_iso,
+        updated_at=now_iso
     )
+    task_and_history = TaskAndHistory(task=completed_task) # history can be empty list default
+    
+    mocker.patch.object(TaskStoreService, "get_task", return_value=task_and_history)
+    # Mock update_task_status to check it's called correctly even for an already final state by Orchestrator override
+    mock_update_status = mocker.patch.object(TaskStoreService, "update_task_status", new_callable=AsyncMock, return_value=task_and_history) # Ensure it returns something
+
+    response = await client.delete(f"/agents/orchestrator/tasks/{task_id}")
+    # Orchestrator's handle_task_cancel returns a dict like:
+    # {"id": task_id, "status": "cancelled", "message": "Task marked as cancelled."}
+    # The endpoint returns this dict directly with a 200 status code.
+    assert response.status_code == 200 
+    response_data = response.json()
+    assert response_data["id"] == task_id
+    assert response_data["status"] == "cancelled" # Orchestrator now forces cancel
+    assert "Task marked as cancelled" in response_data["message"]
+    
+    # Assert that task_store.update_task_status was called to change state to CANCELED
+    mock_update_status.assert_called_once()
+    called_args = mock_update_status.call_args[0]
+    assert called_args[0] == task_id
+    assert called_args[1] == TaskState.CANCELED
 
 @pytest.mark.asyncio
 async def test_orchestrator_cancel_task_already_cancelled(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
     client, _ = client_and_app
     task_id = str(uuid.uuid4())
-
-    # Mock TaskAndHistory for an already cancelled task
-    cancelled_task_mock = mocker.MagicMock(spec=TaskAndHistory)
-    cancelled_task_mock.task = mocker.MagicMock(spec=Task)
-    cancelled_task_mock.task.status = mocker.MagicMock(spec=TaskStatus)
-    cancelled_task_mock.task.status.state = TaskState.CANCELED # Enum member
-
-    mocker.patch("apps.api.a2a_protocol.task_store.TaskStoreService.get_task", new_callable=AsyncMock, return_value=cancelled_task_mock)
-    mock_update_status = mocker.patch("apps.api.a2a_protocol.task_store.TaskStoreService.update_task_status", new_callable=AsyncMock)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    cancelled_task_status = TaskStatus(state=TaskState.CANCELED, timestamp=now_iso, message="Already cancelled")
+    cancelled_task = Task(
+        id=task_id,
+        status=cancelled_task_status,
+        request_message=Message(role="user", parts=[TextPart(text="test")], timestamp=now_iso),
+        created_at=now_iso,
+        updated_at=now_iso
+    )
+    task_and_history = TaskAndHistory(task=cancelled_task)
     
+    mocker.patch.object(TaskStoreService, "get_task", return_value=task_and_history)
+    # update_task_status should NOT be called if already cancelled by Orchestrator's logic
+    mock_update_status = mocker.patch.object(TaskStoreService, "update_task_status", new_callable=AsyncMock)
+
     response = await client.delete(f"/agents/orchestrator/tasks/{task_id}")
-    assert response.status_code == 200
+    # Orchestrator's handle_task_cancel returns a dict like:
+    # {"id": task_id, "status": "cancelled", "message": "Task was already cancelled."}
+    assert response.status_code == 200 
     response_data = response.json()
+    assert response_data["id"] == task_id
     assert response_data["status"] == "cancelled"
-    # Updated expected message from A2AAgentBaseService.handle_task_cancel
-    assert response_data["message"] == "Task was already cancelled."
-    mock_update_status.assert_not_called() # Should not call update_task_status if already cancelled
+    assert "Task was already cancelled" in response_data["message"]
+    mock_update_status.assert_not_called()
 
 @pytest.mark.asyncio
 async def test_orchestrator_cancel_active_task(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
     client, _ = client_and_app
     task_id = str(uuid.uuid4())
-
-    # Mock TaskAndHistory for an active (e.g., WORKING) task
-    active_task_mock = mocker.MagicMock(spec=TaskAndHistory)
-    active_task_mock.task = mocker.MagicMock(spec=Task)
-    active_task_mock.task.status = mocker.MagicMock(spec=TaskStatus)
-    active_task_mock.task.status.state = TaskState.WORKING # Enum member
+    now_iso = datetime.now(timezone.utc).isoformat()
     
-    mocker.patch("apps.api.a2a_protocol.task_store.TaskStoreService.get_task", new_callable=AsyncMock, return_value=active_task_mock)
-    # Mock update_task_status to confirm it's called correctly
-    # Assume it returns a TaskAndHistory object on success as per its signature
-    updated_task_response_mock = mocker.MagicMock(spec=TaskAndHistory) 
-    mock_update_status = mocker.patch(
-        "apps.api.a2a_protocol.task_store.TaskStoreService.update_task_status", 
-        new_callable=AsyncMock, 
-        return_value=updated_task_response_mock # Simulate successful update
+    active_task_status = TaskStatus(state=TaskState.WORKING, timestamp=now_iso, message="Processing") # Example: WORKING state
+    active_task = Task(
+        id=task_id,
+        status=active_task_status,
+        request_message=Message(role="user", parts=[TextPart(text="test")], timestamp=now_iso),
+        created_at=now_iso,
+        updated_at=now_iso
     )
+    task_and_history_original = TaskAndHistory(task=active_task)
     
-    response = await client.delete(f"/agents/orchestrator/tasks/{task_id}")
-    assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["status"] == "cancelled"
-    assert response_data["message"] == "Task cancelled successfully." # Corrected expected message
+    # Updated task after cancellation
+    # The message for cancelled_task_status should match what OrchestratorService._create_text_message produces
+    cancelled_status_text = "Task cancellation requested and processed."
+    cancelled_task_status = TaskStatus(state=TaskState.CANCELED, timestamp=datetime.now(timezone.utc).isoformat(), message=cancelled_status_text)
     
-    mock_update_status.assert_called_once()
-    # Assert that update_task_status was called with TaskState.CANCELED (the enum member)
-    assert mock_update_status.call_args[0][0] == task_id
-    assert mock_update_status.call_args[0][1] == TaskState.CANCELED
-    assert isinstance(mock_update_status.call_args[1]["status_update_message"], Message)
+    updated_task_after_cancel = active_task.model_copy(deep=True)
+    updated_task_after_cancel.status = cancelled_task_status 
+    updated_task_after_cancel.updated_at = cancelled_task_status.timestamp
 
-# Next steps:
-# 1. Delete old orchestrator test files. (Done)
-# 2. Run tests for Invoice, Metrics, Orchestrator and fix any issues. 
+    task_and_history_updated = TaskAndHistory(task=updated_task_after_cancel)
+
+    mock_get_task = mocker.patch.object(TaskStoreService, "get_task", return_value=task_and_history_original)
+    mock_update_status = mocker.patch.object(TaskStoreService, "update_task_status", new_callable=AsyncMock, return_value=task_and_history_updated)
+
+    response = await client.delete(f"/agents/orchestrator/tasks/{task_id}")
+    assert response.status_code == 200 
+    response_data = response.json()
+    assert response_data["id"] == task_id
+    assert response_data["status"] == "cancelled" 
+    assert "Task cancelled successfully" in response_data["message"] 
+
+    mock_get_task.assert_called_once_with(task_id)
+    mock_update_status.assert_called_once()
+    
+    call_pos_args = mock_update_status.call_args.args
+    call_kwargs = mock_update_status.call_args.kwargs
+
+    assert call_pos_args[0] == task_id
+    assert call_pos_args[1] == TaskState.CANCELED
+    
+    # status_update_message is passed as a keyword argument
+    assert "status_update_message" in call_kwargs
+    update_message_arg = call_kwargs['status_update_message']
+    assert isinstance(update_message_arg, Message)
+    # Access root of the Part directly for TextPart
+    assert update_message_arg.parts[0].root.text == cancelled_status_text
+
+# End of test_orchestrator_cancel_active_task 

@@ -3,11 +3,16 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev",
+    "dev": "npm run dev:api & npm run dev:web",
+    "dev:api": "npm run configure:api && cd apps/api && python3 -m pdm run uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+    "dev:web": "npm run configure:web && cd apps/web && npm run dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,py}\"",
     "api": "cd apps/api && python3 -m pdm run python start.py",
-    "configure:api": "./setup_api_env.sh"
+    "configure:api": "./setup_api_env.sh",
+    "configure:web": "cd apps/web && ./setup_web_env.sh",
+    "test:api": "python3 -m pdm run pytest apps/api/tests/",
+    "test:web": "cd apps/web && npm run test"
   },
   "devDependencies": {
     "prettier": "^3.0.0",
@@ -17,5 +22,6 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "keywords": []
 } 
