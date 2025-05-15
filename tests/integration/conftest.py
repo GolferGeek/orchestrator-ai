@@ -18,18 +18,18 @@ from apps.api.main import create_app, get_original_openai_service, get_original_
 from apps.api.llm.openai_service import OpenAIService
 # from apps.api.a2a_protocol.task_store import TaskStoreService # Not used in current fixtures
 
-@pytest_asyncio.fixture(scope="session")
-async def mock_openai_service_session_scope() -> AsyncMock:
+@pytest_asyncio.fixture(scope="function")
+async def mock_openai_service() -> AsyncMock:
     mock = AsyncMock(spec=OpenAIService)
     mock.decide_orchestration_action.return_value = {
         "action": "respond_directly", 
-        "response_text": "LLM mock: Default direct response from session scope."
+        "response_text": "LLM mock: Default direct response."
     }
     return mock
 
 @pytest_asyncio.fixture(scope="function")
 async def client_and_app(
-    mock_openai_service_session_scope: AsyncMock
+    mock_openai_service: AsyncMock
 ) -> AsyncGenerator[Tuple[AsyncClient, FastAPI], None]:
     test_app = create_app() 
 
@@ -38,7 +38,7 @@ async def client_and_app(
     async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://testserver") as test_client:
         
         def override_get_openai_service() -> Optional[OpenAIService]:
-            return mock_openai_service_session_scope
+            return mock_openai_service
         
         def override_get_http_client() -> httpx.AsyncClient:
             # This ensures agent services (like Orchestrator) use the test client 

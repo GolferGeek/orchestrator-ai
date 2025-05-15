@@ -33,5 +33,7 @@ distribution = false
 [tool.pytest.ini_options]
 python_files = "tests.py test_*.py *_tests.py"
 # Add pytest-mock to ensure mocker fixture is available
-# Also add asyncio to ensure async tests are handled, though it seems to be detected
+# Also add asyncio to ensure async tests are handled
 addopts = "--asyncio-mode=auto"
+# Set the default fixture loop scope to function to avoid deprecation warning
+asyncio_default_fixture_loop_scope = "function"

@@ -11,13 +11,17 @@ from ...core.config import settings # Import settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize OpenAI client (Ensure OPENAI_API_KEY is set in environment)
-# It's better to manage client lifecycle within FastAPI app for production
-# but for a shared module, this is a simpler start.
-# Consider using a global client or a dependency injection approach later.
-if not settings.OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY is not set in the environment or .env file. Please configure it.")
-aclient = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+# Initialize OpenAI client lazily
+_aclient = None
+
+def get_openai_client() -> AsyncOpenAI:
+    """Get or create the OpenAI client, validating the API key."""
+    global _aclient
+    if _aclient is None:
+        if not settings.OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is not set in the environment or .env file. Please configure it.")
+        _aclient = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+    return _aclient
 
 class ContextFileNotFoundError(Exception):
     """Custom exception for when an agent's context file is not found."""
@@ -116,6 +120,8 @@ async def process_query_stream(
         # logger.debug(f"Prompt messages for agent {agent_id}: {prompt_messages}")
         logger.info(f"Prompt messages for OpenAI (agent {agent_id}): {prompt_messages}")
 
+        # Get the OpenAI client when needed
+        aclient = get_openai_client()
         stream = await aclient.chat.completions.create(
             model=effective_settings.model_name,
             messages=prompt_messages,

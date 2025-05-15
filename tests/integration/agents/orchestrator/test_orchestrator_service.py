@@ -49,43 +49,43 @@ async def test_orchestrator_get_agent_card(client_and_app: tuple[httpx.AsyncClie
     assert "metrics_delegation" in capability_names
 
 @pytest.mark.asyncio
-async def test_orchestrator_respond_directly(client_and_app: tuple[httpx.AsyncClient, FastAPI], mock_openai_service_session_scope: AsyncMock, mocker: AsyncMock):
-    mock_openai_service_session_scope.decide_orchestration_action.reset_mock() # Reset for this test
+async def test_orchestrator_respond_directly(client_and_app: tuple[httpx.AsyncClient, FastAPI], mock_openai_service: AsyncMock, mocker: AsyncMock):
+    mock_openai_service.decide_orchestration_action.reset_mock() # Reset for this test
     client, _ = client_and_app
     user_query = "What is a tomato?"
     expected_llm_response = "LLMs say: A tomato is a fruit, often used as a vegetable."
     
-    mock_openai_service_session_scope.decide_orchestration_action.return_value = {
+    mock_openai_service.decide_orchestration_action.return_value = {
         "action": "respond_directly", 
         "response_text": expected_llm_response
     }
-    mock_openai_service_session_scope.decide_orchestration_action.side_effect = None
+    mock_openai_service.decide_orchestration_action.side_effect = None
 
     task_params = create_simple_task_send_params(user_query)
     response = await client.post("/agents/orchestrator/tasks", json=task_params.model_dump(mode='json'))
     assert response.status_code == 200
     response_data = response.json()
     assert response_data["response_message"]["parts"][0]["text"] == expected_llm_response
-    mock_openai_service_session_scope.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
+    mock_openai_service.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
 
 @pytest.mark.asyncio
 async def test_orchestrator_delegate_to_metrics(
     client_and_app: tuple[httpx.AsyncClient, FastAPI], 
-    mock_openai_service_session_scope: AsyncMock, 
+    mock_openai_service: AsyncMock, 
     mocker: AsyncMock
 ):
-    mock_openai_service_session_scope.decide_orchestration_action.reset_mock() # Reset for this test
+    mock_openai_service.decide_orchestration_action.reset_mock() # Reset for this test
     client, _ = client_and_app
     user_query = "What are the current sales figures?"
     delegation_reason = "Query is about metrics."
     
-    mock_openai_service_session_scope.decide_orchestration_action.return_value = {
+    mock_openai_service.decide_orchestration_action.return_value = {
         "action": "delegate",
         "agent_id": "business/metrics",
         "reason": delegation_reason,
         "user_query_for_agent": user_query 
     }
-    mock_openai_service_session_scope.decide_orchestration_action.side_effect = None
+    mock_openai_service.decide_orchestration_action.side_effect = None
 
     task_params = create_simple_task_send_params(user_query)
     response = await client.post("/agents/orchestrator/tasks", json=task_params.model_dump(mode='json'))
@@ -93,17 +93,17 @@ async def test_orchestrator_delegate_to_metrics(
     assert response.status_code == 200
     response_data = response.json()
 
-    mock_openai_service_session_scope.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
+    mock_openai_service.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
 
 @pytest.mark.asyncio
-async def test_orchestrator_clarify(client_and_app: tuple[httpx.AsyncClient, FastAPI], mock_openai_service_session_scope: AsyncMock, mocker: AsyncMock):
-    mock_openai_service_session_scope.decide_orchestration_action.reset_mock() 
+async def test_orchestrator_clarify(client_and_app: tuple[httpx.AsyncClient, FastAPI], mock_openai_service: AsyncMock, mocker: AsyncMock):
+    mock_openai_service.decide_orchestration_action.reset_mock() 
     client, _ = client_and_app
     user_query = "Tell me about stuff."
     llm_clarification_text = "Could you please specify what kind of stuff you are asking about?"
     
-    mock_openai_service_session_scope.decide_orchestration_action.return_value = {"action": "clarify", "response_text": llm_clarification_text}
-    mock_openai_service_session_scope.decide_orchestration_action.side_effect = None
+    mock_openai_service.decide_orchestration_action.return_value = {"action": "clarify", "response_text": llm_clarification_text}
+    mock_openai_service.decide_orchestration_action.side_effect = None
 
     task_params = create_simple_task_send_params(user_query)
     response = await client.post("/agents/orchestrator/tasks", json=task_params.model_dump(mode='json'))
@@ -112,18 +112,18 @@ async def test_orchestrator_clarify(client_and_app: tuple[httpx.AsyncClient, Fas
     
     expected_text = f"Clarification needed: {llm_clarification_text}"
     assert response_data["response_message"]["parts"][0]["text"] == expected_text
-    mock_openai_service_session_scope.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
+    mock_openai_service.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
 
 @pytest.mark.asyncio
-async def test_orchestrator_cannot_handle(client_and_app: tuple[httpx.AsyncClient, FastAPI], mock_openai_service_session_scope: AsyncMock, mocker: AsyncMock):
-    mock_openai_service_session_scope.decide_orchestration_action.reset_mock() 
+async def test_orchestrator_cannot_handle(client_and_app: tuple[httpx.AsyncClient, FastAPI], mock_openai_service: AsyncMock, mocker: AsyncMock):
+    mock_openai_service.decide_orchestration_action.reset_mock() 
     client, _ = client_and_app
     user_query = "Solve world hunger."
     llm_reason_text = "I am an AI assistant and cannot handle such complex, real-world problems." # Renamed for clarity
     
     # Mock provides "reason" as Orchestrator uses llm_decision.get("reason", fallback)
-    mock_openai_service_session_scope.decide_orchestration_action.return_value = {"action": "cannot_handle", "reason": llm_reason_text}
-    mock_openai_service_session_scope.decide_orchestration_action.side_effect = None
+    mock_openai_service.decide_orchestration_action.return_value = {"action": "cannot_handle", "reason": llm_reason_text}
+    mock_openai_service.decide_orchestration_action.side_effect = None
 
     task_params = create_simple_task_send_params(user_query)
     response = await client.post("/agents/orchestrator/tasks", json=task_params.model_dump(mode='json'))
@@ -133,15 +133,15 @@ async def test_orchestrator_cannot_handle(client_and_app: tuple[httpx.AsyncClien
     # Corrected: Orchestrator prepends "I cannot handle this request: " to the reason from LLM decision
     expected_text = f"I cannot handle this request: {llm_reason_text}"
     assert response_data["response_message"]["parts"][0]["text"] == expected_text
-    mock_openai_service_session_scope.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
+    mock_openai_service.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
 
 @pytest.mark.asyncio
-async def test_orchestrator_unknown_llm_action(client_and_app: tuple[httpx.AsyncClient, FastAPI], mock_openai_service_session_scope: AsyncMock, mocker: AsyncMock):
-    mock_openai_service_session_scope.decide_orchestration_action.reset_mock() # Reset for this test
+async def test_orchestrator_unknown_llm_action(client_and_app: tuple[httpx.AsyncClient, FastAPI], mock_openai_service: AsyncMock, mocker: AsyncMock):
+    mock_openai_service.decide_orchestration_action.reset_mock() # Reset for this test
     client, _ = client_and_app
     user_query = "What if the LLM returns a weird action?"
-    mock_openai_service_session_scope.decide_orchestration_action.return_value = {"action": "do_magic", "detail": "something strange"}
-    mock_openai_service_session_scope.decide_orchestration_action.side_effect = None
+    mock_openai_service.decide_orchestration_action.return_value = {"action": "do_magic", "detail": "something strange"}
+    mock_openai_service.decide_orchestration_action.side_effect = None
 
     task_params = create_simple_task_send_params(user_query)
     response = await client.post("/agents/orchestrator/tasks", json=task_params.model_dump(mode='json'))
@@ -149,21 +149,21 @@ async def test_orchestrator_unknown_llm_action(client_and_app: tuple[httpx.Async
     response_data = response.json()
     expected_text = "Orchestrator received an unknown action: do_magic. I cannot handle that yet."
     assert response_data["response_message"]["parts"][0]["text"] == expected_text
-    mock_openai_service_session_scope.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
+    mock_openai_service.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
 
 @pytest.mark.asyncio
 async def test_orchestrator_llm_call_exception(
     client_and_app: tuple[httpx.AsyncClient, FastAPI], 
-    mock_openai_service_session_scope: AsyncMock,
+    mock_openai_service: AsyncMock,
     mocker: AsyncMock
 ):
-    mock_openai_service_session_scope.decide_orchestration_action.reset_mock() # Reset for this test
+    mock_openai_service.decide_orchestration_action.reset_mock() # Reset for this test
     client, _ = client_and_app
     user_query = "Analyze this complex dataset."
     llm_error_message = "LLM service unavailable."
     
-    mock_openai_service_session_scope.decide_orchestration_action.side_effect = Exception(llm_error_message)
-    mock_openai_service_session_scope.decide_orchestration_action.return_value = None 
+    mock_openai_service.decide_orchestration_action.side_effect = Exception(llm_error_message)
+    mock_openai_service.decide_orchestration_action.return_value = None 
 
     task_params = create_simple_task_send_params(user_query)
     response = await client.post("/agents/orchestrator/tasks", json=task_params.model_dump(mode='json'))
@@ -172,22 +172,22 @@ async def test_orchestrator_llm_call_exception(
     expected_text = f"Falling back to rule-based processing due to LLM error: {llm_error_message}"
     # The error message is now in response_message.parts[0].text due to base_agent change
     assert response_data["response_message"]["parts"][0]["text"] == expected_text
-    mock_openai_service_session_scope.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
+    mock_openai_service.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
 
-    mock_openai_service_session_scope.decide_orchestration_action.side_effect = None
+    mock_openai_service.decide_orchestration_action.side_effect = None
 
 @pytest.mark.asyncio
 async def test_orchestrator_openai_service_not_available(
     client_and_app: tuple[httpx.AsyncClient, FastAPI], 
-    mock_openai_service_session_scope: AsyncMock,
+    mock_openai_service: AsyncMock,
     mocker: AsyncMock
 ):
-    mock_openai_service_session_scope.decide_orchestration_action.reset_mock() 
+    mock_openai_service.decide_orchestration_action.reset_mock() 
     client, _ = client_and_app
     user_query = "Summarize this document for me."
     
-    mock_openai_service_session_scope.decide_orchestration_action.return_value = None # Simulate LLM returning no decision
-    mock_openai_service_session_scope.decide_orchestration_action.side_effect = None
+    mock_openai_service.decide_orchestration_action.return_value = None # Simulate LLM returning no decision
+    mock_openai_service.decide_orchestration_action.side_effect = None
 
     task_params = create_simple_task_send_params(user_query)
     response = await client.post("/agents/orchestrator/tasks", json=task_params.model_dump(mode='json'))
@@ -197,7 +197,7 @@ async def test_orchestrator_openai_service_not_available(
     # Corrected: Orchestrator falls back to a simpler message when LLM decision is None
     expected_text = "I encountered an issue trying to understand your request. Please try again."
     assert response_data["response_message"]["parts"][0]["text"] == expected_text
-    mock_openai_service_session_scope.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
+    mock_openai_service.decide_orchestration_action.assert_called_once_with(user_query, mocker.ANY)
 
 @pytest.mark.asyncio
 async def test_orchestrator_cancel_task_not_found(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):

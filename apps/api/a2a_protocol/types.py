@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any, Union, Literal
 from pydantic import BaseModel, Field, RootModel
 import uuid
 
@@ -32,9 +32,10 @@ class AgentCard(BaseModel):
     name: str
     description: Optional[str] = None
     version: str
+    a2a_protocol_version: Optional[str] = None
     capabilities: List[AgentCapability] = []
     type: Optional[str] = None  # "orchestrator" or "specialized" etc.
-    endpoints: Optional[List[str]] = None  # API endpoints for the agent
+    endpoints: Optional[List[str]] = None  # REVERTED to List[str]
     # Corresponds to the .well-known/agent.json, but can be more detailed
     # discovery_url: Optional[str] = None # Or embed discovery info directly
 
