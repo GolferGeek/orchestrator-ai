@@ -1,6 +1,8 @@
 import pytest
-from httpx import AsyncClient
-from fastapi import FastAPI
+from httpx import AsyncClient # Should be imported by conftest's client_and_app
+from fastapi import FastAPI # Should be imported by conftest's client_and_app
+
+# The client_and_app fixture will be picked up from tests/integration/conftest.py
 
 @pytest.mark.asyncio
 async def test_read_root(client_and_app: tuple[AsyncClient, FastAPI]):

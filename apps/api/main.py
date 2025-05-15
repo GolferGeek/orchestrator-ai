@@ -151,7 +151,10 @@ def process_agent_module(
         app_to_configure.include_router(router_to_include)
         print(f"[PROCESS_AGENT_MODULE] Included agent_router from {agent_module_dir.name}")
 
-    agent_service_class_name_candidate = f"{agent_module_dir.name.replace('_', '').title()}Service"
+    parts = agent_module_dir.name.split('_')
+    camel_cased_parts = [part.title() for part in parts]
+    agent_service_class_name_candidate = "".join(camel_cased_parts) + "Service"
+
     if not hasattr(module, agent_service_class_name_candidate) and hasattr(module, "AgentService"):
          agent_service_class_name_candidate = "AgentService"
 

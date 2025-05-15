@@ -48,7 +48,7 @@ class A2AAgentBaseService(ABC):
         """Process a user message and generate a response."""
         pass
 
-    async def handle_task_send(self, params: TaskSendParams) -> Dict[str, Any]:
+    async def handle_task_send(self, params: TaskSendParams) -> Optional[Task]:
         """Handle a task send request as defined in the A2A protocol."""
         task_id = params.id if params.id else str(uuid.uuid4()) # Ensure task_id from params or generate
         self.logger.info(f"[BASE_AGENT] Handling task send for task {task_id}")
@@ -109,81 +109,71 @@ class A2AAgentBaseService(ABC):
                         response_content.append({"type": "text", "text": part_data["text"]})
             
             # Convert to dict for modification
-            task_dict = completed_task_data.task.model_dump(mode='json')
+            # task_dict = completed_task_data.task.model_dump(mode='json') # No longer needed if returning Task model
             
-            self.logger.info(f"[BASE_AGENT] Task dict before adding result field: keys={list(task_dict.keys())}")
+            # self.logger.info(f"[BASE_AGENT] Task dict before adding result field: keys={list(task_dict.keys())}")
             
             # Create and add the result object, ensuring it's properly structured per A2A protocol
-            result = {
-                "task_id": task_id,
-                "status": task_dict["status"]["state"],  # Use the state directly from the task
-                "content": response_content
-            }
+            # result = {
+            #     "task_id": task_id,
+            #     "status": task_dict["status"]["state"],
+            #     "content": response_content
+            # }
             
             # Make sure the result field is in the response according to A2A protocol
-            response = {
-                **task_dict,
-                "result": result
-            }
+            # response = {
+            #     **task_dict,
+            #     "result": result
+            # }
             
-            self.logger.info(f"[BASE_AGENT] Final response with result field: keys={list(response.keys())}")
+            # self.logger.info(f"[BASE_AGENT] Final response with result field: keys={list(response.keys())}")
             
-            return response
+            # Return the Task Pydantic model itself. FastAPI with response_model=Task will handle serialization.
+            # If completed_task_data is None (though checked before), this would error.
+            # The check `if not completed_task_data:` handles this.
+            self.logger.info(f"[BASE_AGENT] Task {task_id} completed. Returning Task object.")
+            return completed_task_data.task # Return the Pydantic model
         except Exception as error:
             self.logger.error(f"[BASE_AGENT] Error during handle_task_send for task {task_id}: {error}", exc_info=True)
             
-            # Try to update task status to failed, but don't fail if this fails
             try:
                 task_data = await self._update_task_status_to_failed(task_id, error)
             except Exception as update_error:
                 self.logger.error(f"[BASE_AGENT] Failed to update task {task_id} to failed state: {update_error}")
-                task_data = None
+                # task_data = None # No longer needed as we construct a new Task object below
             
-            # For LLM-related errors, provide a graceful fallback response instead of failing
             error_message = str(error)
+            self.logger.info(f"[BASE_AGENT] Task {task_id} failed. Returning Task object in failed state.")
             
-            # Create a fallback Task object with the error message
-            if task_data:
-                task_dict = task_data.task.model_dump(mode='json')
-            else:
-                # If we couldn't get the task data, create a minimal Task object
-                from datetime import datetime, timezone
-                now = datetime.now(timezone.utc).isoformat()
-                task_dict = {
-                    "id": task_id,
-                    "status": {
-                        "state": TaskState.FAILED.value,  # Use the enum value
-                        "timestamp": now,
-                        "message": f"Error: {error_message}"
-                    },
-                    "request_message": params.message.model_dump(mode='json'),
-                    "response_message": self._create_text_message(f"Falling back to rule-based processing due to LLM error: {error_message}").model_dump(mode='json'),
-                    "history": [],
-                    "artifacts": [],
-                    "created_at": now,
-                    "updated_at": now
-                }
-                
-                if params.session_id:
-                    task_dict["session_id"] = params.session_id
-                if params.metadata:
-                    task_dict["metadata"] = params.metadata
-            
-            # Ensure the error response also has a properly structured result field
-            response = {
-                **task_dict,
-                "result": {
-                    "task_id": task_id,
-                    "status": "failed",
-                    "content": [{
-                        "type": "text",
-                        "text": f"Falling back to rule-based processing due to LLM error: {error_message}"
-                    }]
-                }
-            }
-            
-            self.logger.info(f"[BASE_AGENT] Error response with result field: keys={list(response.keys())}")
-            return response
+            now_iso = datetime.now(timezone.utc).isoformat()
+            error_response_msg_obj = self._create_text_message(f"Falling back to rule-based processing due to LLM error: {error_message}")
+
+            # Get created_at from previous task_data if it exists, otherwise use now_iso
+            # This requires task_dict to be defined from task_data if task_data is not None
+            created_at_val = now_iso # default
+            if 'task_data' in locals() and task_data and task_data.task:
+                created_at_val = task_data.task.created_at
+            elif 'params' in locals() and params.metadata and isinstance(params.metadata, dict) and 'created_at' in params.metadata:
+                # Fallback if task_data didn't exist or was minimal, but request had it in metadata (less likely)
+                created_at_val = params.metadata['created_at']
+
+            failed_task_obj = Task(
+                id=task_id,
+                status=TaskStatus(
+                    state=TaskState.FAILED,
+                    timestamp=now_iso,
+                    message=f"Error: {error_message}"
+                ),
+                request_message=params.message, 
+                response_message=error_response_msg_obj, 
+                history=[], 
+                artifacts=[],
+                session_id=params.session_id,
+                metadata=params.metadata,
+                created_at=created_at_val, 
+                updated_at=now_iso
+            )
+            return failed_task_obj
 
     async def handle_task_get(self, task_id: str) -> Optional[Task]:
         """Handle a task get request."""

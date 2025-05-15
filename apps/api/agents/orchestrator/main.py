@@ -158,7 +158,7 @@ class OrchestratorService(A2AAgentBaseService):
                 self.logger.info(f"Orchestrator (task {task_id}): LLM decided to respond directly: '{response_text}'")
             
             elif action == "clarify":
-                clarification_question = llm_decision.get("clarification_question", "Could you please provide more details?")
+                clarification_question = llm_decision.get("response_text", "Could you please provide more details?")
                 response_text = f"Clarification needed: {clarification_question}"
                 self.logger.info(f"Orchestrator (task {task_id}): LLM decided to ask for clarification: '{response_text}'")
             
@@ -166,9 +166,11 @@ class OrchestratorService(A2AAgentBaseService):
                 reason = llm_decision.get("reason", "I am unable to process this request with my current capabilities.")
                 response_text = f"I cannot handle this request: {reason}"
                 self.logger.info(f"Orchestrator (task {task_id}): LLM decided it cannot handle the request. Reason: '{reason}'")
-            else:
-                self.logger.warning(f"Orchestrator (task {task_id}): LLM returned an unknown action: {action}. Defaulting.")
-                response_text = f"Orchestrator received '{input_text}' but I'm not sure how to handle that yet."
+            else: # Unknown action
+                unknown_action_name = action # The 'action' variable holds the unknown action string
+                self.logger.warning(f"Orchestrator (task {task_id}): LLM returned an unknown action: {unknown_action_name}. Defaulting.")
+                # Changed to use the unknown_action_name in the response for better feedback
+                response_text = f"Orchestrator received an unknown action: {unknown_action_name}. I cannot handle that yet."
         else: # Should not happen if openai_service exists and returns a decision, or fallback provides one
             self.logger.error(f"Orchestrator (task {task_id}): No decision could be made (LLM or fallback failed).")
             response_text = "I encountered an issue trying to understand your request. Please try again."

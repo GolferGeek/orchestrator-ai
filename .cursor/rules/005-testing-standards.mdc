@@ -3,8 +3,6 @@ name: "Testing Standards"
 description: "Guidelines for writing unit, integration, and end-to-end tests for both backend and frontend."
 globs: ["tests/**/*.py", "apps/web/**/__tests__/*.spec.js"]
 alwaysApply: true
----
-
 # Testing Standards
 
 ## General Principles
@@ -34,6 +32,7 @@ alwaysApply: true
 
 ## Test Organization
 - Maintain a clear directory structure for tests (e.g., `tests/unit`, `tests/integration`).
+- Agent service integration tests (testing FastAPI endpoints, A2A protocol compliance, or service class methods that handle requests) should be located in `tests/integration/agents/[department_or_category]/[agent_name]/`. For example, tests for an invoice agent within the business department would be in `tests/integration/agents/business/invoice/`.
 - Use descriptive file names for test files (e.g., `test_user_service.py`, `LoginFlow.e2e.js`).
 
 ## Code Coverage
@@ -43,3 +42,4 @@ alwaysApply: true
 ## Continuous Integration (CI)
 - Integrate tests into the CI pipeline to run automatically on every push/PR.
 - Ensure builds fail if tests do not pass.
+

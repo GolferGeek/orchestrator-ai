@@ -12,8 +12,20 @@ httpx
 openai
 pytest-asyncio
 
-# CrewAI and its dependencies
-crewai[tools,embeddings]>=0.30.0,<0.120.0 # Updated to a more recent version range and added extras
-crewai-tools>=0.2.0,<0.46.0 # Updated to a more recent version range
-langchain-openai # Will pull in compatible langchain, langchain-core 
-setuptools # For pkg_resources, potentially needed by a sub-dependency 
+# Add new dependencies below
+httpx-sse
+
+# New dependencies
+aiofiles
+
+# Remove crewai dependency
+# crewai>=0.30.0,<0.120.0
+
+# Additional dependencies
+tiktoken
+requests
+psycopg2-binary
+sqlalchemy
+alembic
+asyncpg
+sse-starlette 
