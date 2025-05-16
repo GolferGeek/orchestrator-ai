@@ -3,29 +3,28 @@ name: "AI Coding Assistant Guidelines"
 description: "Instructions and preferences for how the AI assistant should behave and collaborate."
 globs: []
 alwaysApply: true
----
-
 # AI Coding Assistant Guidelines (For You, My AI Pair Programmer)
 
 ## My Preferences & How to Best Help Me
 
 1.  **Simplicity First**: Always prefer simple, clear, and straightforward solutions. Avoid over-engineering.
 2.  **DRY (Don't Repeat Yourself)**: Before writing new code, please check if similar functionality already exists in the codebase. If it does, let's discuss reusing or refactoring it.
-3.  **Environment Awareness**: When generating code or configurations, consider the differences between `dev`, `test`, and `prod` environments. For example, logging levels, API endpoints, or feature flags might differ.
+3.  **Environment Awareness**: When generating code or configurations, consider the differences between `dev`, `test`, and `prod` environments. For example, logging levels, API endpoints, or feature flags might differ. Be mindful that API environment setup is handled via `npm run configure:api` and the API is launched with `npm run api`.
 4.  **Focused Changes**: Only make changes that are directly requested or that you are highly confident are well-understood and directly related to the current task. If you have suggestions for other improvements, please bring them up for discussion separately.
 5.  **Respect Existing Patterns**: When fixing bugs or adding features, try to follow the existing patterns and technologies in the codebase. If a new pattern or technology is truly necessary, let's discuss it first. If we introduce something new, we should also aim to remove the old, redundant implementation.
 6.  **Cleanliness & Organization**: Help me keep the codebase clean, well-organized, and easy to navigate. This includes consistent naming, logical file structures, and adherence to our defined standards.
 7.  **Avoid One-Off Scripts in Files**: If a script is only meant to be run once (e.g., a migration or a specific data processing task), let's discuss creating it as a separate, temporary script file rather than embedding it within application code. For recurring tasks, we can create proper management commands or utility scripts in designated locations (like the `scripts/` directory).
 8.  **File Size Limits**: Remind me if files are growing too large (e.g., over 200-300 lines for Python/JS). We should refactor them into smaller, more manageable modules.
 9.  **No Stubs/Fake Data in Dev/Prod**: Never add stubbed data, mock implementations, or fake data patterns directly into code that affects the `dev` or `prod` environments. Test data and mocks belong in test environments or testing-specific files.
-10. **.env File Protection**: NEVER overwrite my `.env` file or any environment-specific `.env.*` files without explicitly asking for confirmation and explaining why.
-11. **Tool Usage**: When you use tools (like file editing, terminal commands, or search):
+10. **Testing Framework**: Be aware of and utilize our established testing framework (details to be specified if necessary) for writing and running tests.
+11. **.env File Protection**: NEVER overwrite my `.env` file or any environment-specific `.env.*` files without explicitly asking for confirmation and explaining why.
+12. **Tool Usage**: When you use tools (like file editing, terminal commands, or search):
     *   Explain *why* you are using the tool and what you expect to achieve before calling it.
     *   If a tool call fails or the result isn't what you expected, please let me know and we can troubleshoot or try a different approach.
-12. **Rule Adherence**: Please pay close attention to all `.cursor/rules/*.mdc` files. If you're ever unsure how a rule applies, ask me.
-13. **Incremental Development**: I prefer to work in small, incremental steps. Let's break down larger tasks into smaller, manageable chunks.
-14. **Commit Often**: Remind me to commit changes frequently with clear, conventional commit messages.
-15. **Ask Questions**: If my instructions are unclear or if you see potential issues with my approach, please don't hesitate to ask clarifying questions or suggest alternatives. Your proactive input is valuable!
+13. **Rule Adherence**: Please pay close attention to all `.cursor/rules/*.mdc` files. If you're ever unsure how a rule applies, ask me.
+14. **Incremental Development**: I prefer to work in small, incremental steps. Let's break down larger tasks into smaller, manageable chunks.
+15. **Commit Often**: Remind me to commit changes frequently with clear, conventional commit messages.
+16. **Ask Questions**: If my instructions are unclear or if you see potential issues with my approach, please don't hesitate to ask clarifying questions or suggest alternatives. Your proactive input is valuable!
 
 ## Our Workflow
 - I'll describe the task or problem.
@@ -36,3 +35,4 @@ alwaysApply: true
 - I'll commit the changes.
 
 Let's build some great software together!
+

@@ -3,6 +3,11 @@ name: "Testing Standards"
 description: "Guidelines for writing unit, integration, and end-to-end tests for both backend and frontend."
 globs: ["tests/**/*.py", "apps/web/**/__tests__/*.spec.js"]
 alwaysApply: true
+---
+name: "Testing Standards"
+description: "Guidelines for writing unit, integration, and end-to-end tests for both backend and frontend."
+globs: ["tests/**/*.py", "apps/web/**/__tests__/*.spec.js"]
+alwaysApply: true
 # Testing Standards
 
 ## General Principles
@@ -10,6 +15,18 @@ alwaysApply: true
 - Tests should be reliable, readable, and maintainable.
 - Aim for a balanced testing pyramid (unit, integration, E2E).
 - Ensure tests can run independently and in any order.
+
+## Running Tests and API
+- Before running tests, ensure the environment is properly configured:
+  - Use `npm run configure:api` to set up the API environment
+  - This command will set up the necessary environment variables and configuration
+- To run the actual API server:
+  - Use `npm run api` to start the API server
+  - This will run the server with the proper environment configuration
+- For running tests:
+  - Ensure you're in the correct directory (`apps/api`)
+  - Use `python3 -m pdm run pytest [test_file_path]` to run specific tests
+  - Use `python3 -m pdm run pytest tests/` to run all tests
 
 ## Unit Tests
 - Focus on testing individual functions, methods, or components in isolation.

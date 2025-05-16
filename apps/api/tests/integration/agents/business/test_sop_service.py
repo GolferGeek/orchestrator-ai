@@ -31,8 +31,8 @@ def load_test_context(context_file: str) -> str:
         # Calculate path from current file to project root then to markdown_context
         # apps/api/tests/integration/agents/business/test_sop_service.py
         # Path(__file__).resolve() -> .../orchestrator-ai/apps/api/tests/integration/agents/business/test_sop_service.py
-        # .parents[5] -> .../orchestrator-ai/
-        alt_context_path = Path(__file__).resolve().parents[5] / "markdown_context" / context_file
+        # .parents[6] -> .../orchestrator-ai/
+        alt_context_path = Path(__file__).resolve().parents[6] / "markdown_context" / context_file
         if alt_context_path.exists():
             context_path = alt_context_path
         else:

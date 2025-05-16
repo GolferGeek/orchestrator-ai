@@ -3,3 +3,187 @@ description:
 globs:
 alwaysApply: false
 ---
+# Agent Refactoring Guidelines
+
+## Overview
+This document outlines the standardized process for refactoring existing agents to use the Agent-to-Agent (A2A) protocol, creating comprehensive tests, and ensuring proper integration with the system.
+
+## 1. Agent Refactoring Process
+
+### A. Initial Setup
+1. Identify the agent to refactor in `apps/api/agents/[category]/[agent_name]/`
+2. Review the existing implementation to understand:
+   - Current functionality and endpoints
+   - Dependencies and external services used
+   - State management and data flow
+
+### B. Implementing A2A Protocol
+1. Update the agent class to inherit from `A2AAgentBaseService`:
+   ```python
+   from apps.api.a2a_protocol.base_agent import A2AAgentBaseService
+   
+   class YourAgentService(A2AAgentBaseService):
+       def __init__(self):
+           super().__init__()
+           # Agent-specific initialization
+   ```
+
+2. Implement required A2A methods:
+   ```python
+   async def get_agent_card(self) -> AgentCard:
+       return AgentCard(
+           id=f"{self.agent_name}-v1",
+           name="Your Agent Name",
+           version="1.0.0",
+           description="Description of your agent's capabilities",
+           endpoints={
+               "tasks": f"/agents/{self.agent_name}/tasks",
+               # Add other endpoints as needed
+           },
+           capabilities=[
+               # List agent's capabilities
+           ]
+       )
+
+   async def process_message(self, message: Message, context: dict) -> Message:
+       # Implement message processing logic
+       pass
+   ```
+
+3. Use MCPClient for context fetching:
+   ```python
+   from apps.api.shared.mcp.mcp_client import MCPClient
+   
+   async def fetch_context(self) -> str:
+       return await MCPClient.fetch_context("your-agent-name")
+   ```
+
+4. Implement proper error handling:
+   ```python
+   from apps.api.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError
+   
+   try:
+       result = await self.process_something()
+   except MCPConnectionError as e:
+       return self.create_error_response("Connection error", str(e))
+   except MCPTimeoutError as e:
+       return self.create_error_response("Timeout error", str(e))
+   except Exception as e:
+       return self.create_error_response("Unexpected error", str(e))
+   ```
+
+## 2. Test Creation Process
+
+### A. Test File Setup
+1. Create test file at `tests/integration/agents/[category]/[agent_name]/test_[agent_name]_service.py`
+2. Import necessary components:
+   ```python
+   import pytest
+   from unittest.mock import AsyncMock
+   import httpx
+   from fastapi import FastAPI
+   from apps.api.a2a_protocol.types import Message, TextPart
+   ```
+
+### B. Test Categories to Implement
+1. Agent Card Retrieval:
+   ```python
+   async def test_get_agent_card(client_and_app: tuple[httpx.AsyncClient, FastAPI]):
+       client, _ = client_and_app
+       response = await client.get(f"/agents/{agent_name}/agent-card")
+       assert response.status_code == 200
+       data = response.json()
+       assert data["id"] == f"{agent_name}-v1"
+       assert data["name"] == "Expected Agent Name"
+   ```
+
+2. Successful Message Processing:
+   ```python
+   async def test_process_message_success(
+       client_and_app: tuple[httpx.AsyncClient, FastAPI],
+       mock_openai_service: AsyncMock
+   ):
+       client, _ = client_and_app
+       # Configure mock responses
+       # Test message processing
+       # Assert expected results
+   ```
+
+3. Error Conditions:
+   ```python
+   async def test_process_message_mcp_connection_error(
+       client_and_app: tuple[httpx.AsyncClient, FastAPI],
+       mock_openai_service: AsyncMock
+   ):
+       # Test connection error handling
+   
+   async def test_process_message_mcp_timeout_error(
+       client_and_app: tuple[httpx.AsyncClient, FastAPI],
+       mock_openai_service: AsyncMock
+   ):
+       # Test timeout error handling
+   ```
+
+### C. Test Fixtures
+1. Use existing fixtures from `tests/integration/conftest.py`:
+   - `client_and_app`: Provides test client and app instance
+   - `mock_openai_service`: Mocks OpenAI service responses
+
+2. Add agent-specific fixtures if needed:
+   ```python
+   @pytest.fixture
+   def mock_agent_specific_dependency():
+       # Setup mock
+       yield mock
+       # Cleanup if needed
+   ```
+
+## 3. Test Execution Process
+
+### A. Pre-test Setup
+1. Ensure virtual environment is activated
+2. Install test dependencies:
+   ```bash
+   pdm install
+   ```
+
+### B. Running Tests
+1. Run specific agent tests:
+   ```bash
+   pytest tests/integration/agents/[category]/[agent_name]/test_[agent_name]_service.py -v
+   ```
+
+2. Run all tests:
+   ```bash
+   pytest tests/ -v
+   ```
+
+### C. Troubleshooting Common Issues
+1. Environment Variables:
+   - Ensure `.env` file is properly configured
+   - Use `python-dotenv` in tests when needed
+
+2. Port Conflicts:
+   - Check for running API instances: `lsof -i :8000`
+   - Kill conflicting processes if needed
+
+3. Fixture Scope Issues:
+   - Match fixture scopes with event loop scope
+   - Use function scope for async fixtures unless there's a specific reason not to
+
+## Best Practices
+1. Follow existing patterns from successfully refactored agents (e.g., metrics agent)
+2. Keep test files focused and well-organized
+3. Use meaningful names for test functions and variables
+4. Document any agent-specific requirements or considerations
+5. Handle all error cases consistently
+6. Clean up resources in fixtures when needed
+
+## Validation Checklist
+- [ ] Agent implements all required A2A protocol methods
+- [ ] Error handling covers all expected failure modes
+- [ ] Tests cover happy path and error scenarios
+- [ ] All tests pass consistently
+- [ ] No test warnings or deprecation notices
+- [ ] Documentation is updated to reflect changes
+- [ ] Code follows project style guidelines
