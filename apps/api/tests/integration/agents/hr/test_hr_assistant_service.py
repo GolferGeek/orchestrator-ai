@@ -12,7 +12,7 @@ from apps.api.agents.hr.hr_assistant.main import (
     AGENT_DESCRIPTION as HR_ASSISTANT_AGENT_DESCRIPTION,
     MCP_TARGET_AGENT_ID_FOR_HR_QUERIES # Added import
 )
-from apps.api.a2a_protocol.types import Message, TextPart # For constructing request/response payloads
+from apps.api.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState # Added TaskState
 from apps.api.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError # For error scenario testing
 
 # Helper to get project root for loading the context file in tests
@@ -97,8 +97,9 @@ async def test_hr_assistant_process_message_mcp_connection_error(client_and_app:
     
     assert "response_message" in response_data_full
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    expected_error_message = f"Connection Error: Could not connect to the target processing service. Details: {error_detail}"
+    expected_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_detail)}"
     assert actual_response_text == expected_error_message
+    assert response_data_full["status"]["state"] == TaskState.FAILED.value # Ensure task is in FAILED state
 
 @pytest.mark.asyncio
 async def test_hr_assistant_process_message_mcp_timeout_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
@@ -118,8 +119,9 @@ async def test_hr_assistant_process_message_mcp_timeout_error(client_and_app: tu
     response_data_full = response.json()
     
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    expected_error_message = f"The request to the target processing service timed out. Details: {error_detail}"
+    expected_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_detail)}"
     assert actual_response_text == expected_error_message
+    assert response_data_full["status"]["state"] == TaskState.FAILED.value
 
 @pytest.mark.asyncio
 async def test_hr_assistant_process_message_mcp_generic_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
@@ -139,8 +141,9 @@ async def test_hr_assistant_process_message_mcp_generic_error(client_and_app: tu
     response_data_full = response.json()
     
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    expected_error_message = f"Error from target processing service: {str(error_detail)}"
+    expected_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_detail)}"
     assert actual_response_text == expected_error_message
+    assert response_data_full["status"]["state"] == TaskState.FAILED.value
 
 @pytest.mark.asyncio
 async def test_hr_assistant_process_message_unexpected_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
@@ -160,8 +163,9 @@ async def test_hr_assistant_process_message_unexpected_error(client_and_app: tup
     response_data_full = response.json()
     
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    expected_service_error_message = f"An unexpected error occurred while trying to reach the target processing service. Details: {error_detail}"
+    expected_service_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_detail)}"
     assert actual_response_text == expected_service_error_message
+    assert response_data_full["status"]["state"] == TaskState.FAILED.value
 
 # TODO: Consider adding tests for:
 # 1. Different message structures in TaskRequestBody (e.g., empty parts, multiple parts if relevant).

@@ -14,7 +14,7 @@ from apps.api.agents.business.metrics.main import (
     MCP_TARGET_AGENT_ID as METRICS_MCP_TARGET_ID,  # Import new constant
     CONTEXT_FILE_NAME as METRICS_CONTEXT_FILE    # Import new constant
 )
-from apps.api.a2a_protocol.types import Message, TextPart
+from apps.api.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState
 from apps.api.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError
 
 # Helper to get project root for loading the context file in tests
@@ -93,8 +93,9 @@ async def test_metrics_process_message_mcp_connection_error(client_and_app: tupl
     assert len(response_data_full["response_message"]["parts"]) >= 1
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     error_detail = "Failed to connect to MCP" # Match the side_effect
-    expected_error_message = f"Connection Error: Could not connect to the target processing service. Details: {error_detail}"
+    expected_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_detail)}"
     assert actual_response_text == expected_error_message
+    assert response_data_full["status"]["state"] == TaskState.FAILED.value
 
 @pytest.mark.asyncio
 async def test_metrics_process_message_mcp_timeout_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
@@ -113,8 +114,9 @@ async def test_metrics_process_message_mcp_timeout_error(client_and_app: tuple[h
     assert len(response_data_full["response_message"]["parts"]) >= 1
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     error_detail = "Request to MCP timed out" # Match the side_effect
-    expected_error_message = f"The request to the target processing service timed out. Details: {error_detail}"
+    expected_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_detail)}"
     assert actual_response_text == expected_error_message
+    assert response_data_full["status"]["state"] == TaskState.FAILED.value
 
 @pytest.mark.asyncio
 async def test_metrics_process_message_mcp_generic_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
@@ -133,8 +135,9 @@ async def test_metrics_process_message_mcp_generic_error(client_and_app: tuple[h
     assert len(response_data_full["response_message"]["parts"]) >= 1
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     error_detail = "An MCP specific error occurred for metrics" # Match the side_effect
-    expected_error_message = f"Error from target processing service: {error_detail}"
+    expected_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_detail)}"
     assert actual_response_text == expected_error_message
+    assert response_data_full["status"]["state"] == TaskState.FAILED.value
 
 @pytest.mark.asyncio
 async def test_metrics_process_message_unexpected_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
@@ -152,5 +155,6 @@ async def test_metrics_process_message_unexpected_error(client_and_app: tuple[ht
     assert "response_message" in response_data_full
     assert response_data_full["response_message"]["role"] == "agent"
     # error_details is defined in the test as "Metrics specific unexpected error"
-    expected_service_error_message = f"An unexpected error occurred while trying to reach the target processing service. Details: {error_details}"
+    expected_service_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_details)}"
     assert response_data_full["response_message"]["parts"][0]["text"] == expected_service_error_message 
+    assert response_data_full["status"]["state"] == TaskState.FAILED.value 

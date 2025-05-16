@@ -1,28 +1,49 @@
-from datetime import datetime, timezone
-from typing import Optional, Any
+import logging
+import httpx # For http_client dependency
+from fastapi import APIRouter, Depends, HTTPException
 
-from apps.api.a2a_protocol.base_agent import A2AAgentBaseService
 from apps.api.a2a_protocol.types import (
     AgentCard,
     AgentCapability,
-    Message,
-    TextPart
+    TextPart, # Needed for isinstance check in process_tasks_route
+    TaskSendParams, # For task route
+    Task            # For task route response
+    # Message removed, JSONRPCError removed (assuming base/FastAPI handles)
 )
 # Assuming settings might be used later, correct path would be:
 # from ....core.config import settings 
-from ....shared.mcp.mcp_client import MCPClient, MCPError, MCPConnectionError, MCPTimeoutError # Corrected import path
+from ....shared.mcp.mcp_client import MCPClient # Specific errors handled by base
+from ...base.mcp_context_agent_base import MCPContextAgentBaseService # Import the new base class
+from apps.api.a2a_protocol.task_store import TaskStoreService # Needed for base class
+from ....main import get_original_http_client # Needed for base class
 
 AGENT_ID = "sop_agent"
 AGENT_NAME = "ProcedurePro"
 AGENT_DESCRIPTION = "Your guide for navigating and understanding Standard Operating Procedures (SOPs)."
 AGENT_VERSION = "0.1.0"
+CONTEXT_FILE_NAME = "sop_agent.md"
+MCP_TARGET_AGENT_ID = "knowledge_agent_sop_domain" # Placeholder: Adjust if your target agent is different
 
-class SopService(A2AAgentBaseService):
+logger = logging.getLogger(__name__)
+
+class SopService(MCPContextAgentBaseService):
     """SOP Agent Service that provides information based on conceptual Standard Operating Procedures."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.mcp_client = MCPClient()
+    def __init__(
+        self,
+        task_store: TaskStoreService,
+        http_client: httpx.AsyncClient,
+        mcp_client: MCPClient
+    ):
+        super().__init__(
+            task_store=task_store,
+            http_client=http_client,
+            agent_name=AGENT_NAME,
+            mcp_client=mcp_client,
+            mcp_target_agent_id=MCP_TARGET_AGENT_ID,
+            context_file_name=CONTEXT_FILE_NAME
+        )
+        # Logger is initialized in the base class with AGENT_NAME
 
     async def get_agent_card(self) -> AgentCard:
         return AgentCard(
@@ -30,61 +51,65 @@ class SopService(A2AAgentBaseService):
             name=AGENT_NAME,
             description=AGENT_DESCRIPTION,
             version=AGENT_VERSION,
-            type="instructional", 
+            type="instructional",
             endpoints=[f"/agents/business/sop/tasks"],
             capabilities=[
                 AgentCapability(
-                    name="query_sop_knowledge", 
+                    name="query_sop_knowledge",
                     description="Answers questions and explains steps based on conceptual SOPs."
                 )
             ]
         )
 
-    async def process_message(
-        self,
-        message: Message,
-        task_id: str,
-        session_id: Optional[str] = None
-    ) -> Message:
-        """Process a message by simulating SOP guidance based on conceptual knowledge."""
+    # process_message is now inherited from MCPContextAgentBaseService
+    # The old hardcoded SOP logic needs to be moved to markdown_context/sop_agent.md
+
+# print(f"[sop_agent/main.py] Loaded. SopService refactored to use MCPContextAgentBaseService.")
+
+# Create an APIRouter instance for the SOP Agent
+agent_router = APIRouter(
+    prefix="/agents/business/sop",
+    tags=["SOP Agent - ProcedurePro"]
+)
+
+# Dependency for the service
+async def get_sop_service(
+    mcp_client: MCPClient = Depends(lambda: MCPClient()),
+    task_store: TaskStoreService = Depends(TaskStoreService),
+    http_client: httpx.AsyncClient = Depends(get_original_http_client)
+) -> SopService:
+    return SopService(
+        mcp_client=mcp_client,
+        task_store=task_store,
+        http_client=http_client
+    )
+
+@agent_router.get("/agent-card", response_model=AgentCard)
+async def get_agent_card_route(
+    service: SopService = Depends(get_sop_service)
+):
+    return await service.get_agent_card()
+
+@agent_router.post("/tasks", response_model=Task)
+async def process_tasks_route(
+    task_request: TaskSendParams, 
+    service: SopService = Depends(get_sop_service)
+):
+    log_input_text = "No text part found or text part is empty."
+    if task_request.message.parts and hasattr(task_request.message.parts[0], 'root') and isinstance(task_request.message.parts[0].root, TextPart):
+        log_input_text = task_request.message.parts[0].root.text[:100]
+    logger.info(f"SOP Agent /tasks endpoint received task request ID: {task_request.id} with input: {log_input_text}")
+
+    try:
+        task_response = await service.handle_task_send(params=task_request)
+        if not task_response:
+            logger.error(f"SOP Agent /tasks endpoint: handle_task_send returned None for task {task_request.id}. This is unexpected.")
+            raise HTTPException(status_code=500, detail="Task processing failed to return a valid task object.")
         
-        input_text = "[empty message]"
-        if message.parts:
-            part = message.parts[0]
-            if hasattr(part, "root") and hasattr(part.root, "text"):
-                input_text = part.root.text
-            elif hasattr(part, "text"): 
-                 input_text = part.text
-            elif isinstance(part, dict) and "text" in part: 
-                 input_text = part["text"]
-
-        self.logger.info(f"SOPService (task {task_id}): Processing query: '{input_text}'")
-        
-        response_text = f"ProcedurePro received: '{input_text}'. Standard SOP guidance will be provided here."
-
-        if isinstance(input_text, str) and input_text != "[empty message]":
-            lower_input = input_text.lower()
-            if "employee onboarding" in lower_input and "first step" in lower_input:
-                response_text = "According to the conceptual Employee Onboarding SOP, Step 1 is: HR sends the welcome packet."
-            elif "expense report" in lower_input and "deadline" in lower_input:
-                response_text = "Based on the conceptual Expense Report SOP, all expense reports must be submitted via the XpensePro portal by the 5th of the following month."
-            elif ("computer" in lower_input and "broken" in lower_input) or ("it support" in lower_input and "urgent" in lower_input):
-                response_text = "For urgent IT issues like a broken computer, the conceptual IT Support Request SOP suggests calling the IT Helpdesk at x1234. For non-urgent issues, you would submit a ticket through the ServiceDesk portal."
-            elif "receipt" in lower_input and ("$10" in lower_input or "coffee" in lower_input):
-                response_text = "The conceptual Expense Report SOP states that receipts are required for all expenses over $25. So, for a $10 coffee, a receipt might not be strictly required based on that specific rule, but it's always good practice to keep them."
-            elif "expense report" in lower_input:
-                 response_text = "Regarding expense reports (based on conceptual SOP): Submit via XpensePro by the 5th of the following month. Receipts are needed for expenses over $25. Approved reports are reimbursed in 7 business days."
-            elif "it support" in lower_input:
-                 response_text = "For IT support (based on conceptual SOP): Urgent issues, call IT Helpdesk at x1234. Non-urgent, submit a ticket via ServiceDesk portal (help.company.com). Provide employee ID, issue description, and error messages."
-            elif "employee onboarding" in lower_input:
-                response_text = "The conceptual Employee Onboarding SOP includes: Step 1: HR sends welcome packet. Step 2: Manager schedules introductory meetings. Step 3: IT provisions equipment and access within 48 hours."
-            else:
-                response_text = f"ProcedurePro received: '{input_text}'. I can provide guidance on conceptual SOPs like Employee Onboarding, Expense Reports, and IT Support. How can I help with those?"
-
-        return Message(
-            role="agent",
-            parts=[TextPart(text=response_text)],
-            timestamp=datetime.now(timezone.utc).isoformat()
-        )
-
-# print(f"[sop_agent/main.py] Loaded. SOPService defined.") 
+        logger.info(f"SOP Agent /tasks endpoint successfully processed task {task_request.id}. Returning Task object. Final state: {task_response.status.state}")
+        return task_response
+    except HTTPException: # Re-raise HTTPExceptions explicitly
+        raise
+    except Exception as e: # Catch any other unexpected error
+        logger.error(f"SOP Agent /tasks endpoint: Unexpected error during task processing for task ID {task_request.id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"An unexpected server error occurred during task processing: {str(e)}") 

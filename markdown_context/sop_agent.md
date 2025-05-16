@@ -1,5 +1,13 @@
 # SOP Agent Context
 
+This is a placeholder context for the SOP agent.
+
+## Employee Onboarding
+- Step 1: HR sends the welcome packet.
+
+## Expense Reports
+- Deadline: 5th of the following month via XpensePro portal.
+
 ## 1. Agent Persona/Role
 
 **Name**: ProcedurePro

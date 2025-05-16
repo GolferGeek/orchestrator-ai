@@ -100,7 +100,7 @@ class MCPContextAgentBaseService(A2AAgentBaseService):
         loaded_context_str = self.load_context()
         query_for_mcp = f"{loaded_context_str}\n\nUser Query: {user_query}"
         
-        self.logger.info(f"(Task {task_id}): Relaying query to MCPClient targeting agent '{self.mcp_target_agent_id}'. Query (first 100 chars): '{query_for_mcp[:100].replace('\n', ' ')}...'")
+        self.logger.info(f"(Task {task_id}): Sending query to MCPClient for target agent '{self.mcp_target_agent_id}': '{query_for_mcp[:200]}...'")
         response_text = ""
 
         try:
@@ -110,24 +110,28 @@ class MCPContextAgentBaseService(A2AAgentBaseService):
                 session_id=session_id
             )
             self.logger.info(f"(Task {task_id}): Received aggregated response from MCPClient for target agent '{self.mcp_target_agent_id}'.")
-        except MCPConnectionError as e_conn:
-            self.logger.error(f"(Task {task_id}): MCPClient Connection Error for target agent '{self.mcp_target_agent_id}': {e_conn}")
-            response_text = f"Connection Error: Could not connect to the target processing service. Details: {e_conn}"
-        except MCPTimeoutError as e_timeout:
-            self.logger.error(f"(Task {task_id}): MCPClient Read Timeout for target agent '{self.mcp_target_agent_id}': {e_timeout}")
-            response_text = f"The request to the target processing service timed out. Details: {e_timeout}"
-        except MCPError as e_mcp:
-            self.logger.error(f"(Task {task_id}): MCPClient Error for target agent '{self.mcp_target_agent_id}': {e_mcp} (Status: {e_mcp.status_code if hasattr(e_mcp, 'status_code') else 'N/A'})")
-            response_text = f"Error from target processing service: {str(e_mcp)}"
-        except Exception as e_generic: # Catch-all for other unexpected errors during MCP call
-            self.logger.exception(f"(Task {task_id}): Unexpected error using MCPClient for target agent '{self.mcp_target_agent_id}': {str(e_generic)}")
-            response_text = f"An unexpected error occurred while trying to reach the target processing service. Details: {e_generic}"
+        except Exception as e_generic: # Catch-all for other unexpected errors *during* the MCP call itself
+            self.logger.exception(f"(Task {task_id}): Unexpected error during MCPClient call for target agent '{self.mcp_target_agent_id}': {str(e_generic)}")
+            # This error here means the MCP call itself failed unexpectedly, not that MCP returned an error.
+            # Let this propagate too, as A2AAgentBaseService will handle it.
+            raise # Re-raise the unexpected error to be handled by A2AAgentBaseService
 
         return Message(
             role="agent",
             parts=[TextPart(text=response_text)],
             timestamp=datetime.now(timezone.utc).isoformat()
         )
+
+    def _format_mcp_error_for_user(self, e: MCPError) -> str:
+        if isinstance(e, MCPConnectionError):
+            return f"Connection Error: Could not connect to the target processing service. Details: {str(e)}"
+        elif isinstance(e, MCPTimeoutError):
+            return f"The request to the target processing service timed out. Details: {str(e)}"
+        elif isinstance(e, MCPError):
+            # hasattr check for status_code is good as it's optional in base MCPError
+            error_code_str = f" ({e.status_code})" if hasattr(e, 'status_code') and e.status_code else ""
+            return f"MCP Error{error_code_str}: An error occurred while communicating with the target processing service. Details: {str(e)}"
+        return f"An unexpected error occurred with the target processing service: {str(e)}"
 
 # Example of how a subclass might use this:
 #

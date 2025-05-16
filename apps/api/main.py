@@ -142,81 +142,71 @@ def process_agent_module(
     elif hasattr(module, 'routes') and hasattr(module.routes, 'agent_router') and isinstance(module.routes.agent_router, APIRouter):
         router_to_include = module.routes.agent_router
         print(f"[PROCESS_AGENT_MODULE] Found 'agent_router' in {module_name}.routes")
-    
-    if router_to_include:
-        # Determine prefix. The router itself might have a prefix, ensure it aligns.
-        # The router in metrics_agent/routes.py already has the full prefix.
-        # So we might not need to add another prefix here, or ensure it's idempotent.
-        # For now, let's assume the loaded router has its full desired prefix.
-        app_to_configure.include_router(router_to_include)
-        print(f"[PROCESS_AGENT_MODULE] Included agent_router from {agent_module_dir.name}")
 
+    # Determine the conventional service class name regardless of router presence
+    # This is needed for logging/warning even if a router is used.
     parts = agent_module_dir.name.split('_')
     camel_cased_parts = [part.title() for part in parts]
     agent_service_class_name_candidate = "".join(camel_cased_parts) + "Service"
+    if not hasattr(module, agent_service_class_name_candidate) and hasattr(module, "AgentService"): # Fallback
+        agent_service_class_name_candidate = "AgentService"
 
-    if not hasattr(module, agent_service_class_name_candidate) and hasattr(module, "AgentService"):
-         agent_service_class_name_candidate = "AgentService"
-
-    if hasattr(module, agent_service_class_name_candidate):
-        agent_service_class = getattr(module, agent_service_class_name_candidate)
-        try:
-            current_task_store = task_store_provider()
-            current_http_client = http_client_provider() # This will be the test client in tests
-            
-            init_params = {
-                "task_store": current_task_store,
-                "http_client": current_http_client,
-                "agent_name": agent_module_dir.name
-            }
-            
-            if agent_service_class.__name__ == "OrchestratorService":
-                current_openai_service = openai_service_provider() # This will be the mock in tests
-                if current_openai_service:
-                    init_params["openai_service"] = current_openai_service
-            
-            agent_service_instance = agent_service_class(**init_params)
-            # print(f"[PROCESS_AGENT_MODULE] Instantiated {agent_service_class.__name__} for {agent_module_dir.name} with http_client: {type(current_http_client)}, openai_service: {type(current_openai_service) if 'current_openai_service' in locals() else 'N/A'}")
-
-            router = APIRouter()
-            base_prefix = f"/agents/{category_name}/{agent_module_dir.name}" if category_name else f"/agents/{agent_module_dir.name}"
-
-            if hasattr(agent_service_instance, "get_agent_card"):
-                router.add_api_route("/agent-card", agent_service_instance.get_agent_card, methods=["GET"], response_model=AgentCard, tags=tags)
-            if hasattr(agent_service_instance, "handle_task_send"):
-                router.add_api_route("/tasks", agent_service_instance.handle_task_send, methods=["POST"], response_model=Task, tags=tags)
-            if hasattr(agent_service_instance, "handle_task_get"):
-                router.add_api_route("/tasks/{task_id}", agent_service_instance.handle_task_get, methods=["GET"], response_model=Optional[Task], tags=tags)
-            if hasattr(agent_service_instance, "handle_task_cancel"):
-                router.add_api_route("/tasks/{task_id}", agent_service_instance.handle_task_cancel, methods=["DELETE"], response_model=dict, tags=tags)
-            
-            if hasattr(module, "get_agent_discovery") and callable(getattr(module, "get_agent_discovery")):
-                 # This uses the router from the service instance, not the module-level one found above.
-                 # We might need to decide on one pattern or allow both carefully.
-                 # For now, this specific well-known route remains tied to the service instance if defined.
-                 router.add_api_route("/.well-known/agent.json", getattr(module, "get_agent_discovery"), methods=["GET"], tags=tags, include_in_schema=False)
-            elif hasattr(agent_service_instance, "get_agent_card"):
-                 router.add_api_route("/.well-known/agent.json", agent_service_instance.get_agent_card, methods=["GET"], response_model=AgentCard, tags=tags, include_in_schema=False)
-
-            if router.routes:
-                # This includes the router populated by the service instance methods.
-                # If a module-level router_to_include was already added, this might lead to duplicated prefixes or routes.
-                # We should ensure that an agent uses EITHER a module-level 'agent_router' OR the service-based routing, not both for the same paths.
-                # For now, if router_to_include was found, maybe we skip this service-based router?
-                # Or, the service based router should have a different prefix/purpose.
-                # Let's assume if router_to_include exists, it handles all main routes.
-                if not router_to_include: # Only add service-based router if no module-level router was found
-                    app_to_configure.include_router(router, prefix=base_prefix, tags=tags)
-                    print(f"[PROCESS_AGENT_MODULE] Included service-based router for {agent_module_dir.name}")
-                elif router.routes: # Service has routes, but module router already included
-                    print(f"[PROCESS_AGENT_MODULE] Warning: Module-level 'agent_router' included for {agent_module_dir.name}. Additional service-based routes are defined but NOT being automatically prefixed and included by this part of the logic to avoid conflict. Ensure they are handled or merged correctly.")
-
-        except Exception as e:
-            print(f"[PROCESS_AGENT_MODULE] Error for {agent_module_dir.name}: {e}")
-            import traceback
-            traceback.print_exc()
+    if router_to_include:
+        app_to_configure.include_router(router_to_include)
+        print(f"[PROCESS_AGENT_MODULE] Included agent_router from {agent_module_dir.name}")
+        # Log if a service class by convention also exists, as we are preferring the router
+        if hasattr(module, agent_service_class_name_candidate):
+            print(f"[PROCESS_AGENT_MODULE] Info: Module {agent_module_dir.name} has an agent_router. Service class '{agent_service_class_name_candidate}' also found but its routes are NOT being dynamically generated by the loader as router is preferred.")
     else:
-        print(f"[PROCESS_AGENT_MODULE] Warning: No service class in {agent_main_py}")
+        # No module-level 'agent_router' found, so try to find and use a service class by convention
+        print(f"[PROCESS_AGENT_MODULE] No agent_router found in {agent_module_dir.name}. Attempting service-based routing.")
+        if hasattr(module, agent_service_class_name_candidate):
+            agent_service_class = getattr(module, agent_service_class_name_candidate)
+            try:
+                current_task_store = task_store_provider()
+                current_http_client = http_client_provider()
+                
+                init_params = {
+                    "task_store": current_task_store,
+                    "http_client": current_http_client,
+                    "agent_name": agent_module_dir.name # agent_name is needed for these dynamically routed services
+                }
+                
+                if agent_service_class.__name__ == "OrchestratorService":
+                    current_openai_service = openai_service_provider()
+                    if current_openai_service:
+                        init_params["openai_service"] = current_openai_service
+                
+                agent_service_instance = agent_service_class(**init_params)
+
+                router = APIRouter()
+                base_prefix = f"/agents/{category_name}/{agent_module_dir.name}" if category_name else f"/agents/{agent_module_dir.name}"
+
+                if hasattr(agent_service_instance, "get_agent_card"):
+                    router.add_api_route("/agent-card", agent_service_instance.get_agent_card, methods=["GET"], response_model=AgentCard, tags=tags)
+                if hasattr(agent_service_instance, "handle_task_send"):
+                    router.add_api_route("/tasks", agent_service_instance.handle_task_send, methods=["POST"], response_model=Task, tags=tags)
+                if hasattr(agent_service_instance, "handle_task_get"):
+                    router.add_api_route(f"/tasks/{{task_id}}", agent_service_instance.handle_task_get, methods=["GET"], response_model=Optional[Task], tags=tags)
+                if hasattr(agent_service_instance, "handle_task_cancel"):
+                    router.add_api_route(f"/tasks/{{task_id}}", agent_service_instance.handle_task_cancel, methods=["DELETE"], response_model=dict, tags=tags)
+                
+                if hasattr(module, "get_agent_discovery") and callable(getattr(module, "get_agent_discovery")):
+                    router.add_api_route("/.well-known/agent.json", getattr(module, "get_agent_discovery"), methods=["GET"], tags=tags, include_in_schema=False)
+                elif hasattr(agent_service_instance, "get_agent_card"): # Fallback to service's agent_card for well-known
+                    router.add_api_route("/.well-known/agent.json", agent_service_instance.get_agent_card, methods=["GET"], response_model=AgentCard, tags=tags, include_in_schema=False)
+
+                if router.routes:
+                    app_to_configure.include_router(router, prefix=base_prefix, tags=tags)
+                    print(f"[PROCESS_AGENT_MODULE] Included service-based router for {agent_module_dir.name} using {agent_service_class_name_candidate}")
+
+            except Exception as e:
+                print(f"[PROCESS_AGENT_MODULE] Error for {agent_module_dir.name} (during service-based route setup for {agent_service_class_name_candidate}): {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            # This case means no agent_router and no identifiable service class by convention
+            print(f"[PROCESS_AGENT_MODULE] Warning: No agent_router and no service class ('{agent_service_class_name_candidate}' or 'AgentService') found in {agent_main_py}. No routes loaded for this agent module.")
 
 def load_agent_services(app_to_configure: FastAPI):
     print(f"[LOAD_AGENT_SERVICES] Called for app: {id(app_to_configure)}. Overrides: {app_to_configure.dependency_overrides}")
