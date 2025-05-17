@@ -1,9 +1,11 @@
 # apps/api/agents/orchestrator/main.py
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import httpx
 import uuid
 import os
+from pathlib import Path
+import logging
 
 from apps.api.a2a_protocol.base_agent import A2AAgentBaseService
 from apps.api.a2a_protocol.task_store import TaskStoreService # Not strictly needed here if base class handles it
@@ -26,10 +28,95 @@ class OrchestratorService(A2AAgentBaseService):
     def __init__(self, task_store, http_client, agent_name, openai_service: Optional[OpenAIService] = None):
         super().__init__(task_store=task_store, http_client=http_client, agent_name=agent_name)
         self.openai_service = openai_service
+        self.available_agents = []  # Store the available agents info here
+        
+        # Discover all available agents at initialization
+        self._discover_available_agents()
+        
         if self.openai_service:
             self.logger.info("OrchestratorService initialized with OpenAIService.")
         else:
             self.logger.warning("OrchestratorService initialized WITHOUT OpenAIService (API key likely missing).")
+    
+    def _discover_available_agents(self):
+        """
+        Discover all available agents in the system by scanning the agent directories.
+        This builds a list of agents that can be used for LLM routing decisions.
+        """
+        self.logger.info("Discovering available agents...")
+        
+        # List to store discovered agents
+        discovered_agents = []
+        
+        # Get the agents base directory
+        agents_base_dir = Path(__file__).parent.parent  # From orchestrator/main.py to agents/
+        self.logger.info(f"Scanning agents directory: {agents_base_dir}")
+        
+        # Iterate through all categories
+        for agent_category_dir in agents_base_dir.iterdir():
+            if not agent_category_dir.is_dir() or not (agent_category_dir / "__init__.py").exists():
+                continue
+            
+            category_name = agent_category_dir.name
+            
+            # Skip orchestrator itself
+            if category_name == "orchestrator":
+                continue
+                
+            # Iterate through agents in this category
+            for agent_dir in agent_category_dir.iterdir():
+                if not agent_dir.is_dir() or not (agent_dir / "__init__.py").exists() or not (agent_dir / "main.py").exists():
+                    continue
+                
+                agent_name = agent_dir.name
+                agent_path = f"{category_name}/{agent_name}"
+                
+                # Try to get a detailed description from the agent's well-known directory if it exists
+                description = self._get_agent_description(agent_dir)
+                
+                # Add the agent to our discovered list
+                discovered_agents.append({
+                    "name": agent_path,
+                    "description": description
+                })
+                
+                self.logger.info(f"Discovered agent: {agent_path} - {description[:50]}...")
+        
+        # Store the discovered agents
+        self.available_agents = discovered_agents
+        self.logger.info(f"Discovered {len(discovered_agents)} available agents")
+    
+    def _get_agent_description(self, agent_dir: Path) -> str:
+        """
+        Get a description for an agent, either from its agent.json in .well-known 
+        or by constructing a basic description from its directory name.
+        """
+        # First try to read from .well-known/agent.json
+        well_known_dir = agent_dir / ".well-known"
+        agent_json_path = well_known_dir / "agent.json"
+        
+        if well_known_dir.exists() and agent_json_path.exists():
+            try:
+                import json
+                with open(agent_json_path, 'r') as f:
+                    agent_data = json.load(f)
+                    if "description" in agent_data:
+                        return agent_data["description"]
+            except Exception as e:
+                self.logger.warning(f"Error reading agent.json for {agent_dir.name}: {e}")
+        
+        # Try to infer from agent name
+        agent_name = agent_dir.name.replace('_', ' ')
+        category_name = agent_dir.parent.name.replace('_', ' ')
+        
+        descriptions = {
+            "blog_post": "Creates high-quality blog posts for marketing purposes.",
+            "metrics": "Handles queries about business metrics, sales figures, user statistics, and financial reports.",
+            # Add more default descriptions as needed
+        }
+        
+        # Return a specific description if available, otherwise construct a generic one
+        return descriptions.get(agent_dir.name, f"Handles tasks related to {agent_name} in the {category_name} domain.")
 
     async def get_agent_card(self) -> AgentCard:
         return AgentCard(
@@ -71,15 +158,8 @@ class OrchestratorService(A2AAgentBaseService):
         try:
             if self.openai_service:
                 self.logger.info(f"Orchestrator (task {task_id}): Consulting LLM for user query: '{input_text}'")
-                # Define available agents/capabilities for the LLM to consider
-                # This could be dynamically fetched from agent cards in a more advanced setup
-                available_agents_for_llm = [
-                    {"name": "business/metrics", "description": "Handles queries about business metrics, sales figures, user statistics, and financial reports."},
-                    # Add other agents here as they become available and capable, e.g.:
-                    # {"name": "customer_support", "description": "Handles customer support tickets and live chat."}, 
-                    # {"name": "hr_policy", "description": "Answers questions about HR policies and procedures."}
-                ]
-                llm_decision = await self.openai_service.decide_orchestration_action(input_text, available_agents_for_llm)
+                # Use the dynamically discovered agent list instead of the hardcoded one
+                llm_decision = await self.openai_service.decide_orchestration_action(input_text, self.available_agents)
                 self.logger.info(f"Orchestrator (task {task_id}): LLM decision: {llm_decision}")
             else:
                 self.logger.warning(f"Orchestrator (task {task_id}): OpenAIService not available. Falling back to rule-based logic.")
