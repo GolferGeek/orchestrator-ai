@@ -51,7 +51,7 @@ async def test_calendar_process_message_success(client_and_app: tuple[httpx.Asyn
         pytest.fail(f"Test setup error: Calendar context file not found at {CALENDAR_CONTEXT_FILE_PATH}")
 
     mock_query_aggregate = mocker.patch(
-        "apps.api.agents.marketing.calendar.main.MCPClient.query_agent_aggregate",
+        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         return_value=mocked_mcp_response
     )
@@ -86,7 +86,7 @@ async def test_calendar_process_message_mcp_connection_error(client_and_app: tup
     user_query = "What events are next week?"
     error_detail_text = "Failed to connect to MCP for calendar"
     mocker.patch(
-        "apps.api.agents.marketing.calendar.main.MCPClient.query_agent_aggregate",
+        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPConnectionError(error_detail_text)
     )
@@ -108,7 +108,7 @@ async def test_calendar_process_message_mcp_timeout_error(client_and_app: tuple[
     user_query = "Is the Q3 campaign launch confirmed?"
     error_detail_text = "Request to MCP for calendar timed out"
     mocker.patch(
-        "apps.api.agents.marketing.calendar.main.MCPClient.query_agent_aggregate",
+        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPTimeoutError(error_detail_text)
     )
@@ -130,7 +130,7 @@ async def test_calendar_process_message_mcp_generic_error(client_and_app: tuple[
     user_query = "Show me all webinars."
     error_detail_text = "An MCP specific error occurred for calendar"
     mocker.patch(
-        "apps.api.agents.marketing.calendar.main.MCPClient.query_agent_aggregate",
+        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPError(error_detail_text, status_code=503)
     )
@@ -156,7 +156,7 @@ async def test_calendar_process_message_unexpected_error_in_service(client_and_a
     # For an error *during* the MCPClient.query_agent_aggregate, it's covered by the MCPError tests above.
     # We'll mock the query_agent_aggregate itself to cause an error as if from MCP client, for consistency with metrics test
     mocker.patch(
-        "apps.api.agents.marketing.calendar.main.MCPClient.query_agent_aggregate",
+        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=ValueError(error_detail_text) # Simulate an unexpected error from this call
     )

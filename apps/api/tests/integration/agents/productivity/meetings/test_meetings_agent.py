@@ -12,7 +12,8 @@ from apps.api.agents.productivity.meetings.main import (
     AGENT_VERSION as MEETINGS_AGENT_VERSION,
     AGENT_DESCRIPTION as MEETINGS_AGENT_DESCRIPTION,
     MCP_TARGET_AGENT_ID as MEETINGS_MCP_TARGET_ID,
-    CONTEXT_FILE_NAME as MEETINGS_CONTEXT_FILE
+    CONTEXT_FILE_NAME as MEETINGS_CONTEXT_FILE,
+    PRIMARY_CAPABILITY_NAME as MEETINGS_PRIMARY_CAPABILITY
 )
 from apps.api.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState
 from apps.api.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError
@@ -35,7 +36,7 @@ async def test_get_meetings_agent_card(client_and_app: tuple[httpx.AsyncClient, 
     assert agent_card["type"] == "specialized"
     assert "/agents/productivity/meetings/tasks" in agent_card["endpoints"]
     assert len(agent_card["capabilities"]) > 0
-    assert agent_card["capabilities"][0]["name"] == "query_meetings_via_mcp"
+    assert agent_card["capabilities"][0]["name"] == MEETINGS_PRIMARY_CAPABILITY
 
 @pytest.mark.asyncio
 async def test_get_meetings_agent_discovery_well_known(client_and_app: tuple[httpx.AsyncClient, FastAPI]):

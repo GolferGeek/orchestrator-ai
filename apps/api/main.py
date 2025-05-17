@@ -171,6 +171,10 @@ def process_agent_module(
                     "http_client": current_http_client,
                     "agent_name": agent_module_dir.name # agent_name is needed for these dynamically routed services
                 }
+
+                # Add department_name if the agent is in a category (department)
+                if category_name:
+                    init_params["department_name"] = category_name
                 
                 if agent_service_class.__name__ == "OrchestratorService":
                     current_openai_service = openai_service_provider()

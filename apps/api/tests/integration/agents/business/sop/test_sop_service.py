@@ -48,19 +48,17 @@ def create_simple_task_send_params(text: str, task_id: str | None = None) -> Tas
 @pytest.mark.asyncio
 async def test_sop_get_agent_card(client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
-    # Use the directory name 'sop' for the path, consistent with how main.py router is set up
-    response = await client.get(f"/agents/business/sop/agent-card") 
+    response = await client.get(f"/agents/business/procedurepro/agent-card") 
     assert response.status_code == 200
     agent_card = response.json()
-    assert agent_card["id"] == SOP_AGENT_ID # AGENT_ID itself is still 'sop_agent'
+    assert agent_card["id"] == SOP_AGENT_ID
     assert agent_card["name"] == SOP_AGENT_NAME
     assert agent_card["version"] == SOP_AGENT_VERSION
-    # Now check the corrected endpoint path
-    assert f"/agents/business/sop/tasks" in agent_card["endpoints"]
+    assert f"/agents/business/procedurepro/tasks" in agent_card["endpoints"]
     assert len(agent_card["capabilities"]) == 1
     assert agent_card["capabilities"][0]["name"] == "query_sop_knowledge"
 
-@patch("apps.api.agents.business.sop.main.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_success(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "Tell me about employee onboarding"
@@ -71,7 +69,7 @@ async def test_sop_process_message_success(mock_query_aggregate: AsyncMock, clie
     expected_query_for_mcp = f"{sop_context}\n\nUser Query: {user_query}"
 
     task_params = create_simple_task_send_params(user_query, task_id="test-sop-task-123")
-    response = await client.post("/agents/business/sop/tasks", json=task_params.model_dump(mode='json'))
+    response = await client.post("/agents/business/procedurepro/tasks", json=task_params.model_dump(mode='json'))
 
     assert response.status_code == 200
     response_data_full = response.json()
@@ -85,7 +83,7 @@ async def test_sop_process_message_success(mock_query_aggregate: AsyncMock, clie
         session_id="test-sop-task-123"
     )
 
-@patch("apps.api.agents.business.sop.main.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_mcp_connection_error(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "Some query that will trigger a connection error"
@@ -93,7 +91,7 @@ async def test_sop_process_message_mcp_connection_error(mock_query_aggregate: As
     mock_query_aggregate.side_effect = MCPConnectionError(error_detail)
 
     task_params = create_simple_task_send_params(user_query, task_id="test-sop-task-conn-error")
-    response = await client.post("/agents/business/sop/tasks", json=task_params.model_dump(mode='json'))
+    response = await client.post("/agents/business/procedurepro/tasks", json=task_params.model_dump(mode='json'))
 
     assert response.status_code == 200 
     response_data_full = response.json()
@@ -108,7 +106,7 @@ async def test_sop_process_message_mcp_connection_error(mock_query_aggregate: As
         session_id="test-sop-task-conn-error"
     )
 
-@patch("apps.api.agents.business.sop.main.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_mcp_timeout_error(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "Query that times out"
@@ -116,7 +114,7 @@ async def test_sop_process_message_mcp_timeout_error(mock_query_aggregate: Async
     mock_query_aggregate.side_effect = MCPTimeoutError(error_detail)
 
     task_params = create_simple_task_send_params(user_query, task_id="test-sop-task-expense")
-    response = await client.post("/agents/business/sop/tasks", json=task_params.model_dump(mode='json'))
+    response = await client.post("/agents/business/procedurepro/tasks", json=task_params.model_dump(mode='json'))
 
     assert response.status_code == 200
     response_data_full = response.json()
@@ -125,7 +123,7 @@ async def test_sop_process_message_mcp_timeout_error(mock_query_aggregate: Async
     expected_error_message = f"Falling back to rule-based processing due to LLM error: {error_detail}"
     assert actual_response_text == expected_error_message
 
-@patch("apps.api.agents.business.sop.main.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_mcp_generic_error(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "Query that causes generic MCP error"
@@ -133,7 +131,7 @@ async def test_sop_process_message_mcp_generic_error(mock_query_aggregate: Async
     mock_query_aggregate.side_effect = MCPError(error_detail, status_code=500)
 
     task_params = create_simple_task_send_params(user_query, task_id="test-sop-task-generic-error")
-    response = await client.post("/agents/business/sop/tasks", json=task_params.model_dump(mode='json'))
+    response = await client.post("/agents/business/procedurepro/tasks", json=task_params.model_dump(mode='json'))
 
     assert response.status_code == 200
     response_data_full = response.json()
@@ -142,7 +140,7 @@ async def test_sop_process_message_mcp_generic_error(mock_query_aggregate: Async
     expected_error_message = f"Falling back to rule-based processing due to LLM error: {error_detail}"
     assert actual_response_text == expected_error_message
 
-@patch("apps.api.agents.business.sop.main.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_expense_deadline(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "What is the deadline for expense reports?"
@@ -153,7 +151,7 @@ async def test_sop_process_message_expense_deadline(mock_query_aggregate: AsyncM
     expected_query_for_mcp = f"{sop_context}\n\nUser Query: {user_query}"
 
     task_params = create_simple_task_send_params(user_query, task_id="test-sop-task-expense")
-    response = await client.post("/agents/business/sop/tasks", json=task_params.model_dump(mode='json'))
+    response = await client.post("/agents/business/procedurepro/tasks", json=task_params.model_dump(mode='json'))
 
     assert response.status_code == 200
     response_data_full = response.json()
@@ -167,7 +165,7 @@ async def test_sop_process_message_expense_deadline(mock_query_aggregate: AsyncM
         session_id="test-sop-task-expense"
     )
 
-@patch("apps.api.agents.business.sop.main.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_default_response(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "Give me some SOP info"
@@ -178,7 +176,7 @@ async def test_sop_process_message_default_response(mock_query_aggregate: AsyncM
     expected_query_for_mcp = f"{sop_context}\n\nUser Query: {user_query}"
 
     task_params = create_simple_task_send_params(user_query, task_id="test-sop-task-default")
-    response = await client.post("/agents/business/sop/tasks", json=task_params.model_dump(mode='json'))
+    response = await client.post("/agents/business/procedurepro/tasks", json=task_params.model_dump(mode='json'))
 
     assert response.status_code == 200
     response_data_full = response.json()

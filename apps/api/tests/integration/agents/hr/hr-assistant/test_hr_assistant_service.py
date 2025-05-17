@@ -6,25 +6,25 @@ from pathlib import Path # Added Path for reading context file
 
 # Import agent-specific constants from the HR Assistant agent's main module
 from apps.api.agents.hr.hr_assistant.main import (
-    AGENT_ID as HR_ASSISTANT_AGENT_ID,
-    AGENT_NAME as HR_ASSISTANT_AGENT_NAME,
-    AGENT_VERSION as HR_ASSISTANT_AGENT_VERSION,
-    AGENT_DESCRIPTION as HR_ASSISTANT_AGENT_DESCRIPTION,
-    MCP_TARGET_AGENT_ID_FOR_HR_QUERIES as HR_ASSISTANT_MCP_TARGET_ID, # Renamed in agent main
-    HR_CONTEXT_FILE_NAME as HR_CONTEXT_FILE # Corrected constant name
+    HR_AGENT_ID as HR_ASSISTANT_AGENT_ID,
+    HR_AGENT_NAME as HR_ASSISTANT_AGENT_NAME,
+    HR_AGENT_VERSION as HR_ASSISTANT_AGENT_VERSION,
+    HR_AGENT_DESCRIPTION as HR_ASSISTANT_AGENT_DESCRIPTION,
+    HR_MCP_TARGET_AGENT_ID as HR_ASSISTANT_MCP_TARGET_ID,
+    HR_CONTEXT_FILE_NAME
 )
 from apps.api.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState # Added TaskState, TaskSendParams
 from apps.api.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError # For error scenario testing
 
 # Helper to get project root for loading the context file in tests
 PROJECT_ROOT = Path(__file__).resolve().parents[7] # Adjusted for hr/hr-assistant nesting
-HR_CONTEXT_FILE_PATH = PROJECT_ROOT / "markdown_context" / HR_CONTEXT_FILE # Use the imported constant
+HR_CONTEXT_FILE_PATH = PROJECT_ROOT / "markdown_context" / HR_CONTEXT_FILE_NAME # Use the imported constant
 
 @pytest.mark.asyncio
 async def test_get_hr_assistant_agent_card(client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     """Test the get_agent_card method of HRAssistantService via the /agent-card endpoint."""
     client, _ = client_and_app
-    response = await client.get("/agents/hr/hr_assistant/agent-card")
+    response = await client.get("/agents/hr/hr_assistant_agent/agent-card")
     assert response.status_code == 200
     agent_card = response.json()
     assert agent_card["id"] == HR_ASSISTANT_AGENT_ID
@@ -32,9 +32,9 @@ async def test_get_hr_assistant_agent_card(client_and_app: tuple[httpx.AsyncClie
     assert agent_card["description"] == HR_ASSISTANT_AGENT_DESCRIPTION
     assert agent_card["version"] == HR_ASSISTANT_AGENT_VERSION
     assert agent_card["type"] == "specialized" # As defined in HRAssistantService
-    assert f"/agents/hr/hr_assistant/tasks" in agent_card["endpoints"]
+    assert f"/agents/hr/hr_assistant_agent/tasks" in agent_card["endpoints"]
     assert len(agent_card["capabilities"]) > 0
-    assert agent_card["capabilities"][0]["name"] == "query_hr_info_via_mcp"
+    assert agent_card["capabilities"][0]["name"] == "query_hr_information"
     assert agent_card["capabilities"][0]["description"] == "Answers HR-related questions by relaying them to an MCP, using HR context."
 
 @pytest.mark.asyncio
@@ -50,7 +50,7 @@ async def test_hr_assistant_process_message_success(client_and_app: tuple[httpx.
         pytest.fail(f"Test setup error: HR context file not found at {HR_CONTEXT_FILE_PATH}")
 
     mock_query_aggregate = mocker.patch(
-        "apps.api.agents.hr.hr_assistant.main.MCPClient.query_agent_aggregate", 
+        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         return_value=mocked_mcp_response
     )
@@ -62,7 +62,7 @@ async def test_hr_assistant_process_message_success(client_and_app: tuple[httpx.
         message=Message(role="user", parts=[TextPart(text=user_query)])
     )
 
-    response = await client.post("/agents/hr/hr_assistant/tasks", json=request_payload.model_dump(mode='json')) # Use model_dump
+    response = await client.post("/agents/hr/hr_assistant_agent/tasks", json=request_payload.model_dump(mode='json'))
     
     assert response.status_code == 200
     response_data_full = response.json()
@@ -89,7 +89,7 @@ async def test_hr_assistant_process_message_mcp_connection_error(client_and_app:
     error_detail = "Failed to connect to HR MCP"
     
     mocker.patch(
-        "apps.api.agents.hr.hr_assistant.main.MCPClient.query_agent_aggregate",
+        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPConnectionError(error_detail)
     )
@@ -99,7 +99,7 @@ async def test_hr_assistant_process_message_mcp_connection_error(client_and_app:
         id="test-hr-conn-error", # Example ID
         message=Message(role="user", parts=[TextPart(text=user_query)])
     )
-    response = await client.post("/agents/hr/hr_assistant/tasks", json=request_payload.model_dump(mode='json'))
+    response = await client.post("/agents/hr/hr_assistant_agent/tasks", json=request_payload.model_dump(mode='json'))
     assert response.status_code == 200
     response_data_full = response.json()
     
@@ -117,7 +117,7 @@ async def test_hr_assistant_process_message_mcp_timeout_error(client_and_app: tu
     error_detail = "Request to HR MCP timed out"
     
     mocker.patch(
-        "apps.api.agents.hr.hr_assistant.main.MCPClient.query_agent_aggregate",
+        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPTimeoutError(error_detail)
     )
@@ -127,7 +127,7 @@ async def test_hr_assistant_process_message_mcp_timeout_error(client_and_app: tu
         id="test-hr-timeout-error", # Example ID
         message=Message(role="user", parts=[TextPart(text=user_query)])
     )
-    response = await client.post("/agents/hr/hr_assistant/tasks", json=request_payload.model_dump(mode='json'))
+    response = await client.post("/agents/hr/hr_assistant_agent/tasks", json=request_payload.model_dump(mode='json'))
     assert response.status_code == 200
     response_data_full = response.json()
     
@@ -144,7 +144,7 @@ async def test_hr_assistant_process_message_mcp_generic_error(client_and_app: tu
     error_detail = "A specific HR MCP error occurred"
     
     mocker.patch(
-        "apps.api.agents.hr.hr_assistant.main.MCPClient.query_agent_aggregate",
+        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPError(error_detail, status_code=503)
     )
@@ -154,7 +154,7 @@ async def test_hr_assistant_process_message_mcp_generic_error(client_and_app: tu
         id="test-hr-mcp-error", # Example ID
         message=Message(role="user", parts=[TextPart(text=user_query)])
     )
-    response = await client.post("/agents/hr/hr_assistant/tasks", json=request_payload.model_dump(mode='json'))
+    response = await client.post("/agents/hr/hr_assistant_agent/tasks", json=request_payload.model_dump(mode='json'))
     assert response.status_code == 200
     response_data_full = response.json()
     
@@ -171,7 +171,7 @@ async def test_hr_assistant_process_message_unexpected_error(client_and_app: tup
     error_detail = "An unexpected issue in HR agent logic"
     
     mocker.patch(
-        "apps.api.agents.hr.hr_assistant.main.MCPClient.query_agent_aggregate",
+        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=ValueError(error_detail) 
     )
@@ -181,7 +181,7 @@ async def test_hr_assistant_process_message_unexpected_error(client_and_app: tup
         id="test-hr-unexpected-error", # Example ID
         message=Message(role="user", parts=[TextPart(text=user_query)])
     )
-    response = await client.post("/agents/hr/hr_assistant/tasks", json=request_payload.model_dump(mode='json'))
+    response = await client.post("/agents/hr/hr_assistant_agent/tasks", json=request_payload.model_dump(mode='json'))
     assert response.status_code == 200
     response_data_full = response.json()
     

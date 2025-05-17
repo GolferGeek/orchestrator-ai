@@ -23,10 +23,11 @@ from .task_store import TaskStoreService
 class A2AAgentBaseService(ABC):
     """Base agent service to implement the core A2A protocol functionality."""
     
-    def __init__(self, task_store: TaskStoreService, http_client: httpx.AsyncClient, agent_name: str):
+    def __init__(self, task_store: TaskStoreService, http_client: httpx.AsyncClient, agent_name: str, department_name: Optional[str] = None, **kwargs):
         self.task_store = task_store
         self.http_client = http_client
         self.agent_name = agent_name
+        self.department_name = department_name # Store department_name
         self.logger = logging.getLogger(self.agent_name)
         # Configure logger if not already configured by FastAPI/Uvicorn
         if not self.logger.hasHandlers():

@@ -1,115 +1,53 @@
 # apps/api/agents/productivity/tasks/main.py
-import httpx  # Needed for http_client dependency for base class
-import logging  # For logger configuration if needed
-from fastapi import APIRouter, Depends, HTTPException  # Add FastAPI imports
+from typing import Optional
 
-from apps.api.a2a_protocol.types import (
-    AgentCard,
-    AgentCapability,
-    TextPart,
-    TaskSendParams,  # For task route
-    Task,  # For task route response
-    JSONRPCError  # For error handling in task route
-)
-# Import the new MCPClient and its exceptions
-from ....shared.mcp.mcp_client import MCPClient # MCPError etc are handled by base class now
-from apps.api.agents.base.mcp_context_agent_base import MCPContextAgentBaseService # Import the new base class
-from apps.api.a2a_protocol.task_store import TaskStoreService  # Needed for base class
-from apps.api.main import get_original_http_client  # Needed for base class
+from apps.api.agents.base.mcp_context_agent_base import MCPContextAgentBaseService
+from apps.api.a2a_protocol.types import AgentCard, AgentCapability # For get_agent_card customization
 
-AGENT_VERSION = "0.1.0"
+# Define Agent specific constants
+AGENT_ID: str = "tasks-agent-v1"
+AGENT_NAME: str = "tasks" # Standardized to directory name
+AGENT_DESCRIPTION: str = "Assists with task management, including creating, updating, and querying tasks by querying a central MCP agent."
+AGENT_VERSION: str = "1.0.0" # Standardized version
+MCP_TARGET_AGENT_ID: str = "generic-language-processor-v1" # As per existing code
+CONTEXT_FILE_NAME: str = "tasks_agent.md"
+PRIMARY_CAPABILITY_NAME: str = "query_task_information"
+PRIMARY_CAPABILITY_DESCRIPTION: str = "Answers questions about tasks and assists with task management by relaying them to an MCP."
 
-AGENT_ID = "tasks-agent-v1"
-AGENT_NAME = "Tasks Agent"
-AGENT_DESCRIPTION = "Assists with task management, including creating, updating, and querying tasks by querying a central MCP agent."
-CONTEXT_FILE_NAME = "tasks_agent.md"
-MCP_TARGET_AGENT_ID = "generic-language-processor-v1" # Placeholder
-PRIMARY_CAPABILITY_NAME = "query_tasks_via_mcp" # Added as per refined plan, used in AgentCard
+class TasksService(MCPContextAgentBaseService):
+    """
+    Tasks Agent Service that queries an MCP for context-aware responses.
+    It leverages MCPContextAgentBaseService for handling message processing.
+    """
+    agent_id: str = AGENT_ID
+    agent_name: str = AGENT_NAME
+    agent_description: str = AGENT_DESCRIPTION
+    agent_version: str = AGENT_VERSION
+    mcp_target_agent_id: str = MCP_TARGET_AGENT_ID
+    context_file_name: str = CONTEXT_FILE_NAME
+    primary_capability_name: str = PRIMARY_CAPABILITY_NAME
+    primary_capability_description: str = PRIMARY_CAPABILITY_DESCRIPTION
 
-# Configure logging
-logger = logging.getLogger(__name__)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Any other specific initializations for TasksService can go here.
 
-class TasksAgentService(MCPContextAgentBaseService):
-    """Tasks Agent Service that queries the MCP for context-aware responses using MCPClient."""
-
-    def __init__(
-        self,
-        task_store: TaskStoreService,
-        http_client: httpx.AsyncClient,
-        mcp_client: MCPClient
-    ):
-        super().__init__(
-            task_store=task_store,
-            http_client=http_client,
-            agent_name=AGENT_NAME,
-            mcp_client=mcp_client,
-            mcp_target_agent_id=MCP_TARGET_AGENT_ID,
-            context_file_name=CONTEXT_FILE_NAME
-        )
-        # Logger is initialized in the base class with AGENT_NAME
-
+    # Optional: Override get_agent_card if specific customizations are needed
     async def get_agent_card(self) -> AgentCard:
         return AgentCard(
-            id=AGENT_ID,
-            name=AGENT_NAME,
-            description=AGENT_DESCRIPTION,
-            version=AGENT_VERSION,
-            type="specialized",
-            endpoints=["/agents/productivity/tasks/tasks"], # Adjusted endpoint
+            id=self.agent_id,
+            name=self.agent_name,
+            description=self.agent_description,
+            version=self.agent_version,
+            type="specialized", # As per original agent
+            endpoints=[f"/agents/{self.department_name}/{self.agent_name}/tasks"],
             capabilities=[
-                AgentCapability(name=PRIMARY_CAPABILITY_NAME, description="Answers questions about tasks by relaying them to an MCP.")
+                AgentCapability(
+                    name=self.primary_capability_name,
+                    description=self.primary_capability_description
+                )
             ]
         )
 
-    # process_message and load_context are inherited from MCPContextAgentBaseService
-
-# Create an APIRouter instance for the Tasks Agent
-agent_router = APIRouter(
-    prefix="/agents/productivity/tasks", # Corrected prefix
-    tags=["Tasks Agent"]
-)
-
-# Dependency for the service
-async def get_tasks_agent_service( # Renamed function
-    mcp_client: MCPClient = Depends(MCPClient),
-    task_store: TaskStoreService = Depends(TaskStoreService),
-    http_client: httpx.AsyncClient = Depends(get_original_http_client)
-) -> TasksAgentService: # Renamed return type
-    return TasksAgentService( # Renamed class instantiation
-        mcp_client=mcp_client,
-        task_store=task_store,
-        http_client=http_client
-    )
-
-@agent_router.get("/agent-card", response_model=AgentCard)
-async def get_agent_card_route(
-    service: TasksAgentService = Depends(get_tasks_agent_service) # Use new service getter
-):
-    return await service.get_agent_card()
-
-@agent_router.post("/tasks", response_model=Task)
-async def process_tasks_route(
-    task_request: TaskSendParams,
-    service: TasksAgentService = Depends(get_tasks_agent_service) # Use new service getter
-):
-    log_input_text = "No text part found or text part is empty."
-    if task_request.message.parts and isinstance(task_request.message.parts[0].root, TextPart):
-        log_input_text = task_request.message.parts[0].root.text[:100]
-    logger.info(f"Tasks Agent /tasks endpoint received task request ID: {task_request.id} with input: {log_input_text}")
-
-    try:
-        task_response = await service.handle_task_send(params=task_request)
-        if task_response:
-            logger.info(f"Tasks Agent /tasks endpoint successfully processed task {task_request.id}. Returning Task object. Final state: {task_response.status.state}")
-            return task_response
-        else:
-            logger.error(f"Tasks Agent /tasks endpoint: handle_task_send returned None for task {task_request.id}. This is unexpected.")
-            raise HTTPException(status_code=500, detail="Task processing failed to return a valid task object.")
-    except JSONRPCError as rpc_error:
-        logger.error(f"Tasks Agent /tasks endpoint: JSONRPCError for task {task_request.id}: {rpc_error.message}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Task processing error: {rpc_error.message}")
-    except HTTPException: # Re-raise known HTTP exceptions
-        raise
-    except Exception as e:
-        logger.error(f"Tasks Agent /tasks endpoint: Unexpected error for task {task_request.id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Unexpected error during task processing: {str(e)}") 
+# All APIRouter, route handlers, and service factory functions are removed.
+# The main application loader in apps/api/main.py will handle this. 

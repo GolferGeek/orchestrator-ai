@@ -24,22 +24,44 @@ class MCPContextAgentBaseService(A2AAgentBaseService):
     3. Query a target agent on an MCP (Multi-Agent Communication Platform).
     4. Handle common MCP errors.
     """
+    # These should be defined by subclasses as class attributes
+    mcp_target_agent_id: Optional[str] = None 
+    context_file_name: Optional[str] = None
 
     def __init__(
         self,
         task_store: TaskStoreService,
         http_client: httpx.AsyncClient,
-        agent_name: str, # Specific to the derived agent
-        mcp_client: MCPClient,
-        mcp_target_agent_id: str, # The ID of the agent on the MCP to query
-        context_file_name: str   # Filename (e.g., "my_agent_context.md") in markdown_context/
+        agent_name: Optional[str] = None, 
+        department_name: Optional[str] = None, 
+        mcp_client: Optional[MCPClient] = None, 
+        **kwargs
     ):
-        super().__init__(task_store=task_store, http_client=http_client, agent_name=agent_name)
-        self.mcp_client = mcp_client
-        self.mcp_target_agent_id = mcp_target_agent_id
-        self.context_file_name = context_file_name
+        # Resolve agent_name: Use parameter if provided, else subclass's class attribute, else A2AAgentBaseService default.
+        resolved_agent_name = agent_name
+        if resolved_agent_name is None and hasattr(self.__class__, 'agent_name'):
+            resolved_agent_name = getattr(self.__class__, 'agent_name')
+
+        # Resolve department_name: Use parameter if provided, else subclass's class attribute.
+        resolved_department_name = department_name
+        if resolved_department_name is None and hasattr(self.__class__, 'department_name'):
+            resolved_department_name = getattr(self.__class__, 'department_name')
+
+        super().__init__(
+            task_store=task_store,
+            http_client=http_client,
+            agent_name=resolved_agent_name, 
+            department_name=resolved_department_name,
+            **kwargs
+        )
         
-        self.logger = logging.getLogger(agent_name) 
+        self.mcp_client = mcp_client if mcp_client is not None else MCPClient()
+        
+        # For logging, use the resolved name (which might now be from class attr) or class name as fallback.
+        # self.agent_name on the instance is now set by A2AAgentBaseService correctly.
+        self.specific_agent_name = self.agent_name or self.__class__.__name__
+        self.logger = logging.getLogger(self.specific_agent_name) 
+
         if not self.logger.handlers:
             # This base class assumes logging is configured at the application level.
             # If no handlers are found, INFO logs might not be visible.
@@ -47,7 +69,10 @@ class MCPContextAgentBaseService(A2AAgentBaseService):
             # self.logger.addHandler(logging.NullHandler())
             pass 
             
-        self.logger.info(f"{agent_name} ({self.__class__.__name__}) initialized using MCPContextAgentBaseService.")
+        self.logger.info(f"{self.specific_agent_name} ({self.__class__.__name__}) initialized using MCPContextAgentBaseService.")
+        # Access mcp_target_agent_id and context_file_name via self, expecting them to be class attributes on the subclass.
+        self.logger.info(f"Target MCP Agent ID for {self.specific_agent_name}: {self.mcp_target_agent_id}")
+        self.logger.info(f"Context file for {self.specific_agent_name}: {self.context_file_name}")
         
         # Determine project root from this file's location (base service)
         # apps/api/agents/base/mcp_context_agent_base.py

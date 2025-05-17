@@ -10,15 +10,16 @@ from apps.api.agents.business.metrics.main import (
     AGENT_ID as METRICS_AGENT_ID,
     AGENT_NAME as METRICS_AGENT_NAME,
     AGENT_VERSION as METRICS_AGENT_VERSION,
-    AGENT_DESCRIPTION as METRICS_AGENT_DESCRIPTION, # Import new constant
-    MCP_TARGET_AGENT_ID as METRICS_MCP_TARGET_ID,  # Import new constant
-    CONTEXT_FILE_NAME as METRICS_CONTEXT_FILE    # Import new constant
+    AGENT_DESCRIPTION as METRICS_AGENT_DESCRIPTION,
+    MCP_TARGET_AGENT_ID as METRICS_MCP_TARGET_ID,
+    CONTEXT_FILE_NAME as METRICS_CONTEXT_FILE,
+    PRIMARY_CAPABILITY_NAME as METRICS_PRIMARY_CAPABILITY
 )
 from apps.api.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState
 from apps.api.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError
 
 # Helper to get project root for loading the context file in tests
-PROJECT_ROOT = Path(__file__).resolve().parents[6] # agents/business/tests/integration -> business -> agents -> api -> apps -> orchestrator-ai
+PROJECT_ROOT = Path(__file__).resolve().parents[7] # Corrected: agents/business/metrics/tests/integration -> metrics -> business -> agents -> api -> apps -> orchestrator-ai
 METRICS_CONTEXT_FILE_PATH = PROJECT_ROOT / "markdown_context" / METRICS_CONTEXT_FILE
 
 @pytest.mark.asyncio
@@ -30,12 +31,12 @@ async def test_get_metrics_agent_card(client_and_app: tuple[httpx.AsyncClient, F
     agent_card = response.json()
     assert agent_card["id"] == METRICS_AGENT_ID
     assert agent_card["name"] == METRICS_AGENT_NAME
-    assert agent_card["description"] == METRICS_AGENT_DESCRIPTION # Assert new constant
-    assert agent_card["version"] == METRICS_AGENT_VERSION # This comes from the imported constant
+    assert agent_card["description"] == METRICS_AGENT_DESCRIPTION
+    assert agent_card["version"] == METRICS_AGENT_VERSION
     assert agent_card["type"] == "specialized"
-    assert "/agents/business/metrics/tasks" in agent_card["endpoints"]
+    assert f"/agents/business/{METRICS_AGENT_NAME}/tasks" in agent_card["endpoints"]
     assert len(agent_card["capabilities"]) > 0
-    assert agent_card["capabilities"][0]["name"] == "query_metrics_via_mcp"
+    assert agent_card["capabilities"][0]["name"] == METRICS_PRIMARY_CAPABILITY
 
 @pytest.mark.asyncio
 async def test_metrics_process_message_success(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
@@ -56,9 +57,11 @@ async def test_metrics_process_message_success(client_and_app: tuple[httpx.Async
     )
 
     user_query = "How many active users do we have?"
-    request_payload = {
-        "message": {"role": "user", "parts": [{"text": user_query}]}
-    }
+    task_id = "test-metrics-task-success-001" # Define a specific task_id
+    request_payload = TaskSendParams( # Use TaskSendParams
+        id=task_id,
+        message=Message(role="user", parts=[TextPart(text=user_query)])
+    ).model_dump(mode='json')
 
     response = await client.post("/agents/business/metrics/tasks", json=request_payload)
     assert response.status_code == 200
@@ -73,88 +76,141 @@ async def test_metrics_process_message_success(client_and_app: tuple[httpx.Async
     mock_query_aggregate.assert_called_once_with(
         agent_id=METRICS_MCP_TARGET_ID, # Use the constant
         user_query=expected_query_for_mcp,
-        session_id=None
+        session_id=task_id # Expect the task_id used in payload
     )
 
 @pytest.mark.asyncio
 async def test_metrics_process_message_mcp_connection_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
     client, _ = client_and_app
-    user_query = "What is the churn rate?"
-    mocker.patch(
+    user_query = "Query for connection error."
+    task_id = "test-metrics-conn-err-002" # Define a specific task_id
+    error_detail = "MCP connection failed."
+    # Correctly capture the mock object returned by mocker.patch
+    mock_mcp_call = mocker.patch(
         "apps.api.agents.business.metrics.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
-        side_effect=MCPConnectionError("Failed to connect to MCP")
+        side_effect=MCPConnectionError(error_detail)
     )
-    response = await client.post("/agents/business/metrics/tasks", json={"message": {"role": "user", "parts": [{"text": user_query}]}})
+    request_payload = TaskSendParams( # Use TaskSendParams
+        id=task_id,
+        message=Message(role="user", parts=[TextPart(text=user_query)])
+    ).model_dump(mode='json')
+    response = await client.post("/agents/business/metrics/tasks", json=request_payload)
     assert response.status_code == 200
     response_data_full = response.json()
     assert "response_message" in response_data_full
     assert "parts" in response_data_full["response_message"]
     assert len(response_data_full["response_message"]["parts"]) >= 1
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    error_detail = "Failed to connect to MCP" # Match the side_effect
     expected_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_detail)}"
     assert actual_response_text == expected_error_message
     assert response_data_full["status"]["state"] == TaskState.FAILED.value
+
+    # Use the correctly captured mock object for assertion
+    mock_mcp_call.assert_called_once_with(
+        agent_id=METRICS_MCP_TARGET_ID,
+        user_query=ANY,
+        session_id=task_id # Expect the task_id used in payload
+    )
 
 @pytest.mark.asyncio
 async def test_metrics_process_message_mcp_timeout_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
     client, _ = client_and_app
-    user_query = "Sales trend for last quarter?"
-    mocker.patch(
+    user_query = "Query for timeout error."
+    task_id = "test-metrics-timeout-err-003" # Define a specific task_id
+    error_detail = "Request to MCP timed out."
+    # Correctly capture the mock object returned by mocker.patch
+    mock_mcp_call = mocker.patch(
         "apps.api.agents.business.metrics.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
-        side_effect=MCPTimeoutError("Request to MCP timed out")
+        side_effect=MCPTimeoutError(error_detail)
     )
-    response = await client.post("/agents/business/metrics/tasks", json={"message": {"role": "user", "parts": [{"text": user_query}]}})
+    request_payload = TaskSendParams( # Use TaskSendParams
+        id=task_id,
+        message=Message(role="user", parts=[TextPart(text=user_query)])
+    ).model_dump(mode='json')
+    response = await client.post("/agents/business/metrics/tasks", json=request_payload)
     assert response.status_code == 200
     response_data_full = response.json()
     assert "response_message" in response_data_full
     assert "parts" in response_data_full["response_message"]
     assert len(response_data_full["response_message"]["parts"]) >= 1
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    error_detail = "Request to MCP timed out" # Match the side_effect
     expected_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_detail)}"
     assert actual_response_text == expected_error_message
     assert response_data_full["status"]["state"] == TaskState.FAILED.value
+
+    # Use the correctly captured mock object for assertion
+    mock_mcp_call.assert_called_once_with(
+        agent_id=METRICS_MCP_TARGET_ID,
+        user_query=ANY,
+        session_id=task_id # Expect the task_id used in payload
+    )
 
 @pytest.mark.asyncio
 async def test_metrics_process_message_mcp_generic_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
     client, _ = client_and_app
-    user_query = "What is the MAU?"
-    mocker.patch(
+    user_query = "Query for generic MCP error."
+    task_id = "test-metrics-generic-err-004" # Define a specific task_id
+    error_detail = "An MCP specific error occurred."
+    # Correctly capture the mock object returned by mocker.patch
+    mock_mcp_call = mocker.patch(
         "apps.api.agents.business.metrics.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
-        side_effect=MCPError("An MCP specific error occurred for metrics", status_code=503)
+        side_effect=MCPError(error_detail, status_code=503)
     )
-    response = await client.post("/agents/business/metrics/tasks", json={"message": {"role": "user", "parts": [{"text": user_query}]}})
+    request_payload = TaskSendParams( # Use TaskSendParams
+        id=task_id,
+        message=Message(role="user", parts=[TextPart(text=user_query)])
+    ).model_dump(mode='json')
+    response = await client.post("/agents/business/metrics/tasks", json=request_payload)
     assert response.status_code == 200
     response_data_full = response.json()
     assert "response_message" in response_data_full
     assert "parts" in response_data_full["response_message"]
     assert len(response_data_full["response_message"]["parts"]) >= 1
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    error_detail = "An MCP specific error occurred for metrics" # Match the side_effect
     expected_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_detail)}"
     assert actual_response_text == expected_error_message
     assert response_data_full["status"]["state"] == TaskState.FAILED.value
 
+    # Use the correctly captured mock object for assertion
+    mock_mcp_call.assert_called_once_with(
+        agent_id=METRICS_MCP_TARGET_ID,
+        user_query=ANY,
+        session_id=task_id # Expect the task_id used in payload
+    )
+
 @pytest.mark.asyncio
 async def test_metrics_process_message_unexpected_error(client_and_app: tuple[httpx.AsyncClient, FastAPI], mocker: AsyncMock):
     client, _ = client_and_app
-    user_query = "What is customer lifetime value?"
-    error_details = "Metrics specific unexpected error"
-    mocker.patch(
+    user_query = "Query for unexpected service error."
+    task_id = "test-metrics-unexpected-err-005" # Define a specific task_id
+    error_detail = "Something truly unexpected happened."
+    # Correctly capture the mock object returned by mocker.patch
+    mock_mcp_call = mocker.patch(
         "apps.api.agents.business.metrics.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
-        side_effect=ValueError(error_details)
+        side_effect=ValueError(error_detail) # Simulate an unexpected error
     )
-    response = await client.post("/agents/business/metrics/tasks", json={"message": {"role": "user", "parts": [{"text": user_query}]}})
+    request_payload = TaskSendParams( # Use TaskSendParams
+        id=task_id,
+        message=Message(role="user", parts=[TextPart(text=user_query)])
+    ).model_dump(mode='json')
+    response = await client.post("/agents/business/metrics/tasks", json=request_payload)
     assert response.status_code == 200
     response_data_full = response.json()
     assert "response_message" in response_data_full
     assert response_data_full["response_message"]["role"] == "agent"
-    # error_details is defined in the test as "Metrics specific unexpected error"
-    expected_service_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_details)}"
-    assert response_data_full["response_message"]["parts"][0]["text"] == expected_service_error_message 
-    assert response_data_full["status"]["state"] == TaskState.FAILED.value 
+    expected_service_error_message = f"Falling back to rule-based processing due to LLM error: {str(error_detail)}"
+    assert response_data_full["response_message"]["parts"][0]["text"] == expected_service_error_message
+    assert response_data_full["status"]["state"] == TaskState.FAILED.value
+
+    # Use the correctly captured mock object for assertion
+    mock_mcp_call.assert_called_once_with(
+        agent_id=METRICS_MCP_TARGET_ID,
+        user_query=ANY,
+        session_id=task_id # Expect the task_id used in payload
+    )
+
+# Ensure TaskSendParams is imported if not already 
