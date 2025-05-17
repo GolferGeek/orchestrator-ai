@@ -19,15 +19,14 @@ from apps.api.main import get_original_http_client # Import the http_client prov
 from apps.api.agents.base.mcp_context_agent_base import MCPContextAgentBaseService # Import the new base class
 
 # Agent specific metadata
-AGENT_ID = "hr-assistant-agent-v1"
-AGENT_NAME = "HR Assistant Agent"
-AGENT_DESCRIPTION = "Provides assistance with HR-related queries and tasks by leveraging an MCP."
-AGENT_VERSION = "0.1.0"
-# This constant defines which specific agent on the MCP this HR agent talks to.
-# It's assumed the MCP knows an agent by this ID (e.g., "knowledge_agent_hr_domain")
-# that is primed with or has access to the HR knowledge base (hr_assistant_agent.md or equivalent).
-MCP_TARGET_AGENT_ID_FOR_HR_QUERIES = "knowledge_agent_hr_domain" 
-HR_CONTEXT_FILE_NAME = "hr_assistant_agent.md" # Define the context file name
+HR_AGENT_ID = "hr-assistant-agent-v1"
+HR_AGENT_NAME = "HR Assistant Agent"
+HR_AGENT_DESCRIPTION = "Provides assistance with HR-related queries and tasks by leveraging an MCP."
+HR_AGENT_VERSION = "0.1.0"
+HR_MCP_TARGET_AGENT_ID = "hr_assistant_agent" # Changed from knowledge_agent_hr_domain
+HR_CONTEXT_FILE_NAME = "hr_assistant_agent.md"
+HR_PRIMARY_CAPABILITY_NAME = "query_hr_information"
+HR_PRIMARY_CAPABILITY_DESCRIPTION = "Answers HR-related questions by relaying them to an MCP, using HR context."
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -40,68 +39,60 @@ logger = logging.getLogger(__name__)
 class HRAssistantService(MCPContextAgentBaseService):
     """HR Assistant Agent Service that queries the MCP for context-aware responses."""
 
-    def __init__(
-        self, 
-        mcp_client: MCPClient, # Specific to this service
-        task_store: TaskStoreService, # From base
-        http_client: httpx.AsyncClient, # From base
-        # agent_name is handled by base, mcp_target_agent_id and context_file_name are new
-    ):
-        super().__init__(
-            task_store=task_store,
-            http_client=http_client,
-            agent_name=AGENT_NAME, # Pass the constant
-            mcp_client=mcp_client,
-            mcp_target_agent_id=MCP_TARGET_AGENT_ID_FOR_HR_QUERIES,
-            context_file_name=HR_CONTEXT_FILE_NAME
-        )
-        # Logger is initialized in the base class with AGENT_NAME
+    # Class attributes for MCPContextAgentBaseService to use
+    agent_id: str = HR_AGENT_ID
+    agent_name: str = HR_AGENT_NAME
+    agent_description: str = HR_AGENT_DESCRIPTION
+    agent_version: str = HR_AGENT_VERSION
+    mcp_target_agent_id: str = HR_MCP_TARGET_AGENT_ID
+    context_file_name: str = HR_CONTEXT_FILE_NAME
+    primary_capability_name: str = HR_PRIMARY_CAPABILITY_NAME
+    primary_capability_description: str = HR_PRIMARY_CAPABILITY_DESCRIPTION
+    department_name: str = "hr" # Set department directly
+
+    def __init__(self, **kwargs):
+        # mcp_client can be passed via kwargs if a specific instance is needed,
+        # otherwise the base class will instantiate one.
+        # department_name is now a class attribute.
+        super().__init__(**kwargs)
+        # Logger is initialized in the base class
 
     async def get_agent_card(self) -> AgentCard:
         """Provides the agent's capabilities and metadata."""
         return AgentCard(
-            id=AGENT_ID,
-            name=AGENT_NAME,
-            version=AGENT_VERSION,
-            description=AGENT_DESCRIPTION,
-            a2a_protocol_version="0.1.0",
+            id=self.agent_id,
+            name=self.agent_name,
+            version=self.agent_version,
+            description=self.agent_description,
+            a2a_protocol_version="0.1.0", # Standard A2A version
             type="specialized",
             capabilities=[
                 AgentCapability(
-                    name="query_hr_info_via_mcp",
-                    description="Answers HR-related questions by relaying them to an MCP, using HR context."
+                    name=self.primary_capability_name,
+                    description=self.primary_capability_description
                 )
             ],
-            endpoints=[f"/agents/hr/hr_assistant/tasks"]
+            endpoints=[f"/agents/{self.department_name}/{self.agent_name.lower().replace(' ', '_')}/tasks"]
         )
 
-    # process_message is now inherited from MCPContextAgentBaseService
-    # load_context (formerly load_hr_context) is now inherited from MCPContextAgentBaseService
 
 # Create an APIRouter instance for the HR Assistant Agent
 agent_router = APIRouter(
-    prefix="/agents/hr/hr_assistant", # Prefix for all routes in this agent
-    tags=["HR Assistant Agent"]        # Tag for API documentation
+    prefix=f"/agents/{HRAssistantService.department_name}/{HRAssistantService.agent_name.lower().replace(' ', '_')}", # Dynamic prefix
+    tags=[f"{HRAssistantService.agent_name}"]
 )
 
 # Dependency for the service
-async def get_hr_assistant_service(
-    mcp_client: MCPClient = Depends(MCPClient),
+def get_hr_assistant_service( # Made synchronous as per FastAPI best practices for dependencies unless explicitly async
     task_store: TaskStoreService = Depends(TaskStoreService),
-    http_client: httpx.AsyncClient = Depends(get_original_http_client) # Use the explicit provider
+    http_client: httpx.AsyncClient = Depends(get_original_http_client),
+    mcp_client: MCPClient = Depends(MCPClient) # Allow specific MCP client if needed
 ) -> HRAssistantService:
-    # Configure logger for the service instance if not already configured globally or in base class
-    # service_logger = logging.getLogger(HRAssistantService.__name__)
-    # if not service_logger.hasHandlers():
-    #     # Basic config, adjust as per project logging strategy
-    #     logging.basicConfig(level=logging.INFO) 
-    # service_logger.info("HRAssistantService instance created with MCPClient.")
     return HRAssistantService(
-        mcp_client=mcp_client,
         task_store=task_store,
-        http_client=http_client
-        # agent_name, mcp_target_agent_id, and context_file_name are set in HRAssistantService.__init__
-        # using constants when calling super().__init__
+        http_client=http_client,
+        mcp_client=mcp_client
+        # department_name is now a class attribute, agent_name taken from class attr by base
     )
 
 
@@ -127,22 +118,22 @@ async def process_tasks_route(
     log_input_text = "No text part found or text part is empty."
     if task_request.message.parts and isinstance(task_request.message.parts[0].root, TextPart):
         log_input_text = task_request.message.parts[0].root.text[:100]
-    logger.info(f"HR Assistant /tasks endpoint received task request ID: {task_request.id} with input: {log_input_text}")
+    logger.info(f"{HRAssistantService.agent_name} /tasks endpoint received task request ID: {task_request.id} with input: {log_input_text}")
 
     try:
         # Delegate to the base service's task handling logic
         # handle_task_send will call our overridden process_message internally.
         task_response = await service.handle_task_send(params=task_request)
         if not task_response: # Should ideally not happen if base class is robust
-            logger.error(f"HR Assistant /tasks endpoint: handle_task_send returned None for task {task_request.id}. This is unexpected.")
+            logger.error(f"{HRAssistantService.agent_name} /tasks endpoint: handle_task_send returned None for task {task_request.id}. This is unexpected.")
             raise HTTPException(status_code=500, detail="Task processing failed to return a valid task object.")
 
-        logger.info(f"HR Assistant /tasks endpoint successfully processed task {task_request.id}. Returning Task object. Final state: {task_response.status.state}")
+        logger.info(f"{HRAssistantService.agent_name} /tasks endpoint successfully processed task {task_request.id}. Returning Task object. Final state: {task_response.status.state}")
         return task_response
     except HTTPException: # Re-raise HTTPExceptions explicitly
         raise
     except Exception as e: # Catch any other unexpected error from handle_task_send or above
-        logger.error(f"HR Assistant /tasks endpoint: Unexpected error during task processing for task ID {task_request.id}: {e}", exc_info=True)
+        logger.error(f"{HRAssistantService.agent_name} /tasks endpoint: Unexpected error during task processing for task ID {task_request.id}: {e}", exc_info=True)
         # This path implies handle_task_send itself failed catastrophically, not just an error within process_message.
         # It's better to raise an HTTPException than to try and construct a Task here, as the state is unknown.
         raise HTTPException(status_code=500, detail=f"An unexpected server error occurred during task processing: {str(e)}")
@@ -167,4 +158,4 @@ async def process_tasks_route(
 # this router needs to be imported and included by the application instance
 # in a higher-level file (e.g., apps/api/main.py or similar).
 
-# print("[hr_assistant/main.py] HR Assistant Agent (A2A Compliant with MCPClient) Loaded.")
+# print("[hr_assistant/main.py] HR Assistant Agent Refactored and Loaded.")

@@ -22,12 +22,26 @@ AGENT_NAME = "ProcedurePro"
 AGENT_DESCRIPTION = "Your guide for navigating and understanding Standard Operating Procedures (SOPs)."
 AGENT_VERSION = "0.1.0"
 CONTEXT_FILE_NAME = "sop_agent.md"
-MCP_TARGET_AGENT_ID = "knowledge_agent_sop_domain" # Placeholder: Adjust if your target agent is different
+MCP_TARGET_AGENT_ID = "sop_agent" # Changed from knowledge_agent_sop_domain
+SOP_PRIMARY_CAPABILITY_NAME = "query_sop_knowledge"
+SOP_PRIMARY_CAPABILITY_DESCRIPTION = "Answers questions and explains steps based on conceptual SOPs."
 
 logger = logging.getLogger(__name__)
 
 class SopService(MCPContextAgentBaseService):
     """SOP Agent Service that provides information based on conceptual Standard Operating Procedures."""
+    # Class attributes for MCPContextAgentBaseService and A2AAgentBaseService
+    agent_id: str = AGENT_ID 
+    agent_name: str = AGENT_NAME
+    agent_description: str = AGENT_DESCRIPTION
+    agent_version: str = AGENT_VERSION
+    department_name: str = "business"
+
+    # Specific to MCPContextAgentBaseService
+    mcp_target_agent_id: str = MCP_TARGET_AGENT_ID
+    context_file_name: str = CONTEXT_FILE_NAME
+    primary_capability_name: str = SOP_PRIMARY_CAPABILITY_NAME
+    primary_capability_description: str = SOP_PRIMARY_CAPABILITY_DESCRIPTION
 
     def __init__(
         self,
@@ -35,28 +49,30 @@ class SopService(MCPContextAgentBaseService):
         http_client: httpx.AsyncClient,
         mcp_client: MCPClient
     ):
+        # All necessary identifying attributes (agent_name, department_name, context_file_name, mcp_target_agent_id)
+        # are now class attributes. MCPContextAgentBaseService.__init__ is designed
+        # to pick up agent_name and department_name from class attributes if not passed as params.
+        # It also accesses self.context_file_name and self.mcp_target_agent_id directly.
         super().__init__(
             task_store=task_store,
             http_client=http_client,
-            agent_name=AGENT_NAME,
-            mcp_client=mcp_client,
-            mcp_target_agent_id=MCP_TARGET_AGENT_ID,
-            context_file_name=CONTEXT_FILE_NAME
+            mcp_client=mcp_client
+            # agent_name and department_name will be resolved by the base class
         )
-        # Logger is initialized in the base class with AGENT_NAME
 
     async def get_agent_card(self) -> AgentCard:
         return AgentCard(
-            id=AGENT_ID,
-            name=AGENT_NAME,
-            description=AGENT_DESCRIPTION,
-            version=AGENT_VERSION,
+            id=self.agent_id,
+            name=self.agent_name,
+            description=self.agent_description,
+            version=self.agent_version,
+            a2a_protocol_version="0.1.0",
             type="instructional",
-            endpoints=[f"/agents/business/sop/tasks"],
+            endpoints=[f"/agents/{self.department_name}/{self.agent_name.lower().replace(' ', '_')}/tasks"],
             capabilities=[
                 AgentCapability(
-                    name="query_sop_knowledge",
-                    description="Answers questions and explains steps based on conceptual SOPs."
+                    name=self.primary_capability_name,
+                    description=self.primary_capability_description
                 )
             ]
         )
@@ -68,8 +84,8 @@ class SopService(MCPContextAgentBaseService):
 
 # Create an APIRouter instance for the SOP Agent
 agent_router = APIRouter(
-    prefix="/agents/business/sop",
-    tags=["SOP Agent - ProcedurePro"]
+    prefix=f"/agents/{SopService.department_name}/{SopService.agent_name.lower().replace(' ', '_')}",
+    tags=[f"{SopService.agent_name}"]
 )
 
 # Dependency for the service

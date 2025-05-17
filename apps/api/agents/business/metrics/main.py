@@ -1,6 +1,7 @@
 import httpx # Needed for http_client dependency for base class
 import logging # For logger configuration if needed
 from fastapi import APIRouter, Depends, HTTPException # Add FastAPI imports
+from typing import Optional
 
 from apps.api.a2a_protocol.types import (
     AgentCard,
@@ -12,56 +13,63 @@ from apps.api.a2a_protocol.types import (
 )
 # Import the new MCPClient and its exceptions
 from ....shared.mcp.mcp_client import MCPClient # MCPError etc are handled by base class now
-from apps.api.agents.base.mcp_context_agent_base import MCPContextAgentBaseService # Import the new base class
+from apps.api.agents.base.mcp_context_agent_base import MCPContextAgentBaseService
 from apps.api.a2a_protocol.task_store import TaskStoreService # Needed for base class
 from apps.api.main import get_original_http_client # Needed for base class
 
-AGENT_VERSION = "0.1.0"
-# MCP_METRICS_AGENT_URL is now encapsulated within MCPClient or its usage
-
-AGENT_ID = "metrics-agent-v1" # Defined from previous get_agent_card
-AGENT_NAME = "Metrics Agent"   # Defined from previous get_agent_card
-AGENT_DESCRIPTION = "Provides business metrics and analytics by querying a central MCP." # Defined from previous get_agent_card
-CONTEXT_FILE_NAME = "metrics_agent.md" # Assuming this is the context file for metrics agent
-# This is the ID of the agent on the MCP that this Metrics Agent will query.
-# Based on the previous code, it seemed like it was querying an agent named "metrics_agent" on MCP.
-# If this is not a separate agent but rather the context for this agent to use with a general knowledge agent,
-# this might need to be adjusted (e.g., "knowledge_agent_business_domain").
-# For now, assuming it queries a specific "metrics_agent" on the MCP.
-MCP_TARGET_AGENT_ID = "metrics_agent"
+# Define Agent specific constants
+AGENT_ID: str = "metrics-agent-v1"
+AGENT_NAME: str = "metrics" # Standardized to directory name
+AGENT_DESCRIPTION: str = "Provides business metrics and analytics by querying a central MCP."
+AGENT_VERSION: str = "1.0.0" # Standardized version
+# This should be the target agent on the MCP that this Metrics Agent queries.
+MCP_TARGET_AGENT_ID: str = "metrics_agent" # Changed from metrics_mcp_target
+CONTEXT_FILE_NAME: str = "metrics_agent.md"
+PRIMARY_CAPABILITY_NAME: str = "query_business_metrics"
+PRIMARY_CAPABILITY_DESCRIPTION: str = "Answers questions about business metrics by relaying them to an MCP."
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-class MetricsAgentService(MCPContextAgentBaseService): # Renamed for clarity and consistency
-    """Metrics Agent Service that queries the MCP for context-aware responses using MCPClient."""
+class MetricsService(MCPContextAgentBaseService):
+    """
+    Metrics Agent Service that queries an MCP for context-aware responses.
+    It leverages MCPContextAgentBaseService for handling message processing.
+    """
+    agent_id: str = AGENT_ID
+    agent_name: str = AGENT_NAME # This will be used by base class for router if not overridden
+    agent_description: str = AGENT_DESCRIPTION
+    agent_version: str = AGENT_VERSION
+    department_name: str = "business" # Added class attribute
+    mcp_target_agent_id: str = MCP_TARGET_AGENT_ID
+    context_file_name: str = CONTEXT_FILE_NAME
+    primary_capability_name: str = PRIMARY_CAPABILITY_NAME
+    primary_capability_description: str = PRIMARY_CAPABILITY_DESCRIPTION
 
-    def __init__(
-        self,
-        task_store: TaskStoreService,
-        http_client: httpx.AsyncClient,
-        mcp_client: MCPClient
-    ):
-        super().__init__(
-            task_store=task_store,
-            http_client=http_client,
-            agent_name=AGENT_NAME,
-            mcp_client=mcp_client,
-            mcp_target_agent_id=MCP_TARGET_AGENT_ID,
-            context_file_name=CONTEXT_FILE_NAME
-        )
-        # Logger is initialized in the base class with AGENT_NAME
+    def __init__(self, **kwargs):
+        # department_name is now a class attribute.
+        # agent_name will also be picked up from class attribute by the base if not passed.
+        # MCPContextAgentBaseService.__init__ expects task_store, http_client, and optional mcp_client.
+        # Other kwargs are passed through.
+        super().__init__(**kwargs) # Rely on base class to pick up agent_name and department_name
+        # Any other specific initializations for MetricsService can go here.
 
+    # Optional: Override get_agent_card if specific customizations are needed
+    # beyond what the base class provides from the constants.
     async def get_agent_card(self) -> AgentCard:
         return AgentCard(
-            id=AGENT_ID,
-            name=AGENT_NAME,
-            description=AGENT_DESCRIPTION,
-            version=AGENT_VERSION,
-            type="specialized",
-            endpoints=["/agents/business/metrics/tasks"],
+            id=self.agent_id,
+            name=self.agent_name,
+            description=self.agent_description,
+            version=self.agent_version,
+            type="specialized", # As per original agent
+            # Use dynamic name for the path segment
+            endpoints=[f"/agents/{self.department_name}/{self.agent_name.lower().replace(' ', '_')}/tasks"],
             capabilities=[
-                AgentCapability(name="query_metrics_via_mcp", description="Answers questions about business metrics by relaying them to an MCP.")
+                AgentCapability(
+                    name=self.primary_capability_name,
+                    description=self.primary_capability_description
+                )
             ]
         )
 
@@ -71,9 +79,10 @@ class MetricsAgentService(MCPContextAgentBaseService): # Renamed for clarity and
 # print(f"[metrics/main.py] Loaded. MetricsService now uses MCPClient.")
 
 # Create an APIRouter instance for the Metrics Agent
+# Make prefix fully dynamic based on class attributes
 agent_router = APIRouter(
-    prefix="/agents/business/metrics",
-    tags=["Metrics Agent"]
+    prefix=f"/agents/{MetricsService.department_name}/{MetricsService.agent_name.lower().replace(' ', '_')}",
+    tags=[f"{MetricsService.agent_name}"] # Use class attribute for tag consistency
 )
 
 # Dependency for the service
@@ -82,8 +91,10 @@ async def get_metrics_agent_service(
     mcp_client: MCPClient = Depends(MCPClient),
     task_store: TaskStoreService = Depends(TaskStoreService),
     http_client: httpx.AsyncClient = Depends(get_original_http_client)
-) -> MetricsAgentService:
-    return MetricsAgentService(
+) -> MetricsService:
+    # department_name is now a class attribute and will be picked up by base class
+    # agent_name is also picked by base class from class attribute
+    return MetricsService(
         mcp_client=mcp_client,
         task_store=task_store,
         http_client=http_client
@@ -91,14 +102,14 @@ async def get_metrics_agent_service(
 
 @agent_router.get("/agent-card", response_model=AgentCard)
 async def get_agent_card_route(
-    service: MetricsAgentService = Depends(get_metrics_agent_service)
+    service: MetricsService = Depends(get_metrics_agent_service)
 ):
     return await service.get_agent_card()
 
 @agent_router.post("/tasks", response_model=Task)
 async def process_tasks_route(
     task_request: TaskSendParams, 
-    service: MetricsAgentService = Depends(get_metrics_agent_service)
+    service: MetricsService = Depends(get_metrics_agent_service)
 ):
     # Log the incoming request details safely
     log_input_text = "No text part found or text part is empty."
