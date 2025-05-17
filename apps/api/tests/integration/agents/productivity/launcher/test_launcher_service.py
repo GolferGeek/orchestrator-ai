@@ -82,9 +82,9 @@ async def test_launcher_process_message_success(client_and_app: tuple[httpx.Asyn
 
     expected_prompt_for_mcp = f"{actual_launcher_context_content.rstrip('\n')}\n\nUser Query: {user_query}"
     mock_send_to_mcp.assert_called_once_with(
-        agent_id=LAUNCHER_MCP_TARGET_ID, 
+        agent_id=LAUNCHER_MCP_TARGET_ID,
         user_query=expected_prompt_for_mcp,
-        session_id=None # Base service passes TaskSendParams.session_id, which is None here
+        session_id="test-launch-task-123"
     )
 
 @pytest.mark.asyncio

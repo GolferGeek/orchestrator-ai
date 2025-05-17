@@ -82,7 +82,7 @@ async def test_tasks_process_message_success(client_and_app: tuple[httpx.AsyncCl
     mock_send_to_mcp.assert_called_once_with(
         agent_id=TASKS_MCP_TARGET_ID,
         user_query=expected_prompt_for_mcp,
-        session_id=None,  # Expect session_id to be None
+        session_id="test-task-xyz-123",  # Corrected: Expect session_id to be the task_id
         # stream=False # Default is False, so not strictly needed unless base class changes it
         # capabilities=None # Default is None
     )

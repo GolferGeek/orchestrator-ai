@@ -48,17 +48,29 @@ class A2AAgentBaseService(ABC):
         """Process a user message and generate a response."""
         pass
 
-    async def handle_task_send(self, params: TaskSendParams) -> Optional[Task]:
-        """Handle a task send request as defined in the A2A protocol."""
-        task_id = params.id if params.id else str(uuid.uuid4()) # Ensure task_id from params or generate
-        self.logger.info(f"[BASE_AGENT] Handling task send for task {task_id}")
+    async def handle_task_send(self, params: TaskSendParams) -> Task:
+        """Handles an incoming task request, processes it, and returns a task result."""
+        self.logger.info(f"Task {params.id} (Session: {params.session_id}): Received task send request.")
+
+        # Determine the session_id to be used for processing
+        # If params.session_id is explicitly set, use that.
+        # Otherwise, default to using params.id as the session_id.
+        effective_session_id = params.session_id if params.session_id is not None else params.id
+        self.logger.info(f"Task {params.id}: Effective session_id for processing will be '{effective_session_id}'.")
+
+        # Initial task status update to RECEIVED or PROCESSING
+        await self.task_store.update_task_status(
+            task_id=params.id,
+            new_state=TaskState.WORKING,
+            status_update_message=self._create_text_message("Task received and processing started.")
+        )
 
         try:
             # Get or create the task
             task_data_and_history = await self.task_store.create_or_get_task(
-                task_id=task_id, # Pass the existing/newly generated task_id
+                task_id=params.id, # Pass the existing/newly generated task_id
                 request_message=params.message,
-                session_id=params.session_id,
+                session_id=effective_session_id,
                 metadata=params.metadata
             )
             task_id = task_data_and_history.task.id # Ensure we use the ID from the store (could be newly created)
@@ -74,9 +86,9 @@ class A2AAgentBaseService(ABC):
             
             # Process the message
             response_message = await self.process_message(
-                params.message,
-                task_id,
-                params.session_id
+                message=params.message,
+                task_id=params.id,
+                session_id=effective_session_id
             )
             
             # Update task status to completed with the response message
@@ -133,17 +145,30 @@ class A2AAgentBaseService(ABC):
             # The check `if not completed_task_data:` handles this.
             self.logger.info(f"[BASE_AGENT] Task {task_id} completed. Returning Task object.")
             return completed_task_data.task # Return the Pydantic model
-        except Exception as error:
-            self.logger.error(f"[BASE_AGENT] Error during handle_task_send for task {task_id}: {error}", exc_info=True)
+        except Exception as e:
+            self.logger.exception(f"Task {params.id} (Session: {effective_session_id}): Unhandled exception during task processing: {e}")
+            final_status = TaskStatus(
+                task_id=params.id,
+                state=TaskState.FAILED,
+                reason=f"Unhandled agent error: {str(e)}",
+                timestamp=datetime.now(timezone.utc).isoformat()
+            )
+            # Create a generic error message for the user if none was formed by process_message
+            response_message = Message(
+                role="agent",
+                parts=[TextPart(text=f"An unexpected error occurred: {str(e)}")],
+                timestamp=datetime.now(timezone.utc).isoformat()
+            )
+
+            # Update task to its final state (COMPLETED or FAILED)
+            await self.task_store.update_task_status(
+                task_id=params.id,
+                new_state=final_status.state,
+                status_update_message=response_message
+            )
             
-            try:
-                task_data = await self._update_task_status_to_failed(task_id, error)
-            except Exception as update_error:
-                self.logger.error(f"[BASE_AGENT] Failed to update task {task_id} to failed state: {update_error}")
-                # task_data = None # No longer needed as we construct a new Task object below
-            
-            error_message = str(error)
-            self.logger.info(f"[BASE_AGENT] Task {task_id} failed. Returning Task object in failed state.")
+            error_message = str(e)
+            self.logger.info(f"[BASE_AGENT] Task {params.id} failed. Returning Task object in failed state.")
             
             now_iso = datetime.now(timezone.utc).isoformat()
             error_response_msg_obj = self._create_text_message(f"Falling back to rule-based processing due to LLM error: {error_message}")
@@ -151,24 +176,20 @@ class A2AAgentBaseService(ABC):
             # Get created_at from previous task_data if it exists, otherwise use now_iso
             # This requires task_dict to be defined from task_data if task_data is not None
             created_at_val = now_iso # default
-            if 'task_data' in locals() and task_data and task_data.task:
-                created_at_val = task_data.task.created_at
+            if 'task_data' in locals() and task_data_and_history and task_data_and_history.task:
+                created_at_val = task_data_and_history.task.created_at
             elif 'params' in locals() and params.metadata and isinstance(params.metadata, dict) and 'created_at' in params.metadata:
                 # Fallback if task_data didn't exist or was minimal, but request had it in metadata (less likely)
                 created_at_val = params.metadata['created_at']
 
             failed_task_obj = Task(
-                id=task_id,
-                status=TaskStatus(
-                    state=TaskState.FAILED,
-                    timestamp=now_iso,
-                    message=f"Error: {error_message}"
-                ),
+                id=params.id,
+                status=final_status,
                 request_message=params.message, 
                 response_message=error_response_msg_obj, 
                 history=[], 
                 artifacts=[],
-                session_id=params.session_id,
+                session_id=effective_session_id,
                 metadata=params.metadata,
                 created_at=created_at_val, 
                 updated_at=now_iso

@@ -97,7 +97,7 @@ async def test_meetings_process_message_success(client_and_app: tuple[httpx.Asyn
     mock_send_to_mcp.assert_called_once_with(
         agent_id=MEETINGS_MCP_TARGET_ID,
         user_query=expected_prompt_for_mcp,
-        session_id=None # TaskSendParams did not include session_id, so it's None here
+        session_id="test-task-123" # Corrected: Expect session_id to be the task_id from TaskSendParams
     )
 
 @pytest.mark.asyncio
