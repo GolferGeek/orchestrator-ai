@@ -4,6 +4,8 @@ import httpx # For client type hint
 from fastapi import FastAPI # For app type hint
 from pathlib import Path # For loading context file
 from unittest.mock import ANY # For asserting generated task_id
+import asyncio # For polling delay
+import time # For timeout tracking
 
 # Import agent-specific constants from the Blog Post agent's main module
 from apps.api.agents.marketing.blog_post.main import (
@@ -43,9 +45,9 @@ async def test_blog_post_process_message_success(client_and_app: tuple[httpx.Asy
     """Test successful message processing for BlogPostAgentService via /tasks endpoint."""
     client, _ = client_and_app
     mocked_mcp_response = "Here is your draft for the blog post about sustainable gardening."
-    
+
     try:
-        actual_blog_post_context_content = BLOG_POST_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
+        BLOG_POST_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
     except FileNotFoundError:
         pytest.fail(f"Test setup error: Blog Post context file not found at {BLOG_POST_CONTEXT_FILE_PATH}")
 
@@ -71,10 +73,9 @@ async def test_blog_post_process_message_success(client_and_app: tuple[httpx.Asy
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     assert actual_response_text == mocked_mcp_response
 
-    expected_query_for_mcp = f"{actual_blog_post_context_content}\n\nUser Query: {user_query}"
     mock_query_aggregate.assert_called_once_with(
-        agent_id=BLOG_POST_MCP_TARGET_ID, 
-        user_query=expected_query_for_mcp,
+        agent_id=BLOG_POST_MCP_TARGET_ID,
+        user_query=user_query,
         session_id=task_id 
     )
 
@@ -202,4 +203,90 @@ async def test_blog_post_process_message_unexpected_error(client_and_app: tuple[
         agent_id=BLOG_POST_MCP_TARGET_ID,
         user_query=ANY,
         session_id=task_id
-    ) 
+    )
+
+@pytest.mark.asyncio
+@pytest.mark.e2e  # Mark as end-to-end test
+async def test_create_and_get_blog_post_task_e2e(client_and_app: tuple[httpx.AsyncClient, FastAPI]):
+    """
+    End-to-end test for blog post generation:
+    1. Creates a task via POST /tasks.
+    2. Polls GET /tasks/{task_id} until completion.
+    3. Verifies the response content is not an error and looks like a blog post.
+    This test relies on the actual MCP and potentially an LLM being responsive.
+    """
+    client, _ = client_and_app
+    
+    user_query_text = "Write a short, fun blog post about the joys of learning a new board game, maybe around 2-3 paragraphs."
+    initial_task_id_prefix = "e2e-blog-post-test-" # Use a prefix for easier identification if needed
+
+    # 1. Create a task
+    request_payload = TaskSendParams(
+        # For e2e, let the system generate the task_id
+        # id=f"{initial_task_id_prefix}{int(time.time())}", 
+        message=Message(role="user", parts=[TextPart(text=user_query_text)])
+    ).model_dump(mode='json')
+
+    post_response = await client.post("/agents/marketing/blog_post/tasks", json=request_payload)
+    assert post_response.status_code == 200, f"Task creation failed: {post_response.text}"
+    
+    post_response_data = post_response.json()
+    assert "id" in post_response_data, "Task ID not found in POST response"
+    task_id = post_response_data["id"]
+    assert task_id is not None
+
+    # 2. Poll for completion
+    max_wait_seconds = 60  # Max time to wait for the task to complete
+    poll_interval_seconds = 2
+    start_time = time.time()
+    
+    final_task_data = None
+
+    while time.time() - start_time < max_wait_seconds:
+        get_response = await client.get(f"/agents/marketing/blog_post/tasks/{task_id}")
+        assert get_response.status_code == 200, f"Polling GET request failed: {get_response.text}"
+        
+        current_task_data = get_response.json()
+        assert "status" in current_task_data and "state" in current_task_data["status"]
+        
+        current_state = current_task_data["status"]["state"]
+        
+        if current_state == TaskState.COMPLETED.value:
+            final_task_data = current_task_data
+            break
+        elif current_state == TaskState.FAILED.value:
+            final_task_data = current_task_data
+            pytest.fail(f"Task {task_id} failed. Response: {final_task_data}")
+            break 
+        
+        await asyncio.sleep(poll_interval_seconds)
+    else: # Loop exited due to timeout
+        pytest.fail(f"Task {task_id} did not complete within {max_wait_seconds} seconds. Last state: {current_state if 'current_state' in locals() else 'unknown'}")
+
+    # 3. Verify the result
+    assert final_task_data is not None, "Final task data was not captured."
+    assert final_task_data["status"]["state"] == TaskState.COMPLETED.value
+    
+    assert "response_message" in final_task_data
+    response_message = final_task_data["response_message"]
+    assert response_message is not None
+    
+    assert "parts" in response_message
+    assert len(response_message["parts"]) > 0, "Response message has no parts."
+    
+    first_part = response_message["parts"][0]
+    assert "text" in first_part
+    generated_text = first_part["text"]
+    
+    assert isinstance(generated_text, str), "Generated content is not a string."
+    assert generated_text.strip() != "", "Generated content is empty or whitespace."
+    
+    error_message_substring = "MCP returned no specific content" # Check for this specific error
+    assert error_message_substring not in generated_text, f"Generated content indicates an MCP error: '{generated_text}'"
+
+    # A very basic check for "blog post like" content. 
+    # This could be made more sophisticated (e.g., check for keywords, multiple sentences/paragraphs).
+    assert len(generated_text) > 50, f"Generated content is too short to be a blog post (length: {len(generated_text)}). Content: '{generated_text[:100]}...'"
+    
+    # Optionally, log the generated text for manual review if tests are verbose
+    print(f"E2E Test: Blog Post Agent generated (Task ID: {task_id}):\\n{generated_text}") 

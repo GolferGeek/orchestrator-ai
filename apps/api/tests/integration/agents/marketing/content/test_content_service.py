@@ -4,6 +4,8 @@ import httpx # For client type hint
 from fastapi import FastAPI # For app type hint
 from pathlib import Path # For loading context file
 from unittest.mock import ANY # For asserting generated task_id
+import asyncio # Added for E2E test
+import uuid # Added for E2E test
 
 # Import agent-specific constants from the Content agent's main module
 from apps.api.agents.marketing.content.main import (
@@ -203,3 +205,72 @@ async def test_content_process_message_unexpected_error(client_and_app: tuple[ht
         user_query=ANY,
         session_id=task_id
     ) 
+
+@pytest.mark.asyncio
+async def test_create_and_get_content_task_e2e(client_and_app: tuple[httpx.AsyncClient, FastAPI]):
+    """
+    End-to-end test for creating a content generation task and polling for its completion.
+    This test interacts with the actual agent service, including MCP (llm_mcp).
+    """
+    client, app = client_and_app
+
+    user_query = "Draft a short social media post for a company launching a new eco-friendly water bottle. Highlight its a reusable, made from recycled materials, and keeps drinks cold for 24 hours. Make the tone enthusiastic and include a call to action to visit the website."
+    unique_task_id = str(uuid.uuid4())
+
+    task_payload = TaskSendParams(
+        id=unique_task_id,
+        message=Message(role="user", parts=[TextPart(text=user_query)])
+    ).model_dump(mode='json')
+
+    # 1. Create the task
+    response = await client.post(f"/agents/marketing/{CONTENT_AGENT_NAME}/tasks", json=task_payload)
+    assert response.status_code == 202  # Accepted for processing
+    
+    task_creation_response_data = response.json()
+    assert task_creation_response_data["id"] == unique_task_id
+    assert task_creation_response_data["status"]["state"] == TaskState.QUEUED.value
+
+    # 2. Poll for task completion
+    max_retries = 30
+    retry_interval = 2  # seconds
+    current_state = None
+
+    for attempt in range(max_retries):
+        await asyncio.sleep(retry_interval)
+        response = await client.get(f"/agents/marketing/{CONTENT_AGENT_NAME}/tasks/{unique_task_id}")
+        
+        if response.status_code == 200:
+            task_status_data = response.json()
+            current_state = task_status_data["status"]["state"]
+            if current_state == TaskState.COMPLETED.value:
+                break
+            elif current_state == TaskState.FAILED.value:
+                pytest.fail(f"Task {unique_task_id} failed. Details: {task_status_data.get('response_message')}")
+        elif response.status_code == 404:
+            print(f"Attempt {attempt + 1}: Task {unique_task_id} not found yet (404), retrying...")
+            continue 
+        else:
+            pytest.fail(f"Unexpected status code {response.status_code} while polling task {unique_task_id}. Response: {response.text}")
+    else: 
+        pytest.fail(f"Task {unique_task_id} did not complete within the timeout. Last known state: {current_state}")
+
+    # 3. Assertions on the completed task
+    assert current_state == TaskState.COMPLETED.value
+    
+    completed_task_data = response.json()
+    assert "response_message" in completed_task_data
+    assert "parts" in completed_task_data["response_message"]
+    assert len(completed_task_data["response_message"]["parts"]) > 0
+    
+    response_text = completed_task_data["response_message"]["parts"][0]["text"]
+    assert response_text is not None
+    assert response_text.strip() != ""
+    assert "MCP returned no specific content." not in response_text
+    assert "Falling back to rule-based processing due to LLM error" not in response_text
+
+    # Specific assertions for content agent
+    assert "eco-friendly" in response_text.lower() or "recycled" in response_text.lower()
+    assert "water bottle" in response_text.lower()
+    assert "visit our website" in response_text.lower() or "learn more" in response_text.lower() or "shop now" in response_text.lower() # Check for CTA
+
+    print(f"Content Agent E2E Test - Task {unique_task_id} completed. Response: {response_text[:200]}...") 

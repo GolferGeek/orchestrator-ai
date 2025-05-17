@@ -44,9 +44,9 @@ async def test_metrics_process_message_success(client_and_app: tuple[httpx.Async
     client, _ = client_and_app
     mocked_mcp_response = "Total active users: 1500"
     
-    # Read the actual metrics context content for the assertion
+    # Read the actual metrics context content
     try:
-        actual_metrics_context_content = METRICS_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
+        METRICS_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
     except FileNotFoundError:
         pytest.fail(f"Test setup error: Metrics context file not found at {METRICS_CONTEXT_FILE_PATH}")
 
@@ -72,11 +72,11 @@ async def test_metrics_process_message_success(client_and_app: tuple[httpx.Async
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     assert actual_response_text == mocked_mcp_response
 
-    expected_query_for_mcp = f"{actual_metrics_context_content}\n\nUser Query: {user_query}"
+    # Updated assertion to match the new architecture that passes user query directly without context
     mock_query_aggregate.assert_called_once_with(
-        agent_id=METRICS_MCP_TARGET_ID, # Use the constant
-        user_query=expected_query_for_mcp,
-        session_id=task_id # Expect the task_id used in payload
+        agent_id=METRICS_MCP_TARGET_ID,
+        user_query=user_query,
+        session_id=task_id
     )
 
 @pytest.mark.asyncio

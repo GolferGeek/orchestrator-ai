@@ -23,7 +23,7 @@ AGENT_NAME: str = "metrics" # Standardized to directory name
 AGENT_DESCRIPTION: str = "Provides business metrics and analytics by querying a central MCP."
 AGENT_VERSION: str = "1.0.0" # Standardized version
 # This should be the target agent on the MCP that this Metrics Agent queries.
-MCP_TARGET_AGENT_ID: str = "metrics_agent" # Changed from metrics_mcp_target
+MCP_TARGET_AGENT_ID: str = AGENT_NAME # MODIFIED: Use AGENT_NAME for consistency with llm_mcp.py context loading
 CONTEXT_FILE_NAME: str = "metrics_agent.md"
 PRIMARY_CAPABILITY_NAME: str = "query_business_metrics"
 PRIMARY_CAPABILITY_DESCRIPTION: str = "Answers questions about business metrics by relaying them to an MCP."

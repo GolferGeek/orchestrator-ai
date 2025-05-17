@@ -46,7 +46,7 @@ async def _load_agent_context(agent_id: str) -> str:
     # parents[2] = apps/
     # parents[3] = orchestrator-ai/ (project root)
     project_root = current_file_dir.parents[3] 
-    context_file_path = project_root / "markdown_context" / f"{agent_id}.md"
+    context_file_path = project_root / "markdown_context" / f"{agent_id}_agent.md"
     
     # logger.info(f"Attempting to load context from: {context_file_path}") # Debugging line
 
@@ -77,19 +77,23 @@ def _construct_prompt_messages(agent_id: str, agent_context: str, user_query: st
     """Constructs the list of messages for the LLM prompt."""
     messages = []
 
-    # System prompt incorporates agent context
-    system_prompt = (
-        f"You are an AI assistant representing the '{agent_id}' agent. "
-        f"Your primary knowledge comes from the following context. Use it to answer the user's query. "
-        f"If the answer is not in the context, clearly state that you don't have the information from the provided context.\n\n"
-        f"---AGENT CONTEXT START---\n{agent_context}\n---AGENT CONTEXT END---"
-    )
-    messages.append({"role": "system", "content": system_prompt})
+    # The agent_context IS the system prompt.
+    # It already defines the persona and task for the LLM based on the agent_id's .md file.
+    messages.append({"role": "system", "content": agent_context})
 
     # Add conversation history if provided
     if conversation_history:
         for msg in conversation_history:
-            messages.append({"role": msg.role, "content": msg.content})
+            # Ensure history roles are valid for OpenAI (e.g. "user" or "assistant")
+            # The Task history might use "agent" for assistant's turns.
+            role_to_use = msg.role
+            if msg.role == "agent":
+                role_to_use = "assistant"
+            
+            if role_to_use in ["user", "assistant"]:
+                 messages.append({"role": role_to_use, "content": msg.content})
+            else:
+                logger.warning(f"Skipping conversation history message with unmapped role: {msg.role} for agent {agent_id}")
     
     # Add the current user query
     messages.append({"role": "user", "content": user_query})

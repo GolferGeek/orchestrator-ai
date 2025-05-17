@@ -2,6 +2,7 @@
 import httpx # Needed for http_client dependency for base class
 import logging # For logger configuration if needed
 from fastapi import APIRouter, Depends, HTTPException # Add FastAPI imports
+from fastapi import Path as FastAPIPath # Add this import for Path parameter validation
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 
@@ -17,14 +18,14 @@ from apps.api.a2a_protocol.types import (
 from ....shared.mcp.mcp_client import MCPClient # MCPError etc are handled by base class now
 from apps.api.agents.base.mcp_context_agent_base import MCPContextAgentBaseService
 from apps.api.a2a_protocol.task_store import TaskStoreService # Needed for base class
-from apps.api.main import get_original_http_client # Needed for base class
+from apps.api.main import get_original_http_client, get_original_task_store_service # Modified: Added get_original_task_store_service
 
 # Define Agent specific constants
 AGENT_ID: str = "blog-post-agent-v1"
 AGENT_NAME: str = "blog_post" 
 AGENT_DESCRIPTION: str = "Creates high-quality blog posts for marketing purposes."
 AGENT_VERSION: str = "0.1.0" 
-MCP_TARGET_AGENT_ID: str = "knowledge-retrieval-agent-v1" 
+MCP_TARGET_AGENT_ID: str = AGENT_NAME
 CONTEXT_FILE_NAME: str = "blog_post_agent.md"
 PRIMARY_CAPABILITY_NAME: str = "query_blog_post_via_mcp"
 PRIMARY_CAPABILITY_DESCRIPTION: str = "Creates high-quality blog posts by relaying queries to an MCP."
@@ -73,7 +74,7 @@ agent_router = APIRouter(
 
 async def get_blog_post_agent_service(
     mcp_client: MCPClient = Depends(MCPClient),
-    task_store: TaskStoreService = Depends(TaskStoreService),
+    task_store: TaskStoreService = Depends(get_original_task_store_service),
     http_client: httpx.AsyncClient = Depends(get_original_http_client)
 ) -> BlogPostAgentService:
     return BlogPostAgentService(
@@ -114,3 +115,16 @@ async def process_tasks_route(
     except Exception as e:
         logger.error(f"Blog Post Agent /tasks endpoint: Unexpected error for task {task_request.id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Unexpected error during task processing: {str(e)}") 
+
+@agent_router.get("/tasks/{task_id}", response_model=Optional[Task], summary="Get Task Status and Result")
+async def get_task_status_route(
+    task_id: str = FastAPIPath(..., title="Task ID", description="The unique identifier of the task to retrieve."),
+    service: BlogPostAgentService = Depends(get_blog_post_agent_service)
+):
+    logger.info(f"Blog Post Agent /tasks/{{task_id}} GET endpoint received request for task ID: {task_id}")
+    task = await service.handle_task_get(task_id=task_id)
+    if not task:
+        logger.warning(f"Task {task_id} not found for GET request to Blog Post Agent.")
+        raise HTTPException(status_code=404, detail=f"Task with ID {task_id} not found for Blog Post Agent.")
+    logger.info(f"Blog Post Agent returning task {task_id} with status {task.status.state}")
+    return task 

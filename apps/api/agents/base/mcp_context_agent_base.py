@@ -92,25 +92,12 @@ class MCPContextAgentBaseService(A2AAgentBaseService):
         """
         raise NotImplementedError("Subclasses must implement get_agent_card.")
 
-    def load_context(self) -> str:
-        """Loads contextual information from the agent-specific markdown file."""
-        context_file_path = self._project_root / "markdown_context" / self.context_file_name
-        try:
-            return context_file_path.read_text(encoding="utf-8")
-        except FileNotFoundError:
-            self.logger.error(f"Context file '{self.context_file_name}' not found at {context_file_path}. Using default fallback message.")
-            return f"Context file '{self.context_file_name}' not available. This agent may not function as expected with full context."
-        except Exception as e:
-            self.logger.exception(f"Error loading context from '{self.context_file_name}' at {context_file_path}: {e}. Using default fallback message.")
-            return f"Error loading context from '{self.context_file_name}'. This agent may not function as expected with full context."
-
     async def process_message(self, message: Message, task_id: str, session_id: Optional[str] = None) -> Message:
         """
         Processes an incoming message by:
-        1. Loading agent-specific context.
-        2. Prepending context to the user's query.
-        3. Relaying the combined query to the configured MCP target agent.
-        4. Handling MCP communication errors.
+        1. Relaying the user's query directly to the configured MCP target agent.
+           The MCP target agent (via llm_mcp.py) is responsible for loading its own context based on the agent_id.
+        2. Handling MCP communication errors.
         """
         self.logger.info(f"(Task {task_id}, Session {session_id}): Processing message. Content starts with: '{message.parts[0].root.text[:50] if message.parts and isinstance(message.parts[0].root, TextPart) else '[Non-text part or empty]'}'")
 
@@ -122,15 +109,25 @@ class MCPContextAgentBaseService(A2AAgentBaseService):
             self.logger.warning(f"(Task {task_id}): Received message with empty or no usable text query part.")
             return Message(role="agent", parts=[TextPart(text="No valid query provided.")], timestamp=datetime.now(timezone.utc).isoformat())
 
-        loaded_context_str = self.load_context()
-        query_for_mcp = f"{loaded_context_str}\n\nUser Query: {user_query}"
+        # MODIFICATION: Do not load context here. Pass user_query directly.
+        # The mcp_target_agent_id should now be the logical name of this agent (e.g., "blog_post"),
+        # which llm_mcp.py will use to load markdown_context/blog_post_agent.md.
+        # loaded_context_str = self.load_context() # REMOVED
+        # query_for_mcp = f"{loaded_context_str}\n\nUser Query: {user_query}" # REMOVED
+        query_for_mcp = user_query # MODIFIED: Use original user query
         
+        # Ensure mcp_target_agent_id is set, expecting it from subclass or constructor
+        if not self.mcp_target_agent_id:
+            self.logger.error(f"(Task {task_id}): mcp_target_agent_id is not set for {self.specific_agent_name}. Cannot query MCP.")
+            # Let this propagate as an error, A2AAgentBaseService will handle it by failing the task.
+            raise ValueError(f"mcp_target_agent_id not configured for agent {self.specific_agent_name}")
+
         self.logger.info(f"(Task {task_id}): Sending query to MCPClient for target agent '{self.mcp_target_agent_id}': '{query_for_mcp[:200]}...'")
         response_text = ""
 
         try:
             response_text = await self.mcp_client.query_agent_aggregate(
-                agent_id=self.mcp_target_agent_id,
+                agent_id=self.mcp_target_agent_id, # This ID is used by llm_mcp.py to load the correct context file.
                 user_query=query_for_mcp,
                 session_id=session_id
             )

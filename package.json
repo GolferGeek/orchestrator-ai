@@ -12,6 +12,11 @@
     "configure:api": "./setup_api_env.sh",
     "configure:web": "cd apps/web && ./setup_web_env.sh",
     "test:api": "python3 -m pdm run pytest apps/api/tests/",
+    "test:e2e:blog-post": "cd apps/api && python3 -m pdm run pytest tests/integration/agents/marketing/blog_post/test_blog_post_service.py -k test_create_and_get_blog_post_task_e2e -m e2e",
+    "test:e2e:leads": "cd apps/api && python3 -m pdm run pytest apps/api/tests/integration/agents/marketing/leads/test_leads_service.py::test_create_and_get_leads_task_e2e -m e2e",
+    "test:e2e:content": "cd apps/api && python3 -m pdm run pytest apps/api/tests/integration/agents/marketing/content/test_content_service.py::test_create_and_get_content_task_e2e -m e2e",
+    "test:e2e:onboarding": "cd apps/api && python3 -m pdm run pytest apps/api/tests/integration/agents/hr/onboarding/test_onboarding_service.py::test_create_and_get_onboarding_task_e2e -m e2e",
+    "test:e2e:internal-rag": "cd apps/api && python3 -m pdm run pytest apps/api/tests/integration/agents/business/internal_rag/test_internal_rag_service.py::test_create_and_get_internal_rag_task_e2e -m e2e",
     "test:web": "cd apps/web && npm run test"
   },
   "devDependencies": {
