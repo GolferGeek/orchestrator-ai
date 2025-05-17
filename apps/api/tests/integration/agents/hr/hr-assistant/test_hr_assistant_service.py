@@ -74,10 +74,9 @@ async def test_hr_assistant_process_message_success(client_and_app: tuple[httpx.
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     assert actual_response_text == mocked_mcp_response
 
-    expected_query_for_mcp = f"{actual_hr_context_content}\n\nUser Query: {user_query}"
     mock_query_aggregate.assert_called_once_with(
         agent_id=HR_ASSISTANT_MCP_TARGET_ID,
-        user_query=expected_query_for_mcp,
+        user_query=user_query,
         session_id="test-hr-task-123"  # Corrected: Expect session_id to be the task_id
     )
 

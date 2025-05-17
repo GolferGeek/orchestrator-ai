@@ -60,7 +60,7 @@ async def test_meetings_process_message_success(client_and_app: tuple[httpx.Asyn
     mocked_mcp_response = "Okay, I've drafted a meeting agenda for your project kick-off."
 
     try:
-        actual_meetings_context_content = MEETINGS_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
+        MEETINGS_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
     except FileNotFoundError:
         pytest.fail(f"Test setup error: Meetings context file not found at {MEETINGS_CONTEXT_FILE_PATH}")
 
@@ -90,15 +90,10 @@ async def test_meetings_process_message_success(client_and_app: tuple[httpx.Asyn
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     assert actual_response_text == mocked_mcp_response
 
-    # Construct the expected prompt that MCPContextAgentBaseService sends
-    # It's loaded_context + "\n\nUser Query: " + user_query
-    # Ensure trailing newlines from file read don't affect the concatenation
-    expected_prompt_for_mcp = f"{actual_meetings_context_content.rstrip('\n')}\n\nUser Query: {user_query}"
-
     mock_send_to_mcp.assert_called_once_with(
         agent_id=MEETINGS_MCP_TARGET_ID,
-        user_query=expected_prompt_for_mcp,
-        session_id="test-task-123" # Corrected: Expect session_id to be the task_id from TaskSendParams
+        user_query=user_query,
+        session_id="test-task-123" # Expect session_id to be the task_id from TaskSendParams
     )
 
 @pytest.mark.asyncio

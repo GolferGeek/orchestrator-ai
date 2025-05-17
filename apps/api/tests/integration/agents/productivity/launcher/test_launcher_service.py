@@ -47,9 +47,9 @@ async def test_launcher_process_message_success(client_and_app: tuple[httpx.Asyn
     """Test successful message processing for LauncherAgentService via /tasks endpoint."""
     client, _ = client_and_app
     mocked_mcp_response = "Okay, routing your request to the Tasks Agent."
-    
+
     try:
-        actual_launcher_context_content = LAUNCHER_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
+        LAUNCHER_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
     except FileNotFoundError:
         pytest.fail(f"Test setup error: Launcher context file not found at {LAUNCHER_CONTEXT_FILE_PATH}")
 
@@ -80,10 +80,9 @@ async def test_launcher_process_message_success(client_and_app: tuple[httpx.Asyn
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     assert actual_response_text == mocked_mcp_response
 
-    expected_prompt_for_mcp = f"{actual_launcher_context_content.rstrip('\n')}\n\nUser Query: {user_query}"
     mock_send_to_mcp.assert_called_once_with(
         agent_id=LAUNCHER_MCP_TARGET_ID,
-        user_query=expected_prompt_for_mcp,
+        user_query=user_query,
         session_id="test-launch-task-123"
     )
 

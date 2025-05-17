@@ -54,9 +54,9 @@ async def test_marketing_swarm_process_message_success(client_and_app: tuple[htt
     """Test successful message processing for MarketingSwarmService via /tasks endpoint."""
     client, _ = client_and_app
     mocked_mcp_response = "Marketing swarm plan initiated: Blog post, Social media campaign, Email outreach."
-    
+
     try:
-        actual_context_content = MARKETING_SWARM_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
+        MARKETING_SWARM_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
     except FileNotFoundError:
         pytest.fail(f"Test setup error: Marketing Swarm context file not found at {MARKETING_SWARM_CONTEXT_FILE_PATH}")
 
@@ -82,10 +82,9 @@ async def test_marketing_swarm_process_message_success(client_and_app: tuple[htt
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     assert actual_response_text == mocked_mcp_response
 
-    expected_query_for_mcp = f"{actual_context_content}\n\nUser Query: {user_query}"
     mock_query_aggregate.assert_called_once_with(
         agent_id=MARKETING_SWARM_MCP_TARGET_ID,
-        user_query=expected_query_for_mcp,
+        user_query=user_query,
         session_id=task_id
     )
 

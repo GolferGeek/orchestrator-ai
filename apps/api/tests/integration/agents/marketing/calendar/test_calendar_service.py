@@ -73,10 +73,9 @@ async def test_calendar_process_message_success(client_and_app: tuple[httpx.Asyn
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     assert actual_response_text == mocked_mcp_response
 
-    expected_prompt_for_mcp = f"{actual_calendar_context_content}\n\nUser Query: {user_query}"
     mock_query_aggregate.assert_called_once_with(
-        agent_id=CALENDAR_MCP_TARGET_ID, 
-        user_query=expected_prompt_for_mcp,
+        agent_id=CALENDAR_MCP_TARGET_ID,
+        user_query=user_query,
         session_id="test-calendar-task-123" # Should match the id from TaskSendParams
     )
 

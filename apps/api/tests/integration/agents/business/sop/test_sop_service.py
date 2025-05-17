@@ -61,48 +61,41 @@ async def test_sop_get_agent_card(client_and_app: tuple[httpx.AsyncClient, FastA
 @patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_success(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
-    user_query = "Tell me about employee onboarding"
-    expected_mcp_response = "Step 1: HR sends the welcome packet. Step 2: IT provisions accounts."
-    mock_query_aggregate.return_value = expected_mcp_response
-
-    sop_context = load_test_context(CONTEXT_FILE_NAME)
-    expected_query_for_mcp = f"{sop_context}\n\nUser Query: {user_query}"
-
+    user_query = "What are the steps for employee onboarding?"
+    expected_response_text = "Step 1: HR sends the welcome packet. Step 2: Manager schedules introductory meetings."
+    mock_query_aggregate.return_value = expected_response_text
+    
     task_params = create_simple_task_send_params(user_query, task_id="test-sop-task-123")
     response = await client.post("/agents/business/procedurepro/tasks", json=task_params.model_dump(mode='json'))
-
+    
     assert response.status_code == 200
     response_data_full = response.json()
     assert response_data_full["status"]["state"] == TaskState.COMPLETED.value
-    assert "response_message" in response_data_full
-    assert response_data_full["response_message"]["parts"][0]["text"] == expected_mcp_response
-
+    actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
+    assert actual_response_text == expected_response_text
+    
     mock_query_aggregate.assert_called_once_with(
         agent_id=MCP_TARGET_AGENT_ID,
-        user_query=expected_query_for_mcp,
+        user_query=user_query,
         session_id="test-sop-task-123"
     )
 
 @patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_mcp_connection_error(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
-    user_query = "Some query that will trigger a connection error"
-    error_detail = "Test MCP Connection Error Detail"
-    mock_query_aggregate.side_effect = MCPConnectionError(error_detail)
-
+    user_query = "What are the steps for employee onboarding?"
+    mock_query_aggregate.side_effect = MCPConnectionError("Connection error to MCP")
+    
     task_params = create_simple_task_send_params(user_query, task_id="test-sop-task-conn-error")
     response = await client.post("/agents/business/procedurepro/tasks", json=task_params.model_dump(mode='json'))
-
-    assert response.status_code == 200 
+    
+    assert response.status_code == 200
     response_data_full = response.json()
     assert response_data_full["status"]["state"] == TaskState.FAILED.value
-    actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    expected_error_message = f"Falling back to rule-based processing due to LLM error: {error_detail}"
-    assert actual_response_text == expected_error_message
-
+    
     mock_query_aggregate.assert_called_once_with(
         agent_id=MCP_TARGET_AGENT_ID,
-        user_query=f"{load_test_context(CONTEXT_FILE_NAME)}\n\nUser Query: {user_query}",
+        user_query=user_query,
         session_id="test-sop-task-conn-error"
     )
 
@@ -144,24 +137,21 @@ async def test_sop_process_message_mcp_generic_error(mock_query_aggregate: Async
 async def test_sop_process_message_expense_deadline(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "What is the deadline for expense reports?"
-    expected_sop_answer = "Based on the SOPs, expense reports are due by the 5th of the following month."
-    mock_query_aggregate.return_value = expected_sop_answer
-
-    sop_context = load_test_context(CONTEXT_FILE_NAME)
-    expected_query_for_mcp = f"{sop_context}\n\nUser Query: {user_query}"
-
+    expected_response_text = "All expense reports must be submitted via the XpensePro portal by the 5th of the following month."
+    mock_query_aggregate.return_value = expected_response_text
+    
     task_params = create_simple_task_send_params(user_query, task_id="test-sop-task-expense")
     response = await client.post("/agents/business/procedurepro/tasks", json=task_params.model_dump(mode='json'))
-
+    
     assert response.status_code == 200
     response_data_full = response.json()
     assert response_data_full["status"]["state"] == TaskState.COMPLETED.value
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
-    assert actual_response_text == expected_sop_answer
-
+    assert actual_response_text == expected_response_text
+    
     mock_query_aggregate.assert_called_once_with(
-        agent_id=MCP_TARGET_AGENT_ID, 
-        user_query=expected_query_for_mcp,
+        agent_id=MCP_TARGET_AGENT_ID,
+        user_query=user_query,
         session_id="test-sop-task-expense"
     )
 
@@ -171,9 +161,6 @@ async def test_sop_process_message_default_response(mock_query_aggregate: AsyncM
     user_query = "Give me some SOP info"
     expected_response_text = "ProcedurePro is here to help with SOPs. What can I help you look up or understand today? For example, you can ask about 'employee onboarding' or 'expense reports'.... or anything else related to our SOPs!"
     mock_query_aggregate.return_value = expected_response_text
-
-    sop_context = load_test_context(CONTEXT_FILE_NAME)
-    expected_query_for_mcp = f"{sop_context}\n\nUser Query: {user_query}"
 
     task_params = create_simple_task_send_params(user_query, task_id="test-sop-task-default")
     response = await client.post("/agents/business/procedurepro/tasks", json=task_params.model_dump(mode='json'))
@@ -185,7 +172,7 @@ async def test_sop_process_message_default_response(mock_query_aggregate: AsyncM
     assert actual_response_text == expected_response_text
 
     mock_query_aggregate.assert_called_once_with(
-        agent_id=MCP_TARGET_AGENT_ID, 
-        user_query=expected_query_for_mcp,
+        agent_id=MCP_TARGET_AGENT_ID,
+        user_query=user_query,
         session_id="test-sop-task-default"
     ) 

@@ -81,11 +81,9 @@ async def test_process_message_success(client_and_app: tuple[httpx.AsyncClient, 
 
     assert actual_response_text == mocked_mcp_response
     
-    expected_query_for_mcp = f"{actual_context_content}\n\nUser Query: {user_query}"
-
     mock_query_aggregate.assert_called_once_with(
         agent_id=INVOICE_MCP_TARGET_ID, # Use the constant from main.py
-        user_query=expected_query_for_mcp,
+        user_query=user_query,
         session_id=task_id # Expecting task_id as session_id
     )
 

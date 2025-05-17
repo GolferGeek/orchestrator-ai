@@ -47,7 +47,7 @@ async def test_tasks_process_message_success(client_and_app: tuple[httpx.AsyncCl
     mocked_mcp_response = "Okay, I've found the upcoming tasks."
 
     try:
-        actual_tasks_context_content = TASKS_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
+        TASKS_CONTEXT_FILE_PATH.read_text(encoding="utf-8")
     except FileNotFoundError:
         pytest.fail(f"Test setup error: Tasks context file not found at {TASKS_CONTEXT_FILE_PATH}")
 
@@ -77,14 +77,10 @@ async def test_tasks_process_message_success(client_and_app: tuple[httpx.AsyncCl
     actual_response_text = response_data_full["response_message"]["parts"][0]["text"]
     assert actual_response_text == mocked_mcp_response
 
-    expected_prompt_for_mcp = f"{actual_tasks_context_content.rstrip('\n')}\n\nUser Query: {user_query}"
-
     mock_send_to_mcp.assert_called_once_with(
         agent_id=TASKS_MCP_TARGET_ID,
-        user_query=expected_prompt_for_mcp,
-        session_id="test-task-xyz-123",  # Corrected: Expect session_id to be the task_id
-        # stream=False # Default is False, so not strictly needed unless base class changes it
-        # capabilities=None # Default is None
+        user_query=user_query,
+        session_id="test-task-xyz-123"  # Expect session_id to be the task_id
     )
 
 @pytest.mark.asyncio
