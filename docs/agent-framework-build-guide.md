@@ -71,24 +71,51 @@ markdown_context/
 
 ---
 
-## 📍 Phase 3: Frontend Agent Interface (Orchestrator-First)
+## 📍 Phase 3: Frontend Agent Interface with Ionic (Orchestrator-First)
 
-### 🎯 Goal  
-Create a Vue 3 interface that puts the **Orchestrator** front and center. The user interacts with a single chat-style interface — the orchestrator handles everything.
+### 🎯 Goal
+Create an **Ionic + Vue 3** interface that puts the **Orchestrator** front and center, providing a seamless experience on both web and mobile (e.g., iPhone app). The user interacts with a single chat-style interface — the orchestrator handles everything.
 
 ### 🧱 Tasks
-- Build an orchestrator-first chat interface
-- Add push-to-talk input (browser STT to start)
-- Only show available agents when asked
-- Visualize agent responses in message thread
+- Build an orchestrator-first chat interface using Ionic and Vue 3 components.
+- Ensure responsive design for both web and mobile form factors.
+- Add push-to-talk input (leveraging device capabilities via Ionic/Capacitor where possible, browser STT as fallback).
+- Implement logic to only show available agents when explicitly requested by the user.
+- Visualize agent responses clearly within the message thread, indicating the source agent.
+- Prepare base structure for compiling to a native mobile application (e.g., for iPhone).
 
-### 📎 Deliverables  
-| Deliverable                  | Description                                 |
-|------------------------------|---------------------------------------------|
-| Chat-style orchestrator UI   | One prompt input, one thread view           |
-| Push-to-talk input           | Simple browser voice integration            |
-| Agent discovery via prompt   | Agent list only appears when requested      |
-| Agent response rendering     | Show which agent answered which message     |
+### 📎 Deliverables
+| Deliverable                       | Description                                                      |
+|-----------------------------------|------------------------------------------------------------------|
+| Ionic + Vue Chat UI               | Single prompt input, threaded message view, responsive design.   |
+| Cross-Platform Push-to-Talk     | Voice input leveraging native capabilities or browser STT.         |
+| On-Demand Agent Discovery       | Agent list/capabilities displayed only when requested.           |
+| Clear Agent Response Attribution | Messages clearly show which agent provided the response.         |
+| Mobile Build Foundation         | Project structured for future native compilation with Capacitor. |
+
+### 🤔 Phase Review & Future Enhancements
+- **Key Learnings/Outcomes (Frontend - Initial Pass):**
+  - Basic Ionic + Vue 3 project structure established for the frontend.
+  - Core chat UI layout (header, message area, input footer) implemented.
+  - Pinia stores for messages, agents (mocked), and UI state are set up.
+  - Message display components (`MessageItem`, `MessageList`) created with Markdown rendering for agent responses and visual sender differentiation.
+  - Chat input component (`ChatInput`) created with local state and event emission.
+  - Basic integration with a (mocked) backend orchestrator flow via `apiService.ts` and `messagesStore` action.
+  - Web-based Push-to-Talk (PTT) implemented using the Web Speech API.
+- **Deviations from Original Plan:**
+  - Native PTT implementation via a Capacitor plugin (Subtask 7.5) was deferred; current PTT relies on Web Speech API which works in mobile browsers but is not a true native integration. Placeholders for native integration are in `ChatInput.vue`.
+- **Deferred Items for Phase 3 Frontend:**
+  - Full native PTT integration using a Capacitor plugin (e.g., `@capacitor-community/speech-recognition`).
+  - Advanced error display mechanisms (e.g., toasts instead of alerts for PTT errors).
+  - Sophisticated agent avatar/icon mapping.
+- **Potential Future Enhancements (for this UI foundation):**
+  - Real-time updates/typing indicators.
+  - UI for managing or selecting specific agents if direct interaction is desired beyond orchestrator-first.
+  - More detailed loading states (e.g., per message, not just global).
+  - UI for PTT error messages (currently uses `alert`).
+- **Impact on Subsequent Phases:**
+  - The current frontend provides a solid base for Phase 4 (Full Sub-Agent Implementation) as messages can be sent and responses (including Markdown) can be displayed.
+  - Phase 5 (Supabase Authentication) will require adding UI elements for login/signup and protecting API calls.
 
 ---
 

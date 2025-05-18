@@ -92,7 +92,23 @@ class A2AAgentBaseService(ABC):
                 session_id=effective_session_id
             )
             
+            # Extract session_id and responding_agent_name from response_message metadata
+            # These will be used to ensure the final Task object has the correct values.
+            final_session_id_for_task = effective_session_id # Default
+            responding_agent_name_for_task_metadata = None
+
+            if response_message.metadata:
+                if "session_id_used" in response_message.metadata:
+                    final_session_id_for_task = response_message.metadata["session_id_used"]
+                    self.logger.info(f"Task {params.id}: session_id_used from process_message metadata: '{final_session_id_for_task}'")
+                if "responding_agent_name" in response_message.metadata:
+                    responding_agent_name_for_task_metadata = response_message.metadata["responding_agent_name"]
+                    self.logger.info(f"Task {params.id}: responding_agent_name from process_message metadata: '{responding_agent_name_for_task_metadata}'")
+
             # Update task status to completed with the response message
+            # The TaskStoreService's update_task_status should ideally handle setting the task's session_id
+            # if it needs to be updated based on final_session_id_for_task.
+            # For now, we will ensure the Task object returned from this function has these values.
             completed_task_data = await self.task_store.update_task_status(
                 task_id,
                 TaskState.COMPLETED,
@@ -145,7 +161,25 @@ class A2AAgentBaseService(ABC):
             # If completed_task_data is None (though checked before), this would error.
             # The check `if not completed_task_data:` handles this.
             self.logger.info(f"[BASE_AGENT] Task {task_id} completed. Returning Task object.")
-            return completed_task_data.task # Return the Pydantic model
+            
+            # Ensure the returned Task object has the correct session_id and metadata
+            final_task_object = completed_task_data.task
+            if final_session_id_for_task:
+                final_task_object.session_id = final_session_id_for_task
+            
+            if responding_agent_name_for_task_metadata:
+                if final_task_object.metadata is None:
+                    final_task_object.metadata = {}
+                final_task_object.metadata["responding_agent_name"] = responding_agent_name_for_task_metadata
+                # Also ensure response_message.metadata reflects this if not already set by process_message
+                if final_task_object.response_message and final_task_object.response_message.metadata is None:
+                    final_task_object.response_message.metadata = {}
+                if final_task_object.response_message and "responding_agent_name" not in (final_task_object.response_message.metadata or {}):
+                     if final_task_object.response_message.metadata is None: # Ensure it's not None
+                         final_task_object.response_message.metadata = {}
+                     final_task_object.response_message.metadata["responding_agent_name"] = responding_agent_name_for_task_metadata
+
+            return final_task_object # Return the Pydantic model
         except Exception as e:
             self.logger.exception(f"Task {params.id} (Session: {effective_session_id}): Unhandled exception during task processing: {e}")
             final_status = TaskStatus(

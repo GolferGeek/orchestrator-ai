@@ -3,7 +3,9 @@ import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 import httpx # Keep this for override_get_http_client type hint
 from typing import AsyncGenerator, Optional, Tuple
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
+import uuid # For TEST_USER_ID
+from datetime import datetime, timezone # For SupabaseAuthUser mock
 
 # Configure pytest-asyncio mode if not already set globally
 # pytest_plugins = ["pytest_asyncio"] # pytest-asyncio is often auto-detected
@@ -16,7 +18,51 @@ from unittest.mock import AsyncMock
 # Import the app factory and the ORIGINAL provider functions
 from apps.api.main import create_app, get_original_openai_service, get_original_http_client, get_original_task_store_service, FastAPI, load_agent_services
 from apps.api.llm.openai_service import OpenAIService
-# from apps.api.a2a_protocol.task_store import TaskStoreService # Not used in current fixtures
+from supabase import Client as SupabaseClient # Added
+
+# Import auth dependencies and schema for overriding
+from apps.api.auth.dependencies import get_current_authenticated_user, get_supabase_client_as_current_user # Added
+from apps.api.auth.schemas import SupabaseAuthUser # Added
+
+# --- Test User Data (can be shared from root conftest or defined here if specific) ---
+# Assuming these are defined in root conftest and accessible, or redefine if needed.
+# For now, let's copy them here for clarity in this file if they aren't automatically picked up.
+TEST_USER_ID = uuid.uuid4()
+TEST_USER_EMAIL = "testuser_integration@example.com"
+
+def mock_get_current_authenticated_user_for_integration() -> SupabaseAuthUser:
+    print(f"[INTEGRATION_CONTEST_MOCK] mock_get_current_authenticated_user_for_integration called, returning user {TEST_USER_ID}")
+    return SupabaseAuthUser(
+        id=TEST_USER_ID,
+        aud="authenticated",
+        role="authenticated",
+        email=TEST_USER_EMAIL,
+        email_confirmed_at=datetime.now(timezone.utc),
+        confirmed_at=datetime.now(timezone.utc),
+        last_sign_in_at=datetime.now(timezone.utc),
+        app_metadata={},
+        user_metadata={},
+        identities=[],
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
+    )
+
+@pytest_asyncio.fixture(scope="function")
+async def mock_user_specific_supabase_client() -> MagicMock:
+    print("[INTEGRATION_CONTEST_MOCK] mock_user_specific_supabase_client fixture creating MagicMock")
+    mock = MagicMock(spec=SupabaseClient)
+    # Mock common chat history calls for Orchestrator
+    # .select().execute() for loading history (return empty for new chats)
+    mock_select_response = AsyncMock()
+    mock_select_response.data = []
+    mock.table.return_value.select.return_value.eq.return_value.order.return_value.execute = mock_select_response
+    
+    # .insert().execute() for adding messages (return new message data)
+    mock_insert_response = AsyncMock()
+    # Simulate what Supabase returns after an insert: usually a list with the inserted row
+    mock_insert_response.data = [{"id": str(uuid.uuid4()), "user_id": str(TEST_USER_ID), "content": "mocked insert"}]
+    mock.table.return_value.insert.return_value.execute = mock_insert_response
+    return mock
 
 @pytest_asyncio.fixture(scope="function")
 async def mock_openai_service() -> AsyncMock:
@@ -29,32 +75,28 @@ async def mock_openai_service() -> AsyncMock:
 
 @pytest_asyncio.fixture(scope="function")
 async def client_and_app(
-    mock_openai_service: AsyncMock
-) -> AsyncGenerator[Tuple[AsyncClient, FastAPI], None]:
+    mock_openai_service: AsyncMock,
+    mock_user_specific_supabase_client: MagicMock # Add the new fixture
+) -> AsyncGenerator[Tuple[httpx.AsyncClient, FastAPI], None]:
     test_app = create_app() 
 
-    # Create an AsyncClient for the test
-    # Use ASGITransport for FastAPI testing, base_url for convenience
     async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://testserver") as test_client:
         
         def override_get_openai_service() -> Optional[OpenAIService]:
             return mock_openai_service
         
         def override_get_http_client() -> httpx.AsyncClient:
-            # This ensures agent services (like Orchestrator) use the test client 
-            # for making outbound calls to other mocked/tested agent endpoints.
             return test_client 
+        
+        # Auth overrides
+        test_app.dependency_overrides[get_current_authenticated_user] = mock_get_current_authenticated_user_for_integration
+        test_app.dependency_overrides[get_supabase_client_as_current_user] = lambda: mock_user_specific_supabase_client
         
         test_app.dependency_overrides[get_original_openai_service] = override_get_openai_service
         test_app.dependency_overrides[get_original_http_client] = override_get_http_client
 
-        # Store the test client on app.state if needed by app logic (lifespan might do this)
-        # For testing, ensuring dependency override for http_client is often sufficient.
-        # test_app.state.http_client = test_client 
-
-        # Manually load agent services as lifespan might not run automatically in all test setups
         load_agent_services(app_to_configure=test_app)
         
         yield test_client, test_app
-        # AsyncClient is managed by async with, so explicit aclose() might not be needed here
-        # but ensure all resources are cleaned up if issues arise. 
+        
+        test_app.dependency_overrides.clear() # Clear all overrides 
