@@ -20,7 +20,12 @@ from apps.api.a2a_protocol.types import (
 )
 from apps.api.llm.openai_service import OpenAIService
 
+# Langchain imports
+from langchain_community.chat_message_histories import FileChatMessageHistory
+from langchain_core.messages import HumanMessage, AIMessage #, SystemMessage (if needed)
+
 AGENT_VERSION = "0.1.0"
+CHAT_SESSIONS_DIR = Path(__file__).parent / "chat_sessions"
 
 class OrchestratorService(A2AAgentBaseService):
     """Orchestrator Agent Service implementing A2A protocol."""
@@ -29,6 +34,9 @@ class OrchestratorService(A2AAgentBaseService):
         super().__init__(task_store=task_store, http_client=http_client, agent_name=agent_name)
         self.openai_service = openai_service
         self.available_agents = []  # Store the available agents info here
+        self.chat_history_base_path = CHAT_SESSIONS_DIR
+        # Ensure chat sessions directory exists
+        self.chat_history_base_path.mkdir(parents=True, exist_ok=True)
         
         # Discover all available agents at initialization
         self._discover_available_agents()
@@ -140,65 +148,106 @@ class OrchestratorService(A2AAgentBaseService):
         session_id: Optional[str] = None
     ) -> Message:
         """Process a user message and generate a response, potentially calling other agents."""
-        self.logger.info(f"Orchestrator (task {task_id}): Processing message: {message.parts[0].root.text if message.parts and isinstance(message.parts[0].root, TextPart) else '[non-text/empty message]'}")
-        
+        current_session_id = session_id
+        if not current_session_id:
+            current_session_id = str(uuid.uuid4()) # Create a new session if none provided
+            self.logger.info(f"Orchestrator (task {task_id}): New session started with ID: {current_session_id}")
+        else:
+            self.logger.info(f"Orchestrator (task {task_id}): Continuing session with ID: {current_session_id}")
+
+        history_file = self.chat_history_base_path / f"{current_session_id}.json"
+        chat_message_history = FileChatMessageHistory(file_path=str(history_file))
+
         input_text = ""
         if message.parts:
             first_part_wrapper = message.parts[0]
             if isinstance(first_part_wrapper.root, TextPart):
                 input_text = first_part_wrapper.root.text
+                # Add current user message to history
+                chat_message_history.add_user_message(input_text)
+            else:
+                self.logger.warning(f"Orchestrator (task {task_id}, session {current_session_id}): Received empty or non-text message.")
+                # Create an error/informative Message object to return
+                ai_response_text = "I received an empty or non-text message. Please send text."
+                chat_message_history.add_ai_message(ai_response_text)
+                response_msg_obj = self._create_text_message(ai_response_text, role="agent")
+                # IMPORTANT: A2AAgentBaseService needs to inject current_session_id into the Task.session_id field of the response
+                # For now, we can add it to metadata of the response message if useful for A2ABaseService to pick up
+                response_msg_obj.metadata = response_msg_obj.metadata or {}
+                response_msg_obj.metadata["session_id_used"] = current_session_id
+                return response_msg_obj
+        else:
+            self.logger.warning(f"Orchestrator (task {task_id}, session {current_session_id}): No message parts received.")
+            response_text = "I received no message parts. Please send text."
+            chat_message_history.add_ai_message(response_text)
+            response_msg_obj = self._create_text_message(response_text, role="agent")
+            response_msg_obj.metadata = response_msg_obj.metadata or {}
+            response_msg_obj.metadata["session_id_used"] = current_session_id
+            return response_msg_obj
 
-        if not input_text.strip():
-            self.logger.warning(f"Orchestrator (task {task_id}): Received empty or non-text message: original parts: {message.parts}")
-            return self._create_text_message("I received an empty or non-text message. Please send text.", role="agent")
+        self.logger.info(f"Orchestrator (task {task_id}, session {current_session_id}): Processing input: '{input_text}'")
 
-        response_text = f"Orchestrator received: '{input_text}' for task {task_id}. Default response."
+        # --- Conceptual: Prepare history for your OpenAIService --- 
+        # This is a placeholder. You need to decide how your decide_orchestration_action consumes history.
+        # Option 1: Pass raw Langchain messages
+        # loaded_lc_messages = chat_message_history.messages
+        # Option 2: Format for OpenAI API (list of dicts)
+        formatted_history_for_llm = []
+        for msg in chat_message_history.messages[:-1]: # Exclude the latest user message already added
+            if isinstance(msg, HumanMessage):
+                formatted_history_for_llm.append({"role": "user", "content": msg.content})
+            elif isinstance(msg, AIMessage):
+                formatted_history_for_llm.append({"role": "assistant", "content": msg.content})
+        # self.logger.debug(f"Formatted history for LLM: {formatted_history_for_llm}")
+        # --- End Conceptual --- 
+
+        response_text = f"Orchestrator (session {current_session_id}) received: '{input_text}'. Default response."
         llm_decision = None
 
         try:
             if self.openai_service:
-                self.logger.info(f"Orchestrator (task {task_id}): Consulting LLM for user query: '{input_text}'")
-                # Use the dynamically discovered agent list instead of the hardcoded one
-                llm_decision = await self.openai_service.decide_orchestration_action(input_text, self.available_agents)
-                self.logger.info(f"Orchestrator (task {task_id}): LLM decision: {llm_decision}")
-            else:
-                self.logger.warning(f"Orchestrator (task {task_id}): OpenAIService not available. Falling back to rule-based logic.")
-                # Basic rule-based fallback if LLM is not available
-                return self._create_text_message(
-                    f"Falling back to rule-based processing: OpenAI service not available. Could not understand: {input_text}.", 
-                    role="agent"
+                self.logger.info(f"Orchestrator (task {task_id}, session {current_session_id}): Consulting LLM for user query: '{input_text}'")
+                llm_decision = await self.openai_service.decide_orchestration_action(
+                    user_query=input_text, 
+                    available_agents=self.available_agents,
+                    history=formatted_history_for_llm # Pass the history
                 )
+                self.logger.info(f"Orchestrator (task {task_id}, session {current_session_id}): LLM decision: {llm_decision}")
+            else:
+                self.logger.warning(f"Orchestrator (task {task_id}, session {current_session_id}): OpenAIService not available. Falling back to rule-based logic.")
+                response_text = f"OpenAI service is not available. I cannot process your request: {input_text}."
+                llm_decision = {"action": "cannot_handle", "reason": "OpenAI service not available."} # Set default decision
         except Exception as e:
-            self.logger.error(f"Orchestrator (task {task_id}): Error consulting LLM: {str(e)}", exc_info=True)
-            return self._create_text_message(
-                f"Falling back to rule-based processing due to LLM error: {str(e)}",
-                role="agent"
-            )
+            self.logger.error(f"Orchestrator (task {task_id}, session {current_session_id}): Error consulting LLM: {str(e)}", exc_info=True)
+            response_text = f"An error occurred while trying to understand your request: {str(e)}"
+            llm_decision = {"action": "cannot_handle", "reason": f"LLM consultation error: {str(e)}"} # Set default decision
 
-        if llm_decision:
+        if llm_decision and "action" in llm_decision: # Ensure llm_decision is not None and has an action
             action = llm_decision.get("action")
             if action == "delegate":
                 # Handle both field name formats for backward compatibility
                 agent_path = llm_decision.get("agent") or llm_decision.get("agent_name")
                 task_description = llm_decision.get("task_description") or llm_decision.get("query_for_agent", input_text)
-                self.logger.info(f"Orchestrator (task {task_id}): LLM decided to delegate to {agent_path} with task: '{task_description}'")
+                self.logger.info(f"Orchestrator (task {task_id}, session {current_session_id}): Delegating to {agent_path} with: '{task_description}'")
                 try:
+                    # When delegating, pass the current_session_id so sub-agents can also maintain context if they support it.
+                    # Note: The sub-agent's TaskSendParams also has session_id.
                     agent_message_part = TextPart(text=task_description)
                     agent_message = Message(role="user", parts=[agent_message_part])
                     agent_task_params = TaskSendParams(
                         id=str(uuid.uuid4()),
                         message=agent_message,
-                        session_id=session_id
+                        session_id=current_session_id # Pass session_id here
                     )
                     agent_url = f"http://localhost:8000/agents/{agent_path}/tasks"
                     if "PYTEST_CURRENT_TEST" in os.environ:
                         agent_url = f"/agents/{agent_path}/tasks"
                     
-                    self.logger.info(f"Orchestrator (task {task_id}): Calling {agent_path} Agent at {agent_url} with sub-task ID {agent_task_params.id}")
+                    self.logger.info(f"Orchestrator (task {task_id}, session {current_session_id}): Calling {agent_path} Agent at {agent_url} with sub-task ID {agent_task_params.id}")
                     api_response = await self.http_client.post(agent_url, json=agent_task_params.model_dump(mode='json'))
                     api_response.raise_for_status()
                     agent_task_response = api_response.json()
-                    self.logger.info(f"Orchestrator (task {task_id}): {agent_path} Agent responded: {agent_task_response}")
+                    self.logger.info(f"Orchestrator (task {task_id}, session {current_session_id}): {agent_path} Agent responded: {agent_task_response}")
                     
                     # Extract the agent's response - handle both A2A formats
                     if "result" in agent_task_response and "content" in agent_task_response["result"]:
@@ -226,36 +275,49 @@ class OrchestratorService(A2AAgentBaseService):
                     else:
                         response_text = f"Received response from {agent_path} but in unexpected format."
                 except httpx.HTTPStatusError as e:
-                    self.logger.error(f"Orchestrator (task {task_id}): HTTP error calling {agent_path} Agent: {e.response.status_code} - {e.response.text}")
+                    self.logger.error(f"Orchestrator (task {task_id}, session {current_session_id}): HTTP error calling {agent_path} Agent: {e.response.status_code} - {e.response.text}")
                     response_text = f"Error calling {agent_path} Agent. Status: {e.response.status_code}. Please try again later."
                 except Exception as e:
-                    self.logger.error(f"Orchestrator (task {task_id}): Error processing {agent_path} delegation: {e}", exc_info=True)
+                    self.logger.error(f"Orchestrator (task {task_id}, session {current_session_id}): Error processing {agent_path} delegation: {e}", exc_info=True)
                     response_text = f"Failed to delegate to {agent_path} Agent due to an internal error: {str(e)}"
             
             elif action == "respond_directly":
                 # Check for both "response_text" and "response" keys for backward compatibility
                 response_text = llm_decision.get("response_text", llm_decision.get("response", "I can help with that directly."))
-                self.logger.info(f"Orchestrator (task {task_id}): LLM decided to respond directly: '{response_text}'")
+                self.logger.info(f"Orchestrator (task {task_id}, session {current_session_id}): LLM decided to respond directly: '{response_text}'")
             
             elif action == "clarify":
                 clarification_question = llm_decision.get("response_text", "Could you please provide more details?")
                 response_text = f"Clarification needed: {clarification_question}"
-                self.logger.info(f"Orchestrator (task {task_id}): LLM decided to ask for clarification: '{response_text}'")
+                self.logger.info(f"Orchestrator (task {task_id}, session {current_session_id}): LLM decided to ask for clarification: '{response_text}'")
             
             elif action == "cannot_handle":
                 reason = llm_decision.get("reason", "I am unable to process this request with my current capabilities.")
                 response_text = f"I cannot handle this request: {reason}"
-                self.logger.info(f"Orchestrator (task {task_id}): LLM decided it cannot handle the request. Reason: '{reason}'")
+                self.logger.info(f"Orchestrator (task {task_id}, session {current_session_id}): LLM decided it cannot handle the request. Reason: '{reason}'")
             else: # Unknown action
                 unknown_action_name = action # The 'action' variable holds the unknown action string
-                self.logger.warning(f"Orchestrator (task {task_id}): LLM returned an unknown action: {unknown_action_name}. Defaulting.")
+                self.logger.warning(f"Orchestrator (task {task_id}, session {current_session_id}): LLM returned an unknown action: {unknown_action_name}. Defaulting.")
                 # Changed to use the unknown_action_name in the response for better feedback
                 response_text = f"Orchestrator received an unknown action: {unknown_action_name}. I cannot handle that yet."
-        else: # Should not happen if openai_service exists and returns a decision, or fallback provides one
-            self.logger.error(f"Orchestrator (task {task_id}): No decision could be made (LLM or fallback failed).")
-            response_text = "I encountered an issue trying to understand your request. Please try again."
+        else: # No decision could be made
+            self.logger.error(f"Orchestrator (task {task_id}, session {current_session_id}): No decision could be made (LLM or fallback failed). llm_decision was: {llm_decision}")
+            # Use the response_text set in the try/except block if it was updated, otherwise a generic message.
+            if response_text == f"Orchestrator (session {current_session_id}) received: '{input_text}'. Default response.": # Check if it's still the initial default
+                 response_text = "I encountered an issue trying to understand your request. Please try again."
+            # No need to set llm_decision here, as the response_text will be used.
 
-        return self._create_text_message(response_text, role="agent")
+        # Add AI response to history
+        chat_message_history.add_ai_message(response_text)
+        
+        # Create the Message object for the final response
+        final_response_message = self._create_text_message(response_text, role="agent")
+        # Add session_id to metadata of the response message so A2ABaseService can pick it up for the Task object
+        final_response_message.metadata = final_response_message.metadata or {}
+        final_response_message.metadata["session_id_used"] = current_session_id
+        final_response_message.metadata["responding_agent_name"] = "Orchestrator" # Example
+        
+        return final_response_message
 
     async def handle_task_cancel(self, task_id: str) -> Dict[str, Any]:
         """Override handle_task_cancel to ensure it returns 'cancelled' instead of 'already_final'."""
@@ -265,14 +327,14 @@ class OrchestratorService(A2AAgentBaseService):
             return {"id": task_id, "status": "not_found", "message": "Task not found."}
 
         task = task_data_and_history.task
-        final_states = [TaskState.COMPLETED, TaskState.FAILED]
+        final_states = [TaskState.PENDING, TaskState.WORKING] # Correction: cancel if pending or working
         
         # If already cancelled, just confirm it
         if task.status.state == TaskState.CANCELED:
             return {"id": task_id, "status": "cancelled", "message": "Task was already cancelled."}
             
         # If in another final state, still mark as cancelled for test consistency
-        if task.status.state in final_states:
+        if task.status.state not in final_states:
             # Update it to cancelled anyway
             updated_task_data = await self.task_store.update_task_status(
                 task_id,

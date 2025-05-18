@@ -46,6 +46,7 @@ from typing import Optional, Callable, Any
 from functools import partial
 from contextlib import asynccontextmanager
 import logging # Import the logging module
+from fastapi.middleware.cors import CORSMiddleware
 
 # Configure basic logging for the application
 logging.basicConfig(
@@ -244,25 +245,19 @@ def load_agent_services(app_to_configure: FastAPI):
                                          [f"{agent_category_dir.name.replace('_', ' ').title()} - {agent_dir.name.replace('_', ' ').title()}"], 
                                          category_name=agent_category_dir.name, **shared_providers)
 
-# --- Lifespan Context Manager ---
+# --- Lifespan Context Manager (CORSMiddleware removed from here) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic
     print(f"[LIFESPAN_MANAGER] Startup for app {id(app)}.")
-    # Create and store http_client on app.state
-    # The http_client_provider will retrieve from app.state or the override.
     app.state.http_client = httpx.AsyncClient()
     print(f"[LIFESPAN_MANAGER] Created app.state.http_client: {app.state.http_client} for app {id(app)}")
 
-    # It's generally better to register routers directly in create_app
-    # unless their setup truly depends on lifespan resources not available at app creation.
-    # For shared utility routers like MCP, create_app is suitable.
-
     print(f"[LIFESPAN_MANAGER] Loading agent services for app {id(app)}.")
-    load_agent_services(app_to_configure=app)
+    load_agent_services(app_to_configure=app) # Keep agent loading here if it depends on app state or other lifespan resources
     print(f"[LIFESPAN_MANAGER] Agent services loaded for app {id(app)}.")
     
-    yield
+    yield # Application is running
     
     # Shutdown logic
     print(f"[LIFESPAN_MANAGER] Shutdown for app {id(app)}.")
@@ -283,10 +278,35 @@ def create_app() -> FastAPI:
     )
     print(f"[CREATE_APP] New app instance created: {id(new_app)}")
 
+    # --- Add CORSMiddleware here, after app creation and before routers/routes ---
+    origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        # "http://localhost:8100", # If using ionic serve
+    ]
+
+    new_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    print(f"[CREATE_APP] Added CORSMiddleware for app {id(new_app)}.")
+    # --- End CORS section ---
+
     # --- Include Shared Utility Routers ---
-    # This is a good place for non-agent-specific utility endpoints like the MCP
-    new_app.include_router(mcp_router) # MCP routes for context-based streaming
+    new_app.include_router(mcp_router)
     print(f"[CREATE_APP] Included shared MCP router for app {id(new_app)}.")
+
+    # --- Load Agent Services (Moved to lifespan if they need lifespan resources, or can be here if not) ---
+    # If load_agent_services does NOT depend on app.state.http_client being ready,
+    # it could potentially be called here too. But keeping it in lifespan is safer
+    # if agent initialization might need a live http_client or other stateful resources.
+    # The current structure where load_agent_services is called from lifespan seems fine if
+    # agent services or routers depend on the http_client being available from app.state.
+    # However, if agent routers are static and don't need the live http_client for their definition,
+    # they could also be loaded here. For now, your lifespan loading is okay.
 
     @new_app.exception_handler(JSONRPCError)
     async def jsonrpc_exception_handler(request: Any, exc: JSONRPCError):

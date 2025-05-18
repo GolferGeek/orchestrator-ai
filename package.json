@@ -4,20 +4,35 @@
   "scripts": {
     "build": "turbo build",
     "dev": "npm run dev:api & npm run dev:web",
-    "dev:api": "npm run configure:api && cd apps/api && python3 -m pdm run uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+    "dev:api": "npm run configure:api && python3 -m pdm run uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload",
     "dev:web": "npm run configure:web && cd apps/web && npm run dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,py}\"",
     "api": "cd apps/api && python3 -m pdm run python start.py",
     "configure:api": "./setup_api_env.sh",
-    "configure:web": "cd apps/web && ./setup_web_env.sh",
+    "configure:web": "./setup_web_env.sh",
+    "task:list": "task-master list",
+    "task:list:details": "task-master list --with-subtasks",
+    "task:next": "task-master next",
+    "task:show": "task-master show",
+    "task:analyze": "task-master analyze-complexity",
+    "task:analyze:research": "task-master analyze-complexity --research",
+    "task:report": "task-master complexity-report",
+    "task:expand": "task-master expand",
+    "task:expand:all": "task-master expand --all",
+    "task:set-status": "task-master set-status",
+    "task:generate-files": "task-master generate",
+    "task:parse-prd": "task-master parse-prd",
     "test:api": "python3 -m pdm run pytest apps/api/tests/",
     "test:e2e:blog-post": "cd apps/api && python3 -m pdm run pytest tests/integration/agents/marketing/blog_post/test_blog_post_service.py -k test_create_and_get_blog_post_task_e2e -m e2e",
     "test:e2e:leads": "cd apps/api && python3 -m pdm run pytest apps/api/tests/integration/agents/marketing/leads/test_leads_service.py::test_create_and_get_leads_task_e2e -m e2e",
     "test:e2e:content": "cd apps/api && python3 -m pdm run pytest apps/api/tests/integration/agents/marketing/content/test_content_service.py::test_create_and_get_content_task_e2e -m e2e",
     "test:e2e:onboarding": "cd apps/api && python3 -m pdm run pytest apps/api/tests/integration/agents/hr/onboarding/test_onboarding_service.py::test_create_and_get_onboarding_task_e2e -m e2e",
     "test:e2e:internal-rag": "cd apps/api && python3 -m pdm run pytest apps/api/tests/integration/agents/business/internal_rag/test_internal_rag_service.py::test_create_and_get_internal_rag_task_e2e -m e2e",
-    "test:web": "cd apps/web && npm run test"
+    "test:web": "cd apps/web && npm run test",
+    "list": "node scripts/dev.js list",
+    "generate": "node scripts/dev.js generate",
+    "parse-prd": "node scripts/dev.js parse-prd"
   },
   "devDependencies": {
     "prettier": "^3.0.0",
@@ -28,5 +43,18 @@
     "apps/*",
     "packages/*"
   ],
-  "keywords": []
-} 
+  "keywords": [],
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "openai": "^4.86.1",
+    "figlet": "^1.7.0",
+    "boxen": "^7.1.1",
+    "gradient-string": "^2.0.2",
+    "cli-table3": "^0.6.3",
+    "ora": "^7.0.1"
+  },
+  "type": "module"
+}
