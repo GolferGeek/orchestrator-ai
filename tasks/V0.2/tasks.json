@@ -1,0 +1,668 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Configure Supabase Project Connection",
+      "description": "Set up the environment variables and application configuration to connect to the Supabase SaaS project.",
+      "status": "done",
+      "dependencies": [],
+      "priority": "high",
+      "details": "1. Add Supabase URL, Anon Key, and Service Role Key to the root `.env` file\n2. Update FastAPI settings in `apps/api/core/config.py` to load these credentials\n3. Create a helper function to initialize the Supabase client with these credentials\n4. Add validation to ensure these environment variables are present at startup",
+      "testStrategy": "Create a simple health check endpoint that verifies the Supabase connection is working correctly. Test with valid and invalid credentials to ensure proper error handling.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create and configure environment variables for Supabase",
+          "description": "Set up the environment variables in the root `.env` file to store Supabase credentials securely",
+          "dependencies": [],
+          "details": "1. Create or update the root `.env` file to include the following variables:\n   - `SUPABASE_URL`: The URL of your Supabase project\n   - `SUPABASE_ANON_KEY`: The anonymous key for client-side requests\n   - `SUPABASE_SERVICE_ROLE_KEY`: The service role key for server-side operations\n2. Add documentation comments above each variable explaining their purpose\n3. Add the `.env` file to `.gitignore` to prevent credentials from being committed\n4. Create a `.env.example` file with placeholder values as a template\n5. Testing approach: Manually verify the `.env` file contains all required variables with valid formats",
+          "status": "done",
+          "parentTaskId": 1
+        },
+        {
+          "id": 2,
+          "title": "Update FastAPI settings to load Supabase credentials",
+          "description": "Modify the FastAPI configuration to load and make Supabase credentials available throughout the application",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Open `apps/api/core/config.py`\n2. Import the necessary libraries for environment variable loading (e.g., `python-dotenv`)\n3. Add the following Supabase-related fields to the Settings class:\n   - `supabase_url: str`\n   - `supabase_anon_key: str`\n   - `supabase_service_role_key: str`\n4. Update the settings initialization to load these values from environment variables\n5. Add validation rules using Pydantic to ensure URLs and keys have correct formats\n6. Testing approach: Create unit tests that verify the settings class correctly loads values from environment variables",
+          "status": "done",
+          "parentTaskId": 1
+        },
+        {
+          "id": 3,
+          "title": "Implement Supabase client initialization helper",
+          "description": "Create a helper function to initialize and configure the Supabase client with the stored credentials",
+          "dependencies": [
+            2
+          ],
+          "details": "1. Create a new file `apps/api/core/supabase.py`\n2. Import the Supabase Python client library\n3. Import the settings from the config module\n4. Implement a `create_supabase_client()` function that:\n   - Initializes a Supabase client with URL and keys from settings\n   - Configures any necessary client options (timeouts, retries, etc.)\n   - Returns the initialized client\n5. Add proper error handling for connection failures\n6. Implement a singleton pattern to avoid creating multiple clients\n7. Testing approach: Create unit tests with mocked Supabase responses to verify client initialization",
+          "status": "done",
+          "parentTaskId": 1
+        },
+        {
+          "id": 4,
+          "title": "Add startup validation for Supabase configuration",
+          "description": "Implement validation checks at application startup to ensure all Supabase credentials are present and valid",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "1. Open the FastAPI application initialization file (likely `apps/api/main.py`)\n2. Import the Supabase client helper and settings\n3. Create a startup event handler using `@app.on_event(\"startup\")`\n4. In the handler, implement validation that:\n   - Checks that all required Supabase environment variables are present\n   - Attempts to initialize the Supabase client to verify credentials work\n   - Logs appropriate messages about the connection status\n5. Add graceful error handling that provides clear error messages if validation fails\n6. Implement a health check endpoint that includes Supabase connection status\n7. Testing approach: Create integration tests that verify the application fails to start with invalid credentials and starts successfully with valid ones",
+          "status": "done",
+          "parentTaskId": 1
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Set Up Supabase Schema Management Workflow",
+      "description": "Establish the migration workflow and directory structure for managing Supabase database schema changes.",
+      "status": "done",
+      "dependencies": [
+        1
+      ],
+      "priority": "high",
+      "details": "1. Create `/supabase/migrations/` directory at project root\n2. Create initial migration SQL file for database schema\n3. Add NPM scripts to `package.json` for Supabase CLI operations:\n   - `supabase:login`\n   - `supabase:link`\n   - `supabase:migrate:up`\n   - `supabase:db:pull`\n4. Document the workflow for creating and applying migrations in README.md\n5. Test the linking process with the remote Supabase project",
+      "testStrategy": "Manually test each NPM script to ensure it works correctly. Verify that migrations can be applied to the remote Supabase project and that schema changes are reflected.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Directory Structure for Supabase Migrations",
+          "description": "Set up the necessary directory structure for managing Supabase database migrations at the project root",
+          "dependencies": [],
+          "details": "1. Create a `/supabase/` directory at the project root\n2. Create a `/supabase/migrations/` subdirectory for SQL migration files\n3. Create a `.gitignore` file in the `/supabase/` directory to exclude sensitive configuration files\n4. Add a placeholder `.keep` file in the migrations directory to ensure it's tracked by git\n5. Test by verifying the directory structure exists and is properly tracked in git",
+          "status": "done",
+          "parentTaskId": 2
+        },
+        {
+          "id": 2,
+          "title": "Create Initial Database Schema Migration",
+          "description": "Develop the first migration SQL file that defines the initial database schema",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Create a timestamped migration file in the format `YYYYMMDDHHMMSS_initial_schema.sql` in the `/supabase/migrations/` directory\n2. Define the initial database schema including tables, relationships, and indexes\n3. Include appropriate comments in the SQL file to document the purpose of each table and column\n4. Add `CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"` if UUID functionality is needed\n5. Test the migration SQL file syntax using a SQL linter or validator to ensure it's error-free",
+          "status": "done",
+          "parentTaskId": 2
+        },
+        {
+          "id": 3,
+          "title": "Configure Supabase CLI and NPM Scripts",
+          "description": "Set up the Supabase CLI and add NPM scripts to package.json for common operations",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Install Supabase CLI globally or as a dev dependency: `npm install @supabase/cli --save-dev`\n2. Add the following NPM scripts to `package.json`:\n   - `\"supabase:login\": \"supabase login\"`\n   - `\"supabase:link\": \"supabase link --project-ref YOUR_PROJECT_REF\"`\n   - `\"supabase:migrate:up\": \"supabase db push\"`\n   - `\"supabase:db:pull\": \"supabase db pull\"`\n3. Create a `.env.example` file showing required environment variables\n4. Test the scripts by running `npm run supabase:login` to verify CLI is properly installed",
+          "status": "done",
+          "parentTaskId": 2
+        },
+        {
+          "id": 4,
+          "title": "Document Migration Workflow in README.md",
+          "description": "Create comprehensive documentation for the migration workflow in the project README",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "1. Add a 'Database Migrations' section to the README.md\n2. Document the initial setup process for developers\n3. Detail the workflow for:\n   - Creating new migrations\n   - Applying migrations to local development environment\n   - Applying migrations to production\n   - Handling migration conflicts\n4. Include example commands and expected outputs\n5. Add troubleshooting tips for common issues\n6. Test by having another team member follow the documentation to verify it's clear and accurate",
+          "status": "done",
+          "parentTaskId": 2
+        },
+        {
+          "id": 5,
+          "title": "Test Remote Supabase Project Linkage",
+          "description": "Verify that the local development environment can properly link with the remote Supabase project",
+          "dependencies": [
+            2,
+            3,
+            4
+          ],
+          "details": "1. Ensure you have the Supabase project reference ID from the Supabase dashboard\n2. Run `npm run supabase:login` to authenticate with Supabase\n3. Run `npm run supabase:link` to link to the remote project\n4. Test applying migrations with `npm run supabase:migrate:up`\n5. Verify changes are reflected in the Supabase dashboard\n6. Test pulling the schema with `npm run supabase:db:pull` and verify it matches expected structure\n7. Document any issues encountered and their solutions in the README.md",
+          "status": "done",
+          "parentTaskId": 2
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Implement Database Schema in Supabase",
+      "description": "Create the required database tables (users, sessions, messages) in Supabase via migration files.",
+      "status": "done",
+      "dependencies": [
+        2
+      ],
+      "priority": "high",
+      "details": "1. Create SQL migration files for:\n   - `users` table linked to Supabase auth.users\n   - `sessions` table with user_id foreign key\n   - `messages` table with session_id foreign key\n2. Set up appropriate indexes for performance\n3. Configure Row Level Security (RLS) policies to ensure users can only access their own data\n4. Apply migrations to the remote Supabase project\n5. Include appropriate created_at/updated_at timestamp handling",
+      "testStrategy": "Verify table structure using Supabase dashboard. Write SQL queries to test RLS policies, ensuring users can only access their own data. Test foreign key constraints work correctly.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create users table migration file",
+          "description": "Create a SQL migration file for the users table that links to Supabase auth.users",
+          "dependencies": [],
+          "details": "1. Create a new migration file with timestamp prefix (e.g., `20230601000000_create_users_table.sql`)\n2. Define the users table with columns: id (primary key, UUID), name (text), email (text), avatar_url (text, nullable), created_at (timestamp with time zone), updated_at (timestamp with time zone)\n3. Add a foreign key constraint linking the id to auth.users(id)\n4. Create an index on the email column for faster lookup\n5. Add trigger functions to automatically update created_at and updated_at timestamps\n6. Test by verifying the migration file syntax with a local SQL validator",
+          "status": "done",
+          "parentTaskId": 3
+        },
+        {
+          "id": 2,
+          "title": "Create sessions table migration file",
+          "description": "Create a SQL migration file for the sessions table with user_id foreign key",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Create a new migration file with timestamp prefix (e.g., `20230601000001_create_sessions_table.sql`)\n2. Define the sessions table with columns: id (primary key, UUID), user_id (UUID, foreign key), title (text), last_activity_at (timestamp with time zone), created_at (timestamp with time zone), updated_at (timestamp with time zone)\n3. Add a foreign key constraint on user_id referencing users(id) with CASCADE on delete\n4. Create indexes on user_id and last_activity_at for performance\n5. Add trigger functions to automatically update created_at and updated_at timestamps\n6. Test by verifying the migration file syntax with a local SQL validator",
+          "status": "done",
+          "parentTaskId": 3
+        },
+        {
+          "id": 3,
+          "title": "Create messages table migration file",
+          "description": "Create a SQL migration file for the messages table with session_id foreign key",
+          "dependencies": [
+            2
+          ],
+          "details": "1. Create a new migration file with timestamp prefix (e.g., `20230601000002_create_messages_table.sql`)\n2. Define the messages table with columns: id (primary key, UUID), session_id (UUID, foreign key), role (text, e.g., 'user' or 'assistant'), content (text), created_at (timestamp with time zone), updated_at (timestamp with time zone)\n3. Add a foreign key constraint on session_id referencing sessions(id) with CASCADE on delete\n4. Create indexes on session_id and role for performance\n5. Add trigger functions to automatically update created_at and updated_at timestamps\n6. Test by verifying the migration file syntax with a local SQL validator",
+          "status": "done",
+          "parentTaskId": 3
+        },
+        {
+          "id": 4,
+          "title": "Configure Row Level Security (RLS) policies",
+          "description": "Set up RLS policies to ensure users can only access their own data",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "1. Create a new migration file with timestamp prefix (e.g., `20230601000003_setup_rls_policies.sql`)\n2. Enable Row Level Security on users, sessions, and messages tables\n3. For users table: Create policy allowing users to select, update only their own records\n4. For sessions table: Create policy allowing users to select, insert, update, delete only their own sessions\n5. For messages table: Create policy allowing users to select, insert only messages in their own sessions\n6. Test the RLS policies by writing sample queries that should succeed and fail based on user context",
+          "status": "done",
+          "parentTaskId": 3
+        },
+        {
+          "id": 5,
+          "title": "Apply migrations to Supabase project",
+          "description": "Apply all migration files to the remote Supabase project and verify deployment",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "details": "1. Install Supabase CLI if not already installed\n2. Organize all migration files in the proper directory structure\n3. Configure Supabase CLI with project credentials\n4. Run `supabase db push` command to apply migrations to the remote project\n5. Verify the schema was created correctly by checking the Supabase dashboard\n6. Test the schema by inserting test data and verifying RLS policies work as expected\n7. Document any issues encountered during migration and their resolutions\n8. Create a verification script that tests all tables, relationships, and policies",
+          "status": "done",
+          "parentTaskId": 3
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Implement Backend Authentication Endpoints",
+      "description": "Create FastAPI endpoints for user signup, login, logout, and profile retrieval using Supabase Auth.",
+      "status": "done",
+      "dependencies": [
+        1,
+        3
+      ],
+      "priority": "high",
+      "details": "1. Integrate `supabase-py` client library into FastAPI\n2. Create `/auth/signup` endpoint to register users in Supabase Auth and users table\n3. Create `/auth/login` endpoint to authenticate users and return JWT\n4. Create `/auth/logout` endpoint\n5. Create `/auth/me` endpoint to retrieve authenticated user details\n6. Implement JWT validation middleware/dependency for protected routes\n7. Handle error cases (invalid credentials, duplicate emails, etc.)",
+      "testStrategy": "Write unit tests for each endpoint with valid and invalid inputs. Test the full authentication flow from signup to login to accessing protected resources. Verify JWT validation works correctly.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Integrate Supabase client and setup authentication foundation",
+          "description": "Integrate the Supabase Python client library and set up the foundation for authentication in the FastAPI app",
+          "dependencies": [],
+          "details": "1. Install the required packages: `pip install supabase fastapi python-jose pydantic email-validator python-multipart`\n2. Create a Supabase client instance using environment variables for URL and API key\n3. Create a basic authentication utility module with functions to handle JWT operations\n4. Set up error handling utilities for common auth errors\n5. Create Pydantic models for user authentication (UserSignUp, UserLogin, TokenResponse)\n6. Test the Supabase connection by making a simple query to verify credentials work",
+          "status": "done",
+          "parentTaskId": 4
+        },
+        {
+          "id": 2,
+          "title": "Implement JWT validation middleware",
+          "description": "Create a FastAPI dependency for JWT validation that can be used to protect routes",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Create a JWT validation function that extracts the Bearer token from the Authorization header\n2. Implement token verification using Supabase's JWT validation approach\n3. Create a FastAPI dependency that can be injected into route handlers to require authentication\n4. Handle different error cases (missing token, expired token, invalid signature)\n5. Return appropriate HTTP status codes for different authentication failures\n6. Test the middleware with both valid and invalid tokens to ensure proper behavior",
+          "status": "done",
+          "parentTaskId": 4
+        },
+        {
+          "id": 3,
+          "title": "Implement signup and login endpoints",
+          "description": "Create the /auth/signup and /auth/login endpoints for user registration and authentication",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "1. Create the `/auth/signup` POST endpoint that accepts email, password, and optional user details\n2. Implement validation for email format, password strength, and required fields\n3. Use Supabase Auth to register users and store additional user data in the users table\n4. Create the `/auth/login` POST endpoint that accepts email and password\n5. Return a JWT token upon successful authentication\n6. Handle error cases like duplicate emails, invalid credentials with appropriate status codes\n7. Test both endpoints with valid and invalid inputs to verify proper functioning",
+          "status": "done",
+          "parentTaskId": 4
+        },
+        {
+          "id": 4,
+          "title": "Implement logout and profile retrieval endpoints",
+          "description": "Create the /auth/logout endpoint and /auth/me endpoint for retrieving user profile information",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "1. Create the `/auth/logout` POST endpoint that invalidates the current token\n2. Use the JWT validation middleware to ensure the user is authenticated before logging out\n3. Implement token blacklisting or work with Supabase's session management\n4. Create the `/auth/me` GET endpoint that returns the current user's profile information\n5. Use the JWT validation middleware to protect this endpoint\n6. Retrieve extended user information from the users table based on the authenticated user ID\n7. Test both endpoints with authenticated and unauthenticated requests",
+          "status": "done",
+          "parentTaskId": 4
+        },
+        {
+          "id": 5,
+          "title": "Implement comprehensive error handling and testing",
+          "description": "Enhance error handling across all authentication endpoints and create comprehensive tests",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "1. Create custom exception handlers for authentication-specific errors\n2. Standardize error response formats across all authentication endpoints\n3. Add detailed logging for authentication attempts (successful and failed)\n4. Implement rate limiting for authentication endpoints to prevent brute force attacks\n5. Create integration tests for the complete authentication flow (signup → login → me → logout)\n6. Test edge cases like expired tokens, malformed requests, and concurrent authentication\n7. Document the authentication API with examples and error response formats",
+          "status": "done",
+          "parentTaskId": 4
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Implement Session Management Endpoints",
+      "description": "Create FastAPI endpoints to manage chat sessions for authenticated users.",
+      "status": "done",
+      "dependencies": [
+        3,
+        4
+      ],
+      "priority": "medium",
+      "details": "1. Create `GET /sessions` endpoint to list chat sessions for the authenticated user\n2. Create `POST /sessions` endpoint to create a new chat session\n3. Create `GET /sessions/{session_id}` endpoint to retrieve a specific session\n4. Create `GET /sessions/{session_id}/messages` endpoint to retrieve messages for a session\n5. Ensure all endpoints validate that the user has access to the requested session\n6. Implement pagination for message retrieval\n7. Add sorting by timestamp/order field",
+      "testStrategy": "Write unit tests for each endpoint. Test authorization by ensuring users cannot access other users' sessions. Test pagination and sorting functionality for message retrieval.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement Session Listing and Creation Endpoints",
+          "description": "Create the GET /sessions and POST /sessions endpoints to list and create chat sessions for authenticated users.",
+          "dependencies": [],
+          "details": "Implementation steps:\n1. Define Pydantic models for SessionCreate (input) and SessionResponse (output)\n2. Implement GET /sessions endpoint that:\n   - Extracts user_id from authentication token\n   - Queries database for all sessions where user_id matches\n   - Returns list of sessions with pagination (limit/offset)\n   - Implements optional sorting by created_at or last_updated fields\n3. Implement POST /sessions endpoint that:\n   - Accepts SessionCreate model with session name/title\n   - Validates input data\n   - Creates new session record in database with authenticated user_id\n   - Returns newly created session with SessionResponse model\n4. Add proper error handling for database errors and authentication failures\n5. Add dependency injection for authentication to ensure only logged-in users can access\n\nTesting approach:\n- Unit tests for model validation\n- Integration tests with mocked authentication\n- Test pagination and sorting functionality\n- Test error cases (unauthenticated, malformed requests)",
+          "status": "done",
+          "parentTaskId": 5
+        },
+        {
+          "id": 2,
+          "title": "Implement Single Session Retrieval Endpoint",
+          "description": "Create the GET /sessions/{session_id} endpoint to retrieve a specific chat session with proper access validation.",
+          "dependencies": [
+            1
+          ],
+          "details": "Implementation steps:\n1. Implement GET /sessions/{session_id} endpoint that:\n   - Accepts session_id as path parameter\n   - Extracts user_id from authentication token\n   - Queries database for specific session by ID\n   - Validates that the session belongs to the authenticated user (user_id match)\n   - Returns 403 Forbidden if user doesn't own the session\n   - Returns 404 Not Found if session doesn't exist\n   - Returns session details using SessionResponse model if authorized\n2. Implement access control helper function to verify session ownership\n3. Add comprehensive error handling for various failure scenarios\n4. Document the endpoint with OpenAPI annotations\n\nTesting approach:\n- Test successful retrieval with authorized user\n- Test 403 response when user tries to access another user's session\n- Test 404 response for non-existent sessions\n- Test with invalid session IDs",
+          "status": "done",
+          "parentTaskId": 5
+        },
+        {
+          "id": 3,
+          "title": "Implement Session Messages Retrieval with Pagination",
+          "description": "Create the GET /sessions/{session_id}/messages endpoint with pagination and sorting functionality.",
+          "dependencies": [
+            2
+          ],
+          "details": "Implementation steps:\n1. Define Pydantic models for MessageResponse (output)\n2. Implement GET /sessions/{session_id}/messages endpoint that:\n   - Reuses the session access validation from subtask 2\n   - Accepts query parameters for pagination (limit, offset)\n   - Accepts query parameters for sorting (sort_by, sort_order)\n   - Validates that sort_by is a valid field (timestamp, message_order)\n   - Validates that sort_order is valid (asc, desc)\n   - Defaults to sorting by timestamp ascending if not specified\n   - Queries database for messages belonging to the session\n   - Returns paginated list of messages with total count\n3. Implement efficient database queries with proper indexing hints\n4. Add pagination metadata in response (total count, next/prev page indicators)\n\nTesting approach:\n- Test pagination with various limit/offset combinations\n- Test sorting in both directions and with different fields\n- Test edge cases (empty sessions, last page)\n- Test performance with sessions containing many messages",
+          "status": "done",
+          "parentTaskId": 5
+        },
+        {
+          "id": 4,
+          "title": "Implement Cross-Cutting Concerns and API Refinements",
+          "description": "Add consistent error handling, logging, and performance optimizations across all session management endpoints.",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Implementation steps:\n1. Create consistent error response format across all endpoints:\n   - Implement custom exception handlers for common errors\n   - Add detailed error messages and appropriate HTTP status codes\n2. Add comprehensive logging:\n   - Log session creation, access, and retrieval events\n   - Include user ID and session ID in logs\n   - Log performance metrics for database queries\n3. Optimize database queries:\n   - Add appropriate indexes for session and message retrieval\n   - Implement query optimization for pagination\n   - Add database connection pooling configuration\n4. Enhance security:\n   - Add rate limiting for session creation and access\n   - Implement additional validation to prevent injection attacks\n   - Add proper HTTP security headers\n5. Add comprehensive API documentation:\n   - Document all endpoint parameters, responses, and error cases\n   - Include examples for common operations\n\nTesting approach:\n- Load testing to verify performance under concurrent access\n- Security testing for common vulnerabilities\n- End-to-end testing of complete user flows\n- Verify logging and monitoring functionality",
+          "status": "done",
+          "parentTaskId": 5
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Create Supabase-backed ChatMessageHistory for Langchain",
+      "description": "Develop a custom Langchain ChatMessageHistory implementation that uses Supabase for storage.",
+      "status": "done",
+      "dependencies": [
+        3,
+        5
+      ],
+      "priority": "high",
+      "details": "1. Create a new class `SupabaseChatMessageHistory` that implements Langchain's `BaseChatMessageHistory`\n2. Implement methods to add messages, clear history, and retrieve messages\n3. Store messages in the Supabase `messages` table, linked to the appropriate session\n4. Ensure messages are retrieved in the correct order\n5. Handle conversion between Langchain message types and database schema\n6. Add error handling for database operations",
+      "testStrategy": "Write unit tests for the custom ChatMessageHistory implementation. Test adding messages, retrieving history, and clearing history. Verify that messages are correctly persisted in Supabase and retrieved in the right order.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Define SupabaseChatMessageHistory class structure and interface",
+          "description": "Create the basic structure for the SupabaseChatMessageHistory class that implements Langchain's BaseChatMessageHistory interface, including constructor and required method signatures.",
+          "dependencies": [],
+          "details": "1. Import necessary dependencies from Langchain and Supabase\n2. Define the SupabaseChatMessageHistory class that extends BaseChatMessageHistory\n3. Implement the constructor that accepts Supabase client, table name, and session ID parameters\n4. Define required interface methods as stubs: add_message, add_messages, clear, messages (getter)\n5. Add proper TypeScript typing for all methods and properties\n6. Create basic documentation for the class and its methods using JSDoc comments\n7. Test the class instantiation with a Supabase client",
+          "status": "done",
+          "parentTaskId": 6
+        },
+        {
+          "id": 2,
+          "title": "Implement message storage functionality",
+          "description": "Develop the methods to add individual messages and batches of messages to the Supabase database.",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Implement the add_message method to store a single message in Supabase\n2. Create a helper function to convert Langchain message types to database schema format\n3. Implement the add_messages method to handle batch additions efficiently\n4. Add timestamp tracking for message ordering\n5. Ensure proper session ID linking for each message\n6. Include basic error handling for database operations\n7. Test adding different types of messages (human, AI, system) to verify correct storage",
+          "status": "done",
+          "parentTaskId": 6
+        },
+        {
+          "id": 3,
+          "title": "Implement message retrieval functionality",
+          "description": "Create the functionality to retrieve message history from Supabase in the correct order and format.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "1. Implement the messages getter to retrieve messages from Supabase\n2. Create a helper function to convert database records back to Langchain message types\n3. Add proper ordering of messages by timestamp\n4. Filter messages by the session ID provided during initialization\n5. Handle empty result sets appropriately\n6. Implement pagination if needed for large message histories\n7. Test retrieving messages to ensure correct ordering and format conversion",
+          "status": "done",
+          "parentTaskId": 6
+        },
+        {
+          "id": 4,
+          "title": "Implement history clearing functionality",
+          "description": "Develop the method to clear message history for a specific session in the Supabase database.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "1. Implement the clear method to delete all messages for the current session ID\n2. Add confirmation mechanism or safety checks before deletion\n3. Ensure deletion is scoped only to the current session ID\n4. Add transaction support if needed for data integrity\n5. Return appropriate success/failure status\n6. Add logging for deletion operations\n7. Test clearing history to verify that only the targeted session messages are removed",
+          "status": "done",
+          "parentTaskId": 6
+        },
+        {
+          "id": 5,
+          "title": "Enhance error handling and add comprehensive tests",
+          "description": "Improve error handling throughout the class and create comprehensive tests for all functionality.",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "details": "1. Implement robust error handling for all database operations\n2. Add specific error types and messages for different failure scenarios\n3. Implement retry logic for transient database errors\n4. Add connection validation before operations\n5. Create unit tests for all class methods with various scenarios\n6. Add integration tests with a real or mocked Supabase instance\n7. Test edge cases like network failures, malformed messages, and concurrent operations\n8. Document error handling behavior and recovery strategies",
+          "status": "done",
+          "parentTaskId": 6
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Modify OrchestratorService to Use Supabase for Chat History",
+      "description": "Update the OrchestratorService to use the Supabase-backed ChatMessageHistory instead of FileChatMessageHistory.",
+      "status": "done",
+      "dependencies": [
+        6
+      ],
+      "priority": "high",
+      "details": "1. Modify `OrchestratorService` to accept session_id and user_id parameters\n2. Replace `FileChatMessageHistory` with the new `SupabaseChatMessageHistory`\n3. Update the memory component to use the Supabase-backed history\n4. Ensure chat context is correctly maintained across requests\n5. Update the chat endpoint to create a new session if none is specified\n6. Add error handling for missing sessions or unauthorized access",
+      "testStrategy": "Test the Orchestrator with the new Supabase history implementation. Verify that conversational context is maintained across requests. Test that history is correctly associated with the right session and user.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Modify OrchestratorService to Accept Session and User Parameters",
+          "description": "Update the OrchestratorService constructor and relevant methods to accept session_id and user_id parameters needed for Supabase integration.",
+          "dependencies": [],
+          "details": "Implementation steps:\n1. Modify the OrchestratorService constructor to accept session_id and user_id parameters\n2. Update method signatures that need these parameters\n3. Add validation to ensure these parameters are provided when required\n4. Add documentation for the new parameters\n5. Update any default parameter values as needed\n\nTesting approach:\n- Create unit tests to verify the service correctly handles the new parameters\n- Test with valid and invalid/missing parameters to ensure proper validation\n- Verify existing functionality still works with the new parameters",
+          "status": "done",
+          "parentTaskId": 7
+        },
+        {
+          "id": 2,
+          "title": "Implement SupabaseChatMessageHistory Integration",
+          "description": "Replace FileChatMessageHistory with SupabaseChatMessageHistory in the OrchestratorService and update the memory component.",
+          "dependencies": [
+            1
+          ],
+          "details": "Implementation steps:\n1. Import the SupabaseChatMessageHistory class\n2. Replace FileChatMessageHistory instantiation with SupabaseChatMessageHistory\n3. Configure the SupabaseChatMessageHistory with session_id and user_id\n4. Update the memory component to use the new history implementation\n5. Ensure chat context persistence is maintained\n\nTesting approach:\n- Test that messages are correctly stored in Supabase\n- Verify that chat history can be retrieved across multiple requests\n- Test with different session IDs to ensure proper separation of conversations\n- Compare behavior with previous implementation to ensure consistency",
+          "status": "done",
+          "parentTaskId": 7
+        },
+        {
+          "id": 3,
+          "title": "Update Chat Endpoint for Session Management",
+          "description": "Modify the chat endpoint to handle session creation and management with Supabase integration.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Implementation steps:\n1. Update the chat endpoint to extract session_id from request parameters\n2. Add logic to create a new session if none is specified\n3. Pass session_id and user_id to the OrchestratorService\n4. Add session tracking in response metadata\n5. Ensure session continuity across multiple requests\n\nTesting approach:\n- Test endpoint with and without session_id parameter\n- Verify new sessions are created correctly\n- Test conversation continuity within the same session\n- Verify different sessions maintain separate conversation contexts",
+          "status": "done",
+          "parentTaskId": 7
+        },
+        {
+          "id": 4,
+          "title": "Implement Error Handling for Sessions and Access Control",
+          "description": "Add comprehensive error handling for session management and unauthorized access scenarios.",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "Implementation steps:\n1. Add error handling for missing or invalid session IDs\n2. Implement authorization checks to ensure users can only access their own sessions\n3. Create custom error types for different session-related errors\n4. Add graceful degradation if Supabase is temporarily unavailable\n5. Implement logging for session-related errors\n\nTesting approach:\n- Test with invalid session IDs to verify proper error responses\n- Test unauthorized access scenarios\n- Verify error messages are clear and actionable\n- Test system behavior during simulated Supabase outages\n- Verify logging captures relevant information for troubleshooting",
+          "status": "done",
+          "parentTaskId": 7
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Implement Frontend Authentication UI",
+      "description": "Create user interface components for signup, login, and logout functionality.",
+      "status": "done",
+      "dependencies": [
+        4
+      ],
+      "priority": "medium",
+      "details": "1. Create login form component with email and password fields\n2. Create signup form with email, password, and optional display name\n3. Implement form validation for both forms\n4. Create authentication service to interact with backend auth endpoints\n5. Store JWT token in localStorage and attach to API requests\n6. Add logout functionality that clears stored tokens\n7. Create protected route wrapper to redirect unauthenticated users\n8. Display current user information when logged in",
+      "testStrategy": "Test the authentication flow manually. Verify form validation works correctly. Test that protected routes redirect unauthenticated users. Verify that the JWT token is correctly stored and used for API requests.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Login and Signup Form Components",
+          "description": "Implement the UI components for user login and registration with proper form fields and layout",
+          "dependencies": [],
+          "details": "1. Create a LoginForm component with email and password input fields\n2. Create a SignupForm component with email, password, and optional display name fields\n3. Style both forms consistently with the application design\n4. Add form submission handlers that prevent default form submission\n5. Implement basic UI feedback (loading states, etc.)\n6. Test both components in isolation to ensure they render correctly",
+          "status": "done",
+          "parentTaskId": 8
+        },
+        {
+          "id": 2,
+          "title": "Implement Form Validation Logic",
+          "description": "Add client-side validation to the authentication forms to ensure data quality before submission",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Add email format validation using regex or a validation library\n2. Implement password strength requirements (min length, special chars, etc.)\n3. Add real-time validation feedback as users type\n4. Create error message displays for each form field\n5. Ensure form submission is blocked until validation passes\n6. Test validation logic with various valid and invalid inputs",
+          "status": "done",
+          "parentTaskId": 8
+        },
+        {
+          "id": 3,
+          "title": "Create Authentication Service",
+          "description": "Develop a service to handle API communication for authentication operations",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "1. Create an AuthService class/module with methods for login, signup, and logout\n2. Implement API calls to backend authentication endpoints\n3. Add JWT token storage in localStorage after successful authentication\n4. Create a utility to attach JWT tokens to outgoing API requests\n5. Implement token refresh logic if needed\n6. Add error handling for failed authentication attempts\n7. Test the service with mock API responses",
+          "status": "done",
+          "parentTaskId": 8
+        },
+        {
+          "id": 4,
+          "title": "Implement Protected Routes and Authentication State",
+          "description": "Create a system to manage authentication state and protect routes from unauthorized access",
+          "dependencies": [
+            3
+          ],
+          "details": "1. Create an authentication context to share auth state across the application\n2. Implement a ProtectedRoute component that redirects unauthenticated users\n3. Add logic to check token validity on application startup\n4. Create a hook or utility to access current authentication state\n5. Implement automatic redirection after successful login/signup\n6. Test protected routes with both authenticated and unauthenticated states",
+          "status": "done",
+          "parentTaskId": 8
+        },
+        {
+          "id": 5,
+          "title": "Create User Profile Display and Logout Functionality",
+          "description": "Implement UI components to display current user information and handle logout",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "1. Create a UserProfile component to display current user information\n2. Implement a dropdown or menu for user-related actions\n3. Add logout button/functionality that clears stored tokens\n4. Update authentication context when logout occurs\n5. Implement UI feedback for successful logout\n6. Add navigation/redirect after logout\n7. Test the complete authentication flow from login to logout",
+          "status": "done",
+          "parentTaskId": 8
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Implement Frontend Session Management UI",
+      "description": "Create user interface components for viewing and managing chat sessions.",
+      "status": "done",
+      "dependencies": [
+        5,
+        8
+      ],
+      "priority": "medium",
+      "details": "1. Create a sidebar component to display the user's chat sessions\n2. Implement UI for creating a new chat session\n3. Allow users to select a past session to continue the conversation\n4. Update the chat interface to show messages from the selected session\n5. Create a service to interact with the session management endpoints\n6. Add loading states and error handling for session operations\n7. Implement session name editing functionality",
+      "testStrategy": "Test the session management UI manually. Verify that sessions are correctly displayed and can be selected. Test creating new sessions and continuing conversations in existing sessions. Verify that error states are handled correctly.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Session Management Service",
+          "description": "Implement a service layer to interact with session management API endpoints",
+          "dependencies": [],
+          "details": "Create a SessionService class that handles all API interactions for sessions. Implement methods for: fetchSessions(), createSession(), getSessionById(), updateSessionName(), and deleteSession(). Include appropriate error handling and response parsing. The service should use the existing HTTP client and maintain consistent error handling patterns. Test each method with mock API responses to ensure proper data transformation and error handling.",
+          "status": "done",
+          "parentTaskId": 9
+        },
+        {
+          "id": 2,
+          "title": "Implement Session Sidebar Component",
+          "description": "Create a sidebar component to display and interact with chat sessions",
+          "dependencies": [
+            1
+          ],
+          "details": "Create a SessionSidebar component that displays a list of user sessions. Include a 'New Chat' button at the top. Each session item should display the session name with an overflow menu for actions (rename, delete). Implement click handlers to select a session. Add appropriate styling for active/selected sessions. Use the SessionService to fetch sessions on component mount. Include empty state and loading indicators. Test the component rendering with various session lists and interaction behaviors.",
+          "status": "done",
+          "parentTaskId": 9
+        },
+        {
+          "id": 3,
+          "title": "Add Session Creation and Selection Functionality",
+          "description": "Implement functionality to create new sessions and select existing ones",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Enhance the SessionSidebar to handle new session creation. Implement a click handler for the 'New Chat' button that calls SessionService.createSession(). Add state management to track the currently selected session. When a session is selected, store the active session ID in state and highlight the selected session in the UI. Implement a central state management approach (Context API or state management library) to share the active session across components. Test session creation flow and selection behavior.",
+          "status": "done",
+          "parentTaskId": 9
+        },
+        {
+          "id": 4,
+          "title": "Update Chat Interface for Session Messages",
+          "description": "Modify the chat interface to display messages from the selected session",
+          "dependencies": [
+            3
+          ],
+          "details": "Update the main chat component to load and display messages based on the selected session. Connect to the session state management to react to session changes. When a session is selected, fetch messages for that session using the SessionService. Clear the message area when creating a new session. Implement scroll behavior to show the most recent messages. Add loading states while fetching messages. Test the component with various session scenarios including empty sessions, long message histories, and session switching.",
+          "status": "done",
+          "parentTaskId": 9
+        },
+        {
+          "id": 5,
+          "title": "Implement Session Editing and Error Handling",
+          "description": "Add functionality to edit session names and handle error states",
+          "dependencies": [
+            2,
+            3,
+            4
+          ],
+          "details": "Implement session name editing functionality in the SessionSidebar. Create an inline edit component for session names. When a user selects 'Rename' from the session menu, display an editable field with the current name. Save changes using SessionService.updateSessionName(). Add comprehensive error handling throughout the session UI components. Create reusable error display components. Implement toast notifications for success/error feedback. Add retry mechanisms for failed operations. Test error scenarios by mocking API failures and validating the error handling behavior.",
+          "status": "done",
+          "parentTaskId": 9
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Integrate Frontend with Supabase-backed Chat API",
+      "description": "Update the frontend chat interface to work with the new session-based backend API.",
+      "status": "done",
+      "dependencies": [
+        7,
+        9
+      ],
+      "priority": "medium",
+      "details": "1. Update the chat service to send session_id with chat requests\n2. Modify the chat interface to load existing messages when a session is selected\n3. Ensure new messages are correctly added to the current session\n4. Update the UI to show loading states during API calls\n5. Implement error handling for failed API requests\n6. Add automatic session creation for new chats\n7. Ensure the chat context is maintained when switching between sessions",
+      "testStrategy": "Test the complete flow from login to session selection to chat interaction. Verify that chat history is correctly loaded and maintained. Test switching between sessions and creating new sessions. Verify that the conversation context is preserved across page reloads.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Update Chat Service for Session Management",
+          "description": "Modify the chat service to support session-based communication with the backend API",
+          "dependencies": [],
+          "details": "1. Add session_id parameter to all chat API requests\n2. Create a method to fetch existing messages for a given session_id\n3. Implement a function to create new chat sessions\n4. Update the message sending function to associate messages with the current session\n5. Add appropriate TypeScript interfaces for session data structures\n6. Test the updated service by making API calls to verify session data is correctly sent and received",
+          "status": "done",
+          "parentTaskId": 10
+        },
+        {
+          "id": 2,
+          "title": "Implement Session-based Message Loading and Display",
+          "description": "Update the chat interface to load and display messages based on the selected session",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Create a session selector component in the chat interface\n2. Implement logic to load existing messages when a session is selected\n3. Update the message display component to show messages from the current session\n4. Add a mechanism to clear and reload messages when switching between sessions\n5. Ensure messages are properly ordered by timestamp\n6. Test message loading functionality with different sessions containing various message counts",
+          "status": "done",
+          "parentTaskId": 10
+        },
+        {
+          "id": 3,
+          "title": "Add Loading States and Error Handling",
+          "description": "Implement loading indicators and error handling throughout the chat interface",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "1. Add loading spinners during API calls (message sending, session loading)\n2. Implement error toast notifications for failed API requests\n3. Add retry mechanisms for failed message sends\n4. Create fallback UI states for when messages fail to load\n5. Disable input fields during loading states\n6. Add visual feedback when messages are being sent\n7. Test error scenarios by simulating network failures and API errors",
+          "status": "done",
+          "parentTaskId": 10
+        },
+        {
+          "id": 4,
+          "title": "Implement Chat Context Persistence",
+          "description": "Ensure chat context is maintained when switching between sessions and when creating new chats",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "1. Implement automatic session creation when starting a new chat\n2. Store the current session ID in local state and potentially in browser storage\n3. Create a session management service to track active and recent sessions\n4. Add UI for creating, naming, and deleting chat sessions\n5. Ensure the chat scroll position is maintained appropriately\n6. Implement session restoration when the user returns to the application\n7. Test the entire flow from session creation to message sending to session switching",
+          "status": "done",
+          "parentTaskId": 10
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "projectName": "Supabase Integration (Phase 4)",
+    "totalTasks": 10,
+    "sourceFile": "scripts/Supabase-development-PRD.txt",
+    "generatedAt": "2023-10-26"
+  }
+}

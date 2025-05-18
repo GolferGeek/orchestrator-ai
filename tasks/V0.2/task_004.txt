@@ -1,0 +1,77 @@
+# Task ID: 4
+# Title: Implement Backend Authentication Endpoints
+# Status: done
+# Dependencies: 1, 3
+# Priority: high
+# Description: Create FastAPI endpoints for user signup, login, logout, and profile retrieval using Supabase Auth.
+# Details:
+1. Integrate `supabase-py` client library into FastAPI
+2. Create `/auth/signup` endpoint to register users in Supabase Auth and users table
+3. Create `/auth/login` endpoint to authenticate users and return JWT
+4. Create `/auth/logout` endpoint
+5. Create `/auth/me` endpoint to retrieve authenticated user details
+6. Implement JWT validation middleware/dependency for protected routes
+7. Handle error cases (invalid credentials, duplicate emails, etc.)
+
+# Test Strategy:
+Write unit tests for each endpoint with valid and invalid inputs. Test the full authentication flow from signup to login to accessing protected resources. Verify JWT validation works correctly.
+
+# Subtasks:
+## 1. Integrate Supabase client and setup authentication foundation [done]
+### Dependencies: None
+### Description: Integrate the Supabase Python client library and set up the foundation for authentication in the FastAPI app
+### Details:
+1. Install the required packages: `pip install supabase fastapi python-jose pydantic email-validator python-multipart`
+2. Create a Supabase client instance using environment variables for URL and API key
+3. Create a basic authentication utility module with functions to handle JWT operations
+4. Set up error handling utilities for common auth errors
+5. Create Pydantic models for user authentication (UserSignUp, UserLogin, TokenResponse)
+6. Test the Supabase connection by making a simple query to verify credentials work
+
+## 2. Implement JWT validation middleware [done]
+### Dependencies: 4.1
+### Description: Create a FastAPI dependency for JWT validation that can be used to protect routes
+### Details:
+1. Create a JWT validation function that extracts the Bearer token from the Authorization header
+2. Implement token verification using Supabase's JWT validation approach
+3. Create a FastAPI dependency that can be injected into route handlers to require authentication
+4. Handle different error cases (missing token, expired token, invalid signature)
+5. Return appropriate HTTP status codes for different authentication failures
+6. Test the middleware with both valid and invalid tokens to ensure proper behavior
+
+## 3. Implement signup and login endpoints [done]
+### Dependencies: 4.1, 4.2
+### Description: Create the /auth/signup and /auth/login endpoints for user registration and authentication
+### Details:
+1. Create the `/auth/signup` POST endpoint that accepts email, password, and optional user details
+2. Implement validation for email format, password strength, and required fields
+3. Use Supabase Auth to register users and store additional user data in the users table
+4. Create the `/auth/login` POST endpoint that accepts email and password
+5. Return a JWT token upon successful authentication
+6. Handle error cases like duplicate emails, invalid credentials with appropriate status codes
+7. Test both endpoints with valid and invalid inputs to verify proper functioning
+
+## 4. Implement logout and profile retrieval endpoints [done]
+### Dependencies: 4.2, 4.3
+### Description: Create the /auth/logout endpoint and /auth/me endpoint for retrieving user profile information
+### Details:
+1. Create the `/auth/logout` POST endpoint that invalidates the current token
+2. Use the JWT validation middleware to ensure the user is authenticated before logging out
+3. Implement token blacklisting or work with Supabase's session management
+4. Create the `/auth/me` GET endpoint that returns the current user's profile information
+5. Use the JWT validation middleware to protect this endpoint
+6. Retrieve extended user information from the users table based on the authenticated user ID
+7. Test both endpoints with authenticated and unauthenticated requests
+
+## 5. Implement comprehensive error handling and testing [done]
+### Dependencies: 4.3, 4.4
+### Description: Enhance error handling across all authentication endpoints and create comprehensive tests
+### Details:
+1. Create custom exception handlers for authentication-specific errors
+2. Standardize error response formats across all authentication endpoints
+3. Add detailed logging for authentication attempts (successful and failed)
+4. Implement rate limiting for authentication endpoints to prevent brute force attacks
+5. Create integration tests for the complete authentication flow (signup → login → me → logout)
+6. Test edge cases like expired tokens, malformed requests, and concurrent authentication
+7. Document the authentication API with examples and error response formats
+

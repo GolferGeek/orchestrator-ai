@@ -1,0 +1,81 @@
+# Task ID: 2
+# Title: Set Up Supabase Schema Management Workflow
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: Establish the migration workflow and directory structure for managing Supabase database schema changes.
+# Details:
+1. Create `/supabase/migrations/` directory at project root
+2. Create initial migration SQL file for database schema
+3. Add NPM scripts to `package.json` for Supabase CLI operations:
+   - `supabase:login`
+   - `supabase:link`
+   - `supabase:migrate:up`
+   - `supabase:db:pull`
+4. Document the workflow for creating and applying migrations in README.md
+5. Test the linking process with the remote Supabase project
+
+# Test Strategy:
+Manually test each NPM script to ensure it works correctly. Verify that migrations can be applied to the remote Supabase project and that schema changes are reflected.
+
+# Subtasks:
+## 1. Create Directory Structure for Supabase Migrations [done]
+### Dependencies: None
+### Description: Set up the necessary directory structure for managing Supabase database migrations at the project root
+### Details:
+1. Create a `/supabase/` directory at the project root
+2. Create a `/supabase/migrations/` subdirectory for SQL migration files
+3. Create a `.gitignore` file in the `/supabase/` directory to exclude sensitive configuration files
+4. Add a placeholder `.keep` file in the migrations directory to ensure it's tracked by git
+5. Test by verifying the directory structure exists and is properly tracked in git
+
+## 2. Create Initial Database Schema Migration [done]
+### Dependencies: 2.1
+### Description: Develop the first migration SQL file that defines the initial database schema
+### Details:
+1. Create a timestamped migration file in the format `YYYYMMDDHHMMSS_initial_schema.sql` in the `/supabase/migrations/` directory
+2. Define the initial database schema including tables, relationships, and indexes
+3. Include appropriate comments in the SQL file to document the purpose of each table and column
+4. Add `CREATE EXTENSION IF NOT EXISTS "uuid-ossp"` if UUID functionality is needed
+5. Test the migration SQL file syntax using a SQL linter or validator to ensure it's error-free
+
+## 3. Configure Supabase CLI and NPM Scripts [done]
+### Dependencies: 2.1
+### Description: Set up the Supabase CLI and add NPM scripts to package.json for common operations
+### Details:
+1. Install Supabase CLI globally or as a dev dependency: `npm install @supabase/cli --save-dev`
+2. Add the following NPM scripts to `package.json`:
+   - `"supabase:login": "supabase login"`
+   - `"supabase:link": "supabase link --project-ref YOUR_PROJECT_REF"`
+   - `"supabase:migrate:up": "supabase db push"`
+   - `"supabase:db:pull": "supabase db pull"`
+3. Create a `.env.example` file showing required environment variables
+4. Test the scripts by running `npm run supabase:login` to verify CLI is properly installed
+
+## 4. Document Migration Workflow in README.md [done]
+### Dependencies: 2.2, 2.3
+### Description: Create comprehensive documentation for the migration workflow in the project README
+### Details:
+1. Add a 'Database Migrations' section to the README.md
+2. Document the initial setup process for developers
+3. Detail the workflow for:
+   - Creating new migrations
+   - Applying migrations to local development environment
+   - Applying migrations to production
+   - Handling migration conflicts
+4. Include example commands and expected outputs
+5. Add troubleshooting tips for common issues
+6. Test by having another team member follow the documentation to verify it's clear and accurate
+
+## 5. Test Remote Supabase Project Linkage [done]
+### Dependencies: 2.2, 2.3, 2.4
+### Description: Verify that the local development environment can properly link with the remote Supabase project
+### Details:
+1. Ensure you have the Supabase project reference ID from the Supabase dashboard
+2. Run `npm run supabase:login` to authenticate with Supabase
+3. Run `npm run supabase:link` to link to the remote project
+4. Test applying migrations with `npm run supabase:migrate:up`
+5. Verify changes are reflected in the Supabase dashboard
+6. Test pulling the schema with `npm run supabase:db:pull` and verify it matches expected structure
+7. Document any issues encountered and their solutions in the README.md
+

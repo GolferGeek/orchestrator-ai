@@ -1,0 +1,72 @@
+# Task ID: 4
+# Title: Chat Message Component Development
+# Status: done
+# Dependencies: 2, 3
+# Priority: high
+# Description: Create components for displaying user and agent messages with Markdown support and visual distinctions
+# Details:
+Develop a MessageItem component that can render both user and agent messages. Implement visual distinctions between user messages and agent responses (different colors, alignment, etc.). Add agent avatars or icons to agent messages. Integrate a Markdown parser library (like marked or markdown-it) to render formatted text in agent responses. Support for code blocks, lists, bold, and italic text. Create a MessageList component that renders the full conversation thread using v-for with the MessageItem component.
+
+# Test Strategy:
+Create test messages with various Markdown formatting and verify correct rendering. Test with long messages to ensure proper wrapping. Verify visual distinctions between user and agent messages are clear. Test with different screen sizes to ensure responsive behavior.
+
+# Subtasks:
+## 1. Create Base MessageItem Component with Sender Differentiation [done]
+### Dependencies: None
+### Description: Develop the foundational MessageItem component that can distinguish between user and agent messages
+### Details:
+1. Create a new Vue component called MessageItem.vue
+2. Define props: 'message' (object with content, sender type, timestamp)
+3. Implement conditional rendering based on sender type (user/agent)
+4. Add basic structure with message content display
+5. Include timestamp formatting
+6. For agent messages, add a placeholder for avatar/icon
+7. Test the component with sample messages from both sender types
+8. Ensure the component correctly identifies and displays different sender types
+9. Use simple text rendering initially (Markdown support will be added in a later subtask)
+
+## 2. Implement Markdown Parsing and Rendering [done]
+### Dependencies: 4.1
+### Description: Integrate a Markdown parser library to enable formatted text in messages
+### Details:
+1. Install a Markdown parser library (marked or markdown-it)
+2. Create a utility function to safely parse Markdown content
+3. Modify the MessageItem component to use the Markdown parser for agent messages
+4. Implement support for code blocks with syntax highlighting
+5. Add support for other Markdown elements (lists, bold, italic text, links)
+6. Ensure proper sanitization of content to prevent XSS attacks
+7. Test with various Markdown formatting examples
+8. Verify that code blocks render with proper formatting
+9. Create unit tests for the Markdown parsing utility function
+
+## 3. Enhance Message Styling with Visual Distinctions [done]
+### Dependencies: 4.1, 4.2
+### Description: Apply styling to create clear visual differences between user and agent messages
+### Details:
+1. Create CSS styles for user messages (right-aligned, distinct background color)
+2. Create CSS styles for agent messages (left-aligned, different background color)
+3. Design and implement agent avatar/icon display
+4. Add appropriate spacing and padding between messages
+5. Implement responsive design for different screen sizes
+6. Ensure proper styling for Markdown elements within messages
+7. Add subtle visual indicators for message status (sent, delivered, etc.)
+8. Implement transitions/animations for message appearance
+9. Test styling across different viewport sizes
+10. Ensure accessibility standards are met with proper contrast ratios
+
+## 4. Develop MessageList Component for Conversation Thread [done]
+### Dependencies: 4.1, 4.2, 4.3
+### Description: Create a component to render the full conversation history using the MessageItem component
+### Details:
+1. Create a new Vue component called MessageList.vue
+2. Define props: 'messages' (array of message objects)
+3. Implement v-for directive to iterate through messages
+4. Render each message using the MessageItem component
+5. Add proper keys for the v-for loop
+6. Implement auto-scrolling to the newest message
+7. Add loading states for when new messages are being added
+8. Optimize rendering for large conversation histories
+9. Group messages by time periods if needed
+10. Test with various conversation scenarios (empty, few messages, many messages)
+11. Ensure smooth scrolling and performance with large message lists
+

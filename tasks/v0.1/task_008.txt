@@ -1,0 +1,65 @@
+# Task ID: 8
+# Title: Agent Discovery Implementation
+# Status: done
+# Dependencies: 4, 6
+# Priority: medium
+# Description: Implement the functionality to display available agents when requested by the user
+# Details:
+Create a special message component for displaying agent information. Implement keyword detection in the Pinia store to identify agent discovery requests (e.g., 'What agents are available?'). Add an API method to fetch available agents from the backend. Design a visually distinct way to display the agent list within the chat interface. Include agent names and brief descriptions in the display. Ensure the agent list is scrollable if it contains many agents.
+
+# Test Strategy:
+Test the agent discovery feature with various phrasings of the request. Verify the agent list displays correctly with all information. Test with a large number of agents to ensure proper scrolling and display. Confirm the visual design integrates well with the chat interface.
+
+# Subtasks:
+## 1. Implement keyword detection for agent discovery requests [done]
+### Dependencies: None
+### Description: Create a detection system in the Pinia store that identifies when users are asking about available agents
+### Details:
+1. Add a new property in the Pinia store to track agent discovery requests
+2. Create a function that analyzes user messages for keywords like 'what agents', 'available agents', 'which agents', etc.
+3. Implement regex patterns or string matching to reliably detect various phrasings
+4. When detected, set a flag in the store to trigger the agent discovery flow
+5. Add unit tests for the detection logic with various input phrases
+6. Ensure the detection works regardless of case sensitivity or minor typos
+7. Test by manually entering various agent discovery requests in the chat interface
+
+## 2. Create API integration for fetching available agents [done]
+### Dependencies: 8.1
+### Description: Implement the API method to retrieve the list of available agents from the backend
+### Details:
+1. Create a new API endpoint in the API service layer
+2. Implement a GET request to the backend endpoint (e.g., '/api/agents')
+3. Add proper error handling for failed requests
+4. Create data models/interfaces for agent information (name, description, etc.)
+5. Add a caching mechanism to avoid redundant API calls
+6. Implement a loading state in the store during API fetching
+7. Test the API integration with mock data
+8. Verify the endpoint works correctly with the backend team
+
+## 3. Develop agent information display component [done]
+### Dependencies: 8.2
+### Description: Create a specialized message component for displaying agent information in a visually distinct way
+### Details:
+1. Create a new Vue component named 'AgentInfoMessage' or similar
+2. Design the component to display agent name, description, and any other relevant details
+3. Implement styling to make it visually distinct from regular chat messages
+4. Ensure the component can handle a list of multiple agents
+5. Add a scrollable container if the list exceeds a certain height
+6. Include hover effects or other interactive elements for better UX
+7. Test the component with various screen sizes to ensure responsiveness
+8. Create unit tests for the component rendering with different agent data
+
+## 4. Integrate agent discovery flow into chat interface [done]
+### Dependencies: 8.1, 8.2, 8.3
+### Description: Connect all components to display the agent list within the chat when triggered by user requests
+### Details:
+1. Modify the chat container to display the agent information component when triggered
+2. Update the message handling logic to insert the agent list as a special message type
+3. Connect the keyword detection from subtask 1 to trigger the API call from subtask 2
+4. Use the agent information component from subtask 3 to display the results
+5. Implement any necessary animations for smooth appearance of the agent list
+6. Add keyboard navigation support for the agent list
+7. Test the entire flow end-to-end with various user inputs
+8. Verify that the agent list appears correctly within the chat message history
+9. Add integration tests for the complete agent discovery flow
+

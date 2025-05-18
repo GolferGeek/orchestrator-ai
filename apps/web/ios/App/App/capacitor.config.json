@@ -1,0 +1,12 @@
+{
+	"appId": "com.golfergeek.orchestratorai",
+	"appName": "OrchestratorAI",
+	"webDir": "dist",
+	"bundledWebRuntime": false,
+	"packageClassList": [
+		"AppPlugin",
+		"HapticsPlugin",
+		"KeyboardPlugin",
+		"StatusBarPlugin"
+	]
+}

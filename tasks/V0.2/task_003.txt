@@ -1,0 +1,77 @@
+# Task ID: 3
+# Title: Implement Database Schema in Supabase
+# Status: done
+# Dependencies: 2
+# Priority: high
+# Description: Create the required database tables (users, sessions, messages) in Supabase via migration files.
+# Details:
+1. Create SQL migration files for:
+   - `users` table linked to Supabase auth.users
+   - `sessions` table with user_id foreign key
+   - `messages` table with session_id foreign key
+2. Set up appropriate indexes for performance
+3. Configure Row Level Security (RLS) policies to ensure users can only access their own data
+4. Apply migrations to the remote Supabase project
+5. Include appropriate created_at/updated_at timestamp handling
+
+# Test Strategy:
+Verify table structure using Supabase dashboard. Write SQL queries to test RLS policies, ensuring users can only access their own data. Test foreign key constraints work correctly.
+
+# Subtasks:
+## 1. Create users table migration file [done]
+### Dependencies: None
+### Description: Create a SQL migration file for the users table that links to Supabase auth.users
+### Details:
+1. Create a new migration file with timestamp prefix (e.g., `20230601000000_create_users_table.sql`)
+2. Define the users table with columns: id (primary key, UUID), name (text), email (text), avatar_url (text, nullable), created_at (timestamp with time zone), updated_at (timestamp with time zone)
+3. Add a foreign key constraint linking the id to auth.users(id)
+4. Create an index on the email column for faster lookup
+5. Add trigger functions to automatically update created_at and updated_at timestamps
+6. Test by verifying the migration file syntax with a local SQL validator
+
+## 2. Create sessions table migration file [done]
+### Dependencies: 3.1
+### Description: Create a SQL migration file for the sessions table with user_id foreign key
+### Details:
+1. Create a new migration file with timestamp prefix (e.g., `20230601000001_create_sessions_table.sql`)
+2. Define the sessions table with columns: id (primary key, UUID), user_id (UUID, foreign key), title (text), last_activity_at (timestamp with time zone), created_at (timestamp with time zone), updated_at (timestamp with time zone)
+3. Add a foreign key constraint on user_id referencing users(id) with CASCADE on delete
+4. Create indexes on user_id and last_activity_at for performance
+5. Add trigger functions to automatically update created_at and updated_at timestamps
+6. Test by verifying the migration file syntax with a local SQL validator
+
+## 3. Create messages table migration file [done]
+### Dependencies: 3.2
+### Description: Create a SQL migration file for the messages table with session_id foreign key
+### Details:
+1. Create a new migration file with timestamp prefix (e.g., `20230601000002_create_messages_table.sql`)
+2. Define the messages table with columns: id (primary key, UUID), session_id (UUID, foreign key), role (text, e.g., 'user' or 'assistant'), content (text), created_at (timestamp with time zone), updated_at (timestamp with time zone)
+3. Add a foreign key constraint on session_id referencing sessions(id) with CASCADE on delete
+4. Create indexes on session_id and role for performance
+5. Add trigger functions to automatically update created_at and updated_at timestamps
+6. Test by verifying the migration file syntax with a local SQL validator
+
+## 4. Configure Row Level Security (RLS) policies [done]
+### Dependencies: 3.1, 3.2, 3.3
+### Description: Set up RLS policies to ensure users can only access their own data
+### Details:
+1. Create a new migration file with timestamp prefix (e.g., `20230601000003_setup_rls_policies.sql`)
+2. Enable Row Level Security on users, sessions, and messages tables
+3. For users table: Create policy allowing users to select, update only their own records
+4. For sessions table: Create policy allowing users to select, insert, update, delete only their own sessions
+5. For messages table: Create policy allowing users to select, insert only messages in their own sessions
+6. Test the RLS policies by writing sample queries that should succeed and fail based on user context
+
+## 5. Apply migrations to Supabase project [done]
+### Dependencies: 3.1, 3.2, 3.3, 3.4
+### Description: Apply all migration files to the remote Supabase project and verify deployment
+### Details:
+1. Install Supabase CLI if not already installed
+2. Organize all migration files in the proper directory structure
+3. Configure Supabase CLI with project credentials
+4. Run `supabase db push` command to apply migrations to the remote project
+5. Verify the schema was created correctly by checking the Supabase dashboard
+6. Test the schema by inserting test data and verifying RLS policies work as expected
+7. Document any issues encountered during migration and their resolutions
+8. Create a verification script that tests all tables, relationships, and policies
+

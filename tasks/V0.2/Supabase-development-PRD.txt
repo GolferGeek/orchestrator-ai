@@ -1,0 +1,99 @@
+Product Requirements Document: Supabase Integration (Phase 4)
+Version: 1.0
+Date: October 26, 2023 (Updated based on planning)
+
+**1. Introduction**
+
+This document outlines the requirements for Phase 4 of the Orchestrator AI project: Supabase Integration. The primary goal of this phase is to integrate Supabase as the backend-as-a-service (BaaS) provider for user authentication and data persistence (user profiles, chat sessions, messages), replacing the current file-based chat history. All Supabase interactions and schema management will target the Supabase SaaS project, with no local Supabase runtime within this project.
+
+**2. Goals**
+
+*   Implement robust user authentication (signup, login, logout).
+*   Persist user data, chat sessions, and individual messages in a structured Supabase database.
+*   Enable the Orchestrator AI to retrieve and store chat history from Supabase, maintaining conversational context across user sessions.
+*   Establish a workflow for managing Supabase database schema (migrations) from within the project using the Supabase CLI, targeting the remote SaaS instance.
+*   Provide a foundation for future features requiring user accounts and persistent data.
+*   Ensure the frontend application can interact with new authentication and session management APIs.
+
+**3. Target Users**
+
+*   End-users of the Orchestrator AI application.
+*   Developers and Mentees working on the project (who will need to understand and use the Supabase integration and migration workflow).
+
+**4. Proposed Features & Scope**
+
+**4.1. Supabase Project Setup & Configuration (SaaS Project)**
+    *   REQ-SB-001: The system must be configured to connect to a designated Supabase SaaS project.
+    *   REQ-SB-002: Environment variables for Supabase URL, Anon Key, and Service Role Key must be managed in the project's root `.env` file.
+    *   REQ-SB-003: The FastAPI application's settings (`apps/api/core/config.py`) must load and provide these Supabase credentials.
+
+**4.2. Database Schema (in Supabase SaaS)**
+    *   REQ-DB-001: A `users` table to store user profile information, linked to Supabase `auth.users`.
+        *   Fields: `id` (UUID, PK, FK to auth.users), `email` (text), `created_at`, `display_name` (optional).
+    *   REQ-DB-002: A `sessions` table to store individual chat sessions.
+        *   Fields: `id` (UUID, PK), `user_id` (UUID, FK to users.id), `name` (text, optional session title), `created_at`, `updated_at`.
+    *   REQ-DB-003: A `messages` table to store all messages within sessions.
+        *   Fields: `id` (UUID, PK), `session_id` (UUID, FK to sessions.id), `role` (text: 'user', 'assistant', 'system'), `content` (text), `timestamp`, `order` (integer), `metadata` (JSONB, optional).
+
+**4.3. Supabase Schema Management (CLI targeting Remote SaaS)**
+    *   REQ-MIG-001: Database migration SQL files shall be stored in a `/supabase/migrations/` directory at the project root.
+    *   REQ-MIG-002: The project must be linkable to a remote Supabase SaaS project using `supabase link --project-ref <project_id>`.
+    *   REQ-MIG-003: Developers must be able to apply local migration files to the linked remote Supabase project using `supabase migration up --linked`.
+    *   REQ-MIG-004: NPM scripts shall be provided in the root `package.json` to facilitate common Supabase CLI operations (e.g., `supabase:login`, `supabase:link`, `supabase:migrate:up`, `supabase:db:pull`).
+    *   REQ-MIG-005: A documented workflow must exist for creating and applying database migrations.
+
+**4.4. Backend API Changes (`apps/api`)**
+    *   **Authentication**
+        *   REQ-API-001: Implement user signup endpoint (`/auth/signup`) creating users in Supabase Auth and the `users` table.
+        *   REQ-API-002: Implement user login endpoint (`/auth/login`) authenticating via Supabase Auth and returning a JWT.
+        *   REQ-API-003: Implement user logout endpoint (`/auth/logout`).
+        *   REQ-API-004: Implement an authenticated endpoint (`/auth/me`) to retrieve current user details.
+    *   **Supabase Client**
+        *   REQ-API-005: Integrate `supabase-py` client library into FastAPI, available via dependency injection.
+    *   **Session Management**
+        *   REQ-API-006: Implement `GET /sessions` to list chat sessions for the authenticated user.
+        *   REQ-API-007: Implement `POST /sessions` to create a new chat session for the authenticated user.
+        *   REQ-API-008: Implement `GET /sessions/{session_id}/messages` to retrieve messages for a specific session of the authenticated user.
+    *   **Orchestrator Agent Chat History**
+        *   REQ-API-009: Modify `OrchestratorService` to use a Supabase-backed Langchain `ChatMessageHistory` implementation, replacing `FileChatMessageHistory`.
+        *   REQ-API-010: Chat history operations must be scoped by `session_id` and linked to the authenticated `user_id` through the `sessions` table.
+
+**4.5. Frontend Changes (`apps/web`)**
+    *   **Authentication**
+        *   REQ-FE-001: Implement UI for user login.
+        *   REQ-FE-002: Implement UI for user signup.
+        *   REQ-FE-003: Manage Supabase JWT (e.g., via `@supabase/supabase-js` client and localStorage), attaching it to authenticated API requests.
+        *   REQ-FE-004: Implement logout functionality.
+    *   **Session Management**
+        *   REQ-FE-005: If a user is authenticated, display a list of their past chat sessions.
+        *   REQ-FE-006: Allow users to select a past session to view and continue the conversation.
+        *   REQ-FE-007: When a new chat is initiated by an authenticated user, a new session should be created via the backend and used for subsequent messages.
+
+**5. Non-Goals (for this Phase)**
+
+*   Local Supabase runtime environment setup (all CLI operations target the remote SaaS project).
+*   Advanced role-based access control beyond basic user authentication.
+*   Real-time websocket-based updates for chat (HTTP polling or simple refresh is acceptable for v1 of this feature).
+*   Migration of existing file-based chat histories to Supabase.
+*   Supabase Storage integration (e.g., for file uploads).
+*   Full implementation of all other sub-agents beyond what is needed to test orchestrator's Supabase history integration.
+
+**6. Success Metrics**
+
+*   Users can successfully sign up, log in, and log out.
+*   Authenticated users can have multiple chat sessions, and these sessions are persisted in Supabase.
+*   Conversational context (memory) is maintained across requests within the same session by fetching history from Supabase.
+*   Developers can manage database schema changes for the Supabase SaaS project through migration files and CLI commands defined within this project.
+*   The frontend correctly reflects the authenticated state and allows users to access their persisted chat sessions.
+
+**7. Assumptions & Dependencies**
+
+*   A Supabase SaaS project is available and accessible.
+*   Supabase CLI is installed by developers.
+*   OpenAI API key is available and configured for the orchestrator to function.
+
+**8. Open Questions/Risks**
+
+*   Defining a clear strategy for handling Supabase project environments (dev, staging, prod) and how migrations are applied to each.
+*   Complexity of creating a robust custom Langchain `ChatMessageHistory` for Supabase.
+*   Ensuring data security and proper RLS (Row Level Security) policies in Supabase, especially for user-specific data access. 

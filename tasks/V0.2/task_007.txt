@@ -1,0 +1,86 @@
+# Task ID: 7
+# Title: Modify OrchestratorService to Use Supabase for Chat History
+# Status: done
+# Dependencies: 6
+# Priority: high
+# Description: Update the OrchestratorService to use the Supabase-backed ChatMessageHistory instead of FileChatMessageHistory.
+# Details:
+1. Modify `OrchestratorService` to accept session_id and user_id parameters
+2. Replace `FileChatMessageHistory` with the new `SupabaseChatMessageHistory`
+3. Update the memory component to use the Supabase-backed history
+4. Ensure chat context is correctly maintained across requests
+5. Update the chat endpoint to create a new session if none is specified
+6. Add error handling for missing sessions or unauthorized access
+
+# Test Strategy:
+Test the Orchestrator with the new Supabase history implementation. Verify that conversational context is maintained across requests. Test that history is correctly associated with the right session and user.
+
+# Subtasks:
+## 1. Modify OrchestratorService to Accept Session and User Parameters [done]
+### Dependencies: None
+### Description: Update the OrchestratorService constructor and relevant methods to accept session_id and user_id parameters needed for Supabase integration.
+### Details:
+Implementation steps:
+1. Modify the OrchestratorService constructor to accept session_id and user_id parameters
+2. Update method signatures that need these parameters
+3. Add validation to ensure these parameters are provided when required
+4. Add documentation for the new parameters
+5. Update any default parameter values as needed
+
+Testing approach:
+- Create unit tests to verify the service correctly handles the new parameters
+- Test with valid and invalid/missing parameters to ensure proper validation
+- Verify existing functionality still works with the new parameters
+
+## 2. Implement SupabaseChatMessageHistory Integration [done]
+### Dependencies: 7.1
+### Description: Replace FileChatMessageHistory with SupabaseChatMessageHistory in the OrchestratorService and update the memory component.
+### Details:
+Implementation steps:
+1. Import the SupabaseChatMessageHistory class
+2. Replace FileChatMessageHistory instantiation with SupabaseChatMessageHistory
+3. Configure the SupabaseChatMessageHistory with session_id and user_id
+4. Update the memory component to use the new history implementation
+5. Ensure chat context persistence is maintained
+
+Testing approach:
+- Test that messages are correctly stored in Supabase
+- Verify that chat history can be retrieved across multiple requests
+- Test with different session IDs to ensure proper separation of conversations
+- Compare behavior with previous implementation to ensure consistency
+
+## 3. Update Chat Endpoint for Session Management [done]
+### Dependencies: 7.1, 7.2
+### Description: Modify the chat endpoint to handle session creation and management with Supabase integration.
+### Details:
+Implementation steps:
+1. Update the chat endpoint to extract session_id from request parameters
+2. Add logic to create a new session if none is specified
+3. Pass session_id and user_id to the OrchestratorService
+4. Add session tracking in response metadata
+5. Ensure session continuity across multiple requests
+
+Testing approach:
+- Test endpoint with and without session_id parameter
+- Verify new sessions are created correctly
+- Test conversation continuity within the same session
+- Verify different sessions maintain separate conversation contexts
+
+## 4. Implement Error Handling for Sessions and Access Control [done]
+### Dependencies: 7.2, 7.3
+### Description: Add comprehensive error handling for session management and unauthorized access scenarios.
+### Details:
+Implementation steps:
+1. Add error handling for missing or invalid session IDs
+2. Implement authorization checks to ensure users can only access their own sessions
+3. Create custom error types for different session-related errors
+4. Add graceful degradation if Supabase is temporarily unavailable
+5. Implement logging for session-related errors
+
+Testing approach:
+- Test with invalid session IDs to verify proper error responses
+- Test unauthorized access scenarios
+- Verify error messages are clear and actionable
+- Test system behavior during simulated Supabase outages
+- Verify logging captures relevant information for troubleshooting
+

@@ -1,0 +1,117 @@
+# Task ID: 6
+# Title: Backend API Integration
+# Status: done
+# Dependencies: 3, 5
+# Priority: high
+# Description: Connect the frontend to the FastAPI backend for sending user queries and receiving agent responses
+# Details:
+Create an API service using axios for communication with the backend. Implement methods for sending user messages to the orchestrator endpoint. Handle response parsing to extract agent messages. Add error handling for failed API calls with user-friendly error messages. Implement request cancellation for pending requests when needed. Connect the API service to the Pinia stores using actions. Add loading states during API calls to provide user feedback.
+
+# Test Strategy:
+Test API integration with the actual backend if available, or mock responses for development. Verify successful message sending and response handling. Test error scenarios by intentionally causing API failures. Confirm loading indicators display during API calls.
+
+# Subtasks:
+## 1. Set up API service with axios configuration [done]
+### Dependencies: None
+### Description: Create a base API service using axios to handle communication with the FastAPI backend
+### Details:
+Implementation details:
+1. Create a new directory for API services (e.g., `src/services/api`)
+2. Install axios if not already installed: `npm install axios`
+3. Create a base API client (`apiClient.js`) that configures axios with:
+   - Base URL pointing to the FastAPI backend
+   - Default headers (Content-Type: application/json)
+   - Request timeout settings
+   - Request/response interceptors for common handling
+4. Implement a method to get the authentication token if needed
+5. Add CSRF protection if required
+6. Create a simple test to verify the API client can make a basic connection to the backend
+
+Testing approach:
+- Write a simple test that verifies the API client is properly configured
+- Test that interceptors work as expected
+- Mock API responses to verify basic functionality
+
+## 2. Implement message submission endpoint integration [done]
+### Dependencies: 6.1
+### Description: Create methods to send user messages to the orchestrator endpoint
+### Details:
+Implementation details:
+1. Create a new file for chat-related API methods (e.g., `chatService.js`)
+2. Import the base API client from subtask 1
+3. Implement a `sendMessage` function that:
+   - Accepts user message text as parameter
+   - Formats the request payload according to the backend API requirements
+   - Uses the API client to POST to the correct endpoint (e.g., `/api/orchestrator/chat`)
+   - Returns a promise with the response
+4. Implement a request cancellation mechanism using axios CancelToken
+5. Add a method to track pending requests that can be cancelled
+
+Testing approach:
+- Write unit tests mocking the axios responses
+- Test successful message submission
+- Test the cancellation functionality
+- Verify correct payload formatting
+
+## 3. Implement response handling and parsing [done]
+### Dependencies: 6.2
+### Description: Create utilities to parse and process the API responses from the backend
+### Details:
+Implementation details:
+1. Create a response parser module (e.g., `responseParser.js`)
+2. Implement functions to extract agent messages from the API response
+3. Handle different response formats (e.g., streaming vs. complete responses)
+4. Process any metadata included in the responses (agent IDs, timestamps, etc.)
+5. Format the parsed responses for frontend consumption
+6. Handle any data transformation needed between backend and frontend formats
+
+Testing approach:
+- Write unit tests with sample response payloads
+- Test parsing of different response formats
+- Verify correct extraction of agent messages
+- Test handling of edge cases (empty responses, malformed data)
+
+## 4. Implement error handling and user feedback [done]
+### Dependencies: 6.2, 6.3
+### Description: Add comprehensive error handling for API calls with user-friendly error messages
+### Details:
+Implementation details:
+1. Create an error handling module (e.g., `errorHandler.js`)
+2. Define different error types (network errors, authentication errors, validation errors, server errors)
+3. Implement error handling functions for each type with user-friendly messages
+4. Add retry logic for transient errors (like network issues)
+5. Create loading state utilities to track API call status
+6. Implement functions to generate appropriate user feedback based on error type
+7. Add logging for errors to help with debugging
+
+Testing approach:
+- Test error handling for different error scenarios
+- Verify retry logic works correctly
+- Test loading state transitions
+- Ensure user-friendly error messages are generated correctly
+
+## 5. Integrate API service with Pinia stores [done]
+### Dependencies: 6.2, 6.3, 6.4
+### Description: Connect the API service to Pinia stores using actions for state management
+### Details:
+Implementation details:
+1. Import the chat service in the relevant Pinia store (e.g., `chatStore.js`)
+2. Create store actions that call the API service methods:
+   - `sendMessage` action that calls the chat service
+   - Update loading states before and after API calls
+   - Handle success cases by updating store state with parsed responses
+   - Handle error cases using the error handler
+3. Implement state properties to track:
+   - Loading states
+   - Error messages
+   - Conversation history
+4. Add getters for derived state (e.g., isLoading, hasError)
+5. Connect the store to the Vue components that need to interact with the API
+
+Testing approach:
+- Write unit tests for store actions
+- Test state transitions during API calls
+- Verify correct handling of successful responses
+- Test error state management
+- Create integration tests to verify component-store-API interaction
+

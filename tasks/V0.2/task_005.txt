@@ -1,0 +1,121 @@
+# Task ID: 5
+# Title: Implement Session Management Endpoints
+# Status: done
+# Dependencies: 3, 4
+# Priority: medium
+# Description: Create FastAPI endpoints to manage chat sessions for authenticated users.
+# Details:
+1. Create `GET /sessions` endpoint to list chat sessions for the authenticated user
+2. Create `POST /sessions` endpoint to create a new chat session
+3. Create `GET /sessions/{session_id}` endpoint to retrieve a specific session
+4. Create `GET /sessions/{session_id}/messages` endpoint to retrieve messages for a session
+5. Ensure all endpoints validate that the user has access to the requested session
+6. Implement pagination for message retrieval
+7. Add sorting by timestamp/order field
+
+# Test Strategy:
+Write unit tests for each endpoint. Test authorization by ensuring users cannot access other users' sessions. Test pagination and sorting functionality for message retrieval.
+
+# Subtasks:
+## 1. Implement Session Listing and Creation Endpoints [done]
+### Dependencies: None
+### Description: Create the GET /sessions and POST /sessions endpoints to list and create chat sessions for authenticated users.
+### Details:
+Implementation steps:
+1. Define Pydantic models for SessionCreate (input) and SessionResponse (output)
+2. Implement GET /sessions endpoint that:
+   - Extracts user_id from authentication token
+   - Queries database for all sessions where user_id matches
+   - Returns list of sessions with pagination (limit/offset)
+   - Implements optional sorting by created_at or last_updated fields
+3. Implement POST /sessions endpoint that:
+   - Accepts SessionCreate model with session name/title
+   - Validates input data
+   - Creates new session record in database with authenticated user_id
+   - Returns newly created session with SessionResponse model
+4. Add proper error handling for database errors and authentication failures
+5. Add dependency injection for authentication to ensure only logged-in users can access
+
+Testing approach:
+- Unit tests for model validation
+- Integration tests with mocked authentication
+- Test pagination and sorting functionality
+- Test error cases (unauthenticated, malformed requests)
+
+## 2. Implement Single Session Retrieval Endpoint [done]
+### Dependencies: 5.1
+### Description: Create the GET /sessions/{session_id} endpoint to retrieve a specific chat session with proper access validation.
+### Details:
+Implementation steps:
+1. Implement GET /sessions/{session_id} endpoint that:
+   - Accepts session_id as path parameter
+   - Extracts user_id from authentication token
+   - Queries database for specific session by ID
+   - Validates that the session belongs to the authenticated user (user_id match)
+   - Returns 403 Forbidden if user doesn't own the session
+   - Returns 404 Not Found if session doesn't exist
+   - Returns session details using SessionResponse model if authorized
+2. Implement access control helper function to verify session ownership
+3. Add comprehensive error handling for various failure scenarios
+4. Document the endpoint with OpenAPI annotations
+
+Testing approach:
+- Test successful retrieval with authorized user
+- Test 403 response when user tries to access another user's session
+- Test 404 response for non-existent sessions
+- Test with invalid session IDs
+
+## 3. Implement Session Messages Retrieval with Pagination [done]
+### Dependencies: 5.2
+### Description: Create the GET /sessions/{session_id}/messages endpoint with pagination and sorting functionality.
+### Details:
+Implementation steps:
+1. Define Pydantic models for MessageResponse (output)
+2. Implement GET /sessions/{session_id}/messages endpoint that:
+   - Reuses the session access validation from subtask 2
+   - Accepts query parameters for pagination (limit, offset)
+   - Accepts query parameters for sorting (sort_by, sort_order)
+   - Validates that sort_by is a valid field (timestamp, message_order)
+   - Validates that sort_order is valid (asc, desc)
+   - Defaults to sorting by timestamp ascending if not specified
+   - Queries database for messages belonging to the session
+   - Returns paginated list of messages with total count
+3. Implement efficient database queries with proper indexing hints
+4. Add pagination metadata in response (total count, next/prev page indicators)
+
+Testing approach:
+- Test pagination with various limit/offset combinations
+- Test sorting in both directions and with different fields
+- Test edge cases (empty sessions, last page)
+- Test performance with sessions containing many messages
+
+## 4. Implement Cross-Cutting Concerns and API Refinements [done]
+### Dependencies: 5.1, 5.2, 5.3
+### Description: Add consistent error handling, logging, and performance optimizations across all session management endpoints.
+### Details:
+Implementation steps:
+1. Create consistent error response format across all endpoints:
+   - Implement custom exception handlers for common errors
+   - Add detailed error messages and appropriate HTTP status codes
+2. Add comprehensive logging:
+   - Log session creation, access, and retrieval events
+   - Include user ID and session ID in logs
+   - Log performance metrics for database queries
+3. Optimize database queries:
+   - Add appropriate indexes for session and message retrieval
+   - Implement query optimization for pagination
+   - Add database connection pooling configuration
+4. Enhance security:
+   - Add rate limiting for session creation and access
+   - Implement additional validation to prevent injection attacks
+   - Add proper HTTP security headers
+5. Add comprehensive API documentation:
+   - Document all endpoint parameters, responses, and error cases
+   - Include examples for common operations
+
+Testing approach:
+- Load testing to verify performance under concurrent access
+- Security testing for common vulnerabilities
+- End-to-end testing of complete user flows
+- Verify logging and monitoring functionality
+

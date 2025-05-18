@@ -1,0 +1,72 @@
+# Task ID: 3
+# Title: State Management with Pinia
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: Implement Pinia stores for managing chat messages, agent information, and application state
+# Details:
+Create a messages store to handle chat history with actions for adding user messages and agent responses. Implement an agents store to manage information about available agents including names and descriptions. Add a UI state store for managing application state like loading indicators and PTT status. Define clear interfaces for message and agent objects. Implement actions and getters for accessing and manipulating the state. Ensure stores are modular and follow the composition API pattern.
+
+# Test Strategy:
+Write unit tests for store actions and getters using Vitest. Manually test store functionality by dispatching actions and verifying state changes. Confirm proper reactivity when state is updated.
+
+# Subtasks:
+## 1. Define TypeScript interfaces and create Messages Store [done]
+### Dependencies: None
+### Description: Define TypeScript interfaces for messages and create the Pinia messages store with actions for adding and managing chat history.
+### Details:
+1. Create a `types` directory to define interfaces:
+   - Define `Message` interface with properties like `id`, `content`, `timestamp`, `sender` (user/agent), and optional `metadata`
+   - Define `MessageState` interface for the store state structure
+2. Create a `stores/messages.ts` file to implement the messages store:
+   - Define state with an array of messages and conversation metadata
+   - Implement actions: `addUserMessage`, `addAgentResponse`, `clearConversation`
+   - Implement getters: `getAllMessages`, `getLatestMessage`, `getMessagesByAgent`
+3. Use the Pinia setup syntax with composition API
+4. Add proper TypeScript typing throughout
+5. Test the store functionality by writing simple unit tests that verify actions properly modify state
+
+## 2. Implement Agents Store [done]
+### Dependencies: None
+### Description: Create a Pinia store for managing agent information including properties, capabilities, and availability.
+### Details:
+1. Define TypeScript interfaces for agents:
+   - Create `Agent` interface with properties like `id`, `name`, `description`, `capabilities`, `avatar`
+   - Define `AgentState` interface for the store state
+2. Create `stores/agents.ts` file:
+   - Define state with an array of available agents and the currently selected agent
+   - Implement actions: `selectAgent`, `addAgent`, `updateAgentStatus`
+   - Implement getters: `getAgentById`, `getAllAgents`, `getSelectedAgent`, `getAvailableAgents`
+3. Implement a method to fetch agent information from an API if needed
+4. Add proper error handling for agent operations
+5. Test the store by verifying agent selection and filtering functionality works as expected
+
+## 3. Create UI State Store [done]
+### Dependencies: None
+### Description: Implement a Pinia store for managing application UI state including loading states, PTT status, and UI preferences.
+### Details:
+1. Define TypeScript interfaces for UI state:
+   - Create `UIState` interface with properties for various UI states
+2. Create `stores/uiState.ts` file:
+   - Define state with properties like `isLoading`, `isPTTActive`, `currentView`, `sidebarOpen`, etc.
+   - Implement actions: `setLoading`, `togglePTT`, `setCurrentView`, `toggleSidebar`
+   - Add any UI preference settings (theme, layout options, etc.)
+3. Implement a mechanism to persist UI preferences in localStorage
+4. Add proper TypeScript typing throughout
+5. Test the store by verifying UI state changes correctly respond to actions
+
+## 4. Integrate Pinia Stores with Vue Components [done]
+### Dependencies: 3.1, 3.2, 3.3
+### Description: Connect the Pinia stores to Vue components and implement composables for easier store access.
+### Details:
+1. Create composables for each store to simplify component usage:
+   - Create `useMessages.ts`, `useAgents.ts`, and `useUIState.ts` composables
+   - Implement helper functions that combine store actions and getters for common tasks
+2. Update Vue components to use the stores:
+   - Modify chat components to use the messages store
+   - Update agent selection components to use the agents store
+   - Connect loading indicators and UI elements to the UI state store
+3. Implement proper reactivity using computed properties and watchers
+4. Add store integration tests to verify components correctly interact with stores
+5. Document the store API and usage patterns for the team
+

@@ -1,0 +1,105 @@
+# Task ID: 7
+# Title: Push-to-Talk (PTT) Feature Implementation
+# Status: done
+# Dependencies: 5
+# Priority: medium
+# Description: Add voice input capability using browser Speech-to-Text API
+# Details:
+Create a PTT button component that triggers speech recognition. Implement the Web Speech API for browser-based speech recognition. Add visual feedback during recording (e.g., pulsing animation or microphone icon change). Display transcribed text in the input field as it's recognized. Handle permission requests for microphone access. Add error handling for unsupported browsers or denied permissions. Implement a timeout for long recordings. Research Capacitor plugins for native STT capabilities on mobile.
+
+# Test Strategy:
+Test speech recognition with various phrases and accents. Verify the transcribed text appears correctly in the input field. Test permission handling by denying and then granting microphone access. Test on different browsers to ensure cross-browser compatibility. Verify visual feedback during recording.
+
+# Subtasks:
+## 1. Create PTT Button Component with Visual Feedback [done]
+### Dependencies: None
+### Description: Design and implement a Push-to-Talk button component that provides visual feedback during recording
+### Details:
+Implementation details:
+1. Create a new React component named `PttButton`
+2. Design the button UI with microphone icon
+3. Implement state management for recording status (idle, recording, processing)
+4. Add CSS animations for visual feedback:
+   - Pulsing effect during recording
+   - Color change to indicate active recording
+5. Implement event handlers for mouse/touch down and up events
+6. Add accessibility attributes (aria-label, role)
+7. Testing approach:
+   - Unit test component rendering in different states
+   - Test state transitions on user interactions
+   - Verify accessibility compliance
+
+## 2. Implement Web Speech API Integration [done]
+### Dependencies: 7.1
+### Description: Integrate the Web Speech API to handle speech recognition functionality
+### Details:
+Implementation details:
+1. Create a speech recognition service (`SpeechRecognitionService`)
+2. Initialize the SpeechRecognition API with appropriate configuration:
+   - Set language to match app locale
+   - Configure continuous recognition settings
+   - Set interim results to true for real-time feedback
+3. Implement methods to start, stop, and abort recognition
+4. Add event handlers for recognition results, errors, and state changes
+5. Implement a timeout mechanism for long recordings (e.g., 10 seconds)
+6. Testing approach:
+   - Mock the Web Speech API for unit tests
+   - Test timeout functionality
+   - Verify proper event handling
+
+## 3. Implement Transcription Display in Input Field [done]
+### Dependencies: 7.2
+### Description: Display and manage transcribed text in the chat input field as speech is recognized
+### Details:
+Implementation details:
+1. Connect the speech recognition service to the chat input component
+2. Implement a mechanism to update the input field with transcribed text:
+   - Show interim results with visual distinction (e.g., lighter color)
+   - Replace with final results when available
+3. Handle text insertion at cursor position if text already exists in input
+4. Add option to append or replace existing text
+5. Implement controls to edit or clear transcribed text
+6. Testing approach:
+   - Test text insertion with various input states
+   - Verify interim and final results display correctly
+   - Test interaction with existing text input methods
+
+## 4. Implement Permission Handling and Error States [done]
+### Dependencies: 7.2
+### Description: Handle microphone permission requests and implement error handling for various failure scenarios
+### Details:
+Implementation details:
+1. Create a permissions service to manage microphone access
+2. Implement permission request flow with clear user prompts
+3. Handle different error scenarios:
+   - Browser incompatibility (no SpeechRecognition support)
+   - Permission denied by user
+   - Network errors during recognition
+   - Recognition timeout or other failures
+4. Design and implement error UI components:
+   - Permission request dialogs
+   - Error messages with helpful instructions
+   - Fallback options when speech recognition isn't available
+5. Testing approach:
+   - Test permission flows with different user responses
+   - Verify error handling for each error type
+   - Test browser compatibility detection
+
+## 5. Implement Mobile Support with Capacitor [done]
+### Dependencies: 7.3, 7.4
+### Description: Add native speech recognition capabilities for mobile devices using Capacitor plugins
+### Details:
+Implementation details:
+1. Research and select appropriate Capacitor plugin for speech recognition (e.g., @capacitor/speech-recognition)
+2. Install and configure the selected plugin
+3. Create a platform detection service to determine when to use native vs. web APIs
+4. Implement a facade service that uses the appropriate implementation based on platform
+5. Adjust UI for mobile-specific interactions:
+   - Handle touch events properly
+   - Adapt visual feedback for mobile screens
+   - Consider battery and performance implications
+6. Testing approach:
+   - Test on actual mobile devices
+   - Verify platform detection logic
+   - Test graceful degradation when native features unavailable
+

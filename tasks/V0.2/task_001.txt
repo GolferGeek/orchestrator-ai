@@ -1,0 +1,73 @@
+# Task ID: 1
+# Title: Configure Supabase Project Connection
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Set up the environment variables and application configuration to connect to the Supabase SaaS project.
+# Details:
+1. Add Supabase URL, Anon Key, and Service Role Key to the root `.env` file
+2. Update FastAPI settings in `apps/api/core/config.py` to load these credentials
+3. Create a helper function to initialize the Supabase client with these credentials
+4. Add validation to ensure these environment variables are present at startup
+
+# Test Strategy:
+Create a simple health check endpoint that verifies the Supabase connection is working correctly. Test with valid and invalid credentials to ensure proper error handling.
+
+# Subtasks:
+## 1. Create and configure environment variables for Supabase [done]
+### Dependencies: None
+### Description: Set up the environment variables in the root `.env` file to store Supabase credentials securely
+### Details:
+1. Create or update the root `.env` file to include the following variables:
+   - `SUPABASE_URL`: The URL of your Supabase project
+   - `SUPABASE_ANON_KEY`: The anonymous key for client-side requests
+   - `SUPABASE_SERVICE_ROLE_KEY`: The service role key for server-side operations
+2. Add documentation comments above each variable explaining their purpose
+3. Add the `.env` file to `.gitignore` to prevent credentials from being committed
+4. Create a `.env.example` file with placeholder values as a template
+5. Testing approach: Manually verify the `.env` file contains all required variables with valid formats
+
+## 2. Update FastAPI settings to load Supabase credentials [done]
+### Dependencies: 1.1
+### Description: Modify the FastAPI configuration to load and make Supabase credentials available throughout the application
+### Details:
+1. Open `apps/api/core/config.py`
+2. Import the necessary libraries for environment variable loading (e.g., `python-dotenv`)
+3. Add the following Supabase-related fields to the Settings class:
+   - `supabase_url: str`
+   - `supabase_anon_key: str`
+   - `supabase_service_role_key: str`
+4. Update the settings initialization to load these values from environment variables
+5. Add validation rules using Pydantic to ensure URLs and keys have correct formats
+6. Testing approach: Create unit tests that verify the settings class correctly loads values from environment variables
+
+## 3. Implement Supabase client initialization helper [done]
+### Dependencies: 1.2
+### Description: Create a helper function to initialize and configure the Supabase client with the stored credentials
+### Details:
+1. Create a new file `apps/api/core/supabase.py`
+2. Import the Supabase Python client library
+3. Import the settings from the config module
+4. Implement a `create_supabase_client()` function that:
+   - Initializes a Supabase client with URL and keys from settings
+   - Configures any necessary client options (timeouts, retries, etc.)
+   - Returns the initialized client
+5. Add proper error handling for connection failures
+6. Implement a singleton pattern to avoid creating multiple clients
+7. Testing approach: Create unit tests with mocked Supabase responses to verify client initialization
+
+## 4. Add startup validation for Supabase configuration [done]
+### Dependencies: 1.2, 1.3
+### Description: Implement validation checks at application startup to ensure all Supabase credentials are present and valid
+### Details:
+1. Open the FastAPI application initialization file (likely `apps/api/main.py`)
+2. Import the Supabase client helper and settings
+3. Create a startup event handler using `@app.on_event("startup")`
+4. In the handler, implement validation that:
+   - Checks that all required Supabase environment variables are present
+   - Attempts to initialize the Supabase client to verify credentials work
+   - Logs appropriate messages about the connection status
+5. Add graceful error handling that provides clear error messages if validation fails
+6. Implement a health check endpoint that includes Supabase connection status
+7. Testing approach: Create integration tests that verify the application fails to start with invalid credentials and starts successfully with valid ones
+

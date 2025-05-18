@@ -1,0 +1,651 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Project Setup with Ionic and Vue 3",
+      "description": "Initialize the project with Ionic 7+, Vue 3 (Composition API), and Capacitor for native mobile capabilities",
+      "status": "done",
+      "dependencies": [],
+      "priority": "high",
+      "details": "Create a new Ionic Vue project using the CLI command `ionic start orchestrator-frontend blank --type vue`. Configure Vite as the build tool. Set up Pinia for state management and Vue Router for navigation. Add Capacitor with `npm install @capacitor/core @capacitor/cli` and initialize with `npx cap init`. Install essential dependencies including axios for API communication. Create the basic folder structure following Vue best practices with views, components, and stores directories.",
+      "testStrategy": "Verify the project builds successfully with `ionic serve`. Ensure all dependencies are correctly installed and the application runs without errors. Test basic navigation using Vue Router.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Initialize Ionic Vue Project with CLI",
+          "description": "Create a new Ionic Vue project using the CLI command and set up the initial project structure",
+          "dependencies": [],
+          "details": "1. Install Ionic CLI if not already installed: `npm install -g @ionic/cli`\n2. Create a new project: `ionic start orchestrator-frontend blank --type vue`\n3. Navigate to the project directory: `cd orchestrator-frontend`\n4. Verify the project structure is created correctly\n5. Run the project to test the initial setup: `ionic serve`\n6. Test the project in browser to ensure it loads correctly\n7. Commit the initial project setup to version control",
+          "status": "done",
+          "parentTaskId": 1
+        },
+        {
+          "id": 2,
+          "title": "Configure Vite and Essential Dependencies",
+          "description": "Configure Vite as the build tool and install essential dependencies including axios for API communication",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Review and update vite.config.js for project-specific needs\n2. Install axios: `npm install axios`\n3. Create an API service file at src/services/api.js with base axios configuration\n4. Add environment configuration for different deployment targets\n5. Configure build optimization settings in vite.config.js\n6. Test the build process: `npm run build`\n7. Verify the build output in the dist folder\n8. Test that axios can be imported and used in components",
+          "status": "done",
+          "parentTaskId": 1
+        },
+        {
+          "id": 3,
+          "title": "Set up Pinia and Vue Router",
+          "description": "Configure Pinia for state management and set up Vue Router for navigation with the appropriate structure",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "1. Install Pinia: `npm install pinia`\n2. Create the store directory: `src/stores`\n3. Set up a main store file (e.g., `src/stores/index.js`)\n4. Configure Pinia in main.js: `app.use(createPinia())`\n5. Create a sample store (e.g., `src/stores/user.js`)\n6. Set up router directory structure in `src/router`\n7. Configure main router file with initial routes\n8. Add router guards if needed\n9. Test navigation between pages\n10. Test store functionality with a simple state change",
+          "status": "done",
+          "parentTaskId": 1
+        },
+        {
+          "id": 4,
+          "title": "Integrate Capacitor for Native Capabilities",
+          "description": "Add Capacitor to the project and initialize it for native mobile capabilities",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "1. Install Capacitor Core and CLI: `npm install @capacitor/core @capacitor/cli`\n2. Initialize Capacitor: `npx cap init orchestrator-frontend io.ionic.starter --web-dir=dist`\n3. Add platforms:\n   - iOS: `npm install @capacitor/ios` then `npx cap add ios`\n   - Android: `npm install @capacitor/android` then `npx cap add android`\n4. Install common Capacitor plugins:\n   - `npm install @capacitor/camera @capacitor/storage @capacitor/preferences`\n5. Build the web app: `ionic build`\n6. Copy web assets to native projects: `npx cap copy`\n7. Test capacitor config and setup\n8. Run on a device or emulator: `npx cap open ios` or `npx cap open android`",
+          "status": "done",
+          "parentTaskId": 1
+        },
+        {
+          "id": 5,
+          "title": "Organize Project Structure Following Vue Best Practices",
+          "description": "Create and organize the folder structure following Vue best practices with views, components, and other necessary directories",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "1. Create/organize the following directory structure:\n   - `src/views/`: Page components\n   - `src/components/`: Reusable UI components\n   - `src/composables/`: Reusable composition functions\n   - `src/assets/`: Static assets like images and global styles\n   - `src/utils/`: Utility functions\n   - `src/constants/`: Application constants\n2. Create base component files:\n   - Create `BaseButton.vue`, `BaseInput.vue`, etc.\n3. Set up global styles:\n   - Create `src/assets/styles/main.css` for global styles\n   - Configure CSS variables for theming\n4. Create sample page components:\n   - `src/views/HomePage.vue`\n   - `src/views/AboutPage.vue`\n5. Update router configuration to use the new views\n6. Create a component documentation structure\n7. Test that the components can be imported and used correctly\n8. Ensure the project follows the established structure",
+          "status": "done",
+          "parentTaskId": 1
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Chat Interface Layout Implementation",
+      "description": "Create the responsive chat interface layout with message thread display and input field",
+      "status": "done",
+      "dependencies": [
+        1
+      ],
+      "priority": "high",
+      "details": "Design and implement the main chat view using Ionic components. Create a fixed header with app title, a scrollable message container for the chat thread, and a footer with the input field. Use Ionic's IonContent with scrolling capabilities for the message container. Implement responsive styling that adapts to different screen sizes using Ionic's grid system. Ensure the layout follows mobile-first design principles with appropriate sizing for touch targets. Create placeholder components for messages that will be populated later.",
+      "testStrategy": "Test the layout on different screen sizes using browser dev tools. Verify the input field and message container render correctly. Check that the UI is responsive and adapts appropriately to mobile, tablet, and desktop views.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create App Header Component",
+          "description": "Implement the fixed header component with app title and any necessary navigation elements",
+          "dependencies": [],
+          "details": "1. Generate a new header component using Angular CLI\n2. Implement the header using Ionic's IonHeader and IonToolbar components\n3. Add the app title using IonTitle component\n4. Style the header with appropriate colors and typography\n5. Make the header fixed to stay at the top during scrolling\n6. Add any necessary navigation buttons or icons (menu, back, etc.)\n7. Test the header component's appearance across different device widths\n8. Ensure proper padding and spacing for touch targets\n9. Verify the header has appropriate z-index to stay above other content",
+          "status": "done",
+          "parentTaskId": 2
+        },
+        {
+          "id": 2,
+          "title": "Implement Scrollable Message Container",
+          "description": "Create the main scrollable area for displaying chat messages with proper content sizing",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Create a message container component using IonContent\n2. Configure the IonContent with scrolling capabilities (scrollEvents=\"true\")\n3. Set up the container to take appropriate space between header and footer\n4. Implement scroll to bottom functionality for new messages\n5. Create placeholder message components/templates for later content\n6. Add proper padding and spacing between messages\n7. Implement scroll memory (maintain position when new content loads above)\n8. Test scrolling behavior on various devices and screen sizes\n9. Add visual indicators for unread messages when scrolled up\n10. Implement any needed virtual scrolling for performance with large message lists",
+          "status": "done",
+          "parentTaskId": 2
+        },
+        {
+          "id": 3,
+          "title": "Develop Footer with Message Input Field",
+          "description": "Create the fixed footer component with message input field and send button",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Generate a footer component using Angular CLI\n2. Implement the footer using IonFooter and IonToolbar components\n3. Add an IonInput field for message text with appropriate styling\n4. Create a send button with icon using IonButton\n5. Implement basic input validation (prevent empty messages)\n6. Style the input field and button for different screen sizes\n7. Make the input field expandable/multi-line for longer messages\n8. Ensure the footer stays fixed at the bottom and adjusts when keyboard appears\n9. Test keyboard interaction on mobile devices\n10. Add appropriate animations for send button states (disabled/enabled)",
+          "status": "done",
+          "parentTaskId": 2
+        },
+        {
+          "id": 4,
+          "title": "Integrate Components with Responsive Layout",
+          "description": "Assemble all components into a cohesive responsive layout that adapts to different screen sizes",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "1. Create the main chat page component that incorporates header, message container, and footer\n2. Implement Ionic's grid system for responsive layout\n3. Define different layout behaviors for mobile, tablet, and desktop viewports\n4. Add CSS media queries for fine-tuned control over component sizing\n5. Implement proper flex layouts for vertical spacing distribution\n6. Test the complete interface on various device sizes and orientations\n7. Ensure consistent spacing and alignment across all viewport sizes\n8. Optimize touch targets for mobile use\n9. Verify that the input field adjusts properly when the keyboard appears\n10. Test layout with different content amounts (empty chat vs. many messages)",
+          "status": "done",
+          "parentTaskId": 2
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "State Management with Pinia",
+      "description": "Implement Pinia stores for managing chat messages, agent information, and application state",
+      "status": "done",
+      "dependencies": [
+        1
+      ],
+      "priority": "high",
+      "details": "Create a messages store to handle chat history with actions for adding user messages and agent responses. Implement an agents store to manage information about available agents including names and descriptions. Add a UI state store for managing application state like loading indicators and PTT status. Define clear interfaces for message and agent objects. Implement actions and getters for accessing and manipulating the state. Ensure stores are modular and follow the composition API pattern.",
+      "testStrategy": "Write unit tests for store actions and getters using Vitest. Manually test store functionality by dispatching actions and verifying state changes. Confirm proper reactivity when state is updated.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Define TypeScript interfaces and create Messages Store",
+          "description": "Define TypeScript interfaces for messages and create the Pinia messages store with actions for adding and managing chat history.",
+          "dependencies": [],
+          "details": "1. Create a `types` directory to define interfaces:\n   - Define `Message` interface with properties like `id`, `content`, `timestamp`, `sender` (user/agent), and optional `metadata`\n   - Define `MessageState` interface for the store state structure\n2. Create a `stores/messages.ts` file to implement the messages store:\n   - Define state with an array of messages and conversation metadata\n   - Implement actions: `addUserMessage`, `addAgentResponse`, `clearConversation`\n   - Implement getters: `getAllMessages`, `getLatestMessage`, `getMessagesByAgent`\n3. Use the Pinia setup syntax with composition API\n4. Add proper TypeScript typing throughout\n5. Test the store functionality by writing simple unit tests that verify actions properly modify state",
+          "status": "done",
+          "parentTaskId": 3
+        },
+        {
+          "id": 2,
+          "title": "Implement Agents Store",
+          "description": "Create a Pinia store for managing agent information including properties, capabilities, and availability.",
+          "dependencies": [],
+          "details": "1. Define TypeScript interfaces for agents:\n   - Create `Agent` interface with properties like `id`, `name`, `description`, `capabilities`, `avatar`\n   - Define `AgentState` interface for the store state\n2. Create `stores/agents.ts` file:\n   - Define state with an array of available agents and the currently selected agent\n   - Implement actions: `selectAgent`, `addAgent`, `updateAgentStatus`\n   - Implement getters: `getAgentById`, `getAllAgents`, `getSelectedAgent`, `getAvailableAgents`\n3. Implement a method to fetch agent information from an API if needed\n4. Add proper error handling for agent operations\n5. Test the store by verifying agent selection and filtering functionality works as expected",
+          "status": "done",
+          "parentTaskId": 3
+        },
+        {
+          "id": 3,
+          "title": "Create UI State Store",
+          "description": "Implement a Pinia store for managing application UI state including loading states, PTT status, and UI preferences.",
+          "dependencies": [],
+          "details": "1. Define TypeScript interfaces for UI state:\n   - Create `UIState` interface with properties for various UI states\n2. Create `stores/uiState.ts` file:\n   - Define state with properties like `isLoading`, `isPTTActive`, `currentView`, `sidebarOpen`, etc.\n   - Implement actions: `setLoading`, `togglePTT`, `setCurrentView`, `toggleSidebar`\n   - Add any UI preference settings (theme, layout options, etc.)\n3. Implement a mechanism to persist UI preferences in localStorage\n4. Add proper TypeScript typing throughout\n5. Test the store by verifying UI state changes correctly respond to actions",
+          "status": "done",
+          "parentTaskId": 3
+        },
+        {
+          "id": 4,
+          "title": "Integrate Pinia Stores with Vue Components",
+          "description": "Connect the Pinia stores to Vue components and implement composables for easier store access.",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "1. Create composables for each store to simplify component usage:\n   - Create `useMessages.ts`, `useAgents.ts`, and `useUIState.ts` composables\n   - Implement helper functions that combine store actions and getters for common tasks\n2. Update Vue components to use the stores:\n   - Modify chat components to use the messages store\n   - Update agent selection components to use the agents store\n   - Connect loading indicators and UI elements to the UI state store\n3. Implement proper reactivity using computed properties and watchers\n4. Add store integration tests to verify components correctly interact with stores\n5. Document the store API and usage patterns for the team",
+          "status": "done",
+          "parentTaskId": 3
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Chat Message Component Development",
+      "description": "Create components for displaying user and agent messages with Markdown support and visual distinctions",
+      "status": "done",
+      "dependencies": [
+        2,
+        3
+      ],
+      "priority": "high",
+      "details": "Develop a MessageItem component that can render both user and agent messages. Implement visual distinctions between user messages and agent responses (different colors, alignment, etc.). Add agent avatars or icons to agent messages. Integrate a Markdown parser library (like marked or markdown-it) to render formatted text in agent responses. Support for code blocks, lists, bold, and italic text. Create a MessageList component that renders the full conversation thread using v-for with the MessageItem component.",
+      "testStrategy": "Create test messages with various Markdown formatting and verify correct rendering. Test with long messages to ensure proper wrapping. Verify visual distinctions between user and agent messages are clear. Test with different screen sizes to ensure responsive behavior.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Base MessageItem Component with Sender Differentiation",
+          "description": "Develop the foundational MessageItem component that can distinguish between user and agent messages",
+          "dependencies": [],
+          "details": "1. Create a new Vue component called MessageItem.vue\n2. Define props: 'message' (object with content, sender type, timestamp)\n3. Implement conditional rendering based on sender type (user/agent)\n4. Add basic structure with message content display\n5. Include timestamp formatting\n6. For agent messages, add a placeholder for avatar/icon\n7. Test the component with sample messages from both sender types\n8. Ensure the component correctly identifies and displays different sender types\n9. Use simple text rendering initially (Markdown support will be added in a later subtask)",
+          "status": "done",
+          "parentTaskId": 4
+        },
+        {
+          "id": 2,
+          "title": "Implement Markdown Parsing and Rendering",
+          "description": "Integrate a Markdown parser library to enable formatted text in messages",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Install a Markdown parser library (marked or markdown-it)\n2. Create a utility function to safely parse Markdown content\n3. Modify the MessageItem component to use the Markdown parser for agent messages\n4. Implement support for code blocks with syntax highlighting\n5. Add support for other Markdown elements (lists, bold, italic text, links)\n6. Ensure proper sanitization of content to prevent XSS attacks\n7. Test with various Markdown formatting examples\n8. Verify that code blocks render with proper formatting\n9. Create unit tests for the Markdown parsing utility function",
+          "status": "done",
+          "parentTaskId": 4
+        },
+        {
+          "id": 3,
+          "title": "Enhance Message Styling with Visual Distinctions",
+          "description": "Apply styling to create clear visual differences between user and agent messages",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "1. Create CSS styles for user messages (right-aligned, distinct background color)\n2. Create CSS styles for agent messages (left-aligned, different background color)\n3. Design and implement agent avatar/icon display\n4. Add appropriate spacing and padding between messages\n5. Implement responsive design for different screen sizes\n6. Ensure proper styling for Markdown elements within messages\n7. Add subtle visual indicators for message status (sent, delivered, etc.)\n8. Implement transitions/animations for message appearance\n9. Test styling across different viewport sizes\n10. Ensure accessibility standards are met with proper contrast ratios",
+          "status": "done",
+          "parentTaskId": 4
+        },
+        {
+          "id": 4,
+          "title": "Develop MessageList Component for Conversation Thread",
+          "description": "Create a component to render the full conversation history using the MessageItem component",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "1. Create a new Vue component called MessageList.vue\n2. Define props: 'messages' (array of message objects)\n3. Implement v-for directive to iterate through messages\n4. Render each message using the MessageItem component\n5. Add proper keys for the v-for loop\n6. Implement auto-scrolling to the newest message\n7. Add loading states for when new messages are being added\n8. Optimize rendering for large conversation histories\n9. Group messages by time periods if needed\n10. Test with various conversation scenarios (empty, few messages, many messages)\n11. Ensure smooth scrolling and performance with large message lists",
+          "status": "done",
+          "parentTaskId": 4
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Chat Input and Message Submission",
+      "description": "Implement the text input field and message submission functionality",
+      "status": "done",
+      "dependencies": [
+        3,
+        4
+      ],
+      "priority": "high",
+      "details": "Create a ChatInput component with a text field and send button. Use Ionic's IonInput and IonButton components. Implement form submission handling that dispatches actions to the Pinia store. Add validation to prevent empty message submission. Implement keyboard event handlers (Enter key for submission). Connect the input to the messages store to add user messages to the conversation thread. Clear the input field after submission. Add loading indicators during message processing.",
+      "testStrategy": "Test message submission with various inputs. Verify the input field clears after submission. Test keyboard navigation and Enter key submission. Confirm messages appear in the chat thread after submission. Test validation to ensure empty messages cannot be submitted.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create ChatInput Component with Ionic UI Elements",
+          "description": "Build the basic ChatInput component with text field and send button using Ionic components",
+          "dependencies": [],
+          "details": "1. Create a new ChatInput.vue component\n2. Import IonInput, IonButton, and other necessary Ionic components\n3. Implement the component template with an IonInput for text entry and an IonButton with a send icon\n4. Add basic styling to match the app's design system\n5. Set up reactive data property for the message text using ref()\n6. Ensure the component is responsive for different screen sizes\n7. Test the basic rendering of the component in isolation",
+          "status": "done",
+          "parentTaskId": 5
+        },
+        {
+          "id": 2,
+          "title": "Implement Form Submission and Validation",
+          "description": "Add form handling with validation and keyboard event listeners",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Wrap the input elements in a form element\n2. Create a submitMessage() method that validates input before submission\n3. Add validation to prevent empty message submission (trim the input and check length)\n4. Implement keyboard event handler for Enter key to submit the message\n5. Add visual feedback for validation errors if needed\n6. Add a computed property to determine if the submit button should be disabled\n7. Test the validation logic with different input scenarios (empty, whitespace-only, valid messages)",
+          "status": "done",
+          "parentTaskId": 5
+        },
+        {
+          "id": 3,
+          "title": "Integrate with Pinia Store for Message Handling",
+          "description": "Connect the ChatInput component to the Pinia store for message submission",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "1. Import and use the messages store from Pinia\n2. Modify the submitMessage() method to dispatch an action to the store (e.g., addMessage or sendMessage)\n3. Pass the message text and any necessary metadata to the store\n4. Clear the input field after successful submission\n5. Implement proper error handling for failed submissions\n6. Test the integration with the store by verifying messages appear in the conversation thread\n7. Ensure the component correctly resets after submission",
+          "status": "done",
+          "parentTaskId": 5
+        },
+        {
+          "id": 4,
+          "title": "Add Loading State Indicators",
+          "description": "Implement loading indicators and UI state management during message processing",
+          "dependencies": [
+            3
+          ],
+          "details": "1. Add a loading state reactive property to the component\n2. Update the UI to show a loading indicator when a message is being processed\n3. Disable the input field and send button during the loading state\n4. Modify the store integration to properly handle loading states (start loading before dispatch, end after response)\n5. Add a subtle animation or spinner to the send button during processing\n6. Implement error handling to reset loading state if message submission fails\n7. Test the loading state transitions with both quick and delayed responses",
+          "status": "done",
+          "parentTaskId": 5
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Backend API Integration",
+      "description": "Connect the frontend to the FastAPI backend for sending user queries and receiving agent responses",
+      "status": "done",
+      "dependencies": [
+        3,
+        5
+      ],
+      "priority": "high",
+      "details": "Create an API service using axios for communication with the backend. Implement methods for sending user messages to the orchestrator endpoint. Handle response parsing to extract agent messages. Add error handling for failed API calls with user-friendly error messages. Implement request cancellation for pending requests when needed. Connect the API service to the Pinia stores using actions. Add loading states during API calls to provide user feedback.",
+      "testStrategy": "Test API integration with the actual backend if available, or mock responses for development. Verify successful message sending and response handling. Test error scenarios by intentionally causing API failures. Confirm loading indicators display during API calls.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Set up API service with axios configuration",
+          "description": "Create a base API service using axios to handle communication with the FastAPI backend",
+          "dependencies": [],
+          "details": "Implementation details:\n1. Create a new directory for API services (e.g., `src/services/api`)\n2. Install axios if not already installed: `npm install axios`\n3. Create a base API client (`apiClient.js`) that configures axios with:\n   - Base URL pointing to the FastAPI backend\n   - Default headers (Content-Type: application/json)\n   - Request timeout settings\n   - Request/response interceptors for common handling\n4. Implement a method to get the authentication token if needed\n5. Add CSRF protection if required\n6. Create a simple test to verify the API client can make a basic connection to the backend\n\nTesting approach:\n- Write a simple test that verifies the API client is properly configured\n- Test that interceptors work as expected\n- Mock API responses to verify basic functionality",
+          "status": "done",
+          "parentTaskId": 6
+        },
+        {
+          "id": 2,
+          "title": "Implement message submission endpoint integration",
+          "description": "Create methods to send user messages to the orchestrator endpoint",
+          "dependencies": [
+            1
+          ],
+          "details": "Implementation details:\n1. Create a new file for chat-related API methods (e.g., `chatService.js`)\n2. Import the base API client from subtask 1\n3. Implement a `sendMessage` function that:\n   - Accepts user message text as parameter\n   - Formats the request payload according to the backend API requirements\n   - Uses the API client to POST to the correct endpoint (e.g., `/api/orchestrator/chat`)\n   - Returns a promise with the response\n4. Implement a request cancellation mechanism using axios CancelToken\n5. Add a method to track pending requests that can be cancelled\n\nTesting approach:\n- Write unit tests mocking the axios responses\n- Test successful message submission\n- Test the cancellation functionality\n- Verify correct payload formatting",
+          "status": "done",
+          "parentTaskId": 6
+        },
+        {
+          "id": 3,
+          "title": "Implement response handling and parsing",
+          "description": "Create utilities to parse and process the API responses from the backend",
+          "dependencies": [
+            2
+          ],
+          "details": "Implementation details:\n1. Create a response parser module (e.g., `responseParser.js`)\n2. Implement functions to extract agent messages from the API response\n3. Handle different response formats (e.g., streaming vs. complete responses)\n4. Process any metadata included in the responses (agent IDs, timestamps, etc.)\n5. Format the parsed responses for frontend consumption\n6. Handle any data transformation needed between backend and frontend formats\n\nTesting approach:\n- Write unit tests with sample response payloads\n- Test parsing of different response formats\n- Verify correct extraction of agent messages\n- Test handling of edge cases (empty responses, malformed data)",
+          "status": "done",
+          "parentTaskId": 6
+        },
+        {
+          "id": 4,
+          "title": "Implement error handling and user feedback",
+          "description": "Add comprehensive error handling for API calls with user-friendly error messages",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "Implementation details:\n1. Create an error handling module (e.g., `errorHandler.js`)\n2. Define different error types (network errors, authentication errors, validation errors, server errors)\n3. Implement error handling functions for each type with user-friendly messages\n4. Add retry logic for transient errors (like network issues)\n5. Create loading state utilities to track API call status\n6. Implement functions to generate appropriate user feedback based on error type\n7. Add logging for errors to help with debugging\n\nTesting approach:\n- Test error handling for different error scenarios\n- Verify retry logic works correctly\n- Test loading state transitions\n- Ensure user-friendly error messages are generated correctly",
+          "status": "done",
+          "parentTaskId": 6
+        },
+        {
+          "id": 5,
+          "title": "Integrate API service with Pinia stores",
+          "description": "Connect the API service to Pinia stores using actions for state management",
+          "dependencies": [
+            2,
+            3,
+            4
+          ],
+          "details": "Implementation details:\n1. Import the chat service in the relevant Pinia store (e.g., `chatStore.js`)\n2. Create store actions that call the API service methods:\n   - `sendMessage` action that calls the chat service\n   - Update loading states before and after API calls\n   - Handle success cases by updating store state with parsed responses\n   - Handle error cases using the error handler\n3. Implement state properties to track:\n   - Loading states\n   - Error messages\n   - Conversation history\n4. Add getters for derived state (e.g., isLoading, hasError)\n5. Connect the store to the Vue components that need to interact with the API\n\nTesting approach:\n- Write unit tests for store actions\n- Test state transitions during API calls\n- Verify correct handling of successful responses\n- Test error state management\n- Create integration tests to verify component-store-API interaction",
+          "status": "done",
+          "parentTaskId": 6
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Push-to-Talk (PTT) Feature Implementation",
+      "description": "Add voice input capability using browser Speech-to-Text API",
+      "status": "done",
+      "dependencies": [
+        5
+      ],
+      "priority": "medium",
+      "details": "Create a PTT button component that triggers speech recognition. Implement the Web Speech API for browser-based speech recognition. Add visual feedback during recording (e.g., pulsing animation or microphone icon change). Display transcribed text in the input field as it's recognized. Handle permission requests for microphone access. Add error handling for unsupported browsers or denied permissions. Implement a timeout for long recordings. Research Capacitor plugins for native STT capabilities on mobile.",
+      "testStrategy": "Test speech recognition with various phrases and accents. Verify the transcribed text appears correctly in the input field. Test permission handling by denying and then granting microphone access. Test on different browsers to ensure cross-browser compatibility. Verify visual feedback during recording.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create PTT Button Component with Visual Feedback",
+          "description": "Design and implement a Push-to-Talk button component that provides visual feedback during recording",
+          "dependencies": [],
+          "details": "Implementation details:\n1. Create a new React component named `PttButton`\n2. Design the button UI with microphone icon\n3. Implement state management for recording status (idle, recording, processing)\n4. Add CSS animations for visual feedback:\n   - Pulsing effect during recording\n   - Color change to indicate active recording\n5. Implement event handlers for mouse/touch down and up events\n6. Add accessibility attributes (aria-label, role)\n7. Testing approach:\n   - Unit test component rendering in different states\n   - Test state transitions on user interactions\n   - Verify accessibility compliance",
+          "status": "done",
+          "parentTaskId": 7
+        },
+        {
+          "id": 2,
+          "title": "Implement Web Speech API Integration",
+          "description": "Integrate the Web Speech API to handle speech recognition functionality",
+          "dependencies": [
+            1
+          ],
+          "details": "Implementation details:\n1. Create a speech recognition service (`SpeechRecognitionService`)\n2. Initialize the SpeechRecognition API with appropriate configuration:\n   - Set language to match app locale\n   - Configure continuous recognition settings\n   - Set interim results to true for real-time feedback\n3. Implement methods to start, stop, and abort recognition\n4. Add event handlers for recognition results, errors, and state changes\n5. Implement a timeout mechanism for long recordings (e.g., 10 seconds)\n6. Testing approach:\n   - Mock the Web Speech API for unit tests\n   - Test timeout functionality\n   - Verify proper event handling",
+          "status": "done",
+          "parentTaskId": 7
+        },
+        {
+          "id": 3,
+          "title": "Implement Transcription Display in Input Field",
+          "description": "Display and manage transcribed text in the chat input field as speech is recognized",
+          "dependencies": [
+            2
+          ],
+          "details": "Implementation details:\n1. Connect the speech recognition service to the chat input component\n2. Implement a mechanism to update the input field with transcribed text:\n   - Show interim results with visual distinction (e.g., lighter color)\n   - Replace with final results when available\n3. Handle text insertion at cursor position if text already exists in input\n4. Add option to append or replace existing text\n5. Implement controls to edit or clear transcribed text\n6. Testing approach:\n   - Test text insertion with various input states\n   - Verify interim and final results display correctly\n   - Test interaction with existing text input methods",
+          "status": "done",
+          "parentTaskId": 7
+        },
+        {
+          "id": 4,
+          "title": "Implement Permission Handling and Error States",
+          "description": "Handle microphone permission requests and implement error handling for various failure scenarios",
+          "dependencies": [
+            2
+          ],
+          "details": "Implementation details:\n1. Create a permissions service to manage microphone access\n2. Implement permission request flow with clear user prompts\n3. Handle different error scenarios:\n   - Browser incompatibility (no SpeechRecognition support)\n   - Permission denied by user\n   - Network errors during recognition\n   - Recognition timeout or other failures\n4. Design and implement error UI components:\n   - Permission request dialogs\n   - Error messages with helpful instructions\n   - Fallback options when speech recognition isn't available\n5. Testing approach:\n   - Test permission flows with different user responses\n   - Verify error handling for each error type\n   - Test browser compatibility detection",
+          "status": "done",
+          "parentTaskId": 7
+        },
+        {
+          "id": 5,
+          "title": "Implement Mobile Support with Capacitor",
+          "description": "Add native speech recognition capabilities for mobile devices using Capacitor plugins",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Implementation details:\n1. Research and select appropriate Capacitor plugin for speech recognition (e.g., @capacitor/speech-recognition)\n2. Install and configure the selected plugin\n3. Create a platform detection service to determine when to use native vs. web APIs\n4. Implement a facade service that uses the appropriate implementation based on platform\n5. Adjust UI for mobile-specific interactions:\n   - Handle touch events properly\n   - Adapt visual feedback for mobile screens\n   - Consider battery and performance implications\n6. Testing approach:\n   - Test on actual mobile devices\n   - Verify platform detection logic\n   - Test graceful degradation when native features unavailable",
+          "status": "done",
+          "parentTaskId": 7
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Agent Discovery Implementation",
+      "description": "Implement the functionality to display available agents when requested by the user",
+      "status": "done",
+      "dependencies": [
+        4,
+        6
+      ],
+      "priority": "medium",
+      "details": "Create a special message component for displaying agent information. Implement keyword detection in the Pinia store to identify agent discovery requests (e.g., 'What agents are available?'). Add an API method to fetch available agents from the backend. Design a visually distinct way to display the agent list within the chat interface. Include agent names and brief descriptions in the display. Ensure the agent list is scrollable if it contains many agents.",
+      "testStrategy": "Test the agent discovery feature with various phrasings of the request. Verify the agent list displays correctly with all information. Test with a large number of agents to ensure proper scrolling and display. Confirm the visual design integrates well with the chat interface.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement keyword detection for agent discovery requests",
+          "description": "Create a detection system in the Pinia store that identifies when users are asking about available agents",
+          "dependencies": [],
+          "details": "1. Add a new property in the Pinia store to track agent discovery requests\n2. Create a function that analyzes user messages for keywords like 'what agents', 'available agents', 'which agents', etc.\n3. Implement regex patterns or string matching to reliably detect various phrasings\n4. When detected, set a flag in the store to trigger the agent discovery flow\n5. Add unit tests for the detection logic with various input phrases\n6. Ensure the detection works regardless of case sensitivity or minor typos\n7. Test by manually entering various agent discovery requests in the chat interface",
+          "status": "done",
+          "parentTaskId": 8
+        },
+        {
+          "id": 2,
+          "title": "Create API integration for fetching available agents",
+          "description": "Implement the API method to retrieve the list of available agents from the backend",
+          "dependencies": [
+            1
+          ],
+          "details": "1. Create a new API endpoint in the API service layer\n2. Implement a GET request to the backend endpoint (e.g., '/api/agents')\n3. Add proper error handling for failed requests\n4. Create data models/interfaces for agent information (name, description, etc.)\n5. Add a caching mechanism to avoid redundant API calls\n6. Implement a loading state in the store during API fetching\n7. Test the API integration with mock data\n8. Verify the endpoint works correctly with the backend team",
+          "status": "done",
+          "parentTaskId": 8
+        },
+        {
+          "id": 3,
+          "title": "Develop agent information display component",
+          "description": "Create a specialized message component for displaying agent information in a visually distinct way",
+          "dependencies": [
+            2
+          ],
+          "details": "1. Create a new Vue component named 'AgentInfoMessage' or similar\n2. Design the component to display agent name, description, and any other relevant details\n3. Implement styling to make it visually distinct from regular chat messages\n4. Ensure the component can handle a list of multiple agents\n5. Add a scrollable container if the list exceeds a certain height\n6. Include hover effects or other interactive elements for better UX\n7. Test the component with various screen sizes to ensure responsiveness\n8. Create unit tests for the component rendering with different agent data",
+          "status": "done",
+          "parentTaskId": 8
+        },
+        {
+          "id": 4,
+          "title": "Integrate agent discovery flow into chat interface",
+          "description": "Connect all components to display the agent list within the chat when triggered by user requests",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "1. Modify the chat container to display the agent information component when triggered\n2. Update the message handling logic to insert the agent list as a special message type\n3. Connect the keyword detection from subtask 1 to trigger the API call from subtask 2\n4. Use the agent information component from subtask 3 to display the results\n5. Implement any necessary animations for smooth appearance of the agent list\n6. Add keyboard navigation support for the agent list\n7. Test the entire flow end-to-end with various user inputs\n8. Verify that the agent list appears correctly within the chat message history\n9. Add integration tests for the complete agent discovery flow",
+          "status": "done",
+          "parentTaskId": 8
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Mobile-Specific Optimizations",
+      "description": "Optimize the application for mobile devices and prepare for iOS compilation",
+      "status": "done",
+      "dependencies": [
+        2,
+        7
+      ],
+      "priority": "medium",
+      "details": "Configure Capacitor for iOS platform with `npx cap add ios`. Optimize touch targets for mobile use (minimum 44x44px). Implement mobile-specific styling adjustments using Ionic's platform detection. Add iOS-specific configurations in capacitor.config.ts. Address keyboard appearance and dismissal on mobile devices. Implement pull-to-refresh functionality if applicable. Test and adjust font sizes and spacing for mobile screens. Configure status bar appearance for iOS.",
+      "testStrategy": "Test on iOS simulator or physical device. Verify touch interactions work correctly on mobile. Check keyboard behavior when typing messages. Test orientation changes (portrait/landscape). Verify the app looks and functions correctly on different iPhone models.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Configure Capacitor for iOS Platform",
+          "description": "Set up the Capacitor iOS environment and add necessary configurations to prepare the application for iOS compilation",
+          "dependencies": [],
+          "details": "Implementation steps:\n1. Install Capacitor iOS platform with `npx cap add ios`\n2. Update capacitor.config.ts with iOS-specific configurations:\n   - Set appropriate appId (e.g., com.yourcompany.appname)\n   - Configure app name and display settings\n   - Set background color\n3. Run `npx cap sync` to ensure configurations are applied\n4. Test the configuration by opening the iOS project with `npx cap open ios`\n\nTesting approach:\n- Verify the iOS project opens correctly in Xcode\n- Check that capacitor.config.ts has proper iOS configurations\n- Ensure project builds without configuration errors",
+          "status": "done",
+          "parentTaskId": 9
+        },
+        {
+          "id": 2,
+          "title": "Optimize Touch Targets and Mobile Styling",
+          "description": "Implement mobile-friendly UI adjustments with appropriate touch target sizes and responsive styling",
+          "dependencies": [
+            1
+          ],
+          "details": "Implementation steps:\n1. Audit all interactive elements (buttons, links, inputs) to ensure minimum touch target size of 44x44px\n2. Create a SCSS mixin for standardizing touch targets:\n   ```scss\n   @mixin touch-target {\n     min-width: 44px;\n     min-height: 44px;\n   }\n   ```\n3. Apply the mixin to all interactive elements\n4. Adjust font sizes for better readability on mobile:\n   - Body text: 16px minimum\n   - Headers: proportionally larger\n5. Increase spacing between interactive elements to prevent accidental taps\n6. Test and adjust padding/margins for mobile viewport sizes\n\nTesting approach:\n- Test on multiple iOS device sizes (iPhone SE, standard iPhone, iPhone Pro Max)\n- Verify all interactive elements meet 44x44px minimum size\n- Confirm text is readable without zooming\n- Check that elements have sufficient spacing between them",
+          "status": "done",
+          "parentTaskId": 9
+        },
+        {
+          "id": 3,
+          "title": "Implement Mobile Keyboard Handling",
+          "description": "Add functionality to properly manage keyboard appearance and dismissal on mobile devices",
+          "dependencies": [
+            1
+          ],
+          "details": "Implementation steps:\n1. Create a keyboard service to manage keyboard interactions:\n   ```typescript\n   import { Injectable } from '@angular/core';\n   import { Keyboard } from '@capacitor/keyboard';\n\n   @Injectable({\n     providedIn: 'root'\n   })\n   export class KeyboardService {\n     constructor() {\n       this.initialize();\n     }\n\n     initialize() {\n       Keyboard.addListener('keyboardWillShow', info => {\n         // Handle keyboard showing\n       });\n       Keyboard.addListener('keyboardWillHide', () => {\n         // Handle keyboard hiding\n       });\n     }\n\n     hideKeyboard() {\n       Keyboard.hide();\n     }\n   }\n   ```\n2. Implement auto-scroll functionality to ensure input fields are visible when keyboard appears\n3. Add tap/click handlers on non-input areas to dismiss keyboard\n4. Adjust layouts to prevent keyboard from obscuring important content\n5. Implement form submission buttons that automatically dismiss keyboard\n\nTesting approach:\n- Test form inputs on various iOS devices\n- Verify keyboard appears and disappears appropriately\n- Ensure input fields scroll into view when keyboard appears\n- Check that tapping outside input areas dismisses keyboard",
+          "status": "done",
+          "parentTaskId": 9
+        },
+        {
+          "id": 4,
+          "title": "Add Platform-Specific Adjustments Using Ionic Detection",
+          "description": "Implement conditional styling and behavior based on platform detection for optimal iOS experience",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "Implementation steps:\n1. Use Ionic's platform detection services to identify iOS devices:\n   ```typescript\n   import { Platform } from '@ionic/angular';\n\n   constructor(private platform: Platform) {\n     if (this.platform.is('ios')) {\n       // iOS-specific code\n     }\n   }\n   ```\n2. Create platform-specific CSS classes:\n   ```scss\n   .ios-specific {\n     .platform-ios & {\n       // iOS-specific styles\n     }\n   }\n   ```\n3. Implement pull-to-refresh functionality for iOS using Ionic's IonRefresher:\n   ```html\n   <ion-refresher slot=\"fixed\" (ionRefresh)=\"doRefresh($event)\">\n     <ion-refresher-content></ion-refresher-content>\n   </ion-refresher>\n   ```\n4. Adjust animations and transitions to match iOS platform expectations\n5. Implement iOS-specific UI patterns (e.g., iOS-style back navigation)\n\nTesting approach:\n- Test on iOS devices to verify platform detection works correctly\n- Ensure pull-to-refresh functionality works smoothly\n- Verify iOS-specific styles are applied only on iOS devices\n- Check that animations and transitions match iOS platform expectations",
+          "status": "done",
+          "parentTaskId": 9
+        },
+        {
+          "id": 5,
+          "title": "Configure Status Bar and Native Element Integration",
+          "description": "Set up status bar appearance and ensure proper integration with native iOS UI elements",
+          "dependencies": [
+            1,
+            4
+          ],
+          "details": "Implementation steps:\n1. Configure status bar appearance for iOS using Capacitor's StatusBar plugin:\n   ```typescript\n   import { StatusBar, Style } from '@capacitor/status-bar';\n\n   // In app initialization\n   StatusBar.setStyle({ style: Style.Light }); // or Dark\n   StatusBar.setBackgroundColor({ color: '#ffffff' });\n   ```\n2. Handle safe areas for notched devices (iPhone X and newer):\n   ```scss\n   ion-content {\n     --padding-top: var(--ion-safe-area-top);\n     --padding-bottom: var(--ion-safe-area-bottom);\n   }\n   ```\n3. Configure splash screen appearance in capacitor.config.ts\n4. Ensure proper status bar color transitions between different app screens\n5. Test and adjust content positioning to respect device notches and home indicators\n\nTesting approach:\n- Test on devices with notches (iPhone X or newer)\n- Verify status bar appearance matches app theme\n- Ensure content respects safe areas and doesn't appear under notches or home indicators\n- Check splash screen appearance and transitions",
+          "status": "done",
+          "parentTaskId": 9
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Final Integration and Testing",
+      "description": "Integrate all components, perform comprehensive testing, and prepare for deployment",
+      "status": "done",
+      "dependencies": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "priority": "low",
+      "details": "Integrate all components into a cohesive application. Implement final styling and UI polishing. Add loading and error states throughout the application. Perform comprehensive testing of the entire application flow. Optimize performance by implementing lazy loading where appropriate. Add basic analytics to track user interactions (if required). Prepare build configurations for web deployment and iOS compilation. Create documentation for the codebase and deployment process.",
+      "testStrategy": "Perform end-to-end testing of the complete user flow. Test on multiple browsers and devices. Verify all features work together correctly. Conduct performance testing to ensure smooth operation. Have multiple team members test the application to gather feedback. Create test builds for both web and iOS to verify deployment process.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Integrate All Components and Polish UI",
+          "description": "Integrate all developed components into a cohesive application and implement final styling and UI polishing across all screens.",
+          "dependencies": [],
+          "details": "Implementation steps:\n1. Connect all previously developed components following the application architecture\n2. Ensure consistent navigation flow between all screens\n3. Implement final styling according to design specifications\n4. Verify responsive behavior across different screen sizes\n5. Add transitions between screens and component states\n6. Ensure consistent typography, spacing, and color usage\n7. Implement any missing UI elements or interactions\n\nTesting approach:\n- Manual testing of component integration\n- Visual inspection of UI against design specifications\n- Review with stakeholders for final UI approval",
+          "status": "done",
+          "parentTaskId": 10
+        },
+        {
+          "id": 2,
+          "title": "Implement Loading and Error States",
+          "description": "Add proper loading indicators and error handling throughout the application to improve user experience during asynchronous operations.",
+          "dependencies": [
+            1
+          ],
+          "details": "Implementation steps:\n1. Identify all asynchronous operations in the application\n2. Design and implement consistent loading indicators for each operation\n3. Create error handling utilities to standardize error processing\n4. Implement error states for API failures, network issues, and other potential errors\n5. Add retry mechanisms where appropriate\n6. Create user-friendly error messages\n7. Implement graceful degradation for non-critical features\n\nTesting approach:\n- Simulate network delays to verify loading states\n- Force API errors to test error handling\n- Review error messages for clarity and actionability\n- Test retry mechanisms",
+          "status": "done",
+          "parentTaskId": 10
+        },
+        {
+          "id": 3,
+          "title": "Optimize Performance with Lazy Loading",
+          "description": "Improve application performance by implementing lazy loading for routes, components, and assets where appropriate.",
+          "dependencies": [
+            1
+          ],
+          "details": "Implementation steps:\n1. Analyze bundle size and identify opportunities for code splitting\n2. Implement lazy loading for non-critical routes using React.lazy() and Suspense\n3. Set up code splitting for large third-party libraries\n4. Implement image lazy loading for media-heavy pages\n5. Configure prefetching for likely navigation paths\n6. Implement virtualization for long lists\n7. Measure and document performance improvements\n\nTesting approach:\n- Measure load times before and after optimizations\n- Verify application functionality with lazy-loaded components\n- Test performance on low-end devices\n- Run Lighthouse audits to verify improvements",
+          "status": "done",
+          "parentTaskId": 10
+        },
+        {
+          "id": 4,
+          "title": "Perform Comprehensive Testing",
+          "description": "Execute thorough testing of the entire application flow across different platforms and environments.",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Implementation steps:\n1. Create a comprehensive test plan covering all features and user flows\n2. Implement any missing unit tests for critical functionality\n3. Write integration tests for key user journeys\n4. Set up end-to-end testing with Cypress or similar tool\n5. Test on multiple browsers (Chrome, Safari, Firefox)\n6. Test on target mobile devices (iOS and Android if applicable)\n7. Perform accessibility testing (WCAG compliance)\n8. Document all found issues and prioritize fixes\n\nTesting approach:\n- Execute automated test suites\n- Conduct manual testing following test scripts\n- Perform exploratory testing to find edge cases\n- Use real devices for mobile testing\n- Verify fixes for all identified issues",
+          "status": "done",
+          "parentTaskId": 10
+        },
+        {
+          "id": 5,
+          "title": "Prepare Build Configurations and Deployment Documentation",
+          "description": "Set up build configurations for web and iOS deployment and create comprehensive documentation for the codebase and deployment process.",
+          "dependencies": [
+            4
+          ],
+          "details": "Implementation steps:\n1. Configure production build settings for web deployment\n2. Set up iOS build configuration with appropriate certificates\n3. Implement environment-specific configuration management\n4. Add basic analytics tracking (if required)\n5. Create README with project overview and setup instructions\n6. Document the application architecture and key components\n7. Create deployment guides for both web and iOS platforms\n8. Document known issues and future improvement areas\n\nTesting approach:\n- Create test builds for both web and iOS\n- Verify builds work in production-like environments\n- Test analytics implementation if applicable\n- Have team members follow documentation to verify clarity and completeness",
+          "status": "done",
+          "parentTaskId": 10
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "projectName": "Orchestrator-First Frontend Implementation",
+    "totalTasks": 10,
+    "sourceFile": "scripts/Phase-3-Frontend-PRD.txt",
+    "generatedAt": "2023-11-17"
+  }
+}

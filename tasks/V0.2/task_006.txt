@@ -1,0 +1,79 @@
+# Task ID: 6
+# Title: Create Supabase-backed ChatMessageHistory for Langchain
+# Status: done
+# Dependencies: 3, 5
+# Priority: high
+# Description: Develop a custom Langchain ChatMessageHistory implementation that uses Supabase for storage.
+# Details:
+1. Create a new class `SupabaseChatMessageHistory` that implements Langchain's `BaseChatMessageHistory`
+2. Implement methods to add messages, clear history, and retrieve messages
+3. Store messages in the Supabase `messages` table, linked to the appropriate session
+4. Ensure messages are retrieved in the correct order
+5. Handle conversion between Langchain message types and database schema
+6. Add error handling for database operations
+
+# Test Strategy:
+Write unit tests for the custom ChatMessageHistory implementation. Test adding messages, retrieving history, and clearing history. Verify that messages are correctly persisted in Supabase and retrieved in the right order.
+
+# Subtasks:
+## 1. Define SupabaseChatMessageHistory class structure and interface [done]
+### Dependencies: None
+### Description: Create the basic structure for the SupabaseChatMessageHistory class that implements Langchain's BaseChatMessageHistory interface, including constructor and required method signatures.
+### Details:
+1. Import necessary dependencies from Langchain and Supabase
+2. Define the SupabaseChatMessageHistory class that extends BaseChatMessageHistory
+3. Implement the constructor that accepts Supabase client, table name, and session ID parameters
+4. Define required interface methods as stubs: add_message, add_messages, clear, messages (getter)
+5. Add proper TypeScript typing for all methods and properties
+6. Create basic documentation for the class and its methods using JSDoc comments
+7. Test the class instantiation with a Supabase client
+
+## 2. Implement message storage functionality [done]
+### Dependencies: 6.1
+### Description: Develop the methods to add individual messages and batches of messages to the Supabase database.
+### Details:
+1. Implement the add_message method to store a single message in Supabase
+2. Create a helper function to convert Langchain message types to database schema format
+3. Implement the add_messages method to handle batch additions efficiently
+4. Add timestamp tracking for message ordering
+5. Ensure proper session ID linking for each message
+6. Include basic error handling for database operations
+7. Test adding different types of messages (human, AI, system) to verify correct storage
+
+## 3. Implement message retrieval functionality [done]
+### Dependencies: 6.1, 6.2
+### Description: Create the functionality to retrieve message history from Supabase in the correct order and format.
+### Details:
+1. Implement the messages getter to retrieve messages from Supabase
+2. Create a helper function to convert database records back to Langchain message types
+3. Add proper ordering of messages by timestamp
+4. Filter messages by the session ID provided during initialization
+5. Handle empty result sets appropriately
+6. Implement pagination if needed for large message histories
+7. Test retrieving messages to ensure correct ordering and format conversion
+
+## 4. Implement history clearing functionality [done]
+### Dependencies: 6.1, 6.2
+### Description: Develop the method to clear message history for a specific session in the Supabase database.
+### Details:
+1. Implement the clear method to delete all messages for the current session ID
+2. Add confirmation mechanism or safety checks before deletion
+3. Ensure deletion is scoped only to the current session ID
+4. Add transaction support if needed for data integrity
+5. Return appropriate success/failure status
+6. Add logging for deletion operations
+7. Test clearing history to verify that only the targeted session messages are removed
+
+## 5. Enhance error handling and add comprehensive tests [done]
+### Dependencies: 6.1, 6.2, 6.3, 6.4
+### Description: Improve error handling throughout the class and create comprehensive tests for all functionality.
+### Details:
+1. Implement robust error handling for all database operations
+2. Add specific error types and messages for different failure scenarios
+3. Implement retry logic for transient database errors
+4. Add connection validation before operations
+5. Create unit tests for all class methods with various scenarios
+6. Add integration tests with a real or mocked Supabase instance
+7. Test edge cases like network failures, malformed messages, and concurrent operations
+8. Document error handling behavior and recovery strategies
+
