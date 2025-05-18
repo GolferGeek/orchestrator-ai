@@ -116,5 +116,60 @@ These examples demonstrate the basic capabilities and context memory:
     *   **User**: "What are the sales figures from last year?"
     *   **Agent**: (Should delegate to a metrics agent, e.g., "Let me check the sales figures from last year for you.")
 
+## Supabase Database Migrations
+
+This project uses the Supabase CLI to manage database schema changes for the remote Supabase SaaS project. Migration files are stored in the `/supabase/migrations/` directory.
+
+**Workflow:**
+
+1.  **Login to Supabase CLI (One-time per machine/user)**:
+    ```bash
+    npm run supabase:login
+    ```
+    Follow the prompts to authenticate with your Supabase account.
+
+2.  **Link Local Project to Remote Supabase Project (One-time per local project clone)**:
+    You'll need your Supabase Project Reference ID (from your Supabase project dashboard: Settings > General).
+    Edit the `YOUR_PROJECT_REF_HERE` placeholder in the `package.json` script for `supabase:link` or run directly:
+    ```bash
+    supabase link --project-ref <your-actual-project-ref>
+    ```
+    Enter your database password when prompted.
+
+3.  **Creating a New Migration**:
+    *   **Option A: Write SQL Manually**
+        1.  Create a new SQL file in `supabase/migrations/` named with a timestamp prefix (e.g., `YYYYMMDDHHMMSS_my_descriptive_name.sql`).
+        2.  Write your DDL statements (CREATE TABLE, ALTER TABLE, etc.) in this file.
+    *   **Option B: Pull Changes Made in Supabase Studio**
+        If you've made schema changes directly in the Supabase Dashboard Studio and want to capture them as a migration:
+        ```bash
+        npm run supabase:db:pull
+        ```
+        This will generate a new migration file in `supabase/migrations/` based on the differences between your linked remote database and the last known migration state.
+        You can also use the helper script which prompts for a name:
+        ```bash
+        npm run supabase:migrate:new 
+        # (Then enter a descriptive name for the migration when prompted)
+        ```
+
+4.  **Applying Migrations to Remote Database**:
+    To apply any pending local migration files (from `supabase/migrations/`) to your linked remote Supabase project:
+    ```bash
+    npm run supabase:migrate:up
+    ```
+    You may be prompted for your database password.
+
+5.  **Resetting Remote Database (Use with Extreme Caution - Dev/Staging ONLY)**:
+    If you need to reset your linked remote database and reapply all migrations (e.g., for a clean development or staging environment):
+    ```bash
+    npm run supabase:db:reset:remote
+    ```
+    You will be asked for confirmation as this is a destructive operation.
+
+**Important Notes:**
+*   Always commit your migration files to version control.
+*   It's recommended to have separate Supabase projects for development, staging, and production, and manage migrations accordingly.
+*   For triggers on `auth.users` (like the `handle_new_user` function), it's often more reliable to create the trigger itself via the Supabase Dashboard (Database > Triggers section) after the function is created by a migration, due to potential permission issues.
+
 ---
 *This README provides a general guide for v0.1.0. For more detailed architectural information, see `docs/versions/0.1/ARCHITECTURE.md`.* 

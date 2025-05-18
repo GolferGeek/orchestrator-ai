@@ -1,21 +1,21 @@
 <template>
-  <div class="message-item-wrapper" :class="[`message-sender--${message.sender}`]">
-    <div v-if="message.messageType === 'agentList'" class="agent-list-message-container">
+  <div class="message-item-wrapper" :class="[`message-sender--${senderType}`]">
+    <!-- <div v-if="message.messageType === 'agentList'" class="agent-list-message-container"> 
       <AgentListDisplay :agents="message.data.agents" />
-    </div>
-    <div v-else class="message-item" :class="[`message-item--${message.sender}`]">
-      <ion-avatar v-if="message.sender === 'agent'" slot="start" class="message-avatar agent-avatar">
+    </div> -->
+    <div class="message-item" :class="[`message-item--${senderType}`]">
+      <ion-avatar v-if="senderType === 'agent'" slot="start" class="message-avatar agent-avatar">
         <ion-icon :icon="cogOutline" size="small"></ion-icon>
       </ion-avatar>
       <div class="message-bubble-wrapper">
         <div class="message-bubble">
-          <div v-if="message.sender === 'agent' && message.agentName" class="message-agent-name">{{ message.agentName }}</div>
-          <div v-else-if="message.sender === 'system' && message.agentName" class="message-agent-name">{{ message.agentName }}</div>
-          <div class="message-text" v-if="message.text" v-html="renderedText"></div>
+          <div v-if="senderType === 'agent' && message.metadata?.agentName" class="message-agent-name">{{ message.metadata.agentName }}</div>
+          <div v-else-if="senderType === 'system' && message.metadata?.agentName" class="message-agent-name">{{ message.metadata.agentName }}</div>
+          <div class="message-text" v-if="message.content" v-html="renderedText"></div>
           <div class="message-timestamp">{{ formattedTimestamp }}</div>
         </div>
       </div>
-      <ion-avatar v-if="message.sender === 'user'" slot="end" class="message-avatar user-avatar">
+      <ion-avatar v-if="senderType === 'user'" slot="end" class="message-avatar user-avatar">
         <ion-icon :icon="personCircleOutline" size="small"></ion-icon>
       </ion-avatar>
     </div>
@@ -24,22 +24,30 @@
 
 <script setup lang="ts">
 import { defineProps, computed } from 'vue';
-import { ChatMessage } from '../types/chat';
+import type { Message } from '@/services/sessionService';
 import { marked } from 'marked';
 import { IonAvatar, IonIcon } from '@ionic/vue';
 import { personCircleOutline, cogOutline } from 'ionicons/icons';
 import AgentListDisplay from './AgentListDisplay.vue';
 
 const props = defineProps<{
-  message: ChatMessage;
+  message: Message;
 }>();
 
+const senderType = computed(() => {
+  if (props.message.role === 'user') return 'user';
+  if (props.message.role === 'assistant') return 'agent';
+  if (props.message.role === 'system') return 'system';
+  return 'agent';
+});
+
 const renderedText = computed(() => {
-  if (!props.message.text) return '';
-  if (props.message.sender === 'agent' || props.message.sender === 'system') {
-    return marked.parse(props.message.text, { breaks: true, gfm: true });
+  if (!props.message.content) return '';
+  if (senderType.value === 'agent' || senderType.value === 'system') {
+    return marked.parse(props.message.content, { breaks: true, gfm: true });
   } else {
-    return props.message.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const text = props.message.content;
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 });
 
