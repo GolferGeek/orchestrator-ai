@@ -1,100 +1,120 @@
-# Orchestrator AI
+# Orchestrator AI (Monorepo) - v0.1.0
 
-A multi-agent system that orchestrates specialized AI agents to handle various tasks. Built with FastAPI and powered by the OpenAI API.
+## Overview
 
-## 🚀 Getting Started
+Orchestrator AI is a multi-agent system designed to handle various tasks through a conversational interface. It features a central orchestrator agent that intelligently delegates tasks to specialized sub-agents. The system maintains conversational context and is accessed via an Ionic Vue frontend application.
 
-Follow these steps to set up and run the Orchestrator AI system on your local machine.
+**Key Capabilities (v0.1.0):**
+*   Orchestration of tasks to specialized agents (e.g., blog writing, metrics reporting).
+*   Maintenance of conversation context using session IDs and chat history.
+*   Web-based chat interface for user interaction.
 
-### Prerequisites
-
-- Node.js (v16+)
-- Python 3.10+
-- npm or pnpm
-- OpenAI API key
-
-### Step 1: Get an OpenAI API Key
-
-1. Go to [OpenAI's platform](https://platform.openai.com/)
-2. Sign up or log in to your account
-3. Navigate to the API section
-4. Create an API key
-5. Copy your API key for the next step
-
-### Step 2: Set Up Environment Variables
-
-1. Create a `.env` file in the root directory of the project
-2. Add the following variables to the file:
+## Directory Structure
 
 ```
-OPENAI_API_KEY=your_openai_api_key_here
-ENVIRONMENT=development
-LOG_LEVEL=INFO
-HOST=0.0.0.0
-PORT=8000
+orchestrator-ai/
+├── apps/
+│   ├── api/            # FastAPI backend (Orchestrator, Sub-Agents)
+│   └── web/            # Ionic Vue frontend application
+├── docs/
+│   └── versions/
+│       └── 0.1/
+│           └── ARCHITECTURE.md # Detailed architecture
+├── shared/             # Shared utilities (currently minimal)
+├── .env                # Local environment variables (gitignored)
+├── .env.example        # Example environment variables
+├── package.json        # Root project scripts and Node.js dependencies
+├── pyproject.toml      # Root Python project definition (PDM)
+└── README.md           # This file
 ```
 
-Replace `your_openai_api_key_here` with the API key you obtained in Step 1.
+## Prerequisites
 
-### Step 3: Configure and Run the API
+*   **Node.js**: v18.x or later (npm v9.8.1 or as specified in root `package.json`).
+*   **Python**: v3.13 (as specified in `pyproject.toml`).
+*   **PDM**: Python Dependency Manager. Install via pip: `pip install pdm`.
+*   **Git**: For version control.
+*   **OpenAI API Key**: Required for the orchestrator's decision-making capabilities.
 
-The project includes several npm scripts to simplify setup and running:
+## Setup & Installation
 
-```bash
-# Configure the API environment (only need to run this once)
-npm run configure:api
+1.  **Clone the Repository**:
+    ```bash
+    git clone <your_repository_url>
+    cd orchestrator-ai
+    ```
 
-# Run the API server
-npm run api
+2.  **Install Root Node.js Dependencies**:
+    (Handles tools like Turbo, Prettier, and workspace script execution)
+    ```bash
+    npm install
+    ```
 
-# Run API tests
-npm run test:api
-```
+3.  **Backend API Setup**:
+    ```bash
+    cd apps/api
+    python3 -m pdm install
+    cd ../.. # Back to project root
+    ```
 
-#### What These Commands Do:
+4.  **Frontend Web Application Setup**:
+    ```bash
+    cd apps/web
+    npm install
+    cd ../.. # Back to project root
+    ```
 
-- `npm run configure:api`: Sets up the Python virtual environment and installs all dependencies
-- `npm run api`: Starts the FastAPI server
-- `npm run test:api`: Runs the API test suite
+5.  **Environment Configuration**:
+    *   At the project root (`orchestrator-ai/`), create a `.env` file. You can copy from `.env.example` if one is provided.
+    *   Add your OpenAI API key to the `.env` file:
+        ```env
+        OPENAI_API_KEY="sk-yourActualOpenAIKeyHere"
+        # Add any other necessary environment variables
+        ```
 
-## 📋 Available Agents
+## Running the Application
 
-The system includes several specialized agents:
+Ensure you are in the project root directory (`orchestrator-ai/`).
 
-- **Orchestrator**: The main routing agent that directs queries to appropriate specialized agents
-- **Metrics Agent**: Provides business metrics and analytics information
-- **Blog Post Writer**: Creates high-quality blog posts for marketing purposes
-- And more...
+*   **Full Development Mode (API & Frontend with Auto-Reload)**:
+    This is the recommended way to run the application during development.
+    ```bash
+    npm run dev
+    ```
+    *   The API will typically be available at `http://localhost:8000`.
+    *   The Frontend will typically be available at `http://localhost:5173` (or as specified by its dev server).
 
-## 📝 Usage
+*   **API Only (with Auto-Reload)**:
+    ```bash
+    npm run dev:api
+    ```
+    API logs will be visible in the terminal.
 
-Once the API server is running, you can interact with it:
+*   **Frontend Only (with Auto-Reload)**:
+    ```bash
+    npm run dev:web
+    ```
+    Frontend build logs and server information will be in the terminal.
 
-1. Send requests to the orchestrator endpoint: `http://localhost:8000/agents/orchestrator/tasks`
-2. The orchestrator will analyze your request and route it to the appropriate specialized agent
-3. Receive a comprehensive response based on the agent's specialized knowledge
+## Example Interactions (Test Cases for v0.1)
 
-### Example Request:
+These examples demonstrate the basic capabilities and context memory:
 
-```json
-{
-  "id": "task-123",
-  "message": {
-    "role": "user",
-    "parts": [
-      {
-        "type": "text",
-        "text": "What were our total sales in Q3 2023?"
-      }
-    ]
-  }
-}
-```
+1.  **Greeting and Name Recognition**:
+    *   **User**: "Hi, my name is Matt."
+    *   **Agent**: (Should acknowledge the name, e.g., "Hello Matt! How can I assist you today?")
 
-## 🛠️ Development
+2.  **Context Recall**:
+    *   **User**: (After introducing name) "Do you remember my name?"
+    *   **Agent**: (Should confirm the name, e.g., "Yes, your name is Matt.")
 
-To extend the system with new agents, add them to the appropriate category in `apps/api/agents/` directory and create corresponding context files in `markdown_context/`.
+3.  **Delegation to Blog Post Agent**:
+    *   **User**: "Can you write me a blog post about the future of AI?"
+    *   **Agent**: (Should delegate to a blog post agent, e.g., "Certainly! I'll get started on a blog post about the future of AI for you.")
 
-## 📄 License
+4.  **Delegation to Metrics Agent**:
+    *   **User**: "What are the sales figures from last year?"
+    *   **Agent**: (Should delegate to a metrics agent, e.g., "Let me check the sales figures from last year for you.")
 
-This project is licensed under the MIT License. 
+---
+*This README provides a general guide for v0.1.0. For more detailed architectural information, see `docs/versions/0.1/ARCHITECTURE.md`.* 
