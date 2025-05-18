@@ -2,17 +2,35 @@
   <ion-page>
     <ion-header :translucent="true">
       <ion-toolbar :class="{ 'ios-header-style': isIOS }">
-        <ion-title>Orchestrator Chat</ion-title>
+        <ion-buttons slot="start">
+          <ion-menu-button :auto-hide="false" v-if="auth.isAuthenticated"></ion-menu-button>
+        </ion-buttons>
+        <ion-title>{{ currentSessionName || 'Orchestrator Chat' }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="ion-padding">
-      <MessageListComponent />
+    <ion-content :fullscreen="true" class="ion-padding" ref="chatContentEl">
+      <div v-if="!auth.isAuthenticated" class="ion-text-center ion-padding">
+         <p>Please <router-link to="/login">login</router-link> to start chatting.</p>
+      </div>
+      <div v-else-if="!sessionStore.currentSessionId && !sessionStore.isLoadingMessages" class="ion-text-center ion-padding">
+        <p>Select a session or start a new chat from the menu.</p>
+      </div>
+      <div v-else-if="sessionStore.isLoadingMessages" class="ion-text-center ion-padding">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Loading messages...</p>
+      </div>
+      <div v-else-if="sessionStore.messagesError" class="ion-text-center ion-padding">
+        <ion-text color="danger">Error loading messages: {{ sessionStore.messagesError }}</ion-text>
+      </div>
+      <MessageListComponent 
+        v-else 
+        :messages="sessionStore.currentSessionMessages" 
+        @messages-rendered="handleMessagesRenderedInChild" />
     </ion-content>
 
-    <ion-footer>
-      <ChatInputComponent @send-message="handleSendMessage" />
-      <!-- Optional: Display a spinner based on uiStore.isLoading -->
+    <ion-footer v-if="auth.isAuthenticated && sessionStore.currentSessionId">
+      <ChatInputComponent @send-message="handleSendMessage" :disabled="uiStore.getIsAppLoading" />
       <div v-if="uiStore.getIsAppLoading" class="loading-indicator ion-padding-start ion-padding-bottom">
         <ion-spinner name="dots" color="primary"></ion-spinner>
       </div>
@@ -22,54 +40,168 @@
 
 <script setup lang="ts">
 import { 
-  IonContent, 
-  IonHeader, 
-  IonPage, 
-  IonTitle, 
-  IonToolbar, 
-  IonFooter,
-  IonSpinner,
-  isPlatform
+  IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonFooter, IonSpinner, IonText, 
+  isPlatform, IonButtons, IonMenuButton
 } from '@ionic/vue';
-import { onMounted, onUnmounted, computed } from 'vue';
+import { onMounted, onUnmounted, computed, watch, nextTick, ref } from 'vue';
 import { Keyboard, KeyboardInfo } from '@capacitor/keyboard';
 import { Capacitor } from '@capacitor/core';
-import { useMessagesStore } from '../stores/messagesStore';
-// import { useAgentsStore } from '../stores/agentsStore'; // Not directly used here for now
-import { useUiStore } from '../stores/uiStore';
-// import { postMessageToOrchestrator } from '../services/apiService'; // No longer needed here
+import { useAuthStore } from '@/stores/authStore';
+import { useSessionStore } from '@/stores/sessionStore';
+import { useUiStore } from '@/stores/uiStore';
+import { postTaskToOrchestrator } from '@/services/apiService';
+import { storeToRefs } from 'pinia';
 
 import MessageListComponent from '../components/MessageList.vue';
 import ChatInputComponent from '../components/ChatInput.vue';
 
-const messagesStore = useMessagesStore();
-const uiStore = useUiStore(); // Still needed for v-if on spinner
-// const agentsStore = useAgentsStore();
+const auth = useAuthStore();
+const sessionStore = useSessionStore();
+const uiStore = useUiStore();
+
+const { currentSessionId, currentSessionMessages } = storeToRefs(sessionStore);
+const chatContentEl = ref<InstanceType<typeof IonContent> | null>(null);
 
 const isIOS = computed(() => isPlatform('ios'));
 
-const handleSendMessage = (text: string) => {
-  // All logic is now in the store's action
-  messagesStore.submitMessageToOrchestrator(text);
+const currentSessionName = computed(() => {
+  if (currentSessionId.value) {
+    return `Chat`;
+  }
+  return 'Orchestrator Chat';
+});
+
+const handleMessagesRenderedInChild = () => {
+  console.log("[HomePage] Received messages-rendered event from MessageList.");
+  scrollToBottom();
+};
+
+const scrollToBottom = async () => {
+  console.log("[HomePage] scrollToBottom called (triggered by messages-rendered)");
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  const contentHostElement = chatContentEl.value?.$el as HTMLElement | undefined;
+  if (!contentHostElement) {
+    console.warn("[HomePage] IonContent $el not found.");
+    return;
+  }
+
+  let scrollElement = contentHostElement.querySelector('.inner-scroll') as HTMLElement || 
+                      (contentHostElement.shadowRoot ? contentHostElement.shadowRoot.querySelector('.inner-scroll') as HTMLElement : null) || 
+                      contentHostElement;
+  
+  if (scrollElement === contentHostElement && scrollElement.firstElementChild && scrollElement.firstElementChild.scrollHeight > scrollElement.scrollHeight) {
+    console.log("[HomePage] Host element $el might not be the scroller, trying its first child.");
+    scrollElement = scrollElement.firstElementChild as HTMLElement;
+  }
+
+  if (scrollElement && typeof scrollElement.scrollTop !== 'undefined') {
+    console.log(`[HomePage] Attempting to scroll element: ${scrollElement.tagName}${scrollElement.className ? '.' + scrollElement.className : ''}. Current scrollHeight: ${scrollElement.scrollHeight}, clientHeight: ${scrollElement.clientHeight}, current scrollTop: ${scrollElement.scrollTop}`);
+    if (scrollElement.scrollHeight > scrollElement.clientHeight) { 
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+        console.log("[HomePage] Manually set scrollTop. New scrollTop: " + scrollElement.scrollTop);
+    } else {
+        console.log("[HomePage] Element is not scrollable (scrollHeight <= clientHeight).");
+    }
+  } else {
+    console.error("[HomePage] Could not find a suitable scrollable element or its scrollTop property.");
+  }
+};
+
+watch(currentSessionId, (newId, oldId) => {
+  console.log("[HomePage] Watcher for currentSessionId triggered. New ID:", newId);
+  if (newId && newId !== oldId) {
+    if (!newId) currentSessionMessages.value = [];
+    // Messages will be fetched by store, then MessageList will emit 'messages-rendered'
+    // Do NOT call scrollToBottom() here directly, wait for messages-rendered event.
+    // scrollToBottom(); 
+  }
+});
+
+const handleSendMessage = async (text: string) => {
+  if (!currentSessionId.value) {
+    console.error("No active session to send message to.");
+    return;
+  }
+
+  uiStore.setAppLoading(true);
+  const userMessageOrder = (currentSessionMessages.value.length > 0 
+            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+            : 1);
+  const userMessage = {
+    id: `temp-user-${Date.now()}`,
+    session_id: currentSessionId.value,
+    user_id: auth.user?.id || 'unknown-user',
+    role: 'user' as const,
+    content: text,
+    timestamp: new Date().toISOString(),
+    order: userMessageOrder
+  };
+  sessionStore.addMessageToCurrentSession(userMessage);
+  console.log("[HomePage] User message added to store:", JSON.parse(JSON.stringify(userMessage)));
+
+  try {
+    const taskResponse = await postTaskToOrchestrator(text, currentSessionId.value);
+    console.log("[HomePage] Received taskResponse from orchestrator:", JSON.parse(JSON.stringify(taskResponse))); // DEBUG PRINT
+    
+    if (taskResponse.response_message && taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0) {
+      const agentText = taskResponse.response_message.parts[0]?.text || 'No response text.';
+      const agentMessageOrder = (currentSessionMessages.value.length > 0 
+            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+            : 1);
+      const agentMetadata: Record<string, any> = {};
+      if (taskResponse.response_message?.metadata?.responding_agent_name) {
+        agentMetadata.agentName = taskResponse.response_message.metadata.responding_agent_name;
+      }
+
+      const agentMessage = {
+        id: taskResponse.id,
+        session_id: currentSessionId.value,
+        user_id: 'agent',
+        role: 'assistant' as const,
+        content: agentText,
+        timestamp: new Date().toISOString(),
+        order: agentMessageOrder,
+        metadata: agentMetadata
+      };
+      console.log("[HomePage] Constructed agentMessage:", JSON.parse(JSON.stringify(agentMessage))); // DEBUG PRINT
+      sessionStore.addMessageToCurrentSession(agentMessage);
+      console.log("[HomePage] Agent message added to store. Store messages count:", sessionStore.currentSessionMessages.length); // DEBUG PRINT
+    } else {
+      console.warn("[HomePage] No response_message or parts found in taskResponse:", JSON.parse(JSON.stringify(taskResponse))); // DEBUG PRINT
+    }
+    if (taskResponse.session_id && taskResponse.session_id !== currentSessionId.value) {
+        sessionStore.setCurrentSessionId(taskResponse.session_id);
+    }
+
+  } catch (error: any) {
+    console.error('Error sending message:', error);
+    const errorMessageOrder = (currentSessionMessages.value.length > 0 
+            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+            : 1);
+    const errorMessage = {
+      id: `temp-error-${Date.now()}`,
+      session_id: currentSessionId.value!,
+      user_id: 'system',
+      role: 'system' as const,
+      content: `Error: ${error.message || 'Could not send message.'}`, 
+      timestamp: new Date().toISOString(),
+      order: errorMessageOrder
+    };
+    sessionStore.addMessageToCurrentSession(errorMessage);
+  } finally {
+    uiStore.setAppLoading(false);
+    scrollToBottom();
+  }
 };
 
 // Keyboard event handling
 const keyboardWillShowHandler = (info: KeyboardInfo) => {
   console.log('Keyboard will show, height:', info.keyboardHeight);
-  // Add any UI adjustments needed, e.g., adjust bottom padding of ion-content
-  // const ionContent = document.querySelector('ion-content');
-  // if (ionContent) {
-  //   ionContent.style.setProperty('--keyboard-offset', `${info.keyboardHeight}px`);
-  // }
 };
 
 const keyboardWillHideHandler = () => {
   console.log('Keyboard will hide');
-  // Remove UI adjustments
-  // const ionContent = document.querySelector('ion-content');
-  // if (ionContent) {
-  //   ionContent.style.removeProperty('--keyboard-offset');
-  // }
 };
 
 onMounted(() => {
@@ -77,6 +209,12 @@ onMounted(() => {
     Keyboard.addListener('keyboardWillShow', keyboardWillShowHandler);
     Keyboard.addListener('keyboardWillHide', keyboardWillHideHandler);
   }
+  // For initial load, if messages are already there, MessageList should emit on its own mount if messages exist (if we add that logic to MessageList).
+  // For now, deferring this. The user can scroll manually on first load if needed, or we can refine MessageList.
+  // if (currentSessionMessages.value.length > 0) { 
+  //   console.log("[HomePage] onMounted: Messages present, scheduling a scrollToBottom soon.");
+  //   setTimeout(scrollToBottom, 300); // Delay slightly for child component rendering
+  // }
 });
 
 onUnmounted(() => {
