@@ -20,11 +20,11 @@ from apps.api.v1.agents.base.mcp_context_agent_base import MCPContextAgentBaseSe
 
 # Agent specific metadata
 HR_AGENT_ID = "hr-assistant-agent-v1"
-HR_AGENT_NAME = "HR Assistant Agent"
+HR_AGENT_NAME = "HR Assistant"
 HR_AGENT_DESCRIPTION = "Provides assistance with HR-related queries and tasks by leveraging an MCP."
 HR_AGENT_VERSION = "0.1.0"
-HR_MCP_TARGET_AGENT_ID = "hr_assistant_agent" # Changed from knowledge_agent_hr_domain
-HR_CONTEXT_FILE_NAME = "hr_assistant_agent.md"
+HR_MCP_TARGET_AGENT_ID = "hr_assistant"
+HR_CONTEXT_FILE_NAME = "hr_assistant.md"
 HR_PRIMARY_CAPABILITY_NAME = "query_hr_information"
 HR_PRIMARY_CAPABILITY_DESCRIPTION = "Answers HR-related questions by relaying them to an MCP, using HR context."
 

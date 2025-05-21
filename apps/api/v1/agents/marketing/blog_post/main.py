@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException # Add FastAPI imports
 from fastapi import Path as FastAPIPath # Add this import for Path parameter validation
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
+from pathlib import Path
 
 from apps.api.v1.a2a_protocol.types import (
     AgentCard,
@@ -48,8 +49,8 @@ class BlogPostAgentService(MCPContextAgentBaseService):
     primary_capability_name: str = PRIMARY_CAPABILITY_NAME
     primary_capability_description: str = PRIMARY_CAPABILITY_DESCRIPTION
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    # The custom __init__ is removed. Context loading is handled by llm_mcp.py
+    # based on mcp_target_agent_id.
 
     async def get_agent_card(self) -> AgentCard:
         return AgentCard(
