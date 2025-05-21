@@ -9,8 +9,8 @@
       </ion-avatar>
       <div class="message-bubble-wrapper">
         <div class="message-bubble">
-          <div v-if="senderType === 'agent' && message.metadata?.agentName" class="message-agent-name">{{ message.metadata.agentName }}</div>
-          <div v-else-if="senderType === 'system' && message.metadata?.agentName" class="message-agent-name">{{ message.metadata.agentName }}</div>
+          <div v-if="senderType === 'agent' && agentName" class="message-agent-name">{{ agentName }}</div>
+          <div v-else-if="senderType === 'system' && agentName" class="message-agent-name">{{ agentName }}</div>
           <div class="message-text" v-if="message.content" v-html="renderedText"></div>
           <div class="message-timestamp">{{ formattedTimestamp }}</div>
         </div>
@@ -28,7 +28,6 @@ import type { Message } from '@/services/sessionService';
 import { marked } from 'marked';
 import { IonAvatar, IonIcon } from '@ionic/vue';
 import { personCircleOutline, cogOutline } from 'ionicons/icons';
-import AgentListDisplay from './AgentListDisplay.vue';
 
 const props = defineProps<{
   message: Message;
@@ -53,6 +52,19 @@ const renderedText = computed(() => {
 
 const formattedTimestamp = computed(() => {
   return new Date(props.message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+});
+
+const agentName = computed(() => {
+  // Check for the responding_agent_name in metadata (from orchestrator)
+  if (props.message.metadata?.responding_agent_name) {
+    return props.message.metadata.responding_agent_name;
+  }
+  // Fallback to agentName for backward compatibility
+  if (props.message.metadata?.agentName) {
+    return props.message.metadata.agentName;
+  }
+  // Default to "AI" if no agent name is provided
+  return senderType.value === 'agent' ? 'AI' : null;
 });
 
 </script>
