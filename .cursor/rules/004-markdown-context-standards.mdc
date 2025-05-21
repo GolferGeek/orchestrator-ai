@@ -3,8 +3,6 @@ name: "Markdown Context Standards"
 description: "Guidelines for creating and maintaining agent knowledge bases using Markdown files."
 globs: ["markdown_context/**/*.md"]
 alwaysApply: true
----
-
 # Markdown Context Standards
 
 ## Purpose
@@ -12,8 +10,9 @@ alwaysApply: true
 - They allow for rapid prototyping and iteration before implementing more complex RAG or API integrations.
 
 ## File Location
-- All agent context files must be located in the `markdown_context/` directory at the project root.
+- All agent context files for API v1 must be located in the `apps/api/v1/markdown_context/` directory.
 - Each agent should have its own markdown file named `[agent_name].md` (e.g., `metrics_agent.md`).
+- Ensure that the path in any relevant test or discovery fixtures (e.g., `apps/api/v1/tests/e2e/conftest.py`) is updated to reflect this location.
 
 ## Formatting Requirements
 - Use standard Markdown syntax.
@@ -35,3 +34,4 @@ alwaysApply: true
 ## Maintenance
 - Regularly review and update context files as the project evolves.
 - Ensure consistency between the agent's `agent.json` description and its markdown context capabilities.
+

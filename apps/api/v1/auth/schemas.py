@@ -1,5 +1,5 @@
 # apps/api/auth/schemas.py
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional, Union # Added Union
 from uuid import UUID # Changed from UUID4 to UUID for broader compatibility if needed
 from datetime import datetime
@@ -21,8 +21,7 @@ class UserResponse(UserBase):
     created_at: Optional[datetime] = None
     # email and display_name are inherited from UserBase
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -46,8 +45,7 @@ class SupabaseAuthUser(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Represents the user data we might want to use or expose via /me, potentially combined
 # from auth user and public.users table.
@@ -57,5 +55,4 @@ class AuthenticatedUserResponse(BaseModel):
     display_name: Optional[str] = None # This would come from our public.users table
     # Add any other fields you want to return for an authenticated user session
 
-    class Config:
-        from_attributes = True 
+    model_config = ConfigDict(from_attributes=True) 

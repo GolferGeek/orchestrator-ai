@@ -175,6 +175,13 @@ def process_agent_module(
     if not hasattr(module, agent_service_class_name_candidate) and hasattr(module, "AgentService"): # Fallback
         agent_service_class_name_candidate = "AgentService"
 
+    if agent_module_dir.name == "orchestrator": # DEBUG for orchestrator
+        print(f"DEBUG_ORCH: Orchestrator module found. Service class candidate: {agent_service_class_name_candidate}")
+        actual_class_name = "NOT_FOUND"
+        if hasattr(module, agent_service_class_name_candidate):
+            actual_class_name = getattr(module, agent_service_class_name_candidate).__name__
+        print(f"DEBUG_ORCH: Actual service class name from module: {actual_class_name}")
+
     if router_to_include:
         app_to_configure.include_router(router_to_include)
         print(f"[PROCESS_AGENT_MODULE] Included agent_router from {agent_module_dir.name}")
@@ -202,6 +209,7 @@ def process_agent_module(
                 
                 # Special handling for OrchestratorService to inject dependencies
                 if agent_service_class.__name__ == "OrchestratorService":
+                    if agent_module_dir.name == "orchestrator": print(f"DEBUG_ORCH: Matched {agent_service_class.__name__} for dependency injection.") # DEBUG
                     current_openai_service = openai_service_provider()
                     if current_openai_service:
                         init_params["openai_service"] = current_openai_service
@@ -209,18 +217,24 @@ def process_agent_module(
                     current_supabase_client_instance = supabase_client_provider() # Get Supabase client
                     if current_supabase_client_instance:
                         init_params["supabase_client"] = current_supabase_client_instance
-                        print(f"[PROCESS_AGENT_MODULE] Original Supabase client initialized for OrchestratorService")
+                        if agent_module_dir.name == "orchestrator": print(f"DEBUG_ORCH: Supabase client injected for OrchestratorService.") # DEBUG
                     else:
-                        print(f"[PROCESS_AGENT_MODULE] Warning: Supabase client is None, Orchestrator will not have DB history.")
+                        if agent_module_dir.name == "orchestrator": print(f"DEBUG_ORCH: Warning: Supabase client is None for Orchestrator.") # DEBUG
                 
+                if agent_module_dir.name == "orchestrator": print(f"DEBUG_ORCH: Initializing {agent_service_class.__name__} instance...") # DEBUG
                 agent_service_instance = agent_service_class(**init_params)
+                if agent_module_dir.name == "orchestrator": # DEBUG for orchestrator
+                    print(f"DEBUG_ORCH: {agent_service_class.__name__} instance created: {type(agent_service_instance)}")
+                    print(f"DEBUG_ORCH: hasattr(get_agent_card): {hasattr(agent_service_instance, 'get_agent_card')}")
+                    print(f"DEBUG_ORCH: hasattr(handle_task_send for generic path): {hasattr(agent_service_instance, 'handle_task_send')}")
+                    print(f"DEBUG_ORCH: Is actual class OrchestratorService: {agent_service_class.__name__ == 'OrchestratorService'}")
 
                 router = APIRouter()
                 base_prefix = f"/agents/{category_name}/{agent_module_dir.name}" if category_name else f"/agents/{agent_module_dir.name}"
 
                 # --- Route for /tasks ---
                 if agent_service_class.__name__ == "OrchestratorService":
-                    # Orchestrator's /tasks endpoint needs authentication and session handling
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: Matched OrchestratorService for custom /tasks POST route.") # DEBUG
                     
                     # Create a new session if one is not provided or if it's an invalid format
                     # This logic is now being centralized here before calling process_message
@@ -390,30 +404,56 @@ def process_agent_module(
 
 
                     router.add_api_route("/tasks", orchestrator_task_handler, methods=["POST"], response_model=Task, tags=tags)
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: Added custom /tasks POST route for orchestrator.") # DEBUG
                     logger.info("Added authenticated /tasks route for OrchestratorService")
                 else: # For other agents
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: DID NOT match OrchestratorService for custom /tasks POST, would use generic if this branch was hit for orchestrator (it shouldn't).") # DEBUG
                     router.add_api_route("/tasks", agent_service_instance.handle_task_send, methods=["POST"], response_model=Task, tags=tags)
                 
                 if hasattr(agent_service_instance, "get_agent_card"):
                     router.add_api_route("/agent-card", agent_service_instance.get_agent_card, methods=["GET"], response_model=AgentCard, tags=tags)
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: Added /agent-card route.") # DEBUG
+                else: # DEBUG
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: OrchestratorService instance does NOT have get_agent_card.") # DEBUG
+
                 if hasattr(agent_service_instance, "handle_task_get"):
                     router.add_api_route(f"/tasks/{{task_id}}", agent_service_instance.handle_task_get, methods=["GET"], response_model=Optional[Task], tags=tags)
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: Added /tasks/{task_id} GET route.") # DEBUG
+                else: # DEBUG
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: OrchestratorService instance does NOT have handle_task_get.") # DEBUG
+                
                 if hasattr(agent_service_instance, "handle_task_cancel"):
                     router.add_api_route(f"/tasks/{{task_id}}", agent_service_instance.handle_task_cancel, methods=["DELETE"], response_model=dict, tags=tags)
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: Added /tasks/{task_id} DELETE route.") # DEBUG
+                else: # DEBUG
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: OrchestratorService instance does NOT have handle_task_cancel.") # DEBUG
                 
                 if hasattr(module, "get_agent_discovery") and callable(getattr(module, "get_agent_discovery")):
                     router.add_api_route("/.well-known/agent.json", getattr(module, "get_agent_discovery"), methods=["GET"], tags=tags, include_in_schema=False)
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: Added /.well-known/agent.json route from module.get_agent_discovery.") # DEBUG
                 elif hasattr(agent_service_instance, "get_agent_card"): 
                     router.add_api_route("/.well-known/agent.json", agent_service_instance.get_agent_card, methods=["GET"], response_model=AgentCard, tags=tags, include_in_schema=False)
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: Added /.well-known/agent.json route from service.get_agent_card.") # DEBUG
+                else: # DEBUG
+                    if agent_module_dir.name == "orchestrator": print("DEBUG_ORCH: Orchestrator module/service does NOT have a .well-known/agent.json provider.") # DEBUG
 
 
                 if router.routes:
+                    if agent_module_dir.name == "orchestrator":
+                        print(f"DEBUG_ORCH: Router has routes. Including ORCHESTRATOR router with prefix: {base_prefix}")
                     app_to_configure.include_router(router, prefix=base_prefix, tags=tags)
                     logger.info(f"Included service-based router for {agent_module_dir.name} using {agent_service_class_name_candidate}")
+                else: # router.routes is empty
+                    if agent_module_dir.name == "orchestrator":
+                        print(f"DEBUG_ORCH: Router has NO routes. Not including orchestrator router.") # THIS IS KEY
 
             except Exception as e:
+                if agent_module_dir.name == "orchestrator": # DEBUG
+                    print(f"DEBUG_ORCH: EXCEPTION during orchestrator service processing: {e}")
                 logger.error(f"Error processing agent module {agent_module_dir.name} for {agent_service_class_name_candidate}: {e}", exc_info=True)
-        else:
+        else: # service class not found
+            if agent_module_dir.name == "orchestrator": # DEBUG
+                print(f"DEBUG_ORCH: Orchestrator service class '{agent_service_class_name_candidate}' not found in module.")
             logger.warning(f"No agent_router or service class candidate found in {agent_main_py}")
 
 def load_agent_services(app_to_configure: FastAPI):

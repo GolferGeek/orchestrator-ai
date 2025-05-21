@@ -29,8 +29,10 @@ async def get_current_authenticated_user(
     supabase_client: SupabaseClient = Depends(get_current_supabase_client)
 ) -> SupabaseAuthUser:
     # API Key Authentication (for testing or trusted services)
+    logger.info(f"[AUTH_DEP] Inside get_current_authenticated_user. settings.TEST_API_SECRET_KEY = '{settings.TEST_API_SECRET_KEY}'")
     if settings.TEST_API_SECRET_KEY:
         test_api_key = request.headers.get(TEST_API_KEY_HEADER)
+        logger.info(f"[AUTH_DEP] Header '{TEST_API_KEY_HEADER}' value: '{test_api_key}'")
         if test_api_key and test_api_key == settings.TEST_API_SECRET_KEY:
             logger.info(f"Authenticated via Test API Key as user {TEST_USER_ID_FOR_API_KEY_AUTH}")
             # Return a mock/predefined SupabaseAuthUser for the test API key user

@@ -1,13 +1,6 @@
-# Python virtual environment
-.venv/
-
-# PyC files
+.py[cod]
 __pycache__/
-*.py[cod]
-*$py.class
-
-# IDE / Editor specific
-.vscode/
-.idea/
-*.swp
-*.swo 
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.pdm-python

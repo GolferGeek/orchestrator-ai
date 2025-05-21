@@ -4,8 +4,8 @@ import uuid
 import httpx
 from fastapi import FastAPI
 
-from apps.api.agents.customer.email_triage.main import EmailTriageService, AGENT_ID as EMAIL_TRIAGE_AGENT_ID, AGENT_NAME as EMAIL_TRIAGE_AGENT_NAME, AGENT_VERSION as EMAIL_TRIAGE_AGENT_VERSION
-from apps.api.a2a_protocol.types import Message, TextPart, TaskSendParams
+from apps.api.v1.agents.customer.email_triage.main import EmailTriageService, AGENT_ID as EMAIL_TRIAGE_AGENT_ID, AGENT_NAME as EMAIL_TRIAGE_AGENT_NAME, AGENT_VERSION as EMAIL_TRIAGE_AGENT_VERSION
+from apps.api.v1.a2a_protocol.types import Message, TextPart, TaskSendParams
 
 # Helper to create a simple text message for sending tasks
 def create_simple_task_send_params(text: str, task_id: str | None = None) -> TaskSendParams:

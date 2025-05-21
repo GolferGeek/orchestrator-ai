@@ -8,7 +8,7 @@ import asyncio # Added for E2E test
 import uuid # Added for E2E test
 
 # Import agent-specific constants from the Internal RAG agent's main module
-from apps.api.agents.business.internal_rag.main import (
+from apps.api.v1.agents.business.internal_rag.main import (
     AGENT_ID as INTERNAL_RAG_AGENT_ID,
     AGENT_NAME as INTERNAL_RAG_AGENT_NAME,
     AGENT_VERSION as INTERNAL_RAG_AGENT_VERSION,
@@ -17,12 +17,12 @@ from apps.api.agents.business.internal_rag.main import (
     CONTEXT_FILE_NAME as INTERNAL_RAG_CONTEXT_FILE,
     PRIMARY_CAPABILITY_NAME as INTERNAL_RAG_PRIMARY_CAPABILITY
 )
-from apps.api.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState
-from apps.api.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError
+from apps.api.v1.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState
+from apps.api.v1.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError
 
 # Helper to get project root for loading the context file in tests
-PROJECT_ROOT = Path(__file__).resolve().parents[7] 
-INTERNAL_RAG_CONTEXT_FILE_PATH = PROJECT_ROOT / "markdown_context" / INTERNAL_RAG_CONTEXT_FILE
+API_V1_ROOT = Path(__file__).resolve().parents[5] # Corrected: up to apps/api/v1/
+INTERNAL_RAG_CONTEXT_FILE_PATH = API_V1_ROOT / "markdown_context" / INTERNAL_RAG_CONTEXT_FILE
 
 @pytest.mark.asyncio
 async def test_get_internal_rag_agent_card(client_and_app: tuple[httpx.AsyncClient, FastAPI]):
@@ -52,7 +52,7 @@ async def test_internal_rag_process_message_success(client_and_app: tuple[httpx.
         pytest.fail(f"Test setup error: Internal RAG context file not found at {INTERNAL_RAG_CONTEXT_FILE_PATH}")
 
     mock_query_aggregate = mocker.patch(
-        "apps.api.agents.business.internal_rag.main.MCPClient.query_agent_aggregate",
+        "apps.api.v1.agents.business.internal_rag.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         return_value=mocked_mcp_response
     )
@@ -88,7 +88,7 @@ async def test_internal_rag_process_message_mcp_connection_error(client_and_app:
     task_id = "test-internal-rag-conn-err-002"
     error_detail = "MCP connection failed."
     mock_mcp_call = mocker.patch(
-        "apps.api.agents.business.internal_rag.main.MCPClient.query_agent_aggregate",
+        "apps.api.v1.agents.business.internal_rag.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPConnectionError(error_detail)
     )
@@ -120,7 +120,7 @@ async def test_internal_rag_process_message_mcp_timeout_error(client_and_app: tu
     task_id = "test-internal-rag-timeout-err-003"
     error_detail = "Request to MCP timed out."
     mock_mcp_call = mocker.patch(
-        "apps.api.agents.business.internal_rag.main.MCPClient.query_agent_aggregate",
+        "apps.api.v1.agents.business.internal_rag.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPTimeoutError(error_detail)
     )
@@ -152,7 +152,7 @@ async def test_internal_rag_process_message_mcp_generic_error(client_and_app: tu
     task_id = "test-internal-rag-generic-err-004"
     error_detail = "An MCP specific error occurred."
     mock_mcp_call = mocker.patch(
-        "apps.api.agents.business.internal_rag.main.MCPClient.query_agent_aggregate",
+        "apps.api.v1.agents.business.internal_rag.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPError(error_detail, status_code=503)
     )
@@ -184,7 +184,7 @@ async def test_internal_rag_process_message_unexpected_error(client_and_app: tup
     task_id = "test-internal-rag-unexpected-err-005"
     error_detail = "Something truly unexpected happened."
     mock_mcp_call = mocker.patch(
-        "apps.api.agents.business.internal_rag.main.MCPClient.query_agent_aggregate",
+        "apps.api.v1.agents.business.internal_rag.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=ValueError(error_detail) 
     )
