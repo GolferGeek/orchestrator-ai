@@ -86,7 +86,7 @@ class OpenAIService:
         
         prompt_lines.append("\nBased on the user's query, you must decide on ONE of the following actions:")
         prompt_lines.append("1. 'delegate': If the query clearly matches an agent's capability, specify the 'agent_name' and formulate a concise 'query_for_agent' based on the user's original query. CRITICAL: If the conversation history shows the user is ALREADY talking to a specialized agent, you MUST continue delegating to that SAME agent unless the user has EXPLICITLY requested to end that conversation using one of the exact phrases listed above. This is the most important rule - maintain conversation continuity with the current agent.")
-        prompt_lines.append("2. 'respond_directly': If the query is a direct question, a simple statement, or a follow-up that you can answer using the provided chat history and your general knowledge, without needing to delegate to another agent. Also use this action when the user is transitioning from one topic to another, acknowledging the transition in your response. Provide the 'response_text'. Make sure to use information from the chat history if relevant to the user's query.")
+        prompt_lines.append("2. 'respond_directly': If the query is a direct question, a simple statement, or a follow-up that you can answer using the provided chat history and your general knowledge, without needing to delegate to another agent. Also use this action when the user is transitioning from one topic to another, acknowledging the transition in your response. Provide the 'response_text'. **If the user asks you to list your available agents or describe your capabilities, especially with a request for specific formatting (e.g., as a list, Markdown, or a table), use this action. The 'response_text' should then contain this information formatted as requested.**")
         prompt_lines.append("3. 'clarify': If the query is ambiguous or needs more information to decide on an action. Provide a 'clarification_question'.")
         prompt_lines.append("4. 'cannot_handle': If the query is outside the scope of your capabilities and known agents.")
         prompt_lines.append("5. 'transition': ONLY use this if the user has EXPLICITLY stated one of the exact phrases listed above to end their conversation with a specialized agent (like 'I'm done with you' or 'Let's talk about something else'). NEVER use this action based on the content or topic of the user's message - ONLY use it when they explicitly request to end the conversation. Include a 'response_text' that acknowledges the transition and responds to any new query they've included. If they've asked a new question, also include 'next_action' which can be 'delegate' (with 'next_agent_name') or 'respond_directly' (with 'next_response').")
@@ -100,6 +100,7 @@ class OpenAIService:
         prompt_lines.append('Example for delegation to new agent: {"action": "delegate", "agent_name": "chat_support", "query_for_agent": "I need help with my stereo."}') 
         prompt_lines.append('Example for maintaining sticky behavior: {"action": "delegate", "agent_name": "chat_support", "query_for_agent": "I used a hammer on my stereo and now it won\'t turn on."}') 
         prompt_lines.append('Example for direct response: {"action": "respond_directly", "response_text": "Hello! How can I assist you today?"}') 
+        prompt_lines.append('Example for listing agents in Markdown: {"action": "respond_directly", "response_text": "Here are the agents I can work with:\\n\\n*   **Agent Name: agent1/name**, Description: Does X\\n*   **Agent Name: agent2/name**, Description: Does Y"}') # Corrected example for formatted agent list with proper escaping for Python string and JSON newlines:})
         prompt_lines.append('Example for clarification: {"action": "clarify", "clarification_question": "Could you provide more details about your issue?"}') 
         prompt_lines.append('Example for cannot handle: {"action": "cannot_handle", "reason": "This request is outside my capabilities."}') 
         prompt_lines.append('Example for transition (ONLY when user explicitly requests): {"action": "transition", "response_text": "I understand you\'re done with this conversation. How else can I assist you today?", "next_action": "delegate", "next_agent_name": "sales", "next_response": "Let me check the latest sales data for you."}')
@@ -151,7 +152,7 @@ class OpenAIService:
                 messages=final_messages_for_llm, # Use the messages list with history
                 model="gpt-3.5-turbo-0125", # Ensure model supports JSON mode if directly asking for JSON
                 temperature=0.2, # Low temperature for more deterministic decisions
-                max_tokens=150,
+                max_tokens=1024, # Increased max_tokens from 150 to 1024
                 response_format={"type": "json_object"} 
                 # We could also use OpenAI's function calling/tool use feature here for more robust JSON output.
             )
