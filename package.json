@@ -4,8 +4,8 @@
   "scripts": {
     "build": "turbo build",
     "dev": "npm run dev:api & npm run dev:web",
-    "dev:api": "npm run configure:api && cd apps/api && python3 -m pdm run uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload --app-dir ../..",
-    "dev:web": "npm run configure:web && cd apps/web && npm run dev",
+    "dev:api": "npm run configure:api && (cd apps/api/v1 && PYTHONPATH=../../.. pdm run uvicorn main:app --host 0.0.0.0 --port 8000 --reload)",
+    "dev:web": "cd apps/web && npm run dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,py}\"",
     "api": "cd apps/api && python3 -m pdm run python start.py",
