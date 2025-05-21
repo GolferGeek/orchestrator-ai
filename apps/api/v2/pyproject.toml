@@ -1,7 +1,7 @@
 [project]
-name = "api-v1"
+name = "api-v2"
 version = "0.1.0"
-description = "API v1"
+description = "API v2"
 authors = [
     {name = "golfergeek", email = "golfergeet@gmail.com"},
 ]
@@ -46,4 +46,4 @@ exclude = ["tests*", ".venv*", "__pycache__*"]
 [tool.pytest.ini_options]
 python_files = "tests.py test_*.py *_tests.py"
 addopts = "--asyncio-mode=auto"
-asyncio_default_fixture_loop_scope = "function"
+asyncio_default_fixture_loop_scope = "function" 

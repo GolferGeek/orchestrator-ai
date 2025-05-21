@@ -16,13 +16,13 @@ from datetime import datetime, timezone # For SupabaseAuthUser mock
 # pytestmark = pytest.mark.asyncio(loop_scope="session") # Can be set in root conftest or pytest.ini
 
 # Import the app factory and the ORIGINAL provider functions
-from apps.api.main import create_app, get_original_openai_service, get_original_http_client, get_original_task_store_service, FastAPI, load_agent_services
-from apps.api.llm.openai_service import OpenAIService
+from apps.api.v1.main import create_app, get_original_openai_service, get_original_http_client, get_original_task_store_service, FastAPI, load_agent_services
+from apps.api.v1.llm.openai_service import OpenAIService
 from supabase import Client as SupabaseClient # Added
 
 # Import auth dependencies and schema for overriding
-from apps.api.auth.dependencies import get_current_authenticated_user, get_supabase_client_as_current_user # Added
-from apps.api.auth.schemas import SupabaseAuthUser # Added
+from apps.api.v1.auth.dependencies import get_current_authenticated_user, get_supabase_client_as_current_user # Added
+from apps.api.v1.auth.schemas import SupabaseAuthUser # Added
 
 # --- Test User Data (can be shared from root conftest or defined here if specific) ---
 # Assuming these are defined in root conftest and accessible, or redefine if needed.

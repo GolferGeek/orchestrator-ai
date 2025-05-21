@@ -1,1 +1,0 @@
-# This file makes 'competitors' a Python package. 

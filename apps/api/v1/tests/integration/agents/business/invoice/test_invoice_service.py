@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from pathlib import Path
 
 # Import agent-specific constants from the Invoice agent's main module
-from apps.api.agents.business.invoice.main import (
+from apps.api.v1.agents.business.invoice.main import (
     AGENT_ID as INVOICE_AGENT_ID,
     AGENT_NAME as INVOICE_AGENT_NAME,
     AGENT_VERSION as INVOICE_AGENT_VERSION,
@@ -14,14 +14,14 @@ from apps.api.agents.business.invoice.main import (
     CONTEXT_FILE_NAME as INVOICE_CONTEXT_FILE, # Corrected constant name
     # PRIMARY_CAPABILITY_NAME is also available but used directly in get_agent_card if needed
 )
-from apps.api.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState
-from apps.api.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError
+from apps.api.v1.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState
+from apps.api.v1.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError
 
 # Determine the project root based on the current file's location
-# apps/api/tests/integration/agents/business/invoice/test_invoice_service.py
-# -> invoice (1) -> business (2) -> agents (3) -> integration (4) -> tests (5) -> api (6) -> apps (7) -> orchestrator-ai
-PROJECT_ROOT = Path(__file__).resolve().parents[7]
-INVOICE_CONTEXT_FILE_PATH = PROJECT_ROOT / "markdown_context" / INVOICE_CONTEXT_FILE
+# apps/api/v1/tests/integration/agents/business/invoice/test_invoice_service.py
+# Corrected path to apps/api/v1/
+API_V1_ROOT = Path(__file__).resolve().parents[5]
+INVOICE_CONTEXT_FILE_PATH = API_V1_ROOT / "markdown_context" / INVOICE_CONTEXT_FILE
 
 @pytest.mark.asyncio
 async def test_get_invoice_agent_card(client_and_app: tuple[httpx.AsyncClient, FastAPI]):
@@ -57,7 +57,7 @@ async def test_process_message_success(client_and_app: tuple[httpx.AsyncClient, 
         # but we mock the instance method on the specific service that an instance of MCPClient will be on.
         # The actual MCPClient is instantiated in MCPContextAgentBaseService's __init__.
         # So we patch the mcp_client instance that will be used by *InvoiceService*.
-        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
+        "apps.api.v1.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         return_value=mocked_mcp_response
     )
@@ -96,7 +96,7 @@ async def test_process_message_mcp_connection_error(client_and_app: tuple[httpx.
     
     # Path to mock is where MCPClient is *used* by the service instance
     mock_query_aggregate = mocker.patch(
-        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
+        "apps.api.v1.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPConnectionError(error_detail)
     )
@@ -129,7 +129,7 @@ async def test_process_message_mcp_timeout_error(client_and_app: tuple[httpx.Asy
     error_detail = "Request to MCP timed out"
 
     mock_query_aggregate = mocker.patch(
-        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
+        "apps.api.v1.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPTimeoutError(error_detail)
     )
@@ -161,7 +161,7 @@ async def test_process_message_mcp_generic_error(client_and_app: tuple[httpx.Asy
     error_detail = "An MCP specific error occurred"
     
     mock_query_aggregate = mocker.patch(
-        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
+        "apps.api.v1.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPError(error_detail, status_code=503)
     )
@@ -193,7 +193,7 @@ async def test_process_message_unexpected_error(client_and_app: tuple[httpx.Asyn
     error_detail = "Something unexpected went wrong"
 
     mock_query_aggregate = mocker.patch(
-        "apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
+        "apps.api.v1.shared.mcp.mcp_client.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=ValueError(error_detail) 
     )

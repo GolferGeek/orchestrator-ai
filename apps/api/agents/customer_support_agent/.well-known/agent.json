@@ -1,0 +1,6 @@
+{
+  "id": "customer_support_agent",
+  "name": "Customer Support Agent",
+  "description": "A helpful assistant for customer support inquiries. Can be sticky.",
+  "capabilities": []
+} 

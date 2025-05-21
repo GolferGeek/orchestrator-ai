@@ -6,7 +6,7 @@ from pathlib import Path # For loading context file
 from unittest.mock import ANY # For asserting generated task_id
 
 # Import agent-specific constants from the Metrics agent's main module
-from apps.api.agents.business.metrics.main import (
+from apps.api.v1.agents.business.metrics.main import (
     AGENT_ID as METRICS_AGENT_ID,
     AGENT_NAME as METRICS_AGENT_NAME,
     AGENT_VERSION as METRICS_AGENT_VERSION,
@@ -15,12 +15,12 @@ from apps.api.agents.business.metrics.main import (
     CONTEXT_FILE_NAME as METRICS_CONTEXT_FILE,
     PRIMARY_CAPABILITY_NAME as METRICS_PRIMARY_CAPABILITY
 )
-from apps.api.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState
-from apps.api.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError
+from apps.api.v1.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState
+from apps.api.v1.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError, MCPError
 
 # Helper to get project root for loading the context file in tests
-PROJECT_ROOT = Path(__file__).resolve().parents[7] # Corrected: agents/business/metrics/tests/integration -> metrics -> business -> agents -> api -> apps -> orchestrator-ai
-METRICS_CONTEXT_FILE_PATH = PROJECT_ROOT / "markdown_context" / METRICS_CONTEXT_FILE
+API_V1_ROOT = Path(__file__).resolve().parents[5] # Corrected path to apps/api/v1/
+METRICS_CONTEXT_FILE_PATH = API_V1_ROOT / "markdown_context" / METRICS_CONTEXT_FILE
 
 @pytest.mark.asyncio
 async def test_get_metrics_agent_card(client_and_app: tuple[httpx.AsyncClient, FastAPI]):
@@ -51,7 +51,7 @@ async def test_metrics_process_message_success(client_and_app: tuple[httpx.Async
         pytest.fail(f"Test setup error: Metrics context file not found at {METRICS_CONTEXT_FILE_PATH}")
 
     mock_query_aggregate = mocker.patch(
-        "apps.api.agents.business.metrics.main.MCPClient.query_agent_aggregate",
+        "apps.api.v1.agents.business.metrics.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         return_value=mocked_mcp_response
     )
@@ -87,7 +87,7 @@ async def test_metrics_process_message_mcp_connection_error(client_and_app: tupl
     error_detail = "MCP connection failed."
     # Correctly capture the mock object returned by mocker.patch
     mock_mcp_call = mocker.patch(
-        "apps.api.agents.business.metrics.main.MCPClient.query_agent_aggregate",
+        "apps.api.v1.agents.business.metrics.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPConnectionError(error_detail)
     )
@@ -121,7 +121,7 @@ async def test_metrics_process_message_mcp_timeout_error(client_and_app: tuple[h
     error_detail = "Request to MCP timed out."
     # Correctly capture the mock object returned by mocker.patch
     mock_mcp_call = mocker.patch(
-        "apps.api.agents.business.metrics.main.MCPClient.query_agent_aggregate",
+        "apps.api.v1.agents.business.metrics.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPTimeoutError(error_detail)
     )
@@ -155,7 +155,7 @@ async def test_metrics_process_message_mcp_generic_error(client_and_app: tuple[h
     error_detail = "An MCP specific error occurred."
     # Correctly capture the mock object returned by mocker.patch
     mock_mcp_call = mocker.patch(
-        "apps.api.agents.business.metrics.main.MCPClient.query_agent_aggregate",
+        "apps.api.v1.agents.business.metrics.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=MCPError(error_detail, status_code=503)
     )
@@ -189,7 +189,7 @@ async def test_metrics_process_message_unexpected_error(client_and_app: tuple[ht
     error_detail = "Something truly unexpected happened."
     # Correctly capture the mock object returned by mocker.patch
     mock_mcp_call = mocker.patch(
-        "apps.api.agents.business.metrics.main.MCPClient.query_agent_aggregate",
+        "apps.api.v1.agents.business.metrics.main.MCPClient.query_agent_aggregate",
         new_callable=AsyncMock,
         side_effect=ValueError(error_detail) # Simulate an unexpected error
     )

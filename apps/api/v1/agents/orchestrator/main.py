@@ -263,6 +263,7 @@ class OrchestratorService(A2AAgentBaseService):
                 # Handle both field name formats for backward compatibility
                 agent_path = llm_decision.get("agent") or llm_decision.get("agent_name")
                 task_description = llm_decision.get("task_description") or llm_decision.get("query_for_agent", input_text)
+                
                 self.logger.info(f"Orchestrator (task {task_id}, session {current_session_id}, user {user_id}): Delegating to {agent_path} with: '{task_description}'")
                 try:
                     # When delegating, pass the current_session_id so sub-agents can also maintain context if they support it.
@@ -284,31 +285,42 @@ class OrchestratorService(A2AAgentBaseService):
                     agent_task_response = api_response.json()
                     self.logger.info(f"Orchestrator (task {task_id}, session {current_session_id}, user {user_id}): {agent_path} Agent responded: {agent_task_response}")
                     
-                    # Extract the agent's response - handle both A2A formats
-                    if "result" in agent_task_response and "content" in agent_task_response["result"]:
-                        # Standard A2A format with result.content array
-                        content = agent_task_response["result"]["content"]
-                        if content and isinstance(content, list) and len(content) > 0:
-                            first_content = content[0]
-                            if "text" in first_content:
-                                response_text = first_content["text"]
-                            else:
-                                response_text = f"Received response from {agent_path} but couldn't extract text content."
+                    # Extract the agent's response
+                    self.logger.info(f"Orchestrator attempting to extract text from {agent_path}. Full response: {agent_task_response}")
+
+                    response_message_data = agent_task_response.get("response_message")
+                    
+                    if isinstance(response_message_data, dict):
+                        parts_data = response_message_data.get("parts")
+                        if isinstance(parts_data, list) and parts_data: # Check if list and not empty
+                            first_part_data = parts_data[0] # This is the TextPart (or other Part) dict
+                            if isinstance(first_part_data, dict):
+                                if first_part_data.get("type") == "text" and "text" in first_part_data:
+                                    response_text = first_part_data["text"]
+                                    self.logger.info(f"Orchestrator successfully extracted text from {agent_path} via response_message.parts[0].text")
+                                else:
+                                    self.logger.warning(f"Orchestrator: Delegated agent {agent_path} response_message.parts[0] is not a text part with 'text' key. Part content: {first_part_data}")
+                                    response_text = f"Received structured response from {agent_path}, but the primary content part is not recognized text."
+                            else: # first_part_data is not a dict
+                                self.logger.warning(f"Orchestrator: Delegated agent {agent_path} response_message.parts[0] is not a dictionary. Part content: {first_part_data}")
+                                response_text = f"Received structured response from {agent_path}, but its main content part is malformed."
+                        else: # parts_data is not a list or is empty
+                            self.logger.warning(f"Orchestrator: Delegated agent {agent_path} response_message does not contain a valid 'parts' list or it is empty. Parts content: {parts_data}")
+                            response_text = f"Received response from {agent_path} but it contained no message parts."
+                    # Fallback for the older "result"/"content" structure (if any agent still uses it)
+                    elif isinstance(agent_task_response.get("result"), dict) and \
+                         isinstance(agent_task_response["result"].get("content"), list) and \
+                         agent_task_response["result"]["content"]:
+                        first_content = agent_task_response["result"]["content"][0]
+                        if isinstance(first_content, dict) and "text" in first_content:
+                            response_text = first_content["text"]
+                            self.logger.info(f"Orchestrator successfully extracted text from {agent_path} via deprecated result.content[0].text")
                         else:
-                            response_text = f"Received empty response from {agent_path}."
-                    elif "response_message" in agent_task_response and "parts" in agent_task_response["response_message"]:
-                        # Alternative format with response_message.parts array
-                        parts = agent_task_response["response_message"]["parts"]
-                        if parts and isinstance(parts, list) and len(parts) > 0:
-                            first_part = parts[0]
-                            if "text" in first_part:
-                                response_text = first_part["text"]
-                            else:
-                                response_text = f"Received response from {agent_path} but couldn't extract text content."
-                        else:
-                            response_text = f"Received empty response from {agent_path}."
-                    else:
-                        response_text = f"Received response from {agent_path} but in unexpected format."
+                            self.logger.warning(f"Orchestrator: Delegated agent {agent_path} used deprecated result.content structure, but text extraction failed. First content: {first_content}")
+                            response_text = f"Received response from {agent_path} (old format) but couldn't extract text."
+                    else: # Neither modern "response_message" nor deprecated "result" structure found
+                        self.logger.warning(f"Orchestrator: Delegated agent {agent_path} response in wholly unexpected format. Full response: {agent_task_response}")
+                        response_text = f"Received response from {agent_path} but in an unrecognized format."
                 except httpx.HTTPStatusError as e:
                     self.logger.error(f"Orchestrator (task {task_id}, session {current_session_id}, user {user_id}): HTTP error calling {agent_path} Agent: {e.response.status_code} - {e.response.text}")
                     response_text = f"Error calling {agent_path} Agent. Status: {e.response.status_code}. Please try again later."

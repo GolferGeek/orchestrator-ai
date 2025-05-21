@@ -5,7 +5,7 @@ import httpx
 from fastapi import FastAPI
 from pathlib import Path # Added for context file loading
 
-from apps.api.agents.business.sop.main import (
+from apps.api.v1.agents.business.sop.main import (
     SopService, 
     AGENT_ID as SOP_AGENT_ID, 
     AGENT_NAME as SOP_AGENT_NAME, 
@@ -13,29 +13,21 @@ from apps.api.agents.business.sop.main import (
     MCP_TARGET_AGENT_ID, # Added
     CONTEXT_FILE_NAME, # Added
 )
-from apps.api.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState # Moved TaskState import
-from apps.api.shared.mcp.mcp_client import MCPError, MCPConnectionError, MCPTimeoutError # Added for mocking side effects
+from apps.api.v1.a2a_protocol.types import Message, TextPart, TaskSendParams, TaskState # Moved TaskState import
+from apps.api.v1.shared.mcp.mcp_client import MCPError, MCPConnectionError, MCPTimeoutError # Added for mocking side effects
 
 # Fixtures like client_and_app and mock_openai_service_session_scope will be picked up from tests/integration/conftest.py
 # No need for mock_openai_service_session_scope here as SOPService doesn't use OpenAIService
 
 # Helper to load context for assertions
 def load_test_context(context_file: str) -> str:
-    # Assuming tests are run from the root of the project or where `markdown_context` is accessible
-    # Adjust path if tests are run from a different working directory
-    # For these integration tests, it's relative to the workspace root.
-    context_path = Path("markdown_context") / context_file
+    # Path is now .../orchestrator-ai/apps/api/v1/tests/integration/agents/business/sop/test_sop_service.py
+    # .parents[5] -> .../orchestrator-ai/apps/api/v1/
+    api_v1_root = Path(__file__).resolve().parents[5]
+    context_path = api_v1_root / "markdown_context" / context_file
     if not context_path.exists():
-        # Fallback for when tests might be run from within the apps/api/tests directory structure
-        # This is a common scenario if running pytest directly on a sub-directory
-        # Calculate path from current file to project root then to markdown_context
-        # Path is now .../orchestrator-ai/apps/api/tests/integration/agents/business/sop/test_sop_service.py
-        # .parents[7] -> .../orchestrator-ai/
-        alt_context_path = Path(__file__).resolve().parents[7] / "markdown_context" / context_file
-        if alt_context_path.exists():
-            context_path = alt_context_path
-        else:
-            raise FileNotFoundError(f"Context file {context_file} not found at {context_path} or {alt_context_path}")
+        # This fallback is likely not needed anymore if the primary path is correct
+        raise FileNotFoundError(f"Context file {context_file} not found at {context_path}")
     return context_path.read_text()
 
 # Helper to create a simple text message for sending tasks
@@ -58,7 +50,7 @@ async def test_sop_get_agent_card(client_and_app: tuple[httpx.AsyncClient, FastA
     assert len(agent_card["capabilities"]) == 1
     assert agent_card["capabilities"][0]["name"] == "query_sop_knowledge"
 
-@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.v1.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_success(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "What are the steps for employee onboarding?"
@@ -80,7 +72,7 @@ async def test_sop_process_message_success(mock_query_aggregate: AsyncMock, clie
         session_id="test-sop-task-123"
     )
 
-@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.v1.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_mcp_connection_error(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "What are the steps for employee onboarding?"
@@ -99,7 +91,7 @@ async def test_sop_process_message_mcp_connection_error(mock_query_aggregate: As
         session_id="test-sop-task-conn-error"
     )
 
-@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.v1.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_mcp_timeout_error(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "Query that times out"
@@ -116,7 +108,7 @@ async def test_sop_process_message_mcp_timeout_error(mock_query_aggregate: Async
     expected_error_message = f"Falling back to rule-based processing due to LLM error: {error_detail}"
     assert actual_response_text == expected_error_message
 
-@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.v1.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_mcp_generic_error(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "Query that causes generic MCP error"
@@ -133,7 +125,7 @@ async def test_sop_process_message_mcp_generic_error(mock_query_aggregate: Async
     expected_error_message = f"Falling back to rule-based processing due to LLM error: {error_detail}"
     assert actual_response_text == expected_error_message
 
-@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.v1.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_expense_deadline(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "What is the deadline for expense reports?"
@@ -155,7 +147,7 @@ async def test_sop_process_message_expense_deadline(mock_query_aggregate: AsyncM
         session_id="test-sop-task-expense"
     )
 
-@patch("apps.api.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
+@patch("apps.api.v1.shared.mcp.mcp_client.MCPClient.query_agent_aggregate", new_callable=AsyncMock)
 async def test_sop_process_message_default_response(mock_query_aggregate: AsyncMock, client_and_app: tuple[httpx.AsyncClient, FastAPI]):
     client, _ = client_and_app
     user_query = "Give me some SOP info"
