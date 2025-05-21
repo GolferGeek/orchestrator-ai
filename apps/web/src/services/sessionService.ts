@@ -88,5 +88,17 @@ export const sessionService = {
   //     console.error('Error getting session details:', errorMessage);
   //     throw new Error(errorMessage);
   //   }
-  // }
+  // },
+  
+  async deleteSession(sessionId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/sessions/${sessionId}`);
+      console.log(`Session ${sessionId} deleted successfully`);
+    } catch (error) {
+      const axiosError = error as AxiosError<BackendErrorDetail>; 
+      const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to delete session';
+      console.error('Error deleting session:', errorMessage);
+      throw new Error(errorMessage);
+    }
+  }
 }; 

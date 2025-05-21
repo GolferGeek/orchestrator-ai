@@ -1,8 +1,6 @@
 import apiClient, { BackendErrorDetail } from './apiService';
 import { AxiosError } from 'axios';
 
-// Assuming schemas are defined in a types directory or similar for frontend
-// These would mirror the Pydantic models in the backend (UserCreate, UserLogin, TokenResponse)
 interface UserCredentials {
   email: string;
   password: string;
@@ -10,6 +8,7 @@ interface UserCredentials {
 
 interface SignupData extends UserCredentials {
   display_name?: string;
+  // Add any other signup-specific fields here
 }
 
 export interface AuthResponse {
@@ -67,6 +66,9 @@ export const authService = {
         }
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
         console.log("authService: Token stored (after signup) and header set.");
+      } else {
+        console.error('authService: Signup successful response but no access_token received:', response.data);
+        throw new Error('Signup completed but no token was provided by the server.');
       }
       return response.data;
     } catch (error) {

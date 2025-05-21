@@ -27,9 +27,14 @@
           <p>{{ session.name || 'Chat on ' + formatDate(session.created_at) }}</p>
           <p><small>Updated: {{ formatRelativeDate(session.updated_at) }}</small></p>
         </ion-label>
-        <ion-button fill="clear" slot="end" @click.stop="() => handleEditSessionName(session)">
-          <ion-icon :icon="createOutline" slot="icon-only"></ion-icon>
-        </ion-button>
+        <div class="session-actions" slot="end">
+          <ion-button fill="clear" @click.stop="() => handleEditSessionName(session)">
+            <ion-icon :icon="createOutline" slot="icon-only"></ion-icon>
+          </ion-button>
+          <ion-button fill="clear" color="danger" @click.stop="() => handleDeleteSession(session)">
+            <ion-icon :icon="trashOutline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
       </ion-item>
     </ion-menu-toggle>
 
@@ -44,7 +49,7 @@
 <script lang="ts" setup>
 import { ref, onMounted, watch } from 'vue';
 import { IonList, IonListHeader, IonItem, IonLabel, IonIcon, IonMenuToggle, IonSpinner, IonText, alertController, IonButton } from '@ionic/vue';
-import { addCircleOutline, chatbubbleEllipsesOutline, createOutline } from 'ionicons/icons';
+import { addCircleOutline, chatbubbleEllipsesOutline, createOutline, trashOutline } from 'ionicons/icons';
 import { sessionService, Session } from '@/services/sessionService';
 import { useAuthStore } from '@/stores/authStore';
 import { useSessionStore } from '@/stores/sessionStore'; // We'll create this next
@@ -148,6 +153,40 @@ const handleEditSessionName = async (session: Session) => {
   await alert.present();
 };
 
+const handleDeleteSession = async (session: Session) => {
+  const alert = await alertController.create({
+    header: 'Delete Session',
+    message: 'Are you sure you want to delete this session? This action cannot be undone.',
+    buttons: [
+      {
+        text: 'Cancel',
+        role: 'cancel'
+      },
+      {
+        text: 'Delete',
+        role: 'destructive',
+        handler: async () => {
+          try {
+            isLoading.value = true;
+            await sessionService.deleteSession(session.id);
+            // Remove the session from the local list
+            sessions.value = sessions.value.filter(s => s.id !== session.id);
+            // If the deleted session was the selected one, clear the selection
+            if (selectedSessionId.value === session.id) {
+              sessionStore.setCurrentSessionId(null);
+            }
+          } catch (e: any) {
+            error.value = e.message || 'Could not delete session.';
+          } finally {
+            isLoading.value = false;
+          }
+        }
+      }
+    ]
+  });
+  await alert.present();
+};
+
 // Fetch sessions when the component is mounted and when authentication status changes
 onMounted(fetchSessions);
 watch(() => authStore.isAuthenticated, (isAuth) => {
@@ -169,5 +208,9 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 ion-label p small {
     font-size: 0.75em;
     color: var(--ion-color-medium-shade);
+}
+.session-actions {
+  display: flex;
+  align-items: center;
 }
 </style> 
