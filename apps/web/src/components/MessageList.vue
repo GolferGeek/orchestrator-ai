@@ -8,6 +8,7 @@
         v-for="message in messages"
         :key="message.id"
         :message="message"
+        @returnToOrchestrator="handleReturnToOrchestratorPassthrough"
       />
     </transition-group>
     <div ref="scrollTarget"></div> <!-- Element to scroll to -->
@@ -29,9 +30,14 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['messages-rendered']); // Define emit
+const emit = defineEmits(['messages-rendered', 'returnToOrchestrator']); // Define emit
 
 const scrollTarget = ref<HTMLElement | null>(null);
+
+const handleReturnToOrchestratorPassthrough = () => {
+  console.log('[MessageList.vue] handleReturnToOrchestratorPassthrough method called');
+  emit('returnToOrchestrator');
+};
 
 // Watch for new messages from the prop and scroll to the bottom
 watch(() => props.messages.length, async (newLength, oldLength) => {

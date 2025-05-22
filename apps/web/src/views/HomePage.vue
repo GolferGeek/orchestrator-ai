@@ -5,7 +5,7 @@
         <ion-buttons slot="start">
           <ion-menu-button :auto-hide="false" v-if="auth.isAuthenticated"></ion-menu-button>
         </ion-buttons>
-        <ion-title>{{ currentSessionName || 'Orchestrator Chat' }}</ion-title>
+        <ion-title>{{ pageTitle }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -26,7 +26,8 @@
       <MessageListComponent 
         v-else 
         :messages="sessionStore.currentSessionMessages" 
-        @messages-rendered="handleMessagesRenderedInChild" />
+        @messages-rendered="handleMessagesRenderedInChild" 
+        @returnToOrchestrator="handleReturnToOrchestrator" />
     </ion-content>
 
     <ion-footer v-if="auth.isAuthenticated && sessionStore.currentSessionId">
@@ -69,6 +70,10 @@ const currentSessionName = computed(() => {
     return `Chat`;
   }
   return 'Orchestrator Chat';
+});
+
+const pageTitle = computed(() => {
+  return currentSessionName.value || 'Orchestrator Chat';
 });
 
 const handleMessagesRenderedInChild = () => {
@@ -222,6 +227,72 @@ onUnmounted(() => {
     Keyboard.removeAllListeners();
   }
 });
+
+const defaultSessionName = () => {
+  return 'Orchestrator Chat';
+};
+
+const handleReturnToOrchestrator = async () => {
+  console.log('[HomePage.vue] handleReturnToOrchestrator method called');
+  if (uiStore.getIsAppLoading) return;
+  uiStore.setAppLoading(true);
+  try {
+    const taskResponse = await postTaskToOrchestrator("Can I return to the orchestrator?", currentSessionId.value);
+    console.log("[HomePage] Received taskResponse from orchestrator (after invisible return request):", JSON.parse(JSON.stringify(taskResponse))); // DEBUG PRINT
+
+    if (taskResponse.response_message && taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0) {
+      const agentText = taskResponse.response_message.parts[0]?.text || 'No response text.';
+      const agentMessageOrder = (currentSessionMessages.value.length > 0 
+            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+            : 1);
+      const agentMetadata: Record<string, any> = {};
+      if (taskResponse.response_message?.metadata?.responding_agent_name) {
+        agentMetadata.agentName = taskResponse.response_message.metadata.responding_agent_name;
+      } else {
+        agentMetadata.agentName = 'Orchestrator'; // Default to Orchestrator
+      }
+
+      const agentMessage = {
+        id: taskResponse.id, 
+        session_id: currentSessionId.value!,
+        user_id: 'agent',
+        role: 'assistant' as const,
+        content: agentText,
+        timestamp: new Date().toISOString(),
+        order: agentMessageOrder,
+        metadata: agentMetadata
+      };
+      sessionStore.addMessageToCurrentSession(agentMessage);
+    } else if (taskResponse && taskResponse.messages) { 
+        taskResponse.messages.forEach((msg: any) => {
+        const existingMessage = sessionStore.currentSessionMessages.find(m => m.id === msg.id);
+        if (!existingMessage) {
+          sessionStore.addMessageToCurrentSession({
+            id: msg.id,
+            content: msg.content.toString(),
+            role: msg.role,
+            timestamp: msg.timestamp || new Date().toISOString(),
+            metadata: msg.metadata || { agentName: 'Orchestrator' }, 
+            order: (currentSessionMessages.value.length > 0 
+            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+            : 1)
+          });
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error returning to orchestrator:', error);
+    sessionStore.addMessageToCurrentSession({
+      id: Date.now().toString(),
+      content: "Error trying to return to orchestrator. Please try again.",
+      role: 'system',
+      timestamp: new Date().toISOString(),
+    });
+  } finally {
+    uiStore.setAppLoading(false);
+    scrollToBottom();
+  }
+};
 
 </script>
 

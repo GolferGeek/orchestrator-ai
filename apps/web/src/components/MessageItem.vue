@@ -14,6 +14,9 @@
           <div class="message-text" v-if="message.content" v-html="renderedText"></div>
           <div class="message-timestamp">{{ formattedTimestamp }}</div>
         </div>
+        <div v-if="showReturnToOrchestratorLink" class="return-to-orchestrator-link">
+          <a href="#" @click.prevent="returnToOrchestrator">Return to Orchestrator</a>
+        </div>
       </div>
       <ion-avatar v-if="senderType === 'user'" slot="end" class="message-avatar user-avatar">
         <ion-icon :icon="personCircleOutline" size="small"></ion-icon>
@@ -23,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, computed } from 'vue';
+import { defineProps, computed, defineEmits } from 'vue';
 import type { Message } from '@/services/sessionService';
 import { marked } from 'marked';
 import { IonAvatar, IonIcon } from '@ionic/vue';
@@ -32,6 +35,8 @@ import { personCircleOutline, cogOutline } from 'ionicons/icons';
 const props = defineProps<{
   message: Message;
 }>();
+
+const emit = defineEmits(['returnToOrchestrator']);
 
 const senderType = computed(() => {
   if (props.message.role === 'user') return 'user';
@@ -66,6 +71,18 @@ const agentName = computed(() => {
   // Default to "AI" if no agent name is provided
   return senderType.value === 'agent' ? 'AI' : null;
 });
+
+const showReturnToOrchestratorLink = computed(() => {
+  return senderType.value === 'agent' && 
+         agentName.value && 
+         agentName.value.toLowerCase() !== 'ai' && 
+         agentName.value.toLowerCase() !== 'orchestrator';
+});
+
+const returnToOrchestrator = () => {
+  console.log('[MessageItem.vue] returnToOrchestrator method called');
+  emit('returnToOrchestrator');
+};
 
 </script>
 
@@ -224,5 +241,21 @@ const agentName = computed(() => {
 }
 
 .message-item--agent .message-timestamp {
+}
+
+.return-to-orchestrator-link {
+  margin-top: 8px;
+  font-size: 0.85em;
+  text-align: left;
+  padding-left: 8px;
+}
+
+.return-to-orchestrator-link a {
+  color: var(--ion-color-primary);
+  text-decoration: none;
+}
+
+.return-to-orchestrator-link a:hover {
+  text-decoration: underline;
 }
 </style> 
