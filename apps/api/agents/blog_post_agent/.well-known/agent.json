@@ -1,0 +1,6 @@
+{
+  "id": "blog_post_agent",
+  "name": "Blog Post Agent",
+  "description": "An agent that handles blog post retrieval and management.",
+  "capabilities": ["get_blog_post", "list_blog_posts"]
+} 

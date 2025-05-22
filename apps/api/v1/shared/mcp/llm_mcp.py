@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import AsyncGenerator, List, Optional, Dict, Any
 
 from openai import AsyncOpenAI, OpenAIError # Assuming usage of OpenAI SDK
+# Removed: import anthropic
 from .mcp_models import LLMSettings, ChatMessage, SSEContentChunk, SSEError, SSEInfoMessage, SSEEndOfStream
 from ...core.config import settings # Import settings
 
@@ -12,16 +13,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize OpenAI client lazily
-_aclient = None
+_aclient = None # Reverted from _aclient_openai
 
 def get_openai_client() -> AsyncOpenAI:
     """Get or create the OpenAI client, validating the API key."""
-    global _aclient
-    if _aclient is None:
+    global _aclient # Reverted
+    if _aclient is None: # Reverted
         if not settings.OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY is not set in the environment or .env file. Please configure it.")
-        _aclient = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-    return _aclient
+        _aclient = AsyncOpenAI(api_key=settings.OPENAI_API_KEY) # Reverted
+    return _aclient # Reverted
 
 class ContextFileNotFoundError(Exception):
     """Custom exception for when an agent's context file is not found."""
@@ -136,12 +137,12 @@ async def process_query_stream(
         
         # Log the messages for debugging (optional)
         # logger.debug(f"Prompt messages for agent {agent_id}: {prompt_messages}")
-        logger.info(f"Prompt messages for OpenAI (agent {agent_id}): {prompt_messages}")
+        logger.info(f"Prompt messages for OpenAI (agent {agent_id}): {prompt_messages}") # Reverted to OpenAI specific logging
 
         # Get the OpenAI client when needed
         aclient = get_openai_client()
         stream = await aclient.chat.completions.create(
-            model=effective_settings.model_name,
+            model=effective_settings.model_name or settings.DEFAULT_GPT_MODEL, # Use OpenAI default model
             messages=prompt_messages,
             temperature=effective_settings.temperature,
             max_tokens=effective_settings.max_tokens,
