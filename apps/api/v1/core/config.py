@@ -26,6 +26,8 @@ else:
 _calculated_project_root_for_pydantic = Path(__file__).resolve().parents[4] # For consistency, though explicit load is key
 _dotenv_path_for_pydantic_config = _calculated_project_root_for_pydantic / ".env"
 
+DEFAULT_MARKDOWN_CONTEXT_PATH = _calculated_project_root_for_pydantic / "apps" / "api" / "v1" / "markdown_context"
+
 # (Keep the earlier [CONFIG_INIT_DEBUG] prints if useful, or remove if too verbose now)
 # print(f"[CONFIG_INIT_DEBUG] Path(__file__).resolve() in config.py: {_CONFIG_FILE_PATH}")
 # print(f"[CONFIG_INIT_DEBUG] Calculated project root based on __file__: {_calculated_project_root_for_pydantic}")
@@ -57,6 +59,8 @@ class Settings(BaseSettings):
 
     AGENT_MAX_ITERATIONS: int = 10
     DEFAULT_AGENT_PROVIDER: str = "openai"
+
+    MARKDOWN_CONTEXT_DIR: Path = DEFAULT_MARKDOWN_CONTEXT_PATH
 
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 
