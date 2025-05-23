@@ -120,8 +120,9 @@ def get_original_http_client() -> httpx.AsyncClient:
         # For tests, this provider is overridden anyway.
         # For the main app, the lifespan will create one on app.state.
         # This function might only be called if something outside an app context tries to get it BEFORE app startup.
-        print("[MAIN_FACTORY_PROVIDER] Original HTTP client is None or closed, creating new for global fallback.")
-        _original_http_client_instance = httpx.AsyncClient()
+        print("[MAIN_FACTORY_PROVIDER] Original HTTP client is None or closed, creating new for global fallback WITH TIMEOUTS.")
+        # Apply the same timeouts here as a fallback, though lifespan manager is primary.
+        _original_http_client_instance = httpx.AsyncClient(timeout=httpx.Timeout(10.0, read=60.0))
     print(f"[MAIN_FACTORY_PROVIDER] get_original_http_client CALLED, returning: {_original_http_client_instance}")
     return _original_http_client_instance
 
@@ -494,8 +495,9 @@ def load_agent_services(app_to_configure: FastAPI):
 async def lifespan(app: FastAPI):
     # Startup logic
     print(f"[LIFESPAN_MANAGER] Startup for app {id(app)}.")
-    app.state.http_client = httpx.AsyncClient()
-    print(f"[LIFESPAN_MANAGER] Created app.state.http_client: {app.state.http_client} for app {id(app)}")
+    # Configure longer timeouts: 10s connect, 60s read
+    app.state.http_client = httpx.AsyncClient(timeout=httpx.Timeout(10.0, read=60.0))
+    print(f"[LIFESPAN_MANAGER] Created app.state.http_client with custom timeouts: {app.state.http_client} for app {id(app)}")
 
     print(f"[LIFESPAN_MANAGER] Loading agent services for app {id(app)}.")
     load_agent_services(app_to_configure=app) # Keep agent loading here if it depends on app state or other lifespan resources
