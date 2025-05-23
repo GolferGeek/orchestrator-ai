@@ -9,7 +9,7 @@ AGENT_ID: str = "marketing-calendar-v1"
 AGENT_NAME: str = "calendar" # Standardized to directory name
 AGENT_DESCRIPTION: str = "Assists with managing marketing calendar events, scheduling, and queries, using an LLM for natural language understanding via MCP."
 AGENT_VERSION: str = "1.0.0" # Standardized version
-MCP_TARGET_AGENT_ID: str = "generic-language-processor-v1" # As per existing code
+MCP_TARGET_AGENT_ID: str = AGENT_NAME # Use the simpler AGENT_NAME for MCP context lookup
 CONTEXT_FILE_NAME: str = "calendar_agent.md"
 PRIMARY_CAPABILITY_NAME: str = "manage_marketing_calendar"
 PRIMARY_CAPABILITY_DESCRIPTION: str = "Manages marketing calendar events, scheduling, and queries via MCP."
@@ -22,7 +22,7 @@ class CalendarService(MCPContextAgentBaseService):
     agent_name: str = AGENT_NAME
     agent_description: str = AGENT_DESCRIPTION
     agent_version: str = AGENT_VERSION
-    mcp_target_agent_id: str = MCP_TARGET_AGENT_ID
+    mcp_target_agent_id: str = MCP_TARGET_AGENT_ID # Ensure class attribute also uses the updated constant
     context_file_name: str = CONTEXT_FILE_NAME
     primary_capability_name: str = PRIMARY_CAPABILITY_NAME
     primary_capability_description: str = PRIMARY_CAPABILITY_DESCRIPTION
