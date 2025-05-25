@@ -9,9 +9,17 @@
       </ion-avatar>
       <div class="message-bubble-wrapper">
         <div class="message-bubble">
-          <div v-if="senderType === 'agent' && agentName" class="message-agent-name">{{ agentName }}</div>
+          <div v-if="senderType === 'agent' && agentName" class="message-agent-name">
+            {{ agentName }}
+            <span v-if="showViewAllAgentsLink" class="agent-action-link">
+              (<a href="#" @click.prevent="viewAllAgents">View my agents</a>)
+            </span>
+            <span v-if="showViewAgentCapabilitiesLink" class="agent-action-link">
+              (<a href="#" @click.prevent="viewAgentCapabilities">View all that I can do for you</a>)
+            </span>
+          </div>
           <div v-else-if="senderType === 'system' && agentName" class="message-agent-name">{{ agentName }}</div>
-          <div class="message-text" v-if="message.content" v-html="renderedText"></div>
+          <div class="message-text" v-if="message.content" v-html="renderedText" @click="handleMessageContentClick"></div>
           <div class="message-timestamp">{{ formattedTimestamp }}</div>
         </div>
         <div v-if="showReturnToOrchestratorLink" class="return-to-orchestrator-link">
@@ -36,7 +44,12 @@ const props = defineProps<{
   message: Message;
 }>();
 
-const emit = defineEmits(['returnToOrchestrator']);
+const emit = defineEmits([
+  'returnToOrchestrator', 
+  'viewAllAgentsClicked', 
+  'viewAgentCapabilitiesClicked',
+  'agentCapabilityRequestedFor'
+]);
 
 const senderType = computed(() => {
   if (props.message.role === 'user') return 'user';
@@ -45,8 +58,50 @@ const senderType = computed(() => {
   return 'agent';
 });
 
+const isAgentListFromOrchestrator = computed(() => {
+  if (props.message.metadata?.contentType === 'agentListFromOrchestrator') {
+    return true;
+  }
+  if (agentName.value?.toLowerCase() === 'orchestrator' && props.message.content) {
+    const content = props.message.content.toLowerCase();
+    return content.includes('agent name:') && (content.includes('description:') || content.includes('domain:'));
+  }
+  return false;
+});
+
 const renderedText = computed(() => {
   if (!props.message.content) return '';
+
+  if (isAgentListFromOrchestrator.value) {
+    const lines = props.message.content.split('\n');
+    const processedLines: string[] = [];
+    // Regex to find "Agent Name: <name>, Description: <desc>" or similar patterns
+    // It captures (Agent Name: )(<agent_name_here>)(, Description: ... or other trailing text)
+    const agentLineRegex = /^(.*?Agent Name:\s*)([^,]+)(.*)$/i;
+
+    for (const line of lines) {
+      const match = line.match(agentLineRegex);
+      if (match) {
+        let prefix = match[1]; // e.g., "    Agent Name: " or just leading spaces if Agent Name is at start
+        const agentNameValue = match[2].trim(); // e.g., "productivity/internal_rag_agent"
+        const suffix = match[3] || ''; // e.g., ", Description: Handles tasks..."
+        
+        // Remove "Agent Name: " and any following spaces from the prefix part
+        prefix = prefix.replace(/Agent Name:\s*/i, '');
+
+        const sanitizedAgentName = agentNameValue.replace(/["'<>]/g, '');
+        const link = `<a href="#" class="clickable-agent-name" data-agent-name="${sanitizedAgentName}">${agentNameValue}</a>`;
+        processedLines.push(`${prefix}${link}${suffix}`);
+      } else {
+        // If the line doesn't match the agent name pattern, add it as is (e.g., headers, general text)
+        // Basic escaping for non-HTML content to prevent XSS if it's not already handled
+        const escapedLine = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        processedLines.push(escapedLine);
+      }
+    }
+    return processedLines.join('<br>'); // Join lines with <br> for HTML display
+  }
+
   if (senderType.value === 'agent' || senderType.value === 'system') {
     return marked.parse(props.message.content, { breaks: true, gfm: true });
   } else {
@@ -60,15 +115,12 @@ const formattedTimestamp = computed(() => {
 });
 
 const agentName = computed(() => {
-  // Check for the responding_agent_name in metadata (from orchestrator)
   if (props.message.metadata?.responding_agent_name) {
     return props.message.metadata.responding_agent_name;
   }
-  // Fallback to agentName for backward compatibility
   if (props.message.metadata?.agentName) {
     return props.message.metadata.agentName;
   }
-  // Default to "AI" if no agent name is provided
   return senderType.value === 'agent' ? 'AI' : null;
 });
 
@@ -79,9 +131,47 @@ const showReturnToOrchestratorLink = computed(() => {
          agentName.value.toLowerCase() !== 'orchestrator';
 });
 
+const showViewAllAgentsLink = computed(() => {
+  return senderType.value === 'agent' &&
+         agentName.value &&
+         agentName.value.toLowerCase() === 'orchestrator';
+});
+
+const showViewAgentCapabilitiesLink = computed(() => {
+  if (props.message.metadata?.isCapabilitiesResponse) {
+    return false;
+  }
+  return senderType.value === 'agent' &&
+         agentName.value &&
+         agentName.value.toLowerCase() !== 'orchestrator' &&
+         agentName.value.toLowerCase() !== 'ai';
+});
+
 const returnToOrchestrator = () => {
   console.log('[MessageItem.vue] returnToOrchestrator method called');
   emit('returnToOrchestrator');
+};
+
+const viewAllAgents = () => {
+  console.log('[MessageItem.vue] viewAllAgents method called');
+  emit('viewAllAgentsClicked');
+};
+
+const viewAgentCapabilities = () => {
+  console.log('[MessageItem.vue] viewAgentCapabilities method called');
+  emit('viewAgentCapabilitiesClicked');
+};
+
+const handleMessageContentClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  if (target.tagName === 'A' && target.classList.contains('clickable-agent-name')) {
+    event.preventDefault();
+    const agentToQuery = target.dataset.agentName;
+    if (agentToQuery) {
+      console.log(`[MessageItem.vue] Clickable agent name clicked: ${agentToQuery}`);
+      emit('agentCapabilityRequestedFor', agentToQuery);
+    }
+  }
 };
 
 </script>
@@ -233,6 +323,16 @@ const returnToOrchestrator = () => {
   padding: 0;
 }
 
+.message-text :deep(a.clickable-agent-name) {
+  color: var(--ion-color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.message-text :deep(a.clickable-agent-name:hover) {
+  color: var(--ion-color-primary-shade);
+}
+
 .message-timestamp {
   font-size: 0.75em;
   margin-top: 6px;
@@ -243,7 +343,8 @@ const returnToOrchestrator = () => {
 .message-item--agent .message-timestamp {
 }
 
-.return-to-orchestrator-link {
+.return-to-orchestrator-link,
+.agent-action-link {
   margin-top: 8px;
   font-size: 0.85em;
   text-align: left;
@@ -256,6 +357,19 @@ const returnToOrchestrator = () => {
 }
 
 .return-to-orchestrator-link a:hover {
+  text-decoration: underline;
+}
+
+.agent-action-link {
+  margin-left: 5px;
+}
+
+.agent-action-link a {
+  color: var(--ion-color-primary);
+  text-decoration: none;
+}
+
+.agent-action-link a:hover {
   text-decoration: underline;
 }
 </style> 

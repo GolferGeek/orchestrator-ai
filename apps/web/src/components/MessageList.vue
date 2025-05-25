@@ -9,6 +9,9 @@
         :key="message.id"
         :message="message"
         @returnToOrchestrator="handleReturnToOrchestratorPassthrough"
+        @viewAllAgentsClicked="handleViewAllAgentsPassthrough"
+        @viewAgentCapabilitiesClicked="handleViewAgentCapabilitiesPassthrough"
+        @agentCapabilityRequestedFor="handleAgentCapabilityRequestedForPassthrough"
       />
     </transition-group>
     <div ref="scrollTarget"></div> <!-- Element to scroll to -->
@@ -30,13 +33,31 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['messages-rendered', 'returnToOrchestrator']); // Define emit
+const emit = defineEmits([
+  'messages-rendered', 
+  'returnToOrchestrator', 
+  'viewAllAgentsClicked', 
+  'viewAgentCapabilitiesClicked',
+  'agentCapabilityRequestedFor'
+]);
 
 const scrollTarget = ref<HTMLElement | null>(null);
 
 const handleReturnToOrchestratorPassthrough = () => {
   console.log('[MessageList.vue] handleReturnToOrchestratorPassthrough method called');
   emit('returnToOrchestrator');
+};
+
+const handleViewAllAgentsPassthrough = () => {
+  emit('viewAllAgentsClicked');
+};
+
+const handleViewAgentCapabilitiesPassthrough = () => {
+  emit('viewAgentCapabilitiesClicked');
+};
+
+const handleAgentCapabilityRequestedForPassthrough = (agentName: string) => {
+  emit('agentCapabilityRequestedFor', agentName);
 };
 
 // Watch for new messages from the prop and scroll to the bottom
