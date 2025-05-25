@@ -27,7 +27,10 @@
         v-else 
         :messages="sessionStore.currentSessionMessages" 
         @messages-rendered="handleMessagesRenderedInChild" 
-        @returnToOrchestrator="handleReturnToOrchestrator" />
+        @returnToOrchestrator="handleReturnToOrchestrator"
+        @viewAllAgentsClicked="handleViewAllAgents"
+        @viewAgentCapabilitiesClicked="handleViewAgentCapabilities"
+        @agentCapabilityRequestedFor="handleAgentCapabilityRequestedFor" />
     </ion-content>
 
     <ion-footer v-if="auth.isAuthenticated && sessionStore.currentSessionId">
@@ -292,6 +295,140 @@ const handleReturnToOrchestrator = async () => {
     uiStore.setAppLoading(false);
     scrollToBottom();
   }
+};
+
+const handleViewAllAgents = async () => {
+  if (uiStore.getIsAppLoading) return;
+  uiStore.setAppLoading(true);
+  try {
+    const taskResponse = await postTaskToOrchestrator("Tell me what agents you have", currentSessionId.value);
+    if (taskResponse && taskResponse.response_message) {
+      let messageContent = '';
+      if (typeof taskResponse.response_message === 'string') {
+        messageContent = taskResponse.response_message;
+      } else if (taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0 && taskResponse.response_message.parts[0].text) {
+        messageContent = taskResponse.response_message.parts[0].text;
+      } else {
+        // Fallback if structure is unexpected, or convert object to string for display
+        messageContent = JSON.stringify(taskResponse.response_message);
+        console.warn("[HomePage] viewAllAgents: response_message was an object without expected parts, stringified for display.");
+      }
+
+      const agentMessage: Message = {
+        id: taskResponse.task_id || Date.now().toString(),
+        content: messageContent,
+        role: 'assistant',
+        timestamp: new Date().toISOString(),
+        metadata: taskResponse.metadata || { responding_agent_name: taskResponse.responding_agent_name || 'Orchestrator' }
+      };
+      sessionStore.addMessageToCurrentSession(agentMessage);
+      console.log("[HomePage] Agent message for viewAllAgents added to store:", JSON.parse(JSON.stringify(agentMessage)));
+      scrollToBottom();
+    } else {
+      console.warn("[HomePage] Received no valid response_message for viewAllAgents from orchestrator", taskResponse);
+    }
+  } catch (error) {
+    console.error("[HomePage] Error in handleViewAllAgents:", error);
+    // Optionally add a user-facing error message to the chat
+  } finally {
+    uiStore.setAppLoading(false);
+  }
+};
+
+const handleViewAgentCapabilities = async () => {
+  if (uiStore.getIsAppLoading) return;
+  uiStore.setAppLoading(true);
+  try {
+    const taskResponse = await postTaskToOrchestrator("What can this agent do for me?", currentSessionId.value);
+    if (taskResponse && taskResponse.response_message) {
+      let messageContent = '';
+      if (typeof taskResponse.response_message === 'string') {
+        messageContent = taskResponse.response_message;
+      } else if (taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0 && taskResponse.response_message.parts[0].text) {
+        messageContent = taskResponse.response_message.parts[0].text;
+      } else {
+        // Fallback for capabilities, ensure it's a string, possibly markdown list
+        // If it's an object, the backend should ideally format it as a markdown string.
+        // For safety, we'll stringify if it's an unexpected object.
+        messageContent = typeof taskResponse.response_message === 'object' ? JSON.stringify(taskResponse.response_message) : String(taskResponse.response_message);
+        if (typeof taskResponse.response_message === 'object') {
+            console.warn("[HomePage] viewAgentCapabilities: response_message was an object, stringified. Backend should provide markdown string for lists.");
+        }
+      }
+      
+      const agentMessage: Message = {
+        id: taskResponse.task_id || Date.now().toString(),
+        content: messageContent, // Ensure backend formats this as a markdown list if it's capabilities
+        role: 'assistant',
+        timestamp: new Date().toISOString(),
+        metadata: {
+          ...(taskResponse.metadata || {}),
+          responding_agent_name: taskResponse.responding_agent_name || 'AI',
+          isCapabilitiesResponse: true
+        }
+      };
+      sessionStore.addMessageToCurrentSession(agentMessage);
+      console.log("[HomePage] Agent message for viewAgentCapabilities added to store:", JSON.parse(JSON.stringify(agentMessage)));
+      scrollToBottom();
+    } else {
+      console.warn("[HomePage] Received no valid response_message for viewAgentCapabilities from orchestrator", taskResponse);
+    }
+  } catch (error) {
+    console.error("[HomePage] Error in handleViewAgentCapabilities:", error);
+  } finally {
+    uiStore.setAppLoading(false);
+  }
+};
+
+const handleAgentCapabilityRequestedFor = async (agentName: string) => {
+  if (!agentName) {
+    console.warn("[HomePage] handleAgentCapabilityRequestedFor called without agentName.");
+    return;
+  }
+  if (uiStore.getIsAppLoading) return;
+  uiStore.setAppLoading(true);
+  try {
+    const query = `What can the ${agentName} do for me?`;
+    console.log(`[HomePage] Sending query for ${agentName}: "${query}"`);
+
+    const taskResponse = await postTaskToOrchestrator(query, currentSessionId.value);
+    if (taskResponse && taskResponse.response_message) {
+      let messageContent = '';
+      if (typeof taskResponse.response_message === 'string') {
+        messageContent = taskResponse.response_message;
+      } else if (taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0 && taskResponse.response_message.parts[0].text) {
+        messageContent = taskResponse.response_message.parts[0].text;
+      } else {
+        messageContent = JSON.stringify(taskResponse.response_message);
+        console.warn(`[HomePage] handleAgentCapabilityRequestedFor (${agentName}): response_message was an object, stringified.`);
+      }
+
+      const agentMessage: Message = {
+        id: taskResponse.task_id || Date.now().toString(),
+        content: messageContent,
+        role: 'assistant',
+        timestamp: new Date().toISOString(),
+        metadata: {
+          ...(taskResponse.metadata || {}),
+          responding_agent_name: taskResponse.responding_agent_name || agentName,
+          isCapabilitiesResponse: true
+        }
+      };
+      sessionStore.addMessageToCurrentSession(agentMessage);
+      console.log(`[HomePage] Agent message for ${agentName} capabilities added to store:`, JSON.parse(JSON.stringify(agentMessage)));
+      scrollToBottom();
+    } else {
+      console.warn(`[HomePage] Received no valid response_message for ${agentName} capabilities from orchestrator`, taskResponse);
+    }
+  } catch (error) {
+    console.error(`[HomePage] Error in handleAgentCapabilityRequestedFor for ${agentName}:`, error);
+  } finally {
+    uiStore.setAppLoading(false);
+  }
+};
+
+const loadSessionData = async () => {
+  // ... existing code ...
 };
 
 </script>
