@@ -1,4 +1,8 @@
 ---
+description: "Guidelines for directory organization, package management, and dependencies in our A2A agent framework"
+globs: ["**/*.json", "**/*.md", "**/*/"]
+alwaysApply: true
+---
 name: "Mono-Repo Structure"
 description: "Guidelines for directory organization, package management, and dependencies in our A2A agent framework"
 globs: ["**/*.json", "**/*.md", "**/*/"]
@@ -25,9 +29,11 @@ alwaysApply: true
   ```
 
 ## Markdown Context Structure
-- Agent knowledge bases are stored in `markdown_context/` at project root
-- Each agent has a corresponding markdown file: `markdown_context/[agent_name].md`
-- No context file should exceed 1MB in size
+- Agent knowledge bases are stored within their respective API version directories.
+  - V1 agents use context files from `apps/api/v1/markdown_context/`.
+  - V2 agents use context files from `apps/api/v2/markdown_context/`.
+- Each agent has a corresponding markdown file: `[agent_name].md` (e.g., `metrics_agent.md`) within its versioned context directory.
+- No context file should exceed 1MB in size.
 
 ## Package Management
 - Use pnpm for Node.js package management
