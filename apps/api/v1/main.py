@@ -39,7 +39,6 @@ print(f"--- DIAGNOSTIC INFO END ---")
 
 from fastapi import FastAPI, HTTPException, APIRouter, Depends, status # MODIFIED: Added status
 from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
 import importlib.util
 from pathlib import Path
 from typing import Optional, Callable, Any, Dict # Added Dict
@@ -48,6 +47,8 @@ from contextlib import asynccontextmanager
 import logging # Import the logging module
 from fastapi.middleware.cors import CORSMiddleware
 import uuid # For new session ID generation
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 # Configure basic logging for the application
 logging.basicConfig(
@@ -75,8 +76,11 @@ from apps.api.v1.shared.mcp.mcp_routes import mcp_router
 from apps.api.v1.auth.routes import router as auth_router
 from apps.api.v1.sessions.routes import router as sessions_router
 
-# Load environment variables from .env file - still okay at module level
-load_dotenv()
+# --- Environment and Base URL Setup ---
+# load_dotenv() # REMOVED: This is now handled by core.config which loads from project root
+
+# Determine API_BASE_URL (adjust logic as needed for your deployment)
+# For local development, this might come from .env or be hardcoded if not set.
 
 # --- Global/Shared Service Instances (Originals) ---
 # These are the defaults if no overrides are in place.
