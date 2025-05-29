@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 import importlib.util
 from pathlib import Path
-from typing import Optional, Callable, Any, Dict
+from typing import Optional, Callable, Any, Dict, List
 from functools import partial
 from contextlib import asynccontextmanager
 import logging
@@ -14,8 +14,19 @@ from fastapi.middleware.cors import CORSMiddleware
 import uuid
 import inspect
 
-# Load environment variables first to ensure we can access log level config
-load_dotenv()
+# Load environment variables from project root .env file
+# Construct the path to the root .env file relative to this main.py file
+# This main.py is at apps/api/v2/main.py
+# Project root is 3 levels up.
+_MAIN_PY_PATH = Path(__file__).resolve()
+_PROJECT_ROOT_FOR_DOTENV = _MAIN_PY_PATH.parents[3]
+_DOTENV_PATH = _PROJECT_ROOT_FOR_DOTENV / ".env"
+
+if _DOTENV_PATH.exists():
+    load_dotenv(dotenv_path=_DOTENV_PATH)
+    print(f"[V2 MAIN_PY_DEBUG] Loaded .env from: {_DOTENV_PATH}")
+else:
+    print(f"[V2 MAIN_PY_DEBUG] WARNING: Root .env file NOT FOUND at {_DOTENV_PATH}. Using system env vars or defaults.")
 
 # Configure logging with a more structured approach
 def setup_logging():
