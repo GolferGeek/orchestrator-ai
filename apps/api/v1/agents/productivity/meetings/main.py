@@ -9,7 +9,7 @@ AGENT_ID: str = "meetings-agent-v1"
 AGENT_NAME: str = "meetings" # Standardized to directory name
 AGENT_DESCRIPTION: str = "Assists with meeting scheduling, summaries, and related productivity tasks by querying a central MCP."
 AGENT_VERSION: str = "1.0.0" # Standardized version
-MCP_TARGET_AGENT_ID: str = "knowledge_agent_productivity" # As per existing code
+MCP_TARGET_AGENT_ID: str = AGENT_NAME # Use AGENT_NAME for consistency with context file naming
 CONTEXT_FILE_NAME: str = "meetings_agent.md"
 PRIMARY_CAPABILITY_NAME: str = "query_meeting_information"
 PRIMARY_CAPABILITY_DESCRIPTION: str = "Answers questions about meetings and assists with scheduling by relaying them to an MCP."
@@ -23,6 +23,7 @@ class MeetingsService(MCPContextAgentBaseService):
     agent_name: str = AGENT_NAME
     agent_description: str = AGENT_DESCRIPTION
     agent_version: str = AGENT_VERSION
+    department_name: str = "productivity"  # Add the department name
     mcp_target_agent_id: str = MCP_TARGET_AGENT_ID
     context_file_name: str = CONTEXT_FILE_NAME
     primary_capability_name: str = PRIMARY_CAPABILITY_NAME
