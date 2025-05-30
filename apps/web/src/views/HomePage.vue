@@ -6,8 +6,25 @@
           <ion-menu-button :auto-hide="false" v-if="auth.isAuthenticated"></ion-menu-button>
         </ion-buttons>
         <ion-title>{{ pageTitle }}</ion-title>
+        <ion-buttons slot="end" v-if="auth.isAuthenticated">
+          <div class="api-display">
+            <span class="api-label">{{ currentApiDisplay }}</span>
+          </div>
+          <ion-button fill="clear" @click="showApiSelector = !showApiSelector">
+            <ion-icon :icon="settingsOutline" />
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
+
+    <!-- API Selector Panel (toggleable) -->
+    <div v-if="showApiSelector && auth.isAuthenticated" class="api-selector-overlay">
+      <ApiSelector 
+        @endpoint-changed="handleEndpointChanged"
+        @health-check-completed="handleHealthCheckCompleted"
+        @close="handleApiSelectorClose"
+      />
+    </div>
 
     <ion-content :fullscreen="true" class="ion-padding" ref="chatContentEl">
       <div v-if="!auth.isAuthenticated" class="ion-text-center ion-padding">
@@ -45,19 +62,24 @@
 <script setup lang="ts">
 import { 
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonFooter, IonSpinner, IonText, 
-  isPlatform, IonButtons, IonMenuButton
+  isPlatform, IonButtons, IonMenuButton, IonButton, IonIcon
 } from '@ionic/vue';
 import { onMounted, onUnmounted, computed, watch, nextTick, ref } from 'vue';
 import { Keyboard, KeyboardInfo } from '@capacitor/keyboard';
 import { Capacitor } from '@capacitor/core';
+import { settingsOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useUiStore } from '@/stores/uiStore';
 import { postTaskToOrchestrator } from '@/services/apiService';
 import { storeToRefs } from 'pinia';
+import { apiManager } from '../services/apiManager';
+import { Message } from '../services/sessionService';
 
 import MessageListComponent from '../components/MessageList.vue';
 import ChatInputComponent from '../components/ChatInput.vue';
+import ApiSelector from '../components/ApiSelector.vue';
+import type { ApiEndpoint } from '../types/api';
 
 const auth = useAuthStore();
 const sessionStore = useSessionStore();
@@ -77,6 +99,22 @@ const currentSessionName = computed(() => {
 
 const pageTitle = computed(() => {
   return currentSessionName.value || 'Orchestrator Chat';
+});
+
+const showApiSelector = ref(false);
+
+const currentApiDisplay = computed(() => {
+  const endpoint = apiManager.currentEndpoint;
+  if (!endpoint) return 'No API';
+  
+  const versionLabel = endpoint.version.toUpperCase();
+  const techLabel = endpoint.technology === 'python-fastapi' ? 'FastAPI' : 
+                   endpoint.technology === 'typescript-nestjs' ? 'TypeScript' : 
+                   String(endpoint.technology).split('-').map((word: string) => 
+                     word.charAt(0).toUpperCase() + word.slice(1)
+                   ).join(' ');
+  
+  return `${versionLabel} ${techLabel}`;
 });
 
 const handleMessagesRenderedInChild = () => {
@@ -152,32 +190,59 @@ const handleSendMessage = async (text: string) => {
     const taskResponse = await postTaskToOrchestrator(text, currentSessionId.value);
     console.log("[HomePage] Received taskResponse from orchestrator:", JSON.parse(JSON.stringify(taskResponse))); // DEBUG PRINT
     
-    if (taskResponse.response_message && taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0) {
-      const agentText = taskResponse.response_message.parts[0]?.text || 'No response text.';
-      const agentMessageOrder = (currentSessionMessages.value.length > 0 
-            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
-            : 1);
-      const agentMetadata: Record<string, any> = {};
+    // Extract response text - support both V1 and V2 A2A formats
+    let agentText = 'No response text.';
+    let agentMetadata: Record<string, any> = {};
+    
+    // V2 A2A Protocol format - check for output_artifacts first
+    if (taskResponse.output_artifacts && taskResponse.output_artifacts.length > 0) {
+      const outputArtifact = taskResponse.output_artifacts[0];
+      if (outputArtifact.data && typeof outputArtifact.data === 'string') {
+        agentText = outputArtifact.data;
+        if (outputArtifact.metadata) {
+          // Use display_name first, then agent_name, then fall back to agent_id
+          agentMetadata.agentName = outputArtifact.metadata.display_name || 
+                                   outputArtifact.metadata.agent_name || 
+                                   outputArtifact.metadata.agent_id;
+        }
+        console.log("[HomePage] Extracted response from V2 A2A output_artifacts format");
+      }
+    }
+    // V1 format fallback - check for response_message.parts
+    else if (taskResponse.response_message && taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0) {
+      agentText = taskResponse.response_message.parts[0]?.text || 'No response text.';
       if (taskResponse.response_message?.metadata?.responding_agent_name) {
         agentMetadata.agentName = taskResponse.response_message.metadata.responding_agent_name;
       }
-
-      const agentMessage = {
-        id: taskResponse.id,
-        session_id: currentSessionId.value,
-        user_id: 'agent',
-        role: 'assistant' as const,
-        content: agentText,
-        timestamp: new Date().toISOString(),
-        order: agentMessageOrder,
-        metadata: agentMetadata
-      };
-      console.log("[HomePage] Constructed agentMessage:", JSON.parse(JSON.stringify(agentMessage))); // DEBUG PRINT
-      sessionStore.addMessageToCurrentSession(agentMessage);
-      console.log("[HomePage] Agent message added to store. Store messages count:", sessionStore.currentSessionMessages.length); // DEBUG PRINT
-    } else {
-      console.warn("[HomePage] No response_message or parts found in taskResponse:", JSON.parse(JSON.stringify(taskResponse))); // DEBUG PRINT
+      console.log("[HomePage] Extracted response from V1 response_message.parts format");
     }
+    // Additional fallback - check for direct result field
+    else if (taskResponse.result && typeof taskResponse.result === 'string') {
+      agentText = taskResponse.result;
+      console.log("[HomePage] Extracted response from direct result field");
+    }
+    else {
+      console.warn("[HomePage] No response found in any supported format in taskResponse:", JSON.parse(JSON.stringify(taskResponse))); // DEBUG PRINT
+    }
+
+    const agentMessageOrder = (currentSessionMessages.value.length > 0 
+          ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+          : 1);
+
+    const agentMessage: Message = {
+      id: taskResponse.id,
+      session_id: currentSessionId.value || 'unknown-session',
+      user_id: 'agent',
+      role: 'assistant',
+      content: agentText,
+      timestamp: new Date().toISOString(),
+      order: agentMessageOrder,
+      metadata: agentMetadata
+    };
+    console.log("[HomePage] Constructed agentMessage:", JSON.parse(JSON.stringify(agentMessage))); // DEBUG PRINT
+    sessionStore.addMessageToCurrentSession(agentMessage);
+    console.log("[HomePage] Agent message added to store. Store messages count:", sessionStore.currentSessionMessages.length); // DEBUG PRINT
+    
     if (taskResponse.session_id && taskResponse.session_id !== currentSessionId.value) {
         sessionStore.setCurrentSessionId(taskResponse.session_id);
     }
@@ -255,41 +320,50 @@ const handleReturnToOrchestrator = async () => {
         agentMetadata.agentName = 'Orchestrator'; // Default to Orchestrator
       }
 
-      const agentMessage = {
-        id: taskResponse.id, 
-        session_id: currentSessionId.value!,
+      const agentMessage: Message = {
+        id: taskResponse.id,
+        session_id: currentSessionId.value || 'unknown-session',
         user_id: 'agent',
-        role: 'assistant' as const,
+        role: 'assistant',
         content: agentText,
         timestamp: new Date().toISOString(),
         order: agentMessageOrder,
         metadata: agentMetadata
       };
       sessionStore.addMessageToCurrentSession(agentMessage);
-    } else if (taskResponse && taskResponse.messages) { 
-        taskResponse.messages.forEach((msg: any) => {
-        const existingMessage = sessionStore.currentSessionMessages.find(m => m.id === msg.id);
-        if (!existingMessage) {
-          sessionStore.addMessageToCurrentSession({
-            id: msg.id,
-            content: msg.content.toString(),
-            role: msg.role,
-            timestamp: msg.timestamp || new Date().toISOString(),
-            metadata: msg.metadata || { agentName: 'Orchestrator' }, 
-            order: (currentSessionMessages.value.length > 0 
-            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
-            : 1)
-          });
-        }
-      });
+    } else if (taskResponse && taskResponse.response_message) { 
+      // Additional fallback for other response formats
+      const fallbackText = typeof taskResponse.response_message === 'string' 
+        ? taskResponse.response_message 
+        : JSON.stringify(taskResponse.response_message);
+      
+      const fallbackMessage = {
+        id: taskResponse.id || Date.now().toString(),
+        session_id: currentSessionId.value || 'unknown-session',
+        user_id: 'agent',
+        role: 'assistant' as const,
+        content: fallbackText,
+        timestamp: new Date().toISOString(),
+        order: (currentSessionMessages.value.length > 0 
+          ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+          : 1),
+        metadata: { agentName: 'Orchestrator' }
+      };
+      sessionStore.addMessageToCurrentSession(fallbackMessage);
     }
   } catch (error) {
     console.error('Error returning to orchestrator:', error);
     sessionStore.addMessageToCurrentSession({
       id: Date.now().toString(),
+      session_id: currentSessionId.value || 'unknown-session',
+      user_id: 'system',
       content: "Error trying to return to orchestrator. Please try again.",
       role: 'system',
       timestamp: new Date().toISOString(),
+      order: (currentSessionMessages.value.length > 0 
+        ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+        : 1),
+      metadata: null
     });
   } finally {
     uiStore.setAppLoading(false);
@@ -316,9 +390,14 @@ const handleViewAllAgents = async () => {
 
       const agentMessage: Message = {
         id: taskResponse.task_id || Date.now().toString(),
+        session_id: currentSessionId.value || 'unknown-session',
+        user_id: 'agent',
         content: messageContent,
         role: 'assistant',
         timestamp: new Date().toISOString(),
+        order: (currentSessionMessages.value.length > 0 
+          ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+          : 1),
         metadata: taskResponse.metadata || { responding_agent_name: taskResponse.responding_agent_name || 'Orchestrator' }
       };
       sessionStore.addMessageToCurrentSession(agentMessage);
@@ -358,14 +437,15 @@ const handleViewAgentCapabilities = async () => {
       
       const agentMessage: Message = {
         id: taskResponse.task_id || Date.now().toString(),
-        content: messageContent, // Ensure backend formats this as a markdown list if it's capabilities
+        session_id: currentSessionId.value || 'unknown-session',
+        user_id: 'agent',
+        content: messageContent,
         role: 'assistant',
         timestamp: new Date().toISOString(),
-        metadata: {
-          ...(taskResponse.metadata || {}),
-          responding_agent_name: taskResponse.responding_agent_name || 'AI',
-          isCapabilitiesResponse: true
-        }
+        order: (currentSessionMessages.value.length > 0 
+          ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+          : 1),
+        metadata: taskResponse.metadata || { responding_agent_name: taskResponse.responding_agent_name || 'AI', isCapabilitiesResponse: true }
       };
       sessionStore.addMessageToCurrentSession(agentMessage);
       console.log("[HomePage] Agent message for viewAgentCapabilities added to store:", JSON.parse(JSON.stringify(agentMessage)));
@@ -405,14 +485,15 @@ const handleAgentCapabilityRequestedFor = async (agentName: string) => {
 
       const agentMessage: Message = {
         id: taskResponse.task_id || Date.now().toString(),
+        session_id: currentSessionId.value || 'unknown-session',
+        user_id: 'agent',
         content: messageContent,
         role: 'assistant',
         timestamp: new Date().toISOString(),
-        metadata: {
-          ...(taskResponse.metadata || {}),
-          responding_agent_name: taskResponse.responding_agent_name || agentName,
-          isCapabilitiesResponse: true
-        }
+        order: (currentSessionMessages.value.length > 0 
+          ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+          : 1),
+        metadata: taskResponse.metadata || { responding_agent_name: taskResponse.responding_agent_name || agentName, isCapabilitiesResponse: true }
       };
       sessionStore.addMessageToCurrentSession(agentMessage);
       console.log(`[HomePage] Agent message for ${agentName} capabilities added to store:`, JSON.parse(JSON.stringify(agentMessage)));
@@ -429,6 +510,20 @@ const handleAgentCapabilityRequestedFor = async (agentName: string) => {
 
 const loadSessionData = async () => {
   // ... existing code ...
+};
+
+const handleEndpointChanged = (endpoint: ApiEndpoint) => {
+  console.log('API endpoint changed to:', endpoint.name);
+  showApiSelector.value = false; // Close the selector after selection
+};
+
+const handleHealthCheckCompleted = (results: any) => {
+  console.log('Health check completed:', results);
+};
+
+const handleApiSelectorClose = () => {
+  console.log('API selector closed');
+  showApiSelector.value = false;
 };
 
 </script>
@@ -459,7 +554,7 @@ ion-footer {
 .ios-header-style {
   --border-width: 0 0 0.55px 0; /* Add a bottom border for iOS header */
   --border-color: var(--ion-color-step-250, #c8c7cc); /* Standard iOS border color */
-  --background: var(--ion-toolbar-background-ios, var(--ion-background-color, #fff)); /* Ensure iOS specific background if translucent is tricky */
+  --background: var(--ion-toolbar-background, var(--ion-background-color)); /* Ensure iOS specific background if translucent is tricky */
 }
 
 /* Example for MD if needed 
@@ -468,4 +563,55 @@ ion-footer {
   --color: var(--ion-toolbar-color-md, var(--ion-color-primary-contrast));
 }
 */
+
+.api-selector-overlay {
+  position: absolute;
+  top: 60px; /* Adjust based on header height */
+  right: 16px;
+  left: 16px;
+  z-index: 1000;
+  background: var(--ion-background-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--ion-color-light);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+@media (min-width: 768px) {
+  .api-selector-overlay {
+    right: 16px;
+    left: auto;
+    width: 400px;
+  }
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.api-display {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
+
+.api-label {
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .api-label {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+}
 </style>

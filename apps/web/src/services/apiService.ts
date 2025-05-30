@@ -1,28 +1,45 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
-import { AgentInfo, TaskCreationRequest, TaskResponse } from '../types/chat'; // Import new Task types
+import { apiManager } from './apiManager';
+import { TaskResponse, AgentInfo } from '../types/chat';
+import axios, { AxiosInstance } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'; // Allow override via .env
-
-const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Legacy interfaces for reference, not used by postTaskToOrchestrator anymore
+// Legacy interfaces for backward compatibility
 export interface OrchestratorRequest { text: string; }
-export interface AgentResponseInterface { agent_id: string; agent_name: string; text: string; } // Renamed to avoid conflict if AgentResponse is imported from types
-export interface OrchestratorResponseInterface { query: string; responses: AgentResponseInterface[]; } // Renamed
+export interface AgentResponseInterface { agent_id: string; agent_name: string; text: string; }
+export interface OrchestratorResponseInterface { query: string; responses: AgentResponseInterface[]; }
 
-// More specific type for expected error data from backend if it has a 'detail' field
 export interface BackendErrorDetail {
   detail?: string;
-  [key: string]: any; // Allow other properties
+  [key: string]: any;
 }
 
+// Create a backward-compatible axios-like client
+const createBackwardCompatibleClient = (): AxiosInstance => {
+  const client = axios.create({
+    baseURL: apiManager.currentEndpoint.baseUrl,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    timeout: 10000,
+  });
+
+  // Update base URL when current endpoint changes
+  // This is a simple approach - we could use a reactive pattern here
+  const updateBaseURL = () => {
+    client.defaults.baseURL = apiManager.currentEndpoint.baseUrl;
+  };
+
+  // Update immediately and periodically (in a real app, you'd use reactive patterns)
+  updateBaseURL();
+  setInterval(updateBaseURL, 1000); // Check every second
+
+  return client;
+};
+
+// Create the backward-compatible client
+const backwardCompatibleClient = createBackwardCompatibleClient();
+
 /**
- * Posts a task (user message) to the orchestrator.
+ * Posts a task (user message) to the orchestrator using the current API client.
  * @param userInputText The user's input text.
  * @param sessionId Optional session ID
  * @returns A promise that resolves to the TaskResponse.
@@ -31,54 +48,93 @@ export const postTaskToOrchestrator = async (
   userInputText: string,
   sessionId?: string | null
 ): Promise<TaskResponse> => {
+  const client = apiManager.currentClient;
+  if (!client) {
+    throw new Error('No API client available');
+  }
+
   try {
-    const requestPayload: TaskCreationRequest = {
-      message: {
-        role: 'user',
-        parts: [{ text: userInputText }]
-      }
-    };
-    if (sessionId) {
-      requestPayload.session_id = sessionId;
-    }
-    const response = await apiClient.post<TaskResponse>('/agents/orchestrator/tasks', requestPayload);
-    return response.data;
+    return await client.postTaskToOrchestrator(userInputText, sessionId);
   } catch (error) {
-    const axiosError = error as AxiosError<BackendErrorDetail>; 
-    let errorMessage = 'Failed to post task to orchestrator';
-    if (axiosError.response && axiosError.response.data && axiosError.response.data.detail) {
-      errorMessage = axiosError.response.data.detail;
-    } else if (axiosError.message) {
-      errorMessage = axiosError.message;
-    }
-    console.error('Error posting task to orchestrator:', axiosError.response?.data || axiosError.message);
-    throw new Error(errorMessage);
+    console.error('Error posting task to orchestrator:', error);
+    throw error;
   }
 };
 
 /**
- * Fetches the list of available agents from the backend.
+ * Fetches the list of available agents from the current API endpoint.
  * @returns A promise that resolves to an array of AgentInfo.
  */
 export const getAvailableAgents = async (): Promise<AgentInfo[]> => {
+  const client = apiManager.currentClient;
+  if (!client) {
+    throw new Error('No API client available');
+  }
+
   try {
-    // Updated endpoint to /agents (removed trailing slash)
-    const response = await apiClient.get<{ agents: AgentInfo[] }>('/agents'); 
-    return response.data.agents || []; 
+    return await client.getAvailableAgents();
   } catch (error) {
-    const axiosError = error as AxiosError<BackendErrorDetail>; 
-    let errorMessage = 'Failed to fetch available agents';
-    if (axiosError.response && axiosError.response.data && axiosError.response.data.detail) {
-      errorMessage = axiosError.response.data.detail;
-    } else if (axiosError.message) {
-      errorMessage = axiosError.message;
-    }
-    console.error('Error fetching available agents:', axiosError.response?.data || axiosError.message);
-    throw new Error(errorMessage);
+    console.error('Error fetching available agents:', error);
+    throw error;
   }
 };
 
-// You can add other API service functions here as needed, e.g.:
-// export const getAgentList = async (): Promise<AgentInfo[]> => { ... };
+/**
+ * Get current API endpoint information
+ */
+export const getCurrentApiInfo = () => {
+  return apiManager.currentEndpoint;
+};
 
-export default apiClient; // Exporting the instance can be useful for direct use or testing 
+/**
+ * Check if a feature is supported by the current API
+ */
+export const isFeatureSupported = (feature: string): boolean => {
+  return apiManager.isFeatureSupported(feature);
+};
+
+/**
+ * Switch to a different API version
+ */
+export const switchApiVersion = async (version: 'v1' | 'v2') => {
+  try {
+    await apiManager.switchToVersion(version);
+    console.log(`Switched to API version ${version}`);
+    // Update the backward-compatible client's base URL
+    backwardCompatibleClient.defaults.baseURL = apiManager.currentEndpoint.baseUrl;
+  } catch (error) {
+    console.error(`Failed to switch to API version ${version}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Get all available API endpoints
+ */
+export const getAvailableEndpoints = () => {
+  return apiManager.availableEndpoints;
+};
+
+/**
+ * Perform health check on current API
+ */
+export const performHealthCheck = async (): Promise<boolean> => {
+  const client = apiManager.currentClient;
+  if (!client) {
+    return false;
+  }
+
+  try {
+    return await client.healthCheck();
+  } catch (error) {
+    console.error('Health check failed:', error);
+    return false;
+  }
+};
+
+// Re-export the API manager for direct access if needed
+export { apiManager };
+
+// Export the backward-compatible axios-like client as the default
+// This maintains compatibility with existing auth services
+export default backwardCompatibleClient; 

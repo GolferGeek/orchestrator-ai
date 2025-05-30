@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { authService } from '@/services/authService'; // Removed AuthResponse import from here
-import apiClient from '@/services/apiService'; // To update axios headers
+import apiClient, { apiManager } from '@/services/apiService'; // To update axios headers
 
 // Interface for the token data expected from authService login/signup
 interface TokenData {
@@ -38,7 +38,13 @@ export const useAuthStore = defineStore('auth', () => {
       refreshToken.value = tokenData.refresh_token;
       localStorage.setItem('refreshToken', tokenData.refresh_token);
     }
+    
+    // Set auth token on backward-compatible client
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${tokenData.access_token}`;
+    
+    // Set auth token on all API manager clients
+    apiManager.setAuthToken(tokenData.access_token);
+    
     error.value = null; // Clear error on successful token set
   }
 
@@ -49,7 +55,12 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null;
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
+    
+    // Clear auth from backward-compatible client
     delete apiClient.defaults.headers.common['Authorization'];
+    
+    // Clear auth from all API manager clients
+    apiManager.clearAuth();
   }
 
   async function login(credentials: { email: string; password: string }) {

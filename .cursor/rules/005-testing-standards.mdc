@@ -3,7 +3,6 @@ name: "Testing Standards"
 description: "Guidelines for writing unit, integration, and end-to-end tests for both backend and frontend."
 globs: ["tests/**/*.py", "apps/web/**/__tests__/*.spec.js"]
 alwaysApply: true
----
 name: "Testing Standards"
 description: "Guidelines for writing unit, integration, and end-to-end tests for both backend and frontend."
 globs: ["tests/**/*.py", "apps/web/**/__tests__/*.spec.js"]
@@ -24,7 +23,7 @@ alwaysApply: true
   - Use `npm run api` to start the API server
   - This will run the server with the proper environment configuration
 - For running tests:
-  - Ensure you're in the correct directory (`apps/api`)
+  - Ensure you're in the correct API implementation directory
   - Use `python3 -m pdm run pytest [test_file_path]` to run specific tests
   - Use `python3 -m pdm run pytest tests/` to run all tests
 
@@ -33,7 +32,7 @@ alwaysApply: true
 - Mock external dependencies to avoid side effects and ensure test speed.
 - Use clear and descriptive test names.
 - Each test should verify a single piece of behavior.
-- **Python**: Use `pytest` as the primary testing framework. Store tests in the `tests/unit` directory or alongside the code they test (e.g., `tests/apps/api/agents/test_agent_routes.py`).
+- **Python**: Use `pytest` as the primary testing framework. Store tests in the `tests/unit` directory or alongside the code they test.
 - **Vue**: Use Vitest or Jest for component and utility function unit tests. Store tests in `__tests__` directories or alongside the component files (e.g., `src/components/__tests__/MyComponent.spec.js`).
 
 ## Integration Tests
@@ -49,7 +48,7 @@ alwaysApply: true
 
 ## Test Organization
 - Maintain a clear directory structure for tests (e.g., `tests/unit`, `tests/integration`).
-- Agent service integration tests (testing FastAPI endpoints, A2A protocol compliance, or service class methods that handle requests) should be located in `tests/integration/agents/[department_or_category]/[agent_name]/`. For example, tests for an invoice agent within the business department would be in `tests/integration/agents/business/invoice/`.
+- Agent service integration tests should be located in `tests/integration/agents/[department_or_category]/[agent_name]/`. For example, tests for an invoice agent within the business department would be in `tests/integration/agents/business/invoice/`.
 - Use descriptive file names for test files (e.g., `test_user_service.py`, `LoginFlow.e2e.js`).
 
 ## Code Coverage
@@ -59,4 +58,5 @@ alwaysApply: true
 ## Continuous Integration (CI)
 - Integrate tests into the CI pipeline to run automatically on every push/PR.
 - Ensure builds fail if tests do not pass.
+
 
