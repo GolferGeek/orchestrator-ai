@@ -12,28 +12,25 @@ alwaysApply: true
 ## Directory Structure
 
 - The project is organized as a monorepo using Turborepo
-- Agents are organized by API version:
-  - V1 agents are in `apps/api/v1/agents/`
-  - V2 agents are in `apps/api/v2/agents/`
+- APIs are organized by technology stack and version under `apps/api/`
 - Shared code lives in `shared/` directory
 - All agents must expose a `.well-known/agent.json` file for A2A compatibility
 
 ## Agent Structure
 - Each agent follows this basic structure:
   ```
-  apps/api/v[1|2]/agents/[agent_name]/
+  apps/api/[tech-stack]/[version]/agents/[agent_name]/
   ├── .well-known/
   │   └── agent.json     # A2A-compatible agent definition
-  ├── routes.py          # FastAPI routes for the agent
+  ├── routes.py          # FastAPI routes for the agent (Python)
+  ├── routes.ts          # NestJS routes for the agent (TypeScript)
   └── README.md          # Agent documentation
   ```
 
 ## Markdown Context Structure
-- Agent knowledge bases are stored within their respective API version directories.
-  - V1 agents use context files from `apps/api/v1/markdown_context/`.
-  - V2 agents use context files from `apps/api/v2/markdown_context/`.
-- Each agent has a corresponding markdown file: `[agent_name].md` (e.g., `metrics_agent.md`) within its versioned context directory.
-- No context file should exceed 1MB in size.
+- Agent knowledge bases are stored within their respective API implementation directories
+- Each agent has a corresponding markdown file: `[agent_name].md` (e.g., `metrics_agent.md`) within its context directory
+- No context file should exceed 1MB in size
 
 ## Package Management
 - Use pnpm for Node.js package management
@@ -56,7 +53,7 @@ alwaysApply: true
 - Shared configuration in `shared/config/`
 
 ## Version Management
-- V1 agents (`apps/api/v1/agents/`): Current stable agents
-- V2 agents (`apps/api/v2/agents/`): Next generation agents under development
-- Breaking changes should be implemented in V2 while maintaining V1 compatibility
+- Multiple technology stacks can coexist under `apps/api/`
+- Each implementation maintains its own versioning strategy
+- Breaking changes should be implemented in new versions while maintaining backward compatibility
 

@@ -3,7 +3,7 @@
 # Defines which APIs to lint, bundle, etc. 
 # If you have a single API definition, you can often omit this and pass the file path on the command line.
 # apis:
-#   main: apps/api/shared/v2/contracts/a2a-protocol.yaml
+#   main: apps/api/v2/shared/contracts/a2a-protocol.yaml
 
 # Extend a recommended ruleset
 extends:

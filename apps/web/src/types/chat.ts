@@ -73,4 +73,58 @@ export interface TaskResponse {
   metadata?: Record<string, any> | null;
   created_at: string; 
   updated_at: string; 
+  
+  // A2A Protocol V2 fields
+  output_artifacts?: Array<{
+    type: string;
+    artifact_id: string;
+    artifact_type: string;
+    format?: string;
+    data: string;
+    encoding?: string;
+    metadata?: Record<string, any>;
+    size?: number;
+    checksum?: string;
+  }>;
+  input_artifacts?: Array<{
+    type: string;
+    artifact_id: string;
+    artifact_type: string;
+    format?: string;
+    data: any;
+    encoding?: string;
+    metadata?: Record<string, any>;
+    size?: number;
+    checksum?: string;
+  }>;
+  error_details?: {
+    code?: string;
+    message?: string;
+    details?: Record<string, any>;
+  };
+  progress?: {
+    percentage?: number;
+    current_step?: string;
+    total_steps?: number;
+    estimated_remaining?: number;
+  };
+  
+  // Additional fallback fields for backward compatibility
+  result?: string;
+  title?: string;
+  description?: string;
+  instructions?: string;
+  priority?: string;
+  due_date?: string;
+  created_by?: string;
+  assigned_to?: string;
+  estimated_duration?: number;
+  actual_duration?: number;
+  dependencies?: string[];
+  tags?: string[];
+  context?: Record<string, any>;
+  
+  // Legacy fields for V1 compatibility
+  task_id?: string;
+  responding_agent_name?: string;
 } 

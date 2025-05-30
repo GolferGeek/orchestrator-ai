@@ -1,4 +1,4 @@
-import apiClient, { BackendErrorDetail } from './apiService';
+import apiClient, { BackendErrorDetail, apiManager } from './apiService';
 import { AxiosError } from 'axios';
 
 interface UserCredentials {
@@ -34,8 +34,14 @@ export const authService = {
         if (response.data.refresh_token) {
             localStorage.setItem(REFRESH_TOKEN_KEY, response.data.refresh_token);
         }
+        
+        // Set auth token on backward-compatible client
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
-        console.log("authService: Token stored and header set.");
+        
+        // Set auth token on all API manager clients
+        apiManager.setAuthToken(response.data.access_token);
+        
+        console.log("authService: Token stored and headers set on all clients.");
       } else {
         console.error('authService: Login successful response but no access_token received:', response.data);
         throw new Error('Login completed but no token was provided by the server.');
@@ -64,8 +70,14 @@ export const authService = {
         if (response.data.refresh_token) {
             localStorage.setItem(REFRESH_TOKEN_KEY, response.data.refresh_token);
         }
+        
+        // Set auth token on backward-compatible client
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
-        console.log("authService: Token stored (after signup) and header set.");
+        
+        // Set auth token on all API manager clients
+        apiManager.setAuthToken(response.data.access_token);
+        
+        console.log("authService: Token stored (after signup) and headers set on all clients.");
       } else {
         console.error('authService: Signup successful response but no access_token received:', response.data);
         throw new Error('Signup completed but no token was provided by the server.');
@@ -91,10 +103,16 @@ export const authService = {
   },
 
   logout(): void {
-    console.log("authService: logout called. Clearing local tokens and auth header.");
+    console.log("authService: logout called. Clearing local tokens and auth headers.");
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    
+    // Clear auth from backward-compatible client
     delete apiClient.defaults.headers.common['Authorization'];
+    
+    // Clear auth from all API manager clients
+    apiManager.clearAuth();
+    
     // Optional: Call backend /auth/logout endpoint. If so, make this async.
     // apiClient.post('/auth/logout').catch(err => console.error("authService: Backend logout call failed", err));
   },
@@ -108,8 +126,13 @@ export const authService = {
   initializeAuthHeader(): void {
     const token = this.getToken();
     if (token) {
+      // Set on backward-compatible client
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      console.log("authService: Auth header initialized from stored token.");
+      
+      // Set on all API manager clients
+      apiManager.setAuthToken(token);
+      
+      console.log("authService: Auth headers initialized from stored token on all clients.");
     } else {
       console.log("authService: No stored token found for auth header initialization.");
     }

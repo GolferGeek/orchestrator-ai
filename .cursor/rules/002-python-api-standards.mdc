@@ -3,8 +3,6 @@ name: "Python API Standards"
 description: "Guidelines for Python backend development using FastAPI, Pydantic, and asynchronous programming."
 globs: ["apps/api/**/*.py", "shared/**/*.py"]
 alwaysApply: true
----
-
 # Python API Standards
 
 ## General Principles
@@ -22,7 +20,7 @@ alwaysApply: true
 - Use `HTTPException` for standard HTTP errors.
 
 ## Route Organization
-- Group related endpoints in separate Python modules (e.g., `apps/api/agents/[agent_name]/routes.py`).
+- Group related endpoints in separate Python modules (e.g., `[agent_name]/routes.py`).
 - Use descriptive names for route functions.
 - Keep route functions focused on handling the request and returning a response; delegate business logic to service layers or utility functions.
 
@@ -55,3 +53,4 @@ alwaysApply: true
 - Write integration tests for API endpoints using FastAPI's `TestClient`.
 - Aim for high test coverage.
 - Use fixtures for setting up test data and dependencies.
+
