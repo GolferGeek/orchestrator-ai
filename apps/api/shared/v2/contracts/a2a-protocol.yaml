@@ -1,0 +1,497 @@
+openapi: 3.0.3
+info:
+  title: A2A Protocol v2
+  description: |
+    Core Agent-to-Agent (A2A) communication protocol types.
+    Defines the fundamental message passing, task management, and artifact exchange format.
+  version: 2.0.0
+  contact:
+    name: A2A Protocol Team
+    email: team@example.com
+
+components:
+  schemas:
+    # =====================================
+    # Message Part Types
+    # =====================================
+    
+    TextPart:
+      type: object
+      description: Text content part in a message
+      required:
+        - type
+        - text
+      properties:
+        type:
+          type: string
+          enum: [text]
+          description: Part type identifier
+          example: "text"
+        text:
+          type: string
+          description: The text content
+          example: "Hello, how can I help you today?"
+          maxLength: 100000
+      example:
+        type: "text"
+        text: "Hello, how can I help you today?"
+    
+    ImagePart:
+      type: object
+      description: Image content part in a message
+      required:
+        - type
+        - source
+        - media_type
+      properties:
+        type:
+          type: string
+          enum: [image]
+          description: Part type identifier
+          example: "image"
+        source:
+          oneOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum: [base64]
+                  example: "base64"
+                media_type:
+                  type: string
+                  example: "image/png"
+                data:
+                  type: string
+                  format: byte
+                  example: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+              required: [type, media_type, data]
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum: [url]
+                  example: "url"
+                url:
+                  type: string
+                  format: uri
+                  example: "https://example.com/image.png"
+              required: [type, url]
+        media_type:
+          type: string
+          description: MIME type of the image
+          example: "image/png"
+          pattern: '^image\/(png|jpeg|jpg|gif|webp|svg\+xml)$'
+        alt:
+          type: string
+          description: Alternative text description
+          example: "A red bicycle in front of a blue building"
+          maxLength: 1000
+      example:
+        type: "image"
+        source:
+          type: "url"
+          url: "https://example.com/image.png"
+        media_type: "image/png"
+        alt: "A red bicycle in front of a blue building"
+    
+    ArtifactPart:
+      type: object
+      description: Artifact data part in a message (structured data, files, etc.)
+      required:
+        - type
+        - artifact_id
+        - artifact_type
+        - data
+      properties:
+        type:
+          type: string
+          enum: [artifact_data]
+          description: Part type identifier
+          example: "artifact_data"
+        artifact_id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        artifact_type:
+          type: string
+          description: Type of artifact
+          enum:
+            - document
+            - code
+            - data_file
+            - configuration
+            - image
+            - audio
+            - video
+            - other
+          example: "document"
+        format:
+          type: string
+          description: Specific format of the artifact
+          example: "json"
+          maxLength: 50
+        data:
+          oneOf:
+            - type: string
+              description: Inline artifact data (for small artifacts)
+            - type: object
+              description: Reference to external artifact
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: "https://storage.example.com/artifacts/document-123.json"
+                access_token:
+                  type: string
+                  description: Optional access token for authenticated retrieval
+              required: [url]
+        encoding:
+          type: string
+          description: Encoding used for the data
+          enum:
+            - base64
+            - utf-8
+            - binary
+          default: utf-8
+          example: "utf-8"
+        metadata:
+          $ref: 'common-types.yaml#/components/schemas/Metadata'
+        size:
+          type: integer
+          description: Size of the artifact in bytes
+          minimum: 0
+          example: 1024
+        checksum:
+          type: string
+          description: SHA-256 checksum of the artifact data
+          pattern: '^[a-f0-9]{64}$'
+          example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      example:
+        type: "artifact_data"
+        artifact_id: "550e8400-e29b-41d4-a716-446655440000"
+        artifact_type: "document"
+        format: "json"
+        data: "{\"title\": \"Sample Document\", \"content\": \"This is a sample.\"}"
+        encoding: "utf-8"
+        size: 62
+        checksum: "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+    
+    # =====================================
+    # Part Union Type
+    # =====================================
+    
+    Part:
+      oneOf:
+        - $ref: '#/components/schemas/TextPart'
+        - $ref: '#/components/schemas/ImagePart'
+        - $ref: '#/components/schemas/ArtifactPart'
+      discriminator:
+        propertyName: type
+        mapping:
+          text: '#/components/schemas/TextPart'
+          image: '#/components/schemas/ImagePart'
+          artifact_data: '#/components/schemas/ArtifactPart'
+      example:
+        type: "text"
+        text: "Hello, how can I help you today?"
+    
+    # =====================================
+    # Message Types
+    # =====================================
+    
+    Message:
+      type: object
+      description: A complete message in the A2A protocol
+      required:
+        - id
+        - role
+        - parts
+        - timestamp
+      properties:
+        id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        role:
+          $ref: 'common-types.yaml#/components/schemas/MessageRole'
+        parts:
+          type: array
+          description: Array of message parts (text, images, artifacts)
+          items:
+            $ref: '#/components/schemas/Part'
+          minItems: 1
+          example:
+            - type: "text"
+              text: "I need help with analyzing this data."
+            - type: "artifact_data"
+              artifact_id: "550e8400-e29b-41d4-a716-446655440000"
+              artifact_type: "data_file"
+              format: "csv"
+        timestamp:
+          $ref: 'common-types.yaml#/components/schemas/Timestamp'
+        session_id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        conversation_id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        metadata:
+          $ref: 'common-types.yaml#/components/schemas/Metadata'
+        thread_id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        parent_message_id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+      example:
+        id: "550e8400-e29b-41d4-a716-446655440000"
+        role: "user"
+        parts:
+          - type: "text"
+            text: "I need help with analyzing this data."
+        timestamp: "2024-01-15T10:30:00.000Z"
+        session_id: "550e8400-e29b-41d4-a716-446655440001"
+        conversation_id: "550e8400-e29b-41d4-a716-446655440002"
+    
+    # =====================================
+    # Task Management Types
+    # =====================================
+    
+    TaskStatus:
+      type: string
+      description: Current status of a task in the A2A system
+      enum:
+        - pending
+        - accepted
+        - working
+        - completed
+        - failed
+        - canceled
+        - timeout
+      example: "working"
+    
+    TaskPriority:
+      type: string
+      description: Priority level of a task
+      enum:
+        - low
+        - normal
+        - high
+        - urgent
+      default: normal
+      example: "high"
+    
+    Task:
+      type: object
+      description: A task that can be sent between agents for execution
+      required:
+        - id
+        - title
+        - description
+        - status
+        - created_at
+        - created_by
+      properties:
+        id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        title:
+          type: string
+          description: Brief title of the task
+          example: "Analyze customer feedback data"
+          maxLength: 200
+        description:
+          type: string
+          description: Detailed description of what needs to be done
+          example: "Please analyze the attached customer feedback CSV file and provide insights on sentiment trends."
+          maxLength: 5000
+        instructions:
+          type: string
+          description: Specific instructions for completing the task
+          example: "Focus on sentiment analysis and identify the top 3 customer concerns."
+          maxLength: 10000
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        created_at:
+          $ref: 'common-types.yaml#/components/schemas/Timestamp'
+        updated_at:
+          $ref: 'common-types.yaml#/components/schemas/Timestamp'
+        due_date:
+          $ref: 'common-types.yaml#/components/schemas/Timestamp'
+        created_by:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        assigned_to:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        estimated_duration:
+          type: integer
+          description: Estimated duration in seconds
+          minimum: 0
+          example: 1800
+        actual_duration:
+          type: integer
+          description: Actual duration in seconds (set when completed)
+          minimum: 0
+          example: 1650
+        dependencies:
+          type: array
+          description: List of task IDs that must be completed before this task
+          items:
+            $ref: 'common-types.yaml#/components/schemas/UUID'
+          example: ["550e8400-e29b-41d4-a716-446655440001"]
+        tags:
+          type: array
+          description: Tags for categorizing and searching tasks
+          items:
+            type: string
+          example: ["data-analysis", "customer-feedback", "sentiment"]
+        context:
+          type: object
+          description: Additional context data for the task
+          additionalProperties: true
+          example:
+            source_system: "customer_portal"
+            region: "us-west"
+            customer_segment: "enterprise"
+        input_artifacts:
+          type: array
+          description: Artifacts provided as input for the task
+          items:
+            $ref: '#/components/schemas/ArtifactPart'
+        output_artifacts:
+          type: array
+          description: Artifacts produced as output from the task
+          items:
+            $ref: '#/components/schemas/ArtifactPart'
+        error_details:
+          type: object
+          description: Error information if task failed
+          properties:
+            code:
+              type: string
+              example: "PROCESSING_ERROR"
+            message:
+              type: string
+              example: "Unable to parse input CSV file"
+            details:
+              type: object
+              additionalProperties: true
+        progress:
+          type: object
+          description: Progress information for long-running tasks
+          properties:
+            percentage:
+              type: number
+              minimum: 0
+              maximum: 100
+              example: 75.5
+            current_step:
+              type: string
+              example: "Analyzing sentiment patterns"
+            total_steps:
+              type: integer
+              minimum: 1
+              example: 4
+            estimated_remaining:
+              type: integer
+              description: Estimated remaining time in seconds
+              minimum: 0
+              example: 450
+        metadata:
+          $ref: 'common-types.yaml#/components/schemas/Metadata'
+      example:
+        id: "550e8400-e29b-41d4-a716-446655440000"
+        title: "Analyze customer feedback data"
+        description: "Please analyze the attached customer feedback CSV file and provide insights on sentiment trends."
+        status: "working"
+        priority: "high"
+        created_at: "2024-01-15T10:30:00.000Z"
+        updated_at: "2024-01-15T10:35:00.000Z"
+        created_by: "550e8400-e29b-41d4-a716-446655440001"
+        assigned_to: "550e8400-e29b-41d4-a716-446655440002"
+        estimated_duration: 1800
+        tags: ["data-analysis", "customer-feedback"]
+        progress:
+          percentage: 75.5
+          current_step: "Analyzing sentiment patterns"
+          total_steps: 4
+    
+    TaskSendParams:
+      type: object
+      description: Parameters for sending a task to an agent
+      required:
+        - task
+        - target_agent_id
+      properties:
+        task:
+          $ref: '#/components/schemas/Task'
+        target_agent_id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        callback_url:
+          type: string
+          format: uri
+          description: URL to call when task status changes
+          example: "https://api.example.com/task-callbacks"
+        timeout:
+          type: integer
+          description: Task timeout in seconds
+          minimum: 1
+          maximum: 86400
+          default: 3600
+          example: 1800
+        retry_policy:
+          type: object
+          description: Retry policy for failed tasks
+          properties:
+            max_retries:
+              type: integer
+              minimum: 0
+              maximum: 10
+              default: 3
+              example: 3
+            retry_delay:
+              type: integer
+              description: Delay between retries in seconds
+              minimum: 1
+              default: 60
+              example: 60
+            backoff_multiplier:
+              type: number
+              description: Multiplier for exponential backoff
+              minimum: 1.0
+              default: 2.0
+              example: 2.0
+        notification_preferences:
+          type: object
+          description: How to notify about task progress
+          properties:
+            on_start:
+              type: boolean
+              default: false
+            on_progress:
+              type: boolean
+              default: false
+            on_completion:
+              type: boolean
+              default: true
+            on_failure:
+              type: boolean
+              default: true
+        metadata:
+          $ref: 'common-types.yaml#/components/schemas/Metadata'
+      example:
+        task:
+          id: "550e8400-e29b-41d4-a716-446655440000"
+          title: "Analyze customer feedback data"
+          description: "Please analyze the attached customer feedback CSV file."
+          status: "pending"
+          created_at: "2024-01-15T10:30:00.000Z"
+          created_by: "550e8400-e29b-41d4-a716-446655440001"
+        target_agent_id: "550e8400-e29b-41d4-a716-446655440002"
+        callback_url: "https://api.example.com/task-callbacks"
+        timeout: 1800
+        retry_policy:
+          max_retries: 3
+          retry_delay: 60
+          backoff_multiplier: 2.0
+
+# =====================================
+# External References
+# =====================================
+
+# Reference the common types and agent types for shared schemas
+externalDocs:
+  description: Related Type Definitions
+  url: './common-types.yaml' 
