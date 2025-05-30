@@ -1,0 +1,25 @@
+{
+  "name": "@orchestrator-ai/shared-contracts-v2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared OpenAPI v2 contracts and generation scripts.",
+  "scripts": {
+    "// GENERATE TYPESCRIPT": "---",
+    "generate:ts": "echo 'Generating TypeScript interfaces...' && mkdir -p generated/typescript && npx openapi-typescript contracts/common-types.yaml --output generated/typescript/common-types.ts && npx openapi-typescript contracts/agent-types.yaml --output generated/typescript/agent-types.ts && npx openapi-typescript contracts/a2a-protocol.yaml --output generated/typescript/a2a-protocol.ts && echo \"export * from './common-types';\\nexport * from './agent-types';\\nexport * from './a2a-protocol';\" > generated/typescript/index.ts && echo 'TypeScript interfaces generated.'",
+    "// GENERATE PYTHON": "---",
+    "generate:py": "pip install datamodel-code-generator > /dev/null && echo 'Generating Python models...' && mkdir -p generated/python && datamodel-codegen --input contracts/common-types.yaml --input-file-type openapi --output generated/python/common_types.py --target-python-version 3.9 --use-schema-description && datamodel-codegen --input contracts/agent-types.yaml --input-file-type openapi --output generated/python/agent_types.py --target-python-version 3.9 --use-schema-description && datamodel-codegen --input contracts/a2a-protocol.yaml --input-file-type openapi --output generated/python/a2a_protocol.py --target-python-version 3.9 --use-schema-description && touch generated/python/__init__.py && echo 'Python models generated.'",
+    "// GENERATE ALL": "---",
+    "generate": "npm run generate:ts && npm run generate:py",
+    "// LINT & VALIDATE": "---",
+    "lint:contracts": "redocly lint contracts/a2a-protocol.yaml && redocly lint contracts/agent-types.yaml && redocly lint contracts/common-types.yaml",
+    "validate": "npm run lint:contracts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^6.7.0",
+    "@redocly/cli": "^1.0.0"
+  },
+  "dependencies": {},
+  "volta": {
+    "node": "18.20.4"
+  }
+}

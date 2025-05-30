@@ -1,0 +1,216 @@
+openapi: 3.0.3
+info:
+  title: Common Types v2
+  description: |
+    Shared primitive types and utilities used across all A2A v2 contracts.
+    These types provide the foundation for the Agent-to-Agent communication protocol.
+  version: 2.0.0
+  contact:
+    name: A2A Protocol Team
+    email: team@example.com
+
+components:
+  schemas:
+    # =====================================
+    # Core Primitive Types
+    # =====================================
+    
+    UUID:
+      type: string
+      format: uuid
+      description: RFC 4122 UUID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    
+    Timestamp:
+      type: string
+      format: date-time
+      description: ISO 8601 timestamp with timezone
+      example: "2024-01-15T10:30:00.000Z"
+      pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$'
+    
+    # =====================================
+    # Error Handling Types
+    # =====================================
+    
+    ErrorCode:
+      type: integer
+      description: |
+        Standard JSON-RPC error codes plus custom A2A protocol errors.
+        
+        **Standard JSON-RPC codes:**
+        - `-32700`: Parse error
+        - `-32600`: Invalid request
+        - `-32601`: Method not found
+        - `-32602`: Invalid params
+        - `-32603`: Internal error
+        
+        **A2A Protocol custom codes:**
+        - `-32000`: Task not found
+        - `-32001`: Agent not available
+        - `-32002`: Session expired
+      enum:
+        # Standard JSON-RPC errors
+        - -32700  # Parse error
+        - -32600  # Invalid request
+        - -32601  # Method not found
+        - -32602  # Invalid params
+        - -32603  # Internal error
+        # A2A Protocol custom errors
+        - -32000  # Task not found
+        - -32001  # Agent not available
+        - -32002  # Session expired
+      example: -32603
+    
+    JSONRPCError:
+      type: object
+      description: Standard JSON-RPC 2.0 error object with A2A extensions
+      required:
+        - code
+        - message
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Internal error"
+          maxLength: 500
+        data:
+          description: Additional error data (optional)
+          oneOf:
+            - type: string
+            - type: object
+            - type: array
+          example: {"details": "Connection timeout after 30 seconds"}
+      example:
+        code: -32603
+        message: "Internal error"
+        data:
+          details: "Connection timeout after 30 seconds"
+          timestamp: "2024-01-15T10:30:00.000Z"
+    
+    # =====================================
+    # Common Metadata Types
+    # =====================================
+    
+    Metadata:
+      type: object
+      description: |
+        Flexible metadata object for storing additional context and information.
+        Used throughout the A2A protocol for extensibility.
+      additionalProperties: true
+      example:
+        user_id: "user-123"
+        session_type: "interactive"
+        priority: "high"
+        custom_field: "custom_value"
+    
+    # =====================================
+    # Enumeration Types
+    # =====================================
+    
+    TaskState:
+      type: string
+      description: Current state of a task in the A2A protocol
+      enum:
+        - pending
+        - working
+        - completed
+        - failed
+        - canceled
+      example: "working"
+    
+    MessageRole:
+      type: string
+      description: Role of the message sender in the conversation
+      enum:
+        - user
+        - agent
+        - system
+      example: "agent"
+    
+    PartType:
+      type: string
+      description: Type of content part in a message
+      enum:
+        - text
+        - image
+        - artifact_data
+      example: "text"
+
+# =====================================
+# Reusable Parameter Definitions
+# =====================================
+
+parameters:
+  SessionId:
+    name: session_id
+    in: query
+    description: Optional session identifier for context continuity
+    required: false
+    schema:
+      $ref: '#/components/schemas/UUID'
+  
+  TaskId:
+    name: task_id
+    in: path
+    description: Unique task identifier
+    required: true
+    schema:
+      $ref: '#/components/schemas/UUID'
+
+# =====================================
+# Reusable Response Definitions
+# =====================================
+
+responses:
+  BadRequest:
+    description: Invalid request parameters
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/JSONRPCError'
+        example:
+          code: -32602
+          message: "Invalid params"
+          data: "Required field 'message' is missing"
+  
+  InternalServerError:
+    description: Internal server error
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/JSONRPCError'
+        example:
+          code: -32603
+          message: "Internal error"
+          data: "Database connection failed"
+  
+  TaskNotFound:
+    description: Task not found
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/JSONRPCError'
+        example:
+          code: -32000
+          message: "Task not found"
+          data: "No task found with ID: 550e8400-e29b-41d4-a716-446655440000"
+
+# =====================================
+# Security Schemes (if needed)
+# =====================================
+
+securitySchemes:
+  ApiKeyAuth:
+    type: apiKey
+    in: header
+    name: X-API-Key
+    description: API key for authentication
+  
+  BearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
+    description: Bearer token authentication 
