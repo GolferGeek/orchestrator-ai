@@ -1,0 +1,192 @@
+openapi: 3.0.3
+info:
+  title: MCP Types v2
+  description: |
+    Model Context Protocol (MCP) types for streaming chat, LLM configuration, and agent communication.
+    Defines types for server-sent events, chat messages, and agent request/response patterns.
+  version: 2.0.0
+  contact:
+    name: MCP Protocol Team
+    email: team@example.com
+
+components:
+  schemas:
+    # =====================================
+    # LLM Configuration Types
+    # =====================================
+    
+    LLMSettings:
+      type: object
+      description: Configuration for language model behavior
+      properties:
+        model_name:
+          type: string
+          default: "gpt-3.5-turbo"
+          description: The language model to use
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+          default: 0.7
+          description: Controls randomness. Lower is more deterministic
+        max_tokens:
+          type: integer
+          default: 500
+          description: Maximum number of tokens to generate
+      example:
+        model_name: "gpt-4"
+        temperature: 0.7
+        max_tokens: 1000
+    
+    # =====================================
+    # Chat Message Types
+    # =====================================
+    
+    ChatMessage:
+      type: object
+      description: A message in a chat conversation
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant]
+          description: Role of the message sender
+        content:
+          type: string
+          description: Content of the message
+      example:
+        role: "user"
+        content: "What is the weather like today?"
+    
+    # =====================================
+    # MCP Request Types
+    # =====================================
+    
+    MCPRequest:
+      type: object
+      description: Request for MCP agent processing
+      required:
+        - user_query
+      properties:
+        user_query:
+          type: string
+          description: The user's query for the agent
+        llm_settings:
+          $ref: '#/components/schemas/LLMSettings'
+        conversation_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+          description: Previous conversation context
+      example:
+        user_query: "Analyze our Q4 metrics"
+        llm_settings:
+          model_name: "gpt-4"
+          temperature: 0.5
+    
+    # =====================================
+    # Server-Sent Event Types
+    # =====================================
+    
+    SSEContentChunk:
+      type: object
+      description: Streaming content chunk
+      required:
+        - type
+        - chunk
+      properties:
+        type:
+          type: string
+          enum: [content]
+          default: "content"
+        chunk:
+          type: string
+          description: Chunk of streaming content
+      example:
+        type: "content"
+        chunk: "Revenue increased by"
+    
+    SSEInfoMessage:
+      type: object
+      description: Informational SSE message
+      required:
+        - type
+        - message
+      properties:
+        type:
+          type: string
+          enum: [info]
+          default: "info"
+        message:
+          type: string
+          description: Information message
+      example:
+        type: "info"
+        message: "Processing started"
+    
+    SSEError:
+      type: object
+      description: Error in SSE stream
+      required:
+        - type
+        - code
+        - message
+      properties:
+        type:
+          type: string
+          enum: [error]
+          default: "error"
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Error message
+      example:
+        type: "error"
+        code: "PROCESSING_ERROR"
+        message: "Failed to analyze data"
+    
+    SSEEndOfStream:
+      type: object
+      description: End of stream marker
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [eos]
+          default: "eos"
+        message:
+          type: string
+          description: Optional end message
+      example:
+        type: "eos"
+        message: "Processing complete"
+    
+    # =====================================
+    # Agent Path Types
+    # =====================================
+    
+    AgentIDPath:
+      type: object
+      description: Path parameter for agent ID
+      required:
+        - agent_id
+      properties:
+        agent_id:
+          type: string
+          description: The unique identifier for the agent
+      example:
+        agent_id: "metrics-agent-v1"
+
+# =====================================
+# External References
+# =====================================
+
+# Reference the common types for shared schemas
+externalDocs:
+  description: Common Types Reference
+  url: './common-types.yaml' 

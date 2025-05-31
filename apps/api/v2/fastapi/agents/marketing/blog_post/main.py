@@ -7,13 +7,13 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 
 # Use shared contracts
-from apps.api.v2.shared.generated.python.a2a_protocol import (
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import (
     TextPart,
     TaskSendParams, # For task route
     Task,            # For task route response
     JSONRPCError    # For error handling in task route
 )
-from apps.api.v2.shared.generated.python.agent_types import (
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import (
     AgentCard,
     AgentCapability
 )

@@ -11,21 +11,11 @@ from pathlib import Path
 import asyncio
 
 # Import from shared generated contracts instead of missing local types
-from apps.api.v2.shared.generated.python.a2a_protocol import (
-    Message,
-    TextPart,
-    TaskSendParams,
-    TaskStatus,
-    Task,
-    ErrorCode,
-    JSONRPCError,
-    Part,
-    ArtifactPart,
-    ArtifactType,
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import (
+    TaskSendParams, Task, TaskStatus, TaskState, TextPart, 
+    ErrorCode as A2AErrorCode, JSONRPCError, Message, Part, ArtifactPart, ArtifactType,
     UUIDModel,
-    ErrorDetails
-)
-from apps.api.v2.shared.generated.python.agent_types import (
+    ErrorDetails,
     AgentCard,
     AgentCapability
 )
@@ -232,7 +222,7 @@ class A2AUnifiedAgentService(ABC):
                 self.task_store._tasks[task_id] = task_and_history.task
             
             # Use the correct ErrorCode enum attribute
-            error_code_value = ErrorCode.integer__32603.value if hasattr(ErrorCode.integer__32603, 'value') else -32603
+            error_code_value = A2AErrorCode.integer__32603.value if hasattr(A2AErrorCode.integer__32603, 'value') else -32603
             raise JSONRPCError(code=error_code_value, message=f"Task execution failed: {str(e)}")
 
         task_and_history = await self.task_store.get_task(task_id)
@@ -591,7 +581,7 @@ class A2AUnifiedAgentService(ABC):
         """
         pass
 
-    def _create_error(self, code: ErrorCode, message: str) -> JSONRPCError:
+    def _create_error(self, code: A2AErrorCode, message: str) -> JSONRPCError:
         return JSONRPCError(code=code.value, message=message) # Use .value for Enum member
 
     def _create_text_message(self, text: str, role: str = "agent") -> Message:

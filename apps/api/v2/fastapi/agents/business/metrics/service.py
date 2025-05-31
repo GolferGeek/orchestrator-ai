@@ -1,6 +1,6 @@
 from apps.api.v2.fastapi.a2a_protocol.unified_agent_service import A2AUnifiedAgentService
-from apps.api.v2.shared.generated.python.a2a_protocol import Message, TextPart, TaskStatus # Fixed import
-from apps.api.v2.shared.generated.python.agent_types import AgentCard, AgentCapability
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import Message, TextPart, TaskStatus # Fixed import
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import AgentCard, AgentCapability
 from apps.api.v2.fastapi.a2a_protocol.task_store import TaskStoreService # For type hinting
 from apps.api.v2.fastapi.shared.mcp.mcp_client import MCPClient, MCPError, MCPConnectionError, MCPTimeoutError
 from typing import Optional, List, Dict, Any

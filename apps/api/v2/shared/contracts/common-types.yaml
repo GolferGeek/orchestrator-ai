@@ -112,7 +112,7 @@ components:
     
     TaskState:
       type: string
-      description: Current state of a task in the A2A protocol
+      description: Current state of a task (standalone enum for compatibility)
       enum:
         - pending
         - working
@@ -199,7 +199,7 @@ responses:
           data: "No task found with ID: 550e8400-e29b-41d4-a716-446655440000"
 
 # =====================================
-# Security Schemes (if needed)
+# Security Schemes
 # =====================================
 
 securitySchemes:
