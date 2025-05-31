@@ -4,8 +4,8 @@ from ....a2a_protocol.supabase_chat_history import SupabaseChatMessageHistory
 from ....llm.openai_service import OpenAIService
 
 # Shared Contract Types
-from apps.api.v2.shared.generated.python.a2a_protocol import Message, TextPart
-from apps.api.v2.shared.generated.python.agent_types import AgentCard, AgentCapability
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import Message, TextPart
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import AgentCard, AgentCapability
 
 from langchain_core.messages import HumanMessage, AIMessage
 from supabase import Client as SupabaseClient

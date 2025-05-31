@@ -15,6 +15,12 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+def get_uuid_string(uuid_obj) -> str:
+    """Extract UUID string from UUIDModel or plain UUID/string."""
+    if hasattr(uuid_obj, 'root'):
+        return str(uuid_obj.root)
+    return str(uuid_obj)
+
 @router.post("/", summary="Create a new chat session", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_session(
     session_in: SessionCreate,
@@ -24,7 +30,7 @@ async def create_session(
     logger.info(f"create_session: Attempting to create session for user {current_user.id} with client instance {id(supabase_client)}.")
     try:
         session_data = {
-            "user_id": str(current_user.id),
+            "user_id": get_uuid_string(current_user.id),
             "name": session_in.name
         }
         response = supabase_client.table("sessions").insert(session_data).execute()
@@ -53,7 +59,7 @@ async def list_sessions(
         response = (
             supabase_client.table("sessions")
             .select("*", count='exact') # Request count for pagination
-            .eq("user_id", str(current_user.id))
+            .eq("user_id", get_uuid_string(current_user.id))
             .order("updated_at", desc=True)
             .range(skip, skip + limit - 1)
             .execute()
@@ -89,8 +95,8 @@ async def get_session(
         response = (
             supabase_client.table("sessions")
             .select("*")
-            .eq("id", str(session_id))
-            .eq("user_id", str(current_user.id)) # Ensure user owns the session
+            .eq("id", get_uuid_string(session_id))
+            .eq("user_id", get_uuid_string(current_user.id)) # Ensure user owns the session
             .single() # Expects a single row or raises an error if not found/multiple
             .execute()
         )
@@ -125,8 +131,8 @@ async def delete_session(
         session_check = (
             supabase_client.table("sessions")
             .select("id")
-            .eq("id", str(session_id))
-            .eq("user_id", str(current_user.id))
+            .eq("id", get_uuid_string(session_id))
+            .eq("user_id", get_uuid_string(current_user.id))
             .single()
             .execute()
         )
@@ -139,8 +145,8 @@ async def delete_session(
         delete_response = (
             supabase_client.table("sessions")
             .delete()
-            .eq("id", str(session_id))
-            .eq("user_id", str(current_user.id))
+            .eq("id", get_uuid_string(session_id))
+            .eq("user_id", get_uuid_string(current_user.id))
             .execute()
         )
         
@@ -151,6 +157,9 @@ async def delete_session(
     except PostgrestAPIError as e:
         logger.error(f"Supabase error deleting session {session_id} for user {current_user.id}: {e.message}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message or "Error deleting session.")
+    except HTTPException:
+        # Re-raise HTTPExceptions (like our 404) without modification
+        raise
     except Exception as e:
         logger.error(f"Unexpected error deleting session {session_id} for user {current_user.id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred while deleting the session.")
@@ -168,12 +177,13 @@ async def list_session_messages(
         session_check = (
             supabase_client.table("sessions")
             .select("id")
-            .eq("id", str(session_id))
-            .eq("user_id", str(current_user.id))
-            .single()
+            .eq("id", get_uuid_string(session_id))
+            .eq("user_id", get_uuid_string(current_user.id))
             .execute()
         )
-        if not session_check.data:
+        
+        # Check if session exists and user has access
+        if not session_check.data or len(session_check.data) == 0:
             logger.warning(f"User {current_user.id} attempted to access messages for session {session_id} they don't own or doesn't exist.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found or access denied.")
 
@@ -181,8 +191,8 @@ async def list_session_messages(
         response = (
             supabase_client.table("messages")
             .select("*", count='exact') # Request total count for pagination
-            .eq("session_id", str(session_id))
-            # .eq("user_id", str(current_user.id)) # RLS policy on messages table should handle this
+            .eq("session_id", get_uuid_string(session_id))
+            # .eq("user_id", get_uuid_string(current_user.id)) # RLS policy on messages table should handle this
             .order("order", desc=False) # Assuming 'order' is an auto-incrementing field for sequence
             .range(skip, skip + limit - 1)
             .execute()
@@ -206,6 +216,9 @@ async def list_session_messages(
     except PostgrestAPIError as e:
         logger.error(f"Supabase error listing messages for session {session_id}, user {current_user.id}: {e.message}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message or "Error listing messages.")
+    except HTTPException:
+        # Re-raise HTTPExceptions (like our 404) without modification
+        raise
     except Exception as e:
         logger.error(f"Unexpected error listing messages for session {session_id}, user {current_user.id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred while listing messages.") 

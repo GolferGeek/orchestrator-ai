@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client as SupabaseClient
 from gotrue.errors import AuthApiError # Corrected import
-from typing import Any # For diverse response types initially
+from typing import Any, Optional # For diverse response types initially
 import logging
 from fastapi.responses import JSONResponse
 
@@ -20,6 +20,12 @@ router = APIRouter(
     tags=["Authentication"],
     responses={404: {"description": "Not found"}},
 )
+
+def get_uuid_string(uuid_obj) -> str:
+    """Extract UUID string from UUIDModel or plain UUID/string."""
+    if hasattr(uuid_obj, 'root'):
+        return str(uuid_obj.root)
+    return str(uuid_obj)
 
 @router.post("/signup", summary="Create new user and return session token", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def signup(
@@ -185,7 +191,7 @@ async def read_users_me(
     # current_auth_user is the user object directly from Supabase Auth (id, email, etc.)
     # We now fetch additional profile information from our public.users table.
     try:
-        response = supabase_client.table("users").select("id, email, display_name, created_at").eq("id", str(current_auth_user.id)).single().execute()
+        response = supabase_client.table("users").select("id, email, display_name, created_at").eq("id", get_uuid_string(current_auth_user.id)).single().execute()
         
         if response.data:
             # Combine auth user data with public profile data

@@ -1,0 +1,164 @@
+openapi: 3.0.3
+info:
+  title: Session Management Types v2
+  description: |
+    Session management types for conversation tracking, message history, and chat session lifecycle.
+    Defines types for creating, managing, and querying user conversation sessions.
+  version: 2.0.0
+  contact:
+    name: Session Management Team
+    email: team@example.com
+
+components:
+  schemas:
+    # =====================================
+    # Session Creation Types
+    # =====================================
+    
+    SessionCreate:
+      type: object
+      description: Request to create a new session
+      properties:
+        name:
+          type: string
+          description: Optional session name
+      example:
+        name: "Metrics Analysis Session"
+    
+    # =====================================
+    # Session Base Types
+    # =====================================
+    
+    SessionBase:
+      type: object
+      description: Base session information
+      required:
+        - id
+        - user_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        user_id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        name:
+          type: string
+          description: Optional session name
+        created_at:
+          $ref: 'common-types.yaml#/components/schemas/Timestamp'
+        updated_at:
+          $ref: 'common-types.yaml#/components/schemas/Timestamp'
+      example:
+        id: "550e8400-e29b-41d4-a716-446655440000"
+        user_id: "123e4567-e89b-12d3-a456-426614174000"
+        name: "Metrics Analysis"
+        created_at: "2024-01-15T10:30:00.000Z"
+        updated_at: "2024-01-15T10:30:00.000Z"
+    
+    SessionResponse:
+      allOf:
+        - $ref: '#/components/schemas/SessionBase'
+      description: Session response data
+    
+    SessionListResponse:
+      type: object
+      description: List of sessions with metadata
+      required:
+        - sessions
+        - count
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionResponse'
+        count:
+          type: integer
+          description: Total number of sessions
+      example:
+        sessions: []
+        count: 0
+    
+    # =====================================
+    # Message Types
+    # =====================================
+    
+    MessageBase:
+      type: object
+      description: Base message information
+      required:
+        - id
+        - session_id
+        - user_id
+        - role
+        - timestamp
+        - order
+      properties:
+        id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        session_id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        user_id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        role:
+          type: string
+          description: Message role
+          enum: [user, assistant, system, tool]
+        content:
+          type: string
+          description: Message content
+        timestamp:
+          $ref: 'common-types.yaml#/components/schemas/Timestamp'
+        order:
+          type: integer
+          description: Message order in conversation
+        metadata:
+          $ref: 'common-types.yaml#/components/schemas/Metadata'
+      example:
+        id: "550e8400-e29b-41d4-a716-446655440000"
+        session_id: "123e4567-e89b-12d3-a456-426614174000"
+        user_id: "123e4567-e89b-12d3-a456-426614174000"
+        role: "user"
+        content: "Show me Q4 metrics"
+        timestamp: "2024-01-15T10:30:00.000Z"
+        order: 1
+    
+    MessageResponse:
+      allOf:
+        - $ref: '#/components/schemas/MessageBase'
+      description: Message response data
+    
+    MessageListResponse:
+      type: object
+      description: List of messages with pagination
+      required:
+        - messages
+        - session_id
+        - count
+        - skip
+        - limit
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageResponse'
+        session_id:
+          $ref: 'common-types.yaml#/components/schemas/UUID'
+        count:
+          type: integer
+          description: Total messages in session
+        skip:
+          type: integer
+          description: Number of messages skipped
+        limit:
+          type: integer
+          description: Maximum messages returned
+
+# =====================================
+# External References
+# =====================================
+
+# Reference the common types for shared schemas
+externalDocs:
+  description: Common Types Reference
+  url: './common-types.yaml' 

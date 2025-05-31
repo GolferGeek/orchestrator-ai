@@ -30,5 +30,15 @@
       "dependsOn": ["build"],
       "cache": false
     }
+  },
+  "pipeline": {
+    "web-v1#dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "web-v2#dev": {
+      "cache": false,
+      "persistent": true
+    }
   }
 } 

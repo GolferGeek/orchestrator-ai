@@ -6,8 +6,8 @@ from typing import Dict, Any, Optional
 from ...a2a_protocol.unified_agent_service import A2AUnifiedAgentService
 from ...a2a_protocol.task_store import TaskStoreService
 from ...main import get_original_task_store_service, get_original_http_client
-from apps.api.v2.shared.generated.python.a2a_protocol import TaskSendParams, Task, Message, TextPart
-from apps.api.v2.shared.generated.python.agent_types import AgentCard, AgentCapability
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import TaskSendParams, Task, Message, TextPart
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import AgentCard, AgentCapability
 
 BUSINESS_AGENT_ID = "business-parent-agent-v1"
 BUSINESS_AGENT_NAME = "business"

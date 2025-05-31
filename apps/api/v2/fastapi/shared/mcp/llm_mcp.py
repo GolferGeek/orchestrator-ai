@@ -4,7 +4,13 @@ from pathlib import Path
 from typing import AsyncGenerator, List, Optional, Dict, Any
 
 from openai import AsyncOpenAI, OpenAIError # Assuming usage of OpenAI SDK
-from .mcp_models import LLMSettings, ChatMessage, SSEContentChunk, SSEError, SSEInfoMessage, SSEEndOfStream
+from .mcp_models import (
+    LLMSettings, ChatMessage, SSEContentChunk, SSEError, SSEInfoMessage, SSEEndOfStream
+)
+# Import the enum types for SSE message types
+from apps.api.v2.shared.contracts.generated.python.mcp_types import (
+    Type, Type1, Type2, Type3
+)
 from ...core.config import settings # Import settings
 
 # Configure logging
@@ -170,9 +176,9 @@ async def process_query_stream(
     effective_settings = llm_settings if llm_settings else LLMSettings()
 
     try:
-        yield SSEInfoMessage(message=f"Loading context for agent {agent_id}...").model_dump()
+        yield SSEInfoMessage(type=Type1.info, message=f"Loading context for agent {agent_id}...").model_dump(mode='json')
         agent_context = await _load_agent_context(agent_id)
-        yield SSEInfoMessage(message=f"Context loaded. Processing query...").model_dump()
+        yield SSEInfoMessage(type=Type1.info, message=f"Context loaded. Processing query...").model_dump(mode='json')
         
         prompt_messages = _construct_prompt_messages(agent_id, agent_context, user_query, conversation_history)
         
@@ -193,19 +199,19 @@ async def process_query_stream(
             if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
                 content_chunk = chunk.choices[0].delta.content
                 logger.info(f"OpenAI content chunk for agent {agent_id}: '{content_chunk}'")
-                yield SSEContentChunk(chunk=content_chunk).model_dump()
+                yield SSEContentChunk(type=Type.content, chunk=content_chunk).model_dump(mode='json')
         
-        yield SSEEndOfStream(message=f"Stream finished for agent {agent_id}").model_dump()
+        yield SSEEndOfStream(type=Type3.eos, message=f"Stream finished for agent {agent_id}").model_dump(mode='json')
 
     except ContextFileNotFoundError as e:
         logger.error(f"ContextFileNotFoundError for agent {agent_id}: {e}")
-        yield SSEError(code="CONTEXT_NOT_FOUND", message=str(e)).model_dump()
-        yield SSEEndOfStream(message=f"Stream ended due to error for agent {agent_id}").model_dump()
+        yield SSEError(type=Type2.error, code="CONTEXT_NOT_FOUND", message=str(e)).model_dump(mode='json')
+        yield SSEEndOfStream(type=Type3.eos, message=f"Stream ended due to error for agent {agent_id}").model_dump(mode='json')
     except OpenAIError as e:
         logger.error(f"OpenAI API error for agent {agent_id}: {e}")
-        yield SSEError(code="LLM_API_ERROR", message=f"An error occurred with the LLM: {type(e).__name__} - {e}").model_dump()
-        yield SSEEndOfStream(message=f"Stream ended due to LLM error for agent {agent_id}").model_dump()
+        yield SSEError(type=Type2.error, code="LLM_API_ERROR", message=f"An error occurred with the LLM: {type(e).__name__} - {e}").model_dump(mode='json')
+        yield SSEEndOfStream(type=Type3.eos, message=f"Stream ended due to LLM error for agent {agent_id}").model_dump(mode='json')
     except Exception as e:
         logger.error(f"Unexpected error processing query for agent {agent_id}: {e}", exc_info=True)
-        yield SSEError(code="UNEXPECTED_ERROR", message=f"An unexpected error occurred: {str(e)}").model_dump()
-        yield SSEEndOfStream(message=f"Stream ended due to unexpected error for agent {agent_id}").model_dump() 
+        yield SSEError(type=Type2.error, code="UNEXPECTED_ERROR", message=f"An unexpected error occurred: {str(e)}").model_dump(mode='json')
+        yield SSEEndOfStream(type=Type3.eos, message=f"Stream ended due to unexpected error for agent {agent_id}").model_dump(mode='json') 

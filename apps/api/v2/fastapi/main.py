@@ -28,10 +28,26 @@ if _DOTENV_PATH.exists():
 else:
     print(f"[V2 MAIN_PY_DEBUG] WARNING: Root .env file NOT FOUND at {_DOTENV_PATH}. Using system env vars or defaults.")
 
+# Import shared constants for cleaner imports and centralized configuration
+from apps.api.v2.fastapi.shared.constants import (
+    A2A_PROTOCOL_MODULE, APP_TITLE, APP_DESCRIPTION, APP_VERSION,
+    AUTH_PREFIX, SESSIONS_PREFIX, MCP_PREFIX, AGENTS_PREFIX,
+    AUTH_TAG, SESSIONS_TAG, MCP_TAG,
+    CORS_ALLOW_ORIGINS, CORS_ALLOW_CREDENTIALS, CORS_ALLOW_METHODS, CORS_ALLOW_HEADERS,
+    AGENTS_DIRECTORY, BASE_DIRECTORY, MAIN_FILE,
+    EXCLUDED_DIR_PREFIXES, EXCLUDED_DIRS,
+    AGENTS_MODULE_BASE,
+    DEFAULT_HOST, DEFAULT_PORT, DEFAULT_ENV_PORT_VAR,
+    API_RUNNING_MESSAGE, HEALTH_STATUS_HEALTHY, HEALTH_STATUS_OK,
+    ERROR_MESSAGE_KEY,
+    OPENAI_API_KEY_VAR, LOG_LEVEL_VAR, DEFAULT_LOG_LEVEL,
+    NOT_FOUND_MESSAGE, NOT_IN_OS_ENVIRON
+)
+
 # Configure logging with a more structured approach
 def setup_logging():
     # Get log level from environment variable, default to WARNING
-    log_level_str = os.getenv('LOG_LEVEL', 'WARNING').upper()
+    log_level_str = os.getenv(LOG_LEVEL_VAR, DEFAULT_LOG_LEVEL).upper()
     log_level = getattr(logging, log_level_str, logging.WARNING)
     
     # Configure root logger
@@ -86,11 +102,10 @@ def setup_logging():
 logger = setup_logging()
 
 # Adjusted imports to use shared contracts from the v2 generated types
-from apps.api.v2.shared.generated.python.a2a_protocol import (
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import (
     TaskSendParams, Message, Task, TaskStatus, TaskState, TextPart, 
-    ErrorCode as A2AErrorCode # A2AJSONRPCError is a Pydantic model, not an Exception
+    ErrorCode as A2AErrorCode, AgentCard # A2AJSONRPCError is a Pydantic model, not an Exception
 )
-from apps.api.v2.shared.generated.python.agent_types import AgentCard
 from apps.api.v2.fastapi.a2a_protocol.task_store import TaskStoreService
 from apps.api.v2.fastapi.llm.openai_service import OpenAIService
 from apps.api.v2.fastapi.core.config import settings, Settings
@@ -145,13 +160,14 @@ def get_original_openai_service() -> Optional[OpenAIService]:
     print(f"[GET_ORIG_OPENAI_DEBUG] _original_openai_service_instance is None: {_original_openai_service_instance is None}")
     if _original_openai_service_instance is None:
         # This might happen if get_original_openai_service is called before lifespan startup, or if API key was missing during lifespan
-        print(f"[GET_ORIG_OPENAI_DEBUG] Attempting to check settings.OPENAI_API_KEY: '{settings.OPENAI_API_KEY if hasattr(settings, 'OPENAI_API_KEY') else 'NOT_FOUND'}'")
-        if settings.OPENAI_API_KEY: # Check again, in case it was called before lifespan init
+        openai_key = getattr(settings, OPENAI_API_KEY_VAR, None) if hasattr(settings, OPENAI_API_KEY_VAR) else None
+        print(f"[GET_ORIG_OPENAI_DEBUG] Attempting to check settings.{OPENAI_API_KEY_VAR}: '{openai_key[:5] if openai_key else 'NOT_FOUND'}'")
+        if openai_key: # Check again, in case it was called before lifespan init
             print("[GET_ORIG_OPENAI_DEBUG] Key found, attempting to create a fallback instance. THIS IS UNEXPECTED if lifespan ran.")
             # Fallback, ideally lifespan should have created it.
             # Avoid creating multiple, this is more for a direct call scenario before lifespan has run.
             # If this path is hit regularly, review call order.
-            return OpenAIService(api_key=settings.OPENAI_API_KEY) 
+            return OpenAIService(api_key=openai_key) 
         else:
             print("[GET_ORIG_OPENAI_DEBUG] No API KEY, _original_openai_service_instance remains None.")
     return _original_openai_service_instance
@@ -214,12 +230,12 @@ def process_agent_module(
         # If agent_name_override is present (e.g. "business"), it's a parent agent for that category.
         # Its path is /agents/category_name, e.g. /agents/business
         if agent_name_override:
-            base_prefix = f"/agents/{category_name}"
+            base_prefix = f"{AGENTS_PREFIX}/{category_name}"
             module_logger.info(f"Including PARENT agent router for {category_name}.{agent_name_override} with prefix: {base_prefix}")
         else:
             # It's a child agent, path is /agents/category_name/agent_name
             # agent_module_dir.name here is the actual child agent's folder name (e.g., "metrics")
-            base_prefix = f"/agents/{category_name}/{agent_module_dir.name}"
+            base_prefix = f"{AGENTS_PREFIX}/{category_name}/{agent_module_dir.name}"
             module_logger.info(f"Including CHILD agent router for {category_name}.{agent_module_dir.name} with prefix: {base_prefix}")
         
         try:
@@ -232,7 +248,7 @@ def process_agent_module(
 
 def load_agent_services(app_to_configure: FastAPI):
     logger.debug("Starting agent services loading process")
-    agents_base_dir = Path(__file__).parent / "agents"
+    agents_base_dir = Path(__file__).parent / AGENTS_DIRECTORY
     
     if not agents_base_dir.exists():
         logger.warning(f"Agents directory not found at {agents_base_dir}")
@@ -240,19 +256,19 @@ def load_agent_services(app_to_configure: FastAPI):
     
     # Process each category (department) directory
     for category_dir in agents_base_dir.iterdir():
-        if not category_dir.is_dir() or category_dir.name.startswith('_') or category_dir.name == "base":
+        if not category_dir.is_dir() or any(category_dir.name.startswith(prefix) for prefix in EXCLUDED_DIR_PREFIXES) or category_dir.name in EXCLUDED_DIRS:
             continue
         
         category_name = category_dir.name
         logger.debug(f"Processing category directory: {category_name}")
 
         # 1. Check for a parent agent (main.py directly in the category folder)
-        parent_agent_main_py = category_dir / "main.py"
+        parent_agent_main_py = category_dir / MAIN_FILE
         if parent_agent_main_py.exists():
             logger.info(f"Found parent agent main.py in category: {category_name}")
             # Parent agent's module name is effectively the category itself for routing purposes
             # The module path for import needs to be correct
-            parent_module_base_path = f"apps.api.v2.fastapi.agents.{category_name}"
+            parent_module_base_path = f"{AGENTS_MODULE_BASE}.{category_name}"
             # Use process_agent_module, but agent_name for prefix calculation will be category_name
             # We pass agent_module_dir as category_dir and agent_name_override as category_name
             process_agent_module(
@@ -271,15 +287,15 @@ def load_agent_services(app_to_configure: FastAPI):
 
         # 2. Process each child agent directory within the category
         for agent_dir in category_dir.iterdir():
-            if not agent_dir.is_dir() or agent_dir.name.startswith('_') or agent_dir.name == "base":
+            if not agent_dir.is_dir() or any(agent_dir.name.startswith(prefix) for prefix in EXCLUDED_DIR_PREFIXES) or agent_dir.name in EXCLUDED_DIRS:
                 continue
             
             # Skip if agent_dir is actually the main.py file we just processed for a parent
-            if agent_dir.name == "main.py": # This check might be redundant if iterdir only gives dirs
+            if agent_dir.name == MAIN_FILE: # This check might be redundant if iterdir only gives dirs
                 continue
             
             # This is for child agents, e.g., agents/business/metrics/main.py
-            child_agent_main_py = agent_dir / "main.py"
+            child_agent_main_py = agent_dir / MAIN_FILE
             if not child_agent_main_py.exists():
                 logger.debug(f"No main.py in child agent directory: {agent_dir}, skipping.")
                 continue
@@ -288,7 +304,7 @@ def load_agent_services(app_to_configure: FastAPI):
             logger.debug(f"Processing child agent: {agent_name} in category {category_name}")
             
             # Module base path for child agent: apps.api.v2.fastapi.agents.category_name.agent_name
-            child_module_base_path = f"apps.api.v2.fastapi.agents.{category_name}.{agent_name}"
+            child_module_base_path = f"{AGENTS_MODULE_BASE}.{category_name}.{agent_name}"
             
             process_agent_module(
                 app_to_configure=app_to_configure,
@@ -306,12 +322,12 @@ async def lifespan(app: FastAPI):
     # Startup logic
     logger.info("FastAPI application lifespan startup.")
     global _original_openai_service_instance
-    print(f"[LIFESPAN_PRINT_DEBUG] Initializing _original_openai_service_instance. Checking settings.OPENAI_API_KEY.")
-    effective_openai_key = os.getenv('OPENAI_API_KEY') # Try os.getenv first
-    if not effective_openai_key and hasattr(settings, 'OPENAI_API_KEY'): # Fallback to pydantic settings
-        effective_openai_key = settings.OPENAI_API_KEY
+    print(f"[LIFESPAN_PRINT_DEBUG] Initializing _original_openai_service_instance. Checking settings.{OPENAI_API_KEY_VAR}.")
+    effective_openai_key = os.getenv(OPENAI_API_KEY_VAR) # Try os.getenv first
+    if not effective_openai_key and hasattr(settings, OPENAI_API_KEY_VAR): # Fallback to pydantic settings
+        effective_openai_key = getattr(settings, OPENAI_API_KEY_VAR)
     
-    key_preview = effective_openai_key[:5] if effective_openai_key else 'NOT_FOUND_OR_EMPTY'
+    key_preview = effective_openai_key[:5] if effective_openai_key else NOT_FOUND_MESSAGE
     print(f"[LIFESPAN_PRINT_DEBUG] Effective OpenAI Key (first 5 chars): '{key_preview}'")
 
     if effective_openai_key:
@@ -341,34 +357,35 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     print("\n\n[CREATE_APP_DEBUG_MARKER] !!!!! EXECUTING create_app() from latest main.py !!!!!\n\n")
-    print(f"[CREATE_APP_PRINT_DEBUG] At create_app start. Checking os.environ for OPENAI_API_KEY (first 5): '{os.getenv('OPENAI_API_KEY','NOT_IN_OS_ENVIRON')[:5]}'")
-    if hasattr(settings, 'OPENAI_API_KEY'):
-        print(f"[CREATE_APP_PRINT_DEBUG] Pydantic settings.OPENAI_API_KEY (first 5): '{settings.OPENAI_API_KEY[:5] if settings.OPENAI_API_KEY else 'EMPTY_OR_NONE'}'")
+    print(f"[CREATE_APP_PRINT_DEBUG] At create_app start. Checking os.environ for OPENAI_API_KEY (first 5): '{os.getenv(OPENAI_API_KEY_VAR, NOT_IN_OS_ENVIRON)[:5]}'")
+    if hasattr(settings, OPENAI_API_KEY_VAR):
+        openai_key = getattr(settings, OPENAI_API_KEY_VAR)
+        print(f"[CREATE_APP_PRINT_DEBUG] Pydantic settings.OPENAI_API_KEY (first 5): '{openai_key[:5] if openai_key else 'EMPTY_OR_NONE'}'")
     else:
-        print("[CREATE_APP_PRINT_DEBUG] Pydantic settings has NO OPENAI_API_KEY attribute.")
+        print(f"[CREATE_APP_PRINT_DEBUG] Pydantic settings has NO {OPENAI_API_KEY_VAR} attribute.")
     logger.debug("Creating FastAPI application")
     
     new_app = FastAPI(
-        title="MCP API",
-        description="Multi-Agent Coordination Protocol API",
-        version="1.0.0",
+        title=APP_TITLE,
+        description=APP_DESCRIPTION,
+        version=APP_VERSION,
         lifespan=lifespan
     )
     
     # Configure CORS
     new_app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # TODO: Configure this properly for production
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=CORS_ALLOW_ORIGINS,  # TODO: Configure this properly for production
+        allow_credentials=CORS_ALLOW_CREDENTIALS,
+        allow_methods=CORS_ALLOW_METHODS,
+        allow_headers=CORS_ALLOW_HEADERS,
     )
     logger.debug("Configured CORS middleware")
 
     # Include routers
-    new_app.include_router(auth_router, prefix="/auth", tags=["auth"])
-    new_app.include_router(sessions_router, prefix="/sessions", tags=["sessions"])
-    new_app.include_router(mcp_router, prefix="/mcp", tags=["mcp"])
+    new_app.include_router(auth_router, prefix=AUTH_PREFIX, tags=[AUTH_TAG])
+    new_app.include_router(sessions_router, prefix=SESSIONS_PREFIX, tags=[SESSIONS_TAG])
+    new_app.include_router(mcp_router, prefix=MCP_PREFIX, tags=[MCP_TAG])
     logger.debug("Included base routers")
 
     # Load agent services
@@ -383,20 +400,20 @@ def create_app() -> FastAPI:
         logger.warning(f"HTTP exception occurred: {exc.detail}")
         return JSONResponse(
             status_code=exc.status_code,
-            content={"error": {"message": exc.detail}}
+            content={"error": {ERROR_MESSAGE_KEY: exc.detail}}
         )
 
     @new_app.get("/")
     async def read_root():
-        return {"message": "MCP API is running"}
+        return {ERROR_MESSAGE_KEY: API_RUNNING_MESSAGE}
 
     @new_app.get("/health")
     async def health_check():
-        return {"status": "healthy"}
+        return {"status": HEALTH_STATUS_HEALTHY}
 
     @new_app.options("/health")
     async def health_check_options():
-        return {"status": "ok"}
+        return {"status": HEALTH_STATUS_OK}
 
     logger.info("FastAPI application created successfully")
     return new_app
@@ -408,4 +425,4 @@ print(f"[MAIN_MODULE] Global 'app' instance created: {id(app)}")
 if __name__ == "__main__":
     import uvicorn
     # Uvicorn will use the global 'app' instance
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), reload=True) 
+    uvicorn.run("main:app", host=DEFAULT_HOST, port=int(os.getenv(DEFAULT_ENV_PORT_VAR, DEFAULT_PORT)), reload=True) 

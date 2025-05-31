@@ -9,8 +9,8 @@ from ....a2a_protocol.task_store import TaskStoreService
 from ....main import get_original_task_store_service as get_task_store_service
 
 # Shared Contract Types
-from apps.api.v2.shared.generated.python.a2a_protocol import TaskSendParams, Task
-from apps.api.v2.shared.generated.python.agent_types import AgentCard
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import TaskSendParams, Task
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import AgentCard
 
 # LLM Service
 from ....llm.openai_service import OpenAIService

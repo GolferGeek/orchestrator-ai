@@ -530,8 +530,12 @@ def create_app() -> FastAPI:
 
     # --- Add CORSMiddleware here, after app creation and before routers/routes ---
     origins = [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
+        "http://localhost:3000",  # Vue dev server (V1 frontend)
+        "http://localhost:5173",  # Vite default port
+        "http://localhost:5174",  # Actual vite port (detected)
+        "http://127.0.0.1:3000",  # Vue dev server (V1 frontend)
+        "http://127.0.0.1:5173",  # Vite default port
+        "http://127.0.0.1:5174",  # Actual vite port (detected)
         # "http://localhost:8100", # If using ionic serve
     ]
 

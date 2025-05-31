@@ -1,24 +1,17 @@
 from datetime import datetime, timezone, UTC
 from typing import Dict, Optional, List
 import uuid
-from pydantic import BaseModel
 
-from apps.api.v2.shared.generated.python.a2a_protocol import (
-    Task, Message, TaskState, TaskStatus, TaskSendParams, ArtifactPart, 
-    UUIDModel, Timestamp, TaskPriority, ErrorDetails
+# Import shared types from a2a_protocol
+from apps.api.v2.shared.contracts.generated.python.a2a_protocol import (
+    Task, TaskStatus, TaskPriority, TaskSendParams, ArtifactPart, 
+    UUIDModel, Timestamp, ErrorDetails, Message
 )
 
-# A2A Protocol compliant conversation tracking (separate from Task)
-class TaskConversation(BaseModel):
-    """Tracks conversation history for a task (separate from the Task model per A2A protocol)"""
-    task_id: str
-    messages: List[Message] = []
-    session_id: Optional[str] = None
-
-class TaskAndHistory(BaseModel):
-    """Wrapper that combines Task with its conversation history"""
-    task: Task
-    conversation: Optional[TaskConversation] = None
+# Import task store specific types
+from apps.api.v2.shared.contracts.generated.python.task_store_types import (
+    TaskConversation, TaskAndHistory
+)
 
 class TaskStoreService:
     """A2A Protocol compliant in-memory store for tasks and conversations."""
