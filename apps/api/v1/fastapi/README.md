@@ -1,41 +1,45 @@
-# Python - FastAPI v1 Implementation
+# Python - FastAPI Implementation
 
-This directory contains the source code for the **Version 1 (v1)** API, implemented using Python and FastAPI.
+This directory contains the source code for the **Orchestrator AI API**, implemented using Python and FastAPI.
 
 ## Key Characteristics
 
-- **Independent Contracts:** This v1 implementation maintains its own API contracts, separate from the `shared/v2/contracts`. These are defined through FastAPI/Pydantic models.
-- **Legacy System:** Represents the current, stable version of the API that serves as the baseline implementation.
-- **Self-Contained:** Largely self-contained with its own dependencies and configurations, distinct from the v2 efforts.
+- **Production Ready:** Stable, battle-tested API implementation serving as the primary interface
+- **Self-Contained:** Complete implementation with its own dependencies and configurations
+- **Agent-Based Architecture:** Comprehensive agent ecosystem for various business functions
 
 ## Current Status: ✅ **STABLE & WORKING**
 
-The V1 API continues to function as the stable baseline:
+The API provides a robust, production-ready implementation:
 - **Proven Architecture**: Battle-tested agent implementation patterns
 - **Frontend Compatibility**: Full compatibility with the Vue.js frontend
-- **Independent Evolution**: Can be maintained and updated independently of V2
-- **Reference Implementation**: Serves as the baseline for V2 comparisons
+- **Customer Ready**: Professional implementation suitable for customer deployment
+- **Comprehensive Features**: Complete agent ecosystem with orchestration capabilities
 
 ## Structure
 
 Current structure includes:
-- `agents/`: Business logic for different agents
+- `agents/`: Business logic for different agents organized by category
 - `core/`: Core application settings and configurations
-- `routes/`: FastAPI route definitions
-- `models/` or `schemas/`: Pydantic models for request/response validation
+- `a2a_protocol/`: Agent-to-agent communication protocols
+- `auth/`: Authentication and authorization systems
+- `sessions/`: Session management functionality
 - `main.py`: FastAPI application entry point
-- `pyproject.toml`: PDM dependencies
+- `pyproject.toml`: Python dependencies managed with PDM
 
 ## Ports & Deployment
 
-- **Port**: 8000 (V2 uses 8001)
+- **Port**: 8000 (configurable via environment)
 - **Environment**: Supports dev, test, and prod configurations  
 - **Container**: Docker setup with PDM package management
+- **Scaling**: Ready for production deployment with Docker Compose
 
-## Relationship to V2
+## Agent Categories
 
-While V2 introduces A2A protocol compliance and improved architecture, V1:
-- Remains the stable fallback option
-- Provides feature parity for core functionality
-- Serves as a reference for migration validation
-- Continues to receive critical updates and bug fixes 
+The API includes comprehensive agent coverage:
+- **Business**: Internal RAG, invoicing, metrics, SOPs
+- **Customer Service**: Chat support, email triage, voice receptionist
+- **Marketing**: Blog posts, content creation, lead management
+- **HR**: Onboarding, policy management, HR assistance
+- **Development**: Requirements writing, project management
+- **External**: Market research, competitor analysis 
