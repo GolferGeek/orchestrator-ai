@@ -6,7 +6,7 @@
     "contracts:generate": "turbo run generate --filter=@orchestrator-ai/shared-contracts-v1",
     "dev": "concurrently \"npm run dev:api:v1\" \"npm run dev:web:v1\"",
     "dev:v1": "concurrently \"npm run dev:api:v1\" \"npm run dev:web:v1\"",
-    "dev:api:v1": "npm run configure:api:v1 && (cd apps/api/v1/fastapi && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload)",
+    "dev:api:v1": "cd apps/api/v1/fastapi && PYTHONPATH=../../../.. pdm run uvicorn apps.api.v1.fastapi.main:app --host 0.0.0.0 --port 8000 --reload",
     "dev:web:v1": "cd apps/web/v1 && npm run dev",
     "docker:build": "npm run docker:build:v1",
     "docker:build:v1": "docker build -t orchestrator-v1-api -f apps/api/v1/fastapi/Dockerfile .",
@@ -18,7 +18,6 @@
     "docker:clean": "npm run docker:stop && docker rmi orchestrator-v1-api || true",
     "build": "turbo run build",
     "test": "turbo run test",
-    "configure:api:v1": "(cd apps/api/v1/fastapi && ./setup_api_env.sh)",
     "lint": "turbo run lint",
     "format": "turbo run format"
   },
