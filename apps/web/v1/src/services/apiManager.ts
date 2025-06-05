@@ -1,11 +1,9 @@
 import { ref, computed } from 'vue';
 import { ApiClient, ApiEndpoint, ApiConfiguration, API_FEATURES } from '../types/api';
 import { V1ApiClient } from './clients/v1ApiClient';
-import { V2ApiClient } from './clients/v2ApiClient';
 
 // Environment configuration
 const DEFAULT_V1_BASE_URL = import.meta.env.VITE_API_V1_BASE_URL || 'http://localhost:8000';
-const DEFAULT_V2_BASE_URL = import.meta.env.VITE_API_V2_BASE_URL || 'http://localhost:8001';
 
 // Default API endpoint configurations
 const DEFAULT_ENDPOINTS: ApiEndpoint[] = [
@@ -22,45 +20,13 @@ const DEFAULT_ENDPOINTS: ApiEndpoint[] = [
     ],
     isAvailable: true,
   },
-  {
-    version: 'v2',
-    technology: 'python-fastapi',
-    baseUrl: DEFAULT_V2_BASE_URL,
-    name: 'V2 Python FastAPI',
-    description: 'Enhanced Python FastAPI with hierarchical agents and improved features',
-    features: [
-      API_FEATURES.ORCHESTRATOR,
-      API_FEATURES.AGENT_DISCOVERY,
-      API_FEATURES.SESSION_MANAGEMENT,
-      API_FEATURES.HIERARCHICAL_AGENTS,
-      API_FEATURES.MULTI_MODAL,
-    ],
-    isAvailable: true,
-  },
-  // Future endpoint for NestJS
-  {
-    version: 'v2',
-    technology: 'typescript-nestjs',
-    baseUrl: 'http://localhost:3000', // Future NestJS port
-    name: 'V2 TypeScript NestJS',
-    description: 'TypeScript NestJS implementation with advanced features',
-    features: [
-      API_FEATURES.ORCHESTRATOR,
-      API_FEATURES.AGENT_DISCOVERY,
-      API_FEATURES.SESSION_MANAGEMENT,
-      API_FEATURES.HIERARCHICAL_AGENTS,
-      API_FEATURES.REAL_TIME_CHAT,
-      API_FEATURES.MULTI_MODAL,
-    ],
-    isAvailable: false, // Not implemented yet
-  },
 ];
 
 class ApiManager {
   private _configuration = ref<ApiConfiguration>({
-    currentEndpoint: DEFAULT_ENDPOINTS[0], // Default to V1 instead of V2
+    currentEndpoint: DEFAULT_ENDPOINTS[0], // Default to V1
     availableEndpoints: DEFAULT_ENDPOINTS,
-    defaultEndpoint: DEFAULT_ENDPOINTS[0], // Default to V1 instead of V2
+    defaultEndpoint: DEFAULT_ENDPOINTS[0], // Default to V1
   });
 
   private _currentClient = ref<ApiClient | null>(null);
@@ -92,10 +58,6 @@ class ApiManager {
     return computed(() => this.currentEndpoint.version === 'v1');
   }
 
-  get isV2() {
-    return computed(() => this.currentEndpoint.version === 'v2');
-  }
-
   get supportedFeatures() {
     return computed(() => this.currentEndpoint.features);
   }
@@ -120,8 +82,6 @@ class ApiManager {
     
     if (endpoint.version === 'v1') {
       client = new V1ApiClient(endpoint);
-    } else if (endpoint.version === 'v2' && endpoint.technology === 'python-fastapi') {
-      client = new V2ApiClient(endpoint);
     } else {
       throw new Error(`Unsupported API configuration: ${endpoint.version} with ${endpoint.technology}`);
     }
@@ -159,7 +119,7 @@ class ApiManager {
   }
 
   // Switch to endpoint by version and technology
-  async switchToVersion(version: 'v1' | 'v2', technology?: 'python-fastapi' | 'typescript-nestjs'): Promise<void> {
+  async switchToVersion(version: 'v1', technology?: 'python-fastapi'): Promise<void> {
     const availableEndpoints = this.availableEndpoints;
     let targetEndpoint: ApiEndpoint | undefined;
 
