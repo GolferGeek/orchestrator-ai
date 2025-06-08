@@ -1,0 +1,310 @@
+# Product Requirements Document: NestJS A2A Agent Framework
+
+## 1. Overview
+
+### Product Name
+NestJS A2A Agent Framework
+
+### Version
+1.0.0
+
+### Date
+January 2025
+
+### Project Owner
+Orchestrator AI Team
+
+## 2. Executive Summary
+
+Create a NestJS-based implementation of the Agent-to-Agent (A2A) protocol that provides a clean, simplified architecture where all complex logic resides in base services, while individual agents remain minimal and focused. This framework will support both MCP context agents and future LangGraph function-based agents.
+
+## 3. Business Objectives
+
+### Primary Goals
+- Implement full A2A protocol compliance in NestJS
+- Create a simplified agent architecture with minimal agent-specific code
+- Enable seamless migration from FastAPI to NestJS
+- Support both MCP and function-based agent implementations
+- Establish foundation for future agent scaling and management
+
+### Success Metrics
+- 100% A2A protocol compliance
+- 3 working agents ported from FastAPI (orchestrator, KPI agent, blog post writer)
+- <50 lines of code per agent implementation
+- Full test coverage for base services
+- Documentation complete for agent development
+
+## 4. Product Requirements
+
+### 4.1 Core Architecture
+
+#### Base API Structure
+- **A2AAgentBaseService**: Core A2A protocol implementation
+  - JSON-RPC message handling
+  - Agent card generation
+  - Task lifecycle management
+  - Error handling and logging
+- **MCPContextAgentBaseService**: Extends base for MCP agents
+  - Markdown context loading
+  - MCP client integration
+  - Context-aware message processing
+- **AgentWithFunctionBaseService**: Extends base for function agents
+  - LangGraph integration support
+  - JSON string input/output handling
+  - Function routing
+
+#### Base Controller
+- **A2ABaseController**: Handles all HTTP endpoints
+  - `POST /tasks` - Task processing endpoint
+  - `GET /.well-known/agent.json` - A2A agent card endpoint
+  - Authentication and authorization
+  - Request validation and error handling
+
+### 4.2 Agent Structure
+
+#### Directory Layout
+```
+src/agents/
+├── orchestrator/
+│   ├── agent.ts          # Minimal agent config
+│   └── agent.json        # A2A agent card
+└── specialists/
+    ├── kpi-agent/
+    │   ├── agent.ts      # Minimal agent config  
+    │   └── agent.json    # A2A agent card
+    └── blog-post-writer/
+        ├── agent.ts      # Minimal agent config
+        └── agent.json    # A2A agent card
+```
+
+#### Agent Implementation
+Each agent should contain only:
+- Agent name
+- Agent type (MCP or Function)
+- Optional agent-specific configuration
+- Reference to agent.json metadata
+
+### 4.3 A2A Protocol Compliance
+
+#### Required A2A Features
+- Full JSON-RPC 2.0 support
+- Complete AgentCard specification
+- Message and Task object handling
+- Streaming support (SSE)
+- Error handling with proper A2A error codes
+- Extensions support (future)
+
+#### Agent Card Format
+```json
+{
+  "name": "Agent Name",
+  "description": "Agent description",
+  "url": "https://domain.com/agents/category/agent-name",
+  "version": "1.0.0",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false
+  },
+  "defaultInputModes": ["application/json", "text/plain"],
+  "defaultOutputModes": ["application/json", "text/plain"],
+  "skills": [...]
+}
+```
+
+### 4.4 MCP Integration
+
+#### Current MCP Support
+- Maintain existing MCP client functionality
+- Support markdown context loading
+- Enable context-aware responses
+
+#### Future Full MCP Protocol
+- Plan for complete MCP protocol implementation
+- Design extensible MCP client architecture
+- Support for MCP tools and resources
+
+### 4.5 Agent Function Support
+
+#### LangGraph Integration
+- Support for LangChain/LangGraph implementations
+- JSON string input/output interface
+- State management (future)
+- Tool integration (future)
+
+#### Function Interface
+```typescript
+async function agentFunction(input: string): Promise<string> {
+  // LangGraph implementation
+  return response;
+}
+```
+
+## 5. Target Agents for Initial Implementation
+
+### 5.1 Orchestrator Agent
+- **Type**: MCP Context Agent initially, migrate to Function later
+- **Purpose**: Coordinate multi-agent workflows
+- **Context**: Orchestration strategies and agent routing
+
+### 5.2 KPI Agent (Business Metrics)
+- **Type**: MCP Context Agent
+- **Purpose**: Provide business metrics and analytics
+- **Context**: Business metrics data and calculation methods
+
+### 5.3 Blog Post Writer
+- **Type**: MCP Context Agent initially, migrate to Function later  
+- **Purpose**: Generate blog posts and content
+- **Context**: Writing guidelines and style standards
+
+## 6. Technical Requirements
+
+### 6.1 Technology Stack
+- **Framework**: NestJS
+- **Language**: TypeScript
+- **Package Manager**: pnpm
+- **Validation**: class-validator, class-transformer
+- **Documentation**: @nestjs/swagger
+- **HTTP Client**: axios
+- **Testing**: Jest
+
+### 6.2 Dependencies
+- Core NestJS modules
+- A2A protocol type definitions
+- MCP client library
+- LangGraph support (future)
+- Logging and monitoring
+
+### 6.3 Performance Requirements
+- Response time <500ms for simple queries
+- Support for 100+ concurrent requests
+- Streaming response capability
+- Efficient context loading
+
+## 7. Implementation Phases
+
+### Phase 1: Foundation (Week 1)
+- Set up NestJS project structure
+- Implement A2AAgentBaseService
+- Create A2ABaseController
+- Implement basic A2A protocol compliance
+
+### Phase 2: MCP Integration (Week 2)
+- Implement MCPContextAgentBaseService
+- Port MCP client functionality
+- Add markdown context loading
+- Create agent registration system
+
+### Phase 3: Agent Migration (Week 3)
+- Port orchestrator agent
+- Port KPI agent  
+- Port blog post writer agent
+- Implement agent.json generation
+
+### Phase 4: Testing & Documentation (Week 4)
+- Comprehensive test suite
+- API documentation
+- Developer guide
+- Performance optimization
+
+### Phase 5: Function Framework (Future)
+- Implement AgentWithFunctionBaseService
+- LangGraph integration
+- State management
+- Tool integration
+
+## 8. Quality Requirements
+
+### 8.1 Testing
+- Unit tests for all base services
+- Integration tests for A2A protocol
+- End-to-end tests for agent workflows
+- Performance testing
+
+### 8.2 Documentation
+- API documentation with Swagger
+- Developer guide for creating agents
+- Architecture documentation
+- A2A protocol compliance guide
+
+### 8.3 Logging & Monitoring
+- Structured logging for all operations
+- Request/response tracking
+- Performance metrics
+- Error monitoring
+
+## 9. Non-Functional Requirements
+
+### 9.1 Maintainability
+- Clean separation of concerns
+- Minimal agent-specific code
+- Consistent error handling
+- Comprehensive logging
+
+### 9.2 Scalability
+- Support for dynamic agent registration
+- Horizontal scaling capability
+- Efficient resource utilization
+- Stateless service design
+
+### 9.3 Security
+- Input validation on all endpoints
+- Authentication and authorization
+- Secure context handling
+- Error message sanitization
+
+## 10. Constraints & Assumptions
+
+### 10.1 Constraints
+- Must maintain A2A protocol compliance
+- No complex shared types between FastAPI/NestJS
+- Minimize migration effort from existing agents
+- Support both MCP and function-based agents
+
+### 10.2 Assumptions
+- NestJS expertise available on team
+- A2A protocol stable and well-documented
+- MCP client functionality can be ported
+- LangGraph integration requirements understood
+
+## 11. Risks & Mitigation
+
+### 11.1 Technical Risks
+- **A2A Protocol Complexity**: Mitigate by implementing incrementally
+- **MCP Integration Issues**: Maintain existing patterns initially
+- **Performance Concerns**: Implement caching and optimization
+- **Type Safety**: Use strict TypeScript configuration
+
+### 11.2 Project Risks
+- **Scope Creep**: Focus on minimal viable product first
+- **Timeline Pressure**: Prioritize core functionality
+- **Resource Availability**: Plan for knowledge transfer
+
+## 12. Success Criteria
+
+### 12.1 Functional Criteria
+- ✅ All three agents ported and functional
+- ✅ Full A2A protocol compliance verified
+- ✅ Agent.json files properly formatted
+- ✅ MCP context integration working
+- ✅ Error handling robust and consistent
+
+### 12.2 Non-Functional Criteria
+- ✅ Response times within performance targets
+- ✅ Test coverage >90%
+- ✅ Documentation complete and accurate
+- ✅ Code quality metrics met
+- ✅ Security requirements satisfied
+
+## 13. Future Enhancements
+
+### 13.1 Short Term (3 months)
+- Complete MCP protocol implementation
+- Agent function framework completion
+- Performance optimization
+- Additional agent types
+
+### 13.2 Long Term (6+ months)
+- Agent marketplace integration
+- Advanced workflow orchestration
+- Multi-tenant support
+- Enterprise security features 
