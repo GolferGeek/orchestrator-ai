@@ -1,0 +1,62 @@
+---
+name: "Testing Standards"
+description: "Guidelines for writing unit, integration, and end-to-end tests for both backend and frontend."
+globs: ["tests/**/*.py", "apps/web/**/__tests__/*.spec.js"]
+alwaysApply: true
+name: "Testing Standards"
+description: "Guidelines for writing unit, integration, and end-to-end tests for both backend and frontend."
+globs: ["tests/**/*.py", "apps/web/**/__tests__/*.spec.js"]
+alwaysApply: true
+# Testing Standards
+
+## General Principles
+- Write tests for all new features and bug fixes.
+- Tests should be reliable, readable, and maintainable.
+- Aim for a balanced testing pyramid (unit, integration, E2E).
+- Ensure tests can run independently and in any order.
+
+## Running Tests and API
+- Before running tests, ensure the environment is properly configured:
+  - Use `npm run configure:api` to set up the API environment
+  - This command will set up the necessary environment variables and configuration
+- To run the actual API server:
+  - Use `npm run api` to start the API server
+  - This will run the server with the proper environment configuration
+- For running tests:
+  - Ensure you're in the correct API implementation directory
+  - Use `python3 -m pdm run pytest [test_file_path]` to run specific tests
+  - Use `python3 -m pdm run pytest tests/` to run all tests
+
+## Unit Tests
+- Focus on testing individual functions, methods, or components in isolation.
+- Mock external dependencies to avoid side effects and ensure test speed.
+- Use clear and descriptive test names.
+- Each test should verify a single piece of behavior.
+- **Python**: Use `pytest` as the primary testing framework. Store tests in the `tests/unit` directory or alongside the code they test.
+- **Vue**: Use Vitest or Jest for component and utility function unit tests. Store tests in `__tests__` directories or alongside the component files (e.g., `src/components/__tests__/MyComponent.spec.js`).
+
+## Integration Tests
+- Test the interaction between multiple components or modules.
+- For FastAPI, use `TestClient` to test API endpoints, including request/response validation and interaction with services.
+- Store Python integration tests in `tests/integration`.
+- Minimize mocking; use real dependencies where feasible (e.g., a test database).
+
+## End-to-End (E2E) Tests
+- Test complete user flows through the application.
+- Use tools like Cypress or Playwright for frontend E2E testing.
+- E2E tests are typically slower and more brittle, so focus on critical paths.
+
+## Test Organization
+- Maintain a clear directory structure for tests (e.g., `tests/unit`, `tests/integration`).
+- Agent service integration tests should be located in `tests/integration/agents/[department_or_category]/[agent_name]/`. For example, tests for an invoice agent within the business department would be in `tests/integration/agents/business/invoice/`.
+- Use descriptive file names for test files (e.g., `test_user_service.py`, `LoginFlow.e2e.js`).
+
+## Code Coverage
+- Strive for high code coverage, but prioritize quality of tests over quantity.
+- Use coverage tools to identify untested code paths.
+
+## Continuous Integration (CI)
+- Integrate tests into the CI pipeline to run automatically on every push/PR.
+- Ensure builds fail if tests do not pass.
+
+
