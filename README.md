@@ -53,12 +53,12 @@ Orchestrator AI is a production-ready multi-agent system that intelligently rout
    npm install
    
    # API dependencies  
-   cd apps/api/v1/fastapi
+   cd apps/api/fastapi
    pdm install
    cd ../../../..
    
    # Frontend dependencies
-   cd apps/web/v1
+   cd apps/web
    npm install
    cd ../../..
    ```
@@ -134,12 +134,12 @@ Once running, access interactive API documentation:
 ```
 orchestrator-ai/
 ├── apps/
-│   ├── api/v1/fastapi/     # Python FastAPI backend
+│   ├── api/fastapi/     # Python FastAPI backend
 │   │   ├── agents/         # Agent implementations
 │   │   ├── core/           # Core configurations
 │   │   ├── auth/           # Authentication system
 │   │   └── main.py         # Application entry point
-│   └── web/v1/             # Vue.js frontend
+│   └── web/             # Vue.js frontend
 │       ├── src/
 │       │   ├── components/ # UI components
 │       │   ├── services/   # API clients

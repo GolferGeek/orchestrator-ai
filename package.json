@@ -4,18 +4,17 @@
   "license": "PROPRIETARY",
   "scripts": {
     "contracts:generate": "turbo run generate --filter=@orchestrator-ai/shared-contracts-v1",
-    "dev": "concurrently \"npm run dev:api:v1\" \"npm run dev:web:v1\"",
-    "dev:v1": "concurrently \"npm run dev:api:v1\" \"npm run dev:web:v1\"",
-    "dev:api:v1": "cd apps/api/v1/fastapi && PYTHONPATH=../../../.. pdm run uvicorn apps.api.v1.fastapi.main:app --host 0.0.0.0 --port 8000 --reload",
-    "dev:web:v1": "cd apps/web/v1 && npm run dev",
-    "docker:build": "npm run docker:build:v1",
-    "docker:build:v1": "docker build -t orchestrator-v1-api -f apps/api/v1/fastapi/Dockerfile .",
-    "docker:run": "npm run docker:run:v1",
-    "docker:run:v1": "docker run --rm -d --name orchestrator-v1 -p 8000:8000 orchestrator-v1-api",
-    "docker:stop": "npm run docker:stop:v1",
-    "docker:stop:v1": "docker stop orchestrator-v1 || true",
-    "docker:logs:v1": "docker logs -f orchestrator-v1",
-    "docker:clean": "npm run docker:stop && docker rmi orchestrator-v1-api || true",
+    "dev:api:fastapi": "cd apps/api/fastapi && PYTHONPATH=../../.. pdm run uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+    "dev:api:nestjs": "cd apps/api/nestjs && pnpm run start:dev",
+    "dev:web": "cd apps/web && npm run dev",
+    "docker:build": "npm run docker:build",
+    "docker:build:fastapi": "docker build -t orchestrator-fastapi -f apps/api/fastapi/Dockerfile .",
+    "docker:run": "npm run docker:run:api",
+    "docker:run:api": "docker run --rm -d --name orchestrator-api -p 8000:8000 orchestrator-api",
+    "docker:stop": "npm run docker:stop:fastapi",
+    "docker:stop:fastapi": "docker stop orchestrator-fastapi || true",
+    "docker:logs:fastapi": "docker logs -f orchestrator-fastapi",
+    "docker:clean": "npm run docker:stop && docker rmi orchestrator-fastapi || true",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
@@ -26,6 +25,6 @@
     "turbo": "^2.3.3"
   },
   "workspaces": [
-    "apps/web/v1"
+    "apps/web"
   ]
 }
