@@ -232,6 +232,8 @@ export interface AgentSkill {
 export interface AgentCard {
   /** Human-readable name of the agent */
   name: string;
+  /** Agent type (e.g., 'orchestrator', 'specialists') */
+  type?: string;
   /** Human-readable description (CommonMark supported) */
   description: string;
   /** Base URL for the agent's A2A service (HTTPS for production) */
