@@ -66,23 +66,39 @@ Create a NestJS-based implementation of the Agent-to-Agent (A2A) protocol that p
 ```
 src/agents/
 ├── orchestrator/
-│   ├── agent.ts          # Minimal agent config
-│   └── agent.json        # A2A agent card
+│   ├── orchestrator.service.ts    # Extends base service
+│   └── context/
+│       └── orchestrator.md        # Context file with metadata
 └── specialists/
     ├── kpi-agent/
-    │   ├── agent.ts      # Minimal agent config  
-    │   └── agent.json    # A2A agent card
+    │   ├── kpi-agent.service.ts    # Extends base service
+    │   └── context/
+    │       └── kpi-agent.md        # Context file with metadata
     └── blog-post-writer/
-        ├── agent.ts      # Minimal agent config
-        └── agent.json    # A2A agent card
+        ├── blog-post-writer.service.ts  # Extends base service
+        └── context/
+            └── blog-post-writer.md      # Context file with metadata
 ```
 
 #### Agent Implementation
-Each agent should contain only:
-- Agent name
-- Agent type (MCP or Function)
-- Optional agent-specific configuration
-- Reference to agent.json metadata
+Each agent service extends either MCPContextAgentBaseService or AgentWithFunctionBaseService and contains only:
+- Agent-specific business logic (minimal)
+- Context file path configuration
+- Agent metadata methods
+
+#### Unified Context File Structure
+All agents use a standardized context file format serving multiple purposes:
+- **Agent Metadata**: Name, description, capabilities (for programmatic agent.json generation)
+- **Configuration**: Timeouts, priorities, operational settings  
+- **Agent-Specific Data**: Business data, templates, calculation methods, etc.
+- **MCP Context**: Knowledge base content for MCP-based agents
+- **Function Context**: Reference material and examples for function-based agents
+
+#### No Individual Controllers
+- Single A2ABaseController handles all agent HTTP endpoints
+- Routes requests to appropriate agent service based on URL path
+- Programmatically generates agent.json from agent metadata
+- No duplication of controller logic across agents
 
 ### 4.3 A2A Protocol Compliance
 
@@ -94,11 +110,12 @@ Each agent should contain only:
 - Error handling with proper A2A error codes
 - Extensions support (future)
 
-#### Agent Card Format
+#### Agent Card Format (Programmatically Generated)
+The A2ABaseController dynamically generates agent.json responses based on agent metadata:
 ```json
 {
   "name": "Agent Name",
-  "description": "Agent description",
+  "description": "Agent description", 
   "url": "https://domain.com/agents/category/agent-name",
   "version": "1.0.0",
   "capabilities": {
@@ -111,12 +128,18 @@ Each agent should contain only:
 }
 ```
 
+Agent metadata is extracted from:
+- Context file headers (YAML frontmatter or structured comments)
+- Agent service class metadata methods
+- Runtime information (uptime, status, etc.)
+
 ### 4.4 MCP Integration
 
 #### Current MCP Support
 - Maintain existing MCP client functionality
-- Support markdown context loading
+- Support markdown context loading from agent-local context/ directories
 - Enable context-aware responses
+- Unified context file serves as both agent metadata and MCP knowledge base
 
 #### Future Full MCP Protocol
 - Plan for complete MCP protocol implementation
