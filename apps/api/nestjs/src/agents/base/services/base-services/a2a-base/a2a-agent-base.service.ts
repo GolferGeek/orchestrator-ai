@@ -1,5 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import { BaseService } from '../../../base.service';
+import { AgentContextService } from './agent-context.service';
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   JsonRpcRequest,
   JsonRpcResponse,
@@ -23,12 +27,37 @@ import {
 } from './interfaces';
 
 @Injectable()
-export class A2AAgentBaseService extends BaseService {
+export class A2AAgentBaseService extends BaseService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(A2AAgentBaseService.name);
   private readonly startTime = Date.now();
   private readonly activeTasks = new Map<string, Task>();
   private readonly taskTimeouts = new Map<string, NodeJS.Timeout>();
   private readonly defaultTaskTimeout = 300000; // 5 minutes
+  
+  // Agent Pool Registration
+  private agentPoolBaseUrl: string;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private isRegistered = false;
+  
+  // Store the discovered path from AgentDiscoveryService
+  private discoveredPath: string | null = null;
+
+  constructor(
+    protected readonly httpService?: HttpService,
+    protected readonly contextService?: AgentContextService
+  ) {
+    super();
+    
+    // Create context service if not provided
+    if (!this.contextService) {
+      (this as any).contextService = new AgentContextService();
+    }
+    
+    // Get agent pool URL from environment variables
+    const apiHost = process.env.API_HOST || 'localhost';
+    const apiPort = process.env.API_PORT || '3000';
+    this.agentPoolBaseUrl = `http://${apiHost}:${apiPort}/agent-pool`;
+  }
 
   /**
    * Process a single JSON-RPC request or notification
@@ -280,6 +309,7 @@ export class A2AAgentBaseService extends BaseService {
 
     const card: AgentCard = {
       name: this.getAgentName(),
+      type: this.getAgentType(),
       description: `${this.getAgentName()} - A2A Protocol compliant agent`,
       url: baseUrl,
       provider: this.getAgentProvider(),
@@ -337,10 +367,14 @@ export class A2AAgentBaseService extends BaseService {
   }
 
   /**
-   * Get agent skills - should be implemented by concrete agent classes
+   * Get agent skills from pre-loaded context
    */
   protected async getAgentSkills(): Promise<AgentSkill[]> {
-    // Default implementation - concrete agents should override this
+    // Use context service skills or fallback to default
+    if (this.contextService?.isLoaded && this.contextService.skills.length > 0) {
+      return this.contextService.skills;
+    }
+    
     return [
       {
         id: 'basic-communication',
@@ -352,8 +386,8 @@ export class A2AAgentBaseService extends BaseService {
           'Handle task delegation',
           'Provide agent status information'
         ],
-        inputModes: this.getDefaultInputModes(),
-        outputModes: this.getDefaultOutputModes()
+        inputModes: ['text/plain', 'application/json'],
+        outputModes: ['text/plain', 'application/json']
       }
     ];
   }
@@ -413,13 +447,29 @@ export class A2AAgentBaseService extends BaseService {
     }
   }
 
-  // Abstract methods to be implemented by derived classes
+  // Default implementations that can be overridden by derived classes
   protected getAgentName(): string {
-    throw new Error('getAgentName must be implemented by derived service');
+    // Use context service name if available, otherwise derive from class name
+    if (this.contextService?.isLoaded && this.contextService.name) {
+      return this.contextService.name;
+    }
+    
+    // Fallback to deriving from class name
+    const className = this.constructor.name;
+    return className
+      .replace('Service', '')
+      .replace(/([A-Z])/g, ' $1')
+      .trim();
   }
 
   protected getAgentType(): string {
-    throw new Error('getAgentType must be implemented by derived service');
+    // Use context service type if available, otherwise derive from class structure or default
+    if (this.contextService?.isLoaded && this.contextService.type) {
+      return this.contextService.type;
+    }
+    
+    // Fallback logic
+    return 'general';
   }
 
   protected getAgentVersion(): string {
@@ -427,7 +477,11 @@ export class A2AAgentBaseService extends BaseService {
   }
 
   protected getAgentCapabilities(): string[] {
-    throw new Error('getAgentCapabilities must be implemented by derived service');
+    // Use context service capabilities or fallback to default
+    if (this.contextService?.isLoaded && this.contextService.capabilities.length > 0) {
+      return this.contextService.capabilities;
+    }
+    return ['general_assistance'];
   }
 
   protected getAgentMetadata(): Record<string, any> {
@@ -865,4 +919,274 @@ export class A2AAgentBaseService extends BaseService {
   private generateTaskId(): string {
     return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
+
+  /**
+   * Module initialization - delay registration to avoid circular dependency
+   */
+  async onModuleInit() {
+    // Initialize context service first before any other operations
+    if (this.contextService) {
+      const agentDir = this.getAgentDirectory();
+      if (agentDir) {
+        await this.contextService.initialize(agentDir);
+      }
+    }
+    
+    // Check if external agent pool registration is disabled
+    const disableExternalPool = process.env.DISABLE_EXTERNAL_AGENT_POOL === 'true';
+    
+    if (disableExternalPool) {
+      this.logger.log(`External agent pool registration disabled for ${this.getAgentName()}`);
+      return;
+    }
+
+    if (this.httpService) {
+      // Agent pool is guaranteed to be ready by the time agents are instantiated
+      this.registerWithAgentPool().then(() => {
+        this.startHeartbeat();
+      }).catch((error) => {
+        this.logger.warn(`Registration failed for ${this.getAgentName()}: ${error.message}`);
+        // Retry registration after a delay
+        setTimeout(() => {
+          this.registerWithAgentPool().then(() => {
+            this.startHeartbeat();
+          }).catch((retryError) => {
+            this.logger.error(`Registration retry failed for ${this.getAgentName()}: ${retryError.message}`);
+          });
+        }, 5000); // Retry after 5 seconds if there's still an issue
+      });
+    }
+  }
+
+  /**
+   * Module destruction - cleanup and unregister
+   */
+  async onModuleDestroy() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+    }
+    if (this.isRegistered && this.httpService) {
+      await this.unregisterFromAgentPool();
+    }
+  }
+
+  /**
+   * Register this agent with the agent pool
+   */
+  private async registerWithAgentPool(): Promise<void> {
+    try {
+      const agentName = this.getAgentName();
+      const agentType = this.getAgentType();
+      const capabilities = this.getAgentCapabilities();
+      const skills = await this.getAgentSkills();
+
+      // Get base URL for this agent
+      const apiHost = process.env.API_HOST || 'localhost';
+      const apiPort = process.env.API_PORT || '3000';
+      const agentPath = this.getAgentPath();
+      const agentUrl = `http://${apiHost}:${apiPort}/agents/${agentPath}/tasks`;
+
+      const registration = {
+        id: this.generateAgentId(),
+        name: agentName,
+        type: agentType,
+        path: agentPath,
+        url: agentUrl,
+        description: this.getAgentDescription(),
+        capabilities,
+        skills,
+        inputModes: this.getDefaultInputModes(),
+        outputModes: this.getDefaultOutputModes(),
+        status: 'online',
+        metadata: this.getAgentMetadata()
+      };
+
+      this.logger.log(`Attempting to register ${agentName} with agent pool at: ${this.agentPoolBaseUrl}/register`);
+      this.logger.debug(`Registration payload:`, registration);
+
+      const response = await this.httpService!.axiosRef.post(
+        `${this.agentPoolBaseUrl}/register`,
+        registration
+      );
+
+      if (response.status === 201) {
+        this.isRegistered = true;
+        this.logger.log(`Successfully registered with agent pool: ${agentName}`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Failed to register with agent pool at ${this.agentPoolBaseUrl}/register: ${error.message}`);
+      this.logger.debug('Full error details:', error);
+    }
+  }
+
+  /**
+   * Send heartbeat to agent pool
+   */
+  private async sendHeartbeat(): Promise<void> {
+    if (!this.isRegistered || !this.httpService) {
+      return;
+    }
+
+    try {
+             const metrics = this.getTaskMetrics();
+       const heartbeat = {
+         agentId: this.generateAgentId(),
+         timestamp: new Date(),
+         metrics: {
+           activeTasks: this.activeTasks.size,
+           totalTasksProcessed: metrics.completedTasks,
+           averageResponseTime: metrics.averageResponseTime,
+           errorCount: metrics.errorCount,
+           uptime: metrics.uptime
+         }
+       };
+
+      await this.httpService.axiosRef.post(
+        `${this.agentPoolBaseUrl}/heartbeat`,
+        heartbeat
+      );
+
+      this.logger.debug('Heartbeat sent to agent pool');
+         } catch (error: any) {
+       this.logger.warn(`Failed to send heartbeat: ${error.message}`);
+     }
+  }
+
+  /**
+   * Start sending periodic heartbeats
+   */
+  private startHeartbeat(): void {
+    // Send heartbeat every 30 seconds
+    this.heartbeatInterval = setInterval(() => {
+      this.sendHeartbeat();
+    }, 30000);
+  }
+
+  /**
+   * Unregister from agent pool
+   */
+  private async unregisterFromAgentPool(): Promise<void> {
+    try {
+      const agentId = this.generateAgentId();
+      await this.httpService!.axiosRef.delete(
+        `${this.agentPoolBaseUrl}/agents/${agentId}`
+      );
+      this.logger.log('Successfully unregistered from agent pool');
+         } catch (error: any) {
+       this.logger.warn(`Failed to unregister from agent pool: ${error.message}`);
+     }
+  }
+
+  /**
+   * Generate a consistent agent ID based on agent name and type
+   */
+  private generateAgentId(): string {
+    const name = this.getAgentName().toLowerCase().replace(/\s+/g, '_');
+    const type = this.getAgentType();
+    return `${type}_${name}`;
+  }
+
+  /**
+   * Get agent path for URL construction
+   */
+  private getAgentPath(): string {
+    // Use discovered path if available, otherwise fall back to constructed path
+    if (this.discoveredPath) {
+      return this.discoveredPath;
+    }
+    
+    // Fallback to original logic for backward compatibility
+    const agentType = this.getAgentType();
+    const agentName = this.getAgentName().toLowerCase().replace(/\s+/g, '_');
+    return `${agentType}/${agentName}`;
+  }
+
+  /**
+   * Get agent description from context service
+   */
+  private getAgentDescription(): string {
+    // Use context service description if available, otherwise create default
+    if (this.contextService?.isLoaded && this.contextService.description) {
+      return this.contextService.description;
+    }
+    
+    return `${this.getAgentName()} - A specialized agent for handling specific tasks`;
+  }
+
+
+
+  /**
+   * Get the directory where this agent's files are located
+   */
+  protected getAgentDirectory(): string | null {
+    try {
+      // First, try to use the discovered path if available
+      if (this.discoveredPath) {
+        const srcDir = process.cwd();
+        const fullPath = path.join(srcDir, 'src', 'agents', 'actual', this.discoveredPath);
+        this.logger.debug(`Using discovered path: ${fullPath}`);
+        if (fs.existsSync(fullPath)) {
+          return fullPath;
+        } else {
+          this.logger.warn(`Discovered path does not exist: ${fullPath}`);
+        }
+      }
+
+      // Fallback to original logic if discovered path is not available
+      const serviceName = this.constructor.name;
+      const agentName = serviceName.replace('Service', '').toLowerCase();
+      this.logger.debug(`Looking for agent directory for service: ${serviceName}, agent name: ${agentName}`);
+      
+      // Build path based on source file structure (not dist)
+      const srcDir = process.cwd();
+      const agentsDir = path.join(srcDir, 'src', 'agents', 'actual');
+      this.logger.debug(`Agents directory: ${agentsDir}`);
+      
+      // Check for orchestrator
+      if (agentName.includes('orchestrator')) {
+        const orchestratorDir = path.join(agentsDir, 'orchestrator');
+        this.logger.debug(`Checking orchestrator directory: ${orchestratorDir}`);
+        if (fs.existsSync(orchestratorDir)) {
+          this.logger.debug(`Found orchestrator directory: ${orchestratorDir}`);
+          return orchestratorDir;
+        }
+      }
+
+      // Check for specialists
+      const specialistsDir = path.join(agentsDir, 'specialists');
+      this.logger.debug(`Checking specialists directory: ${specialistsDir}`);
+      if (fs.existsSync(specialistsDir)) {
+        const possibleDirs = fs.readdirSync(specialistsDir);
+        this.logger.debug(`Found specialist directories: ${possibleDirs.join(', ')}`);
+        for (const dir of possibleDirs) {
+          this.logger.debug(`Checking if '${dir}' matches agent name '${agentName}'`);
+          // More flexible matching
+          if (dir.includes(agentName) || 
+              agentName.includes(dir.replace('_', '')) ||
+              agentName.includes(dir.replace('-', '')) ||
+              dir.replace('_', '').includes(agentName) ||
+              dir.replace('-', '').includes(agentName)) {
+            const foundDir = path.join(specialistsDir, dir);
+            this.logger.debug(`Found matching directory: ${foundDir}`);
+            return foundDir;
+          }
+        }
+      }
+
+      this.logger.debug(`No matching directory found for agent: ${agentName}`);
+      return null;
+    } catch (error) {
+      this.logger.warn(`Error determining agent directory: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
+  /**
+   * Set the discovered path from AgentDiscoveryService
+   */
+  setDiscoveredPath(path: string): void {
+    this.discoveredPath = path;
+    this.logger.debug(`Set discovered path: ${path}`);
+  }
+
 } 
