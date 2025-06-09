@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from './a2a-agent-base.service';
 import { AgentCard, AgentSkill } from './interfaces';
+import { of } from 'rxjs';
 
 // Test implementation of the abstract service
 class TestA2AAgentService extends A2AAgentBaseService {
@@ -38,13 +40,33 @@ class TestA2AAgentService extends A2AAgentBaseService {
 
 describe('A2AAgentBaseService', () => {
   let service: TestA2AAgentService;
+  let httpService: HttpService;
 
   beforeEach(async () => {
+    // Disable external agent pool registration during tests
+    process.env.DISABLE_EXTERNAL_AGENT_POOL = 'true';
+    const mockHttpService = {
+      post: jest.fn().mockReturnValue(of({ data: { success: true } })),
+      get: jest.fn().mockReturnValue(of({ data: { success: true } })),
+      put: jest.fn().mockReturnValue(of({ data: { success: true } })),
+      delete: jest.fn().mockReturnValue(of({ data: { success: true } })),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TestA2AAgentService],
+      providers: [
+        TestA2AAgentService,
+        {
+          provide: HttpService,
+          useValue: mockHttpService,
+        },
+      ],
     }).compile();
 
     service = module.get<TestA2AAgentService>(TestA2AAgentService);
+    httpService = module.get<HttpService>(HttpService);
+    
+    // Wait for service initialization to complete
+    await service.onModuleInit();
   });
 
   afterEach(async () => {
@@ -61,6 +83,12 @@ describe('A2AAgentBaseService', () => {
     });
     service['taskTimeouts'].clear();
     service['activeTasks'].clear();
+    
+    // Properly cleanup the service including heartbeat interval
+    await service.onModuleDestroy();
+    
+    // Clean up environment variables
+    delete process.env.DISABLE_EXTERNAL_AGENT_POOL;
   });
 
   it('should be defined', () => {

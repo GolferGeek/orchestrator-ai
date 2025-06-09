@@ -20,8 +20,8 @@ export class SupabaseService implements OnModuleInit {
     const serviceKey = this.configService.get<string>('supabase.serviceKey');
 
     if (!url) {
-      this.logger.error('SUPABASE_URL is not configured');
-      throw new Error('Supabase URL is required');
+      this.logger.warn('SUPABASE_URL is not configured - Supabase features will be disabled');
+      return;
     }
 
     // Initialize anonymous client (for RLS-compliant operations)
@@ -153,7 +153,7 @@ export class SupabaseService implements OnModuleInit {
    */
   async checkConnection(): Promise<{ status: string; message: string }> {
     if (!this.anonClient) {
-      return { status: 'error', message: 'Supabase client not initialized' };
+      return { status: 'disabled', message: 'Supabase not configured - service disabled' };
     }
 
     try {

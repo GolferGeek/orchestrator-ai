@@ -67,13 +67,13 @@ describe('SupabaseService', () => {
       expect(mockCreateClient).toHaveBeenCalledWith('https://test.supabase.co', 'test-service-key');
     });
 
-    it('should throw error if SUPABASE_URL is missing', () => {
+    it('should not throw error if SUPABASE_URL is missing (logs warning instead)', () => {
       jest.spyOn(configService, 'get').mockImplementation((key: string) => {
         if (key === 'supabase.url') return null;
         return 'test-key';
       });
 
-      expect(() => service.onModuleInit()).toThrow('Supabase URL is required');
+      expect(() => service.onModuleInit()).not.toThrow();
     });
 
     it('should handle missing anon key gracefully', () => {
@@ -320,8 +320,8 @@ describe('SupabaseService', () => {
       const result = await serviceWithoutAnon.checkConnection();
 
       expect(result).toEqual({
-        status: 'error',
-        message: 'Supabase client not initialized',
+        status: 'disabled',
+        message: 'Supabase not configured - service disabled',
       });
     });
   });
