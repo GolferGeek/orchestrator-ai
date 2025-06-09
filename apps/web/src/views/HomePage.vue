@@ -7,8 +7,21 @@
         </ion-buttons>
         <ion-title>{{ pageTitle }}</ion-title>
         <ion-buttons slot="end" v-if="auth.isAuthenticated">
-          <div class="api-display">
-            <span class="api-label">V1 FastAPI</span>
+          <div class="api-selector-container">
+            <ion-select 
+              :value="currentApiDisplay"
+              @ionChange="handleApiChange"
+              interface="popover"
+              class="api-selector"
+            >
+              <ion-select-option 
+                v-for="endpoint in availableEndpoints" 
+                :key="endpoint.name"
+                :value="endpoint.name"
+              >
+                {{ formatApiLabel(endpoint) }}
+              </ion-select-option>
+            </ion-select>
           </div>
         </ion-buttons>
       </ion-toolbar>
@@ -50,7 +63,7 @@
 <script setup lang="ts">
 import { 
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonFooter, IonSpinner, IonText, 
-  isPlatform, IonButtons, IonMenuButton
+  isPlatform, IonButtons, IonMenuButton, IonSelect, IonSelectOption
 } from '@ionic/vue';
 import { onMounted, onUnmounted, computed, watch, nextTick, ref } from 'vue';
 import { Keyboard, KeyboardInfo } from '@capacitor/keyboard';
@@ -84,6 +97,15 @@ const currentSessionName = computed(() => {
 
 const pageTitle = computed(() => {
   return currentSessionName.value || 'Orchestrator Chat';
+});
+
+// API-related computed properties
+const availableEndpoints = computed(() => {
+  return apiManager.availableEndpoints;
+});
+
+const currentApiDisplay = computed(() => {
+  return apiManager.currentEndpoint.name;
 });
 
 const handleMessagesRenderedInChild = () => {
@@ -481,6 +503,31 @@ const loadSessionData = async () => {
   // ... existing code ...
 };
 
+// Methods
+const formatApiLabel = (endpoint: any) => {
+  const techLabel = endpoint.technology === 'python-fastapi' ? 'FastAPI' : 
+                   endpoint.technology === 'typescript-nestjs' ? 'NestJS' : 
+                   endpoint.technology.split('-').map((word: string) => 
+                     word.charAt(0).toUpperCase() + word.slice(1)
+                   ).join(' ');
+  
+  return `${endpoint.version.toUpperCase()} ${techLabel}`;
+};
+
+const handleApiChange = async (event: any) => {
+  const endpointName = event.detail.value;
+  const endpoint = availableEndpoints.value.find(ep => ep.name === endpointName);
+  
+  if (endpoint) {
+    try {
+      await apiManager.switchToEndpoint(endpoint);
+      console.log(`Switched to API endpoint: ${endpoint.name}`);
+    } catch (error) {
+      console.error('Failed to switch API endpoint:', error);
+    }
+  }
+};
+
 </script>
 
 <style scoped>
@@ -525,10 +572,32 @@ ion-footer {
   gap: 8px;
 }
 
-.api-display {
+.api-selector-container {
   display: flex;
   align-items: center;
   margin-right: 8px;
+}
+
+.api-selector {
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --padding-top: 4px;
+  --padding-bottom: 4px;
+  --background: var(--ion-color-primary);
+  --color: var(--ion-color-primary-contrast);
+  --border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  min-width: 100px;
+}
+
+.api-selector::part(text) {
+  color: var(--ion-color-primary-contrast);
+  font-weight: 500;
+}
+
+.api-selector::part(icon) {
+  color: var(--ion-color-primary-contrast);
 }
 
 .api-label {
@@ -542,6 +611,13 @@ ion-footer {
 }
 
 @media (max-width: 480px) {
+  .api-selector {
+    font-size: 0.7rem;
+    min-width: 80px;
+    --padding-start: 6px;
+    --padding-end: 6px;
+  }
+  
   .api-label {
     font-size: 0.7rem;
     padding: 3px 6px;

@@ -4,6 +4,7 @@ import { V1ApiClient } from './clients/v1ApiClient';
 
 // Environment configuration
 const DEFAULT_V1_BASE_URL = import.meta.env.VITE_API_V1_BASE_URL || 'http://localhost:8000';
+const DEFAULT_NESTJS_BASE_URL = import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
 
 // Default API endpoint configurations
 const DEFAULT_ENDPOINTS: ApiEndpoint[] = [
@@ -13,6 +14,19 @@ const DEFAULT_ENDPOINTS: ApiEndpoint[] = [
     baseUrl: DEFAULT_V1_BASE_URL,
     name: 'V1 Python FastAPI',
     description: 'Original Python FastAPI implementation with full agent support',
+    features: [
+      API_FEATURES.ORCHESTRATOR,
+      API_FEATURES.AGENT_DISCOVERY,
+      API_FEATURES.SESSION_MANAGEMENT,
+    ],
+    isAvailable: true,
+  },
+  {
+    version: 'v1',
+    technology: 'typescript-nestjs',
+    baseUrl: DEFAULT_NESTJS_BASE_URL,
+    name: 'V1 TypeScript NestJS',
+    description: 'TypeScript NestJS implementation with A2A agent framework',
     features: [
       API_FEATURES.ORCHESTRATOR,
       API_FEATURES.AGENT_DISCOVERY,
@@ -81,6 +95,7 @@ class ApiManager {
     let client: ApiClient;
     
     if (endpoint.version === 'v1') {
+      // Both FastAPI and NestJS use the same API interface for v1
       client = new V1ApiClient(endpoint);
     } else {
       throw new Error(`Unsupported API configuration: ${endpoint.version} with ${endpoint.technology}`);
@@ -119,7 +134,7 @@ class ApiManager {
   }
 
   // Switch to endpoint by version and technology
-  async switchToVersion(version: 'v1', technology?: 'python-fastapi'): Promise<void> {
+  async switchToVersion(version: 'v1', technology?: 'python-fastapi' | 'typescript-nestjs'): Promise<void> {
     const availableEndpoints = this.availableEndpoints;
     let targetEndpoint: ApiEndpoint | undefined;
 
