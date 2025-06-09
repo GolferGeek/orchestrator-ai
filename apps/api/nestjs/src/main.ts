@@ -1,16 +1,48 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AgentDiscoveryService } from './agent-discovery.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
+  
+  // Enable validation globally
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }));
+
+  // Setup Swagger
+  const config = new DocumentBuilder()
+    .setTitle('A2A Agent Framework API')
+    .setDescription('NestJS A2A Agent Framework with Supabase Authentication')
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth', // This name here is important for referencing in controllers
+    )
+    .build();
+  
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+  
   const port = process.env.API_PORT || process.env.PORT || '3000';
   await app.listen(port);
   
   const logger = new Logger('Bootstrap');
   logger.log(`🌐 Application is running on: http://localhost:${port}`);
+  logger.log(`📚 Swagger API docs: http://localhost:${port}/api`);
+  logger.log(`🔐 Auth endpoints: http://localhost:${port}/auth`);
   logger.log(`📊 Agent Pool endpoints: http://localhost:${port}/agent-pool`);
   
   // Wait for agent pool to be ready, then start agent discovery
