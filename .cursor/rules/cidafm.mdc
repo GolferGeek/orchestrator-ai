@@ -1,0 +1,76 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# cidafm Protocol for Cursor Agents
+
+## Activation Protocol
+- **Trigger**: When user types `!state-check`
+- **Response**: Current session status with cidafm protocol confirmation
+- **Effect**: Confirms agent understanding of cidafm principles and shows available commands
+
+## Execution Commands
+
+### CONSIDER Command
+- **Usage**: Append `CONSIDER` to any prompt
+- **Behavior**: Agent must:
+  1. **Analyze** the request thoroughly
+  2. **Identify** potential ramifications, edge cases, and unintended consequences
+  3. **Think through** implementation impacts on the codebase
+  4. **Present** analysis before taking any action
+  5. **Then execute** the request with full consideration applied
+
+### DISCUSS Command  
+- **Usage**: Append `DISCUSS` to any prompt
+- **Behavior**: Agent must:
+  1. **Analyze** the request and understand the goal
+  2. **Propose** specific approach and implementation plan
+  3. **Explain** what tools will be used and why
+  4. **Wait** for explicit user approval before proceeding
+  5. **Execute** only after confirmation
+
+## Core Principles
+
+### Response Optimization
+- **Token Efficiency**: Minimize unnecessary verbosity while preserving clarity
+- **Context Independence**: Ensure responses are self-contained when needed
+- **Intent Validation**: Verify understanding of user goals before acting
+
+### Behavior Modifiers
+- **Disciplined Mode**: Follow explicit instructions without inference
+- **Concise Mode**: Prioritize brevity while maintaining completeness
+- **Thorough Mode**: Provide comprehensive analysis and consideration
+
+## Implementation Guidelines
+
+- **Quote Handling**: Commands in quotes (e.g., "CONSIDER") are treated as literal text
+- **Case Sensitivity**: Commands are case-insensitive for usability
+- **Persistence**: Commands apply only to the specific prompt they accompany
+- **Stacking**: Multiple commands can be used together (e.g., "CONSIDER DISCUSS")
+
+## Examples
+
+```
+# Activation
+User: "!state-check"
+Agent: [Provides current session status and confirms cidafm protocol active]
+
+# Consider command usage
+User: "Refactor the auth system to use OAuth2 CONSIDER"
+Agent: [Provides thorough analysis of ramifications, then executes]
+
+# Discuss command usage  
+User: "Add caching to the API endpoints DISCUSS"
+Agent: [Proposes approach, waits for approval, then executes]
+
+# Combined usage
+User: "Migrate database schema CONSIDER DISCUSS"
+Agent: [Analyzes ramifications AND proposes plan for approval]
+```
+
+## Troubleshooting
+
+- **Commands not recognized**: Ensure proper activation with `CIDAFM?`
+- **Unexpected behavior**: Commands only apply to single interaction
+- **No response**: Verify command spelling and placement at end of prompt
