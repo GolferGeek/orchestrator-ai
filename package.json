@@ -26,5 +26,8 @@
   },
   "workspaces": [
     "apps/web"
-  ]
+  ],
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.0"
+  }
 }
