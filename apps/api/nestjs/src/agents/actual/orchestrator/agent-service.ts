@@ -55,9 +55,20 @@ export class OrchestratorService extends A2AAgentBaseService {
    * Initialize the orchestrator after module initialization
    */
   async onModuleInit() {
-    await super.onModuleInit();
-    // Initialize available agents from the agent pool
-    await this.initializeAvailableAgents();
+    this.orchestratorLogger.log('Orchestrator agent initializing...');
+    
+    // Postpone agent pool initialization to avoid circular startup dependencies
+    // The server needs to be fully started before we can call its agent-pool endpoint
+    setTimeout(async () => {
+      try {
+        await this.initializeAvailableAgents();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.orchestratorLogger.warn('Failed to initialize agent pool during startup, will use fallback agents:', errorMessage);
+      }
+    }, 2000); // Wait 2 seconds for server to be fully up
+    
+    this.orchestratorLogger.log('Orchestrator agent initialization completed (agent pool will be loaded asynchronously)');
   }
 
   /**

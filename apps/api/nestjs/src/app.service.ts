@@ -1,11 +1,15 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { AgentDiscoveryService } from './agent-discovery.service';
+import { LLMService } from './agents/base/services/llm/llm.service';
 
 @Injectable()
 export class AppService implements OnModuleInit {
   private readonly logger = new Logger(AppService.name);
 
-  constructor(private readonly agentDiscovery: AgentDiscoveryService) {}
+  constructor(private readonly agentDiscovery: AgentDiscoveryService, private readonly llmService: LLMService) {
+    this.logger.log('🔥 AppService constructor - LLMService injected successfully!');
+    this.logger.log(`LLMService available: ${!!this.llmService}`);
+  }
 
   async onModuleInit() {
     this.logger.log('🔍 Agent system starting...');
