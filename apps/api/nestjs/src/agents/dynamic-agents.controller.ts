@@ -1,5 +1,8 @@
-import { Controller, Post, Get, Body, Param, Logger, NotFoundException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Logger, NotFoundException, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
 import { AgentDiscoveryService } from '../agent-discovery.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
 
 @Controller('agents')
 export class DynamicAgentsController {
@@ -12,13 +15,22 @@ export class DynamicAgentsController {
    * Route: POST /agents/:agentType/:agentName/tasks
    */
   @Post(':agentType/:agentName/tasks')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async handleTasks(
     @Param('agentType') agentType: string,
     @Param('agentName') agentName: string,
-    @Body() taskRequest: any
+    @Body() taskRequest: any,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+    @Request() req: any
   ) {
-    this.logger.debug(`Processing task for ${agentType}/${agentName}`);
+    this.logger.debug(`Processing task for ${agentType}/${agentName} for user ${currentUser.id}`);
+    
+    // Extract auth token from request
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace('Bearer ', '');
+    
+    this.logger.debug(`Auth context: userId=${currentUser.id}, hasToken=${!!token}`);
     
     // Find the agent instance
     const agentInstance = this.findAgentInstance(agentType, agentName);
@@ -26,8 +38,17 @@ export class DynamicAgentsController {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
 
+    // Add user context to the task request
+    const authenticatedTaskRequest = {
+      ...taskRequest,
+      currentUser,
+      authToken: token
+    };
+
+    this.logger.debug(`Passing auth context to agent: currentUser=${!!authenticatedTaskRequest.currentUser}, authToken=${!!authenticatedTaskRequest.authToken}`);
+
     // Process the task using the agent's processTask method
-    return agentInstance.processTask(taskRequest);
+    return agentInstance.processTask(authenticatedTaskRequest);
   }
 
   /**

@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SupabaseModule } from './supabase/supabase.module';
 import { AuthModule } from './auth/auth.module';
+import { SessionsModule } from './sessions/sessions.module';
 import { HealthModule } from './health/health.module';
 import { AgentPoolModule } from './agent-pool/agent-pool.module';
 import { AgentDiscoveryService } from './agent-discovery.service';
@@ -22,6 +23,7 @@ import supabaseConfig from './supabase/supabase.config';
     HttpModule, // Add HttpModule for agent services
     SupabaseModule,
     AuthModule,
+    SessionsModule,
     HealthModule,
     AgentPoolModule,
   ],

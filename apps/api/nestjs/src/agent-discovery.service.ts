@@ -3,6 +3,8 @@ import { HttpService } from '@nestjs/axios';
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { LLMService } from './agents/base/services/llm/llm.service';
+import { SessionsService } from './sessions/sessions.service';
+import { SupabaseService } from './supabase/supabase.service';
 
 export interface DiscoveredAgent {
   name: string;
@@ -20,7 +22,11 @@ export class AgentDiscoveryService {
   private agentInstances: any[] = [];
   private llmService: LLMService;
 
-  constructor(private readonly httpService: HttpService) {
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly sessionsService: SessionsService,
+    private readonly supabaseService: SupabaseService
+  ) {
     // Initialize LLM service for dependency injection
     this.llmService = new LLMService();
   }
@@ -67,15 +73,23 @@ export class AgentDiscoveryService {
         
         let serviceInstance;
         
-        // Check if this service needs LLM service by examining constructor parameters
-        const serviceNeedsLLM = this.checkIfServiceNeedsLLM(ServiceClass);
+        // Check service dependencies and instantiate accordingly
+        const serviceName = ServiceClass.name;
         
-        if (serviceNeedsLLM) {
-          this.logger.debug(`🧠 ${ServiceClass.name} requires LLM service`);
-          serviceInstance = new ServiceClass(this.httpService, this.llmService);
+        if (serviceName === 'OrchestratorService') {
+          this.logger.debug(`🎯 ${ServiceClass.name} requires all dependencies: HTTP, LLM, Sessions, Supabase`);
+          serviceInstance = new ServiceClass(this.httpService, this.llmService, this.sessionsService, this.supabaseService);
         } else {
-          this.logger.debug(`📡 ${ServiceClass.name} uses basic HTTP service only`);
-          serviceInstance = new ServiceClass(this.httpService);
+          // Check if this service needs LLM service by examining constructor parameters
+          const serviceNeedsLLM = this.checkIfServiceNeedsLLM(ServiceClass);
+          
+          if (serviceNeedsLLM) {
+            this.logger.debug(`🧠 ${ServiceClass.name} requires LLM service`);
+            serviceInstance = new ServiceClass(this.httpService, this.llmService);
+          } else {
+            this.logger.debug(`📡 ${ServiceClass.name} uses basic HTTP service only`);
+            serviceInstance = new ServiceClass(this.httpService);
+          }
         }
         
         // Set the discovered path information on the service instance

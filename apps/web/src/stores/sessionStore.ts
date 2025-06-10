@@ -25,15 +25,19 @@ export const useSessionStore = defineStore('session', () => {
 
   const fetchMessagesForCurrentSession = async () => {
     if (!currentSessionId.value || !authStore.isAuthenticated) {
+      console.log('[SessionStore] fetchMessagesForCurrentSession: No session ID or not authenticated, clearing messages');
       currentSessionMessages.value = [];
       return;
     }
+    console.log('[SessionStore] fetchMessagesForCurrentSession: Starting fetch for session', currentSessionId.value);
     isLoadingMessages.value = true;
     messagesError.value = null;
     try {
       // TODO: Implement pagination for message loading if needed
       const response = await sessionService.getSessionMessages(currentSessionId.value, 0, 200); // Fetching last 200 messages for now
+      console.log('[SessionStore] fetchMessagesForCurrentSession: Received', response.messages.length, 'messages from server');
       currentSessionMessages.value = response.messages.sort((a, b) => a.order - b.order);
+      console.log('[SessionStore] fetchMessagesForCurrentSession: Set currentSessionMessages to', currentSessionMessages.value.length, 'messages');
     } catch (e: any) {
       // Handle specific error cases
       if (e.message?.includes('Request failed with status code 404') || e.message?.includes('Session not found')) {
@@ -42,11 +46,13 @@ export const useSessionStore = defineStore('session', () => {
         setCurrentSessionId(null); // This will clear localStorage and messages
         messagesError.value = 'Session not found. Please select or create a new session.';
       } else {
+        console.error('[SessionStore] fetchMessagesForCurrentSession: Error fetching messages:', e.message);
         messagesError.value = e.message || 'Could not load messages for the session.';
         currentSessionMessages.value = []; // Clear on error
       }
     } finally {
       isLoadingMessages.value = false;
+      console.log('[SessionStore] fetchMessagesForCurrentSession: Finished, isLoadingMessages set to false');
     }
   };
   
@@ -75,6 +81,8 @@ export const useSessionStore = defineStore('session', () => {
       console.error("[SessionStore] Message was not found (existingMessage was false), but array length did not increase. This indicates an issue!");
     }
   };
+
+
 
   // Watch for auth changes to clear session if user logs out
   watch(() => authStore.isAuthenticated, (isAuth) => {

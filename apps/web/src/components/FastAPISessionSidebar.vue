@@ -2,16 +2,16 @@
   <ion-list>
     <ion-list-header>
       <div class="sidebar-header">
-        <span>FastAPI Sessions</span>
+        <span>Python Sessions</span>
         <div class="api-badge">
-          <span class="api-label fastapi">FastAPI</span>
+          <span class="api-label fastapi">Python</span>
         </div>
       </div>
     </ion-list-header>
     
     <ion-item button @click="handleCreateNewSession" lines="none">
       <ion-icon :icon="addCircleOutline" slot="start"></ion-icon>
-      <ion-label>New FastAPI Chat</ion-label>
+      <ion-label>New Python Chat</ion-label>
     </ion-item>
     
     <div v-if="isLoading" class="ion-padding ion-text-center">
@@ -32,7 +32,7 @@
       >
         <ion-icon :icon="chatbubbleEllipsesOutline" slot="start"></ion-icon>
         <ion-label>
-          <p>{{ session.name || 'FastAPI Chat on ' + formatDate(session.created_at) }}</p>
+          <p>{{ session.name || 'Python Chat on ' + formatDate(session.created_at) }}</p>
           <p><small>Updated: {{ formatRelativeDate(session.updated_at) }}</small></p>
         </ion-label>
         <div class="session-actions" slot="end">
@@ -48,18 +48,18 @@
 
     <ion-item v-if="!isLoading && sessions.length === 0 && !error" lines="none">
         <ion-label class="ion-text-center ion-padding-top">
-            <p><small>No FastAPI sessions yet.</small></p>
+            <p><small>No Python sessions yet.</small></p>
         </ion-label>
     </ion-item>
 
-    <!-- FastAPI specific tools section -->
+    <!-- Python specific tools section -->
     <ion-list-header class="tools-header">
-      <span>FastAPI Tools</span>
+      <span>Python Tools</span>
     </ion-list-header>
     
     <ion-item button lines="none" @click="handleFastAPIAgentsList">
       <ion-icon :icon="peopleOutline" slot="start"></ion-icon>
-      <ion-label>View FastAPI Agents</ion-label>
+      <ion-label>View Python Agents</ion-label>
     </ion-item>
     
     <ion-item button lines="none" @click="handleFastAPIHealth">
@@ -77,7 +77,7 @@ import { sessionService, Session } from '@/services/sessionService';
 import { useAuthStore } from '@/stores/authStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { storeToRefs } from 'pinia';
-import { apiManager } from '../services/apiManager';
+import { fastapiApiService } from '../services/fastapiApiService';
 
 const authStore = useAuthStore();
 const sessionStore = useSessionStore();
@@ -88,12 +88,8 @@ const error = ref<string | null>(null);
 
 const { currentSessionId: selectedSessionId } = storeToRefs(sessionStore);
 
-// Ensure we're using FastAPI endpoint when this sidebar is loaded
-onMounted(async () => {
-  const fastApiEndpoint = apiManager.availableEndpoints.find(ep => ep.technology === 'python-fastapi');
-  if (fastApiEndpoint && apiManager.currentEndpoint.technology !== 'python-fastapi') {
-    await apiManager.switchToEndpoint(fastApiEndpoint);
-  }
+// No need to switch API managers - we use dedicated FastAPI service
+onMounted(() => {
   fetchSessions();
 });
 
@@ -108,7 +104,7 @@ const fetchSessions = async () => {
     const response = await sessionService.listSessions();
     sessions.value = response.sessions;
   } catch (e: any) {
-    error.value = e.message || 'Could not load FastAPI sessions.';
+    error.value = e.message || 'Could not load Python sessions.';
   } finally {
     isLoading.value = false;
   }
@@ -123,11 +119,11 @@ const handleCreateNewSession = async () => {
   isLoading.value = true;
   error.value = null;
   try {
-    const newSession = await sessionService.createSession({ name: 'New FastAPI Chat' });
+    const newSession = await sessionService.createSession({ name: 'New Python Chat' });
     sessions.value.unshift(newSession);
     selectSession(newSession.id);
   } catch (e: any) {
-    error.value = e.message || 'Could not create new FastAPI session.';
+    error.value = e.message || 'Could not create new Python session.';
   } finally {
     isLoading.value = false;
   }
@@ -144,20 +140,28 @@ const handleFastAPIAgentsList = () => {
 
 const handleFastAPIHealth = async () => {
   try {
-    // Check FastAPI health status
-    const response = await fetch('http://localhost:8000/health');
-    const healthData = await response.json();
+    // Use dedicated FastAPI service for health check
+    const isHealthy = await fastapiApiService.healthCheck();
     
-    const alert = await alertController.create({
-      header: 'FastAPI Health Status',
-      message: `Status: ${response.ok ? 'Healthy' : 'Unhealthy'}\nResponse: ${JSON.stringify(healthData, null, 2)}`,
-      buttons: ['OK']
-    });
-    await alert.present();
+    if (isHealthy) {
+      const alert = await alertController.create({
+        header: 'Python API Health Status',
+        message: `✅ Status: Healthy\n📡 Endpoint: http://localhost:8000/health\n🐍 Python API is running normally`,
+        buttons: ['OK']
+      });
+      await alert.present();
+    } else {
+      const alert = await alertController.create({
+        header: 'Python API Health Status',
+        message: `❌ Status: Unhealthy\n📡 Endpoint: http://localhost:8000/health\n🔴 Python API is not responding correctly`,
+        buttons: ['OK']
+      });
+      await alert.present();
+    }
   } catch (error: any) {
     const alert = await alertController.create({
-      header: 'FastAPI Health Check Failed',
-      message: `Error: ${error.message}`,
+      header: 'Python Health Check Failed',
+      message: `❌ Could not connect to Python API\n\n🔗 Endpoint: http://localhost:8000/health\n💥 Error: ${error.message}\n\n💡 Make sure the Python server is running on port 8000`,
       buttons: ['OK']
     });
     await alert.present();
@@ -175,7 +179,7 @@ const formatRelativeDate = (dateString: string) => {
 
 const handleEditSessionName = async (session: Session) => {
   const alert = await alertController.create({
-    header: 'Rename FastAPI Session',
+    header: 'Rename Python Session',
     inputs: [
       {
         name: 'sessionName',
@@ -207,8 +211,8 @@ const handleEditSessionName = async (session: Session) => {
 
 const handleDeleteSession = async (session: Session) => {
   const alert = await alertController.create({
-    header: 'Delete FastAPI Session',
-    message: 'Are you sure you want to delete this FastAPI session? This action cannot be undone.',
+    header: 'Delete Python Session',
+    message: 'Are you sure you want to delete this Python session? This action cannot be undone.',
     buttons: [
       {
         text: 'Cancel',
@@ -226,7 +230,7 @@ const handleDeleteSession = async (session: Session) => {
               sessionStore.setCurrentSessionId(null);
             }
           } catch (e: any) {
-            error.value = e.message || 'Could not delete FastAPI session.';
+            error.value = e.message || 'Could not delete Python session.';
           } finally {
             isLoading.value = false;
           }
@@ -281,12 +285,50 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 }
 
 .selected-session {
-  --background: var(--ion-color-primary-tint);
-  --color: var(--ion-color-primary-contrast);
+  --background: var(--ion-color-primary, #3880ff);
+  --color: #ffffff;
+}
+
+.selected-session ion-label,
+.selected-session ion-label p,
+.selected-session ion-label small {
+  color: #ffffff !important;
 }
 
 .session-actions {
   display: flex;
   gap: 4px;
+}
+
+.session-actions ion-button {
+  --color: rgba(255, 255, 255, 0.7);
+  --color-hover: #ffffff;
+  --color-focused: #ffffff;
+}
+
+.selected-session .session-actions ion-button {
+  --color: rgba(255, 255, 255, 0.8) !important;
+  --color-hover: #ffffff !important;
+  --color-focused: #ffffff !important;
+}
+
+/* Override the danger color specifically for delete button in selected sessions */
+.selected-session .session-actions ion-button[color="danger"] {
+  --color: rgba(255, 255, 255, 0.9) !important;
+  --color-hover: #ffffff !important;
+  --color-focused: #ffffff !important;
+  --ion-color-danger: rgba(255, 255, 255, 0.9) !important;
+  --ion-color-danger-shade: #ffffff !important;
+  --ion-color-danger-tint: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Target the icon specifically */
+.selected-session .session-actions ion-button[color="danger"] ion-icon {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Make the chat bubble icon white in selected sessions */
+.selected-session ion-icon[slot="start"] {
+  color: #ffffff !important;
 }
 </style> 

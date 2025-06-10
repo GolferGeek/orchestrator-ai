@@ -54,7 +54,11 @@ export abstract class BaseApiClient implements ApiClient {
   }
 
   // Abstract methods that must be implemented by specific API clients
-  abstract postTaskToOrchestrator(userInputText: string, sessionId?: string | null): Promise<any>;
+  abstract postTaskToOrchestrator(
+    userInputText: string, 
+    sessionId?: string | null, 
+    conversationHistory?: Array<{role: string, content: string, metadata?: any}>
+  ): Promise<any>;
   abstract getAvailableAgents(): Promise<any[]>;
 
   // Concrete implementations
