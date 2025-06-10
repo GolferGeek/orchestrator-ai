@@ -8,7 +8,7 @@ This directory contains all the foundational services for the A2A Agent Framewor
 services/
 ├── base-services/          # Core inheritance services
 │   ├── a2a-base/          # Base A2A protocol implementation
-│   ├── mcp-context/       # MCP context agent base service
+│   ├── context/       # MCP context agent base service
 │   ├── agent-function/    # Function-based agent base service
 │   └── index.ts           # Exports for base services
 ├── registry/              # Agent registration and discovery
@@ -24,7 +24,7 @@ services/
 ### Base Services (Ready)
 Core inheritance services that provide the foundation for all agent types:
 - **A2AAgentBaseService**: JSON-RPC protocol and agent card generation
-- **MCPContextAgentBaseService**: Markdown context loading and processing
+- **ContextAgentBaseService**: Markdown context loading and processing
 - **AgentWithFunctionBaseService**: Function registration and execution
 
 ### Utility Services (Planned)
@@ -42,7 +42,7 @@ Import base services for agent implementation:
 ```typescript
 import { 
   A2AAgentBaseService, 
-  MCPContextAgentBaseService, 
+  ContextAgentBaseService, 
   AgentWithFunctionBaseService 
 } from './base-services';
 ```

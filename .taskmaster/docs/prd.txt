@@ -44,7 +44,7 @@ Create a NestJS-based implementation of the Agent-to-Agent (A2A) protocol that p
   - Agent card generation
   - Task lifecycle management
   - Error handling and logging
-- **MCPContextAgentBaseService**: Extends base for MCP agents
+- **ContextAgentBaseService**: Extends base for MCP agents
   - Markdown context loading
   - MCP client integration
   - Context-aware message processing
@@ -81,7 +81,7 @@ src/agents/
 ```
 
 #### Agent Implementation
-Each agent service extends either MCPContextAgentBaseService or AgentWithFunctionBaseService and contains only:
+Each agent service extends either ContextAgentBaseService or AgentWithFunctionBaseService and contains only:
 - Agent-specific business logic (minimal)
 - Context file path configuration
 - Agent metadata methods
@@ -212,7 +212,7 @@ async function agentFunction(input: string): Promise<string> {
 - Implement basic A2A protocol compliance
 
 ### Phase 2: MCP Integration (Week 2)
-- Implement MCPContextAgentBaseService
+- Implement ContextAgentBaseService
 - Port MCP client functionality
 - Add markdown context loading
 - Create agent registration system

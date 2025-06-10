@@ -3,12 +3,16 @@ import { AgentDiscoveryService } from '../agent-discovery.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
+import { SessionsService } from '../sessions/sessions.service';
 
 @Controller('agents')
 export class DynamicAgentsController {
   private readonly logger = new Logger(DynamicAgentsController.name);
 
-  constructor(private readonly agentDiscovery: AgentDiscoveryService) {}
+  constructor(
+    private readonly agentDiscovery: AgentDiscoveryService,
+    private readonly sessionsService: SessionsService
+  ) {}
 
   /**
    * Handle tasks for any discovered agent

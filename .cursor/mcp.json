@@ -1,5 +1,5 @@
 {
-    "mcpServers": {
+    "contextServers": {
         "task-master-ai": {
             "command": "npx",
             "args": [
