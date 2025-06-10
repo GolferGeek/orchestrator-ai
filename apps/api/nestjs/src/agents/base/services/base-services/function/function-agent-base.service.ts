@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from '../a2a-base/a2a-agent-base.service';
+import { AgentContextService } from '../a2a-base/agent-context.service';
 import { AgentFunctionParams, AgentFunctionResponse, AgentFunction } from '../a2a-base/interfaces';
 import { LLMService } from '../../llm/llm.service';
 import * as fs from 'fs';
@@ -34,8 +36,12 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   private readonly timeoutMs = 30000; // 30 seconds
   private retryCount = 0;
 
-  constructor(protected readonly llmService: LLMService) {
-    super();
+  constructor(
+    protected readonly llmService: LLMService,
+    httpService?: HttpService,
+    contextService?: AgentContextService
+  ) {
+    super(httpService, contextService);
   }
 
   /**
@@ -281,16 +287,25 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         return;
       }
 
+      // For dynamic imports, we need to use the compiled JavaScript files from dist
+      // Convert src path to dist path
+      const srcPrefix = path.join(process.cwd(), 'src');
+      const distPrefix = path.join(process.cwd(), 'dist');
+      const relativePath = path.relative(srcPrefix, agentDirectory);
+      const distDirectory = path.join(distPrefix, relativePath);
+      
       const functionPath = path.join(agentDirectory, 'agent-function.ts');
       const jsPath = path.join(agentDirectory, 'agent-function.js');
+      const distJsPath = path.join(distDirectory, 'agent-function.js');
       
-      // Check if the TypeScript or JavaScript file exists
-      const searchPaths = [functionPath, jsPath];
+      // Prioritize compiled JavaScript files for dynamic import
+      const searchPaths = [distJsPath, jsPath, functionPath];
       let importPath: string | null = null;
       
       for (const checkPath of searchPaths) {
         if (fs.existsSync(checkPath)) {
           importPath = checkPath;
+          this.functionLogger.debug(`Found agent function at: ${checkPath}`, { agentName });
           break;
         }
       }
@@ -302,26 +317,38 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         });
       }
 
-      // Convert to file:// URL for dynamic import
-      const resolvedPath = path.resolve(importPath);
-      const fileUrl = `file://${resolvedPath}`;
-      
-      this.functionLogger.debug(`Loading agent function from ${fileUrl}`, { agentName });
+      this.functionLogger.debug(`Loading agent function from ${importPath}`, { agentName });
       
       const loadStartTime = Date.now();
+      
+      // For JavaScript files, use relative path import; for TypeScript, convert path
+      let importSpecifier: string;
+      if (importPath.endsWith('.js')) {
+        // For compiled JS files, create a relative path from current working directory
+        importSpecifier = path.relative(process.cwd(), importPath);
+        // Ensure the path starts with ./ for relative imports
+        if (!importSpecifier.startsWith('.')) {
+          importSpecifier = './' + importSpecifier;
+        }
+      } else {
+        // For TypeScript files, use file:// URL (though this might not work in all cases)
+        const resolvedPath = path.resolve(importPath);
+        importSpecifier = `file://${resolvedPath}`;
+      }
+      
+      this.functionLogger.debug(`Import specifier: ${importSpecifier}`, { agentName });
       
       // Dynamically import the agent function with enhanced error handling
       let module: any;
       try {
-        module = await import(fileUrl);
+        module = await import(importSpecifier);
       } catch (importError) {
         throw new AgentFunctionLoadError(
           agentName,
           importPath,
           importError instanceof Error ? importError : new Error(String(importError)),
           {
-            resolvedPath,
-            fileUrl,
+            importSpecifier,
             loadStartTime
           }
         );
