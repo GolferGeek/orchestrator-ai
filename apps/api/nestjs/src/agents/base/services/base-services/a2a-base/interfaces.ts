@@ -276,4 +276,61 @@ export interface AgentCardConfig {
   authenticatedSkills?: AgentSkill[];
   /** Additional security schemes for authenticated card */
   authenticatedSecuritySchemes?: Record<string, SecurityScheme>;
+}
+
+// ============================================================================
+// FUNCTION-BASED AGENT INTERFACES
+// ============================================================================
+
+/**
+ * Parameters passed to agent functions from the base service
+ */
+export interface AgentFunctionParams {
+  /** The user's message/input */
+  userMessage: string;
+  /** Session ID for maintaining conversation state */
+  sessionId?: string;
+  /** Previous conversation history */
+  conversationHistory?: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    metadata?: any;
+  }>;
+  /** Current authenticated user information */
+  currentUser?: any;
+  /** Authentication token for external API calls */
+  authToken?: string;
+  /** LLM service instance for agent functions to use */
+  llmService?: any;
+  /** Additional context or metadata */
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Response structure returned by agent functions
+ */
+export interface AgentFunctionResponse {
+  /** The main response content to return to the user */
+  response: string;
+  /** Optional metadata about the function execution */
+  metadata?: {
+    /** Name of the agent that processed the request */
+    agentName?: string;
+    /** Processing time in milliseconds */
+    processingTime?: number;
+    /** Tools or services used during execution */
+    toolsUsed?: string[];
+    /** Type of response or processing performed */
+    responseType?: string;
+    /** Any additional metadata */
+    [key: string]: any;
+  };
+}
+
+/**
+ * Interface for agent function modules that are dynamically imported
+ */
+export interface AgentFunction {
+  /** The main execution function that processes requests */
+  execute(params: AgentFunctionParams): Promise<AgentFunctionResponse>;
 } 
