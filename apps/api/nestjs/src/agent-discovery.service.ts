@@ -15,6 +15,7 @@ export interface DiscoveredAgent {
   serviceClass?: any;
   serviceInstance?: any;
   functionPath?: string;
+  pythonFunctionPath?: string;
   agentFunction?: any;
 }
 
@@ -138,14 +139,14 @@ export class AgentDiscoveryService {
     try {
       // Check if the class extends any function agent base service
       const classString = ServiceClass.toString();
-      if (classString.includes('FunctionAgentBaseService') || classString.includes('SimpleFunctionAgentBaseService')) {
+              if (classString.includes('FunctionAgentBaseService') || classString.includes('PythonFunctionAgentBaseService')) {
         return true;
       }
       
       // Check prototype chain for function agent base services
       let currentClass = ServiceClass;
       while (currentClass && currentClass.name !== 'Object') {
-        if (currentClass.name === 'FunctionAgentBaseService' || currentClass.name === 'SimpleFunctionAgentBaseService') {
+        if (currentClass.name === 'FunctionAgentBaseService' || currentClass.name === 'PythonFunctionAgentBaseService') {
           return true;
         }
         currentClass = Object.getPrototypeOf(currentClass);
@@ -263,9 +264,25 @@ export class AgentDiscoveryService {
         // Check if agent-function.ts exists in the same directory as agent-service.ts
         const agentDir = agent.servicePath.replace('/agent-service.ts', '');
         const functionPath = `${agentDir}/agent-function.ts`;
+        const pythonFunctionPath = `${agentDir}/agent-function.py`;
         
         // Check if function file exists
         const fs = require('fs');
+        
+        // Check for Python script first (for Python agents)
+        if (fs.existsSync(pythonFunctionPath)) {
+          this.logger.log(`🐍 Found Python agent function for ${agent.name}: ${pythonFunctionPath}`);
+          agent.pythonFunctionPath = pythonFunctionPath;
+          
+          // Set the Python script path on the service instance if it supports it
+          if (agent.serviceInstance && typeof agent.serviceInstance.setPythonScriptPath === 'function') {
+            agent.serviceInstance.setPythonScriptPath(pythonFunctionPath);
+            this.logger.log(`✅ Set Python script path for: ${agent.name}`);
+          }
+          continue;
+        }
+        
+        // Fall back to TypeScript function
         if (!fs.existsSync(functionPath)) {
           this.logger.debug(`📝 No agent-function.ts found for ${agent.name} (using context-based agent)`);
           continue;
