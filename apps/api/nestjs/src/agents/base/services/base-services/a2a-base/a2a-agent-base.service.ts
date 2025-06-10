@@ -91,7 +91,14 @@ export class A2AAgentBaseService extends BaseService implements OnModuleInit, On
 
     // Process regular request
     try {
-      const result = await this.executeTask(request.method, request.params);
+      // Pass the full task request context, not just params
+      // This preserves auth context added by the controller
+      const fullParams = {
+        ...request.params,
+        currentUser: (taskRequest as any).currentUser,
+        authToken: (taskRequest as any).authToken
+      };
+      const result = await this.executeTask(request.method, fullParams);
       return this.createJsonRpcResponse(request.id, result);
     } catch (error) {
       return this.handleExecutionError(error, request.id);
@@ -133,10 +140,16 @@ export class A2AAgentBaseService extends BaseService implements OnModuleInit, On
       return { response: null };
     }
 
-    // Create a managed task for the request
+    // Create a managed task for the request with auth context
+    const fullParams = {
+      ...request.params,
+      currentUser: (taskRequest as any).currentUser,
+      authToken: (taskRequest as any).authToken
+    };
+    
     const taskCreationRequest: TaskCreationRequest = {
       method: request.method,
-      params: request.params,
+      params: fullParams,
       timeout: 30000 // 30 second default timeout for JSON-RPC requests
     };
 

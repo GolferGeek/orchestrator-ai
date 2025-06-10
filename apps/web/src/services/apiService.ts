@@ -42,11 +42,13 @@ const backwardCompatibleClient = createBackwardCompatibleClient();
  * Posts a task (user message) to the orchestrator using the current API client.
  * @param userInputText The user's input text.
  * @param sessionId Optional session ID
+ * @param conversationHistory Optional conversation history
  * @returns A promise that resolves to the TaskResponse.
  */
 export const postTaskToOrchestrator = async (
   userInputText: string,
-  sessionId?: string | null
+  sessionId?: string | null,
+  conversationHistory?: Array<{role: string, content: string, metadata?: any}>
 ): Promise<TaskResponse> => {
   const client = apiManager.currentClient;
   if (!client) {
@@ -54,7 +56,7 @@ export const postTaskToOrchestrator = async (
   }
 
   try {
-    return await client.postTaskToOrchestrator(userInputText, sessionId);
+    return await client.postTaskToOrchestrator(userInputText, sessionId, conversationHistory);
   } catch (error) {
     console.error('Error posting task to orchestrator:', error);
     throw error;

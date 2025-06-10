@@ -104,17 +104,16 @@ export class SupabaseService implements OnModuleInit {
     }
 
     try {
-      const authenticatedClient = createClient(url, anonKey);
-      
-      // Validate the token and set user session
-      this.logger.log(`Creating authenticated client instance for token: ${token.substring(0, 20)}...`);
-      
-      // Set the session with the provided token
-      authenticatedClient.auth.setSession({
-        access_token: token,
-        refresh_token: 'placeholder_refresh_token',
+      const authenticatedClient = createClient(url, anonKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       });
-
+      
+      this.logger.log(`Created authenticated client instance for token: ${token.substring(0, 20)}...`);
+      
       return authenticatedClient;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

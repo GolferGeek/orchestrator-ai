@@ -202,15 +202,56 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 
 <style scoped>
 .selected-session {
-  --background: var(--ion-color-light-tint);
-  /* Or use --ion-item-background with a specific color */
+  --background: var(--ion-color-primary, #3880ff);
+  --color: #ffffff;
 }
+
+.selected-session ion-label,
+.selected-session ion-label p,
+.selected-session ion-label small {
+  color: #ffffff !important;
+}
+
 ion-label p small {
     font-size: 0.75em;
     color: var(--ion-color-medium-shade);
 }
+
 .session-actions {
   display: flex;
   align-items: center;
+  gap: 4px;
+}
+
+.session-actions ion-button {
+  --color: rgba(255, 255, 255, 0.7);
+  --color-hover: #ffffff;
+  --color-focused: #ffffff;
+}
+
+.selected-session .session-actions ion-button {
+  --color: rgba(255, 255, 255, 0.8) !important;
+  --color-hover: #ffffff !important;
+  --color-focused: #ffffff !important;
+}
+
+/* Override the danger color specifically for delete button in selected sessions */
+.selected-session .session-actions ion-button[color="danger"] {
+  --color: rgba(255, 255, 255, 0.9) !important;
+  --color-hover: #ffffff !important;
+  --color-focused: #ffffff !important;
+  --ion-color-danger: rgba(255, 255, 255, 0.9) !important;
+  --ion-color-danger-shade: #ffffff !important;
+  --ion-color-danger-tint: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Target the icon specifically */
+.selected-session .session-actions ion-button[color="danger"] ion-icon {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Make the chat bubble icon white in selected sessions */
+.selected-session ion-icon[slot="start"] {
+  color: #ffffff !important;
 }
 </style> 

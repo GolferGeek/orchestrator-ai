@@ -5,15 +5,15 @@
         <ion-buttons slot="start">
           <ion-menu-button :auto-hide="false" v-if="auth.isAuthenticated"></ion-menu-button>
         </ion-buttons>
-        <ion-title>{{ pageTitle }} - FastAPI</ion-title>
+        <ion-title>{{ pageTitle }} - Python</ion-title>
         <ion-buttons slot="end" v-if="auth.isAuthenticated">
           <div class="api-selector-container">
             <ion-button fill="clear" size="small" @click="switchToNestJS">
               <ion-icon :icon="swapHorizontal" slot="start" />
-              Switch to NestJS
+              Switch to JavaScript
             </ion-button>
             <div class="api-badge">
-              <span class="api-label">FastAPI</span>
+              <span class="api-label">Python</span>
             </div>
           </div>
         </ion-buttons>
@@ -66,9 +66,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useRouter } from 'vue-router';
-import { postTaskToOrchestrator } from '@/services/apiService';
+import { fastapiApiService } from '@/services/fastapiApiService';
 import { storeToRefs } from 'pinia';
-import { apiManager } from '../services/apiManager';
 import { Message } from '../services/sessionService';
 
 import MessageListComponent from '../components/MessageList.vue';
@@ -88,20 +87,14 @@ const currentSessionName = computed(() => {
   if (currentSessionId.value) {
     return `Chat`;
   }
-  return 'FastAPI Orchestrator';
+  return 'Python Orchestrator';
 });
 
 const pageTitle = computed(() => {
-  return currentSessionName.value || 'FastAPI Orchestrator';
+  return currentSessionName.value || 'Python Orchestrator';
 });
 
-// Ensure we're using the FastAPI endpoint
-onMounted(async () => {
-  const fastApiEndpoint = apiManager.availableEndpoints.find(ep => ep.technology === 'python-fastapi');
-  if (fastApiEndpoint && apiManager.currentEndpoint.technology !== 'python-fastapi') {
-    await apiManager.switchToEndpoint(fastApiEndpoint);
-  }
-});
+// No need to switch API managers - we use dedicated FastAPI service
 
 const switchToNestJS = async () => {
   router.push('/nestjs');
@@ -174,7 +167,7 @@ const handleSendMessage = async (text: string) => {
   console.log("[FastAPIHomePage] User message added to store:", JSON.parse(JSON.stringify(userMessage)));
 
   try {
-    const taskResponse = await postTaskToOrchestrator(text, currentSessionId.value);
+    const taskResponse = await fastapiApiService.postTaskToOrchestrator(text, currentSessionId.value);
     console.log("[FastAPIHomePage] Received taskResponse from FastAPI orchestrator:", JSON.parse(JSON.stringify(taskResponse)));
     
     // Extract response text - support V1 FastAPI formats
@@ -244,7 +237,7 @@ const handleReturnToOrchestrator = async () => {
   if (uiStore.getIsAppLoading) return;
   uiStore.setAppLoading(true);
   try {
-    const taskResponse = await postTaskToOrchestrator("Show me available agents", currentSessionId.value);
+    const taskResponse = await fastapiApiService.postTaskToOrchestrator("Show me available agents", currentSessionId.value);
     if (taskResponse && taskResponse.response_message) {
       let messageContent = '';
       if (typeof taskResponse.response_message === 'string') {
@@ -291,7 +284,7 @@ const handleViewAgentCapabilities = async () => {
   if (uiStore.getIsAppLoading) return;
   uiStore.setAppLoading(true);
   try {
-    const taskResponse = await postTaskToOrchestrator("What can this agent do for me?", currentSessionId.value);
+    const taskResponse = await fastapiApiService.postTaskToOrchestrator("What can this agent do for me?", currentSessionId.value);
     if (taskResponse && taskResponse.response_message) {
       let messageContent = '';
       if (typeof taskResponse.response_message === 'string') {
@@ -341,7 +334,7 @@ const handleAgentCapabilityRequestedFor = async (agentName: string) => {
     const query = `What can the ${agentName} do for me?`;
     console.log(`[FastAPIHomePage] Sending query for ${agentName}: "${query}"`);
 
-    const taskResponse = await postTaskToOrchestrator(query, currentSessionId.value);
+    const taskResponse = await fastapiApiService.postTaskToOrchestrator(query, currentSessionId.value);
     if (taskResponse && taskResponse.response_message) {
       let messageContent = '';
       if (typeof taskResponse.response_message === 'string') {
