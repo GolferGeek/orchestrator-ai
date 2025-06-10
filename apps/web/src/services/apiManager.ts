@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue';
 import { ApiClient, ApiEndpoint, ApiConfiguration, API_FEATURES } from '../types/api';
-import { V1ApiClient } from './clients/v1ApiClient';
+import { ApiClient as V1ApiClient } from './clients/apiClient';
 
 // Environment configuration
 const DEFAULT_V1_BASE_URL = import.meta.env.VITE_API_V1_BASE_URL || 'http://localhost:8000';

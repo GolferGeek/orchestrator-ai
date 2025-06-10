@@ -9,8 +9,7 @@
         </ion-header>
         <ion-content>
           <div v-if="auth.isAuthenticated">
-            <ion-list-header>{{ appTitle }}</ion-list-header>
-            <ion-note v-if="auth.user && auth.user.email">{{ auth.user.email }}</ion-note>
+            <ion-note v-if="auth.user && auth.user.email" class="ion-padding-top">{{ auth.user.email }}</ion-note>
             <ion-item lines="none" :detail="false" :button="true" @click="handleLogout">
               <ion-icon aria-hidden="true" :icon="logOutOutline" slot="start"></ion-icon>
               <ion-label>Logout</ion-label>
@@ -70,20 +69,16 @@ const isOnApiPage = computed(() => isFastAPIRoute.value || isNestJSRoute.value);
 
 // Dynamic titles based on current route
 const menuTitle = computed(() => {
-  if (isFastAPIRoute.value) return 'FastAPI Menu';
-  if (isNestJSRoute.value) return 'NestJS Menu';
-  return 'Menu';
+  return 'Orchestrator AI';
 });
 
 const appTitle = computed(() => {
-  if (isFastAPIRoute.value) return 'FastAPI Orchestrator';
-  if (isNestJSRoute.value) return 'NestJS Orchestrator';
   return 'Orchestrator AI';
 });
 
 const switchToApiText = computed(() => {
-  if (isFastAPIRoute.value) return 'NestJS';
-  if (isNestJSRoute.value) return 'FastAPI';
+  if (isFastAPIRoute.value) return 'JavaScript';
+  if (isNestJSRoute.value) return 'Python';
   return '';
 });
 

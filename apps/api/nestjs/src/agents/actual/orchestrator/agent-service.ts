@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from '../../base/services/base-services/a2a-base/a2a-agent-base.service';
 import { LLMService } from '../../base/services/llm/llm.service';
+import { SessionsService } from '../../../sessions/sessions.service';
+import { SupabaseService } from '../../../supabase/supabase.service';
 
 interface AvailableAgent {
   name: string;
@@ -10,6 +12,21 @@ interface AvailableAgent {
   url: string;
   type: string;
   capabilities: string[];
+  metadata?: {
+    name?: string;
+    display_name?: string;
+    description?: string;
+  };
+}
+
+interface ConversationContext {
+  sessionId?: string;
+  userId?: string;
+  conversationHistory: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    agentName?: string;
+  }>;
 }
 
 @Injectable()
@@ -18,12 +35,20 @@ export class OrchestratorService extends A2AAgentBaseService {
   private readonly baseApiUrl: string;
   private availableAgents: AvailableAgent[] = [];
 
-  constructor(httpService: HttpService, private readonly llmService: LLMService) {
+  constructor(
+    httpService: HttpService, 
+    private readonly llmService: LLMService,
+    private readonly sessionsService: SessionsService,
+    private readonly supabaseService: SupabaseService
+  ) {
     super(httpService);
     // Get base API URL from environment variables
     const apiHost = process.env.API_HOST || 'localhost';
     const apiPort = process.env.API_PORT || '4000';
     this.baseApiUrl = `http://${apiHost}:${apiPort}`;
+    
+    // Debug dependency injection
+    this.orchestratorLogger.log(`OrchestratorService constructor: sessionsService=${!!this.sessionsService}, llmService=${!!this.llmService}, supabaseService=${!!this.supabaseService}`);
   }
 
   /**
@@ -42,67 +67,229 @@ export class OrchestratorService extends A2AAgentBaseService {
   protected async executeTask(method: string, params: any): Promise<any> {
     this.orchestratorLogger.log(`Orchestrator processing request with method: ${method}`);
 
-    try {
-      // Extract the request content from various possible parameter structures
-      const request = params.request || params.message || params.input || params.task || 
-                     params.prompt || JSON.stringify(params) || '';
-      
-      // Special handling for getAvailableAgents requests
-      if (method === 'getAvailableAgents' || request.toLowerCase().includes('available agents')) {
-        return this.availableAgents;
-      }
-      
-      // For all other requests, orchestrate (delegate or respond)
-      return await this.orchestrateRequest(request);
-      
-    } catch (error) {
-      this.orchestratorLogger.error(`Error processing request:`, error);
-      throw error;
+    // Extract user message and conversation history from params
+    const userMessage = params.message || '';
+    const sessionId = params.session_id || null;
+    const conversationHistory = params.conversation_history || [];
+    
+    // Extract user authentication context if available
+    const currentUser = params.currentUser || null;
+    const authToken = params.authToken || null;
+
+    this.orchestratorLogger.log(`Processing message: "${userMessage}" with ${conversationHistory.length} history messages`);
+    this.orchestratorLogger.log(`Auth context received: currentUser=${!!currentUser}, authToken=${!!authToken}`);
+    if (authToken) {
+      this.orchestratorLogger.log(`Auth token length: ${authToken.length}, first 20 chars: ${authToken.substring(0, 20)}...`);
+    } else {
+      this.orchestratorLogger.warn('No auth token received in orchestrator params');
     }
+
+    // Save the user message to the database first
+    let userMessageId = null;
+    if (sessionId && userMessage && currentUser && authToken) {
+      try {
+        const userMessageRecord = await this.sessionsService.addMessage(sessionId, {
+          role: 'user',
+          content: userMessage,
+          metadata: {
+            processedBy: 'orchestrator',
+            receivedAt: new Date().toISOString(),
+            // User information
+            userId: currentUser.id,
+            userEmail: currentUser.email,
+            userName: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'Unknown User',
+            // Processing agent information  
+            processingAgentId: `${this.getAgentType()}_${this.getAgentName().toLowerCase().replace(/\s+/g, '_')}`,
+            processingAgentName: this.getAgentName(),
+            processingAgentType: this.getAgentType(),
+            processingAgentDisplayName: this.getAgentName(),
+            // Message type
+            messageType: 'user_input'
+          }
+        }, currentUser, authToken);
+        userMessageId = userMessageRecord.id;
+        this.orchestratorLogger.log(`User message saved to database with ID: ${userMessageId} for user ${currentUser.id}`);
+      } catch (error) {
+        this.orchestratorLogger.error('Failed to save user message to database:', error);
+        // Continue processing even if database save fails
+      }
+    } else if (sessionId && userMessage) {
+      this.orchestratorLogger.warn('Missing user authentication context - cannot save message to database with proper RLS');
+    }
+
+    // Check if this is an agent listing request
+    const lowerMessage = userMessage.toLowerCase();
+    const isAgentListRequest = 
+      lowerMessage.includes('what can you do') ||
+      lowerMessage.includes('view all that i can do for you') ||
+      lowerMessage.includes('show me') && lowerMessage.includes('agents') ||
+      lowerMessage.includes('view') && lowerMessage.includes('agents') ||
+      lowerMessage.includes('available agents') ||
+      lowerMessage.includes('list agents') ||
+      lowerMessage.includes('tell me what agents');
+
+    if (isAgentListRequest) {
+      return this.createAgentListResponse();
+    }
+
+    // Check if user is continuing conversation with a specific agent
+    let agentContinuityContext = '';
+    if (conversationHistory.length > 0) {
+      const lastAssistantMessage = [...conversationHistory]
+        .reverse()
+        .find((msg: any) => msg.role === 'assistant');
+      
+      if (lastAssistantMessage?.metadata?.agentName && lastAssistantMessage.metadata.agentName !== 'Orchestrator Agent') {
+        this.orchestratorLogger.log(`User appears to be continuing conversation with: ${lastAssistantMessage.metadata.agentName}`);
+        agentContinuityContext = `\n\nNote: User was previously talking to ${lastAssistantMessage.metadata.agentName}. Unless they want to switch topics, continue with that agent.`;
+      }
+    }
+
+    // Use LLM to decide whether to delegate or respond directly
+    let response;
+    try {
+      const agentNames = this.availableAgents.map(agent => agent.name);
+      // Use the enhanced orchestration decision method with conversation history
+      const decision = await this.llmService.generateOrchestrationDecisionWithHistory(userMessage, agentNames, conversationHistory, agentContinuityContext);
+
+      if (decision.action === 'delegate' && decision.agent) {
+        response = await this.delegateToAgent(decision.agent, userMessage, sessionId, authToken);
+      } else if (decision.action === 'respond_directly' && decision.response) {
+        response = this.createResponse(decision.response);
+      } else {
+        response = this.createResponse(decision.response || `I understand you said: "${userMessage}". How can I help you further?`);
+      }
+    } catch (error) {
+      this.orchestratorLogger.error('Error processing with LLM:', error);
+      // Fallback: simple keyword-based routing
+      response = await this.handleFallbackRouting(userMessage, sessionId, authToken);
+    }
+
+    // Save the assistant response to the database
+    if (sessionId && response?.response && currentUser && authToken) {
+      try {
+        // Determine the responding agent information
+        const isResponseFromOrchestrator = !response.metadata?.delegatedTo;
+        const respondingAgentName = isResponseFromOrchestrator ? this.getAgentName() : (response.metadata?.responding_agent_name || response.metadata?.delegatedTo || 'Unknown Agent');
+        const respondingAgentType = isResponseFromOrchestrator ? this.getAgentType() : 'specialists';
+        const respondingAgentId = isResponseFromOrchestrator ? 
+          `${this.getAgentType()}_${this.getAgentName().toLowerCase().replace(/\s+/g, '_')}` :
+          `specialists_${(response.metadata?.delegatedTo || 'unknown').toLowerCase().replace(/\s+/g, '_')}`;
+        
+        const assistantMessageRecord = await this.sessionsService.addMessage(sessionId, {
+          role: 'assistant',
+          content: response.response,
+          metadata: {
+            ...response.metadata,
+            processedBy: 'orchestrator',
+            respondedAt: new Date().toISOString(),
+            userMessageId: userMessageId,
+            // User information
+            userId: currentUser.id,
+            userEmail: currentUser.email,
+            userName: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'Unknown User',
+            // Responding agent information
+            respondingAgentId: respondingAgentId,
+            respondingAgentName: respondingAgentName,
+            respondingAgentType: respondingAgentType,
+            respondingAgentDisplayName: respondingAgentName,
+            // Processing orchestrator information (always the orchestrator since it handles all routing)
+            processingAgentId: `${this.getAgentType()}_${this.getAgentName().toLowerCase().replace(/\s+/g, '_')}`,
+            processingAgentName: this.getAgentName(),
+            processingAgentType: this.getAgentType(),
+            processingAgentDisplayName: this.getAgentName(),
+            // Message type
+            messageType: isResponseFromOrchestrator ? 'orchestrator_response' : 'delegated_agent_response',
+            isDelegated: !isResponseFromOrchestrator
+          }
+        }, currentUser, authToken);
+        this.orchestratorLogger.log(`Assistant message saved to database with ID: ${assistantMessageRecord.id} for user ${currentUser.id}`);
+      } catch (error) {
+        this.orchestratorLogger.error('Failed to save assistant message to database:', error);
+        // Continue even if database save fails
+      }
+    } else if (sessionId && response?.response) {
+      this.orchestratorLogger.warn('Missing user authentication context - cannot save assistant message to database with proper RLS');
+    }
+
+    return response;
   }
 
   /**
-   * Orchestrate a request - decide whether to delegate or respond directly
+   * Create formatted agent list response for the frontend
    */
-  private async orchestrateRequest(request: string): Promise<any> {
-    try {
-      this.orchestratorLogger.log(`Orchestrating request: "${request}"`);
-
-      // Get orchestration decision from LLM
-      const agentNames = this.availableAgents.map(a => a.name);
-      const decision = await this.llmService.generateOrchestrationDecision(request, agentNames);
-      
-      this.orchestratorLogger.log(`Orchestration decision: ${decision.action} - ${decision.reasoning || 'No reasoning provided'}`);
-
-      switch (decision.action) {
-        case 'delegate':
-          if (decision.agent) {
-            return await this.delegateToAgent(decision.agent, request);
-          } else {
-            return this.createResponse('I wanted to delegate your request, but could not determine the appropriate agent. Let me help you directly instead.');
-          }
-
-        case 'respond_directly':
-          return this.createResponse(decision.response || 'Hello! I\'m your AI orchestrator. How can I assist you today?');
-
-        case 'clarify':
-          return this.createResponse(decision.response || 'Could you provide more details about what you need help with?');
-
-        default:
-          return this.createResponse('I\'m here to help! Could you tell me more about what you need?');
-      }
-
-    } catch (error) {
-      this.orchestratorLogger.error('Error orchestrating request:', error);
-      return this.createResponse('I apologize, but I encountered an error while processing your request. Please try again.');
+  private createAgentListResponse(): any {
+    if (!this.availableAgents || this.availableAgents.length === 0) {
+      return this.createResponse('No specialist agents are currently available.');
     }
+
+    // Filter out orchestrator agents and remove duplicates based on name
+    const uniqueAgents = new Map();
+    
+    this.availableAgents.forEach(agent => {
+      // Skip orchestrator agents
+      if (agent.name.toLowerCase().includes('orchestrator')) {
+        return;
+      }
+      
+      // Extract the display name from agent metadata or use the directory name
+      let displayName = agent.name;
+      
+      // Try to get a more user-friendly name from the agent's metadata
+      if (agent.metadata) {
+        displayName = agent.metadata.name || agent.metadata.display_name || agent.name;
+      }
+      
+      // Clean up the name - remove underscores, capitalize properly
+      const cleanName = displayName
+        .replace(/_/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+      
+      // Use the clean name as the key to avoid duplicates
+      if (!uniqueAgents.has(cleanName)) {
+        uniqueAgents.set(cleanName, {
+          name: cleanName,
+          description: agent.metadata?.description || `${cleanName} specialist agent`,
+          originalAgent: agent
+        });
+      }
+    });
+
+    if (uniqueAgents.size === 0) {
+      return this.createResponse('No specialist agents are currently available.');
+    }
+
+    // Format the response for the frontend to create clickable links
+    // The frontend expects "Agent Name: <name>, Description: <desc>" format to make names clickable
+    let agentListText = 'Here are the agents I can work with:\n\n';
+    
+    uniqueAgents.forEach((agentInfo, cleanName) => {
+      agentListText += `- Agent Name: ${cleanName}, Description: ${agentInfo.description}\n`;
+    });
+
+    // Mark this as an agent list response for the frontend to process
+    return {
+      success: true,
+      response: agentListText,
+      metadata: {
+        agentType: 'orchestrator',
+        agentName: 'Orchestrator Agent',
+        contentType: 'agentListFromOrchestrator',
+        processedAt: new Date().toISOString()
+      }
+    };
   }
 
   /**
    * Delegate request to a specific agent
    */
-  private async delegateToAgent(agentName: string, request: string): Promise<any> {
+  private async delegateToAgent(agentName: string, request: string, sessionId?: string, authToken?: string): Promise<any> {
     try {
+      this.orchestratorLogger.log(`Attempting to delegate to agent: ${agentName}`);
+      this.orchestratorLogger.log(`Available agents: ${this.availableAgents.map(a => a.name).join(', ')}`);
+      
       // Find the agent in the available agents list
       const agent = this.availableAgents.find(a => 
         a.name.toLowerCase().includes(agentName.toLowerCase()) ||
@@ -111,27 +298,50 @@ export class OrchestratorService extends A2AAgentBaseService {
       );
       
       if (!agent) {
-        this.orchestratorLogger.warn(`Agent not found: ${agentName}`);
+        this.orchestratorLogger.warn(`Agent not found: ${agentName}. Available agents: ${this.availableAgents.map(a => a.name).join(', ')}`);
         return this.createResponse('I could not find the appropriate specialist agent for your request.');
       }
 
       const agentUrl = agent.url;
+      this.orchestratorLogger.log(`Found agent: ${agent.name} at URL: ${agentUrl}`);
       
-      // Just pass the raw request without imposing any method structure
+      // Check if this is a "Can I talk to [agent] agent?" request
+      const isGreetingRequest = request.toLowerCase().includes('can i talk to') && request.toLowerCase().includes('agent');
+      
+      // For greeting requests, send a simple hello message so the agent can respond with a personalized greeting
+      const messageToAgent = isGreetingRequest ? 'Hello' : request;
+      
+      // Just pass the request without imposing any method structure
       // Let the specialist agent decide how to handle it
       const payload = {
         jsonrpc: '2.0',
         method: 'handle_request', // Generic method that all agents understand
-        params: { prompt: request }, // Send as a prompt for the agent to process
+        params: { prompt: messageToAgent }, // Send as a prompt for the agent to process
         id: 1
       };
 
-      this.orchestratorLogger.log(`Delegating to agent at: ${agentUrl}`);
+      this.orchestratorLogger.log(`Delegating to agent at: ${agentUrl} with message: "${messageToAgent}"`);
+      this.orchestratorLogger.log(`Payload: ${JSON.stringify(payload)}`);
+      
+      // Prepare headers with authentication if available
+      const headers: any = { 'Content-Type': 'application/json' };
+      this.orchestratorLogger.log(`Auth token received in delegateToAgent: ${authToken ? 'YES (length: ' + authToken.length + ')' : 'NO'}`);
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+        this.orchestratorLogger.log('Including authorization header in delegation request');
+        this.orchestratorLogger.log(`Authorization header value: Bearer ${authToken.substring(0, 20)}...`);
+      } else {
+        this.orchestratorLogger.warn('No auth token available for delegation - specialist agent may reject request');
+      }
+      
+      this.orchestratorLogger.log(`Final headers to be sent: ${JSON.stringify(headers)}`);
       
       const response = await this.httpService!.axiosRef!.post(agentUrl, payload, {
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         timeout: 30000
       });
+      
+      this.orchestratorLogger.log(`Response status: ${response.status}, data: ${JSON.stringify(response.data)?.substring(0, 200)}...`);
 
       // Handle JSON-RPC response format where actual response is in 'result' field
       const agentResponse = response.data?.result || response.data;
@@ -139,11 +349,12 @@ export class OrchestratorService extends A2AAgentBaseService {
       if (agentResponse?.success) {
         return {
           success: true,
-          response: `**Delegated to ${agent.name} Agent:**\n\n${agentResponse.response}`,
+          response: agentResponse.response,
           metadata: {
             delegatedTo: agent.name,
             originalAgent: agentResponse.metadata || {},
-            processedAt: new Date().toISOString()
+            processedAt: new Date().toISOString(),
+            responding_agent_name: `${agent.name} Agent`
           }
         };
       } else if (response.data?.error || agentResponse?.error) {
@@ -175,6 +386,29 @@ export class OrchestratorService extends A2AAgentBaseService {
   }
 
   /**
+   * Fallback routing when LLM is unavailable
+   */
+  private async handleFallbackRouting(userMessage: string, sessionId?: string, authToken?: string): Promise<any> {
+    // Simple keyword-based routing as fallback
+    const lowerMessage = userMessage.toLowerCase();
+    
+    // Check for "Can I talk to [agent] agent?" pattern
+    const talkToAgentMatch = lowerMessage.match(/can i talk to (?:the )?(.+?)\s*agent/);
+    if (talkToAgentMatch && talkToAgentMatch[1]) {
+      const requestedAgent = talkToAgentMatch[1].trim();
+      this.orchestratorLogger.log(`Detected "talk to agent" request for: ${requestedAgent}`);
+      return await this.delegateToAgent(requestedAgent, userMessage, sessionId, authToken);
+    }
+    
+    if (lowerMessage.includes('blog') || lowerMessage.includes('write') || lowerMessage.includes('article')) {
+      return await this.delegateToAgent('blog_post', userMessage, sessionId, authToken);
+    }
+    
+    // Default response for unmatched requests
+    return this.createResponse(`I received your message: "${userMessage}". I'm here to help coordinate with various specialist agents, but I'm currently unable to determine the best way to assist you. Could you be more specific about what you need?`);
+  }
+
+  /**
    * Initialize available agents from agent pool
    */
   async initializeAvailableAgents(): Promise<void> {
@@ -183,21 +417,34 @@ export class OrchestratorService extends A2AAgentBaseService {
       if (response?.data && Array.isArray(response.data)) {
         this.availableAgents = response.data;
         this.orchestratorLogger.log(`Initialized with ${this.availableAgents.length} available agents from pool`);
+        
+        // Log the agents we found for debugging
+        this.orchestratorLogger.log('Available agents:', this.availableAgents.map(a => a.name));
+      } else {
+        this.orchestratorLogger.warn('No agents found in agent pool, using fallback');
+        // Only add fallback agents if we couldn't get any from the pool
+        this.availableAgents.push({
+          name: 'blog_post',
+          description: 'Blog Post Writer',
+          path: 'specialists/blog_post',
+          url: `${this.baseApiUrl}/agents/specialists/blog_post/tasks`,
+          type: 'specialists',
+          capabilities: ['blog_writing', 'content_creation']
+        });
       }
       
-      // Add known working agents with correct URLs
-      this.availableAgents.push({
+      this.orchestratorLogger.log(`Total available agents: ${this.availableAgents.length}`);
+    } catch (error) {
+      this.orchestratorLogger.error('Error initializing available agents:', error);
+      // Add fallback agent on error
+      this.availableAgents = [{
         name: 'blog_post',
         description: 'Blog Post Writer',
         path: 'specialists/blog_post',
         url: `${this.baseApiUrl}/agents/specialists/blog_post/tasks`,
         type: 'specialists',
         capabilities: ['blog_writing', 'content_creation']
-      });
-      
-      this.orchestratorLogger.log(`Total available agents: ${this.availableAgents.length}`);
-    } catch (error) {
-      this.orchestratorLogger.error('Error initializing available agents:', error);
+      }];
     }
   }
 }

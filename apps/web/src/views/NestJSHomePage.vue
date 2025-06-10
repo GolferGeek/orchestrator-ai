@@ -5,15 +5,15 @@
         <ion-buttons slot="start">
           <ion-menu-button :auto-hide="false" v-if="auth.isAuthenticated"></ion-menu-button>
         </ion-buttons>
-        <ion-title>{{ pageTitle }} - NestJS</ion-title>
+        <ion-title>{{ pageTitle }} - JavaScript</ion-title>
         <ion-buttons slot="end" v-if="auth.isAuthenticated">
           <div class="api-selector-container">
             <ion-button fill="clear" size="small" @click="switchToFastAPI">
               <ion-icon :icon="swapHorizontal" slot="start" />
-              Switch to FastAPI
+              Switch to Python
             </ion-button>
             <div class="api-badge">
-              <span class="api-label nestjs">NestJS</span>
+              <span class="api-label nestjs">JavaScript</span>
             </div>
           </div>
         </ion-buttons>
@@ -70,6 +70,7 @@ import { postTaskToOrchestrator } from '@/services/apiService';
 import { storeToRefs } from 'pinia';
 import { apiManager } from '../services/apiManager';
 import { Message } from '../services/sessionService';
+import { nestjsApiService } from '../services/nestjsApiService';
 
 import MessageListComponent from '../components/MessageList.vue';
 import ChatInputComponent from '../components/ChatInput.vue';
@@ -88,11 +89,11 @@ const currentSessionName = computed(() => {
   if (currentSessionId.value) {
     return `Chat`;
   }
-  return 'NestJS Orchestrator';
+  return 'JavaScript Orchestrator';
 });
 
 const pageTitle = computed(() => {
-  return currentSessionName.value || 'NestJS Orchestrator';
+  return currentSessionName.value || 'JavaScript Orchestrator';
 });
 
 // Ensure we're using the NestJS endpoint
@@ -174,7 +175,14 @@ const handleSendMessage = async (text: string) => {
   console.log("[NestJSHomePage] User message added to store:", JSON.parse(JSON.stringify(userMessage)));
 
   try {
-    const taskResponse = await postTaskToOrchestrator(text, currentSessionId.value);
+    // Prepare conversation history for context (exclude the message we're about to send)
+    const conversationHistory = currentSessionMessages.value.map(msg => ({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      content: msg.content || '',
+      metadata: msg.metadata
+    }));
+
+    const taskResponse = await nestjsApiService.postTaskToOrchestrator(text, currentSessionId.value, conversationHistory);
     console.log("[NestJSHomePage] Received taskResponse from NestJS orchestrator:", JSON.parse(JSON.stringify(taskResponse)));
     
     // Extract response text - support NestJS formats (may be different from FastAPI)
@@ -195,9 +203,9 @@ const handleSendMessage = async (text: string) => {
       console.log("[NestJSHomePage] Extracted response from direct result field");
     }
     // NestJS specific - check for direct message field
-    else if (taskResponse.message && typeof taskResponse.message === 'string') {
-      agentText = taskResponse.message;
-      console.log("[NestJSHomePage] Extracted response from direct message field (NestJS specific)");
+    else if (taskResponse.result && typeof taskResponse.result === 'string') {
+      agentText = taskResponse.result;
+      console.log("[NestJSHomePage] Extracted response from direct result field (NestJS specific)");
     }
     else {
       console.warn("[NestJSHomePage] No response found in known NestJS formats in taskResponse:", JSON.parse(JSON.stringify(taskResponse)));
@@ -249,7 +257,7 @@ const handleReturnToOrchestrator = async () => {
   if (uiStore.getIsAppLoading) return;
   uiStore.setAppLoading(true);
   try {
-    const taskResponse = await postTaskToOrchestrator("Show me available agents", currentSessionId.value);
+    const taskResponse = await nestjsApiService.postTaskToOrchestrator("Show me available agents", currentSessionId.value);
     if (taskResponse && taskResponse.response_message) {
       let messageContent = '';
       if (typeof taskResponse.response_message === 'string') {
@@ -296,7 +304,7 @@ const handleViewAgentCapabilities = async () => {
   if (uiStore.getIsAppLoading) return;
   uiStore.setAppLoading(true);
   try {
-    const taskResponse = await postTaskToOrchestrator("What can this agent do for me?", currentSessionId.value);
+    const taskResponse = await nestjsApiService.postTaskToOrchestrator("What can you do for me? Show me all available agents.", currentSessionId.value);
     if (taskResponse && taskResponse.response_message) {
       let messageContent = '';
       if (typeof taskResponse.response_message === 'string') {
@@ -320,7 +328,7 @@ const handleViewAgentCapabilities = async () => {
         order: (currentSessionMessages.value.length > 0 
           ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
           : 1),
-        metadata: taskResponse.metadata || { responding_agent_name: taskResponse.responding_agent_name || 'NestJS Agent', isCapabilitiesResponse: true }
+        metadata: taskResponse.metadata || { responding_agent_name: taskResponse.responding_agent_name || 'JavaScript Orchestrator', isCapabilitiesResponse: true }
       };
       sessionStore.addMessageToCurrentSession(agentMessage);
       console.log("[NestJSHomePage] Agent message for viewAgentCapabilities added to store:", JSON.parse(JSON.stringify(agentMessage)));
@@ -343,10 +351,10 @@ const handleAgentCapabilityRequestedFor = async (agentName: string) => {
   if (uiStore.getIsAppLoading) return;
   uiStore.setAppLoading(true);
   try {
-    const query = `What can the ${agentName} do for me?`;
+    const query = `Can I talk to the ${agentName} agent?`;
     console.log(`[NestJSHomePage] Sending query for ${agentName}: "${query}"`);
 
-    const taskResponse = await postTaskToOrchestrator(query, currentSessionId.value);
+    const taskResponse = await nestjsApiService.postTaskToOrchestrator(query, currentSessionId.value);
     if (taskResponse && taskResponse.response_message) {
       let messageContent = '';
       if (typeof taskResponse.response_message === 'string') {

@@ -100,5 +100,7 @@ export const sessionService = {
       console.error('Error deleting session:', errorMessage);
       throw new Error(errorMessage);
     }
-  }
+  },
+
+
 }; 

@@ -21,7 +21,11 @@ export interface ApiConfiguration {
 // API Client Interface
 export interface ApiClient {
   // Core methods that all API versions should support
-  postTaskToOrchestrator(userInputText: string, sessionId?: string | null): Promise<any>;
+  postTaskToOrchestrator(
+    userInputText: string, 
+    sessionId?: string | null, 
+    conversationHistory?: Array<{role: string, content: string, metadata?: any}>
+  ): Promise<any>;
   getAvailableAgents(): Promise<any[]>;
   
   // Metadata
