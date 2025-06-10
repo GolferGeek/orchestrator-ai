@@ -1,7 +1,7 @@
 ---
 name: "OpenAI SDK Guidelines"
 description: "Best practices for using the OpenAI Python SDK to build agent capabilities."
-globs: ["**/llm_mcp.py", "**/openai_utils.py", "*/*openai*/**.py"]
+globs: ["**/llm_context.py", "**/openai_utils.py", "*/*openai*/**.py"]
 alwaysApply: false
 ---
 

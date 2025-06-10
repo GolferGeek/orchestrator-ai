@@ -35,7 +35,7 @@
     },
     {
       "taskId": 4,
-      "taskTitle": "Implement MCPContextAgentBaseService",
+      "taskTitle": "Implement ContextAgentBaseService",
       "complexityScore": 6,
       "recommendedSubtasks": 5,
       "expansionPrompt": "Break down into: extending the base service, implementing markdown context loading, integrating the MCP client, adding context-aware message processing, and writing unit/integration tests.",

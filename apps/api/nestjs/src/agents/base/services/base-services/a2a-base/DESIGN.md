@@ -10,7 +10,7 @@ The `A2AAgentBaseService` is the core service class that implements the Agent-to
 ```
 BaseService (abstract)
 ├── A2AAgentBaseService (concrete implementation)
-    ├── MCPContextAgentBaseService (extends with markdown context)
+    ├── ContextAgentBaseService (extends with markdown context)
     └── AgentWithFunctionBaseService (extends with function registration)
 ```
 

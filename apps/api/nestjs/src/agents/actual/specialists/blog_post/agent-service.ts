@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { MCPContextAgentBaseService } from '../../../base/services/base-services/mcp-context/mcp-context-agent-base.service';
+import { ContextAgentBaseService } from '../../../base/services/base-services/context/context-agent-base.service';
 
 @Injectable()
-export class BlogPostService extends MCPContextAgentBaseService {
+export class BlogPostService extends ContextAgentBaseService {
   constructor(httpService: HttpService) {
     super(httpService);
   }

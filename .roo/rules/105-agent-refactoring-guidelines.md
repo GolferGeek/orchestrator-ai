@@ -52,7 +52,7 @@ This document outlines the standardized process for refactoring existing agents 
 
 3. Use MCPClient for context fetching:
    ```python
-   from apps.api.shared.mcp.mcp_client import MCPClient
+   from apps.api.shared.context_client import MCPClient
    
    async def fetch_context(self) -> str:
        return await MCPClient.fetch_context("your-agent-name")
@@ -60,7 +60,7 @@ This document outlines the standardized process for refactoring existing agents 
 
 4. Implement proper error handling:
    ```python
-   from apps.api.shared.mcp.mcp_client import MCPConnectionError, MCPTimeoutError
+   from apps.api.shared.context_client import MCPConnectionError, MCPTimeoutError
    
    try:
        result = await self.process_something()
@@ -111,13 +111,13 @@ This document outlines the standardized process for refactoring existing agents 
 
 3. Error Conditions:
    ```python
-   async def test_process_message_mcp_connection_error(
+   async def test_process_message_context_connection_error(
        client_and_app: tuple[httpx.AsyncClient, FastAPI],
        mock_openai_service: AsyncMock
    ):
        # Test connection error handling
    
-   async def test_process_message_mcp_timeout_error(
+   async def test_process_message_context_timeout_error(
        client_and_app: tuple[httpx.AsyncClient, FastAPI],
        mock_openai_service: AsyncMock
    ):
