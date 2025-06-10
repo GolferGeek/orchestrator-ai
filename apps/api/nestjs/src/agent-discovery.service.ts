@@ -5,6 +5,7 @@ import { join } from 'path';
 import { LLMService } from './agents/base/services/llm/llm.service';
 import { SessionsService } from './sessions/sessions.service';
 import { SupabaseService } from './supabase/supabase.service';
+import { AgentContextService } from './agents/base/services/base-services/a2a-base/agent-context.service';
 
 export interface DiscoveredAgent {
   name: string;
@@ -13,6 +14,8 @@ export interface DiscoveredAgent {
   servicePath: string;
   serviceClass?: any;
   serviceInstance?: any;
+  functionPath?: string;
+  agentFunction?: any;
 }
 
 @Injectable()
@@ -20,6 +23,7 @@ export class AgentDiscoveryService {
   private readonly logger = new Logger(AgentDiscoveryService.name);
   private discoveredAgents: DiscoveredAgent[] = [];
   private agentInstances: any[] = [];
+  private agentFunctionRegistry = new Map<string, any>();
 
   constructor(
     private readonly httpService: HttpService,
@@ -79,11 +83,17 @@ export class AgentDiscoveryService {
           this.logger.debug(`🎯 ${ServiceClass.name} requires all dependencies: HTTP, LLM, Sessions, Supabase`);
           serviceInstance = new ServiceClass(this.httpService, this.llmService, this.sessionsService, this.supabaseService);
         } else {
-          // Check if this service needs LLM service by examining constructor parameters
+          // Check agent type based on parent class
+          const isFunctionAgent = this.checkIfFunctionAgent(ServiceClass);
           const serviceNeedsLLM = this.checkIfServiceNeedsLLM(ServiceClass);
           
-          if (serviceNeedsLLM) {
-            this.logger.debug(`🧠 ${ServiceClass.name} requires LLM service`);
+          if (isFunctionAgent) {
+            this.logger.debug(`⚙️ ${ServiceClass.name} is a function-based agent requiring LLM, HTTP, and Context services`);
+            // Function agents expect: (llmService, httpService, contextService)
+            const contextService = new AgentContextService();
+            serviceInstance = new ServiceClass(this.llmService, this.httpService, contextService);
+          } else if (serviceNeedsLLM) {
+            this.logger.debug(`🧠 ${ServiceClass.name} requires HTTP and LLM services`);
             serviceInstance = new ServiceClass(this.httpService, this.llmService);
           } else {
             this.logger.debug(`📡 ${ServiceClass.name} uses basic HTTP service only`);
@@ -114,7 +124,38 @@ export class AgentDiscoveryService {
     }
     
     this.logger.log(`🚀 Instantiated ${this.agentInstances.length} agent services`);
+    
+    // Now discover and pre-load agent functions
+    await this.discoverAgentFunctions();
+    
     return this.discoveredAgents;
+  }
+
+  /**
+   * Check if a service class is a function-based agent
+   */
+  private checkIfFunctionAgent(ServiceClass: any): boolean {
+    try {
+      // Check if the class extends any function agent base service
+      const classString = ServiceClass.toString();
+      if (classString.includes('FunctionAgentBaseService') || classString.includes('SimpleFunctionAgentBaseService')) {
+        return true;
+      }
+      
+      // Check prototype chain for function agent base services
+      let currentClass = ServiceClass;
+      while (currentClass && currentClass.name !== 'Object') {
+        if (currentClass.name === 'FunctionAgentBaseService' || currentClass.name === 'SimpleFunctionAgentBaseService') {
+          return true;
+        }
+        currentClass = Object.getPrototypeOf(currentClass);
+      }
+      
+      return false;
+    } catch (error) {
+      this.logger.warn(`Could not determine if ${ServiceClass.name} is a function agent, defaulting to false`);
+      return false;
+    }
   }
 
   /**
@@ -209,6 +250,83 @@ export class AgentDiscoveryService {
    */
   getDiscoveredAgents(): DiscoveredAgent[] {
     return this.discoveredAgents;
+  }
+
+  /**
+   * Discover and pre-load agent functions at startup
+   */
+  private async discoverAgentFunctions(): Promise<void> {
+    this.logger.log('🔧 Discovering agent functions...');
+    
+    for (const agent of this.discoveredAgents) {
+      try {
+        // Check if agent-function.ts exists in the same directory as agent-service.ts
+        const agentDir = agent.servicePath.replace('/agent-service.ts', '');
+        const functionPath = `${agentDir}/agent-function.ts`;
+        
+        // Check if function file exists
+        const fs = require('fs');
+        if (!fs.existsSync(functionPath)) {
+          this.logger.debug(`📝 No agent-function.ts found for ${agent.name} (using context-based agent)`);
+          continue;
+        }
+        
+        // Import the function at startup
+        const relativePath = functionPath.replace(process.cwd() + '/src/', './').replace('.ts', '');
+        this.logger.debug(`🎯 Loading agent function for ${agent.name} from: ${relativePath}`);
+        
+        const functionModule = await import(relativePath);
+        
+        // Look for the agent function export (default export or named 'execute' export)
+        let agentFunction = null;
+        
+        if (functionModule.default && typeof functionModule.default === 'function') {
+          // Default export function
+          agentFunction = functionModule.default;
+          this.logger.debug(`Found default export function in ${agent.name}`);
+        } else if (functionModule.execute && typeof functionModule.execute === 'function') {
+          // Named 'execute' export function
+          agentFunction = functionModule.execute;
+          this.logger.debug(`Found named 'execute' export function in ${agent.name}`);
+        }
+        
+        if (agentFunction) {
+          // Store in registry using agent name as key
+          this.agentFunctionRegistry.set(agent.name, agentFunction);
+          agent.functionPath = functionPath;
+          agent.agentFunction = agentFunction;
+          
+          // Set the function on the service instance if it supports it
+          if (agent.serviceInstance && typeof agent.serviceInstance.setAgentFunction === 'function') {
+            agent.serviceInstance.setAgentFunction(agentFunction);
+            this.logger.log(`✅ Pre-loaded and set function for: ${agent.name}`);
+          } else {
+            this.logger.log(`✅ Pre-loaded function for: ${agent.name} (service doesn't support setAgentFunction)`);
+          }
+        } else {
+          this.logger.warn(`⚠️ No valid function export found in ${functionPath} (looking for default export or named 'execute' export)`);
+        }
+        
+      } catch (error: any) {
+        this.logger.warn(`⚠️ Could not load agent function for ${agent.name}: ${error.message}`);
+      }
+    }
+    
+    this.logger.log(`🎯 Pre-loaded ${this.agentFunctionRegistry.size} agent functions`);
+  }
+
+  /**
+   * Get pre-loaded agent function by agent name
+   */
+  getAgentFunction(agentName: string): any {
+    return this.agentFunctionRegistry.get(agentName);
+  }
+
+  /**
+   * Check if agent has a pre-loaded function
+   */
+  hasAgentFunction(agentName: string): boolean {
+    return this.agentFunctionRegistry.has(agentName);
   }
 
   /**
