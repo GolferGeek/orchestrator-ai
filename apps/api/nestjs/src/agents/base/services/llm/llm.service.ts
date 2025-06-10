@@ -1,5 +1,30 @@
 import { Injectable, Logger } from '@nestjs/common';
 import OpenAI from 'openai';
+import { ChatOpenAI } from '@langchain/openai';
+import { ChatAnthropic } from '@langchain/anthropic';
+import { ChatOllama } from '@langchain/ollama';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+
+// Explicitly set LangSmith environment variables for automatic tracing
+// Support both the official LangSmith env vars and our custom ones for backward compatibility
+const langsmithEnabled = process.env.LANGSMITH_TRACING === 'true' || process.env.LANGSMITH_ENABLED === 'true';
+const langsmithApiKey = process.env.LANGSMITH_API_KEY;
+const langsmithProject = process.env.LANGSMITH_PROJECT || process.env.LANGSMITH_PROJECT_NAME || 'orchestrator-ai';
+
+if (langsmithEnabled && langsmithApiKey) {
+  process.env.LANGCHAIN_TRACING_V2 = 'true';
+  process.env.LANGCHAIN_API_KEY = langsmithApiKey;
+  process.env.LANGCHAIN_PROJECT = langsmithProject;
+  if (process.env.LANGSMITH_ENDPOINT) {
+    process.env.LANGCHAIN_ENDPOINT = process.env.LANGSMITH_ENDPOINT;
+  }
+  console.log('🔧 LangSmith environment variables set for automatic tracing:');
+  console.log(`- LANGCHAIN_TRACING_V2: ${process.env.LANGCHAIN_TRACING_V2}`);
+  console.log(`- LANGCHAIN_PROJECT: ${process.env.LANGCHAIN_PROJECT}`);
+  console.log(`- LANGCHAIN_API_KEY: ${process.env.LANGCHAIN_API_KEY ? 'SET' : 'NOT SET'}`);
+  console.log(`- LANGCHAIN_ENDPOINT: ${process.env.LANGCHAIN_ENDPOINT || 'DEFAULT'}`);
+}
 
 @Injectable()
 export class LLMService {
@@ -7,35 +32,36 @@ export class LLMService {
   private readonly openai: OpenAI;
 
   constructor() {
+    this.logger.log('🔄 LLMService constructor starting...');
+    this.logger.log(`- OpenAI API Key available: ${!!process.env.OPENAI_API_KEY}`);
+    
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+    this.logger.log('✅ OpenAI client created');
+    this.logger.log('✅ LLMService initialized - LangChain LLMs will automatically trace to LangSmith');
   }
 
   /**
-   * Simple LLM call with system and user messages
+   * Simple LLM call with system and user messages - using LangChain for automatic LangSmith tracing
    */
   async generateResponse(systemPrompt: string, userMessage: string): Promise<string> {
     try {
+      this.logger.log(`🔄 generateResponse called - using LangChain LLM for automatic LangSmith tracing`);
       this.logger.debug(`Generating LLM response for message: ${userMessage.substring(0, 100)}...`);
 
-      const response = await this.openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: userMessage
-          }
-        ],
-        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
-        temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
-      });
+      // Use LangChain LLM instead of raw OpenAI - this gets automatic LangSmith tracing
+      const llm = this.getLangGraphLLM('openai');
+      
+      const messages = [
+        { role: 'system' as const, content: systemPrompt },
+        { role: 'user' as const, content: userMessage }
+      ];
 
-      const content = response.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response.';
+      this.logger.log(`✅ Using LangChain ChatOpenAI for automatic LangSmith tracing`);
+      
+      const response = await llm.invoke(messages);
+      const content = response.content as string || 'I apologize, but I was unable to generate a response.';
       
       this.logger.debug(`LLM response generated successfully (${content.length} characters)`);
       return content;
@@ -48,7 +74,7 @@ export class LLMService {
   }
 
   /**
-   * Enhanced LLM call with conversation history support
+   * Enhanced LLM call with conversation history support - using LangChain for automatic LangSmith tracing
    */
   async generateResponseWithHistory(
     systemPrompt: string, 
@@ -56,7 +82,11 @@ export class LLMService {
     currentMessage: string
   ): Promise<string> {
     try {
+      this.logger.log(`🔄 generateResponseWithHistory called - using LangChain LLM for automatic LangSmith tracing`);
       this.logger.debug(`Generating LLM response with history (${conversationHistory.length} messages) for: ${currentMessage.substring(0, 100)}...`);
+
+      // Use LangChain LLM instead of raw OpenAI - this gets automatic LangSmith tracing
+      const llm = this.getLangGraphLLM('openai');
 
       // Build messages array with system prompt, conversation history, and current message
       const messages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = [
@@ -80,14 +110,10 @@ export class LLMService {
         content: currentMessage
       });
 
-      const response = await this.openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
-        messages: messages,
-        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
-        temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
-      });
-
-      const content = response.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response.';
+      this.logger.log(`✅ Using LangChain ChatOpenAI with history for automatic LangSmith tracing`);
+      
+      const response = await llm.invoke(messages);
+      const content = response.content as string || 'I apologize, but I was unable to generate a response.';
       
       this.logger.debug(`LLM response with history generated successfully (${content.length} characters)`);
       return content;
@@ -205,6 +231,126 @@ Required JSON format:
     } catch (error) {
       this.logger.error('Error in orchestration decision with history:', error);
       return this.getFallbackOrchestrationDecision(userMessage, availableAgents);
+    }
+  }
+
+  /**
+   * Get a LangGraph-compatible LLM instance for the specified provider with automatic LangSmith tracing
+   */
+  getLangGraphLLM(provider: 'openai' | 'anthropic' | 'ollama' | 'google' = 'openai'): BaseChatModel {
+    try {
+      let llm: BaseChatModel;
+
+      switch (provider) {
+        case 'openai':
+          llm = new ChatOpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+            model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+            temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
+            maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
+          });
+          break;
+
+        case 'anthropic':
+          llm = new ChatAnthropic({
+            apiKey: process.env.ANTHROPIC_API_KEY,
+            model: process.env.ANTHROPIC_MODEL || 'claude-3-sonnet-20240229',
+            temperature: parseFloat(process.env.ANTHROPIC_TEMPERATURE || '0.7'),
+            maxTokens: parseInt(process.env.ANTHROPIC_MAX_TOKENS || '2000'),
+          });
+          break;
+
+        case 'ollama':
+          llm = new ChatOllama({
+            baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+            model: process.env.OLLAMA_MODEL || 'llama2',
+            temperature: parseFloat(process.env.OLLAMA_TEMPERATURE || '0.7'),
+          });
+          break;
+
+        case 'google':
+          llm = new ChatGoogleGenerativeAI({
+            apiKey: process.env.GOOGLE_API_KEY,
+            model: process.env.GOOGLE_MODEL || 'gemini-pro',
+            temperature: parseFloat(process.env.GOOGLE_TEMPERATURE || '0.7'),
+            maxOutputTokens: parseInt(process.env.GOOGLE_MAX_TOKENS || '2000'),
+          });
+          break;
+
+        default:
+          this.logger.warn(`Unknown provider: ${provider}, falling back to OpenAI`);
+          llm = this.getLangGraphLLM('openai');
+      }
+
+      // LangSmith will automatically trace this LangChain LLM if environment variables are set
+      return llm;
+
+    } catch (error) {
+      this.logger.error(`Error creating LangGraph LLM for provider ${provider}:`, error);
+      throw new Error(`Failed to create LangGraph LLM: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Create a LangGraph LLM instance with custom configuration and automatic LangSmith tracing
+   */
+  createCustomLangGraphLLM(config: {
+    provider: 'openai' | 'anthropic' | 'ollama' | 'google';
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    apiKey?: string;
+    baseUrl?: string;
+  }): BaseChatModel {
+    try {
+      let llm: BaseChatModel;
+
+      switch (config.provider) {
+        case 'openai':
+          llm = new ChatOpenAI({
+            apiKey: config.apiKey || process.env.OPENAI_API_KEY,
+            model: config.model || process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+            temperature: config.temperature ?? parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
+            maxTokens: config.maxTokens ?? parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
+          });
+          break;
+
+        case 'anthropic':
+          llm = new ChatAnthropic({
+            apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
+            model: config.model || process.env.ANTHROPIC_MODEL || 'claude-3-sonnet-20240229',
+            temperature: config.temperature ?? parseFloat(process.env.ANTHROPIC_TEMPERATURE || '0.7'),
+            maxTokens: config.maxTokens ?? parseInt(process.env.ANTHROPIC_MAX_TOKENS || '2000'),
+          });
+          break;
+
+        case 'ollama':
+          llm = new ChatOllama({
+            baseUrl: config.baseUrl || process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+            model: config.model || process.env.OLLAMA_MODEL || 'llama2',
+            temperature: config.temperature ?? parseFloat(process.env.OLLAMA_TEMPERATURE || '0.7'),
+          });
+          break;
+
+        case 'google':
+          llm = new ChatGoogleGenerativeAI({
+            apiKey: config.apiKey || process.env.GOOGLE_API_KEY,
+            model: config.model || process.env.GOOGLE_MODEL || 'gemini-pro',
+            temperature: config.temperature ?? parseFloat(process.env.GOOGLE_TEMPERATURE || '0.7'),
+            maxOutputTokens: config.maxTokens ?? parseInt(process.env.GOOGLE_MAX_TOKENS || '2000'),
+          });
+          break;
+
+        default:
+          throw new Error(`Unsupported provider: ${config.provider}`);
+      }
+
+      // LangSmith will automatically trace this LangChain LLM if environment variables are set
+      return llm;
+
+    } catch (error) {
+      this.logger.error(`Error creating custom LangGraph LLM:`, error);
+      throw new Error(`Failed to create custom LangGraph LLM: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

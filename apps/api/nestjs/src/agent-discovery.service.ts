@@ -20,15 +20,14 @@ export class AgentDiscoveryService {
   private readonly logger = new Logger(AgentDiscoveryService.name);
   private discoveredAgents: DiscoveredAgent[] = [];
   private agentInstances: any[] = [];
-  private llmService: LLMService;
 
   constructor(
     private readonly httpService: HttpService,
     private readonly sessionsService: SessionsService,
-    private readonly supabaseService: SupabaseService
+    private readonly supabaseService: SupabaseService,
+    private readonly llmService: LLMService
   ) {
-    // Initialize LLM service for dependency injection
-    this.llmService = new LLMService();
+    // LLMService is now properly injected via constructor
   }
 
   /**

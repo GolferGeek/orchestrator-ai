@@ -1,0 +1,269 @@
+# Function Agent Base PRD
+
+## Project Overview
+Create a new function-based agent architecture that enables developers to write programmable agent logic in TypeScript instead of relying solely on LLM context processing. This represents an evolution from simple context-based agents to true programmatic agents that can execute custom business logic, make API calls, and implement complex workflows.
+
+## Problem Statement
+Current context-based agents are limited to LLM prompt engineering and cannot execute custom business logic, make external API calls, or implement complex multi-step workflows. Customers need real agents that can perform actual tasks, not just sophisticated chatbots.
+
+## Goals
+- Enable programmable agent development through agent-function.ts files
+- Maintain compatibility with existing agent discovery and metadata systems
+- Integrate LangGraph for complex agent workflows and state management
+- Provide centralized LLM management through existing LLMService
+- Support real agent capabilities: API integration, data processing, decision trees
+- Preserve agent-context.md for UI cards and metadata while adding execution logic
+- **Extreme Simplicity**: Keep agent-service.ts files minimal (10-20 lines max) by abstracting all complexity
+- **Clean Architecture**: FunctionAgentBaseService hides all implementation details from agent developers
+
+## Target Users
+- Internal development team
+- Client developers building custom agents
+- Interns and contractors implementing agent functionality
+
+## Core Requirements
+
+### 1. Function Agent Base Service
+- Create FunctionAgentBaseService class extending A2AAgentBaseService
+- **Hide All Complexity**: Abstract function loading, execution, and error handling from agent developers
+- Dynamically import and execute agent-function.ts files with zero configuration
+- Pass structured parameters to agent functions automatically
+- Return agent function results without LLM processing
+- Handle errors and provide meaningful error responses
+- Support both synchronous and asynchronous agent functions
+- **Inheritance Chain**: A2AAgentBaseService → FunctionAgentBaseService → AgentService (minimal)
+
+### 2. Agent Function Interface
+- Define standardized interface for agent-function.ts exports
+- Accept parameters: userMessage, sessionId, conversationHistory, currentUser, authToken
+- Return structured response with content and optional metadata
+- Support TypeScript for type safety and development experience
+- Enable dependency injection for services (LLMService, external APIs, databases)
+
+### 3. LangGraph Integration
+- Install LangGraph and related LangChain dependencies
+- Extend LLMService to provide LangGraph-compatible LLM instances
+- Support multiple LLM providers: OpenAI, Anthropic, Ollama, Google
+- Integrate LangSmith evaluation services into LLM instances
+- Maintain centralized LLM configuration and monitoring
+
+### 4. Agent Structure Enhancement
+- Maintain agent-context.md for discovery and UI metadata
+- Add agent-function.ts for execution logic
+- Keep agent-service.ts extending FunctionAgentBaseService
+- Ensure backward compatibility with context-based agents
+- Support mixed agent types in the same system
+
+### 5. Development Experience
+- **Ultra-Simple Agent Creation**: New agents require only extending FunctionAgentBaseService
+- **Zero Boilerplate**: Agent developers focus purely on business logic in agent-function.ts
+- **Complete Abstraction**: FunctionAgentBaseService handles all infrastructure concerns
+- Provide clear examples and templates for agent functions
+- Enable easy testing and debugging of agent functions  
+- Support hot reloading during development
+- Provide TypeScript definitions and intellisense
+- Create documentation and best practices guide
+- **Developer Velocity**: From idea to working agent in minutes, not hours
+
+## Technical Specifications
+
+### Agent Function Interface
+```typescript
+export interface AgentFunctionParams {
+  userMessage: string;
+  sessionId?: string;
+  conversationHistory?: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    metadata?: any;
+  }>;
+  currentUser?: any;
+  authToken?: string;
+  llmService?: LLMService;
+}
+
+export interface AgentFunctionResponse {
+  response: string;
+  metadata?: {
+    agentName?: string;
+    processingTime?: number;
+    toolsUsed?: string[];
+    [key: string]: any;
+  };
+}
+
+export interface AgentFunction {
+  execute(params: AgentFunctionParams): Promise<AgentFunctionResponse>;
+}
+```
+
+### Directory Structure
+```
+agents/actual/specialists/example_agent/
+├── agent-service.ts          # MINIMAL (10-20 lines) - extends FunctionAgentBaseService
+├── agent-function.ts         # COMPLEX - all business logic, LangGraph workflows
+└── agent-context.md          # Metadata and description for discovery/UI
+```
+
+### Agent Service Simplicity Example
+```typescript
+// agent-service.ts (ENTIRE FILE - under 20 lines)
+import { FunctionAgentBaseService } from '../../../base/services/base-services/function';
+
+export class BlogPostAgentService extends FunctionAgentBaseService {
+  // That's it! All complexity is handled by base classes
+}
+```
+
+### HR Assistant Reference Implementation
+```typescript
+// agents/actual/specialists/hr_assistant/agent-service.ts (MINIMAL)
+import { FunctionAgentBaseService } from '../../../base/services/base-services/function';
+
+export class HrAssistantService extends FunctionAgentBaseService {
+  // Complete implementation - extends base class only
+}
+```
+
+```typescript
+// agents/actual/specialists/hr_assistant/agent-function.ts (SIMPLE LANGGRAPH)
+export const execute = async (params: AgentFunctionParams) => {
+  const llm = params.llmService.getLangGraphLLM('openai');
+  
+  // Simple LangGraph workflow - single LLM call with HR expertise
+  const messages = [
+    { 
+      role: 'system', 
+      content: 'You are an HR expert. Here is the user\'s prompt. Please respond like an HR expert would.' 
+    },
+    ...params.conversationHistory,
+    { role: 'user', content: params.userMessage }
+  ];
+  
+  const response = await llm.invoke(messages);
+  
+  return {
+    response: response.content,
+    metadata: { 
+      agentName: 'HR Assistant', 
+      type: 'hr_guidance',
+      processingTime: Date.now() 
+    }
+  };
+};
+```
+
+```markdown
+<!-- agents/actual/specialists/hr_assistant/agent-context.md -->
+# HR Assistant
+
+## Description
+Expert HR guidance and support for workplace questions, policies, and employee relations.
+
+## Capabilities
+- Employee relations advice
+- Policy interpretation and guidance  
+- Workplace conflict resolution
+- Compliance and legal considerations
+- Benefits and compensation questions
+
+## Usage
+Ask any HR-related question and receive expert guidance tailored to your situation.
+```
+
+### Agent Function Complexity Example  
+```typescript
+// agent-function.ts (CAN BE COMPLEX - 100+ lines for advanced agents)
+import { StateGraph, START, END } from 'langgraph';
+
+export const execute = async (params: AgentFunctionParams) => {
+  const llm = params.llmService.getLangGraphLLM('openai');
+  
+  // Complex LangGraph workflow with state machine
+  const workflow = new StateGraph(/* complex state machine */);
+  // Multi-step processing, API calls, data transformation
+  // Research, validation, content generation, etc.
+  
+  return { 
+    response: "Generated comprehensive blog post...",
+    metadata: { steps: 5, sources: 3, wordCount: 1200 }
+  };
+};
+```
+
+### LLMService Extensions
+- getLangGraphLLM(provider?, config?) method
+- Support for ChatOpenAI, ChatAnthropic, ChatOllama, ChatGoogleGenAI
+- LangSmith integration for evaluation and monitoring
+- Centralized configuration management
+- Environment-specific settings (dev/test/prod)
+
+### Error Handling
+- Graceful degradation when agent-function.ts missing or invalid
+- Clear error messages for development debugging
+- Fallback mechanisms for critical failures
+- Comprehensive logging and monitoring
+
+## Dependencies
+- @langchain/core
+- @langchain/openai
+- @langchain/anthropic
+- @langchain/ollama
+- @langchain/google-genai
+- langgraph
+
+## Success Criteria
+1. Function-based agents can be created and deployed successfully
+2. **Agent-service.ts files are 10-20 lines maximum** with zero boilerplate
+3. Agent functions can utilize LangGraph for complex workflows
+4. LLMService provides consistent LLM instances to agent functions
+5. Existing context-based agents continue to work unchanged
+6. Agent discovery and UI cards function properly for both agent types
+7. **HR Assistant reference implementation** works end-to-end demonstrating the architecture
+8. Performance is equal or better compared to context-based agents
+9. **Developer Experience**: New agent creation takes minutes, not hours
+10. **Clean Separation**: Business logic lives entirely in agent-function.ts
+11. **Zero Configuration**: FunctionAgentBaseService handles all infrastructure automatically
+
+## Implementation Phases
+
+### Phase 1: Core Infrastructure
+- Create FunctionAgentBaseService
+- Implement agent function loading and execution
+- Define interfaces and types
+- Basic error handling and logging
+
+### Phase 2: LangGraph Integration
+- Extend LLMService for LangGraph compatibility
+- Install and configure LangGraph dependencies
+- **Create HR Assistant reference implementation** using simple LangGraph workflow
+- Implement LangSmith integration
+
+### Phase 3: Developer Experience
+- Create agent function templates and examples
+- Add comprehensive documentation
+- Implement testing utilities
+- Add development tools and debugging support
+
+### Phase 4: Production Readiness
+- Performance optimization
+- Comprehensive error handling
+- Monitoring and observability
+- Production deployment support
+
+## Risks and Mitigation
+- **Risk**: Breaking existing agent functionality
+  **Mitigation**: Maintain backward compatibility, thorough testing
+- **Risk**: Performance degradation from dynamic imports
+  **Mitigation**: Implement caching and optimization strategies
+- **Risk**: Complex debugging for agent functions
+  **Mitigation**: Provide excellent logging and debugging tools
+- **Risk**: Learning curve for developers
+  **Mitigation**: Clear documentation, examples, and templates
+
+## Future Considerations
+- Agent marketplace for sharing common functions
+- Visual agent builder interface
+- Advanced monitoring and analytics
+- Integration with external agent frameworks
+- Support for other programming languages 
