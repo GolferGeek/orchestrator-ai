@@ -4,8 +4,8 @@ import { AgentContextService } from '../a2a-base/agent-context.service';
 import OpenAI from 'openai';
 
 @Injectable()
-export class MCPContextAgentBaseService extends A2AAgentBaseService {
-  private readonly mcpLogger = new Logger(MCPContextAgentBaseService.name);
+export class ContextAgentBaseService extends A2AAgentBaseService {
+  private readonly contextLogger = new Logger(ContextAgentBaseService.name);
   private readonly openai: OpenAI;
 
   constructor(httpService?: any, contextService?: AgentContextService) {
@@ -23,7 +23,7 @@ export class MCPContextAgentBaseService extends A2AAgentBaseService {
       // Check if OpenAI API key is available
       const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) {
-        this.mcpLogger.error('OpenAI API key not found');
+        this.contextLogger.error('OpenAI API key not found');
         return {
           success: false,
           error: 'OpenAI API key not configured',
@@ -36,7 +36,7 @@ export class MCPContextAgentBaseService extends A2AAgentBaseService {
       const agentType = this.getAgentType();
       
       // Debug logging
-      this.mcpLogger.debug(`executeTask - agentName: ${agentName}, agentType: ${agentType}`);
+      this.contextLogger.debug(`executeTask - agentName: ${agentName}, agentType: ${agentType}`);
       
       // Extract user message from params
       const userMessage = params.userMessage || params.prompt || params.input || params.request || JSON.stringify(params);
@@ -97,7 +97,7 @@ export class MCPContextAgentBaseService extends A2AAgentBaseService {
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.mcpLogger.error(`Error in executeTask: ${errorMessage}`);
+      this.contextLogger.error(`Error in executeTask: ${errorMessage}`);
       
       return {
         success: false,

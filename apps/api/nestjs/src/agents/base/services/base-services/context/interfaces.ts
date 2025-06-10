@@ -3,7 +3,7 @@ import { AgentSkill, AgentProvider } from '../a2a-base/interfaces';
 /**
  * Interface for agent metadata extracted from context files
  */
-export interface MCPAgentMetadata {
+export interface ContextAgentMetadata {
   name?: string;
   description?: string;
   version?: string;
@@ -55,6 +55,6 @@ export interface ContextRefreshResult {
   success: boolean;
   filesLoaded: number;
   errors: string[];
-  metadata: MCPAgentMetadata;
+  metadata: ContextAgentMetadata;
   lastUpdate: Date;
 } 

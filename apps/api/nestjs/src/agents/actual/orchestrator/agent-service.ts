@@ -66,6 +66,7 @@ export class OrchestratorService extends A2AAgentBaseService {
    */
   protected async executeTask(method: string, params: any): Promise<any> {
     this.orchestratorLogger.log(`Orchestrator processing request with method: ${method}`);
+    this.orchestratorLogger.log(`Full params object:`, JSON.stringify(params, null, 2));
 
     // Extract user message and conversation history from params
     const userMessage = params.message || '';
@@ -77,6 +78,9 @@ export class OrchestratorService extends A2AAgentBaseService {
     const authToken = params.authToken || null;
 
     this.orchestratorLogger.log(`Processing message: "${userMessage}" with ${conversationHistory.length} history messages`);
+    if (conversationHistory.length > 0) {
+      this.orchestratorLogger.log(`Conversation history:`, JSON.stringify(conversationHistory, null, 2));
+    }
     this.orchestratorLogger.log(`Auth context received: currentUser=${!!currentUser}, authToken=${!!authToken}`);
     if (authToken) {
       this.orchestratorLogger.log(`Auth token length: ${authToken.length}, first 20 chars: ${authToken.substring(0, 20)}...`);

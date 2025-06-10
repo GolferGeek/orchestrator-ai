@@ -180,7 +180,9 @@ ${agentContinuityContext || ''}
 
 This allows the frontend to create clickable links for each agent.
 
-Respond ONLY with a JSON object in this format:
+**CRITICAL: You MUST respond with ONLY a valid JSON object. Do NOT include any text before or after the JSON. Do NOT use markdown formatting. The response must be parseable by JSON.parse().**
+
+Required JSON format:
 {
   "action": "delegate|respond_directly|clarify",
   "agent": "agent_name_if_delegating", 
@@ -195,6 +197,8 @@ Respond ONLY with a JSON object in this format:
         return decision;
       } catch (parseError) {
         this.logger.warn('Failed to parse LLM orchestration response as JSON, falling back to rule-based');
+        this.logger.warn(`Raw LLM response that failed to parse: "${response}"`);
+        this.logger.warn(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
         return this.getFallbackOrchestrationDecision(userMessage, availableAgents);
       }
 

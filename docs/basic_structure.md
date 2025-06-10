@@ -12,11 +12,11 @@ Our current agent system has three main architectural layers:
    - Requires concrete implementation of `process_message()` method
    - Location: `apps/api/fastapi/a2a_protocol/base_agent.py`
 
-2. **`MCPContextAgentBaseService`** (Pattern Layer)
+2. **`ContextAgentBaseService`** (Pattern Layer)
    - Specialized base class for agents that proxy to MCP backend services
    - Implements `process_message()` by forwarding queries to MCP target agents
    - Currently loads context from centralized `shared/markdown_context/` directory
-   - Location: `apps/api/fastapi/agents/base/mcp_context_agent_base.py`
+   - Location: `apps/api/fastapi/agents/base/context_context_agent_base.py`
 
 3. **`OrchestratorService`** (Complex Agent Example)
    - Sophisticated agent with custom `process_message()` implementation
@@ -27,7 +27,7 @@ Our current agent system has three main architectural layers:
 ### Current Agent Example: MetricsService
 
 The `MetricsService` demonstrates the current simplified pattern:
-- Inherits from `MCPContextAgentBaseService`
+- Inherits from `ContextAgentBaseService`
 - Defines configuration through class attributes
 - No custom `process_message()` implementation needed
 - Context file stored in centralized location
@@ -105,9 +105,9 @@ For agents that need to query backend knowledge services:
 
 ```python
 # main.py
-class MyMCPAgent(MCPContextAgentBaseService):
+class MyMCPAgent(ContextAgentBaseService):
     agent_name = "my_agent"
-    mcp_target_agent_id = "my_agent"
+    context_target_agent_id = "my_agent"
     context_file_path = Path(__file__).parent / "context.md"  # Co-located
 ```
 
@@ -144,7 +144,7 @@ class ComplexAgent(A2AAgentBaseService):
 ## Implementation Plan
 
 ### Phase 1: Improve MCP Context Pattern
-1. Modify `MCPContextAgentBaseService` to support co-located context files
+1. Modify `ContextAgentBaseService` to support co-located context files
 2. Update `MetricsService` to use local context file
 3. Move existing context files to agent directories
 4. Test existing MCP agents work with new pattern
