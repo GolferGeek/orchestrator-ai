@@ -5,7 +5,7 @@
   "scripts": {
     "contracts:generate": "turbo run generate --filter=@orchestrator-ai/shared-contracts-v1",
     "dev:api:fastapi": "cd apps/api/fastapi && PYTHONPATH=../../.. pdm run uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
-    "dev:api:nestjs": "cd apps/api/nestjs && pnpm run start:dev",
+    "dev:api:nestjs": "cd apps/api/nestjs && ./start-dev.sh",
     "dev:web": "cd apps/web && npm run dev",
     "docker:build": "npm run docker:build",
     "docker:build:fastapi": "docker build -t orchestrator-fastapi -f apps/api/fastapi/Dockerfile .",
