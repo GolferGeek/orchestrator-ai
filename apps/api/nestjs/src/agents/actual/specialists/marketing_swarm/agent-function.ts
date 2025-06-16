@@ -502,6 +502,7 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
     const processingTime = Date.now() - startTime;
 
     return {
+      success: true,
       response,
       metadata: {
         agentName: 'marketing-swarm',
@@ -510,7 +511,6 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
         sessionId,
         toolsUsed: ['llm-service', 'langgraph', 'agent-coordination'],
         responseType: 'comprehensive-content-package',
-        success: true,
         swarm_workflow: workflowMetadata
       }
     };
@@ -520,13 +520,13 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     return {
+      success: false,
       response: `Marketing swarm orchestration failed: ${errorMessage}. The system attempted to coordinate multiple specialist agents for comprehensive content creation but encountered an error.`,
       metadata: {
         agentName: 'marketing-swarm',
         processingType: 'error-fallback',
         processingTime,
         sessionId,
-        success: false,
         error: errorMessage,
         toolsUsed: ['llm-service']
       }

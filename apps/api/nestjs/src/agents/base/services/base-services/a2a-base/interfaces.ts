@@ -310,6 +310,8 @@ export interface AgentFunctionParams {
  * Response structure returned by agent functions
  */
 export interface AgentFunctionResponse {
+  /** Indicates if the function executed successfully */
+  success: boolean;
   /** The main response content to return to the user */
   response: string;
   /** Optional metadata about the function execution */

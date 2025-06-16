@@ -98,7 +98,9 @@ export class A2AAgentBaseService extends BaseService implements OnModuleInit, On
         currentUser: (taskRequest as any).currentUser,
         authToken: (taskRequest as any).authToken
       };
+      console.log(`🎯 A2A BASE calling executeTask for method: ${request.method}`);
       const result = await this.executeTask(request.method, fullParams);
+      console.log(`🎯 A2A BASE executeTask result:`, JSON.stringify(result, null, 2));
       return this.createJsonRpcResponse(request.id, result);
     } catch (error) {
       return this.handleExecutionError(error, request.id);
@@ -954,20 +956,32 @@ export class A2AAgentBaseService extends BaseService implements OnModuleInit, On
     }
 
     if (this.httpService) {
+      // Add debug logging for agent pool registration
+      this.logger.log(`🔧 DEBUG: Starting agent pool registration for ${this.getAgentName()}`);
+      this.logger.log(`🔧 DEBUG: Agent pool URL: ${this.agentPoolBaseUrl}`);
+      this.logger.log(`🔧 DEBUG: HTTP service available: ${!!this.httpService}`);
+      
       // Agent pool is guaranteed to be ready by the time agents are instantiated
       this.registerWithAgentPool().then(() => {
+        this.logger.log(`🔧 DEBUG: Registration successful for ${this.getAgentName()}, starting heartbeat`);
         this.startHeartbeat();
       }).catch((error) => {
-        this.logger.warn(`Registration failed for ${this.getAgentName()}: ${error.message}`);
+        this.logger.warn(`🔧 DEBUG: Registration failed for ${this.getAgentName()}: ${error.message}`);
+        this.logger.error(`🔧 DEBUG: Full registration error:`, error.code, error.response?.status, error.response?.statusText);
         // Retry registration after a delay
         setTimeout(() => {
+          this.logger.log(`🔧 DEBUG: Retrying registration for ${this.getAgentName()}`);
           this.registerWithAgentPool().then(() => {
+            this.logger.log(`🔧 DEBUG: Registration retry successful for ${this.getAgentName()}`);
             this.startHeartbeat();
           }).catch((retryError) => {
-            this.logger.error(`Registration retry failed for ${this.getAgentName()}: ${retryError.message}`);
+            this.logger.error(`🔧 DEBUG: Registration retry failed for ${this.getAgentName()}: ${retryError.message}`);
+            this.logger.error(`🔧 DEBUG: Full retry error:`, retryError.code, retryError.response?.status);
           });
         }, 5000); // Retry after 5 seconds if there's still an issue
       });
+    } else {
+      this.logger.warn(`🔧 DEBUG: HTTP service not available for ${this.getAgentName()}, skipping agent pool registration`);
     }
   }
 
@@ -1014,17 +1028,22 @@ export class A2AAgentBaseService extends BaseService implements OnModuleInit, On
         metadata: this.getAgentMetadata()
       };
 
-      this.logger.log(`Attempting to register ${agentName} with agent pool at: ${this.agentPoolBaseUrl}/register`);
-      this.logger.debug(`Registration payload:`, registration);
+      this.logger.log(`🔧 DEBUG: Attempting to register ${agentName} with agent pool at: ${this.agentPoolBaseUrl}/register`);
+      this.logger.log(`🔧 DEBUG: Registration payload:`, JSON.stringify(registration, null, 2));
 
       const response = await this.httpService!.axiosRef.post(
         `${this.agentPoolBaseUrl}/register`,
         registration
       );
 
+      this.logger.log(`🔧 DEBUG: Registration response status: ${response.status}`);
+      this.logger.log(`🔧 DEBUG: Registration response body:`, JSON.stringify(response.data, null, 2));
+
       if (response.status === 201) {
         this.isRegistered = true;
-        this.logger.log(`Successfully registered with agent pool: ${agentName}`);
+        this.logger.log(`🔧 DEBUG: Successfully registered with agent pool: ${agentName} - Registration confirmed!`);
+      } else {
+        this.logger.warn(`🔧 DEBUG: Unexpected response status: ${response.status} for ${agentName}`);
       }
     } catch (error: any) {
       this.logger.error(`Failed to register with agent pool at ${this.agentPoolBaseUrl}/register: ${error.message}`);

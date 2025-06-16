@@ -27,6 +27,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    */
   setAgentFunction(agentFunction: any): void {
     this.agentFunction = agentFunction;
+    console.log(`🚀 FUNCTION LOADED for ${this.getAgentName()}:`, typeof agentFunction);
     this.functionLogger.debug(`Pre-loaded function set for ${this.getAgentName()}`);
   }
 
@@ -35,6 +36,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    */
   protected async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
+    console.log(`🎯 EXECUTETASK called for ${agentName}, method: ${method}, hasFunction: ${!!this.agentFunction}`);
     
     try {
       // If no pre-loaded function, fall back to context processing
@@ -63,6 +65,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       const result = await this.agentFunction(functionParams);
       
       this.functionLogger.debug(`Function executed successfully for ${agentName}`);
+      console.log(`🔍 DEBUG ${agentName} function result:`, JSON.stringify(result, null, 2));
       
       // Return structured response format to match ContextAgentBaseService
       return {
