@@ -51,6 +51,7 @@ export class AuthController {
     description: 'Unauthorized - Invalid credentials' 
   })
   @ApiBody({ type: UserLoginDto })
+  @HttpCode(HttpStatus.OK)
   async login(@Body() userLoginDto: UserLoginDto): Promise<TokenResponseDto> {
     return this.authService.login(userLoginDto);
   }

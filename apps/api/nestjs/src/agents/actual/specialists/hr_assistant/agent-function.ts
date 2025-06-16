@@ -239,6 +239,7 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
     const processingTime = Date.now() - startTime;
 
     return {
+      success: true,
       response,
       metadata: {
         agentName: 'hr-assistant',
@@ -247,7 +248,6 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
         sessionId,
         toolsUsed: ['llm-service', 'langgraph'],
         responseType: 'hr-assistance',
-        success: true,
         workflow: workflowMetadata
       }
     };
@@ -257,13 +257,13 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     return {
+      success: false,
       response: `I apologize, but I encountered an error processing your HR question. Please contact the HR department directly for assistance.`,
       metadata: {
         agentName: 'hr-assistant',
         processingType: 'error-fallback',
         processingTime,
         sessionId,
-        success: false,
         error: errorMessage,
         toolsUsed: ['llm-service']
       }

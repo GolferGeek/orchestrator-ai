@@ -80,9 +80,10 @@ export class OrchestratorService extends A2AAgentBaseService {
     this.orchestratorLogger.log(`Full params object:`, JSON.stringify(params, null, 2));
 
     // Extract user message and conversation history from params
-    const userMessage = params.message || '';
-    const sessionId = params.session_id || null;
-    const conversationHistory = params.conversation_history || [];
+    // Handle both userMessage (from direct requests) and message (from frontend)
+    const userMessage = params.userMessage || params.message || '';
+    const sessionId = params.sessionId || params.session_id || null;
+    const conversationHistory = params.conversationHistory || params.conversation_history || [];
     
     // Extract user authentication context if available
     const currentUser = params.currentUser || null;
@@ -326,13 +327,15 @@ export class OrchestratorService extends A2AAgentBaseService {
       // For greeting requests, send a simple hello message so the agent can respond with a personalized greeting
       const messageToAgent = isGreetingRequest ? 'Hello' : request;
       
-      // Just pass the request without imposing any method structure
-      // Let the specialist agent decide how to handle it
+      // Use the processTask method that all agents understand from our A2A architecture
       const payload = {
         jsonrpc: '2.0',
-        method: 'handle_request', // Generic method that all agents understand
-        params: { prompt: messageToAgent }, // Send as a prompt for the agent to process
-        id: 1
+        method: 'processTask',
+        params: { 
+          userMessage: messageToAgent,
+          sessionId: sessionId || `orchestrator-delegation-${Date.now()}`
+        },
+        id: `orchestrator-delegation-${Date.now()}`
       };
 
       this.orchestratorLogger.log(`Delegating to agent at: ${agentUrl} with message: "${messageToAgent}"`);
