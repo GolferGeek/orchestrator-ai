@@ -51,8 +51,13 @@ export class DynamicAgentsController {
 
     this.logger.debug(`Passing auth context to agent: currentUser=${!!authenticatedTaskRequest.currentUser}, authToken=${!!authenticatedTaskRequest.authToken}`);
 
+    console.log(`🎯 CONTROLLER found agent instance for ${agentType}/${agentName}:`, agentInstance.constructor.name);
+    console.log(`🎯 CONTROLLER calling processTask with request:`, JSON.stringify(authenticatedTaskRequest, null, 2));
+    
     // Process the task using the agent's processTask method
-    return agentInstance.processTask(authenticatedTaskRequest);
+    const result = await agentInstance.processTask(authenticatedTaskRequest);
+    console.log(`🎯 CONTROLLER received result from processTask:`, JSON.stringify(result, null, 2));
+    return result;
   }
 
   /**
