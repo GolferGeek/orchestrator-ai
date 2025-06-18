@@ -5,5 +5,19 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/../src/$1",
+    "^@agents/(.*)$": "<rootDir>/../src/agents/$1",
+    "^@llms/(.*)$": "<rootDir>/../src/llms/$1"
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!quick-lru)"
+  ],
+  "extensionsToTreatAsEsm": [".ts"],
+  "globals": {
+    "ts-jest": {
+      "useESM": true
+    }
   }
 }

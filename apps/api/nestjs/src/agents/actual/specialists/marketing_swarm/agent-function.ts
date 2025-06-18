@@ -1,4 +1,4 @@
-import { AgentFunctionParams, AgentFunctionResponse } from '../../../base/services/base-services/a2a-base/interfaces';
+import { AgentFunctionParams, AgentFunctionResponse } from '@agents/base/implementations/base-services/a2a-base/interfaces';
 
 /**
  * Marketing Swarm Agent Function - Advanced Multi-Agent Orchestration

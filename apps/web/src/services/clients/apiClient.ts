@@ -32,6 +32,25 @@ export class ApiClient extends BaseApiClient {
       let requestPayload: any;
 
       if (this.endpoint.technology === 'typescript-nestjs') {
+        // Get the current auth token from localStorage to pass to orchestrator
+        const authToken = localStorage.getItem('authToken');
+        
+        // Get current user information for proper database RLS
+        let currentUser = null;
+        if (authToken) {
+          try {
+            // Ensure auth token is set in headers for the /auth/me request
+            const userResponse = await this.axiosInstance.get('/auth/me', {
+              headers: {
+                'Authorization': `Bearer ${authToken}`
+              }
+            });
+            currentUser = userResponse.data.user;
+          } catch (error) {
+            console.warn('Failed to fetch current user for orchestrator:', error);
+          }
+        }
+        
         // NestJS expects JSON-RPC 2.0 format
         requestPayload = {
           jsonrpc: '2.0',
@@ -39,7 +58,9 @@ export class ApiClient extends BaseApiClient {
           params: {
             message: userInputText,
             session_id: sessionId,
-            conversation_history: conversationHistory || []
+            conversation_history: conversationHistory || [],
+            authToken: authToken, // Pass auth token to orchestrator for agent pool refresh
+            currentUser: currentUser // Pass current user for database RLS
           },
           id: Date.now() // Use timestamp as unique ID
         };

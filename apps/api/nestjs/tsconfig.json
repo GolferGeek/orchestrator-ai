@@ -19,6 +19,18 @@
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@/*": ["src/*"],
+      "@agents/*": ["src/agents/*"],
+      "@agents/base/*": ["src/agents/base/*"],
+      "@agents/base/sub-services/*": ["src/agents/base/sub-services/*"],
+      "@agents/base/implementations/*": ["src/agents/base/implementations/*"],
+      "@agent-pool/*": ["src/agent-pool/*"],
+      "@llm/*": ["src/llms/*"],
+      "@shared/*": ["src/shared/*"],
+      "@config/*": ["src/config/*"],
+      "@common/*": ["src/common/*"]
+    }
   }
 }

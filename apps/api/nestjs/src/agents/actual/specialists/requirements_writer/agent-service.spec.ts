@@ -1,8 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RequirementsWriterService } from './agent-service';
-import { LLMService } from '../../../base/services/llm/llm.service';
+import { LLMService } from '@/llms/llm.service';
 import { HttpService } from '@nestjs/axios';
-import { AgentContextService } from '../../../base/services/base-services/a2a-base/agent-context.service';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -43,10 +42,6 @@ describe('RequirementsWriterService', () => {
         {
           provide: HttpService,
           useValue: mockHttpService,
-        },
-        {
-          provide: AgentContextService,
-          useValue: mockContextService,
         },
       ],
     }).compile();
