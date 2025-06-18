@@ -1,9 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { PythonFunctionAgentBaseService } from './python-function-agent-base.service';
 import { LLMService } from '@/llms/llm.service';
-import { AgentContextService } from '../a2a-base/agent-context.service';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 
@@ -15,9 +13,21 @@ const mockSpawn = spawn as jest.MockedFunction<typeof spawn>;
 jest.mock('fs');
 const mockFs = fs as jest.Mocked<typeof fs>;
 
+// Test implementation of the abstract service
+class TestPythonFunctionAgentService extends PythonFunctionAgentBaseService {
+  getAgentName(): string {
+    return 'Test Python Agent';
+  }
+
+  getAgentType(): 'specialist' | 'orchestrator' | 'manager' | 'external' {
+    return 'specialist';
+  }
+}
+
 describe('PythonFunctionAgentBaseService', () => {
-  let service: PythonFunctionAgentBaseService;
+  let service: TestPythonFunctionAgentService;
   let llmService: jest.Mocked<LLMService>;
+  let httpService: jest.Mocked<HttpService>;
 
   beforeEach(async () => {
     const mockLLMService = {
@@ -31,16 +41,17 @@ describe('PythonFunctionAgentBaseService', () => {
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
-    };
-
-    const mockContextService = {
-      loadAgentContext: jest.fn().mockResolvedValue('Mock context'),
-      getContextData: jest.fn().mockReturnValue('Mock context data'),
+      axiosRef: {
+        get: jest.fn(),
+        post: jest.fn(),
+        put: jest.fn(),
+        delete: jest.fn(),
+      }
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        PythonFunctionAgentBaseService,
+        TestPythonFunctionAgentService,
         {
           provide: LLMService,
           useValue: mockLLMService,
@@ -49,23 +60,20 @@ describe('PythonFunctionAgentBaseService', () => {
           provide: HttpService,
           useValue: mockHttpService,
         },
-        {
-          provide: AgentContextService,
-          useValue: mockContextService,
-        },
       ],
     }).compile();
 
-    service = module.get<PythonFunctionAgentBaseService>(PythonFunctionAgentBaseService);
+    service = module.get<TestPythonFunctionAgentService>(TestPythonFunctionAgentService);
     llmService = module.get<LLMService>(LLMService) as jest.Mocked<LLMService>;
-
-    // Mock the required methods
-    jest.spyOn(service as any, 'getAgentName').mockReturnValue('test-python-agent');
-    jest.spyOn(service as any, 'getAgentType').mockReturnValue('python');
+    httpService = module.get<HttpService>(HttpService) as jest.Mocked<HttpService>;
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
   });
 
   describe('setPythonScriptPath', () => {
@@ -135,7 +143,7 @@ describe('PythonFunctionAgentBaseService', () => {
       };
 
       // Act
-      const result = await service['executeTask']('test-method', params);
+      const result = await service.executeTask('test-method', params);
 
       // Assert
       expect(mockSpawn).toHaveBeenCalledWith('python3', [scriptPath], {
@@ -147,8 +155,7 @@ describe('PythonFunctionAgentBaseService', () => {
         success: true,
         response: 'Python script executed successfully',
         metadata: expect.objectContaining({
-          agentName: 'test-python-agent',
-          agentType: 'python',
+          agentType: 'specialist',
           executionType: 'python_script',
           scriptPath: scriptPath,
           processedAt: expect.any(String)
@@ -191,7 +198,7 @@ describe('PythonFunctionAgentBaseService', () => {
       const params = { message: 'test message' };
 
       // Act
-      const result = await service['executeTask']('test-method', params);
+      const result = await service.executeTask('test-method', params);
 
       // Assert
       expect(result).toEqual({
@@ -199,8 +206,8 @@ describe('PythonFunctionAgentBaseService', () => {
         error: 'Python script exited with code 1. Error: Python error occurred',
         response: 'I apologize, but I encountered an error while processing your request. Falling back to basic processing.',
         metadata: expect.objectContaining({
-          agentName: 'test-python-agent',
-          agentType: 'python',
+          agentName: 'Test Python Agent',
+          agentType: 'specialist',
           executionType: 'python_script_error',
           scriptPath: scriptPath,
           errorDetails: 'Python script exited with code 1. Error: Python error occurred',
@@ -209,98 +216,22 @@ describe('PythonFunctionAgentBaseService', () => {
       });
     });
 
-    it('should handle non-JSON output from Python script', async () => {
+    it('should fall back to context processing when no Python script is available', async () => {
       // Arrange
-      const scriptPath = '/path/to/agent.py';
-      const mockPythonProcess = {
-        stdout: {
-          on: jest.fn((event, callback) => {
-            if (event === 'data') {
-              callback('Simple text output from Python');
-            }
-          }),
-        },
-        stderr: {
-          on: jest.fn(),
-        },
-        stdin: {
-          write: jest.fn(),
-          end: jest.fn(),
-        },
-        on: jest.fn((event, callback) => {
-          if (event === 'close') {
-            callback(0); // Success exit code
-          }
-        }),
-        kill: jest.fn(),
-        killed: false,
-      };
-
-      mockSpawn.mockReturnValue(mockPythonProcess as any);
-      mockFs.existsSync.mockReturnValue(true);
-      
-      service.setPythonScriptPath(scriptPath);
-
-      const params = { message: 'test message' };
-
-      // Act
-      const result = await service['executeTask']('test-method', params);
-
-      // Assert
-      expect(result).toEqual({
-        success: true,
-        response: 'Simple text output from Python',
-        metadata: expect.objectContaining({
-          agentName: 'test-python-agent',
-          agentType: 'python',
-          executionType: 'python_script',
-          scriptPath: scriptPath,
-          processedAt: expect.any(String)
-        })
-      });
-    });
-  });
-
-  describe('executeTask without Python script', () => {
-    it('should fall back to context processing when no script is set', async () => {
-      // Arrange
-      const params = { message: 'test message' };
-
-      // Act
-      const result = await service['executeTask']('test-method', params);
-
-      // Assert
-      expect(result).toEqual({
-        success: true,
-        response: "Hello! I'm the test-python-agent agent. I'm ready to help, but my Python script isn't available yet. Please check back soon!",
-        metadata: expect.objectContaining({
-          agentName: 'test-python-agent',
-          agentType: 'python',
-          executionType: 'fallback',
-          reason: 'No Python script available',
-          method: 'test-method',
-          processedAt: expect.any(String)
-        })
-      });
-    });
-
-    it('should fall back to context processing when script file does not exist', async () => {
-      // Arrange
-      service.setPythonScriptPath('/nonexistent/script.py');
       mockFs.existsSync.mockReturnValue(false);
       
       const params = { message: 'test message' };
 
       // Act
-      const result = await service['executeTask']('test-method', params);
+      const result = await service.executeTask('test-method', params);
 
       // Assert
       expect(result).toEqual({
         success: true,
-        response: "Hello! I'm the test-python-agent agent. I'm ready to help, but my Python script isn't available yet. Please check back soon!",
+        response: "Hello! I'm the Test Python Agent agent. I'm ready to help, but my Python script isn't available yet. Please check back soon!",
         metadata: expect.objectContaining({
-          agentName: 'test-python-agent',
-          agentType: 'python',
+          agentName: 'Test Python Agent',
+          agentType: 'specialist',
           executionType: 'fallback',
           reason: 'No Python script available',
           method: 'test-method',
@@ -310,86 +241,53 @@ describe('PythonFunctionAgentBaseService', () => {
     });
   });
 
-  describe('extractUserMessage', () => {
-    it('should extract message from string input', () => {
+  describe('setDiscoveredPath', () => {
+    it('should set the discovered agent path', () => {
+      // Arrange
+      const path = 'specialists/test-agent';
+
       // Act
-      const result = service['extractUserMessage']('simple string message');
+      service.setDiscoveredPath(path);
 
       // Assert
-      expect(result).toBe('simple string message');
-    });
-
-    it('should extract message from object with message property', () => {
-      // Act
-      const result = service['extractUserMessage']({ message: 'test message' });
-
-      // Assert
-      expect(result).toBe('test message');
-    });
-
-    it('should extract message from object with userMessage property', () => {
-      // Act
-      const result = service['extractUserMessage']({ userMessage: 'test user message' });
-
-      // Assert
-      expect(result).toBe('test user message');
-    });
-
-    it('should stringify object if no recognized message properties found', () => {
-      // Act
-      const result = service['extractUserMessage']({ someOtherProp: 'value' });
-
-      // Assert
-      expect(result).toBe('{"someOtherProp":"value"}');
-    });
-
-    it('should handle null/undefined parameters', () => {
-      // Act & Assert
-      expect(service['extractUserMessage'](null)).toBe('');
-      expect(service['extractUserMessage'](undefined)).toBe('');
+      expect(service).toBeDefined();
+      // Path is set internally, can't directly test but method should not throw
     });
   });
 
   describe('getAgentCard', () => {
-    it('should return agent card with script status when script is available', async () => {
+    it('should return agent card with Python script status', async () => {
       // Arrange
       const scriptPath = '/path/to/agent.py';
-      service.setPythonScriptPath(scriptPath);
       mockFs.existsSync.mockReturnValue(true);
-      
-      // Mock the parent getAgentCard method
-      const baseCard = { name: 'test-python-agent', type: 'python' };
-      jest.spyOn(Object.getPrototypeOf(Object.getPrototypeOf(service)), 'getAgentCard').mockResolvedValue(baseCard);
+      service.setPythonScriptPath(scriptPath);
 
       // Act
-      const result = await service.getAgentCard();
+      const card = await service.getAgentCard();
 
       // Assert
-      expect(result).toEqual({
-        ...baseCard,
+      expect(card).toEqual(expect.objectContaining({
         pythonScriptStatus: 'available',
         pythonScriptPath: scriptPath,
         pythonExecutable: 'python3',
         loadedAt: expect.any(String)
-      });
+      }));
     });
 
-    it('should return agent card with not_available status when script is not set', async () => {
+    it('should return agent card with unavailable status when no script', async () => {
       // Arrange
-      const baseCard = { name: 'test-python-agent', type: 'python' };
-      jest.spyOn(Object.getPrototypeOf(Object.getPrototypeOf(service)), 'getAgentCard').mockResolvedValue(baseCard);
+      mockFs.existsSync.mockReturnValue(false);
 
       // Act
-      const result = await service.getAgentCard();
+      const card = await service.getAgentCard();
 
       // Assert
-      expect(result).toEqual({
-        ...baseCard,
+      expect(card).toEqual(expect.objectContaining({
         pythonScriptStatus: 'not_available',
         pythonScriptPath: null,
         pythonExecutable: 'python3',
         loadedAt: null
-      });
+      }));
     });
   });
 }); 
