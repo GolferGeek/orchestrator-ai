@@ -2,10 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
-import { LLMService } from '@/llms/llm.service';
+import { LLMService } from '@llm/llm.service';
 import { SessionsService } from './sessions/sessions.service';
 import { SupabaseService } from './supabase/supabase.service';
-import { AgentContextService } from './agents/base/implementations/base-services/a2a-base/agent-context.service';
 import { AgentRegistrationService, AgentInfo } from './agents/base/sub-services/agent-registration/agent-registration.service';
 import { AgentPoolService } from './agent-pool/agent-pool.service';
 
