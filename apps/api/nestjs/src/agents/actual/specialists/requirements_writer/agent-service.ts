@@ -6,10 +6,10 @@ import { LLMService } from '@/llms/llm.service';
 @Injectable()
 export class RequirementsWriterService extends PythonFunctionAgentBaseService {
   constructor(
-    llmService: LLMService,
-    httpService: HttpService
+    httpService: HttpService,
+    llmService: LLMService
   ) {
-    super(llmService, httpService);
+    super(httpService, llmService);
     // Python script path will be set by AgentDiscoveryService during discovery
   }
 } 

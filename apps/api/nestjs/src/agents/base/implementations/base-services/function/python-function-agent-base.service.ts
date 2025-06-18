@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from '../a2a-base/a2a-agent-base.service';
-
-import { AgentFunctionParams, AgentFunctionResponse } from '../a2a-base/interfaces';
 import { LLMService } from '@/llms/llm.service';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
@@ -11,6 +9,26 @@ import { AgentRegistrationService } from '@agents/base/sub-services/agent-regist
 import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
+
+export interface AgentFunctionParams {
+  userMessage: string;
+  sessionId?: string;
+  conversationHistory?: any[];
+  currentUser?: any;
+  authToken?: string;
+  llmService: LLMService | null;
+  metadata: {
+    method: string;
+    originalParams: any;
+    agentName: string;
+    timestamp: string;
+  };
+}
+
+export interface AgentFunctionResponse {
+  response: string;
+  metadata?: any;
+}
 
 /**
  * Python Function Agent Base Service that handles Python-based agent execution
@@ -23,8 +41,8 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
   private pythonExecutable: string = 'python3'; // Default, can be configured
 
   constructor(
-    protected readonly llmService: LLMService,
     protected readonly httpService: HttpService,
+    protected readonly llmService: LLMService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -40,7 +58,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
   }
 
   /**
-   * Set the Python script path for this agent
+   * Set the Python script path for this agent (called by AgentDiscoveryService)
    */
   setPythonScriptPath(scriptPath: string): void {
     this.pythonScriptPath = scriptPath;
@@ -56,7 +74,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
   }
 
   /**
-   * Task execution using Python script
+   * Simple task execution using Python script
    */
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
@@ -89,12 +107,11 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       
       this.pythonLogger.debug(`Python script executed successfully for ${agentName}`);
       
-      // Return structured response format
+      // Return structured response format to match FunctionAgentBaseService
       return {
         success: true,
         response: result.response || result,
         metadata: {
-          agentName: agentName,
           agentType: this.getAgentType(),
           executionType: 'python_script',
           scriptPath: this.pythonScriptPath,
@@ -215,7 +232,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
   }
 
   /**
-   * Context-based fallback processing
+   * Simple context-based fallback processing
    */
   private async processWithContext(method: string, params: any): Promise<any> {
     this.pythonLogger.debug(`Using context fallback for ${this.getAgentName()}`);
@@ -235,6 +252,14 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
   }
 
   /**
+   * Set the discovered agent path (called by AgentDiscoveryService)
+   */
+  setDiscoveredPath(path: string): void {
+    this.agentPath = path;
+    this.pythonLogger.debug(`Agent path set to: ${path}`);
+  }
+
+  /**
    * Get agent card with Python script status
    */
   async getAgentCard(): Promise<any> {
@@ -246,19 +271,5 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       pythonExecutable: this.pythonExecutable,
       loadedAt: this.pythonScriptPath ? new Date().toISOString() : null
     };
-  }
-
-  /**
-   * Get the directory where this agent's files are located
-   */
-  protected getAgentDirectory(): string | null {
-    try {
-      // This should be implemented by the child agent service
-      // For now, return null to trigger fallback behavior
-      return null;
-    } catch (error) {
-      this.pythonLogger.error('Error getting agent directory:', error);
-      return null;
-    }
   }
 } 
