@@ -1,19 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from '../a2a-base/a2a-agent-base.service';
+import { LLMService } from '@/llms/llm.service';
 import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
-import OpenAI from 'openai';
 
+/**
+ * Context Agent Base Service that processes context-based requests using LLM
+ * This provides context-aware processing with proper error handling and fallback capabilities
+ */
 @Injectable()
 export class ContextAgentBaseService extends A2AAgentBaseService {
-  private readonly contextLogger = new Logger(ContextAgentBaseService.name);
-  private readonly openai: OpenAI;
+  protected readonly contextLogger = new Logger(ContextAgentBaseService.name);
+  private contextData: string | null = null;
 
   constructor(
     protected readonly httpService: HttpService,
+    protected readonly llmService: LLMService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -26,44 +31,29 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       loggingService,
       authService
     );
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
   }
 
   /**
-   * Simple execution: take user prompt and process with LLM
+   * Set context data for this agent (called by AgentDiscoveryService)
+   */
+  setContextData(contextData: string): void {
+    this.contextData = contextData;
+    this.contextLogger.debug(`Context data loaded for ${this.getAgentName()}, length: ${contextData?.length || 0}`);
+  }
+
+  /**
+   * Simple task execution using context and LLM
    */
   public async executeTask(method: string, params: any): Promise<any> {
+    const agentName = this.getAgentName();
+    const agentType = this.getAgentType();
+    
     try {
-      // Check if OpenAI API key is available
-      const apiKey = process.env.OPENAI_API_KEY;
-      if (!apiKey) {
-        this.contextLogger.error('OpenAI API key not found');
-        return {
-          success: false,
-          error: 'OpenAI API key not configured',
-          response: 'I apologize, but the OpenAI API key is not properly configured.'
-        };
-      }
-
-      // Get agent info from context service or fallback to defaults
-      const agentName = this.getAgentName();
-      const agentType = this.getAgentType();
-      
-      // Debug logging
-      this.contextLogger.debug(`executeTask - agentName: ${agentName}, agentType: ${agentType}`);
-      
       // Extract user message from params
-      const userMessage = params.userMessage || params.prompt || params.input || params.request || JSON.stringify(params);
+      const userMessage = this.extractUserMessage(params);
       
       // Check if this is a simple greeting request
-      const isGreeting = userMessage.toLowerCase().trim() === 'hello' || 
-                        userMessage.toLowerCase().trim() === 'hi' || 
-                        userMessage.toLowerCase().includes('can i talk to');
-      
-      if (isGreeting) {
-        // For greeting requests, provide a personalized response
+      if (this.isGreeting(userMessage)) {
         const greeting = this.generatePersonalizedGreeting(agentName);
         return {
           success: true,
@@ -77,50 +67,89 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         };
       }
       
-      // Build the request for OpenAI
-      const requestData = {
-        model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system' as const,
-            content: `You are ${agentName}, a ${agentType} agent. Help the user with their request.`
-          },
-          {
-            role: 'user' as const,
-            content: userMessage
-          }
-        ],
-        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
-        temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
-      };
+      // If no context data available, use fallback
+      if (!this.contextData) {
+        return this.processWithoutContext(method, params, agentName, agentType);
+      }
 
-      // Call OpenAI
-      const completion = await this.openai.chat.completions.create(requestData);
-      const response = completion.choices[0]?.message?.content || 'I was unable to generate a response.';
+      // Process with LLM using context
+      const systemPrompt = this.buildSystemPrompt(agentName, agentType);
+      const response = await this.llmService.generateResponse(userMessage, systemPrompt);
       
       return {
         success: true,
         response,
         metadata: {
-          model: completion.model,
-          usage: completion.usage,
           agentName: agentName,
           agentType: agentType,
-          contextFiles: [],
+          contextUsed: true,
+          contextLength: this.contextData.length,
           processedAt: new Date().toISOString()
         }
       };
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.contextLogger.error(`Error in executeTask: ${errorMessage}`);
+      this.contextLogger.error(`Error in executeTask for ${agentName}:`, error);
       
       return {
         success: false,
-        error: errorMessage,
-        response: 'I apologize, but I encountered an error while processing your request.'
+        error: error instanceof Error ? error.message : String(error),
+        response: 'I apologize, but I encountered an error while processing your request.',
+        metadata: {
+          agentName: agentName,
+          agentType: agentType,
+          errorDetails: error instanceof Error ? error.message : String(error),
+          processedAt: new Date().toISOString()
+        }
       };
     }
+  }
+
+  /**
+   * Extract user message from parameters
+   */
+  private extractUserMessage(params: any): string {
+    if (typeof params === 'string') {
+      return params;
+    }
+    
+    if (params && typeof params === 'object') {
+      const messageProps = ['userMessage', 'message', 'prompt', 'input', 'request', 'content', 'text'];
+      
+      for (const prop of messageProps) {
+        if (params[prop] && typeof params[prop] === 'string') {
+          return params[prop];
+        }
+      }
+      
+      return JSON.stringify(params);
+    }
+    
+    return String(params || '');
+  }
+
+  /**
+   * Check if message is a greeting
+   */
+  private isGreeting(message: string): boolean {
+    const lowerMessage = message.toLowerCase().trim();
+    return lowerMessage === 'hello' || 
+           lowerMessage === 'hi' || 
+           lowerMessage.includes('can i talk to');
+  }
+
+  /**
+   * Build system prompt using context data
+   */
+  private buildSystemPrompt(agentName: string, agentType: string): string {
+    let prompt = `You are ${agentName}, a ${agentType} agent. Help the user with their request.`;
+    
+    if (this.contextData) {
+      prompt += `\n\nHere is your context information:\n${this.contextData}`;
+      prompt += `\n\nUse this context to provide accurate and helpful responses. If the user's question is not covered by the context, say so and provide general assistance.`;
+    }
+    
+    return prompt;
   }
 
   /**
@@ -148,21 +177,43 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   }
 
   /**
-   * Handle A2A task requests
+   * Fallback processing when no context is available
    */
-  async processTask(taskRequest: any): Promise<any> {
-    return this.executeTask('processTask', taskRequest);
+  private async processWithoutContext(method: string, params: any, agentName: string, agentType: string): Promise<any> {
+    this.contextLogger.debug(`No context available for ${agentName}, using fallback`);
+    
+    return {
+      success: true,
+      response: `Hello! I'm the ${agentName} agent. I'm ready to help, but my context data isn't loaded yet. Please check back soon!`,
+      metadata: {
+        agentName: agentName,
+        agentType: agentType,
+        contextUsed: false,
+        reason: 'No context data available',
+        method,
+        processedAt: new Date().toISOString()
+      }
+    };
   }
 
   /**
    * Set the discovered agent path (called by AgentDiscoveryService)
-   * Delegates to appropriate sub-services as needed
    */
   setDiscoveredPath(path: string): void {
     this.agentPath = path;
     this.contextLogger.debug(`Agent path set to: ${path}`);
-    
-    // If we need to notify sub-services about the path change, we could do it here
-    // For now, just setting the path is sufficient
+  }
+
+  /**
+   * Get agent card with context status
+   */
+  async getAgentCard(): Promise<any> {
+    const baseCard = await super.getAgentCard();
+    return {
+      ...baseCard,
+      contextStatus: this.contextData ? 'loaded' : 'not_loaded',
+      contextLength: this.contextData?.length || 0,
+      loadedAt: this.contextData ? new Date().toISOString() : null
+    };
   }
 } 
