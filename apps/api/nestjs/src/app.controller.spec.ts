@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AgentDiscoveryService } from './agent-discovery.service';
+import { LLMService } from './llms/llm.service';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -13,6 +14,10 @@ describe('AppController', () => {
       getDiscoveredAgents: jest.fn().mockReturnValue([]),
     };
 
+    const mockLLMService = {
+      // Add any methods that might be called during AppService initialization
+    };
+
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
       providers: [
@@ -20,6 +25,10 @@ describe('AppController', () => {
         {
           provide: AgentDiscoveryService,
           useValue: mockAgentDiscoveryService,
+        },
+        {
+          provide: LLMService,
+          useValue: mockLLMService,
         },
       ],
     }).compile();

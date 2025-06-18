@@ -238,9 +238,9 @@ describe('Authenticated Agent End-to-End Tests', () => {
       const poolAgentNames = response.body.map((agent: any) => agent.name);
       
       // Verify orchestrator and specialists are in the pool
-      // Note: Agent pool returns capitalized names
-      expect(poolAgentNames).toContain('Orchestrator');
-      const expectedPoolNames = ['Blog_post', 'Hr_assistant', 'Marketing_swarm', 'Requirements_writer'];
+      // Note: Agent pool returns lowercase names
+      expect(poolAgentNames).toContain('orchestrator');
+      const expectedPoolNames = ['blog_post', 'hr_assistant', 'marketing_swarm', 'requirements_writer'];
       expectedPoolNames.forEach(agentName => {
         expect(poolAgentNames).toContain(agentName);
       });

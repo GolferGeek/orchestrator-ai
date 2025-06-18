@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from '../a2a-base/a2a-agent-base.service';
-import { LLMService } from '@/llms/llm.service';
-import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
-import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
-import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
-import { AuthService } from '@agents/base/sub-services/auth/auth.service';
+import { LLMService } from '../../../../../llms/llm.service';
+import { AgentRegistrationService } from '../../../sub-services/agent-registration/agent-registration.service';
+import { JsonRpcProtocolService } from '../../../sub-services/json-rpc-protocol/json-rpc-protocol.service';
+import { LoggingService } from '../../../sub-services/logging/logging.service';
+import { AuthService } from '../../../sub-services/auth/auth.service';
 
 export interface AgentFunctionParams {
   userMessage: string;

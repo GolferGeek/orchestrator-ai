@@ -4,20 +4,17 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": ["ts-jest", {
+      "useESM": true
+    }]
   },
   "moduleNameMapper": {
     "^@/(.*)$": "<rootDir>/../src/$1",
     "^@agents/(.*)$": "<rootDir>/../src/agents/$1",
-    "^@llms/(.*)$": "<rootDir>/../src/llms/$1"
+    "^@llm/(.*)$": "<rootDir>/../src/llms/$1"
   },
   "transformIgnorePatterns": [
     "node_modules/(?!quick-lru)"
   ],
-  "extensionsToTreatAsEsm": [".ts"],
-  "globals": {
-    "ts-jest": {
-      "useESM": true
-    }
-  }
+  "extensionsToTreatAsEsm": [".ts"]
 }

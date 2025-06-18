@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { AgentDiscoveryService } from './agent-discovery.service';
-import { LLMService } from '@/llms/llm.service';
+import { LLMService } from '@llm/llm.service';
 
 @Injectable()
 export class AppService implements OnModuleInit {
