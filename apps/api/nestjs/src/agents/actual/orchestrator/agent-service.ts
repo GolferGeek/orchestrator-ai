@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { A2AAgentBaseService } from '../../base/services/base-services/a2a-base/a2a-agent-base.service';
-import { LLMService } from '../../base/services/llm/llm.service';
+import { A2AAgentBaseService } from '@agents/base/implementations/base-services/a2a-base/a2a-agent-base.service';
+import { LLMService } from '@/llms/llm.service';
 import { SessionsService } from '../../../sessions/sessions.service';
 import { SupabaseService } from '../../../supabase/supabase.service';
 
@@ -75,7 +75,7 @@ export class OrchestratorService extends A2AAgentBaseService {
    * Execute task using the centralized LLM service
    * The orchestrator determines whether to delegate to specialists or respond conversationally
    */
-  protected async executeTask(method: string, params: any): Promise<any> {
+  public async executeTask(method: string, params: any): Promise<any> {
     this.orchestratorLogger.log(`Orchestrator processing request with method: ${method}`);
     this.orchestratorLogger.log(`Full params object:`, JSON.stringify(params, null, 2));
 
@@ -98,6 +98,14 @@ export class OrchestratorService extends A2AAgentBaseService {
       this.orchestratorLogger.log(`Auth token length: ${authToken.length}, first 20 chars: ${authToken.substring(0, 20)}...`);
     } else {
       this.orchestratorLogger.warn('No auth token received in orchestrator params');
+    }
+
+    // Refresh available agents with current auth token
+    if (authToken) {
+      this.orchestratorLogger.log('🔄 Refreshing agent pool with current auth token...');
+      await this.initializeAvailableAgents(authToken);
+    } else {
+      this.orchestratorLogger.warn('⚠️ No auth token available - using cached agent pool');
     }
 
     // Save the user message to the database first
@@ -429,40 +437,113 @@ export class OrchestratorService extends A2AAgentBaseService {
   /**
    * Initialize available agents from agent pool
    */
-  async initializeAvailableAgents(): Promise<void> {
+  async initializeAvailableAgents(authToken?: string): Promise<void> {
     try {
-      const response = await this.httpService!.axiosRef!.get(`${this.baseApiUrl}/agent-pool/agents`);
+      this.orchestratorLogger.log('🔄 Initializing available agents from agent pool...');
+      
+      // Prepare headers for authentication
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+        this.orchestratorLogger.log('Using auth token for agent pool request');
+      } else {
+        this.orchestratorLogger.warn('No auth token available for agent pool request');
+      }
+      
+      const response = await this.httpService!.axiosRef!.get(`${this.baseApiUrl}/agent-pool/agents`, {
+        headers
+      });
+      
+      this.orchestratorLogger.log(`🔍 Agent pool response status: ${response.status}`);
+      this.orchestratorLogger.log(`🔍 Agent pool response data:`, JSON.stringify(response.data, null, 2));
+      
       if (response?.data && Array.isArray(response.data)) {
         this.availableAgents = response.data;
-        this.orchestratorLogger.log(`Initialized with ${this.availableAgents.length} available agents from pool`);
+        this.orchestratorLogger.log(`✅ Initialized with ${this.availableAgents.length} available agents from pool`);
         
         // Log the agents we found for debugging
-        this.orchestratorLogger.log('Available agents:', this.availableAgents.map(a => a.name));
+        this.orchestratorLogger.log('🎯 Available agent names:', this.availableAgents.map(a => a.name));
+        this.orchestratorLogger.log('🎯 Available agent paths:', this.availableAgents.map(a => a.path));
       } else {
-        this.orchestratorLogger.warn('No agents found in agent pool, using fallback');
-        // Only add fallback agents if we couldn't get any from the pool
-        this.availableAgents.push({
+        this.orchestratorLogger.warn('No agents found in agent pool, using fallback agents');
+        // Add fallback agents if we couldn't get any from the pool
+        this.availableAgents = [
+          {
+            name: 'blog_post',
+            description: 'Blog Post Writer',
+            path: 'specialists/blog_post',
+            url: `${this.baseApiUrl}/agents/specialists/blog_post/tasks`,
+            type: 'specialists',
+            capabilities: ['blog_writing', 'content_creation']
+          },
+          {
+            name: 'hr_assistant',
+            description: 'HR Assistant',
+            path: 'specialists/hr_assistant',
+            url: `${this.baseApiUrl}/agents/specialists/hr_assistant/tasks`,
+            type: 'specialists',
+            capabilities: ['hr_policies', 'employee_onboarding']
+          },
+          {
+            name: 'marketing_swarm',
+            description: 'Marketing Swarm',
+            path: 'specialists/marketing_swarm',
+            url: `${this.baseApiUrl}/agents/specialists/marketing_swarm/tasks`,
+            type: 'specialists',
+            capabilities: ['marketing_campaigns', 'product_promotion']
+          },
+          {
+            name: 'requirements_writer',
+            description: 'Requirements Writer',
+            path: 'specialists/requirements_writer',
+            url: `${this.baseApiUrl}/agents/specialists/requirements_writer/tasks`,
+            type: 'specialists',
+            capabilities: ['technical_requirements', 'documentation']
+          }
+        ];
+      }
+      
+      this.orchestratorLogger.log(`🎯 Total available agents: ${this.availableAgents.length}`);
+    } catch (error: any) {
+      this.orchestratorLogger.error('❌ Error initializing available agents:', error.message);
+      this.orchestratorLogger.error('❌ Full error:', error);
+      
+      // Add fallback agents on error
+      this.orchestratorLogger.log('🔄 Using fallback agents due to error');
+      this.availableAgents = [
+        {
           name: 'blog_post',
           description: 'Blog Post Writer',
           path: 'specialists/blog_post',
           url: `${this.baseApiUrl}/agents/specialists/blog_post/tasks`,
           type: 'specialists',
           capabilities: ['blog_writing', 'content_creation']
-        });
-      }
-      
-      this.orchestratorLogger.log(`Total available agents: ${this.availableAgents.length}`);
-    } catch (error) {
-      this.orchestratorLogger.error('Error initializing available agents:', error);
-      // Add fallback agent on error
-      this.availableAgents = [{
-        name: 'blog_post',
-        description: 'Blog Post Writer',
-        path: 'specialists/blog_post',
-        url: `${this.baseApiUrl}/agents/specialists/blog_post/tasks`,
-        type: 'specialists',
-        capabilities: ['blog_writing', 'content_creation']
-      }];
+        },
+        {
+          name: 'hr_assistant',
+          description: 'HR Assistant',
+          path: 'specialists/hr_assistant',
+          url: `${this.baseApiUrl}/agents/specialists/hr_assistant/tasks`,
+          type: 'specialists',
+          capabilities: ['hr_policies', 'employee_onboarding']
+        },
+        {
+          name: 'marketing_swarm',
+          description: 'Marketing Swarm',
+          path: 'specialists/marketing_swarm',
+          url: `${this.baseApiUrl}/agents/specialists/marketing_swarm/tasks`,
+          type: 'specialists',
+          capabilities: ['marketing_campaigns', 'product_promotion']
+        },
+        {
+          name: 'requirements_writer',
+          description: 'Requirements Writer',
+          path: 'specialists/requirements_writer',
+          url: `${this.baseApiUrl}/agents/specialists/requirements_writer/tasks`,
+          type: 'specialists',
+          capabilities: ['technical_requirements', 'documentation']
+        }
+      ];
     }
   }
 }

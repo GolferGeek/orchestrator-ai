@@ -8,9 +8,10 @@ import { AuthModule } from './auth/auth.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { HealthModule } from './health/health.module';
 import { AgentPoolModule } from './agent-pool/agent-pool.module';
-import { LLMModule } from './agents/base/services/llm/llm.module';
+import { LLMModule } from '@/llms/llm.module';
 import { AgentDiscoveryService } from './agent-discovery.service';
 import { DynamicAgentsController } from './agents/dynamic-agents.controller';
+import { BaseSubServicesModule } from './agents/base/sub-services/base-sub-services.module';
 import supabaseConfig from './supabase/supabase.config';
 
 @Module({
@@ -23,6 +24,7 @@ import supabaseConfig from './supabase/supabase.config';
     }),
     HttpModule, // Add HttpModule for agent services
     LLMModule, // Add LLMModule for LLM and LangSmith services
+    BaseSubServicesModule, // Add BaseSubServicesModule for agent sub-services
     SupabaseModule,
     AuthModule,
     SessionsModule,

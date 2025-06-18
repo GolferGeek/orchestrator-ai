@@ -46,6 +46,25 @@ class NestJSApiService {
     conversationHistory?: Array<{role: string, content: string, metadata?: any}> 
   ): Promise<TaskResponse> {
     try {
+      // Get the current auth token from localStorage to pass to orchestrator
+      const authToken = localStorage.getItem('authToken');
+      
+      // Get current user information for proper database RLS
+      let currentUser = null;
+      if (authToken) {
+        try {
+          // Ensure auth token is set in headers for the /auth/me request
+          const userResponse = await this.axiosInstance.get('/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${authToken}`
+            }
+          });
+          currentUser = userResponse.data.user;
+        } catch (error) {
+          console.warn('Failed to fetch current user for orchestrator:', error);
+        }
+      }
+      
       // NestJS expects JSON-RPC 2.0 format
       const requestPayload = {
         jsonrpc: '2.0',
@@ -53,7 +72,9 @@ class NestJSApiService {
         params: {
           message: userInputText,
           session_id: sessionId,
-          conversation_history: conversationHistory || []
+          conversation_history: conversationHistory || [],
+          authToken: authToken, // Pass auth token to orchestrator for agent pool refresh
+          currentUser: currentUser // Pass current user for database RLS
         },
         id: Date.now() // Use timestamp as unique ID
       };

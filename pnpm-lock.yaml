@@ -11,6 +11,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.50.0
         version: 2.50.0
+      quick-lru:
+        specifier: ^7.0.1
+        version: 7.0.1
     devDependencies:
       concurrently:
         specifier: ^8.2.2
@@ -109,6 +112,10 @@ packages:
 
   lodash@4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
+
+  quick-lru@7.0.1:
+    resolution: {integrity: sha512-kLjThirJMkWKutUKbZ8ViqFc09tDQhlbQo2MNuVeLWbRauqYP96Sm6nzlQ24F0HFjUNZ4i9+AgldJ9H6DZXi7g==}
+    engines: {node: '>=18'}
 
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
@@ -327,6 +334,8 @@ snapshots:
   is-fullwidth-code-point@3.0.0: {}
 
   lodash@4.17.21: {}
+
+  quick-lru@7.0.1: {}
 
   require-directory@2.1.1: {}
 

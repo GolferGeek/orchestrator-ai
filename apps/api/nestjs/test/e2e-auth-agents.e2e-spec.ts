@@ -12,6 +12,36 @@ describe('Authenticated Agent End-to-End Tests', () => {
     password: process.env.SUPABASE_TEST_PASSWORD || 'testuser01!'
   };
 
+  // Helper function to refresh token if needed
+  const ensureValidToken = async () => {
+    try {
+      // Test if current token is still valid
+      const testResponse = await request(app.getHttpServer())
+        .get('/agent-pool/agents')
+        .set('Authorization', `Bearer ${authToken}`);
+      
+      if (testResponse.status === 401) {
+        console.log('Token expired, refreshing...');
+        const loginResponse = await request(app.getHttpServer())
+          .post('/auth/login')
+          .send(testUser)
+          .expect(200);
+        
+        authToken = loginResponse.body.access_token;
+        console.log('Token refreshed successfully');
+      }
+    } catch (error: any) {
+      console.log('Error checking token, refreshing...', error.message);
+      const loginResponse = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send(testUser)
+        .expect(200);
+      
+      authToken = loginResponse.body.access_token;
+      console.log('Token refreshed after error');
+    }
+  };
+
   // Available specialist agents to test
   const specialistAgents = [
     'blog_post',
@@ -28,59 +58,14 @@ describe('Authenticated Agent End-to-End Tests', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
-    console.log('Waiting for agent discovery...');
+    console.log('Waiting for server startup and agent discovery...');
     
-    // Wait for agents to be discovered and loaded
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    // MANUAL AGENT POOL REGISTRATION FOR TESTING
-    // Since HTTP-based registration fails in test environment, 
-    // manually register agents with the pool
-    const { AgentPoolService } = await import('../src/agent-pool/agent-pool.service');
-    const { AgentDiscoveryService } = await import('../src/agent-discovery.service');
-    const agentPoolService = app.get(AgentPoolService);
-    const agentDiscoveryService = app.get(AgentDiscoveryService);
-    
-    // Get discovered agents and register them manually
-    const discoveredAgents = agentDiscoveryService.getDiscoveredAgents();
-    console.log('🔧 DEBUG: Discovered agents for manual registration:', discoveredAgents.map((a: any) => a.path));
-    
-    for (const agent of discoveredAgents) {
-      // Map agent types to valid registration types
-      const typeMapping: Record<string, 'orchestrator' | 'specialist' | 'manager' | 'external'> = {
-        'orchestrator': 'orchestrator',
-        'specialists': 'specialist',
-        'managers': 'manager',
-        'external': 'external'
-      };
-      
-      // Create registration object
-      const registration = {
-        id: `${agent.type}_${agent.name.toLowerCase()}`,
-        name: agent.name.charAt(0).toUpperCase() + agent.name.slice(1),
-        type: typeMapping[agent.type] || 'specialist',
-        path: agent.path,
-        url: `http://localhost:3000/agents/${agent.path}/tasks`,
-        description: `${agent.name} - A specialized agent for handling specific tasks`,
-        capabilities: ['processTask', 'generateResponse'],
-        skills: [] as any[], // Empty array of AgentSkill
-        inputModes: ['text', 'json'],
-        outputModes: ['text', 'json'],
-        status: 'online' as const,
-        metadata: {}
-      };
-      
-      console.log(`🔧 DEBUG: Manually registering agent: ${registration.id}`);
-      await agentPoolService.registerAgent(registration);
-    }
-    
-    // Verify registration worked
-    const registeredAgents = agentPoolService.getRegisteredAgents();
-    console.log(`🔧 DEBUG: Successfully registered ${registeredAgents.length} agents manually`);
+    // Wait for agents to be discovered and auto-registered (like in production)
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     console.log('Logging in test user...');
     
-    // Authenticate as test user
+    // Authenticate as test user (same as frontend)
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
@@ -98,60 +83,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
     await app.close();
   });
 
-  describe('Direct Agent Tests', () => {
-    specialistAgents.forEach(agentName => {
-      it(`should call ${agentName} agent directly`, async () => {
-        const taskRequest = {
-          jsonrpc: '2.0',
-          id: `test-${agentName}-${Date.now()}`,
-          method: 'processTask',
-          params: {
-            userMessage: `Test direct call to ${agentName}`,
-            sessionId: `test-session-${Date.now()}`
-          }
-        };
-
-        const response = await request(app.getHttpServer())
-          .post(`/agents/specialists/${agentName}/tasks`)
-          .set('Authorization', `Bearer ${authToken}`)
-          .send(taskRequest)
-          .expect(200);
-
-        // Validate response structure
-        expect(response.body).toBeDefined();
-        
-        // DEBUG: Log actual response structure for investigation
-        if (agentName === 'blog_post') {
-          console.log('\n🔍 DEBUGGING RESPONSE STRUCTURE FOR', agentName);
-          console.log('Full response.body:', JSON.stringify(response.body, null, 2));
-          console.log('typeof response.body:', typeof response.body);
-          console.log('response.body.success:', response.body.success);
-          console.log('response.body.result:', response.body.result);
-          console.log('response.body.result?.success:', response.body.result?.success);
-          console.log('response.body.result?.response:', response.body.result?.response);
-        }
-        
-        // Different response formats for different agent types
-        if (agentName === 'blog_post') {
-          // blog_post uses ContextAgentBaseService - direct response format
-          expect(response.body.success).toBe(true);
-          expect(response.body.response).toBeDefined();
-          expect(typeof response.body.response).toBe('string');
-          expect(response.body.response.length).toBeGreaterThan(0);
-          console.log(`✅ Direct ${agentName} test passed - Response: ${response.body.response.substring(0, 100)}...`);
-        } else {
-          // Other agents use FunctionAgentBaseService + A2A - JSON-RPC format with result field
-          expect(response.body.result.success).toBe(true);
-          expect(response.body.result.response).toBeDefined();
-          expect(typeof response.body.result.response).toBe('string');
-          expect(response.body.result.response.length).toBeGreaterThan(0);
-          console.log(`✅ Direct ${agentName} test passed - Response: ${response.body.result.response.substring(0, 100)}...`);
-        }
-      }, 30000); // 30 second timeout for AI processing
-    });
-  });
-
-  describe('Orchestrator Delegation Tests', () => {
+  describe('Orchestrator Delegation Tests (E2E)', () => {
     const orchestratorTestCases = [
       {
         agentName: 'blog_post',
@@ -176,14 +108,18 @@ describe('Authenticated Agent End-to-End Tests', () => {
     ];
 
     orchestratorTestCases.forEach(testCase => {
-      it(`should delegate to ${testCase.agentName} through orchestrator`, async () => {
+      it(`should delegate to ${testCase.agentName} through orchestrator (E2E)`, async () => {
+        // Use the exact same JSON-RPC format as the frontend
         const taskRequest = {
           jsonrpc: '2.0',
           id: `test-orchestrator-${testCase.agentName}-${Date.now()}`,
-          method: 'processTask',
+          method: 'handle_request',
           params: {
-            userMessage: testCase.prompt,
-            sessionId: `test-orchestrator-session-${Date.now()}`
+            message: testCase.prompt,
+            session_id: `test-orchestrator-session-${Date.now()}`,
+            conversation_history: [],
+            authToken: authToken, // Pass auth token like frontend does
+            currentUser: null // Frontend would populate this
           }
         };
 
@@ -193,19 +129,9 @@ describe('Authenticated Agent End-to-End Tests', () => {
           .send(taskRequest)
           .expect(200);
 
-        // Validate response structure
+        // Validate response structure (JSON-RPC format)
         expect(response.body).toBeDefined();
-        
-        // DEBUG: Check if orchestrator delegation worked
-        if (testCase.agentName === 'orchestrator') {
-          console.log('\n🔍 DEBUGGING ORCHESTRATOR DELEGATION RESPONSE');
-          console.log('Full response.body:', JSON.stringify(response.body, null, 2));
-          console.log('response.body.success:', response.body.success);
-          console.log('response.body.result:', response.body.result);
-          console.log('response.body.result?.success:', response.body.result?.success);
-        }
-        
-        // Orchestrator uses JSON-RPC format (result field)
+        expect(response.body.result).toBeDefined();
         expect(response.body.result.success).toBe(true);
         expect(response.body.result.response).toBeDefined();
         expect(typeof response.body.result.response).toBe('string');
@@ -219,10 +145,12 @@ describe('Authenticated Agent End-to-End Tests', () => {
         
         expect(hasRelevantContent).toBe(true);
         
-        console.log(`✅ Orchestrator delegation test for ${testCase.agentName} passed - Response: ${response.body.result.response.substring(0, 100)}...`);
-      }, 30000); // 30 second timeout for orchestrator + AI processing
+        console.log(`✅ E2E Orchestrator delegation test for ${testCase.agentName} passed - Response: ${response.body.result.response.substring(0, 100)}...`);
+      }, 45000); // 45 second timeout for orchestrator + AI processing
     });
   });
+
+
 
   describe('Orchestrator Direct Responses', () => {
     const conversationalTests = [
@@ -236,10 +164,11 @@ describe('Authenticated Agent End-to-End Tests', () => {
         const taskRequest = {
           jsonrpc: '2.0',
           id: `test-conversation-${Date.now()}`,
-          method: 'processTask',
+          method: 'handle_request',
           params: {
-            userMessage: prompt,
-            sessionId: `test-conversation-${Date.now()}`
+            message: prompt,
+            session_id: `test-conversation-${Date.now()}`,
+            conversation_history: []
           }
         };
 

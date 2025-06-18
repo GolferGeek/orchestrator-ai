@@ -1,16 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { FunctionAgentBaseService } from '../../../base/services/base-services';
-import { LLMService } from '../../../base/services/llm/llm.service';
-import { AgentContextService } from '../../../base/services/base-services/a2a-base/agent-context.service';
+import { FunctionAgentBaseService } from '@agents/base/implementations/base-services/function/function-agent-base.service';
+import { LLMService } from '@/llms/llm.service';
+
 
 @Injectable()
 export class HRAssistantService extends FunctionAgentBaseService {
   constructor(
-    llmService: LLMService,
     httpService: HttpService,
-    contextService: AgentContextService
+    llmService: LLMService
   ) {
-    super(llmService, httpService, contextService);
+    super(httpService, llmService);
   }
 } 

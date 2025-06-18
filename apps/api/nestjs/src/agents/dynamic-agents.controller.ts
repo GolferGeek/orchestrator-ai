@@ -112,12 +112,18 @@ export class DynamicAgentsController {
   private findAgentInstance(agentType: string, agentName: string): any {
     const discoveredAgents = this.agentDiscovery.getDiscoveredAgents();
     
-    // Match the agent by type and name logic
+    // Match the agent by path logic (e.g., "specialists/blog_post" or "orchestrator/orchestrator")
+    const expectedPath = `${agentType}/${agentName}`;
     const agent = discoveredAgents.find(a => {
-      const expectedName = this.normalizeAgentName(a.name);
-      const providedName = this.normalizeAgentName(agentName);
-      return a.type === agentType && expectedName === providedName;
+      const normalizedAgentPath = this.normalizeAgentName(a.path);
+      const normalizedExpectedPath = this.normalizeAgentName(expectedPath);
+      return normalizedAgentPath === normalizedExpectedPath;
     });
+    
+    if (!agent) {
+      this.logger.debug(`Agent not found. Looking for: ${expectedPath}`);
+      this.logger.debug(`Available agents:`, discoveredAgents.map(a => a.path));
+    }
     
     return agent?.serviceInstance;
   }
