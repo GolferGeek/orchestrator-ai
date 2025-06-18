@@ -138,7 +138,7 @@ For testing purposes, you can authenticate using an API key instead of JWT:
 
 ```bash
 curl -H "X-Test-Api-Key: your-test-api-key" \
-     http://localhost:3000/auth/me
+     http://localhost:4000/auth/me
 ```
 
 ### Running Tests
@@ -176,6 +176,6 @@ This module integrates with Supabase Auth by:
 ## Swagger Documentation
 
 The auth endpoints are fully documented in Swagger. Access the documentation at:
-`http://localhost:3000/api`
+`http://localhost:4000/api`
 
 The Swagger UI includes a "Authorize" button where you can enter your JWT token for testing protected endpoints. 
