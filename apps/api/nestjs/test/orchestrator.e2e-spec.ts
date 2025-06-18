@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
@@ -5,6 +6,7 @@ import { AppModule } from '../src/app.module';
 
 describe('Orchestrator Agent (e2e)', () => {
   let app: INestApplication;
+  let authToken: string;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -13,6 +15,20 @@ describe('Orchestrator Agent (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+
+    // Wait for agents to be discovered
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Authenticate to get token
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: process.env.SUPABASE_TEST_USER || 'testuser@golfergeek.com',
+        password: process.env.SUPABASE_TEST_PASSWORD || 'testuser01!'
+      })
+      .expect(200);
+
+    authToken = loginResponse.body.access_token;
   });
 
   afterEach(async () => {
@@ -85,8 +101,8 @@ describe('Orchestrator Agent (e2e)', () => {
         .get('/agents/specialists/blog_post/.well-known/agent.json')
         .expect(200);
 
-      expect(blogPostResponse.body.name).toBe('Blog Post Writer');
-      expect(blogPostResponse.body.type).toBe('specialists');
+      expect(blogPostResponse.body.name).toBe('Blog Post');
+      expect(blogPostResponse.body.type).toBe('specialist');
       expect(blogPostResponse.body.skills).toBeInstanceOf(Array);
       expect(blogPostResponse.body.skills.length).toBeGreaterThan(0);
       
@@ -109,6 +125,7 @@ describe('Orchestrator Agent (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .post('/agents/specialists/blog_post/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
         .send(taskRequest)
         .expect(200);
 

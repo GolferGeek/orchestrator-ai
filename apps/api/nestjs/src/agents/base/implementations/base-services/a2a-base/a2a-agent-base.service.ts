@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { BaseService } from '@agents/base/base.service';
+
 import { AgentRegistrationService, AgentInfo } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { JsonRpcProtocolService, JsonRpcRequest, JsonRpcResponse, JsonRpcNotification, JSON_RPC_ERRORS } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService, LogContext } from '@agents/base/sub-services/logging/logging.service';
@@ -17,7 +17,7 @@ import { AuthService, AuthContext } from '@agents/base/sub-services/auth/auth.se
  * by specific agent implementations that need them.
  */
 @Injectable()
-export abstract class A2AAgentBaseService extends BaseService implements OnModuleInit, OnModuleDestroy {
+export abstract class A2AAgentBaseService implements OnModuleInit, OnModuleDestroy {
   protected readonly logger = new Logger(A2AAgentBaseService.name);
   protected agentPath?: string;
 
@@ -34,8 +34,6 @@ export abstract class A2AAgentBaseService extends BaseService implements OnModul
     loggingService?: LoggingService,
     authService?: AuthService
   ) {
-    super();
-    
     // Use provided services or create fallback instances
     this.agentRegistrationService = agentRegistrationService || new AgentRegistrationService(httpService);
     this.jsonRpcProtocolService = jsonRpcProtocolService || new JsonRpcProtocolService();
@@ -183,6 +181,25 @@ export abstract class A2AAgentBaseService extends BaseService implements OnModul
   // ============================================================================
 
   public abstract executeTask(method: string, params: any): Promise<any>;
+
+  // ============================================================================
+  // AGENT CARD GENERATION
+  // ============================================================================
+
+  async getAgentCard(): Promise<any> {
+    return {
+      name: this.getAgentName(),
+      type: this.getAgentType(),
+      path: this.agentPath,
+      id: this.getAgentId(),
+      status: 'active',
+      capabilities: [],
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        className: this.constructor.name
+      }
+    };
+  }
 
   // ============================================================================
   // BASIC AGENT METADATA (minimal defaults)
