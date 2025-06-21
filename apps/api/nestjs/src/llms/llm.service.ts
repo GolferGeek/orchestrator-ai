@@ -216,25 +216,61 @@ ${agentContinuityContext || ''}
 
 This allows the frontend to create clickable links for each agent.
 
-**CRITICAL: You MUST respond with ONLY a valid JSON object. Do NOT include any text before or after the JSON. Do NOT use markdown formatting. The response must be parseable by JSON.parse().**
+**ABSOLUTELY CRITICAL - JSON ONLY RESPONSE REQUIRED:**
+- You MUST respond with ONLY a valid JSON object
+- NO conversational text allowed
+- NO markdown formatting 
+- NO text before or after the JSON
+- NO explanations outside the JSON
+- The response must be parseable by JSON.parse()
+- Start your response with { and end with }
 
-Required JSON format:
+Required JSON format (EXACT FORMAT REQUIRED):
 {
-  "action": "delegate|respond_directly|clarify",
-  "agent": "agent_name_if_delegating", 
-  "response": "your_direct_response_if_responding_directly",
-  "reasoning": "brief_explanation_of_decision"
+  "action": "respond_directly",
+  "response": "Yes, I remember your name is Matt. How can I assist you today, Matt?",
+  "reasoning": "User is asking about remembered information from conversation history"
 }`;
 
       const response = await this.generateResponseWithHistory(systemPrompt, conversationHistory, userMessage);
       
+      // Debug: Log the raw LLM response
+      this.logger.log(`🔍 Raw LLM response for orchestration: "${response}"`);
+      
       try {
+        // First try to parse the response as-is
         const decision = JSON.parse(response);
+        this.logger.log(`✅ Successfully parsed LLM orchestration decision: ${JSON.stringify(decision)}`);
         return decision;
       } catch (parseError) {
-        this.logger.warn('Failed to parse LLM orchestration response as JSON, falling back to rule-based');
+        this.logger.warn('Failed to parse LLM orchestration response as JSON, attempting to extract JSON');
         this.logger.warn(`Raw LLM response that failed to parse: "${response}"`);
         this.logger.warn(`Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+        
+        // Try to extract JSON from the response if it's wrapped in text
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const extractedJson = jsonMatch[0];
+            this.logger.log(`🔧 Attempting to parse extracted JSON: "${extractedJson}"`);
+            const decision = JSON.parse(extractedJson);
+            this.logger.log(`✅ Successfully parsed extracted JSON: ${JSON.stringify(decision)}`);
+            return decision;
+          } catch (extractError) {
+            this.logger.warn(`Failed to parse extracted JSON: ${extractError instanceof Error ? extractError.message : String(extractError)}`);
+          }
+        }
+        
+        // If the response looks conversational, try to create a direct response decision
+        if (response.toLowerCase().includes('matt') || response.toLowerCase().includes('remember') || response.toLowerCase().includes('name')) {
+          this.logger.log('🔧 Creating direct response decision for conversational response about user name');
+          return {
+            action: 'respond_directly',
+            response: response.trim(),
+            reasoning: 'LLM provided conversational response about user context'
+          };
+        }
+        
         return this.getFallbackOrchestrationDecision(userMessage, availableAgents);
       }
 

@@ -30,6 +30,7 @@
   ],
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
+    "axios": "^1.10.0",
     "quick-lru": "^7.0.1"
   }
 }

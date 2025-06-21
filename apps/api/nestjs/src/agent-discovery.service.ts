@@ -116,9 +116,9 @@ export class AgentDiscoveryService {
               break;
               
             case 'context':
-              this.logger.debug(`📝 ${serviceName} is context agent - requires HTTP only`);
-              // Context agents using ContextAgentBaseService: (httpService, ...optional sub-services)
-              serviceInstance = new ServiceClass(this.httpService);
+              this.logger.debug(`📝 ${serviceName} is context agent - requires HTTP, LLM`);
+              // Context agents using ContextAgentBaseService: (httpService, llmService, ...optional sub-services)
+              serviceInstance = new ServiceClass(this.httpService, this.llmService);
               break;
               
             case 'api':
@@ -128,8 +128,8 @@ export class AgentDiscoveryService {
               break;
               
             case 'external':
-              this.logger.debug(`🔗 ${serviceName} is external agent - requires HTTP`);
-              // Future external agents: (httpService, ...optional sub-services)
+              this.logger.debug(`🔗 ${serviceName} is external A2A agent - requires HTTP`);
+              // ExternalA2AAgentBaseService constructor: (httpService)
               serviceInstance = new ServiceClass(this.httpService);
               break;
               
@@ -150,6 +150,28 @@ export class AgentDiscoveryService {
         if (serviceInstance && typeof serviceInstance.setDiscoveredPath === 'function') {
           serviceInstance.setDiscoveredPath(agent.path);
           this.logger.debug(`🗂️ Set discovered path '${agent.path}' for ${ServiceClass.name}`);
+        }
+        
+        // Call onModuleInit to trigger configuration loading from agent.yaml
+        if (serviceInstance && typeof serviceInstance.onModuleInit === 'function') {
+          try {
+            this.logger.debug(`🔧 Calling onModuleInit for ${ServiceClass.name}...`);
+            await serviceInstance.onModuleInit();
+            this.logger.debug(`✅ onModuleInit completed for ${ServiceClass.name}`);
+          } catch (initError: any) {
+            this.logger.error(`❌ onModuleInit failed for ${ServiceClass.name}: ${initError.message}`);
+            // Don't throw here - let the agent continue with fallback behavior
+          }
+        }
+        
+        // For context agents, load and set context data from agent.yaml
+        if (baseServiceType === 'context' && serviceInstance && typeof serviceInstance.setContextData === 'function') {
+          try {
+            await this.loadAndSetContextFromYaml(serviceInstance, agent);
+          } catch (contextError: any) {
+            this.logger.error(`❌ Failed to load context from YAML for ${ServiceClass.name}: ${contextError.message}`);
+            // Don't throw here - let the agent continue with fallback behavior
+          }
         }
         
         // Register with internal agent pool service instead of HTTP registration
@@ -289,6 +311,8 @@ export class AgentDiscoveryService {
       return 'orchestrator';
     } else if (agentPath.includes('specialists')) {
       return 'specialist';
+    } else if (agentPath.includes('api')) {
+      return 'specialist'; // API agents are treated as specialists for routing
     } else if (agentPath.includes('external')) {
       return 'external';
     }
@@ -322,6 +346,9 @@ export class AgentDiscoveryService {
         if (className === 'ContextAgentBaseService') {
           return 'context';
         }
+        if (className === 'ApiAgentBaseService') {
+          return 'api';
+        }
         if (className === 'A2AAgentBaseService') {
           // If it directly extends A2AAgentBaseService (not through other base services), it's a context agent
           return 'context';
@@ -347,12 +374,12 @@ export class AgentDiscoveryService {
       }
       
       // Future base service types can be added here:
-      // if (classString.includes('ApiAgentBaseService')) {
-      //   return 'api';
-      // }
-      // if (classString.includes('ExternalAgentBaseService')) {
-      //   return 'external';
-      // }
+      if (classString.includes('ApiAgentBaseService')) {
+        return 'api';
+      }
+      if (classString.includes('ExternalA2AAgentBaseService')) {
+        return 'external';
+      }
       
       this.logger.warn(`Could not determine base service type for ${serviceName}`);
       return 'unknown';
@@ -524,5 +551,49 @@ export class AgentDiscoveryService {
    */
   getAgentInstances(): any[] {
     return this.agentInstances;
+  }
+
+  /**
+   * Load context data from agent.yaml and set it on context agents
+   */
+  private async loadAndSetContextFromYaml(serviceInstance: any, agent: DiscoveredAgent): Promise<void> {
+    const fs = await import('fs');
+    const path = await import('path');
+    const yaml = await import('js-yaml');
+    
+    try {
+      // Determine the agent directory from the service path
+      const agentDirectory = path.dirname(agent.servicePath);
+      const yamlPath = path.join(agentDirectory, 'agent.yaml');
+      
+      this.logger.debug(`🔍 Looking for agent.yaml at: ${yamlPath}`);
+      
+      if (!fs.existsSync(yamlPath)) {
+        this.logger.warn(`No agent.yaml found at: ${yamlPath}`);
+        return;
+      }
+      
+      // Read and parse the YAML file
+      const yamlContent = fs.readFileSync(yamlPath, 'utf8');
+      const yamlData = yaml.load(yamlContent) as any;
+      
+      if (!yamlData) {
+        this.logger.warn(`Failed to parse YAML content from ${yamlPath}`);
+        return;
+      }
+      
+      // Extract system_prompt as context data
+      const systemPrompt = yamlData.system_prompt;
+      if (systemPrompt && typeof systemPrompt === 'string') {
+        serviceInstance.setContextData(systemPrompt);
+        this.logger.log(`✅ Loaded context data from YAML for ${agent.name} (length: ${systemPrompt.length})`);
+      } else {
+        this.logger.warn(`No system_prompt found in agent.yaml for ${agent.name}`);
+      }
+      
+    } catch (error: any) {
+      this.logger.error(`Failed to load context from YAML for ${agent.name}:`, error);
+      throw error;
+    }
   }
 } 

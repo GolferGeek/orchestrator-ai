@@ -5,6 +5,7 @@ import { AgentRegistrationService, AgentInfo } from '@agents/base/sub-services/a
 import { JsonRpcProtocolService, JsonRpcRequest, JsonRpcResponse, JsonRpcNotification, JSON_RPC_ERRORS } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService, LogContext } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService, AuthContext } from '@agents/base/sub-services/auth/auth.service';
+import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 
 /**
  * Minimal A2A Agent Base Service
@@ -26,19 +27,22 @@ export abstract class A2AAgentBaseService implements OnModuleInit, OnModuleDestr
   protected jsonRpcProtocolService: JsonRpcProtocolService;
   protected loggingService: LoggingService;
   protected authService: AuthService;
+  protected configurationService: ConfigurationService;
 
   constructor(
     protected readonly httpService: HttpService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
-    authService?: AuthService
+    authService?: AuthService,
+    configurationService?: ConfigurationService
   ) {
     // Use provided services or create fallback instances
     this.agentRegistrationService = agentRegistrationService || new AgentRegistrationService(httpService);
     this.jsonRpcProtocolService = jsonRpcProtocolService || new JsonRpcProtocolService();
     this.loggingService = loggingService || new LoggingService();
     this.authService = authService || new AuthService();
+    this.configurationService = configurationService || new ConfigurationService();
   }
 
   // ============================================================================
