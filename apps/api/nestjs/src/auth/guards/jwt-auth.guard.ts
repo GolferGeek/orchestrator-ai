@@ -13,7 +13,7 @@ export class JwtAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     
-    // Check for API key authentication as fallback
+    // Check for API key authentication as fallback FIRST
     const testApiKey = request.headers['x-test-api-key'] as string;
     const configuredTestKey = process.env.TEST_API_SECRET_KEY;
     
@@ -33,6 +33,7 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
+    // Only proceed with JWT validation if no valid test API key was provided
     // Extract JWT token from Authorization header
     const authHeader = request.headers.authorization;
     const token = authHeader?.replace('Bearer ', '');
