@@ -9,6 +9,7 @@ import { AgentRegistrationService } from '@agents/base/sub-services/agent-regist
 import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
+import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 
 export interface AgentFunctionParams {
   userMessage: string;
@@ -46,14 +47,16 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
-    authService?: AuthService
+    authService?: AuthService,
+    configurationService?: ConfigurationService
   ) {
     super(
       httpService,
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,
-      authService
+      authService,
+      configurationService
     );
   }
 

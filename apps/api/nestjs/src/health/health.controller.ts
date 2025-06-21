@@ -56,4 +56,25 @@ export class HealthController {
       service: 'NestJS A2A Agent Framework',
     };
   }
+
+  @Get('supabase')
+  async checkSupabase() {
+    try {
+      const result = await this.supabaseService.checkConnection();
+      return {
+        status: 'ok',
+        supabase: result,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        supabase: {
+          status: 'error',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        },
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
 } 

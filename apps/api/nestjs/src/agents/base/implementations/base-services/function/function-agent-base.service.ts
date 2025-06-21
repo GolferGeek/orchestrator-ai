@@ -6,6 +6,7 @@ import { AgentRegistrationService } from '../../../sub-services/agent-registrati
 import { JsonRpcProtocolService } from '../../../sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService } from '../../../sub-services/logging/logging.service';
 import { AuthService } from '../../../sub-services/auth/auth.service';
+import { ConfigurationService } from '../../../sub-services/configuration/configuration.service';
 
 export interface AgentFunctionParams {
   userMessage: string;
@@ -42,14 +43,16 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
-    authService?: AuthService
+    authService?: AuthService,
+    configurationService?: ConfigurationService
   ) {
     super(
       httpService,
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,
-      authService
+      authService,
+      configurationService
     );
   }
 

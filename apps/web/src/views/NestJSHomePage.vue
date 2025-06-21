@@ -175,12 +175,14 @@ const handleSendMessage = async (text: string) => {
   console.log("[NestJSHomePage] User message added to store:", JSON.parse(JSON.stringify(userMessage)));
 
   try {
-    // Prepare conversation history for context (exclude the message we're about to send)
-    const conversationHistory = currentSessionMessages.value.map(msg => ({
-      role: msg.role === 'assistant' ? 'assistant' : 'user',
-      content: msg.content || '',
-      metadata: msg.metadata
-    }));
+    // Prepare conversation history for context (exclude the message we just added)
+    const conversationHistory = currentSessionMessages.value
+      .filter(msg => msg.id !== userMessage.id) // Exclude the message we just added
+      .map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: msg.content || '',
+        metadata: msg.metadata
+      }));
 
     const taskResponse = await nestjsApiService.postTaskToOrchestrator(text, currentSessionId.value, conversationHistory);
     console.log("[NestJSHomePage] Received taskResponse from NestJS orchestrator:", JSON.parse(JSON.stringify(taskResponse)));

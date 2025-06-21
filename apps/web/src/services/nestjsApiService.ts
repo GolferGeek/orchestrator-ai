@@ -59,7 +59,7 @@ class NestJSApiService {
               'Authorization': `Bearer ${authToken}`
             }
           });
-          currentUser = userResponse.data.user;
+          currentUser = userResponse.data;
         } catch (error) {
           console.warn('Failed to fetch current user for orchestrator:', error);
         }
@@ -81,7 +81,12 @@ class NestJSApiService {
 
       const response = await this.axiosInstance.post<JsonRpcResponse>(
         '/agents/orchestrator/orchestrator/tasks', 
-        requestPayload
+        requestPayload,
+        {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined
+          }
+        }
       );
       
       const jsonRpcResponse = response.data;
