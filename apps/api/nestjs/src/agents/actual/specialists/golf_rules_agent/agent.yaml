@@ -110,11 +110,11 @@ api_configuration:
     Content-Type: "application/json"
   authentication: null
   request_transform:
-    format: "n8n"
-    session_id_generation: true
+    format: "custom"
+    template: '{"sessionId": "{{sessionId}}", "prompt": "{{userMessage}}"}'
   response_transform:
-    format: "standard"
-    include_rule_references: true
+    format: "field_extraction"
+    field: "output"
 
 configuration:
   default_output_format: "text/plain"

@@ -10,12 +10,12 @@ import { ConfigurationService } from '../../../base/sub-services/configuration/c
 @Injectable()
 export class RulesOfGolfAgentService extends ApiAgentBaseService {
   constructor(
-    protected readonly httpService: HttpService,
-    agentRegistrationService: AgentRegistrationService,
-    jsonRpcProtocolService: JsonRpcProtocolService,
-    loggingService: LoggingService,
-    authService: AuthService,
-    configurationService: ConfigurationService
+    httpService: HttpService,
+    agentRegistrationService?: AgentRegistrationService,
+    jsonRpcProtocolService?: JsonRpcProtocolService,
+    loggingService?: LoggingService,
+    authService?: AuthService,
+    configurationService?: ConfigurationService,
   ) {
     super(
       httpService,
@@ -23,9 +23,9 @@ export class RulesOfGolfAgentService extends ApiAgentBaseService {
       jsonRpcProtocolService,
       loggingService,
       authService,
-      configurationService
+      configurationService,
     );
   }
   
-  // Minimal implementation - base service handles API configuration from agent-context.md
+  // Minimal implementation - base service handles API configuration from agent.yaml
 } 

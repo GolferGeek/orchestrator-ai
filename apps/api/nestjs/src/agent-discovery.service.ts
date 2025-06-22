@@ -423,13 +423,34 @@ export class AgentDiscoveryService {
       const pathParts = servicePath.split('/');
       const agentIndex = pathParts.findIndex(part => part === 'actual') + 1;
       
+      // Debug logging for golf_rules_agent
+      if (servicePath.includes('golf_rules_agent')) {
+        this.logger.debug(`🔍 Golf Rules Agent Path Debug:`);
+        this.logger.debug(`  Full path: ${servicePath}`);
+        this.logger.debug(`  Path parts: ${JSON.stringify(pathParts)}`);
+        this.logger.debug(`  'actual' index: ${pathParts.findIndex(part => part === 'actual')}`);
+        this.logger.debug(`  Agent index: ${agentIndex}`);
+      }
+      
       if (agentIndex < pathParts.length) {
         const agentPathParts = pathParts.slice(agentIndex, -1); // Remove 'agent-service.ts'
         const agentType = agentPathParts[0] || 'unknown';
         const agentName = agentPathParts[agentPathParts.length - 1] || 'unknown';
         
+        // More debug logging for golf_rules_agent
+        if (servicePath.includes('golf_rules_agent')) {
+          this.logger.debug(`  Agent path parts: ${JSON.stringify(agentPathParts)}`);
+          this.logger.debug(`  Agent type: ${agentType}`);
+          this.logger.debug(`  Agent name: ${agentName}`);
+        }
+        
         // Create agent path format for routing (e.g., "orchestrator/orchestrator", "specialists/blog_post")
         const agentPath = `${agentType}/${agentName}`;
+        
+        // Final debug logging for golf_rules_agent
+        if (servicePath.includes('golf_rules_agent')) {
+          this.logger.debug(`  Final agent path: ${agentPath}`);
+        }
         
         const agent: DiscoveredAgent = {
           name: agentName,
@@ -440,6 +461,11 @@ export class AgentDiscoveryService {
 
         this.discoveredAgents.push(agent);
         this.logger.log(`📁 Found agent: ${agentPath} at ${servicePath}`);
+      } else {
+        // Debug when agentIndex >= pathParts.length
+        if (servicePath.includes('golf_rules_agent')) {
+          this.logger.error(`❌ Golf Rules Agent: agentIndex (${agentIndex}) >= pathParts.length (${pathParts.length})`);
+        }
       }
     } catch (error) {
       this.logger.error(`❌ Error processing agent service ${servicePath}:`, error);

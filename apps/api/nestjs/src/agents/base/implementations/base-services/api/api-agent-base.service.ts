@@ -30,8 +30,8 @@ export interface ApiConfiguration {
     delay: number;
     backoff: 'linear' | 'exponential';
   };
-  requestTransform?: string; // JSONPath or simple mapping instructions
-  responseTransform?: string; // JSONPath or simple mapping instructions
+  requestTransform?: any; // Request transformation configuration (string template or object)
+  responseTransform?: any; // Response transformation configuration (string or object)
 }
 
 export interface ApiAgentParams {
@@ -103,57 +103,123 @@ export class ApiAgentBaseService extends A2AAgentBaseService implements OnModule
   private async loadApiConfigurationFromYaml(): Promise<void> {
     this.apiLogger.debug(`Loading API configuration from YAML for ${this.getAgentName()}`);
     
-    if (!this.agentPath) {
-      this.apiLogger.warn(`Agent path not set for ${this.getAgentName()}, cannot load configuration`);
-      return;
+    let agentPath = this.agentPath;
+    
+    // Fallback: If agent path is unknown, try to determine it from the agent name
+    if (!agentPath || agentPath === 'unknown') {
+      const agentName = this.getAgentName();
+      this.apiLogger.debug(`Agent path is unknown, attempting to determine from agent name: ${agentName}`);
+      
+      // Map known agent names to their paths
+      const agentPathMap: Record<string, string> = {
+        'Rules Of Golf Agent': 'specialists/golf_rules_agent',
+        'Rules Of Golf Expert': 'specialists/golf_rules_agent',
+        'Golf Rules Agent': 'specialists/golf_rules_agent',
+        'Travel Planner': 'specialists/travel_planner',
+        'Google Hello World': 'external/google_hello_world',
+        // Add more mappings as needed
+      };
+      
+      agentPath = agentPathMap[agentName];
+      
+      if (agentPath) {
+        this.apiLogger.debug(`Mapped agent name "${agentName}" to path: ${agentPath}`);
+        this.agentPath = agentPath; // Update the stored path
+      } else {
+        this.apiLogger.warn(`Could not map agent name "${agentName}" to a known path`);
+        return;
+      }
     }
 
-    this.apiLogger.debug(`Agent path: ${this.agentPath}`);
+    this.apiLogger.debug(`Using agent path: ${agentPath}`);
+    this.apiLogger.debug(`Process CWD: ${process.cwd()}`);
+    this.apiLogger.debug(`__dirname: ${__dirname}`);
     
     try {
-      const agentDirectory = path.join(
-        process.cwd(),
-        'src/agents/actual',
-        this.agentPath
-      );
+      // Try multiple path resolution strategies
+      const possibleDirectories = [
+        // Strategy 1: Use process.cwd() + src/agents/actual/[agentPath]
+        path.join(process.cwd(), 'src/agents/actual', agentPath),
+        // Strategy 2: Use process.cwd() + dist/agents/actual/[agentPath] 
+        path.join(process.cwd(), 'dist/agents/actual', agentPath),
+        // Strategy 3: Use relative from current file location
+        path.join(process.cwd(), 'apps/api/nestjs/src/agents/actual', agentPath),
+        // Strategy 4: Use __dirname and navigate up to src
+        path.join(__dirname, '../../../../../agents/actual', agentPath),
+        // Strategy 5: Use absolute path from workspace root
+        path.join(process.cwd(), '../../../apps/api/nestjs/src/agents/actual', agentPath),
+      ];
       
-      this.apiLogger.debug(`Looking for agent.yaml in directory: ${agentDirectory}`);
+      let yamlPath: string | null = null;
       
-      // Initialize the AgentContextService with the agent directory
-      await this.agentContextService.initialize(agentDirectory);
+      for (const dir of possibleDirectories) {
+        const testPath = path.join(dir, 'agent.yaml');
+        this.apiLogger.debug(`Trying directory: ${dir}`);
+        
+        if (fs.existsSync(testPath)) {
+          yamlPath = testPath;
+          this.apiLogger.debug(`Found agent.yaml at: ${yamlPath}`);
+          break;
+        } else {
+          this.apiLogger.debug(`No agent.yaml found at: ${testPath}`);
+        }
+      }
       
-      if (!this.agentContextService.isLoaded) {
-        this.apiLogger.warn(`Failed to load agent context from YAML for ${this.getAgentName()}`);
+      if (!yamlPath) {
+        this.apiLogger.error(`Could not find agent.yaml in any of the expected locations for ${this.getAgentName()}`);
         return;
       }
       
-      this.apiLogger.debug(`Agent context loaded successfully, extracting API configuration...`);
+      this.apiLogger.debug(`Using agent directory: ${agentPath}`);
       
-      // Extract API configuration from the loaded context metadata
-      const config = this.extractApiConfigurationFromContext();
-      if (config) {
-        this.apiLogger.debug(`Extracted API configuration successfully:`, {
-          endpoint: config.endpoint,
-          method: config.method,
-          hasAuthentication: !!config.authentication,
-          authType: config.authentication?.type
-        });
+      if (fs.existsSync(yamlPath)) {
+        this.apiLogger.debug(`Found agent.yaml at: ${yamlPath}`);
         
-        // Use ConfigurationService for environment variable substitution
-        const substitutionResult = this.configurationService.substituteEnvVars(
-          config,
-          'API_',
-          false // not strict mode
-        );
+        // Extract the directory name for AgentContextService (it expects just the directory)
+        const agentDirectory = path.dirname(yamlPath);
+        this.apiLogger.debug(`Using agent directory for context service: ${agentDirectory}`);
         
-        this.setApiConfiguration(substitutionResult.data);
-        this.apiLogger.log(`API configuration loaded successfully for ${this.getAgentName()}`);
-        
-        if (substitutionResult.substitutedVars.length > 0) {
-          this.apiLogger.debug(`Environment variables substituted: ${substitutionResult.substitutedVars.join(', ')}`);
+        try {
+          // Load context using the absolute directory path
+          await this.agentContextService.initialize(agentDirectory);
+          
+          // Extract API configuration from the loaded context
+          const config = this.extractApiConfigurationFromContext();
+          
+          if (config) {
+            this.apiLogger.debug(`API configuration found in YAML for ${this.getAgentName()}`);
+            
+            // Use ConfigurationService for environment variable substitution if available
+            if (this.configurationService) {
+              const substitutionResult = this.configurationService.substituteEnvVars(
+                config,
+                'API_',
+                false // not strict mode
+              );
+              
+              this.setApiConfiguration(substitutionResult.data);
+              
+              if (substitutionResult.substitutedVars.length > 0) {
+                this.apiLogger.debug(`Environment variables substituted: ${substitutionResult.substitutedVars.join(', ')}`);
+              }
+            } else {
+              // Fallback: use config as-is without environment variable substitution
+              this.apiLogger.debug('ConfigurationService not available, using config without env var substitution');
+              this.setApiConfiguration(config);
+            }
+            
+            this.apiLogger.debug(`API configuration loaded successfully for ${this.getAgentName()}`);
+            return;
+          } else {
+            this.apiLogger.warn(`No api_configuration section found in YAML for ${this.getAgentName()}`);
+          }
+        } catch (error: any) {
+          this.apiLogger.error(`Failed to load agent context from YAML for ${this.getAgentName()}: ${error.message}`);
         }
+        
+        return; // Found the file, but couldn't load config
       } else {
-        this.apiLogger.warn(`No API configuration found in YAML for ${this.getAgentName()}`);
+        this.apiLogger.debug(`No agent.yaml found at: ${yamlPath}`);
       }
     } catch (error) {
       this.apiLogger.error(`Error loading API configuration for ${this.getAgentName()}:`, error);
@@ -165,30 +231,31 @@ export class ApiAgentBaseService extends A2AAgentBaseService implements OnModule
    */
   private extractApiConfigurationFromContext(): ApiConfiguration | null {
     try {
-      // Check if there's api_configuration in the metadata
-      const apiConfig = this.agentContextService.metadata?.api_configuration;
+      const context = this.agentContextService;
+      this.apiLogger.debug('Full agent context loaded:', JSON.stringify(context, null, 2));
       
-      if (!apiConfig) {
-        this.apiLogger.debug('No api_configuration found in agent metadata');
+      if (!context?.metadata?.api_configuration) {
+        this.apiLogger.warn('No api_configuration found in agent context metadata');
         return null;
       }
+
+      const apiConfig = context.metadata.api_configuration;
+      this.apiLogger.debug('Raw api_configuration from YAML:', JSON.stringify(apiConfig, null, 2));
 
       const config: ApiConfiguration = {
-        endpoint: apiConfig.endpoint || '',
-        method: (apiConfig.method || 'POST').toUpperCase() as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+        endpoint: apiConfig.endpoint,
+        method: apiConfig.method || 'POST',
         timeout: apiConfig.timeout || 30000,
-        headers: apiConfig.headers || { 'Content-Type': 'application/json' },
+        headers: apiConfig.headers || {},
         authentication: apiConfig.authentication || null,
         retry: apiConfig.retry || { attempts: 3, delay: 1000, backoff: 'linear' },
-        requestTransform: apiConfig.request_transform?.format || undefined,
-        responseTransform: apiConfig.response_transform?.format || undefined
+        requestTransform: apiConfig.request_transform || undefined,
+        responseTransform: apiConfig.response_transform || undefined
       };
 
-      // Validate required fields
-      if (!config.endpoint) {
-        this.apiLogger.warn('API configuration missing required endpoint');
-        return null;
-      }
+      this.apiLogger.debug('Extracted API configuration:', JSON.stringify(config, null, 2));
+      this.apiLogger.debug('Request transform extracted:', config.requestTransform);
+      this.apiLogger.debug('Response transform extracted:', config.responseTransform);
 
       return config;
     } catch (error) {
@@ -214,7 +281,13 @@ export class ApiAgentBaseService extends A2AAgentBaseService implements OnModule
     this.apiLogger.debug(`ExecuteTask called for ${agentName}, method: ${method}`);
     
     try {
-      // If no API configuration, fall back to simple response
+      // Lazy loading: If no API configuration, try to load it now
+      if (!this.apiConfiguration) {
+        this.apiLogger.debug(`No API configuration found, attempting lazy loading for ${agentName}...`);
+        await this.loadApiConfigurationFromYaml();
+      }
+      
+      // If still no API configuration, fall back to simple response
       if (!this.apiConfiguration) {
         this.apiLogger.debug(`No API configuration for ${agentName}, using fallback`);
         return this.fallbackResponse(method, params);
@@ -293,6 +366,10 @@ export class ApiAgentBaseService extends A2AAgentBaseService implements OnModule
         // Prepare headers
         const headers = this.prepareHeaders(config, params);
         
+        this.apiLogger.debug(`Making HTTP ${config.method} request to: ${config.endpoint}`);
+        this.apiLogger.debug(`Request headers:`, headers);
+        this.apiLogger.debug(`Request data:`, requestData);
+        
         // Make the HTTP request
         const response = await firstValueFrom(
           this.httpService.request({
@@ -304,6 +381,11 @@ export class ApiAgentBaseService extends A2AAgentBaseService implements OnModule
             timeout: config.timeout || 30000,
           })
         );
+
+        this.apiLogger.debug(`HTTP response status: ${response.status}`);
+        this.apiLogger.debug(`HTTP response headers:`, response.headers);
+        this.apiLogger.debug(`HTTP response data type: ${typeof response.data}`);
+        this.apiLogger.debug(`HTTP response data:`, response.data);
 
         // Transform response
         const transformedResponse = this.transformResponse(response.data, params);
@@ -343,38 +425,75 @@ export class ApiAgentBaseService extends A2AAgentBaseService implements OnModule
     
     // If no transform specified, use default mapping
     if (!config?.requestTransform) {
-      return {
+      const defaultData = {
         message: params.userMessage,
         session_id: params.sessionId,
         user: params.currentUser,
         timestamp: params.metadata.timestamp
       };
+      this.apiLogger.debug(`Using default request transform:`, defaultData);
+      return defaultData;
     }
 
-    // Simple transformation logic (can be enhanced with JSONPath)
-    try {
-      // For now, implement basic field mapping
-      const baseData = {
-        userMessage: params.userMessage,
+    // Handle specific transformation formats
+    if (typeof config.requestTransform === 'object' && config.requestTransform.format === 'n8n') {
+      const n8nData = {
         sessionId: params.sessionId,
-        conversationHistory: params.conversationHistory,
-        currentUser: params.currentUser,
-        metadata: params.metadata
+        prompt: params.userMessage,
+        user: params.currentUser?.email || 'anonymous',
+        timestamp: params.metadata.timestamp
       };
-
-      // Simple string replacement for common patterns
-      let transformedData = JSON.parse(
-        config.requestTransform
-          .replace(/\{\{userMessage\}\}/g, JSON.stringify(params.userMessage))
-          .replace(/\{\{sessionId\}\}/g, JSON.stringify(params.sessionId))
-          .replace(/\{\{timestamp\}\}/g, JSON.stringify(params.metadata.timestamp))
-      );
-
-      return transformedData;
-    } catch (error) {
-      this.apiLogger.warn('Request transformation failed, using default format:', error);
-      return { message: params.userMessage };
+      this.apiLogger.debug(`Using N8N request transform:`, n8nData);
+      return n8nData;
     }
+
+    // Handle custom template format
+    if (typeof config.requestTransform === 'object' && config.requestTransform.format === 'custom' && config.requestTransform.template) {
+      try {
+        let templateString = config.requestTransform.template;
+        
+        // Replace template variables
+        templateString = templateString.replace(/\{\{sessionId\}\}/g, params.sessionId);
+        templateString = templateString.replace(/\{\{userMessage\}\}/g, params.userMessage);
+        templateString = templateString.replace(/\{\{userId\}\}/g, params.currentUser?.id || 'anonymous');
+        templateString = templateString.replace(/\{\{userEmail\}\}/g, params.currentUser?.email || 'anonymous');
+        templateString = templateString.replace(/\{\{timestamp\}\}/g, params.metadata.timestamp);
+        
+        const customData = JSON.parse(templateString);
+        this.apiLogger.debug(`Using custom template request transform:`, customData);
+        return customData;
+      } catch (error) {
+        this.apiLogger.error(`Error parsing custom template:`, error);
+        // Fall back to default
+        const defaultData = {
+          message: params.userMessage,
+          session_id: params.sessionId
+        };
+        this.apiLogger.debug(`Falling back to default request transform:`, defaultData);
+        return defaultData;
+      }
+    }
+
+    // If transform format is a JSON template string, parse and use it
+    if (typeof config.requestTransform === 'string') {
+      try {
+        const template = JSON.parse(config.requestTransform);
+        this.apiLogger.debug(`Using JSON template request transform:`, template);
+        return template;
+      } catch (error) {
+        this.apiLogger.error(`Error parsing request transform template:`, error);
+      }
+    }
+
+    // Default fallback
+    const defaultData = {
+      message: params.userMessage,
+      session_id: params.sessionId,
+      user: params.currentUser,
+      timestamp: params.metadata.timestamp
+    };
+    this.apiLogger.debug(`Using fallback request transform:`, defaultData);
+    return defaultData;
   }
 
   /**
@@ -383,21 +502,62 @@ export class ApiAgentBaseService extends A2AAgentBaseService implements OnModule
   private transformResponse(apiResponse: any, params: ApiAgentParams): string {
     const config = this.apiConfiguration;
     
+    this.apiLogger.debug(`Raw API response received:`, apiResponse);
+    this.apiLogger.debug(`Response transform config:`, config?.responseTransform);
+    
     // If no transform specified, use default extraction
     if (!config?.responseTransform) {
+      this.apiLogger.debug('No response transform specified, using default extraction');
+      
       // Try common response field names
       if (typeof apiResponse === 'string') {
+        this.apiLogger.debug('Response is already a string, returning as-is');
         return apiResponse;
       }
       
-      const commonFields = ['response', 'message', 'result', 'content', 'text', 'output'];
+      const commonFields = ['output', 'response', 'message', 'result', 'content', 'text'];
       for (const field of commonFields) {
         if (apiResponse[field] && typeof apiResponse[field] === 'string') {
+          this.apiLogger.debug(`Found response in field '${field}':`, apiResponse[field]);
           return apiResponse[field];
         }
       }
       
       // Fallback to stringified response
+      this.apiLogger.debug('No suitable field found, stringifying entire response');
+      return JSON.stringify(apiResponse);
+    }
+
+    // Handle field extraction format
+    if (typeof config.responseTransform === 'object' && config.responseTransform.format === 'field_extraction') {
+      const fieldName = config.responseTransform.field;
+      this.apiLogger.debug(`Using field extraction for field '${fieldName}'`);
+      
+      if (typeof apiResponse === 'object' && apiResponse !== null && apiResponse[fieldName] !== undefined) {
+        this.apiLogger.debug(`Extracted field '${fieldName}':`, apiResponse[fieldName]);
+        return String(apiResponse[fieldName]);
+      } else {
+        this.apiLogger.warn(`Field '${fieldName}' not found in response, falling back to default extraction`);
+        return String(apiResponse);
+      }
+    }
+
+    // Handle specific transformation formats
+    if (config.responseTransform === 'standard') {
+      this.apiLogger.debug('Using standard response transform');
+      // For standard format, look for common fields
+      if (typeof apiResponse === 'string') {
+        return apiResponse;
+      }
+      
+      const standardFields = ['output', 'response', 'message', 'result'];
+      for (const field of standardFields) {
+        if (apiResponse[field] && typeof apiResponse[field] === 'string') {
+          this.apiLogger.debug(`Standard transform found response in field '${field}':`, apiResponse[field]);
+          return apiResponse[field];
+        }
+      }
+      
       return JSON.stringify(apiResponse);
     }
 
@@ -408,11 +568,14 @@ export class ApiAgentBaseService extends A2AAgentBaseService implements OnModule
         // Simple JSONPath-like extraction
         const fieldPath = config.responseTransform.slice(2);
         const fieldValue = this.extractNestedField(apiResponse, fieldPath);
+        this.apiLogger.debug(`JSONPath extraction for '${fieldPath}':`, fieldValue);
         return fieldValue || JSON.stringify(apiResponse);
       }
 
       // Direct field name
-      return apiResponse[config.responseTransform] || JSON.stringify(apiResponse);
+      const directValue = apiResponse[config.responseTransform];
+      this.apiLogger.debug(`Direct field extraction for '${config.responseTransform}':`, directValue);
+      return directValue || JSON.stringify(apiResponse);
     } catch (error) {
       this.apiLogger.warn('Response transformation failed, using default format:', error);
       return JSON.stringify(apiResponse);
