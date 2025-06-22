@@ -116,7 +116,14 @@ export class AgentContextService {
         domain: parsed.domain || parsed.metadata?.domain || '',
         endpoint: parsed.endpoint || parsed.metadata?.endpoint || '/tasks',
         version: parsed.metadata?.version || '1.0.0',
-        metadata: parsed.metadata || {}
+        // Include the full parsed YAML structure in metadata so api_configuration is accessible
+        metadata: {
+          ...parsed.metadata || {},
+          api_configuration: parsed.api_configuration,
+          system_prompt: parsed.system_prompt,
+          configuration: parsed.configuration,
+          fullYaml: parsed // Keep full structure for any other needs
+        }
       };
 
       this.logger.debug(`Parsed context: name=${context.name}, type=${context.type}, capabilities=${context.capabilities.length}, skills=${context.skills.length}`);
