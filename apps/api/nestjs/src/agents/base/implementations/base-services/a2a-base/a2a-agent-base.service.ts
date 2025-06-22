@@ -206,6 +206,19 @@ export abstract class A2AAgentBaseService implements OnModuleInit, OnModuleDestr
   }
 
   // ============================================================================
+  // PATH MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Set the agent path from the discovery service
+   * This is more reliable than trying to extract it from stack traces
+   */
+  setDiscoveredPath(path: string): void {
+    this.agentPath = path;
+    this.logger.debug(`Agent path set to: ${path}`);
+  }
+
+  // ============================================================================
   // BASIC AGENT METADATA (minimal defaults)
   // ============================================================================
 
@@ -270,7 +283,12 @@ export abstract class A2AAgentBaseService implements OnModuleInit, OnModuleDestr
   }
 
   private discoverAgentPath(): string {
-    // Use stack trace to determine agent path
+    // If path was already set by the discovery service, use that
+    if (this.agentPath && this.agentPath !== 'unknown') {
+      return this.agentPath;
+    }
+
+    // Fallback: Use stack trace to determine agent path
     const stack = new Error().stack;
     if (stack) {
       const stackLines = stack.split('\n');
