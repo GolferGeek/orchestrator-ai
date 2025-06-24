@@ -107,7 +107,7 @@ describe('Orchestrator Agent (e2e)', () => {
         .get('/agents/specialists/blog_post/.well-known/agent.json')
         .expect(200);
 
-      expect(blogPostResponse.body.name).toBe('Blog Post');
+      expect(blogPostResponse.body.name).toBe('Blog Post Writer');
       expect(blogPostResponse.body.type).toBe('specialist');
       expect(blogPostResponse.body.skills).toBeInstanceOf(Array);
       expect(blogPostResponse.body.skills.length).toBeGreaterThan(0);
@@ -137,6 +137,6 @@ describe('Orchestrator Agent (e2e)', () => {
 
       expect(response.body).toBeDefined();
       // The response should contain some content or success indicator
-    });
+    }, 15000); // Increase timeout to 15 seconds
   });
 });

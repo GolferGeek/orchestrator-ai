@@ -110,8 +110,8 @@ export class ExternalA2AAgentBaseService
       // Discover remote agent capabilities
       await this.discoverRemoteAgent();
 
-      // Register with local agent pool
-      await this.registerWithAgentPool();
+      // Note: Agent registration is now handled by AppService via AgentFactoryService
+      // No longer self-registering here to avoid conflicts
 
       this.isInitialized = true;
       this.logger.log(
