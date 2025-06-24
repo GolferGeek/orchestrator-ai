@@ -7,6 +7,7 @@ import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-proto
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
+import { AgentContextService } from '../a2a-base/agent-context.service';
 
 /**
  * Context Agent Base Service that processes context-based requests using LLM
@@ -16,6 +17,7 @@ import { ConfigurationService } from '@agents/base/sub-services/configuration/co
 export class ContextAgentBaseService extends A2AAgentBaseService {
   protected readonly contextLogger = new Logger(ContextAgentBaseService.name);
   private contextData: string | null = null;
+  protected readonly agentContextService = new AgentContextService();
 
   constructor(
     protected readonly httpService: HttpService,
@@ -42,7 +44,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   setContextData(contextData: string): void {
     this.contextData = contextData;
     this.contextLogger.debug(
-      `Context data loaded for ${this.getAgentName()}, length: ${contextData?.length || 0}`,
+      `Context data set, length: ${contextData?.length || 0}`,
     );
   }
 
@@ -230,15 +232,38 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   }
 
   /**
-   * Get agent card with context status
+   * Get agent card with context status and skills from YAML
    */
   async getAgentCard(): Promise<any> {
     const baseCard = await super.getAgentCard();
+    
+    // Include skills from AgentContextService if available
+    const skills = this.agentContextService.isLoaded ? this.agentContextService.skills : [];
+    const name = this.agentContextService.isLoaded ? this.agentContextService.name : baseCard.name;
+    const description = this.agentContextService.isLoaded ? this.agentContextService.description : baseCard.description || '';
+    
     return {
       ...baseCard,
+      name,
+      description,
+      skills,
       contextStatus: this.contextData ? 'loaded' : 'not_loaded',
       contextLength: this.contextData?.length || 0,
       loadedAt: this.contextData ? new Date().toISOString() : null,
     };
+  }
+
+  /**
+   * Initialize context from agent directory (called by AgentFactoryService)
+   */
+  async initializeContext(agentDirectory: string): Promise<void> {
+    try {
+      await this.agentContextService.initialize(agentDirectory);
+      this.contextLogger.debug(
+        `Context initialized for ${this.agentContextService.name}, skills: ${this.agentContextService.skills.length}`,
+      );
+    } catch (error) {
+      this.contextLogger.error('Failed to initialize agent context:', error);
+    }
   }
 }

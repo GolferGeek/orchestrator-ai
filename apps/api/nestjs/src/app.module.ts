@@ -10,8 +10,11 @@ import { HealthModule } from './health/health.module';
 import { AgentPoolModule } from './agent-pool/agent-pool.module';
 import { LLMModule } from '@/llms/llm.module';
 import { AgentDiscoveryService } from './agent-discovery.service';
+import { AgentFactoryService } from './agent-factory.service';
 import { DynamicAgentsController } from './agents/dynamic-agents.controller';
 import { BaseSubServicesModule } from './agents/base/sub-services/base-sub-services.module';
+import { ConfigurationService } from './agents/base/sub-services/configuration/configuration.service';
+import { AgentRegistrationService } from './agents/base/sub-services/agent-registration/agent-registration.service';
 import supabaseConfig from './supabase/supabase.config';
 
 @Module({
@@ -35,8 +38,11 @@ import supabaseConfig from './supabase/supabase.config';
   providers: [
     AppService,
     AgentDiscoveryService,
-    // TODO: Dynamic agents will be instantiated via discovery service
-    // No need for hardcoded agent imports - everything is discovered dynamically
+    AgentFactoryService,
+    ConfigurationService,
+    AgentRegistrationService,
+    // TODO: Dynamic agents will be instantiated via discovery service + factory
+    // No need for hardcoded agent imports - everything is discovered and created dynamically
   ],
 })
 export class AppModule {}
