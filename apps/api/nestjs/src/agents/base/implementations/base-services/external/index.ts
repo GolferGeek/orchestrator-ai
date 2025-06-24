@@ -6,5 +6,5 @@ export type {
   ExternalA2AConfiguration,
   ExternalAgentCard,
   ExternalA2AParams,
-  ExternalA2AResponse
-} from './external-a2a-agent-base.service'; 
+  ExternalA2AResponse,
+} from './external-a2a-agent-base.service';

@@ -1,8 +1,11 @@
-import { AgentFunctionParams, AgentFunctionResponse } from '@agents/base/implementations/base-services/a2a-base/interfaces';
+import {
+  AgentFunctionParams,
+  AgentFunctionResponse,
+} from '@agents/base/implementations/base-services/a2a-base/interfaces';
 
 /**
  * HR Assistant Agent Function - Simple LangGraph Implementation
- * 
+ *
  * This demonstrates a basic LangGraph workflow for HR assistance:
  * 1. Classify the query type
  * 2. Route to appropriate processing
@@ -29,7 +32,7 @@ interface HRWorkflowState {
  */
 async function classifyQuery(
   state: HRWorkflowState,
-  llmService: any
+  llmService: any,
 ): Promise<HRWorkflowState> {
   const classificationPrompt = `You are an HR query classifier. Analyze the following user query and classify it.
 
@@ -55,19 +58,21 @@ Respond with a JSON object:
     const classificationResponse = await llmService.generateResponse(
       'You are an expert HR query classifier. Always respond with valid JSON.',
       classificationPrompt,
-      { temperature: 0.1, maxTokens: 200 }
+      { temperature: 0.1, maxTokens: 200 },
     );
 
-    const classification: HRQueryClassification = JSON.parse(classificationResponse);
-    
+    const classification: HRQueryClassification = JSON.parse(
+      classificationResponse,
+    );
+
     return {
       ...state,
       classification,
       metadata: {
         ...state.metadata,
         classification_step: 'completed',
-        query_type: classification.type
-      }
+        query_type: classification.type,
+      },
     };
   } catch (error) {
     // Fallback classification
@@ -77,13 +82,14 @@ Respond with a JSON object:
         type: 'general',
         confidence: 0.5,
         topic: 'general_hr_inquiry',
-        requires_routing: false
+        requires_routing: false,
       },
       metadata: {
         ...state.metadata,
         classification_step: 'fallback',
-        classification_error: error instanceof Error ? error.message : String(error)
-      }
+        classification_error:
+          error instanceof Error ? error.message : String(error),
+      },
     };
   }
 }
@@ -93,7 +99,7 @@ Respond with a JSON object:
  */
 async function generateResponse(
   state: HRWorkflowState,
-  llmService: any
+  llmService: any,
 ): Promise<HRWorkflowState> {
   if (!state.classification) {
     throw new Error('Classification required before response generation');
@@ -142,10 +148,14 @@ This appears to be a complex HR matter that requires human expertise. Politely e
   }
 
   try {
-    const response = await llmService.generateResponse(systemPrompt, responsePrompt, {
-      temperature: 0.7,
-      maxTokens: 500
-    });
+    const response = await llmService.generateResponse(
+      systemPrompt,
+      responsePrompt,
+      {
+        temperature: 0.7,
+        maxTokens: 500,
+      },
+    );
 
     return {
       ...state,
@@ -154,8 +164,8 @@ This appears to be a complex HR matter that requires human expertise. Politely e
         ...state.metadata,
         response_step: 'completed',
         routing_recommended: requires_routing,
-        target_agent: target_agent || null
-      }
+        target_agent: target_agent || null,
+      },
     };
   } catch (error) {
     return {
@@ -164,8 +174,8 @@ This appears to be a complex HR matter that requires human expertise. Politely e
       metadata: {
         ...state.metadata,
         response_step: 'error',
-        response_error: error instanceof Error ? error.message : String(error)
-      }
+        response_error: error instanceof Error ? error.message : String(error),
+      },
     };
   }
 }
@@ -176,9 +186,8 @@ This appears to be a complex HR matter that requires human expertise. Politely e
 async function executeHRWorkflow(
   userMessage: string,
   llmService: any,
-  sessionId?: string
+  sessionId?: string,
 ): Promise<{ response: string; metadata: Record<string, any> }> {
-  
   // Initialize workflow state
   let state: HRWorkflowState = {
     userMessage,
@@ -187,8 +196,8 @@ async function executeHRWorkflow(
     metadata: {
       workflow_id: `hr_${Date.now()}`,
       session_id: sessionId || 'unknown',
-      steps_completed: []
-    }
+      steps_completed: [],
+    },
   };
 
   try {
@@ -205,18 +214,17 @@ async function executeHRWorkflow(
       metadata: {
         ...state.metadata,
         workflow_status: 'completed',
-        total_steps: 2
-      }
+        total_steps: 2,
+      },
     };
-
   } catch (error) {
     return {
       response: `I apologize, but I encountered an issue with your HR question. Please contact the HR department directly for assistance.`,
       metadata: {
         ...state.metadata,
         workflow_status: 'error',
-        workflow_error: error instanceof Error ? error.message : String(error)
-      }
+        workflow_error: error instanceof Error ? error.message : String(error),
+      },
     };
   }
 }
@@ -224,7 +232,9 @@ async function executeHRWorkflow(
 /**
  * Main agent function export
  */
-export async function execute(params: AgentFunctionParams): Promise<AgentFunctionResponse> {
+export async function execute(
+  params: AgentFunctionParams,
+): Promise<AgentFunctionResponse> {
   const { userMessage, sessionId, llmService } = params;
   const startTime = Date.now();
 
@@ -233,7 +243,7 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
     const { response, metadata: workflowMetadata } = await executeHRWorkflow(
       userMessage,
       llmService,
-      sessionId
+      sessionId,
     );
 
     const processingTime = Date.now() - startTime;
@@ -248,10 +258,9 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
         sessionId,
         toolsUsed: ['llm-service', 'langgraph'],
         responseType: 'hr-assistance',
-        workflow: workflowMetadata
-      }
+        workflow: workflowMetadata,
+      },
     };
-
   } catch (error) {
     const processingTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -265,8 +274,8 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
         processingTime,
         sessionId,
         error: errorMessage,
-        toolsUsed: ['llm-service']
-      }
+        toolsUsed: ['llm-service'],
+      },
     };
   }
-} 
+}

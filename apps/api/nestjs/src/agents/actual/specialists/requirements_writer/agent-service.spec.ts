@@ -16,7 +16,9 @@ describe('RequirementsWriterService', () => {
   beforeEach(async () => {
     const mockLLMService = {
       generateResponse: jest.fn().mockResolvedValue('Mock LLM response'),
-      generateResponseWithHistory: jest.fn().mockResolvedValue('Mock LLM response with history'),
+      generateResponseWithHistory: jest
+        .fn()
+        .mockResolvedValue('Mock LLM response with history'),
       getLangGraphLLM: jest.fn(),
     };
 
@@ -50,7 +52,9 @@ describe('RequirementsWriterService', () => {
     llmService = module.get<LLMService>(LLMService) as jest.Mocked<LLMService>;
 
     // Mock required methods from base class
-    jest.spyOn(service as any, 'getAgentName').mockReturnValue('requirements_writer');
+    jest
+      .spyOn(service as any, 'getAgentName')
+      .mockReturnValue('requirements_writer');
     jest.spyOn(service as any, 'getAgentType').mockReturnValue('python');
   });
 
@@ -66,7 +70,7 @@ describe('RequirementsWriterService', () => {
     it('should set Python script path correctly', () => {
       // The constructor should set the script path to agent-function.py in the same directory
       expect(service).toBeDefined();
-      // We can't directly test the private pythonScriptPath property, 
+      // We can't directly test the private pythonScriptPath property,
       // but we can verify it works through executeTask behavior
     });
   });
@@ -94,7 +98,7 @@ describe('RequirementsWriterService', () => {
     it('should have Python script path set', () => {
       // Verify that the Python script path is properly set during construction
       const expectedScriptPath = path.join(__dirname, 'agent-function.py');
-      
+
       // We can't directly access the private property, but we can test the behavior
       // by checking if the service attempts to use the Python script
       expect(service).toBeDefined();
@@ -103,7 +107,7 @@ describe('RequirementsWriterService', () => {
     it('should be ready for Python execution', async () => {
       // This test verifies that the service is properly configured for Python execution
       // The actual execution testing is handled by the PythonFunctionAgentBaseService tests
-      
+
       // Mock that the Python script exists
       mockFs.existsSync.mockReturnValue(true);
 
@@ -119,18 +123,18 @@ describe('RequirementsWriterService', () => {
       const baseCard = {
         name: 'requirements_writer',
         type: 'python',
-        description: 'Requirements Writer Agent'
+        description: 'Requirements Writer Agent',
       };
-      
+
       // Mock the PythonFunctionAgentBaseService getAgentCard method
       jest.spyOn(service, 'getAgentCard').mockResolvedValue({
         ...baseCard,
         pythonScriptStatus: 'available',
         pythonScriptPath: expect.stringContaining('agent-function.py'),
         pythonExecutable: 'python3',
-        loadedAt: expect.any(String)
+        loadedAt: expect.any(String),
       });
-      
+
       // Mock that the Python script exists
       mockFs.existsSync.mockReturnValue(true);
 
@@ -141,7 +145,7 @@ describe('RequirementsWriterService', () => {
         pythonScriptStatus: 'available',
         pythonScriptPath: expect.stringContaining('agent-function.py'),
         pythonExecutable: 'python3',
-        loadedAt: expect.any(String)
+        loadedAt: expect.any(String),
       });
     });
 
@@ -150,18 +154,18 @@ describe('RequirementsWriterService', () => {
       const baseCard = {
         name: 'requirements_writer',
         type: 'python',
-        description: 'Requirements Writer Agent'
+        description: 'Requirements Writer Agent',
       };
-      
+
       // Mock the PythonFunctionAgentBaseService getAgentCard method
       jest.spyOn(service, 'getAgentCard').mockResolvedValue({
         ...baseCard,
         pythonScriptStatus: 'not_available',
         pythonScriptPath: expect.stringContaining('agent-function.py'),
         pythonExecutable: 'python3',
-        loadedAt: expect.any(String)
+        loadedAt: expect.any(String),
       });
-      
+
       // Mock that the Python script doesn't exist
       mockFs.existsSync.mockReturnValue(false);
 
@@ -172,7 +176,7 @@ describe('RequirementsWriterService', () => {
         pythonScriptStatus: 'not_available',
         pythonScriptPath: expect.stringContaining('agent-function.py'),
         pythonExecutable: 'python3',
-        loadedAt: expect.any(String)
+        loadedAt: expect.any(String),
       });
     });
   });
@@ -189,4 +193,4 @@ describe('RequirementsWriterService', () => {
       // httpService and contextService are optional, so they might be undefined
     });
   });
-}); 
+});

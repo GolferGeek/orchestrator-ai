@@ -40,4 +40,4 @@ import { AuthService } from './auth/auth.service';
     AuthService,
   ],
 })
-export class BaseSubServicesModule {} 
+export class BaseSubServicesModule {}

@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { 
-  JsonRpcProtocolService, 
-  JsonRpcRequest, 
-  JsonRpcResponse, 
+import {
+  JsonRpcProtocolService,
+  JsonRpcRequest,
+  JsonRpcResponse,
   JsonRpcNotification,
   JSON_RPC_ERRORS,
   JsonRpcProcessingOptions,
   JsonRpcMethodHandler,
-  JsonRpcNotificationHandler
+  JsonRpcNotificationHandler,
 } from './json-rpc-protocol.service';
 
 describe('JsonRpcProtocolService', () => {
@@ -21,7 +21,7 @@ describe('JsonRpcProtocolService', () => {
     }).compile();
 
     service = module.get<JsonRpcProtocolService>(JsonRpcProtocolService);
-    
+
     // Create mock handlers
     mockMethodHandler = jest.fn();
     mockNotificationHandler = jest.fn();
@@ -37,7 +37,7 @@ describe('JsonRpcProtocolService', () => {
         jsonrpc: '2.0',
         method: 'test.method',
         params: { test: 'value' },
-        id: '123'
+        id: '123',
       };
 
       const result = service.validateRequest(request);
@@ -49,7 +49,7 @@ describe('JsonRpcProtocolService', () => {
       const notification: JsonRpcNotification = {
         jsonrpc: '2.0',
         method: 'test.notification',
-        params: { test: 'value' }
+        params: { test: 'value' },
       };
 
       const result = service.validateRequest(notification);
@@ -67,7 +67,7 @@ describe('JsonRpcProtocolService', () => {
       const request = {
         jsonrpc: '1.0',
         method: 'test.method',
-        id: '123'
+        id: '123',
       };
 
       const result = service.validateRequest(request);
@@ -79,7 +79,7 @@ describe('JsonRpcProtocolService', () => {
     it('should reject request without method', () => {
       const request = {
         jsonrpc: '2.0',
-        id: '123'
+        id: '123',
       };
 
       const result = service.validateRequest(request);
@@ -92,23 +92,25 @@ describe('JsonRpcProtocolService', () => {
       const request = {
         jsonrpc: '2.0',
         method: 'test.method',
-        id: true // boolean is invalid
+        id: true, // boolean is invalid
       };
 
       const result = service.validateRequest(request);
       expect(result.isValid).toBe(false);
       expect(result.error?.code).toBe(JSON_RPC_ERRORS.INVALID_REQUEST);
-      expect(result.error?.message).toContain('id must be string, number, or null');
+      expect(result.error?.message).toContain(
+        'id must be string, number, or null',
+      );
     });
 
     it('should accept valid id types', () => {
       const validIds = ['string-id', 123, null];
-      
-      validIds.forEach(id => {
+
+      validIds.forEach((id) => {
         const request = {
           jsonrpc: '2.0',
           method: 'test.method',
-          id
+          id,
         };
 
         const result = service.validateRequest(request);
@@ -123,33 +125,38 @@ describe('JsonRpcProtocolService', () => {
         jsonrpc: '2.0',
         method: 'test.method',
         params: { input: 'test' },
-        id: '123'
+        id: '123',
       };
 
       const expectedResult = { output: 'success' };
       mockMethodHandler.mockResolvedValue(expectedResult);
 
-      const response = await service.processSingleRequest(request, mockMethodHandler);
+      const response = await service.processSingleRequest(
+        request,
+        mockMethodHandler,
+      );
 
       expect(response).toEqual({
         jsonrpc: '2.0',
         id: '123',
-        result: expectedResult
+        result: expectedResult,
       });
-      expect(mockMethodHandler).toHaveBeenCalledWith('test.method', { input: 'test' });
+      expect(mockMethodHandler).toHaveBeenCalledWith('test.method', {
+        input: 'test',
+      });
     });
 
     it('should handle notifications without returning response', async () => {
       const notification: JsonRpcNotification = {
         jsonrpc: '2.0',
         method: 'test.notification',
-        params: { data: 'test' }
+        params: { data: 'test' },
       };
 
       const response = await service.processSingleRequest(
-        notification, 
-        mockMethodHandler, 
-        mockNotificationHandler
+        notification,
+        mockMethodHandler,
+        mockNotificationHandler,
       );
 
       expect(response).toBeNull();
@@ -164,21 +171,26 @@ describe('JsonRpcProtocolService', () => {
         params: { input: 'test' },
         id: '123',
         currentUser: { id: 'user1' },
-        authToken: 'token123'
+        authToken: 'token123',
       };
 
       const options: JsonRpcProcessingOptions = {
-        preserveAuthContext: true
+        preserveAuthContext: true,
       };
 
       mockMethodHandler.mockResolvedValue({ success: true });
 
-      await service.processSingleRequest(request, mockMethodHandler, undefined, options);
+      await service.processSingleRequest(
+        request,
+        mockMethodHandler,
+        undefined,
+        options,
+      );
 
       expect(mockMethodHandler).toHaveBeenCalledWith('test.method', {
         input: 'test',
         currentUser: { id: 'user1' },
-        authToken: 'token123'
+        authToken: 'token123',
       });
     });
 
@@ -186,20 +198,23 @@ describe('JsonRpcProtocolService', () => {
       const request: JsonRpcRequest = {
         jsonrpc: '2.0',
         method: 'test.method',
-        id: '123'
+        id: '123',
       };
 
       mockMethodHandler.mockRejectedValue(new Error('Method not found'));
 
-      const response = await service.processSingleRequest(request, mockMethodHandler);
+      const response = await service.processSingleRequest(
+        request,
+        mockMethodHandler,
+      );
 
       expect(response).toEqual({
         jsonrpc: '2.0',
         id: '123',
         error: {
           code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
-          message: 'Method not found'
-        }
+          message: 'Method not found',
+        },
       });
     });
 
@@ -207,14 +222,17 @@ describe('JsonRpcProtocolService', () => {
       const invalidRequest = {
         jsonrpc: '1.0', // wrong version
         method: 'test.method',
-        id: '123'
+        id: '123',
       };
 
-             const response = await service.processSingleRequest(invalidRequest, mockMethodHandler);
+      const response = await service.processSingleRequest(
+        invalidRequest,
+        mockMethodHandler,
+      );
 
-                       expect(response).toBeDefined();
-        expect(response?.error?.code).toBe(JSON_RPC_ERRORS.INVALID_REQUEST);
-       expect(mockMethodHandler).not.toHaveBeenCalled();
+      expect(response).toBeDefined();
+      expect(response?.error?.code).toBe(JSON_RPC_ERRORS.INVALID_REQUEST);
+      expect(mockMethodHandler).not.toHaveBeenCalled();
     });
   });
 
@@ -222,7 +240,7 @@ describe('JsonRpcProtocolService', () => {
     it('should process multiple valid requests', async () => {
       const batchRequest = [
         { jsonrpc: '2.0', method: 'method1', id: '1' },
-        { jsonrpc: '2.0', method: 'method2', id: '2' }
+        { jsonrpc: '2.0', method: 'method2', id: '2' },
       ];
 
       mockMethodHandler
@@ -230,25 +248,28 @@ describe('JsonRpcProtocolService', () => {
         .mockResolvedValueOnce({ result: 'result2' });
 
       const responses = await service.processBatchRequest(
-        batchRequest, 
-        mockMethodHandler
+        batchRequest,
+        mockMethodHandler,
       );
 
       expect(responses).toHaveLength(2);
       expect(responses[0]).toEqual({
         jsonrpc: '2.0',
         id: '1',
-        result: { result: 'result1' }
+        result: { result: 'result1' },
       });
       expect(responses[1]).toEqual({
         jsonrpc: '2.0',
         id: '2',
-        result: { result: 'result2' }
+        result: { result: 'result2' },
       });
     });
 
     it('should handle empty batch request', async () => {
-      const responses = await service.processBatchRequest([], mockMethodHandler);
+      const responses = await service.processBatchRequest(
+        [],
+        mockMethodHandler,
+      );
 
       expect(responses).toHaveLength(1);
       expect(responses[0]?.error?.code).toBe(JSON_RPC_ERRORS.INVALID_REQUEST);
@@ -257,29 +278,31 @@ describe('JsonRpcProtocolService', () => {
     it('should enforce batch size limits', async () => {
       const batchRequest = [
         { jsonrpc: '2.0', method: 'method1', id: '1' },
-        { jsonrpc: '2.0', method: 'method2', id: '2' }
+        { jsonrpc: '2.0', method: 'method2', id: '2' },
       ];
 
       const options: JsonRpcProcessingOptions = {
-        maxBatchSize: 1
+        maxBatchSize: 1,
       };
 
       const responses = await service.processBatchRequest(
-        batchRequest, 
+        batchRequest,
         mockMethodHandler,
         undefined,
-        options
+        options,
       );
 
       expect(responses).toHaveLength(1);
-      expect(responses[0]?.error?.message).toContain('Batch size exceeds maximum');
+      expect(responses[0]?.error?.message).toContain(
+        'Batch size exceeds maximum',
+      );
     });
 
     it('should filter out notification responses', async () => {
       const batchRequest = [
         { jsonrpc: '2.0', method: 'method1', id: '1' },
         { jsonrpc: '2.0', method: 'notification' }, // no id = notification
-        { jsonrpc: '2.0', method: 'method2', id: '2' }
+        { jsonrpc: '2.0', method: 'method2', id: '2' },
       ];
 
       mockMethodHandler
@@ -287,9 +310,9 @@ describe('JsonRpcProtocolService', () => {
         .mockResolvedValueOnce({ result: 'result2' });
 
       const responses = await service.processBatchRequest(
-        batchRequest, 
+        batchRequest,
         mockMethodHandler,
-        mockNotificationHandler
+        mockNotificationHandler,
       );
 
       expect(responses).toHaveLength(2); // Only non-notification responses
@@ -302,7 +325,7 @@ describe('JsonRpcProtocolService', () => {
       const request: JsonRpcRequest = {
         jsonrpc: '2.0',
         method: 'test.method',
-        id: '123'
+        id: '123',
       };
 
       mockMethodHandler.mockResolvedValue({ success: true });
@@ -312,45 +335,44 @@ describe('JsonRpcProtocolService', () => {
       expect(response).toEqual({
         jsonrpc: '2.0',
         id: '123',
-        result: { success: true }
+        result: { success: true },
       });
     });
 
     it('should route batch requests correctly', async () => {
-      const batchRequest = [
-        { jsonrpc: '2.0', method: 'method1', id: '1' }
-      ];
+      const batchRequest = [{ jsonrpc: '2.0', method: 'method1', id: '1' }];
 
       const options: JsonRpcProcessingOptions = {
-        enableBatchProcessing: true
+        enableBatchProcessing: true,
       };
 
       mockMethodHandler.mockResolvedValue({ success: true });
 
       const response = await service.processRequest(
-        batchRequest, 
+        batchRequest,
         mockMethodHandler,
         undefined,
-        options
+        options,
       );
 
       expect(Array.isArray(response)).toBe(true);
     });
 
     it('should reject batch requests when disabled', async () => {
-      const batchRequest = [
-        { jsonrpc: '2.0', method: 'method1', id: '1' }
-      ];
+      const batchRequest = [{ jsonrpc: '2.0', method: 'method1', id: '1' }];
 
-      const response = await service.processRequest(batchRequest, mockMethodHandler);
+      const response = await service.processRequest(
+        batchRequest,
+        mockMethodHandler,
+      );
 
       expect(response).toEqual({
         jsonrpc: '2.0',
         id: null,
         error: {
           code: JSON_RPC_ERRORS.INVALID_REQUEST,
-          message: 'Batch processing not enabled'
-        }
+          message: 'Batch processing not enabled',
+        },
       });
     });
   });
@@ -362,7 +384,7 @@ describe('JsonRpcProtocolService', () => {
       expect(response).toEqual({
         jsonrpc: '2.0',
         id: '123',
-        result: { data: 'test' }
+        result: { data: 'test' },
       });
     });
   });
@@ -372,7 +394,7 @@ describe('JsonRpcProtocolService', () => {
       const response = service.createErrorResponse(
         JSON_RPC_ERRORS.METHOD_NOT_FOUND,
         'Method not found',
-        '123'
+        '123',
       );
 
       expect(response).toEqual({
@@ -380,8 +402,8 @@ describe('JsonRpcProtocolService', () => {
         id: '123',
         error: {
           code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
-          message: 'Method not found'
-        }
+          message: 'Method not found',
+        },
       });
     });
 
@@ -391,7 +413,7 @@ describe('JsonRpcProtocolService', () => {
         JSON_RPC_ERRORS.INVALID_PARAMS,
         'Invalid parameters',
         '123',
-        errorData
+        errorData,
       );
 
       expect(response).toEqual({
@@ -400,8 +422,8 @@ describe('JsonRpcProtocolService', () => {
         error: {
           code: JSON_RPC_ERRORS.INVALID_PARAMS,
           message: 'Invalid parameters',
-          data: errorData
-        }
+          data: errorData,
+        },
       });
     });
   });
@@ -479,7 +501,12 @@ describe('JsonRpcProtocolService', () => {
     });
 
     it('should extract parameters correctly', () => {
-      const request = { jsonrpc: '2.0', method: 'test', params: { test: 'value' }, id: '1' };
+      const request = {
+        jsonrpc: '2.0',
+        method: 'test',
+        params: { test: 'value' },
+        id: '1',
+      };
       const requestWithoutParams = { jsonrpc: '2.0', method: 'test', id: '1' };
 
       expect(service.getParameters(request)).toEqual({ test: 'value' });
@@ -498,7 +525,7 @@ describe('JsonRpcProtocolService', () => {
     it('should handle notification handler errors gracefully', async () => {
       const notification: JsonRpcNotification = {
         jsonrpc: '2.0',
-        method: 'test.notification'
+        method: 'test.notification',
       };
 
       mockNotificationHandler.mockRejectedValue(new Error('Handler error'));
@@ -507,7 +534,7 @@ describe('JsonRpcProtocolService', () => {
       const response = await service.processSingleRequest(
         notification,
         mockMethodHandler,
-        mockNotificationHandler
+        mockNotificationHandler,
       );
 
       expect(response).toBeNull();
@@ -517,16 +544,16 @@ describe('JsonRpcProtocolService', () => {
     it('should handle missing notification handler', async () => {
       const notification: JsonRpcNotification = {
         jsonrpc: '2.0',
-        method: 'test.notification'
+        method: 'test.notification',
       };
 
       const response = await service.processSingleRequest(
         notification,
-        mockMethodHandler
+        mockMethodHandler,
         // No notification handler provided
       );
 
       expect(response).toBeNull();
     });
   });
-}); 
+});

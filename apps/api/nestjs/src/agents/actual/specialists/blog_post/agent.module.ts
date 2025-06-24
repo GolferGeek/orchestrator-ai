@@ -7,4 +7,4 @@ import { BlogPostService } from './agent-service';
   providers: [BlogPostService],
   exports: [BlogPostService],
 })
-export class BlogPostModule {} 
+export class BlogPostModule {}

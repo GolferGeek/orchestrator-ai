@@ -1,6 +1,10 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
-import { AgentRegistration, AgentHeartbeat, AgentCapabilitiesDocument } from './interfaces';
+import {
+  AgentRegistration,
+  AgentHeartbeat,
+  AgentCapabilitiesDocument,
+} from './interfaces';
 
 @Injectable()
 export class AgentPoolService implements OnModuleDestroy {
@@ -18,18 +22,22 @@ export class AgentPoolService implements OnModuleDestroy {
    */
   async registerAgent(registration: AgentRegistration): Promise<void> {
     const agentId = registration.id;
-    
-    this.logger.log(`Registering agent: ${agentId} (${registration.name}) at ${registration.url}`);
-    
+
+    this.logger.log(
+      `Registering agent: ${agentId} (${registration.name}) at ${registration.url}`,
+    );
+
     // Add/update agent registration
     this.agents.set(agentId, {
       ...registration,
       registeredAt: new Date(),
       lastHeartbeat: new Date(),
-      status: 'online'
+      status: 'online',
     });
 
-    this.logger.log(`Agent ${agentId} registered successfully. Pool size: ${this.agents.size}`);
+    this.logger.log(
+      `Agent ${agentId} registered successfully. Pool size: ${this.agents.size}`,
+    );
   }
 
   /**
@@ -37,9 +45,11 @@ export class AgentPoolService implements OnModuleDestroy {
    */
   async receiveHeartbeat(heartbeat: AgentHeartbeat): Promise<void> {
     const agent = this.agents.get(heartbeat.agentId);
-    
+
     if (!agent) {
-      this.logger.warn(`Received heartbeat from unregistered agent: ${heartbeat.agentId}`);
+      this.logger.warn(
+        `Received heartbeat from unregistered agent: ${heartbeat.agentId}`,
+      );
       return;
     }
 
@@ -57,7 +67,9 @@ export class AgentPoolService implements OnModuleDestroy {
   async unregisterAgent(agentId: string): Promise<void> {
     if (this.agents.has(agentId)) {
       this.agents.delete(agentId);
-      this.logger.log(`Agent ${agentId} unregistered. Pool size: ${this.agents.size}`);
+      this.logger.log(
+        `Agent ${agentId} unregistered. Pool size: ${this.agents.size}`,
+      );
     }
   }
 
@@ -72,7 +84,9 @@ export class AgentPoolService implements OnModuleDestroy {
    * Get online agents only
    */
   getOnlineAgents(): AgentRegistration[] {
-    return Array.from(this.agents.values()).filter(agent => agent.status === 'online');
+    return Array.from(this.agents.values()).filter(
+      (agent) => agent.status === 'online',
+    );
   }
 
   /**
@@ -86,7 +100,9 @@ export class AgentPoolService implements OnModuleDestroy {
    * Get agents by type (orchestrator, specialist, manager, external)
    */
   getAgentsByType(type: string): AgentRegistration[] {
-    return Array.from(this.agents.values()).filter(agent => agent.type === type);
+    return Array.from(this.agents.values()).filter(
+      (agent) => agent.type === type,
+    );
   }
 
   /**
@@ -94,17 +110,18 @@ export class AgentPoolService implements OnModuleDestroy {
    */
   generateCapabilitiesDocument(): AgentCapabilitiesDocument {
     const onlineAgents = this.getOnlineAgents();
-    
+
     const capabilitiesDoc: AgentCapabilitiesDocument = {
       generatedAt: new Date(),
       totalAgents: onlineAgents.length,
       agentsByType: {
-        orchestrator: onlineAgents.filter(a => a.type === 'orchestrator').length,
-        specialist: onlineAgents.filter(a => a.type === 'specialist').length,
-        manager: onlineAgents.filter(a => a.type === 'manager').length,
-        external: onlineAgents.filter(a => a.type === 'external').length,
+        orchestrator: onlineAgents.filter((a) => a.type === 'orchestrator')
+          .length,
+        specialist: onlineAgents.filter((a) => a.type === 'specialist').length,
+        manager: onlineAgents.filter((a) => a.type === 'manager').length,
+        external: onlineAgents.filter((a) => a.type === 'external').length,
       },
-      agents: onlineAgents.map(agent => ({
+      agents: onlineAgents.map((agent) => ({
         id: agent.id,
         name: agent.name,
         type: agent.type,
@@ -117,11 +134,13 @@ export class AgentPoolService implements OnModuleDestroy {
         outputModes: agent.outputModes,
         status: agent.status,
         lastHeartbeat: agent.lastHeartbeat,
-        metadata: agent.metadata
-      }))
+        metadata: agent.metadata,
+      })),
     };
 
-    this.logger.debug(`Generated capabilities document with ${capabilitiesDoc.totalAgents} agents`);
+    this.logger.debug(
+      `Generated capabilities document with ${capabilitiesDoc.totalAgents} agents`,
+    );
     return capabilitiesDoc;
   }
 
@@ -129,19 +148,29 @@ export class AgentPoolService implements OnModuleDestroy {
    * Get orchestrator-friendly agent list for LLM prompts
    */
   getOrchestrationAgentList(): string {
-    const specialists = this.getAgentsByType('specialist').filter(a => a.status === 'online');
-    const managers = this.getAgentsByType('manager').filter(a => a.status === 'online');
-    const externals = this.getAgentsByType('external').filter(a => a.status === 'online');
-    
+    const specialists = this.getAgentsByType('specialist').filter(
+      (a) => a.status === 'online',
+    );
+    const managers = this.getAgentsByType('manager').filter(
+      (a) => a.status === 'online',
+    );
+    const externals = this.getAgentsByType('external').filter(
+      (a) => a.status === 'online',
+    );
+
     const agentDescriptions: string[] = [];
-    
+
     // Add specialists
     if (specialists.length > 0) {
       agentDescriptions.push('**Specialist Agents:**');
-      specialists.forEach(agent => {
-        agentDescriptions.push(`- **${agent.name}** (${agent.path}): ${agent.description}`);
+      specialists.forEach((agent) => {
+        agentDescriptions.push(
+          `- **${agent.name}** (${agent.path}): ${agent.description}`,
+        );
         if (agent.skills && agent.skills.length > 0) {
-          agentDescriptions.push(`  Skills: ${agent.skills.map((s: any) => s.name).join(', ')}`);
+          agentDescriptions.push(
+            `  Skills: ${agent.skills.map((s: any) => s.name).join(', ')}`,
+          );
         }
       });
       agentDescriptions.push('');
@@ -150,8 +179,10 @@ export class AgentPoolService implements OnModuleDestroy {
     // Add managers
     if (managers.length > 0) {
       agentDescriptions.push('**Manager Agents:**');
-      managers.forEach(agent => {
-        agentDescriptions.push(`- **${agent.name}** (${agent.path}): ${agent.description}`);
+      managers.forEach((agent) => {
+        agentDescriptions.push(
+          `- **${agent.name}** (${agent.path}): ${agent.description}`,
+        );
       });
       agentDescriptions.push('');
     }
@@ -159,8 +190,10 @@ export class AgentPoolService implements OnModuleDestroy {
     // Add externals
     if (externals.length > 0) {
       agentDescriptions.push('**External Agents:**');
-      externals.forEach(agent => {
-        agentDescriptions.push(`- **${agent.name}** (${agent.path}): ${agent.description}`);
+      externals.forEach((agent) => {
+        agentDescriptions.push(
+          `- **${agent.name}** (${agent.path}): ${agent.description}`,
+        );
       });
     }
 
@@ -179,17 +212,23 @@ export class AgentPoolService implements OnModuleDestroy {
       if (!agent.lastHeartbeat) {
         continue; // Skip agents without heartbeat data
       }
-      
-      const timeSinceLastHeartbeat = now.getTime() - agent.lastHeartbeat.getTime();
-      
-      if (timeSinceLastHeartbeat > this.heartbeatTimeout && agent.status === 'online') {
+
+      const timeSinceLastHeartbeat =
+        now.getTime() - agent.lastHeartbeat.getTime();
+
+      if (
+        timeSinceLastHeartbeat > this.heartbeatTimeout &&
+        agent.status === 'online'
+      ) {
         agent.status = 'offline';
         staleAgents.push(agentId);
       }
     }
 
     if (staleAgents.length > 0) {
-      this.logger.warn(`Marked ${staleAgents.length} agents as offline: ${staleAgents.join(', ')}`);
+      this.logger.warn(
+        `Marked ${staleAgents.length} agents as offline: ${staleAgents.join(', ')}`,
+      );
     }
   }
 
@@ -200,14 +239,14 @@ export class AgentPoolService implements OnModuleDestroy {
     const agents = Array.from(this.agents.values());
     return {
       total: agents.length,
-      online: agents.filter(a => a.status === 'online').length,
-      offline: agents.filter(a => a.status === 'offline').length,
+      online: agents.filter((a) => a.status === 'online').length,
+      offline: agents.filter((a) => a.status === 'offline').length,
       byType: {
-        orchestrator: agents.filter(a => a.type === 'orchestrator').length,
-        specialist: agents.filter(a => a.type === 'specialist').length,
-        manager: agents.filter(a => a.type === 'manager').length,
-        external: agents.filter(a => a.type === 'external').length,
-      }
+        orchestrator: agents.filter((a) => a.type === 'orchestrator').length,
+        specialist: agents.filter((a) => a.type === 'specialist').length,
+        manager: agents.filter((a) => a.type === 'manager').length,
+        external: agents.filter((a) => a.type === 'external').length,
+      },
     };
   }
 
@@ -218,4 +257,4 @@ export class AgentPoolService implements OnModuleDestroy {
     this.logger.log('Agent Pool Service shutting down');
     this.agents.clear();
   }
-} 
+}

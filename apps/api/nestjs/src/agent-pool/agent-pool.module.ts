@@ -9,4 +9,4 @@ import { AgentPoolController } from './agent-pool.controller';
   controllers: [AgentPoolController],
   exports: [AgentPoolService],
 })
-export class AgentPoolModule {} 
+export class AgentPoolModule {}

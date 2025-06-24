@@ -24,7 +24,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
     authService?: AuthService,
-    configurationService?: ConfigurationService
+    configurationService?: ConfigurationService,
   ) {
     super(
       httpService,
@@ -32,7 +32,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       jsonRpcProtocolService,
       loggingService,
       authService,
-      configurationService
+      configurationService,
     );
   }
 
@@ -41,7 +41,9 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   setContextData(contextData: string): void {
     this.contextData = contextData;
-    this.contextLogger.debug(`Context data loaded for ${this.getAgentName()}, length: ${contextData?.length || 0}`);
+    this.contextLogger.debug(
+      `Context data loaded for ${this.getAgentName()}, length: ${contextData?.length || 0}`,
+    );
   }
 
   /**
@@ -50,11 +52,11 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
     const agentType = this.getAgentType();
-    
+
     try {
       // Extract user message from params
       const userMessage = this.extractUserMessage(params);
-      
+
       // Check if this is a simple greeting request
       if (this.isGreeting(userMessage)) {
         const greeting = this.generatePersonalizedGreeting(agentName);
@@ -65,11 +67,11 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
             agentName: agentName,
             agentType: agentType,
             responseType: 'greeting',
-            processedAt: new Date().toISOString()
-          }
+            processedAt: new Date().toISOString(),
+          },
         };
       }
-      
+
       // If no context data available, use fallback
       if (!this.contextData) {
         return this.processWithoutContext(method, params, agentName, agentType);
@@ -77,8 +79,11 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
 
       // Process with LLM using context
       const systemPrompt = this.buildSystemPrompt(agentName, agentType);
-      const response = await this.llmService.generateResponse(userMessage, systemPrompt);
-      
+      const response = await this.llmService.generateResponse(
+        userMessage,
+        systemPrompt,
+      );
+
       return {
         success: true,
         response,
@@ -87,23 +92,23 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           agentType: agentType,
           contextUsed: true,
           contextLength: this.contextData.length,
-          processedAt: new Date().toISOString()
-        }
+          processedAt: new Date().toISOString(),
+        },
       };
-      
     } catch (error) {
       this.contextLogger.error(`Error in executeTask for ${agentName}:`, error);
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
-        response: 'I apologize, but I encountered an error while processing your request.',
+        response:
+          'I apologize, but I encountered an error while processing your request.',
         metadata: {
           agentName: agentName,
           agentType: agentType,
           errorDetails: error instanceof Error ? error.message : String(error),
-          processedAt: new Date().toISOString()
-        }
+          processedAt: new Date().toISOString(),
+        },
       };
     }
   }
@@ -115,19 +120,27 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     if (typeof params === 'string') {
       return params;
     }
-    
+
     if (params && typeof params === 'object') {
-      const messageProps = ['userMessage', 'message', 'prompt', 'input', 'request', 'content', 'text'];
-      
+      const messageProps = [
+        'userMessage',
+        'message',
+        'prompt',
+        'input',
+        'request',
+        'content',
+        'text',
+      ];
+
       for (const prop of messageProps) {
         if (params[prop] && typeof params[prop] === 'string') {
           return params[prop];
         }
       }
-      
+
       return JSON.stringify(params);
     }
-    
+
     return String(params || '');
   }
 
@@ -136,9 +149,11 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   private isGreeting(message: string): boolean {
     const lowerMessage = message.toLowerCase().trim();
-    return lowerMessage === 'hello' || 
-           lowerMessage === 'hi' || 
-           lowerMessage.includes('can i talk to');
+    return (
+      lowerMessage === 'hello' ||
+      lowerMessage === 'hi' ||
+      lowerMessage.includes('can i talk to')
+    );
   }
 
   /**
@@ -146,12 +161,12 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   private buildSystemPrompt(agentName: string, agentType: string): string {
     let prompt = `You are ${agentName}, a ${agentType} agent. Help the user with their request.`;
-    
+
     if (this.contextData) {
       prompt += `\n\nHere is your context information:\n${this.contextData}`;
       prompt += `\n\nUse this context to provide accurate and helpful responses. If the user's question is not covered by the context, say so and provide general assistance.`;
     }
-    
+
     return prompt;
   }
 
@@ -161,19 +176,19 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   private generatePersonalizedGreeting(agentName: string): string {
     // For now, use a placeholder name - in a real system this would come from user session data
     const userName = 'Golfer Geek'; // This could be extracted from session/auth context in the future
-    
+
     switch (agentName.toLowerCase()) {
       case 'blog post writer':
       case 'blog_post':
         return `Hi ${userName}! I'm your Blog Post Writer. I'm here to help you create engaging, professional blog posts on any topic you'd like. What can I write for you today?`;
-      
+
       case 'metrics agent':
       case 'metrics':
         return `Hello ${userName}! I'm your Metrics Agent. I can help you analyze business data, create reports, and provide insights. What metrics would you like to explore?`;
-      
+
       case 'chat support':
         return `Hi ${userName}! I'm your Chat Support specialist. I'm here to help resolve any issues or answer questions you might have. How can I assist you today?`;
-      
+
       default:
         return `Hello ${userName}! I'm your ${agentName} agent. I'm ready to help you with whatever you need. What can I do for you today?`;
     }
@@ -182,9 +197,16 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   /**
    * Fallback processing when no context is available
    */
-  private async processWithoutContext(method: string, params: any, agentName: string, agentType: string): Promise<any> {
-    this.contextLogger.debug(`No context available for ${agentName}, using fallback`);
-    
+  private async processWithoutContext(
+    method: string,
+    params: any,
+    agentName: string,
+    agentType: string,
+  ): Promise<any> {
+    this.contextLogger.debug(
+      `No context available for ${agentName}, using fallback`,
+    );
+
     return {
       success: true,
       response: `Hello! I'm the ${agentName} agent. I'm ready to help, but my context data isn't loaded yet. Please check back soon!`,
@@ -194,8 +216,8 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         contextUsed: false,
         reason: 'No context data available',
         method,
-        processedAt: new Date().toISOString()
-      }
+        processedAt: new Date().toISOString(),
+      },
     };
   }
 
@@ -216,7 +238,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       ...baseCard,
       contextStatus: this.contextData ? 'loaded' : 'not_loaded',
       contextLength: this.contextData?.length || 0,
-      loadedAt: this.contextData ? new Date().toISOString() : null
+      loadedAt: this.contextData ? new Date().toISOString() : null,
     };
   }
-} 
+}

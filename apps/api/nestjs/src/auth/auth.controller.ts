@@ -1,14 +1,30 @@
-import { Controller, Post, Get, Body, UseGuards, Request, HttpCode, HttpStatus, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { 
-  UserCreateDto, 
-  UserLoginDto, 
-  TokenResponseDto, 
+import {
+  UserCreateDto,
+  UserLoginDto,
+  TokenResponseDto,
   AuthenticatedUserResponseDto,
-  SupabaseAuthUserDto 
+  SupabaseAuthUserDto,
 } from './dto/auth.dto';
 
 @ApiTags('Authentication')
@@ -20,35 +36,37 @@ export class AuthController {
 
   @Post('signup')
   @ApiOperation({ summary: 'Create new user and return session token' })
-  @ApiResponse({ 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: 'User created successfully with session token',
-    type: TokenResponseDto 
+    type: TokenResponseDto,
   })
-  @ApiResponse({ 
-    status: 202, 
-    description: 'User created successfully. Email confirmation required.' 
+  @ApiResponse({
+    status: 202,
+    description: 'User created successfully. Email confirmation required.',
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Bad request - User might already exist or invalid input' 
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - User might already exist or invalid input',
   })
   @ApiBody({ type: UserCreateDto })
   @HttpCode(HttpStatus.CREATED)
-  async signup(@Body() userCreateDto: UserCreateDto): Promise<TokenResponseDto> {
+  async signup(
+    @Body() userCreateDto: UserCreateDto,
+  ): Promise<TokenResponseDto> {
     return this.authService.signup(userCreateDto);
   }
 
   @Post('login')
   @ApiOperation({ summary: 'User login' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Login successful',
-    type: TokenResponseDto 
+    type: TokenResponseDto,
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Unauthorized - Invalid credentials' 
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid credentials',
   })
   @ApiBody({ type: UserLoginDto })
   @HttpCode(HttpStatus.OK)
@@ -60,20 +78,20 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'User logout' })
-  @ApiResponse({ 
-    status: 204, 
-    description: 'Logout successful' 
+  @ApiResponse({
+    status: 204,
+    description: 'Logout successful',
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Unauthorized - Invalid or expired token' 
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or expired token',
   })
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(@Request() req: any): Promise<void> {
     // Extract token from Authorization header
     const authHeader = req.headers.authorization;
     const token = authHeader?.replace('Bearer ', '');
-    
+
     if (!token) {
       this.logger.error('No token found in logout request');
       throw new Error('No token provided');
@@ -86,23 +104,23 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user details' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Current user profile',
-    type: AuthenticatedUserResponseDto 
+    type: AuthenticatedUserResponseDto,
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Unauthorized - Invalid or expired token' 
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or expired token',
   })
   async getCurrentUser(
     @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
-    @Request() req: any
+    @Request() req: any,
   ): Promise<AuthenticatedUserResponseDto> {
     // Extract token from Authorization header
     const authHeader = req.headers.authorization;
     const token = authHeader?.replace('Bearer ', '');
-    
+
     if (!token) {
       this.logger.error('No token found in getCurrentUser request');
       throw new Error('No token provided');
@@ -110,4 +128,4 @@ export class AuthController {
 
     return this.authService.getCurrentUser(currentAuthUser, token);
   }
-} 
+}

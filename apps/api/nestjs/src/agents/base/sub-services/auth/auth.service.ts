@@ -21,7 +21,7 @@ export class AuthService {
       authToken: params.authToken || null,
       sessionId: params.sessionId || params.session_id || null,
       requestId: params.requestId || null,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
@@ -34,7 +34,7 @@ export class AuthService {
       this.logger.warn('Incomplete authentication context', {
         hasUser: !!authContext.currentUser,
         hasToken: !!authContext.authToken,
-        sessionId: authContext.sessionId
+        sessionId: authContext.sessionId,
       });
       return false;
     }
@@ -54,7 +54,7 @@ export class AuthService {
       hasToken: !!authContext.authToken,
       tokenLength: authContext.authToken?.length,
       timestamp: authContext.timestamp?.toISOString(),
-      ...details
+      ...details,
     });
   }
 
@@ -73,10 +73,11 @@ export class AuthService {
     return {
       id: authContext.currentUser.id,
       email: authContext.currentUser.email,
-      name: authContext.currentUser.user_metadata?.full_name || 
-            authContext.currentUser.user_metadata?.name || 
-            authContext.currentUser.email?.split('@')[0] || 
-            'Unknown User'
+      name:
+        authContext.currentUser.user_metadata?.full_name ||
+        authContext.currentUser.user_metadata?.name ||
+        authContext.currentUser.email?.split('@')[0] ||
+        'Unknown User',
     };
   }
 
@@ -89,7 +90,7 @@ export class AuthService {
       'saveMessage',
       'getUserData',
       'updateProfile',
-      'deleteData'
+      'deleteData',
     ];
 
     return authRequiredMethods.includes(method);
@@ -100,14 +101,14 @@ export class AuthService {
    */
   createAuthMetadata(authContext: AuthContext): Record<string, any> {
     const userInfo = this.getUserInfo(authContext);
-    
+
     return {
       userId: userInfo.id,
       userEmail: userInfo.email,
       userName: userInfo.name,
       sessionId: authContext.sessionId,
       authenticatedAt: authContext.timestamp?.toISOString(),
-      hasValidAuth: this.validateAuthContext(authContext)
+      hasValidAuth: this.validateAuthContext(authContext),
     };
   }
-} 
+}

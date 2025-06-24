@@ -6,6 +6,9 @@ metadata:
   version: "1.0.0"
   description: "A comprehensive Rules of Golf expert powered by an N8N workflow that provides authoritative answers based on official USGA and R&A Rules of Golf, including detailed explanations, rule citations, and penalty assessments."
 
+# Agent type - API agent that delegates to N8N RAG workflow
+type: "api"
+
 capabilities:
   - golf_rules_expertise
   - rule_interpretation
@@ -70,29 +73,7 @@ skills:
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/plain", "application/json"]
 
-system_prompt: |
-  You are a Rules of Golf Expert with comprehensive knowledge of USGA and R&A Rules of Golf. You provide authoritative, accurate answers about golf rules, penalties, equipment regulations, and course conditions.
 
-  ## Core Identity
-  Expert golf rules official with deep knowledge of the official Rules of Golf, including interpretations, penalties, and proper procedures. You reference official rules and provide clear, actionable guidance.
-
-  ## Critical Directive
-  ALWAYS provide accurate, rule-based answers with official rule citations when possible. Never guess or provide unofficial interpretations.
-
-  ## Response Standards
-  - Cite specific rule numbers when applicable (e.g., "Under Rule 17.1...")
-  - Explain both the rule and its practical application
-  - Include penalty strokes when relevant
-  - Provide step-by-step procedures for relief or rulings
-  - Distinguish between different formats (stroke play vs match play) when relevant
-
-  ## Expertise Areas
-  - Rules interpretation and application
-  - Penalty assessment and stroke counting
-  - Equipment conformance and regulations
-  - Abnormal course conditions and relief procedures
-  - Competition and tournament regulations
-  - Match play vs stroke play differences
 
 input_modes:
   - "text/plain"

@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 import { AxiosResponse } from 'axios';
-import { ApiAgentBaseService, ApiConfiguration, ApiAgentParams } from './api-agent-base.service';
+import {
+  ApiAgentBaseService,
+  ApiConfiguration,
+  ApiAgentParams,
+} from './api-agent-base.service';
 import { AgentRegistrationService } from '../../../sub-services/agent-registration/agent-registration.service';
 import { JsonRpcProtocolService } from '../../../sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService } from '../../../sub-services/logging/logging.service';
@@ -29,37 +33,43 @@ describe('ApiAgentBaseService', () => {
 
   beforeEach(async () => {
     const mockHttpService = {
-      request: jest.fn()
+      request: jest.fn(),
     };
 
     const mockAgentRegistrationService = {
       registerAgent: jest.fn(),
-      unregisterAgent: jest.fn()
+      unregisterAgent: jest.fn(),
     };
 
     const mockJsonRpcProtocolService = {
       processRequest: jest.fn(),
       createSuccessResponse: jest.fn(),
-      createErrorResponse: jest.fn()
+      createErrorResponse: jest.fn(),
     };
 
     const mockLoggingService = {
       logAgentEvent: jest.fn(),
       logRequest: jest.fn(),
       logResponse: jest.fn(),
-      logError: jest.fn()
+      logError: jest.fn(),
     };
 
     const mockAuthService = {
-      extractAuthContext: jest.fn().mockReturnValue({})
+      extractAuthContext: jest.fn().mockReturnValue({}),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TestApiAgentBaseService,
         { provide: HttpService, useValue: mockHttpService },
-        { provide: AgentRegistrationService, useValue: mockAgentRegistrationService },
-        { provide: JsonRpcProtocolService, useValue: mockJsonRpcProtocolService },
+        {
+          provide: AgentRegistrationService,
+          useValue: mockAgentRegistrationService,
+        },
+        {
+          provide: JsonRpcProtocolService,
+          useValue: mockJsonRpcProtocolService,
+        },
         { provide: LoggingService, useValue: mockLoggingService },
         { provide: AuthService, useValue: mockAuthService },
       ],
@@ -88,8 +98,8 @@ describe('ApiAgentBaseService', () => {
         authentication: {
           type: 'api_key',
           header: 'X-API-Key',
-          value: '${TEST_API_KEY}'
-        }
+          value: '${TEST_API_KEY}',
+        },
       };
 
       service.setApiConfiguration(config);
@@ -98,7 +108,7 @@ describe('ApiAgentBaseService', () => {
       const agentCard = service.getAgentCard();
       expect(agentCard).resolves.toMatchObject({
         apiStatus: 'configured',
-        endpoint: 'https://api.example.com/v1/chat'
+        endpoint: 'https://api.example.com/v1/chat',
       });
 
       delete process.env.TEST_API_KEY;
@@ -115,15 +125,15 @@ describe('ApiAgentBaseService', () => {
         response: expect.stringContaining('test-api-agent API agent'),
         metadata: expect.objectContaining({
           agentName: 'test-api-agent',
-          apiStatus: 'fallback'
-        })
+          apiStatus: 'fallback',
+        }),
       });
     });
 
     it('should execute successful API call', async () => {
       const config: ApiConfiguration = {
         endpoint: 'https://api.example.com/v1/chat',
-        method: 'POST'
+        method: 'POST',
       };
 
       const mockResponse: AxiosResponse = {
@@ -131,7 +141,7 @@ describe('ApiAgentBaseService', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any
+        config: {} as any,
       };
 
       httpService.request.mockReturnValue(of(mockResponse));
@@ -149,24 +159,26 @@ describe('ApiAgentBaseService', () => {
           message: 'Hello',
           session_id: undefined,
           user: undefined,
-          timestamp: expect.any(String)
+          timestamp: expect.any(String),
         },
         params: undefined,
         headers: expect.objectContaining({
           'Content-Type': 'application/json',
-          'User-Agent': 'A2A-Agent/test-api-agent'
+          'User-Agent': 'A2A-Agent/test-api-agent',
         }),
-        timeout: 30000
+        timeout: 30000,
       });
     });
 
     it('should handle API call errors', async () => {
       const config: ApiConfiguration = {
         endpoint: 'https://api.example.com/v1/chat',
-        method: 'POST'
+        method: 'POST',
       };
 
-      httpService.request.mockReturnValue(throwError(() => new Error('Network error')));
+      httpService.request.mockReturnValue(
+        throwError(() => new Error('Network error')),
+      );
       service.setApiConfiguration(config);
 
       const result = await service.executeTask('chat', { message: 'Hello' });
@@ -183,21 +195,23 @@ describe('ApiAgentBaseService', () => {
         retry: {
           attempts: 3,
           delay: 100,
-          backoff: 'exponential'
-        }
+          backoff: 'exponential',
+        },
       };
 
       // Mock 2 failures then success
       httpService.request
         .mockReturnValueOnce(throwError(() => new Error('Network error 1')))
         .mockReturnValueOnce(throwError(() => new Error('Network error 2')))
-        .mockReturnValueOnce(of({
-          data: { response: 'Success on third try' },
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config: {} as any
-        }));
+        .mockReturnValueOnce(
+          of({
+            data: { response: 'Success on third try' },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config: {} as any,
+          }),
+        );
 
       service.setApiConfiguration(config);
 
@@ -221,8 +235,8 @@ describe('ApiAgentBaseService', () => {
         authentication: {
           type: 'api_key',
           header: 'X-API-Key',
-          value: 'secret-key'
-        }
+          value: 'secret-key',
+        },
       };
 
       const mockResponse: AxiosResponse = {
@@ -230,7 +244,7 @@ describe('ApiAgentBaseService', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any
+        config: {} as any,
       };
 
       httpService.request.mockReturnValue(of(mockResponse));
@@ -244,9 +258,9 @@ describe('ApiAgentBaseService', () => {
         data: expect.any(Object),
         params: undefined,
         headers: expect.objectContaining({
-          'X-API-Key': 'secret-key'
+          'X-API-Key': 'secret-key',
         }),
-        timeout: 30000
+        timeout: 30000,
       });
     });
 
@@ -256,8 +270,8 @@ describe('ApiAgentBaseService', () => {
         method: 'POST',
         authentication: {
           type: 'bearer',
-          value: 'bearer-token'
-        }
+          value: 'bearer-token',
+        },
       };
 
       const mockResponse: AxiosResponse = {
@@ -265,7 +279,7 @@ describe('ApiAgentBaseService', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any
+        config: {} as any,
       };
 
       httpService.request.mockReturnValue(of(mockResponse));
@@ -279,9 +293,9 @@ describe('ApiAgentBaseService', () => {
         data: expect.any(Object),
         params: undefined,
         headers: expect.objectContaining({
-          'Authorization': 'Bearer bearer-token'
+          Authorization: 'Bearer bearer-token',
         }),
-        timeout: 30000
+        timeout: 30000,
       });
     });
 
@@ -292,8 +306,8 @@ describe('ApiAgentBaseService', () => {
         authentication: {
           type: 'basic',
           username: 'user',
-          password: 'pass'
-        }
+          password: 'pass',
+        },
       };
 
       const mockResponse: AxiosResponse = {
@@ -301,7 +315,7 @@ describe('ApiAgentBaseService', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any
+        config: {} as any,
       };
 
       httpService.request.mockReturnValue(of(mockResponse));
@@ -316,9 +330,9 @@ describe('ApiAgentBaseService', () => {
         data: expect.any(Object),
         params: undefined,
         headers: expect.objectContaining({
-          'Authorization': `Basic ${expectedCredentials}`
+          Authorization: `Basic ${expectedCredentials}`,
         }),
-        timeout: 30000
+        timeout: 30000,
       });
     });
   });
@@ -328,7 +342,7 @@ describe('ApiAgentBaseService', () => {
       const config: ApiConfiguration = {
         endpoint: 'https://api.example.com/v1/chat',
         method: 'POST',
-        requestTransform: '{"prompt": {{userMessage}}, "id": {{sessionId}}}'
+        requestTransform: '{"prompt": {{userMessage}}, "id": {{sessionId}}}',
       };
 
       const mockResponse: AxiosResponse = {
@@ -336,15 +350,15 @@ describe('ApiAgentBaseService', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any
+        config: {} as any,
       };
 
       httpService.request.mockReturnValue(of(mockResponse));
       service.setApiConfiguration(config);
 
-      await service.executeTask('chat', { 
-        message: 'Hello', 
-        sessionId: 'session-123' 
+      await service.executeTask('chat', {
+        message: 'Hello',
+        sessionId: 'session-123',
       });
 
       expect(httpService.request).toHaveBeenCalledWith({
@@ -352,11 +366,11 @@ describe('ApiAgentBaseService', () => {
         url: 'https://api.example.com/v1/chat',
         data: {
           prompt: 'Hello',
-          id: 'session-123'
+          id: 'session-123',
         },
         params: undefined,
         headers: expect.any(Object),
-        timeout: 30000
+        timeout: 30000,
       });
     });
 
@@ -364,18 +378,18 @@ describe('ApiAgentBaseService', () => {
       const config: ApiConfiguration = {
         endpoint: 'https://api.example.com/v1/chat',
         method: 'POST',
-        responseTransform: 'answer'
+        responseTransform: 'answer',
       };
 
       const mockResponse: AxiosResponse = {
-        data: { 
+        data: {
           answer: 'This is the answer',
-          metadata: { tokens: 50 }
+          metadata: { tokens: 50 },
         },
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any
+        config: {} as any,
       };
 
       httpService.request.mockReturnValue(of(mockResponse));
@@ -391,20 +405,20 @@ describe('ApiAgentBaseService', () => {
       const config: ApiConfiguration = {
         endpoint: 'https://api.example.com/v1/chat',
         method: 'POST',
-        responseTransform: '$.data.content'
+        responseTransform: '$.data.content',
       };
 
       const mockResponse: AxiosResponse = {
-        data: { 
+        data: {
           data: {
             content: 'Nested content',
-            other: 'Other data'
-          }
+            other: 'Other data',
+          },
         },
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any
+        config: {} as any,
       };
 
       httpService.request.mockReturnValue(of(mockResponse));
@@ -421,7 +435,7 @@ describe('ApiAgentBaseService', () => {
     it('should handle GET requests with query parameters', async () => {
       const config: ApiConfiguration = {
         endpoint: 'https://api.example.com/v1/search',
-        method: 'GET'
+        method: 'GET',
       };
 
       const mockResponse: AxiosResponse = {
@@ -429,7 +443,7 @@ describe('ApiAgentBaseService', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any
+        config: {} as any,
       };
 
       httpService.request.mockReturnValue(of(mockResponse));
@@ -445,17 +459,17 @@ describe('ApiAgentBaseService', () => {
           message: 'query',
           session_id: undefined,
           user: undefined,
-          timestamp: expect.any(String)
+          timestamp: expect.any(String),
         },
         headers: expect.any(Object),
-        timeout: 30000
+        timeout: 30000,
       });
     });
 
     it('should handle PUT requests with body data', async () => {
       const config: ApiConfiguration = {
         endpoint: 'https://api.example.com/v1/update',
-        method: 'PUT'
+        method: 'PUT',
       };
 
       const mockResponse: AxiosResponse = {
@@ -463,7 +477,7 @@ describe('ApiAgentBaseService', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any
+        config: {} as any,
       };
 
       httpService.request.mockReturnValue(of(mockResponse));
@@ -478,11 +492,11 @@ describe('ApiAgentBaseService', () => {
           message: 'update data',
           session_id: undefined,
           user: undefined,
-          timestamp: expect.any(String)
+          timestamp: expect.any(String),
         },
         params: undefined,
         headers: expect.any(Object),
-        timeout: 30000
+        timeout: 30000,
       });
     });
   });
@@ -491,7 +505,7 @@ describe('ApiAgentBaseService', () => {
     it('should return agent card with API status', async () => {
       const config: ApiConfiguration = {
         endpoint: 'https://api.example.com/v1/chat',
-        method: 'POST'
+        method: 'POST',
       };
 
       service.setApiConfiguration(config);
@@ -502,7 +516,7 @@ describe('ApiAgentBaseService', () => {
         type: 'specialist',
         apiStatus: 'configured',
         endpoint: 'https://api.example.com/v1/chat',
-        configuredAt: expect.any(String)
+        configuredAt: expect.any(String),
       });
     });
 
@@ -514,8 +528,8 @@ describe('ApiAgentBaseService', () => {
         type: 'specialist',
         apiStatus: 'not_configured',
         endpoint: null,
-        configuredAt: null
+        configuredAt: null,
       });
     });
   });
-}); 
+});

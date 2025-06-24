@@ -35,10 +35,11 @@ export const JSON_RPC_ERRORS = {
   INVALID_PARAMS: -32602,
   INTERNAL_ERROR: -32603,
   SERVER_ERROR_START: -32099,
-  SERVER_ERROR_END: -32000
+  SERVER_ERROR_END: -32000,
 } as const;
 
-export type JsonRpcErrorCode = typeof JSON_RPC_ERRORS[keyof typeof JSON_RPC_ERRORS];
+export type JsonRpcErrorCode =
+  (typeof JSON_RPC_ERRORS)[keyof typeof JSON_RPC_ERRORS];
 
 // Processing Options
 export interface JsonRpcProcessingOptions {
@@ -78,11 +79,11 @@ export class JsonRpcProtocolService {
     request: any,
     methodHandler: JsonRpcMethodHandler,
     notificationHandler?: JsonRpcNotificationHandler,
-    options: JsonRpcProcessingOptions = {}
+    options: JsonRpcProcessingOptions = {},
   ): Promise<JsonRpcResponse | JsonRpcResponse[] | null> {
-    this.logger.debug('Processing JSON-RPC request', { 
+    this.logger.debug('Processing JSON-RPC request', {
       isBatch: Array.isArray(request),
-      method: Array.isArray(request) ? 'batch' : request?.method 
+      method: Array.isArray(request) ? 'batch' : request?.method,
     });
 
     // Handle batch requests
@@ -91,14 +92,24 @@ export class JsonRpcProtocolService {
         return this.createErrorResponse(
           JSON_RPC_ERRORS.INVALID_REQUEST,
           'Batch processing not enabled',
-          null
+          null,
         );
       }
-      return this.processBatchRequest(request, methodHandler, notificationHandler, options);
+      return this.processBatchRequest(
+        request,
+        methodHandler,
+        notificationHandler,
+        options,
+      );
     }
 
     // Process single request
-    return this.processSingleRequest(request, methodHandler, notificationHandler, options);
+    return this.processSingleRequest(
+      request,
+      methodHandler,
+      notificationHandler,
+      options,
+    );
   }
 
   /**
@@ -108,7 +119,7 @@ export class JsonRpcProtocolService {
     request: any,
     methodHandler: JsonRpcMethodHandler,
     notificationHandler?: JsonRpcNotificationHandler,
-    options: JsonRpcProcessingOptions = {}
+    options: JsonRpcProcessingOptions = {},
   ): Promise<JsonRpcResponse | null> {
     // Validate request structure
     const validation = this.validateRequest(request);
@@ -116,7 +127,7 @@ export class JsonRpcProtocolService {
       return this.createErrorResponse(
         validation.error!.code,
         validation.error!.message,
-        request?.id ?? null
+        request?.id ?? null,
       );
     }
 
@@ -128,9 +139,9 @@ export class JsonRpcProtocolService {
         try {
           await notificationHandler(jsonRpcRequest as JsonRpcNotification);
         } catch (error) {
-          this.logger.error('Notification handler error', { 
+          this.logger.error('Notification handler error', {
             method: jsonRpcRequest.method,
-            error: (error as Error).message 
+            error: (error as Error).message,
           });
         }
       }
@@ -144,8 +155,8 @@ export class JsonRpcProtocolService {
       if (options.preserveAuthContext) {
         params = {
           ...jsonRpcRequest.params,
-          currentUser: (request as any).currentUser,
-          authToken: (request as any).authToken
+          currentUser: request.currentUser,
+          authToken: request.authToken,
         };
       }
 
@@ -163,28 +174,43 @@ export class JsonRpcProtocolService {
     batchRequest: any[],
     methodHandler: JsonRpcMethodHandler,
     notificationHandler?: JsonRpcNotificationHandler,
-    options: JsonRpcProcessingOptions = {}
+    options: JsonRpcProcessingOptions = {},
   ): Promise<JsonRpcResponse[]> {
-    this.logger.debug('Processing batch request', { count: batchRequest.length });
+    this.logger.debug('Processing batch request', {
+      count: batchRequest.length,
+    });
 
     // Validate batch size
     if (batchRequest.length === 0) {
-      return [this.createErrorResponse(JSON_RPC_ERRORS.INVALID_REQUEST, 'Invalid Request', null)];
+      return [
+        this.createErrorResponse(
+          JSON_RPC_ERRORS.INVALID_REQUEST,
+          'Invalid Request',
+          null,
+        ),
+      ];
     }
 
     if (options.maxBatchSize && batchRequest.length > options.maxBatchSize) {
-      return [this.createErrorResponse(
-        JSON_RPC_ERRORS.INVALID_REQUEST,
-        `Batch size exceeds maximum of ${options.maxBatchSize}`,
-        null
-      )];
+      return [
+        this.createErrorResponse(
+          JSON_RPC_ERRORS.INVALID_REQUEST,
+          `Batch size exceeds maximum of ${options.maxBatchSize}`,
+          null,
+        ),
+      ];
     }
 
     // Process all requests in parallel
     const results = await Promise.allSettled(
-      batchRequest.map(request => 
-        this.processSingleRequest(request, methodHandler, notificationHandler, options)
-      )
+      batchRequest.map((request) =>
+        this.processSingleRequest(
+          request,
+          methodHandler,
+          notificationHandler,
+          options,
+        ),
+      ),
     );
 
     // Filter out null responses (from notifications) and extract values
@@ -194,11 +220,13 @@ export class JsonRpcProtocolService {
         responses.push(result.value);
       } else if (result.status === 'rejected') {
         // Handle unexpected batch processing errors
-        responses.push(this.createErrorResponse(
-          JSON_RPC_ERRORS.INTERNAL_ERROR,
-          'Batch processing error',
-          null
-        ));
+        responses.push(
+          this.createErrorResponse(
+            JSON_RPC_ERRORS.INTERNAL_ERROR,
+            'Batch processing error',
+            null,
+          ),
+        );
       }
     }
 
@@ -213,7 +241,10 @@ export class JsonRpcProtocolService {
     if (!request || typeof request !== 'object') {
       return {
         isValid: false,
-        error: { code: JSON_RPC_ERRORS.INVALID_REQUEST, message: 'Invalid Request' }
+        error: {
+          code: JSON_RPC_ERRORS.INVALID_REQUEST,
+          message: 'Invalid Request',
+        },
       };
     }
 
@@ -221,10 +252,10 @@ export class JsonRpcProtocolService {
     if (request.jsonrpc !== '2.0') {
       return {
         isValid: false,
-        error: { 
-          code: JSON_RPC_ERRORS.INVALID_REQUEST, 
-          message: 'Invalid Request: jsonrpc must be "2.0"' 
-        }
+        error: {
+          code: JSON_RPC_ERRORS.INVALID_REQUEST,
+          message: 'Invalid Request: jsonrpc must be "2.0"',
+        },
       };
     }
 
@@ -232,24 +263,26 @@ export class JsonRpcProtocolService {
     if (!request.method || typeof request.method !== 'string') {
       return {
         isValid: false,
-        error: { 
-          code: JSON_RPC_ERRORS.INVALID_REQUEST, 
-          message: 'Invalid Request: method must be a string' 
-        }
+        error: {
+          code: JSON_RPC_ERRORS.INVALID_REQUEST,
+          message: 'Invalid Request: method must be a string',
+        },
       };
     }
 
     // Check id type if present (string, number, or null)
-    if (request.id !== undefined && 
-        request.id !== null && 
-        typeof request.id !== 'string' && 
-        typeof request.id !== 'number') {
+    if (
+      request.id !== undefined &&
+      request.id !== null &&
+      typeof request.id !== 'string' &&
+      typeof request.id !== 'number'
+    ) {
       return {
         isValid: false,
-        error: { 
-          code: JSON_RPC_ERRORS.INVALID_REQUEST, 
-          message: 'Invalid Request: id must be string, number, or null' 
-        }
+        error: {
+          code: JSON_RPC_ERRORS.INVALID_REQUEST,
+          message: 'Invalid Request: id must be string, number, or null',
+        },
       };
     }
 
@@ -259,11 +292,14 @@ export class JsonRpcProtocolService {
   /**
    * Create JSON-RPC 2.0 compliant success response
    */
-  createSuccessResponse(id: string | number | null, result: any): JsonRpcResponse {
+  createSuccessResponse(
+    id: string | number | null,
+    result: any,
+  ): JsonRpcResponse {
     return {
       jsonrpc: '2.0',
       id: id,
-      result: result
+      result: result,
     };
   }
 
@@ -274,11 +310,11 @@ export class JsonRpcProtocolService {
     code: JsonRpcErrorCode,
     message: string,
     id: string | number | null,
-    data?: any
+    data?: any,
   ): JsonRpcResponse {
     const error: JsonRpcError = {
       code: code,
-      message: message
+      message: message,
     };
 
     if (data !== undefined) {
@@ -288,7 +324,7 @@ export class JsonRpcProtocolService {
     return {
       jsonrpc: '2.0',
       id: id,
-      error: error
+      error: error,
     };
   }
 
@@ -297,19 +333,21 @@ export class JsonRpcProtocolService {
    */
   createErrorResponseFromException(
     error: any,
-    id: string | number | null
+    id: string | number | null,
   ): JsonRpcResponse {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    
+
     this.logger.error('Method execution error', { error: errorMessage, id });
 
     // Map specific error types to JSON-RPC error codes
-    if (errorMessage.includes('Method not found') || 
-        errorMessage.includes('executeTask must be implemented')) {
+    if (
+      errorMessage.includes('Method not found') ||
+      errorMessage.includes('executeTask must be implemented')
+    ) {
       return this.createErrorResponse(
         JSON_RPC_ERRORS.METHOD_NOT_FOUND,
         'Method not found',
-        id
+        id,
       );
     }
 
@@ -317,7 +355,7 @@ export class JsonRpcProtocolService {
       return this.createErrorResponse(
         JSON_RPC_ERRORS.INVALID_PARAMS,
         'Invalid params',
-        id
+        id,
       );
     }
 
@@ -325,7 +363,7 @@ export class JsonRpcProtocolService {
       return this.createErrorResponse(
         JSON_RPC_ERRORS.PARSE_ERROR,
         'Parse error',
-        id
+        id,
       );
     }
 
@@ -334,7 +372,9 @@ export class JsonRpcProtocolService {
       JSON_RPC_ERRORS.INTERNAL_ERROR,
       'Internal error',
       id,
-      process.env.NODE_ENV === 'development' ? { originalError: errorMessage } : undefined
+      process.env.NODE_ENV === 'development'
+        ? { originalError: errorMessage }
+        : undefined,
     );
   }
 
@@ -378,4 +418,4 @@ export class JsonRpcProtocolService {
   getErrorCodes() {
     return JSON_RPC_ERRORS;
   }
-} 
+}

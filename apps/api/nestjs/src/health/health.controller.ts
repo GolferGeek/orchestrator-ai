@@ -9,8 +9,8 @@ export class HealthController {
 
   @Get('db')
   @ApiOperation({ summary: 'Check database connectivity' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Database connection successful',
     schema: {
       type: 'object',
@@ -20,8 +20,8 @@ export class HealthController {
       },
     },
   })
-  @ApiResponse({ 
-    status: 500, 
+  @ApiResponse({
+    status: 500,
     description: 'Database connection failed',
     schema: {
       type: 'object',
@@ -37,8 +37,8 @@ export class HealthController {
 
   @Get()
   @ApiOperation({ summary: 'General health check' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Service is healthy',
     schema: {
       type: 'object',
@@ -64,17 +64,17 @@ export class HealthController {
       return {
         status: 'ok',
         supabase: result,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       return {
         status: 'error',
         supabase: {
           status: 'error',
-          message: error instanceof Error ? error.message : 'Unknown error'
+          message: error instanceof Error ? error.message : 'Unknown error',
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
   }
-} 
+}

@@ -20,7 +20,7 @@ export enum TaskStatus {
   RUNNING = 'running',
   COMPLETED = 'completed',
   FAILED = 'failed',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 export interface TaskCreationRequest {
@@ -68,12 +68,12 @@ export class TaskLifecycleService {
   private readonly activeTasks = new Map<string, Task>();
   private readonly taskTimeouts = new Map<string, NodeJS.Timeout>();
   private readonly taskHistory: Task[] = [];
-  
+
   private config: TaskLifecycleConfig = {
     defaultTimeout: 300000, // 5 minutes
     maxConcurrentTasks: 100,
     enableMetrics: true,
-    cleanupInterval: 60000 // 1 minute
+    cleanupInterval: 60000, // 1 minute
   };
 
   private cleanupInterval: NodeJS.Timeout | null = null;
@@ -102,8 +102,13 @@ export class TaskLifecycleService {
    */
   async createTask(request: TaskCreationRequest): Promise<Task> {
     // Check concurrent task limit
-    if (this.config.maxConcurrentTasks && this.activeTasks.size >= this.config.maxConcurrentTasks) {
-      throw new Error(`Maximum concurrent tasks limit reached (${this.config.maxConcurrentTasks})`);
+    if (
+      this.config.maxConcurrentTasks &&
+      this.activeTasks.size >= this.config.maxConcurrentTasks
+    ) {
+      throw new Error(
+        `Maximum concurrent tasks limit reached (${this.config.maxConcurrentTasks})`,
+      );
     }
 
     const taskId = this.generateTaskId();
@@ -116,7 +121,7 @@ export class TaskLifecycleService {
       status: TaskStatus.PENDING,
       createdAt: now,
       updatedAt: now,
-      timeout: request.timeout || this.config.defaultTimeout
+      timeout: request.timeout || this.config.defaultTimeout,
     };
 
     // Register task in active tasks
@@ -130,9 +135,9 @@ export class TaskLifecycleService {
       this.taskTimeouts.set(taskId, timeoutHandle);
     }
 
-    this.logger.debug(`Created task ${taskId}`, { 
-      method: task.method, 
-      timeout: task.timeout 
+    this.logger.debug(`Created task ${taskId}`, {
+      method: task.method,
+      timeout: task.timeout,
     });
 
     return task;
@@ -141,14 +146,19 @@ export class TaskLifecycleService {
   /**
    * Execute a task with full lifecycle management using the provided executor
    */
-  async executeTaskWithLifecycle(taskId: string, executor: TaskExecutor): Promise<Task> {
+  async executeTaskWithLifecycle(
+    taskId: string,
+    executor: TaskExecutor,
+  ): Promise<Task> {
     const task = this.activeTasks.get(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
     }
 
     if (task.status !== TaskStatus.PENDING) {
-      throw new Error(`Task ${taskId} is not in pending status (current: ${task.status})`);
+      throw new Error(
+        `Task ${taskId} is not in pending status (current: ${task.status})`,
+      );
     }
 
     try {
@@ -169,7 +179,7 @@ export class TaskLifecycleService {
       if (task.timeout && task.timeout > 0) {
         result = await Promise.race([
           executor.executeTask(task.method, task.params),
-          timeoutPromise
+          timeoutPromise,
         ]);
       } else {
         result = await executor.executeTask(task.method, task.params);
@@ -197,7 +207,9 @@ export class TaskLifecycleService {
   updateTaskStatus(taskId: string, status: TaskStatus): Task | null {
     const task = this.activeTasks.get(taskId);
     if (!task) {
-      this.logger.warn(`Attempted to update status of non-existent task ${taskId}`);
+      this.logger.warn(
+        `Attempted to update status of non-existent task ${taskId}`,
+      );
       return null;
     }
 
@@ -205,7 +217,9 @@ export class TaskLifecycleService {
     task.status = status;
     task.updatedAt = new Date();
 
-    this.logger.debug(`Task ${taskId} status changed from ${oldStatus} to ${status}`);
+    this.logger.debug(
+      `Task ${taskId} status changed from ${oldStatus} to ${status}`,
+    );
     return task;
   }
 
@@ -227,7 +241,7 @@ export class TaskLifecycleService {
    * Get tasks by status
    */
   getTasksByStatus(status: TaskStatus): Task[] {
-    return this.getAllTasks().filter(task => task.status === status);
+    return this.getAllTasks().filter((task) => task.status === status);
   }
 
   /**
@@ -236,9 +250,10 @@ export class TaskLifecycleService {
   getTaskHistory(agentId?: string): Task[] {
     if (agentId) {
       // Filter by agent ID if provided (could be stored in task metadata)
-      return this.taskHistory.filter(task => 
-        task.params?.agentId === agentId || 
-        task.params?.currentUser?.agentId === agentId
+      return this.taskHistory.filter(
+        (task) =>
+          task.params?.agentId === agentId ||
+          task.params?.currentUser?.agentId === agentId,
       );
     }
     return [...this.taskHistory];
@@ -253,7 +268,10 @@ export class TaskLifecycleService {
       return false;
     }
 
-    if (task.status === TaskStatus.COMPLETED || task.status === TaskStatus.FAILED) {
+    if (
+      task.status === TaskStatus.COMPLETED ||
+      task.status === TaskStatus.FAILED
+    ) {
       return false; // Cannot cancel completed or failed tasks
     }
 
@@ -270,13 +288,14 @@ export class TaskLifecycleService {
    */
   async cleanupTasks(olderThan?: Date): Promise<number> {
     const now = olderThan || new Date();
-    const tasksToCleanup = this.getAllTasks().filter(task => {
-      const isFinished = task.status === TaskStatus.COMPLETED || 
-                        task.status === TaskStatus.FAILED || 
-                        task.status === TaskStatus.CANCELLED;
-      
+    const tasksToCleanup = this.getAllTasks().filter((task) => {
+      const isFinished =
+        task.status === TaskStatus.COMPLETED ||
+        task.status === TaskStatus.FAILED ||
+        task.status === TaskStatus.CANCELLED;
+
       const isOldEnough = olderThan ? task.updatedAt < now : true;
-      
+
       return isFinished && isOldEnough;
     });
 
@@ -298,23 +317,32 @@ export class TaskLifecycleService {
     const activeTasks = this.getTasksByStatus(TaskStatus.RUNNING);
 
     // Calculate average response time for completed tasks
-    const completedTasksWithTiming = completedTasks.filter(task => 
-      task.result && task.createdAt && task.updatedAt
+    const completedTasksWithTiming = completedTasks.filter(
+      (task) => task.result && task.createdAt && task.updatedAt,
     );
-    const averageResponseTime = completedTasksWithTiming.length > 0
-      ? completedTasksWithTiming.reduce((sum, task) => 
-          sum + (task.updatedAt.getTime() - task.createdAt.getTime()), 0) / completedTasksWithTiming.length
-      : 0;
+    const averageResponseTime =
+      completedTasksWithTiming.length > 0
+        ? completedTasksWithTiming.reduce(
+            (sum, task) =>
+              sum + (task.updatedAt.getTime() - task.createdAt.getTime()),
+            0,
+          ) / completedTasksWithTiming.length
+        : 0;
 
     return {
       requestCount: allTasks.length + this.taskHistory.length,
-      errorCount: failedTasks.length + this.taskHistory.filter(t => t.status === TaskStatus.FAILED).length,
+      errorCount:
+        failedTasks.length +
+        this.taskHistory.filter((t) => t.status === TaskStatus.FAILED).length,
       averageResponseTime,
       activeTasks: activeTasks.length,
-      completedTasks: completedTasks.length + this.taskHistory.filter(t => t.status === TaskStatus.COMPLETED).length,
+      completedTasks:
+        completedTasks.length +
+        this.taskHistory.filter((t) => t.status === TaskStatus.COMPLETED)
+          .length,
       uptime: Date.now() - this.startTime,
       memoryUsage: process.memoryUsage(),
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
@@ -323,8 +351,10 @@ export class TaskLifecycleService {
    */
   getStuckTasks(): Task[] {
     const runningTasks = this.getTasksByStatus(TaskStatus.RUNNING);
-    return runningTasks.filter(task => 
-      Date.now() - task.updatedAt.getTime() > (task.timeout || this.config.defaultTimeout!)
+    return runningTasks.filter(
+      (task) =>
+        Date.now() - task.updatedAt.getTime() >
+        (task.timeout || this.config.defaultTimeout!),
     );
   }
 
@@ -333,7 +363,7 @@ export class TaskLifecycleService {
    */
   async cleanupStuckTasks(): Promise<number> {
     const stuckTasks = this.getStuckTasks();
-    
+
     for (const task of stuckTasks) {
       this.logger.warn(`Force cleaning up stuck task ${task.id}`);
       this.failTask(task.id, new Error('Task stuck - forced cleanup'));
@@ -375,7 +405,7 @@ export class TaskLifecycleService {
     task.error = {
       code: -32603, // Internal error
       message: error instanceof Error ? error.message : 'Unknown error',
-      data: error instanceof Error ? { stack: error.stack } : error
+      data: error instanceof Error ? { stack: error.stack } : error,
     };
     task.updatedAt = new Date();
 
@@ -399,7 +429,7 @@ export class TaskLifecycleService {
     task.error = {
       code: -32603,
       message: `Task execution timeout after ${task.timeout}ms`,
-      data: { timeout: task.timeout }
+      data: { timeout: task.timeout },
     };
     task.updatedAt = new Date();
 
@@ -426,16 +456,16 @@ export class TaskLifecycleService {
       // Move to history if metrics are enabled
       if (this.config.enableMetrics) {
         this.taskHistory.push({ ...task });
-        
+
         // Limit history size to prevent memory leaks
         if (this.taskHistory.length > 1000) {
           this.taskHistory.splice(0, this.taskHistory.length - 1000);
         }
       }
-      
+
       this.activeTasks.delete(taskId);
     }
-    
+
     this.cleanupTaskTimeout(taskId);
   }
 
@@ -456,7 +486,7 @@ export class TaskLifecycleService {
           // Cleanup tasks older than 1 hour
           const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
           await this.cleanupTasks(oneHourAgo);
-          
+
           // Cleanup stuck tasks
           await this.cleanupStuckTasks();
         } catch (error) {
@@ -481,24 +511,24 @@ export class TaskLifecycleService {
    */
   async onModuleDestroy(): Promise<void> {
     this.logger.debug('TaskLifecycleService shutting down...');
-    
+
     // Stop cleanup interval
     this.stopCleanupInterval();
-    
+
     // Cancel all running tasks
     const runningTasks = this.getTasksByStatus(TaskStatus.RUNNING);
     for (const task of runningTasks) {
       await this.cancelTask(task.id);
     }
-    
+
     // Clear all timeouts
     for (const [taskId] of this.taskTimeouts) {
       this.cleanupTaskTimeout(taskId);
     }
-    
+
     // Clear all tasks
     this.activeTasks.clear();
-    
+
     this.logger.debug('TaskLifecycleService shutdown complete');
   }
-} 
+}

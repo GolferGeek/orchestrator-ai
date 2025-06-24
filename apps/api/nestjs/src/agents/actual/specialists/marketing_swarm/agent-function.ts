@@ -1,9 +1,12 @@
-import { AgentFunctionParams, AgentFunctionResponse } from '@agents/base/implementations/base-services/a2a-base/interfaces';
+import {
+  AgentFunctionParams,
+  AgentFunctionResponse,
+} from '@agents/base/implementations/base-services/a2a-base/interfaces';
 
 /**
  * Marketing Swarm Agent Function - Advanced Multi-Agent Orchestration
- * 
- * This agent coordinates multiple specialist agents to create, evaluate, and refine 
+ *
+ * This agent coordinates multiple specialist agents to create, evaluate, and refine
  * marketing content through sophisticated workflows. It demonstrates real production
  * multi-agent collaboration, not just examples.
  */
@@ -45,50 +48,80 @@ const SPECIALIST_AGENTS: Record<string, AgentSpecialist> = {
   blog_writer: {
     name: 'Blog Post Writer',
     role: 'content_creator',
-    specialties: ['long-form content', 'thought leadership', 'educational content', 'storytelling'],
+    specialties: [
+      'long-form content',
+      'thought leadership',
+      'educational content',
+      'storytelling',
+    ],
     systemPrompt: `You are an expert blog post writer. Create compelling, informative, and engaging blog content that drives traffic and establishes thought leadership. Focus on clear structure, engaging introductions, valuable insights, and strong conclusions with clear CTAs.`,
-    temperature: 0.7
+    temperature: 0.7,
   },
-  
+
   seo_specialist: {
     name: 'SEO Specialist',
     role: 'optimizer',
-    specialties: ['keyword optimization', 'meta descriptions', 'search intent', 'technical seo'],
+    specialties: [
+      'keyword optimization',
+      'meta descriptions',
+      'search intent',
+      'technical seo',
+    ],
     systemPrompt: `You are an SEO expert. Optimize content for search engines while maintaining readability and user value. Focus on keyword integration, meta descriptions, heading structure, and search intent alignment.`,
-    temperature: 0.3
+    temperature: 0.3,
   },
-  
+
   brand_voice_analyst: {
     name: 'Brand Voice Analyst',
     role: 'evaluator',
-    specialties: ['brand consistency', 'voice and tone', 'messaging alignment', 'brand guidelines'],
+    specialties: [
+      'brand consistency',
+      'voice and tone',
+      'messaging alignment',
+      'brand guidelines',
+    ],
     systemPrompt: `You are a brand voice expert. Ensure all content maintains consistent brand voice, tone, and messaging. Evaluate content for brand alignment and suggest improvements for better brand representation.`,
-    temperature: 0.4
+    temperature: 0.4,
   },
-  
+
   conversion_optimizer: {
     name: 'Conversion Optimizer',
     role: 'optimizer',
-    specialties: ['cta optimization', 'user journey', 'conversion psychology', 'persuasive writing'],
+    specialties: [
+      'cta optimization',
+      'user journey',
+      'conversion psychology',
+      'persuasive writing',
+    ],
     systemPrompt: `You are a conversion optimization expert. Focus on elements that drive user action: compelling CTAs, persuasive copy, clear value propositions, and optimized user journeys.`,
-    temperature: 0.5
+    temperature: 0.5,
   },
-  
+
   social_media_specialist: {
     name: 'Social Media Specialist',
     role: 'content_creator',
-    specialties: ['social media content', 'engagement optimization', 'platform adaptation', 'viral content'],
+    specialties: [
+      'social media content',
+      'engagement optimization',
+      'platform adaptation',
+      'viral content',
+    ],
     systemPrompt: `You are a social media expert. Create engaging, shareable content optimized for various social platforms. Focus on engagement, community building, and platform-specific best practices.`,
-    temperature: 0.8
+    temperature: 0.8,
   },
-  
+
   email_specialist: {
     name: 'Email Marketing Expert',
     role: 'content_creator',
-    specialties: ['email campaigns', 'subject lines', 'email sequences', 'personalization'],
+    specialties: [
+      'email campaigns',
+      'subject lines',
+      'email sequences',
+      'personalization',
+    ],
     systemPrompt: `You are an email marketing expert. Create compelling email content that drives opens, clicks, and conversions. Focus on subject lines, personalization, clear value delivery, and strong CTAs.`,
-    temperature: 0.6
-  }
+    temperature: 0.6,
+  },
 };
 
 /**
@@ -96,7 +129,7 @@ const SPECIALIST_AGENTS: Record<string, AgentSpecialist> = {
  */
 async function analyzeMarketingTask(
   state: SwarmWorkflowState,
-  llmService: any
+  llmService: any,
 ): Promise<SwarmWorkflowState> {
   const analysisPrompt = `Analyze this marketing request and classify it:
 
@@ -127,11 +160,11 @@ Respond with JSON:
     const analysisResponse = await llmService.generateResponse(
       'You are a marketing strategy analyst. Always respond with valid JSON.',
       analysisPrompt,
-      { temperature: 0.1, maxTokens: 400 }
+      { temperature: 0.1, maxTokens: 400 },
     );
 
     const taskAnalysis: MarketingTask = JSON.parse(analysisResponse);
-    
+
     return {
       ...state,
       taskAnalysis,
@@ -139,8 +172,8 @@ Respond with JSON:
         ...state.metadata,
         analysis_step: 'completed',
         task_complexity: taskAnalysis.complexity,
-        content_types_needed: taskAnalysis.requirements.content_types.length
-      }
+        content_types_needed: taskAnalysis.requirements.content_types.length,
+      },
     };
   } catch (error) {
     // Fallback analysis
@@ -152,14 +185,14 @@ Respond with JSON:
         requirements: {
           content_types: ['blog_post', 'social_media'],
           target_audience: 'general business audience',
-          goals: ['increase_awareness', 'drive_engagement']
-        }
+          goals: ['increase_awareness', 'drive_engagement'],
+        },
       },
       metadata: {
         ...state.metadata,
         analysis_step: 'fallback',
-        analysis_error: error instanceof Error ? error.message : String(error)
-      }
+        analysis_error: error instanceof Error ? error.message : String(error),
+      },
     };
   }
 }
@@ -169,7 +202,7 @@ Respond with JSON:
  */
 async function selectAgentTeam(
   state: SwarmWorkflowState,
-  llmService: any
+  llmService: any,
 ): Promise<SwarmWorkflowState> {
   if (!state.taskAnalysis) {
     throw new Error('Task analysis required before agent selection');
@@ -179,10 +212,16 @@ async function selectAgentTeam(
   const selectedAgents: AgentSpecialist[] = [];
 
   // Content creation agents based on content types
-  if (content_types.includes('blog_post') || content_types.includes('article')) {
+  if (
+    content_types.includes('blog_post') ||
+    content_types.includes('article')
+  ) {
     selectedAgents.push(SPECIALIST_AGENTS['blog_writer']!);
   }
-  if (content_types.includes('social_media') || content_types.includes('social')) {
+  if (
+    content_types.includes('social_media') ||
+    content_types.includes('social')
+  ) {
     selectedAgents.push(SPECIALIST_AGENTS['social_media_specialist']!);
   }
   if (content_types.includes('email') || content_types.includes('newsletter')) {
@@ -192,15 +231,25 @@ async function selectAgentTeam(
   // Always include evaluation agents for quality assurance
   selectedAgents.push(SPECIALIST_AGENTS['seo_specialist']!);
   selectedAgents.push(SPECIALIST_AGENTS['brand_voice_analyst']!);
-  
+
   // Add conversion optimizer if goals include conversion/sales
-  if (goals.some(goal => goal.includes('conversion') || goal.includes('sales') || goal.includes('lead'))) {
+  if (
+    goals.some(
+      (goal) =>
+        goal.includes('conversion') ||
+        goal.includes('sales') ||
+        goal.includes('lead'),
+    )
+  ) {
     selectedAgents.push(SPECIALIST_AGENTS['conversion_optimizer']!);
   }
 
   // Ensure minimum team size
   if (selectedAgents.length < 2) {
-    selectedAgents.push(SPECIALIST_AGENTS['blog_writer']!, SPECIALIST_AGENTS['seo_specialist']!);
+    selectedAgents.push(
+      SPECIALIST_AGENTS['blog_writer']!,
+      SPECIALIST_AGENTS['seo_specialist']!,
+    );
   }
 
   return {
@@ -210,8 +259,8 @@ async function selectAgentTeam(
       ...state.metadata,
       agent_selection_step: 'completed',
       selected_agent_count: selectedAgents.length,
-      agent_names: selectedAgents.map(a => a.name)
-    }
+      agent_names: selectedAgents.map((a) => a.name),
+    },
   };
 }
 
@@ -220,10 +269,12 @@ async function selectAgentTeam(
  */
 async function coordinateContentCreation(
   state: SwarmWorkflowState,
-  llmService: any
+  llmService: any,
 ): Promise<SwarmWorkflowState> {
   const agentOutputs = new Map();
-  const contentCreators = state.selectedAgents.filter(agent => agent.role === 'content_creator');
+  const contentCreators = state.selectedAgents.filter(
+    (agent) => agent.role === 'content_creator',
+  );
 
   for (const agent of contentCreators) {
     try {
@@ -239,21 +290,20 @@ Create high-quality content according to your expertise. Be comprehensive and ac
       const content = await llmService.generateResponse(
         agent.systemPrompt,
         contentPrompt,
-        { temperature: agent.temperature, maxTokens: 1500 }
+        { temperature: agent.temperature, maxTokens: 1500 },
       );
 
       agentOutputs.set(agent.name, {
         content,
         agent_role: agent.role,
         specialties: agent.specialties,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-
     } catch (error) {
       agentOutputs.set(agent.name, {
         content: `Error generating content: ${error instanceof Error ? error.message : String(error)}`,
         agent_role: agent.role,
-        error: true
+        error: true,
       });
     }
   }
@@ -264,8 +314,8 @@ Create high-quality content according to your expertise. Be comprehensive and ac
     metadata: {
       ...state.metadata,
       content_creation_step: 'completed',
-      content_pieces_generated: agentOutputs.size
-    }
+      content_pieces_generated: agentOutputs.size,
+    },
   };
 }
 
@@ -274,11 +324,11 @@ Create high-quality content according to your expertise. Be comprehensive and ac
  */
 async function evaluateAndOptimize(
   state: SwarmWorkflowState,
-  llmService: any
+  llmService: any,
 ): Promise<SwarmWorkflowState> {
   const evaluationResults = new Map();
-  const evaluators = state.selectedAgents.filter(agent => 
-    agent.role === 'evaluator' || agent.role === 'optimizer'
+  const evaluators = state.selectedAgents.filter(
+    (agent) => agent.role === 'evaluator' || agent.role === 'optimizer',
   );
 
   // Collect all content for evaluation
@@ -315,21 +365,20 @@ Format as JSON:
       const evaluation = await llmService.generateResponse(
         evaluator.systemPrompt,
         evaluationPrompt,
-        { temperature: evaluator.temperature, maxTokens: 800 }
+        { temperature: evaluator.temperature, maxTokens: 800 },
       );
 
       const evaluationData = JSON.parse(evaluation);
       evaluationResults.set(evaluator.name, {
         ...evaluationData,
         evaluator_specialties: evaluator.specialties,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-
     } catch (error) {
       evaluationResults.set(evaluator.name, {
         score: 5,
         error: error instanceof Error ? error.message : String(error),
-        recommendations: [`Review needed due to evaluation error`]
+        recommendations: [`Review needed due to evaluation error`],
       });
     }
   }
@@ -341,9 +390,12 @@ Format as JSON:
       ...state.metadata,
       evaluation_step: 'completed',
       evaluations_completed: evaluationResults.size,
-      average_score: Array.from(evaluationResults.values())
-        .reduce((acc, result) => acc + (result.score || 5), 0) / evaluationResults.size
-    }
+      average_score:
+        Array.from(evaluationResults.values()).reduce(
+          (acc, result) => acc + (result.score || 5),
+          0,
+        ) / evaluationResults.size,
+    },
   };
 }
 
@@ -352,7 +404,7 @@ Format as JSON:
  */
 async function synthesizeFinalContent(
   state: SwarmWorkflowState,
-  llmService: any
+  llmService: any,
 ): Promise<SwarmWorkflowState> {
   const allContent = Array.from(state.agentOutputs.entries());
   const allEvaluations = Array.from(state.evaluationResults.entries());
@@ -363,9 +415,12 @@ AGENT OUTPUTS:
 ${allContent.map(([name, output]) => `${name}:\n${output.content}`).join('\n\n')}
 
 EVALUATIONS:
-${allEvaluations.map(([name, evaluation]) => 
-  `${name} (Score: ${evaluation.score}/10):\nRecommendations: ${evaluation.recommendations?.join(', ') || 'None'}`
-).join('\n\n')}
+${allEvaluations
+  .map(
+    ([name, evaluation]) =>
+      `${name} (Score: ${evaluation.score}/10):\nRecommendations: ${evaluation.recommendations?.join(', ') || 'None'}`,
+  )
+  .join('\n\n')}
 
 Create a comprehensive content package that:
 1. Incorporates the best elements from each agent
@@ -379,7 +434,7 @@ Format as JSON with content, metadata, and recommendations.`;
     const finalPackage = await llmService.generateResponse(
       `You are a senior marketing coordinator. Synthesize agent outputs into a cohesive, optimized content package.`,
       synthesisPrompt,
-      { temperature: 0.4, maxTokens: 2000 }
+      { temperature: 0.4, maxTokens: 2000 },
     );
 
     return {
@@ -388,10 +443,9 @@ Format as JSON with content, metadata, and recommendations.`;
       metadata: {
         ...state.metadata,
         synthesis_step: 'completed',
-        workflow_status: 'completed'
-      }
+        workflow_status: 'completed',
+      },
     };
-
   } catch (error) {
     // Fallback to organized raw outputs
     return {
@@ -399,13 +453,13 @@ Format as JSON with content, metadata, and recommendations.`;
       finalContent: {
         content_pieces: Object.fromEntries(state.agentOutputs),
         evaluations: Object.fromEntries(state.evaluationResults),
-        synthesis_error: error instanceof Error ? error.message : String(error)
+        synthesis_error: error instanceof Error ? error.message : String(error),
       },
       metadata: {
         ...state.metadata,
         synthesis_step: 'fallback',
-        workflow_status: 'completed_with_errors'
-      }
+        workflow_status: 'completed_with_errors',
+      },
     };
   }
 }
@@ -416,9 +470,8 @@ Format as JSON with content, metadata, and recommendations.`;
 async function executeMarketingSwarm(
   userMessage: string,
   llmService: any,
-  sessionId?: string
+  sessionId?: string,
 ): Promise<{ response: string; metadata: Record<string, any> }> {
-  
   let state: SwarmWorkflowState = {
     originalRequest: userMessage,
     taskAnalysis: null,
@@ -430,8 +483,8 @@ async function executeMarketingSwarm(
       workflow_id: `swarm_${Date.now()}`,
       session_id: sessionId || 'unknown',
       steps_completed: [],
-      start_time: new Date().toISOString()
-    }
+      start_time: new Date().toISOString(),
+    },
   };
 
   try {
@@ -462,25 +515,28 @@ async function executeMarketingSwarm(
         workflow_status: 'completed',
         total_steps: 5,
         agents_utilized: state.selectedAgents.length,
-        end_time: new Date().toISOString()
-      }
+        end_time: new Date().toISOString(),
+      },
     };
-
   } catch (error) {
     return {
-      response: JSON.stringify({
-        error: 'Marketing swarm workflow failed',
-        partial_results: {
-          task_analysis: state.taskAnalysis,
-          selected_agents: state.selectedAgents.map(a => a.name),
-          generated_content: Object.fromEntries(state.agentOutputs)
-        }
-      }, null, 2),
+      response: JSON.stringify(
+        {
+          error: 'Marketing swarm workflow failed',
+          partial_results: {
+            task_analysis: state.taskAnalysis,
+            selected_agents: state.selectedAgents.map((a) => a.name),
+            generated_content: Object.fromEntries(state.agentOutputs),
+          },
+        },
+        null,
+        2,
+      ),
       metadata: {
         ...state.metadata,
         workflow_status: 'error',
-        error: error instanceof Error ? error.message : String(error)
-      }
+        error: error instanceof Error ? error.message : String(error),
+      },
     };
   }
 }
@@ -488,16 +544,15 @@ async function executeMarketingSwarm(
 /**
  * Main agent function export
  */
-export async function execute(params: AgentFunctionParams): Promise<AgentFunctionResponse> {
+export async function execute(
+  params: AgentFunctionParams,
+): Promise<AgentFunctionResponse> {
   const { userMessage, sessionId, llmService } = params;
   const startTime = Date.now();
 
   try {
-    const { response, metadata: workflowMetadata } = await executeMarketingSwarm(
-      userMessage,
-      llmService,
-      sessionId
-    );
+    const { response, metadata: workflowMetadata } =
+      await executeMarketingSwarm(userMessage, llmService, sessionId);
 
     const processingTime = Date.now() - startTime;
 
@@ -511,10 +566,9 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
         sessionId,
         toolsUsed: ['llm-service', 'langgraph', 'agent-coordination'],
         responseType: 'comprehensive-content-package',
-        swarm_workflow: workflowMetadata
-      }
+        swarm_workflow: workflowMetadata,
+      },
     };
-
   } catch (error) {
     const processingTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -528,8 +582,8 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
         processingTime,
         sessionId,
         error: errorMessage,
-        toolsUsed: ['llm-service']
-      }
+        toolsUsed: ['llm-service'],
+      },
     };
   }
-} 
+}

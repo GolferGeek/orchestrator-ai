@@ -38,7 +38,9 @@ describe('AppController', () => {
 
   describe('root', () => {
     it('should return "NestJS A2A Agent Framework - Ready!"', () => {
-      expect(appController.getHello()).toBe('NestJS A2A Agent Framework - Ready!');
+      expect(appController.getHello()).toBe(
+        'NestJS A2A Agent Framework - Ready!',
+      );
     });
   });
 });

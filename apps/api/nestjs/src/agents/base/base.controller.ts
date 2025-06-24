@@ -14,4 +14,4 @@ export class BaseController {
   async getAgentInfo() {
     return this.baseService.getAgentCard();
   }
-} 
+}

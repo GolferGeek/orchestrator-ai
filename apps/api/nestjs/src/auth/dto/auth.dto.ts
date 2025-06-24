@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UserCreateDto {
@@ -108,4 +114,4 @@ export class SupabaseAuthUserDto {
 
   @ApiPropertyOptional()
   updated_at?: Date;
-} 
+}

@@ -126,7 +126,7 @@ export class AgentMetadataService {
     const options = {
       maxSize: 100,
       ttl: 5 * 60 * 1000, // 5 minutes default
-      updateAgeOnGet: true
+      updateAgeOnGet: true,
     };
 
     this.metadataCache = new Map<string, AgentMetadata>();
@@ -135,7 +135,7 @@ export class AgentMetadataService {
 
     this.logger.debug('AgentMetadataService initialized', {
       cacheMaxSize: options.maxSize,
-      cacheTtl: options.ttl
+      cacheTtl: options.ttl,
     });
   }
 
@@ -145,7 +145,7 @@ export class AgentMetadataService {
   async generateAgentCard(
     agentConfig: any,
     baseUrl: string,
-    config?: Partial<AgentCardConfig>
+    config?: Partial<AgentCardConfig>,
   ): Promise<AgentCard> {
     const cacheKey = `card:${agentConfig.name || 'unknown'}:${baseUrl}`;
     const cached = this.cardCache.get(cacheKey);
@@ -156,13 +156,15 @@ export class AgentMetadataService {
 
     const capabilities = {
       ...this.getDefaultCapabilities(),
-      ...config?.capabilitiesOverride
+      ...config?.capabilitiesOverride,
     };
 
     const card: AgentCard = {
       name: agentConfig.name || 'Unknown Agent',
       type: agentConfig.type || 'general',
-      description: agentConfig.description || `${agentConfig.name || 'Unknown Agent'} - A2A Protocol compliant agent`,
+      description:
+        agentConfig.description ||
+        `${agentConfig.name || 'Unknown Agent'} - A2A Protocol compliant agent`,
       url: baseUrl,
       provider: agentConfig.provider || this.getDefaultProvider(),
       version: agentConfig.version || '1.0.0',
@@ -172,7 +174,8 @@ export class AgentMetadataService {
       defaultInputModes: this.getDefaultInputModes(),
       defaultOutputModes: this.getDefaultOutputModes(),
       skills: await this.getAgentSkills(agentConfig),
-      supportsAuthenticatedExtendedCard: config?.enableAuthenticatedExtendedCard ?? false
+      supportsAuthenticatedExtendedCard:
+        config?.enableAuthenticatedExtendedCard ?? false,
     };
 
     // Apply any card overrides from config
@@ -185,7 +188,7 @@ export class AgentMetadataService {
 
     this.logger.debug(`Generated agent card for ${card.name}`, {
       skillCount: card.skills.length,
-      capabilities: card.capabilities
+      capabilities: card.capabilities,
     });
 
     return card;
@@ -197,7 +200,7 @@ export class AgentMetadataService {
   async generateAuthenticatedAgentCard(
     agentConfig: any,
     baseUrl: string,
-    config?: Partial<AgentCardConfig>
+    config?: Partial<AgentCardConfig>,
   ): Promise<AgentCard> {
     const baseCard = await this.generateAgentCard(agentConfig, baseUrl, config);
 
@@ -210,14 +213,17 @@ export class AgentMetadataService {
     if (config?.authenticatedSecuritySchemes) {
       baseCard.securitySchemes = {
         ...baseCard.securitySchemes,
-        ...config.authenticatedSecuritySchemes
+        ...config.authenticatedSecuritySchemes,
       };
     }
 
-    this.logger.debug(`Generated authenticated agent card for ${baseCard.name}`, {
-      totalSkills: baseCard.skills.length,
-      securitySchemes: Object.keys(baseCard.securitySchemes || {})
-    });
+    this.logger.debug(
+      `Generated authenticated agent card for ${baseCard.name}`,
+      {
+        totalSkills: baseCard.skills.length,
+        securitySchemes: Object.keys(baseCard.securitySchemes || {}),
+      },
+    );
 
     return baseCard;
   }
@@ -234,7 +240,11 @@ export class AgentMetadataService {
     // Type-specific capabilities
     switch (agentType.toLowerCase()) {
       case 'orchestrator':
-        capabilities.push('task_delegation', 'agent_coordination', 'workflow_management');
+        capabilities.push(
+          'task_delegation',
+          'agent_coordination',
+          'workflow_management',
+        );
         break;
       case 'specialist':
         capabilities.push('domain_expertise', 'specialized_processing');
@@ -246,7 +256,11 @@ export class AgentMetadataService {
         capabilities.push('function_execution', 'code_processing');
         break;
       case 'python-function':
-        capabilities.push('python_execution', 'script_processing', 'data_analysis');
+        capabilities.push(
+          'python_execution',
+          'script_processing',
+          'data_analysis',
+        );
         break;
       default:
         capabilities.push('general_processing');
@@ -278,7 +292,9 @@ export class AgentMetadataService {
   /**
    * Analyze directory structure to determine agent type and files
    */
-  async analyzeDirectoryStructure(directoryPath: string): Promise<AgentStructure> {
+  async analyzeDirectoryStructure(
+    directoryPath: string,
+  ): Promise<AgentStructure> {
     const cacheKey = `structure:${directoryPath}`;
     const cached = this.structureCache.get(cacheKey);
     if (cached) {
@@ -291,7 +307,7 @@ export class AgentMetadataService {
         hasFunctionFile: false,
         hasPythonFunction: false,
         hasServiceFile: false,
-        agentType: 'unknown'
+        agentType: 'unknown',
       };
 
       // Check for various agent files
@@ -309,12 +325,15 @@ export class AgentMetadataService {
       // Set file paths if they exist
       if (structure.hasContextFile) structure.contextPath = contextPath;
       if (structure.hasFunctionFile) structure.functionPath = functionPath;
-      if (structure.hasPythonFunction) structure.pythonFunctionPath = pythonFunctionPath;
+      if (structure.hasPythonFunction)
+        structure.pythonFunctionPath = pythonFunctionPath;
       if (structure.hasServiceFile) structure.servicePath = servicePath;
 
       // Determine agent type based on files present
       if (structure.hasPythonFunction) {
-        structure.agentType = structure.hasContextFile ? 'hybrid' : 'python-function';
+        structure.agentType = structure.hasContextFile
+          ? 'hybrid'
+          : 'python-function';
       } else if (structure.hasFunctionFile) {
         structure.agentType = structure.hasContextFile ? 'hybrid' : 'function';
       } else if (structure.hasContextFile) {
@@ -332,19 +351,22 @@ export class AgentMetadataService {
           context: structure.hasContextFile,
           function: structure.hasFunctionFile,
           python: structure.hasPythonFunction,
-          service: structure.hasServiceFile
-        }
+          service: structure.hasServiceFile,
+        },
       });
 
       return structure;
     } catch (error) {
-      this.logger.error(`Failed to analyze directory structure: ${directoryPath}`, error);
+      this.logger.error(
+        `Failed to analyze directory structure: ${directoryPath}`,
+        error,
+      );
       return {
         hasContextFile: false,
         hasFunctionFile: false,
         hasPythonFunction: false,
         hasServiceFile: false,
-        agentType: 'unknown'
+        agentType: 'unknown',
       };
     }
   }
@@ -352,18 +374,23 @@ export class AgentMetadataService {
   /**
    * Analyze a directory and extract complete agent information
    */
-  async analyzeAgentDirectory(directoryPath: string): Promise<DirectoryAnalysisResult> {
+  async analyzeAgentDirectory(
+    directoryPath: string,
+  ): Promise<DirectoryAnalysisResult> {
     const agentName = path.basename(directoryPath);
     const structure = await this.analyzeDirectoryStructure(directoryPath);
-    
+
     let metadata: AgentMetadata | undefined;
-    
+
     // Try to extract metadata from context file if available
     if (structure.hasContextFile && structure.contextPath) {
       try {
         metadata = await this.extractMetadataFromContext(structure.contextPath);
       } catch (error) {
-        this.logger.warn(`Failed to extract metadata from context file: ${structure.contextPath}`, error);
+        this.logger.warn(
+          `Failed to extract metadata from context file: ${structure.contextPath}`,
+          error,
+        );
       }
     }
 
@@ -371,7 +398,7 @@ export class AgentMetadataService {
       agentName,
       agentPath: directoryPath,
       structure,
-      metadata
+      metadata,
     };
   }
 
@@ -406,14 +433,14 @@ export class AgentMetadataService {
   getCacheStats() {
     return {
       metadata: {
-        size: this.metadataCache.size
+        size: this.metadataCache.size,
       },
       cards: {
-        size: this.cardCache.size
+        size: this.cardCache.size,
       },
       structures: {
-        size: this.structureCache.size
-      }
+        size: this.structureCache.size,
+      },
     };
   }
 
@@ -443,11 +470,17 @@ export class AgentMetadataService {
       errors.push('Agent card must have at least one skill');
     }
 
-    if (!Array.isArray(card.defaultInputModes) || card.defaultInputModes.length === 0) {
+    if (
+      !Array.isArray(card.defaultInputModes) ||
+      card.defaultInputModes.length === 0
+    ) {
       errors.push('Agent card must specify default input modes');
     }
 
-    if (!Array.isArray(card.defaultOutputModes) || card.defaultOutputModes.length === 0) {
+    if (
+      !Array.isArray(card.defaultOutputModes) ||
+      card.defaultOutputModes.length === 0
+    ) {
       errors.push('Agent card must specify default output modes');
     }
 
@@ -460,7 +493,9 @@ export class AgentMetadataService {
         errors.push(`Skill at index ${index} must have a non-empty name`);
       }
       if (!skill.description?.trim()) {
-        errors.push(`Skill at index ${index} must have a non-empty description`);
+        errors.push(
+          `Skill at index ${index} must have a non-empty description`,
+        );
       }
       if (!Array.isArray(skill.tags)) {
         errors.push(`Skill at index ${index} must have tags array`);
@@ -469,23 +504,27 @@ export class AgentMetadataService {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
   // Private helper methods
 
-  private async extractMetadataFromContext(contextPath: string): Promise<AgentMetadata> {
+  private async extractMetadataFromContext(
+    contextPath: string,
+  ): Promise<AgentMetadata> {
     const content = await fs.readFile(contextPath, 'utf-8');
-    
+
     // Basic metadata extraction from markdown content
     const metadata: AgentMetadata = {
       name: this.extractFromContent(content, /^#\s+(.+)$/m) || 'Unknown Agent',
-      type: this.extractFromContent(content, /Type:\s*(.+)$/mi) || 'general',
-      description: this.extractFromContent(content, /Description:\s*(.+)$/mi) || '',
-      version: this.extractFromContent(content, /Version:\s*(.+)$/mi) || '1.0.0',
+      type: this.extractFromContent(content, /Type:\s*(.+)$/im) || 'general',
+      description:
+        this.extractFromContent(content, /Description:\s*(.+)$/im) || '',
+      version:
+        this.extractFromContent(content, /Version:\s*(.+)$/im) || '1.0.0',
       capabilities: this.extractCapabilitiesFromContent(content),
-      skills: await this.extractSkillsFromContent(content)
+      skills: await this.extractSkillsFromContent(content),
     };
 
     return metadata;
@@ -493,46 +532,55 @@ export class AgentMetadataService {
 
   private extractFromContent(content: string, regex: RegExp): string | null {
     const match = content.match(regex);
-        return match ? match[1]?.trim() || '' : '';
+    return match ? match[1]?.trim() || '' : '';
   }
 
   private extractCapabilitiesFromContent(content: string): string[] {
-    const capabilitiesMatch = content.match(/Capabilities:\s*([\s\S]*?)(?=\n\n|\n#|$)/mi);
+    const capabilitiesMatch = content.match(
+      /Capabilities:\s*([\s\S]*?)(?=\n\n|\n#|$)/im,
+    );
     if (!capabilitiesMatch) return ['general_assistance'];
 
     const capabilitiesText = capabilitiesMatch[1] || '';
     const capabilities = capabilitiesText
-      .split(/[,\n]/) 
-      .map(cap => cap.trim().replace(/^[-*]\s*/, ''))
-      .filter(cap => cap.length > 0);
+      .split(/[,\n]/)
+      .map((cap) => cap.trim().replace(/^[-*]\s*/, ''))
+      .filter((cap) => cap.length > 0);
 
     return capabilities.length > 0 ? capabilities : ['general_assistance'];
   }
 
-  private async extractSkillsFromContent(content: string): Promise<AgentSkill[]> {
+  private async extractSkillsFromContent(
+    content: string,
+  ): Promise<AgentSkill[]> {
     // Extract skills from markdown content
-    const skillsSection = content.match(/Skills:\s*([\s\S]*?)(?=\n\n|\n#|$)/mi);
+    const skillsSection = content.match(/Skills:\s*([\s\S]*?)(?=\n\n|\n#|$)/im);
     if (!skillsSection) {
       return this.getDefaultSkills();
     }
 
     const skillsText = skillsSection[1] || '';
-    const skillBlocks = skillsText?.split(/\n\s*[-*]\s*/).filter(block => block.trim());
-    
+    const skillBlocks = skillsText
+      ?.split(/\n\s*[-*]\s*/)
+      .filter((block) => block.trim());
+
     const skills: AgentSkill[] = [];
-    
+
     for (const block of skillBlocks) {
-      const lines = block.split('\n').map(line => line.trim()).filter(line => line);
+      const lines = block
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line);
       if (lines.length > 0) {
         const name = lines[0]?.replace(/^\*\*(.+)\*\*$/, '$1').trim() || '';
         const description = lines.slice(1).join(' ').trim() || name;
-        
+
         skills.push({
           id: name.toLowerCase().replace(/\s+/g, '-'),
           name,
           description,
           tags: ['general'],
-          examples: [`Use ${name.toLowerCase()}`]
+          examples: [`Use ${name.toLowerCase()}`],
         });
       }
     }
@@ -545,14 +593,14 @@ export class AgentMetadataService {
       streaming: false,
       pushNotifications: false,
       stateTransitionHistory: false,
-      extensions: []
+      extensions: [],
     };
   }
 
   private getDefaultProvider(): AgentProvider {
     return {
       organization: 'Orchestra AI',
-      url: 'https://orchestra-ai.com'
+      url: 'https://orchestra-ai.com',
     };
   }
 
@@ -562,8 +610,8 @@ export class AgentMetadataService {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: 'Bearer token authentication'
-      }
+        description: 'Bearer token authentication',
+      },
     };
   }
 
@@ -593,16 +641,17 @@ export class AgentMetadataService {
       {
         id: 'basic-communication',
         name: 'Basic Communication',
-        description: 'Handle basic agent-to-agent communication and task processing',
+        description:
+          'Handle basic agent-to-agent communication and task processing',
         tags: ['communication', 'tasks', 'a2a'],
         examples: [
           'Process incoming agent requests',
           'Handle task delegation',
-          'Provide agent status information'
+          'Provide agent status information',
         ],
         inputModes: ['text/plain', 'application/json'],
-        outputModes: ['text/plain', 'application/json']
-      }
+        outputModes: ['text/plain', 'application/json'],
+      },
     ];
   }
-} 
+}

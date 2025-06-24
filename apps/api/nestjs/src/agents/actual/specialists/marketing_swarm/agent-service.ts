@@ -5,10 +5,7 @@ import { LLMService } from '@/llms/llm.service';
 
 @Injectable()
 export class MarketingSwarmService extends FunctionAgentBaseService {
-  constructor(
-    httpService: HttpService,
-    llmService: LLMService
-  ) {
+  constructor(httpService: HttpService, llmService: LLMService) {
     super(httpService, llmService);
   }
-} 
+}
