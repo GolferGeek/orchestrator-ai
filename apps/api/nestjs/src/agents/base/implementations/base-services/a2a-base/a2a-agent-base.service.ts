@@ -82,8 +82,8 @@ export abstract class A2AAgentBaseService
       // Discover agent path
       this.agentPath = this.discoverAgentPath();
 
-      // Register with agent pool
-      await this.registerWithAgentPool();
+      // Note: Agent registration is now handled by AppService via AgentFactoryService
+      // No longer self-registering here to avoid conflicts
 
       this.loggingService.logAgentEvent(agentName, 'initialized', {
         agentPath: this.agentPath,
@@ -283,6 +283,7 @@ export abstract class A2AAgentBaseService
       id: this.getAgentId(),
       status: 'active',
       capabilities: [],
+      skills: [],
       metadata: {
         generatedAt: new Date().toISOString(),
         className: this.constructor.name,

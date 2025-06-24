@@ -12,6 +12,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { AgentDiscoveryService } from '../agent-discovery.service';
+import { AppService } from '../app.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
@@ -23,6 +24,7 @@ export class DynamicAgentsController {
 
   constructor(
     private readonly agentDiscovery: AgentDiscoveryService,
+    private readonly appService: AppService,
     private readonly sessionsService: SessionsService,
   ) {}
 
@@ -137,25 +139,28 @@ export class DynamicAgentsController {
    * Find an agent instance by type and name
    */
   private findAgentInstance(agentType: string, agentName: string): any {
-    const discoveredAgents = this.agentDiscovery.getDiscoveredAgents();
+    const discoveredAgents = this.appService.getDiscoveredAgents();
+    const agentInstances = this.appService.getAgentInstances();
 
     // Match the agent by path logic (e.g., "specialists/blog_post" or "orchestrator/orchestrator")
     const expectedPath = `${agentType}/${agentName}`;
-    const agent = discoveredAgents.find((a) => {
+    const agentIndex = discoveredAgents.findIndex((a) => {
       const normalizedAgentPath = this.normalizeAgentName(a.path);
       const normalizedExpectedPath = this.normalizeAgentName(expectedPath);
       return normalizedAgentPath === normalizedExpectedPath;
     });
 
-    if (!agent) {
+    if (agentIndex === -1) {
       this.logger.debug(`Agent not found. Looking for: ${expectedPath}`);
       this.logger.debug(
         `Available agents:`,
         discoveredAgents.map((a) => a.path),
       );
+      return null;
     }
 
-    return agent?.serviceInstance;
+    // Return the corresponding agent instance
+    return agentInstances[agentIndex] || null;
   }
 
   /**
