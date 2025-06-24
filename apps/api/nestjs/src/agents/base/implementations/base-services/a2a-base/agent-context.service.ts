@@ -54,7 +54,7 @@ export class AgentContextService {
   async initialize(agentDirectory: string): Promise<void> {
     this.agentDirectory = agentDirectory;
     const context = await this.loadContext();
-    
+
     if (context) {
       this.name = context.name;
       this.type = context.type;
@@ -87,7 +87,7 @@ export class AgentContextService {
     }
 
     const yamlPath = path.join(this.agentDirectory, 'agent.yaml');
-    
+
     if (!fs.existsSync(yamlPath)) {
       this.logger.warn(`No agent.yaml found at: ${yamlPath}`);
       return null;
@@ -96,9 +96,9 @@ export class AgentContextService {
     try {
       const yamlContent = fs.readFileSync(yamlPath, 'utf8');
       this.logger.debug(`Loaded YAML content length: ${yamlContent.length}`);
-      
+
       const parsed = yaml.load(yamlContent) as any;
-      
+
       if (!parsed) {
         this.logger.warn('Failed to parse YAML content');
         return null;
@@ -106,31 +106,42 @@ export class AgentContextService {
 
       const context: AgentContext = {
         name: parsed.metadata?.name || 'Unknown Agent',
-        type: parsed.metadata?.type || 'specialist', 
+        type: parsed.metadata?.type || 'specialist',
         description: parsed.metadata?.description || '',
-        capabilities: Array.isArray(parsed.capabilities) ? parsed.capabilities : [],
+        capabilities: Array.isArray(parsed.capabilities)
+          ? parsed.capabilities
+          : [],
         skills: this.parseSkills(parsed.skills || []),
-        inputModes: Array.isArray(parsed.inputModes) ? parsed.inputModes : ['text/plain', 'application/json'],
-        outputModes: Array.isArray(parsed.outputModes) ? parsed.outputModes : ['text/plain', 'application/json'],
+        inputModes: Array.isArray(parsed.inputModes)
+          ? parsed.inputModes
+          : ['text/plain', 'application/json'],
+        outputModes: Array.isArray(parsed.outputModes)
+          ? parsed.outputModes
+          : ['text/plain', 'application/json'],
         url: this.buildAgentUrl(parsed),
         domain: parsed.domain || parsed.metadata?.domain || '',
         endpoint: parsed.endpoint || parsed.metadata?.endpoint || '/tasks',
         version: parsed.metadata?.version || '1.0.0',
         // Include the full parsed YAML structure in metadata so api_configuration is accessible
         metadata: {
-          ...parsed.metadata || {},
+          ...(parsed.metadata || {}),
           api_configuration: parsed.api_configuration,
           system_prompt: parsed.system_prompt,
           configuration: parsed.configuration,
-          fullYaml: parsed // Keep full structure for any other needs
-        }
+          fullYaml: parsed, // Keep full structure for any other needs
+        },
       };
 
-      this.logger.debug(`Parsed context: name=${context.name}, type=${context.type}, capabilities=${context.capabilities.length}, skills=${context.skills.length}`);
-      
+      this.logger.debug(
+        `Parsed context: name=${context.name}, type=${context.type}, capabilities=${context.capabilities.length}, skills=${context.skills.length}`,
+      );
+
       return context;
     } catch (error) {
-      this.logger.error(`Failed to load agent context from ${yamlPath}:`, error);
+      this.logger.error(
+        `Failed to load agent context from ${yamlPath}:`,
+        error,
+      );
       return null;
     }
   }
@@ -149,8 +160,12 @@ export class AgentContextService {
       description: skill.description || '',
       tags: Array.isArray(skill.tags) ? skill.tags : [],
       examples: Array.isArray(skill.examples) ? skill.examples : [],
-      inputModes: Array.isArray(skill.inputModes) ? skill.inputModes : ['text/plain', 'application/json'],
-      outputModes: Array.isArray(skill.outputModes) ? skill.outputModes : ['text/plain', 'application/json']
+      inputModes: Array.isArray(skill.inputModes)
+        ? skill.inputModes
+        : ['text/plain', 'application/json'],
+      outputModes: Array.isArray(skill.outputModes)
+        ? skill.outputModes
+        : ['text/plain', 'application/json'],
     }));
   }
 
@@ -167,11 +182,11 @@ export class AgentContextService {
     // Otherwise, build URL from environment base + YAML endpoint
     const baseUrl = process.env.AGENT_BASE_URL || 'http://localhost:4000';
     const endpoint = parsed.endpoint || parsed.metadata?.endpoint || '/tasks';
-    
+
     // Ensure baseUrl doesn't end with slash and endpoint starts with slash
     const cleanBaseUrl = baseUrl.replace(/\/$/, '');
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    
+
     return `${cleanBaseUrl}${cleanEndpoint}`;
   }
 
@@ -186,7 +201,7 @@ export class AgentContextService {
     const dirName = path.basename(this.agentDirectory);
     return dirName
       .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
-} 
+}

@@ -6,4 +6,4 @@ import { SupabaseModule } from '../supabase/supabase.module';
   imports: [SupabaseModule],
   controllers: [HealthController],
 })
-export class HealthModule {} 
+export class HealthModule {}

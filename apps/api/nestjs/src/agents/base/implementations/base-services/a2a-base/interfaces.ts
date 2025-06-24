@@ -32,8 +32,6 @@ export interface JsonRpcNotification {
  * Agent Card and Metadata Interfaces
  */
 
-
-
 export interface AgentEndpoints {
   tasks: string;
   health: string;
@@ -71,7 +69,7 @@ export enum TaskStatus {
   RUNNING = 'running',
   COMPLETED = 'completed',
   FAILED = 'failed',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 export interface TaskCreationRequest {
@@ -135,10 +133,11 @@ export const JSON_RPC_ERRORS = {
   INVALID_PARAMS: -32602,
   INTERNAL_ERROR: -32603,
   SERVER_ERROR_START: -32099,
-  SERVER_ERROR_END: -32000
+  SERVER_ERROR_END: -32000,
 } as const;
 
-export type JsonRpcErrorCode = typeof JSON_RPC_ERRORS[keyof typeof JSON_RPC_ERRORS];
+export type JsonRpcErrorCode =
+  (typeof JSON_RPC_ERRORS)[keyof typeof JSON_RPC_ERRORS];
 
 // ============================================================================
 // A2A AGENT CARD INTERFACES (Based on Google A2A Specification v0.2.1)
@@ -335,4 +334,4 @@ export interface AgentFunctionResponse {
 export interface AgentFunction {
   /** The main execution function that processes requests */
   execute(params: AgentFunctionParams): Promise<AgentFunctionResponse>;
-} 
+}

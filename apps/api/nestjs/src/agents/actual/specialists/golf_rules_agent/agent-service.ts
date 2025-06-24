@@ -26,6 +26,6 @@ export class RulesOfGolfAgentService extends ApiAgentBaseService {
       configurationService,
     );
   }
-  
+
   // Minimal implementation - base service handles API configuration from agent.yaml
-} 
+}

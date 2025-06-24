@@ -6,25 +6,25 @@ export {
   JsonRpcError,
   JsonRpcNotification,
   JsonRpcErrorCode,
-  
+
   // Task Management
   Task,
   TaskStatus,
   TaskCreationRequest,
-  
+
   // Health and Monitoring
   HealthStatus,
   HealthCheck,
   AgentMetrics,
-  
+
   // Configuration
   A2AConfig,
-  
+
   // Agent Card Interfaces
   AgentCard,
   AgentEndpoints,
   AgentMetadata,
-  
+
   // A2A Protocol Interfaces
   AgentProvider,
   AgentExtension,
@@ -32,7 +32,7 @@ export {
   SecurityScheme,
   AgentSkill,
   AgentCardConfig,
-  
+
   // Error Constants
-  JSON_RPC_ERRORS
-} from './interfaces'; 
+  JSON_RPC_ERRORS,
+} from './interfaces';

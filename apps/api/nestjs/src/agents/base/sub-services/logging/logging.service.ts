@@ -18,11 +18,15 @@ export class LoggingService {
   /**
    * Log with structured context
    */
-  logWithContext(level: 'log' | 'error' | 'warn' | 'debug', message: string, context?: LogContext): void {
+  logWithContext(
+    level: 'log' | 'error' | 'warn' | 'debug',
+    message: string,
+    context?: LogContext,
+  ): void {
     const logEntry = {
       message,
       timestamp: new Date().toISOString(),
-      ...context
+      ...context,
     };
 
     switch (level) {
@@ -48,19 +52,24 @@ export class LoggingService {
       ...context,
       method,
       paramsType: typeof params,
-      hasParams: !!params
+      hasParams: !!params,
     });
   }
 
   /**
    * Log response
    */
-  logResponse(method: string, success: boolean, responseTime?: number, context?: LogContext): void {
+  logResponse(
+    method: string,
+    success: boolean,
+    responseTime?: number,
+    context?: LogContext,
+  ): void {
     this.logWithContext('log', 'Request completed', {
       ...context,
       method,
       success,
-      responseTime: responseTime ? `${responseTime}ms` : undefined
+      responseTime: responseTime ? `${responseTime}ms` : undefined,
     });
   }
 
@@ -70,35 +79,45 @@ export class LoggingService {
   logError(error: Error | string, context?: LogContext): void {
     const errorMessage = error instanceof Error ? error.message : error;
     const errorStack = error instanceof Error ? error.stack : undefined;
-    
+
     this.logWithContext('error', errorMessage, {
       ...context,
       errorStack,
-      errorType: error instanceof Error ? error.constructor.name : 'string'
+      errorType: error instanceof Error ? error.constructor.name : 'string',
     });
   }
 
   /**
    * Log task lifecycle events
    */
-  logTaskEvent(taskId: string, event: string, details?: any, context?: LogContext): void {
+  logTaskEvent(
+    taskId: string,
+    event: string,
+    details?: any,
+    context?: LogContext,
+  ): void {
     this.logWithContext('log', `Task ${event}`, {
       ...context,
       taskId,
       event,
-      details
+      details,
     });
   }
 
   /**
    * Log agent registration events
    */
-  logAgentEvent(agentName: string, event: string, details?: any, context?: LogContext): void {
+  logAgentEvent(
+    agentName: string,
+    event: string,
+    details?: any,
+    context?: LogContext,
+  ): void {
     this.logWithContext('log', `Agent ${event}`, {
       ...context,
       agentName,
       event,
-      details
+      details,
     });
   }
-} 
+}

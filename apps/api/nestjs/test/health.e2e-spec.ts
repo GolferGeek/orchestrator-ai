@@ -39,4 +39,4 @@ describe('Health Controller (e2e)', () => {
         expect(res.body.message).toBeDefined();
       });
   });
-}); 
+});

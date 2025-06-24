@@ -82,4 +82,4 @@ export interface PoolStats {
     manager: number;
     external: number;
   };
-} 
+}

@@ -37,7 +37,9 @@ export interface AgentFunctionResponse {
  */
 @Injectable()
 export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
-  protected readonly pythonLogger = new Logger(PythonFunctionAgentBaseService.name);
+  protected readonly pythonLogger = new Logger(
+    PythonFunctionAgentBaseService.name,
+  );
   private pythonScriptPath: string | null = null;
   private pythonExecutable: string = 'python3'; // Default, can be configured
 
@@ -48,7 +50,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
     authService?: AuthService,
-    configurationService?: ConfigurationService
+    configurationService?: ConfigurationService,
   ) {
     super(
       httpService,
@@ -56,7 +58,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       jsonRpcProtocolService,
       loggingService,
       authService,
-      configurationService
+      configurationService,
     );
   }
 
@@ -65,7 +67,9 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
    */
   setPythonScriptPath(scriptPath: string): void {
     this.pythonScriptPath = scriptPath;
-    this.pythonLogger.debug(`Python script path set for ${this.getAgentName()}: ${scriptPath}`);
+    this.pythonLogger.debug(
+      `Python script path set for ${this.getAgentName()}: ${scriptPath}`,
+    );
   }
 
   /**
@@ -73,7 +77,9 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
    */
   setPythonExecutable(executable: string): void {
     this.pythonExecutable = executable;
-    this.pythonLogger.debug(`Python executable set for ${this.getAgentName()}: ${executable}`);
+    this.pythonLogger.debug(
+      `Python executable set for ${this.getAgentName()}: ${executable}`,
+    );
   }
 
   /**
@@ -81,11 +87,13 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
    */
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
-    
+
     try {
       // If no Python script path, fall back to context processing
       if (!this.pythonScriptPath || !fs.existsSync(this.pythonScriptPath)) {
-        this.pythonLogger.debug(`No Python script for ${agentName}, using context fallback`);
+        this.pythonLogger.debug(
+          `No Python script for ${agentName}, using context fallback`,
+        );
         return this.processWithContext(method, params);
       }
 
@@ -101,15 +109,17 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           method,
           originalParams: params,
           agentName: agentName,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
 
       // Execute the Python script
       const result = await this.executePythonScript(functionParams);
-      
-      this.pythonLogger.debug(`Python script executed successfully for ${agentName}`);
-      
+
+      this.pythonLogger.debug(
+        `Python script executed successfully for ${agentName}`,
+      );
+
       // Return structured response format to match FunctionAgentBaseService
       return {
         success: true,
@@ -119,13 +129,15 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           executionType: 'python_script',
           scriptPath: this.pythonScriptPath,
           processedAt: new Date().toISOString(),
-          ...functionParams.metadata
-        }
+          ...functionParams.metadata,
+        },
       };
-      
     } catch (error) {
-      this.pythonLogger.error(`Python script execution error for ${agentName}:`, error);
-      
+      this.pythonLogger.error(
+        `Python script execution error for ${agentName}:`,
+        error,
+      );
+
       // Return structured error response
       return {
         success: false,
@@ -137,8 +149,8 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           executionType: 'python_script_error',
           scriptPath: this.pythonScriptPath,
           errorDetails: error instanceof Error ? error.message : String(error),
-          processedAt: new Date().toISOString()
-        }
+          processedAt: new Date().toISOString(),
+        },
       };
     }
   }
@@ -155,12 +167,16 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
       // Prepare input data for Python script
       const inputData = JSON.stringify(params);
-      
+
       // Spawn Python process
-      const pythonProcess: ChildProcess = spawn(this.pythonExecutable, [this.pythonScriptPath], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        cwd: path.dirname(this.pythonScriptPath)
-      });
+      const pythonProcess: ChildProcess = spawn(
+        this.pythonExecutable,
+        [this.pythonScriptPath],
+        {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          cwd: path.dirname(this.pythonScriptPath),
+        },
+      );
 
       let stdout = '';
       let stderr = '';
@@ -177,7 +193,11 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       // Handle process completion
       pythonProcess.on('close', (code) => {
         if (code !== 0) {
-          reject(new Error(`Python script exited with code ${code}. Error: ${stderr}`));
+          reject(
+            new Error(
+              `Python script exited with code ${code}. Error: ${stderr}`,
+            ),
+          );
           return;
         }
 
@@ -218,19 +238,26 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
     if (typeof params === 'string') {
       return params;
     }
-    
+
     if (params && typeof params === 'object') {
-      const messageProps = ['message', 'userMessage', 'prompt', 'input', 'content', 'text'];
-      
+      const messageProps = [
+        'message',
+        'userMessage',
+        'prompt',
+        'input',
+        'content',
+        'text',
+      ];
+
       for (const prop of messageProps) {
         if (params[prop] && typeof params[prop] === 'string') {
           return params[prop];
         }
       }
-      
+
       return JSON.stringify(params);
     }
-    
+
     return String(params || '');
   }
 
@@ -238,8 +265,10 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
    * Simple context-based fallback processing
    */
   private async processWithContext(method: string, params: any): Promise<any> {
-    this.pythonLogger.debug(`Using context fallback for ${this.getAgentName()}`);
-    
+    this.pythonLogger.debug(
+      `Using context fallback for ${this.getAgentName()}`,
+    );
+
     return {
       success: true,
       response: `Hello! I'm the ${this.getAgentName()} agent. I'm ready to help, but my Python script isn't available yet. Please check back soon!`,
@@ -249,8 +278,8 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
         executionType: 'fallback',
         reason: 'No Python script available',
         method,
-        processedAt: new Date().toISOString()
-      }
+        processedAt: new Date().toISOString(),
+      },
     };
   }
 
@@ -269,10 +298,13 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
     const baseCard = await super.getAgentCard();
     return {
       ...baseCard,
-      pythonScriptStatus: this.pythonScriptPath && fs.existsSync(this.pythonScriptPath) ? 'available' : 'not_available',
+      pythonScriptStatus:
+        this.pythonScriptPath && fs.existsSync(this.pythonScriptPath)
+          ? 'available'
+          : 'not_available',
       pythonScriptPath: this.pythonScriptPath,
       pythonExecutable: this.pythonExecutable,
-      loadedAt: this.pythonScriptPath ? new Date().toISOString() : null
+      loadedAt: this.pythonScriptPath ? new Date().toISOString() : null,
     };
   }
-} 
+}

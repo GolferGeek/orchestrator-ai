@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigurationService, ConfigurationOptions, ParsedConfiguration } from './configuration.service';
+import {
+  ConfigurationService,
+  ConfigurationOptions,
+  ParsedConfiguration,
+} from './configuration.service';
 import { ValidationError } from 'class-validator';
 import { IsString, IsNumber, IsOptional, IsArray } from 'class-validator';
 import * as fs from 'fs';
@@ -34,13 +38,13 @@ describe('ConfigurationService', () => {
     }).compile();
 
     service = module.get<ConfigurationService>(ConfigurationService);
-    
+
     // Mock the logger to avoid console output during tests
     mockLogger = {
       debug: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
-      log: jest.fn()
+      log: jest.fn(),
     };
     (service as any).logger = mockLogger;
 
@@ -78,10 +82,13 @@ url: \${API_HOST}:\${API_PORT:4000}
         name: 'test-agent',
         port: 3000,
         features: ['feature1', 'feature2'],
-        url: '${API_HOST}:4000'
+        url: '${API_HOST}:4000',
       });
       expect(result.sourcePath).toBe('/test/config.yaml');
-      expect(mockFs.readFileSync).toHaveBeenCalledWith('/test/config.yaml', 'utf8');
+      expect(mockFs.readFileSync).toHaveBeenCalledWith(
+        '/test/config.yaml',
+        'utf8',
+      );
     });
 
     it('should substitute environment variables by default', async () => {
@@ -105,7 +112,7 @@ url: \${API_HOST}:\${API_PORT:4000}
       process.env.API_HOST = 'localhost';
 
       const result = await service.parseYamlFile('/test/config.yaml', {
-        substituteEnvVars: false
+        substituteEnvVars: false,
       });
 
       expect(result.data.url).toBe('${API_HOST}:${API_PORT:4000}');
@@ -114,31 +121,39 @@ url: \${API_HOST}:\${API_PORT:4000}
 
     it('should resolve relative file paths', async () => {
       const result = await service.parseYamlFile('config.yaml', {
-        baseDirectory: '/test'
+        baseDirectory: '/test',
       });
 
-      expect(mockFs.readFileSync).toHaveBeenCalledWith('/test/config.yaml', 'utf8');
+      expect(mockFs.readFileSync).toHaveBeenCalledWith(
+        '/test/config.yaml',
+        'utf8',
+      );
     });
 
     it('should throw error when file does not exist', async () => {
       mockFs.existsSync.mockReturnValue(false);
 
-      await expect(service.parseYamlFile('/nonexistent/config.yaml'))
-        .rejects.toThrow('Configuration file not found: /nonexistent/config.yaml');
+      await expect(
+        service.parseYamlFile('/nonexistent/config.yaml'),
+      ).rejects.toThrow(
+        'Configuration file not found: /nonexistent/config.yaml',
+      );
     });
 
     it('should throw error when YAML parsing fails', async () => {
       mockFs.readFileSync.mockReturnValue('invalid: yaml: content: [');
 
-      await expect(service.parseYamlFile('/test/config.yaml'))
-        .rejects.toThrow('Failed to parse YAML configuration');
+      await expect(service.parseYamlFile('/test/config.yaml')).rejects.toThrow(
+        'Failed to parse YAML configuration',
+      );
     });
 
     it('should throw error when YAML file is empty', async () => {
       mockFs.readFileSync.mockReturnValue('');
 
-      await expect(service.parseYamlFile('/test/config.yaml'))
-        .rejects.toThrow('Failed to parse YAML configuration');
+      await expect(service.parseYamlFile('/test/config.yaml')).rejects.toThrow(
+        'Failed to parse YAML configuration',
+      );
     });
   });
 
@@ -155,7 +170,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
       expect(result.data).toEqual({
         name: 'test-agent',
         port: 3000,
-        url: 'localhost:4000'
+        url: 'localhost:4000',
       });
     });
 
@@ -170,8 +185,9 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
     });
 
     it('should throw error for invalid YAML string', () => {
-      expect(() => service.parseYamlString('invalid: yaml: ['))
-        .toThrow('Failed to parse YAML content');
+      expect(() => service.parseYamlString('invalid: yaml: [')).toThrow(
+        'Failed to parse YAML content',
+      );
     });
   });
 
@@ -182,8 +198,8 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
       const config = {
         setting: '${TEST_VAR}',
         nested: {
-          value: '${TEST_VAR}'
-        }
+          value: '${TEST_VAR}',
+        },
       };
 
       const result = service.substituteEnvVars(config);
@@ -191,8 +207,8 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
       expect(result.data).toEqual({
         setting: 'test-value',
         nested: {
-          value: 'test-value'
-        }
+          value: 'test-value',
+        },
       });
       expect(result.substitutedVars).toEqual(['TEST_VAR', 'TEST_VAR']);
     });
@@ -200,14 +216,14 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
     it('should substitute environment variables with default values', () => {
       const config = {
         host: '${MISSING_HOST:localhost}',
-        port: '${MISSING_PORT:4000}'
+        port: '${MISSING_PORT:4000}',
       };
 
       const result = service.substituteEnvVars(config);
 
       expect(result.data).toEqual({
         host: 'localhost',
-        port: '4000'
+        port: '4000',
       });
       expect(result.substitutedVars).toEqual([]);
     });
@@ -216,7 +232,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
       process.env.TEST_PREFIX_VAR = 'prefixed-value';
 
       const config = {
-        setting: '${VAR}'
+        setting: '${VAR}',
       };
 
       const result = service.substituteEnvVars(config, 'TEST_PREFIX_');
@@ -232,9 +248,9 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
         array: ['${TEST_VAR}', 'static-value'],
         nested: {
           deep: {
-            value: '${TEST_VAR}'
-          }
-        }
+            value: '${TEST_VAR}',
+          },
+        },
       };
 
       const result = service.substituteEnvVars(config);
@@ -243,17 +259,18 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
         array: ['test-value', 'static-value'],
         nested: {
           deep: {
-            value: 'test-value'
-          }
-        }
+            value: 'test-value',
+          },
+        },
       });
     });
 
     it('should throw error in strict mode when variable is missing', () => {
       const config = { setting: '${MISSING_VAR}' };
 
-      expect(() => service.substituteEnvVars(config, undefined, true))
-        .toThrow('Required environment variable not found: MISSING_VAR');
+      expect(() => service.substituteEnvVars(config, undefined, true)).toThrow(
+        'Required environment variable not found: MISSING_VAR',
+      );
     });
 
     it('should keep placeholder in non-strict mode when variable is missing', () => {
@@ -270,7 +287,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
         number: 42,
         boolean: true,
         null_value: null,
-        undefined_value: undefined
+        undefined_value: undefined,
       };
 
       const result = service.substituteEnvVars(config);
@@ -285,10 +302,13 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
       const config = {
         name: 'test-agent',
         port: 3000,
-        features: ['feature1', 'feature2']
+        features: ['feature1', 'feature2'],
       };
 
-      const errors = await service.validateSchema(config, TestConfigSchema as any);
+      const errors = await service.validateSchema(
+        config,
+        TestConfigSchema as any,
+      );
 
       expect(errors).toHaveLength(0);
     });
@@ -297,25 +317,31 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
       const config = {
         name: 123, // Should be string
         port: 'invalid', // Should be number
-        features: 'not-array' // Should be array
+        features: 'not-array', // Should be array
       };
 
-      const errors = await service.validateSchema(config, TestConfigSchema as any);
+      const errors = await service.validateSchema(
+        config,
+        TestConfigSchema as any,
+      );
 
       expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(error => error.property === 'name')).toBe(true);
+      expect(errors.some((error) => error.property === 'name')).toBe(true);
     });
 
     it('should handle missing required fields', async () => {
       const config = {
         // Missing required 'name' field
-        port: 3000
+        port: 3000,
       };
 
-      const errors = await service.validateSchema(config, TestConfigSchema as any);
+      const errors = await service.validateSchema(
+        config,
+        TestConfigSchema as any,
+      );
 
       expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(error => error.property === 'name')).toBe(true);
+      expect(errors.some((error) => error.property === 'name')).toBe(true);
     });
   });
 
@@ -375,7 +401,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
       isFile: () => true,
       isDirectory: () => false,
       size: 1024,
-      mtime: new Date()
+      mtime: new Date(),
     } as fs.Stats;
 
     it('should return file stats when file exists', () => {
@@ -402,7 +428,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
     const testConfig = {
       name: 'test-agent',
       port: 3000,
-      features: ['feature1', 'feature2']
+      features: ['feature1', 'feature2'],
     };
 
     beforeEach(() => {
@@ -417,7 +443,7 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
         '/test/config.yaml',
         expect.stringContaining('name: test-agent'),
-        'utf8'
+        'utf8',
       );
     });
 
@@ -426,18 +452,20 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
 
       await service.writeYamlFile('/test/new-dir/config.yaml', testConfig);
 
-      expect(mockFs.mkdirSync).toHaveBeenCalledWith('/test/new-dir', { recursive: true });
+      expect(mockFs.mkdirSync).toHaveBeenCalledWith('/test/new-dir', {
+        recursive: true,
+      });
     });
 
     it('should resolve relative paths before writing', async () => {
       await service.writeYamlFile('config.yaml', testConfig, {
-        baseDirectory: '/test'
+        baseDirectory: '/test',
       });
 
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
         '/test/config.yaml',
         expect.any(String),
-        'utf8'
+        'utf8',
       );
     });
 
@@ -446,8 +474,9 @@ url: \${API_HOST:localhost}:\${API_PORT:4000}
         throw new Error('Write failed');
       });
 
-      await expect(service.writeYamlFile('/test/config.yaml', testConfig))
-        .rejects.toThrow('Failed to write YAML configuration');
+      await expect(
+        service.writeYamlFile('/test/config.yaml', testConfig),
+      ).rejects.toThrow('Failed to write YAML configuration');
     });
   });
 
@@ -477,16 +506,19 @@ features:
         name: 'integration-test',
         port: '4000',
         host: 'localhost',
-        features: ['auth', 'logging']
+        features: ['auth', 'logging'],
       });
       expect(result.substitutedVars).toEqual(['API_PORT', 'API_HOST']);
 
       // Validate against schema
-      const validationErrors = await service.validateSchema(result.data, TestConfigSchema);
-      
+      const validationErrors = await service.validateSchema(
+        result.data,
+        TestConfigSchema,
+      );
+
       // Note: This will have validation errors because port is string instead of number
       // This demonstrates the validation working correctly
       expect(validationErrors.length).toBeGreaterThan(0);
     });
   });
-}); 
+});
