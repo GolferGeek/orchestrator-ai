@@ -44,7 +44,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
     authService?: AuthService,
-    configurationService?: ConfigurationService
+    configurationService?: ConfigurationService,
   ) {
     super(
       httpService,
@@ -52,7 +52,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       jsonRpcProtocolService,
       loggingService,
       authService,
-      configurationService
+      configurationService,
     );
   }
 
@@ -61,8 +61,13 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    */
   setAgentFunction(agentFunction: any): void {
     this.agentFunction = agentFunction;
-    console.log(`🚀 FUNCTION LOADED for ${this.getAgentName()}:`, typeof agentFunction);
-    this.functionLogger.debug(`Pre-loaded function set for ${this.getAgentName()}`);
+    console.log(
+      `🚀 FUNCTION LOADED for ${this.getAgentName()}:`,
+      typeof agentFunction,
+    );
+    this.functionLogger.debug(
+      `Pre-loaded function set for ${this.getAgentName()}`,
+    );
   }
 
   /**
@@ -70,12 +75,16 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    */
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
-    console.log(`🎯 EXECUTETASK called for ${agentName}, method: ${method}, hasFunction: ${!!this.agentFunction}`);
-    
+    console.log(
+      `🎯 EXECUTETASK called for ${agentName}, method: ${method}, hasFunction: ${!!this.agentFunction}`,
+    );
+
     try {
       // If no pre-loaded function, fall back to context processing
       if (!this.agentFunction || typeof this.agentFunction !== 'function') {
-        this.functionLogger.debug(`No pre-loaded function for ${agentName}, using context fallback`);
+        this.functionLogger.debug(
+          `No pre-loaded function for ${agentName}, using context fallback`,
+        );
         return this.processWithContext(method, params);
       }
 
@@ -91,16 +100,21 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           method,
           originalParams: params,
           agentName: agentName,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
 
       // Execute the pre-loaded agent function
       const result = await this.agentFunction(functionParams);
-      
-      this.functionLogger.debug(`Function executed successfully for ${agentName}`);
-      console.log(`🔍 DEBUG ${agentName} function result:`, JSON.stringify(result, null, 2));
-      
+
+      this.functionLogger.debug(
+        `Function executed successfully for ${agentName}`,
+      );
+      console.log(
+        `🔍 DEBUG ${agentName} function result:`,
+        JSON.stringify(result, null, 2),
+      );
+
       // Return structured response format to match ContextAgentBaseService
       return {
         success: true,
@@ -109,13 +123,15 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           agentType: this.getAgentType(),
           functionStatus: 'executed',
           processedAt: new Date().toISOString(),
-          ...functionParams.metadata
-        }
+          ...functionParams.metadata,
+        },
       };
-      
     } catch (error) {
-      this.functionLogger.error(`Function execution error for ${agentName}:`, error);
-      
+      this.functionLogger.error(
+        `Function execution error for ${agentName}:`,
+        error,
+      );
+
       // Return structured error response
       return {
         success: false,
@@ -126,8 +142,8 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           agentType: this.getAgentType(),
           functionStatus: 'error',
           errorDetails: error instanceof Error ? error.message : String(error),
-          processedAt: new Date().toISOString()
-        }
+          processedAt: new Date().toISOString(),
+        },
       };
     }
   }
@@ -139,19 +155,26 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     if (typeof params === 'string') {
       return params;
     }
-    
+
     if (params && typeof params === 'object') {
-      const messageProps = ['message', 'userMessage', 'prompt', 'input', 'content', 'text'];
-      
+      const messageProps = [
+        'message',
+        'userMessage',
+        'prompt',
+        'input',
+        'content',
+        'text',
+      ];
+
       for (const prop of messageProps) {
         if (params[prop] && typeof params[prop] === 'string') {
           return params[prop];
         }
       }
-      
+
       return JSON.stringify(params);
     }
-    
+
     return String(params || '');
   }
 
@@ -159,8 +182,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    * Simple context-based fallback processing
    */
   private async processWithContext(method: string, params: any): Promise<any> {
-    this.functionLogger.debug(`Using context fallback for ${this.getAgentName()}`);
-    
+    this.functionLogger.debug(
+      `Using context fallback for ${this.getAgentName()}`,
+    );
+
     return {
       success: true,
       response: `Hello! I'm the ${this.getAgentName()} agent. I'm ready to help, but my function isn't loaded yet. Please check back soon!`,
@@ -170,8 +195,8 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         functionStatus: 'fallback',
         reason: 'No pre-loaded function available',
         method,
-        processedAt: new Date().toISOString()
-      }
+        processedAt: new Date().toISOString(),
+      },
     };
   }
 
@@ -182,7 +207,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   setDiscoveredPath(path: string): void {
     this.agentPath = path;
     this.functionLogger.debug(`Agent path set to: ${path}`);
-    
+
     // If we need to notify sub-services about the path change, we could do it here
     // For now, just setting the path is sufficient
   }
@@ -195,7 +220,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     return {
       ...baseCard,
       functionStatus: this.agentFunction ? 'loaded' : 'not_loaded',
-      loadedAt: this.agentFunction ? new Date().toISOString() : null
+      loadedAt: this.agentFunction ? new Date().toISOString() : null,
     };
   }
-} 
+}

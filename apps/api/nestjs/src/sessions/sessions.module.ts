@@ -10,4 +10,4 @@ import { AuthModule } from '../auth/auth.module';
   providers: [SessionsService],
   exports: [SessionsService],
 })
-export class SessionsModule {} 
+export class SessionsModule {}

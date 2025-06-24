@@ -7,9 +7,12 @@ describe('LLMService', () => {
 
   beforeEach(async () => {
     // Set test environment variables
-    process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'test-openai-key';
-    process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'test-anthropic-key';
-    process.env.GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'test-google-key';
+    process.env.OPENAI_API_KEY =
+      process.env.OPENAI_API_KEY || 'test-openai-key';
+    process.env.ANTHROPIC_API_KEY =
+      process.env.ANTHROPIC_API_KEY || 'test-anthropic-key';
+    process.env.GOOGLE_API_KEY =
+      process.env.GOOGLE_API_KEY || 'test-google-key';
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [
@@ -19,9 +22,7 @@ describe('LLMService', () => {
           expandVariables: true,
         }),
       ],
-      providers: [
-        LLMService,
-      ],
+      providers: [LLMService],
     }).compile();
 
     service = module.get<LLMService>(LLMService);
@@ -84,7 +85,7 @@ describe('LLMService', () => {
         temperature: 0.5,
         maxTokens: 1000,
       };
-      
+
       const llm = service.createCustomLangGraphLLM(config);
       expect(llm).toBeDefined();
       expect(typeof llm.invoke).toBe('function');
@@ -97,7 +98,7 @@ describe('LLMService', () => {
         temperature: 0.3,
         maxTokens: 2000,
       };
-      
+
       const llm = service.createCustomLangGraphLLM(config);
       expect(llm).toBeDefined();
       expect(typeof llm.invoke).toBe('function');
@@ -107,8 +108,10 @@ describe('LLMService', () => {
       const config = {
         provider: 'unsupported' as any,
       };
-      
-      expect(() => service.createCustomLangGraphLLM(config)).toThrow('Unsupported provider: unsupported');
+
+      expect(() => service.createCustomLangGraphLLM(config)).toThrow(
+        'Unsupported provider: unsupported',
+      );
     });
   });
 
@@ -118,6 +121,4 @@ describe('LLMService', () => {
       expect(typeof service.generateOrchestrationDecision).toBe('function');
     });
   });
-
-
-}); 
+});

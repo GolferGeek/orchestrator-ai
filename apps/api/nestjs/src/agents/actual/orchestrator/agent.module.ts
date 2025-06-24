@@ -9,4 +9,4 @@ import { SessionsModule } from '../../../sessions/sessions.module';
   providers: [OrchestratorService],
   exports: [OrchestratorService],
 })
-export class OrchestratorModule {} 
+export class OrchestratorModule {}

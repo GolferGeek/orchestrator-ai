@@ -30,4 +30,4 @@ export interface AgentPoolStats {
   onlineAgents: number;
   offlineAgents: number;
   agentsByType: Record<string, number>;
-} 
+}

@@ -1,5 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AgentMetadataService, AgentCard, AgentMetadata, AgentStructure, AgentCardConfig } from './agent-metadata.service';
+import {
+  AgentMetadataService,
+  AgentCard,
+  AgentMetadata,
+  AgentStructure,
+  AgentCardConfig,
+} from './agent-metadata.service';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
@@ -11,7 +17,8 @@ const mockFs = {
 };
 
 // Replace the actual fs methods with our mocks
-(fs.pathExists as jest.MockedFunction<typeof fs.pathExists>) = mockFs.pathExists;
+(fs.pathExists as jest.MockedFunction<typeof fs.pathExists>) =
+  mockFs.pathExists;
 (fs.readFile as jest.MockedFunction<typeof fs.readFile>) = mockFs.readFile;
 
 describe('AgentMetadataService', () => {
@@ -23,7 +30,7 @@ describe('AgentMetadataService', () => {
     }).compile();
 
     service = module.get<AgentMetadataService>(AgentMetadataService);
-    
+
     // Clear all mocks
     jest.clearAllMocks();
   });
@@ -43,7 +50,7 @@ describe('AgentMetadataService', () => {
       const cacheOptions = {
         maxSize: 50,
         ttl: 10000,
-        updateAgeOnGet: false
+        updateAgeOnGet: false,
       };
       const newService = new AgentMetadataService();
       expect(newService).toBeDefined();
@@ -58,8 +65,8 @@ describe('AgentMetadataService', () => {
       version: '2.0.0',
       provider: {
         organization: 'Test Org',
-        url: 'https://test.com'
-      }
+        url: 'https://test.com',
+      },
     };
 
     it('should generate a basic agent card', async () => {
@@ -75,8 +82,14 @@ describe('AgentMetadataService', () => {
       expect(card.capabilities).toBeDefined();
       expect(card.skills).toBeDefined();
       expect(Array.isArray(card.skills)).toBe(true);
-      expect(card.defaultInputModes).toEqual(['text/plain', 'application/json']);
-      expect(card.defaultOutputModes).toEqual(['text/plain', 'application/json']);
+      expect(card.defaultInputModes).toEqual([
+        'text/plain',
+        'application/json',
+      ]);
+      expect(card.defaultOutputModes).toEqual([
+        'text/plain',
+        'application/json',
+      ]);
     });
 
     it('should use default values for missing config properties', async () => {
@@ -86,11 +99,13 @@ describe('AgentMetadataService', () => {
 
       expect(card.name).toBe('Minimal Agent');
       expect(card.type).toBe('general');
-      expect(card.description).toBe('Minimal Agent - A2A Protocol compliant agent');
+      expect(card.description).toBe(
+        'Minimal Agent - A2A Protocol compliant agent',
+      );
       expect(card.version).toBe('1.0.0');
       expect(card.provider).toEqual({
         organization: 'Orchestra AI',
-        url: 'https://orchestra-ai.com'
+        url: 'https://orchestra-ai.com',
       });
     });
 
@@ -98,15 +113,19 @@ describe('AgentMetadataService', () => {
       const config: Partial<AgentCardConfig> = {
         card: {
           iconUrl: 'https://test.com/icon.png',
-          documentationUrl: 'https://test.com/docs'
+          documentationUrl: 'https://test.com/docs',
         },
         capabilitiesOverride: {
           streaming: true,
-          pushNotifications: true
-        }
+          pushNotifications: true,
+        },
       };
 
-      const card = await service.generateAgentCard(mockAgentConfig, 'https://api.test.com', config);
+      const card = await service.generateAgentCard(
+        mockAgentConfig,
+        'https://api.test.com',
+        config,
+      );
 
       expect(card.iconUrl).toBe('https://test.com/icon.png');
       expect(card.documentationUrl).toBe('https://test.com/docs');
@@ -116,29 +135,31 @@ describe('AgentMetadataService', () => {
 
     it('should cache generated cards', async () => {
       const baseUrl = 'https://api.test.com';
-      
+
       // First call
       const card1 = await service.generateAgentCard(mockAgentConfig, baseUrl);
-      
+
       // Second call should return cached result
       const card2 = await service.generateAgentCard(mockAgentConfig, baseUrl);
-      
+
       expect(card1).toBe(card2); // Should be the same object reference
     });
 
     it('should handle unknown agent config', async () => {
       const card = await service.generateAgentCard({}, 'https://api.test.com');
-      
+
       expect(card.name).toBe('Unknown Agent');
       expect(card.type).toBe('general');
-      expect(card.description).toBe('Unknown Agent - A2A Protocol compliant agent');
+      expect(card.description).toBe(
+        'Unknown Agent - A2A Protocol compliant agent',
+      );
     });
   });
 
   describe('generateAuthenticatedAgentCard', () => {
     const mockAgentConfig = {
       name: 'Auth Agent',
-      type: 'specialist'
+      type: 'specialist',
     };
 
     it('should generate authenticated card with additional skills', async () => {
@@ -148,15 +169,21 @@ describe('AgentMetadataService', () => {
             id: 'admin-access',
             name: 'Admin Access',
             description: 'Administrative functions',
-            tags: ['admin', 'security']
-          }
-        ]
+            tags: ['admin', 'security'],
+          },
+        ],
       };
 
-      const card = await service.generateAuthenticatedAgentCard(mockAgentConfig, 'https://api.test.com', config);
+      const card = await service.generateAuthenticatedAgentCard(
+        mockAgentConfig,
+        'https://api.test.com',
+        config,
+      );
 
       expect(card.skills.length).toBeGreaterThan(1);
-      expect(card.skills.some(skill => skill.id === 'admin-access')).toBe(true);
+      expect(card.skills.some((skill) => skill.id === 'admin-access')).toBe(
+        true,
+      );
     });
 
     it('should add authenticated security schemes', async () => {
@@ -164,12 +191,16 @@ describe('AgentMetadataService', () => {
         authenticatedSecuritySchemes: {
           oauth2: {
             type: 'oauth2',
-            description: 'OAuth2 authentication'
-          }
-        }
+            description: 'OAuth2 authentication',
+          },
+        },
       };
 
-      const card = await service.generateAuthenticatedAgentCard(mockAgentConfig, 'https://api.test.com', config);
+      const card = await service.generateAuthenticatedAgentCard(
+        mockAgentConfig,
+        'https://api.test.com',
+        config,
+      );
 
       expect(card.securitySchemes?.oauth2).toBeDefined();
       expect(card.securitySchemes?.oauth2?.type).toBe('oauth2');
@@ -179,7 +210,7 @@ describe('AgentMetadataService', () => {
   describe('detectCapabilities', () => {
     it('should detect orchestrator capabilities', () => {
       const capabilities = service.detectCapabilities('orchestrator', {});
-      
+
       expect(capabilities).toContain('general_assistance');
       expect(capabilities).toContain('task_delegation');
       expect(capabilities).toContain('agent_coordination');
@@ -188,7 +219,7 @@ describe('AgentMetadataService', () => {
 
     it('should detect specialist capabilities', () => {
       const capabilities = service.detectCapabilities('specialist', {});
-      
+
       expect(capabilities).toContain('general_assistance');
       expect(capabilities).toContain('domain_expertise');
       expect(capabilities).toContain('specialized_processing');
@@ -196,7 +227,7 @@ describe('AgentMetadataService', () => {
 
     it('should detect context agent capabilities', () => {
       const capabilities = service.detectCapabilities('context', {});
-      
+
       expect(capabilities).toContain('general_assistance');
       expect(capabilities).toContain('context_processing');
       expect(capabilities).toContain('document_analysis');
@@ -204,7 +235,7 @@ describe('AgentMetadataService', () => {
 
     it('should detect function agent capabilities', () => {
       const capabilities = service.detectCapabilities('function', {});
-      
+
       expect(capabilities).toContain('general_assistance');
       expect(capabilities).toContain('function_execution');
       expect(capabilities).toContain('code_processing');
@@ -212,7 +243,7 @@ describe('AgentMetadataService', () => {
 
     it('should detect python-function agent capabilities', () => {
       const capabilities = service.detectCapabilities('python-function', {});
-      
+
       expect(capabilities).toContain('general_assistance');
       expect(capabilities).toContain('python_execution');
       expect(capabilities).toContain('script_processing');
@@ -225,11 +256,11 @@ describe('AgentMetadataService', () => {
         pushNotifications: true,
         authentication: true,
         fileProcessing: true,
-        capabilities: ['custom_capability']
+        capabilities: ['custom_capability'],
       };
 
       const capabilities = service.detectCapabilities('general', agentConfig);
-      
+
       expect(capabilities).toContain('streaming_support');
       expect(capabilities).toContain('push_notifications');
       expect(capabilities).toContain('authenticated_access');
@@ -239,18 +270,18 @@ describe('AgentMetadataService', () => {
 
     it('should handle unknown agent types', () => {
       const capabilities = service.detectCapabilities('unknown', {});
-      
+
       expect(capabilities).toContain('general_assistance');
       expect(capabilities).toContain('general_processing');
     });
 
     it('should remove duplicate capabilities', () => {
       const agentConfig = {
-        capabilities: ['general_assistance', 'custom_capability']
+        capabilities: ['general_assistance', 'custom_capability'],
       };
 
       const capabilities = service.detectCapabilities('general', agentConfig);
-      
+
       // Should not have duplicates
       const uniqueCapabilities = [...new Set(capabilities)];
       expect(capabilities.length).toBe(uniqueCapabilities.length);
@@ -311,7 +342,8 @@ describe('AgentMetadataService', () => {
     it('should detect hybrid agent structure', async () => {
       mockFs.pathExists.mockImplementation((filePath: string) => {
         return Promise.resolve(
-          filePath.includes('agent-context.md') || filePath.includes('agent-function.ts')
+          filePath.includes('agent-context.md') ||
+            filePath.includes('agent-function.ts'),
         );
       });
 
@@ -356,7 +388,7 @@ describe('AgentMetadataService', () => {
 
       // First call
       const structure1 = await service.analyzeDirectoryStructure('/test/path');
-      
+
       // Second call should use cache
       const structure2 = await service.analyzeDirectoryStructure('/test/path');
 
@@ -403,7 +435,9 @@ Version: 1.5.0
 
       mockFs.readFile.mockResolvedValue(mockContextContent);
 
-      const result = await service.analyzeAgentDirectory('/test/agents/test-agent');
+      const result = await service.analyzeAgentDirectory(
+        '/test/agents/test-agent',
+      );
 
       expect(result.agentName).toBe('test-agent');
       expect(result.agentPath).toBe('/test/agents/test-agent');
@@ -419,7 +453,9 @@ Version: 1.5.0
         return Promise.resolve(filePath.includes('agent-function.ts'));
       });
 
-      const result = await service.analyzeAgentDirectory('/test/agents/function-agent');
+      const result = await service.analyzeAgentDirectory(
+        '/test/agents/function-agent',
+      );
 
       expect(result.agentName).toBe('function-agent');
       expect(result.structure.agentType).toBe('function');
@@ -433,7 +469,9 @@ Version: 1.5.0
 
       mockFs.readFile.mockRejectedValue(new Error('Read error'));
 
-      const result = await service.analyzeAgentDirectory('/test/agents/error-agent');
+      const result = await service.analyzeAgentDirectory(
+        '/test/agents/error-agent',
+      );
 
       expect(result.agentName).toBe('error-agent');
       expect(result.structure.agentType).toBe('context');
@@ -448,18 +486,18 @@ Version: 1.5.0
       description: 'Test description',
       version: '1.0.0',
       capabilities: ['test_capability'],
-      skills: []
+      skills: [],
     };
 
     it('should cache and retrieve metadata', () => {
       const agentId = 'test-agent-123';
-      
+
       // Cache metadata
       service.cacheMetadata(agentId, mockMetadata);
-      
+
       // Retrieve cached metadata
       const cached = service.getCachedMetadata(agentId);
-      
+
       expect(cached).toEqual(mockMetadata);
     });
 
@@ -471,10 +509,10 @@ Version: 1.5.0
     it('should clear all caches', () => {
       // Cache some data
       service.cacheMetadata('agent1', mockMetadata);
-      
+
       // Clear caches
       service.clearCaches();
-      
+
       // Should return null after clearing
       const cached = service.getCachedMetadata('agent1');
       expect(cached).toBeNull();
@@ -484,11 +522,11 @@ Version: 1.5.0
   describe('getCacheStats', () => {
     it('should return cache statistics', () => {
       const stats = service.getCacheStats();
-      
+
       expect(stats).toHaveProperty('metadata');
       expect(stats).toHaveProperty('cards');
       expect(stats).toHaveProperty('structures');
-      
+
       expect(stats.metadata).toHaveProperty('size');
       expect(stats.metadata).toHaveProperty('size');
       expect(stats.cards).toHaveProperty('size');
@@ -506,7 +544,7 @@ Version: 1.5.0
       capabilities: {
         streaming: false,
         pushNotifications: false,
-        stateTransitionHistory: false
+        stateTransitionHistory: false,
       },
       defaultInputModes: ['text/plain'],
       defaultOutputModes: ['text/plain'],
@@ -515,14 +553,14 @@ Version: 1.5.0
           id: 'test-skill',
           name: 'Test Skill',
           description: 'A test skill',
-          tags: ['test']
-        }
-      ]
+          tags: ['test'],
+        },
+      ],
     };
 
     it('should validate a correct agent card', () => {
       const result = service.validateAgentCard(validCard);
-      
+
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
@@ -530,7 +568,7 @@ Version: 1.5.0
     it('should detect missing name', () => {
       const invalidCard = { ...validCard, name: '' };
       const result = service.validateAgentCard(invalidCard);
-      
+
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Agent card must have a non-empty name');
     });
@@ -538,15 +576,17 @@ Version: 1.5.0
     it('should detect missing description', () => {
       const invalidCard = { ...validCard, description: '' };
       const result = service.validateAgentCard(invalidCard);
-      
+
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Agent card must have a non-empty description');
+      expect(result.errors).toContain(
+        'Agent card must have a non-empty description',
+      );
     });
 
     it('should detect missing URL', () => {
       const invalidCard = { ...validCard, url: '' };
       const result = service.validateAgentCard(invalidCard);
-      
+
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Agent card must have a valid URL');
     });
@@ -554,7 +594,7 @@ Version: 1.5.0
     it('should detect missing version', () => {
       const invalidCard = { ...validCard, version: '' };
       const result = service.validateAgentCard(invalidCard);
-      
+
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Agent card must have a version');
     });
@@ -562,25 +602,31 @@ Version: 1.5.0
     it('should detect missing skills', () => {
       const invalidCard = { ...validCard, skills: [] };
       const result = service.validateAgentCard(invalidCard);
-      
+
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Agent card must have at least one skill');
+      expect(result.errors).toContain(
+        'Agent card must have at least one skill',
+      );
     });
 
     it('should detect missing input modes', () => {
       const invalidCard = { ...validCard, defaultInputModes: [] };
       const result = service.validateAgentCard(invalidCard);
-      
+
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Agent card must specify default input modes');
+      expect(result.errors).toContain(
+        'Agent card must specify default input modes',
+      );
     });
 
     it('should detect missing output modes', () => {
       const invalidCard = { ...validCard, defaultOutputModes: [] };
       const result = service.validateAgentCard(invalidCard);
-      
+
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Agent card must specify default output modes');
+      expect(result.errors).toContain(
+        'Agent card must specify default output modes',
+      );
     });
 
     it('should validate individual skills', () => {
@@ -591,17 +637,23 @@ Version: 1.5.0
             id: '',
             name: '',
             description: '',
-            tags: 'invalid' as any
-          }
-        ]
+            tags: 'invalid' as any,
+          },
+        ],
       };
-      
+
       const result = service.validateAgentCard(invalidCard);
-      
+
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Skill at index 0 must have a non-empty ID');
-      expect(result.errors).toContain('Skill at index 0 must have a non-empty name');
-      expect(result.errors).toContain('Skill at index 0 must have a non-empty description');
+      expect(result.errors).toContain(
+        'Skill at index 0 must have a non-empty ID',
+      );
+      expect(result.errors).toContain(
+        'Skill at index 0 must have a non-empty name',
+      );
+      expect(result.errors).toContain(
+        'Skill at index 0 must have a non-empty description',
+      );
       expect(result.errors).toContain('Skill at index 0 must have tags array');
     });
 
@@ -614,11 +666,11 @@ Version: 1.5.0
         version: '',
         skills: [],
         defaultInputModes: [],
-        defaultOutputModes: []
+        defaultOutputModes: [],
       };
-      
+
       const result = service.validateAgentCard(invalidCard);
-      
+
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(5);
     });
@@ -648,7 +700,9 @@ Version: 2.1.0
         mockFs.readFile.mockResolvedValue(mockContent);
 
         // Access private method through any casting
-        const metadata = await (service as any).extractMetadataFromContext('/test/context.md');
+        const metadata = await (service as any).extractMetadataFromContext(
+          '/test/context.md',
+        );
 
         expect(metadata.name).toBe('Test Agent');
         expect(metadata.type).toBe('specialist');
@@ -668,7 +722,9 @@ Some basic content without structured metadata.
 
         mockFs.readFile.mockResolvedValue(mockContent);
 
-        const metadata = await (service as any).extractMetadataFromContext('/test/context.md');
+        const metadata = await (service as any).extractMetadataFromContext(
+          '/test/context.md',
+        );
 
         expect(metadata.name).toBe('Basic Agent');
         expect(metadata.type).toBe('general');
@@ -679,4 +735,4 @@ Some basic content without structured metadata.
       });
     });
   });
-}); 
+});

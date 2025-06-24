@@ -1,10 +1,18 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as path from 'path';
 
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
-import { AgentRegistrationService, AgentInfo } from '@agents/base/sub-services/agent-registration/agent-registration.service';
+import {
+  AgentRegistrationService,
+  AgentInfo,
+} from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { EvaluationWrapperService } from '@agents/base/sub-services/evaluation-wrapper/evaluation-wrapper.service';
 
@@ -54,22 +62,24 @@ export interface ExternalA2AResponse {
 
 /**
  * External A2A Agent Base Service - Lightweight proxy for external A2A agents
- * 
+ *
  * This service acts as a local representative for remote A2A-compliant agents.
  * It handles configuration, discovery, registration, and request forwarding.
  * Unlike other agent base services, it does NOT extend A2AAgentBaseService
  * because the external agents already implement the full A2A protocol.
  */
 @Injectable()
-export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestroy {
+export class ExternalA2AAgentBaseService
+  implements OnModuleInit, OnModuleDestroy
+{
   protected readonly logger = new Logger(ExternalA2AAgentBaseService.name);
-  
+
   // Configuration and discovery
   private externalConfig: ExternalA2AConfiguration | null = null;
   private remoteAgentCard: ExternalAgentCard | null = null;
   private agentPath: string | null = null;
   private agentName: string | null = null;
-  
+
   // Registration state
   private isInitialized = false;
   private registrationResult: any = null;
@@ -87,7 +97,7 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
    */
   async onModuleInit() {
     this.logger.debug(`onModuleInit called for external A2A agent`);
-    
+
     if (!this.agentPath) {
       this.logger.warn('Agent path not set, skipping initialization');
       return;
@@ -96,17 +106,22 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
     try {
       // Load local configuration from agent.yaml
       await this.loadLocalConfiguration();
-      
+
       // Discover remote agent capabilities
       await this.discoverRemoteAgent();
-      
+
       // Register with local agent pool
       await this.registerWithAgentPool();
-      
+
       this.isInitialized = true;
-      this.logger.log(`External A2A agent proxy initialized successfully: ${this.agentName}`);
+      this.logger.log(
+        `External A2A agent proxy initialized successfully: ${this.agentName}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to initialize external A2A agent proxy:`, error);
+      this.logger.error(
+        `Failed to initialize external A2A agent proxy:`,
+        error,
+      );
       throw error;
     }
   }
@@ -131,7 +146,9 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
   setDiscoveredPath(path: string): void {
     this.agentPath = path;
     this.agentName = this.extractAgentNameFromPath(path);
-    this.logger.debug(`Agent path set: ${path}, extracted name: ${this.agentName}`);
+    this.logger.debug(
+      `Agent path set: ${path}, extracted name: ${this.agentName}`,
+    );
   }
 
   /**
@@ -146,8 +163,8 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
    */
   getAgentId(): string {
     return this.agentRegistrationService.generateAgentId(
-      this.getAgentName(), 
-      'external'
+      this.getAgentName(),
+      'external',
     );
   }
 
@@ -163,9 +180,11 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
    */
   async executeTask(method: string, params: any): Promise<any> {
     this.logger.debug(`Executing task on external A2A agent: ${method}`);
-    
+
     if (!this.isInitialized || !this.externalConfig) {
-      throw new Error(`External A2A agent not properly initialized: ${this.getAgentName()}`);
+      throw new Error(
+        `External A2A agent not properly initialized: ${this.getAgentName()}`,
+      );
     }
 
     const requestParams: ExternalA2AParams = {
@@ -175,64 +194,72 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
       metadata: {
         timestamp: new Date().toISOString(),
         agentName: this.getAgentName(),
-        originalMethod: method
-      }
+        originalMethod: method,
+      },
     };
 
     try {
-             // Log the request if logging service is available
-       if (this.loggingService) {
-         this.loggingService.logRequest(method, requestParams, {
-           agentName: this.getAgentName(),
-           agentType: 'external-a2a',
-           requestId: Date.now().toString()
-         });
-       }
+      // Log the request if logging service is available
+      if (this.loggingService) {
+        this.loggingService.logRequest(method, requestParams, {
+          agentName: this.getAgentName(),
+          agentType: 'external-a2a',
+          requestId: Date.now().toString(),
+        });
+      }
 
-       // Record task start for evaluation metrics
-       if (this.evaluationService) {
-         this.evaluationService.recordTaskStart(Date.now().toString(), method);
-       }
+      // Record task start for evaluation metrics
+      if (this.evaluationService) {
+        this.evaluationService.recordTaskStart(Date.now().toString(), method);
+      }
 
-       const startTime = Date.now();
-       
-       // Forward request to external A2A agent
-       const response = await this.forwardToExternalAgent(requestParams);
-       
-       const responseTime = Date.now() - startTime;
+      const startTime = Date.now();
 
-       // Log the response if logging service is available
-       if (this.loggingService) {
-         this.loggingService.logResponse(method, response.success, responseTime, {
-           agentName: this.getAgentName(),
-           agentType: 'external-a2a',
-           responseTime: `${responseTime}ms`
-         });
-       }
+      // Forward request to external A2A agent
+      const response = await this.forwardToExternalAgent(requestParams);
 
-       // Record task completion for evaluation metrics
-       if (this.evaluationService) {
-         this.evaluationService.recordTaskCompletion(
-           Date.now().toString(),
-           method,
-           responseTime,
-           response.success,
-           response.success ? undefined : response.error
-         );
-       }
+      const responseTime = Date.now() - startTime;
+
+      // Log the response if logging service is available
+      if (this.loggingService) {
+        this.loggingService.logResponse(
+          method,
+          response.success,
+          responseTime,
+          {
+            agentName: this.getAgentName(),
+            agentType: 'external-a2a',
+            responseTime: `${responseTime}ms`,
+          },
+        );
+      }
+
+      // Record task completion for evaluation metrics
+      if (this.evaluationService) {
+        this.evaluationService.recordTaskCompletion(
+          Date.now().toString(),
+          method,
+          responseTime,
+          response.success,
+          response.success ? undefined : response.error,
+        );
+      }
 
       return response;
     } catch (error) {
       this.logger.error(`Error executing task on external A2A agent:`, error);
-      
-             // Log the error if logging service is available
-       if (this.loggingService) {
-         this.loggingService.logError(error instanceof Error ? error : String(error), {
-           agentName: this.getAgentName(),
-           agentType: 'external-a2a',
-           method: method
-         });
-       }
+
+      // Log the error if logging service is available
+      if (this.loggingService) {
+        this.loggingService.logError(
+          error instanceof Error ? error : String(error),
+          {
+            agentName: this.getAgentName(),
+            agentType: 'external-a2a',
+            method: method,
+          },
+        );
+      }
 
       throw error;
     }
@@ -253,8 +280,8 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
         version: '1.0.0',
         metadata: {
           type: 'external',
-          endpoint: this.externalConfig?.endpoint || 'unknown'
-        }
+          endpoint: this.externalConfig?.endpoint || 'unknown',
+        },
       };
     }
 
@@ -265,8 +292,8 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
         ...this.remoteAgentCard.metadata,
         type: 'external',
         endpoint: this.externalConfig?.endpoint,
-        localProxy: true
-      }
+        localProxy: true,
+      },
     };
   }
 
@@ -274,7 +301,9 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
    * Load local configuration from agent.yaml
    */
   private async loadLocalConfiguration(): Promise<void> {
-    this.logger.debug(`Loading local configuration for: ${this.getAgentName()}`);
+    this.logger.debug(
+      `Loading local configuration for: ${this.getAgentName()}`,
+    );
 
     if (!this.agentPath) {
       throw new Error('Agent path not set');
@@ -284,35 +313,36 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
       const agentDirectory = path.join(
         process.cwd(),
         'src/agents/actual',
-        this.agentPath
+        this.agentPath,
       );
-      
+
       const yamlPath = path.join(agentDirectory, 'agent.yaml');
-      
+
       this.logger.debug(`Looking for agent.yaml at: ${yamlPath}`);
-      
+
       const configResult = await this.configurationService.parseYamlFile<any>(
         yamlPath,
         {
           substituteEnvVars: true,
           envVarPrefix: 'A2A_EXTERNAL_',
-          strictEnvVars: false
-        }
+          strictEnvVars: false,
+        },
       );
 
       // Extract external A2A configuration
       this.externalConfig = this.extractExternalA2AConfig(configResult.data);
-      
+
       if (!this.externalConfig) {
         throw new Error('No external A2A configuration found in agent.yaml');
       }
 
       // Validate configuration
       this.validateConfiguration(this.externalConfig);
-      
-      this.logger.log(`Local configuration loaded successfully for ${this.getAgentName()}`);
+
+      this.logger.log(
+        `Local configuration loaded successfully for ${this.getAgentName()}`,
+      );
       this.logger.debug(`External endpoint: ${this.externalConfig.endpoint}`);
-      
     } catch (error) {
       this.logger.error(`Failed to load local configuration:`, error);
       throw error;
@@ -323,18 +353,20 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
    * Discover remote agent capabilities from /.well-known/agent.json
    */
   private async discoverRemoteAgent(): Promise<void> {
-    this.logger.debug(`Discovering remote agent capabilities from: ${this.externalConfig!.endpoint}`);
+    this.logger.debug(
+      `Discovering remote agent capabilities from: ${this.externalConfig!.endpoint}`,
+    );
 
     try {
       const wellKnownUrl = `${this.externalConfig!.endpoint}/.well-known/agent.json`;
-      
+
       this.logger.debug(`Fetching agent card from: ${wellKnownUrl}`);
-      
+
       const response = await firstValueFrom(
         this.httpService.get(wellKnownUrl, {
           timeout: this.externalConfig!.timeout || 10000,
-          headers: this.buildAuthHeaders()
-        })
+          headers: this.buildAuthHeaders(),
+        }),
       );
 
       if (response.status !== 200) {
@@ -342,13 +374,16 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
       }
 
       this.remoteAgentCard = response.data as ExternalAgentCard;
-      
+
       this.logger.log(`Remote agent discovered: ${this.remoteAgentCard.name}`);
-      this.logger.debug(`Capabilities: ${this.remoteAgentCard.capabilities?.join(', ') || 'none'}`);
-      
+      this.logger.debug(
+        `Capabilities: ${this.remoteAgentCard.capabilities?.join(', ') || 'none'}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to discover remote agent:`, error);
-      throw new Error(`Remote agent discovery failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Remote agent discovery failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -365,7 +400,9 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
         type: 'external',
         path: this.agentPath!,
         url: this.buildAgentUrl(),
-        description: this.remoteAgentCard?.description || `External A2A agent: ${this.getAgentName()}`,
+        description:
+          this.remoteAgentCard?.description ||
+          `External A2A agent: ${this.getAgentName()}`,
         capabilities: this.remoteAgentCard?.capabilities || [],
         skills: [], // External agents don't expose skills in the same format
         inputModes: this.remoteAgentCard?.inputModes || ['text'],
@@ -374,18 +411,22 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
           type: 'external',
           endpoint: this.externalConfig!.endpoint,
           remoteAgentCard: this.remoteAgentCard,
-          localProxy: true
-        }
+          localProxy: true,
+        },
       };
 
-      this.registrationResult = await this.agentRegistrationService.registerAgent(agentInfo);
-      
+      this.registrationResult =
+        await this.agentRegistrationService.registerAgent(agentInfo);
+
       if (!this.registrationResult.success) {
-        throw new Error(`Registration failed: ${this.registrationResult.error}`);
+        throw new Error(
+          `Registration failed: ${this.registrationResult.error}`,
+        );
       }
 
-      this.logger.log(`External A2A agent registered successfully: ${this.getAgentName()}`);
-      
+      this.logger.log(
+        `External A2A agent registered successfully: ${this.getAgentName()}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to register with agent pool:`, error);
       throw error;
@@ -395,8 +436,12 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
   /**
    * Forward request to external A2A agent
    */
-  private async forwardToExternalAgent(params: ExternalA2AParams): Promise<ExternalA2AResponse> {
-    this.logger.debug(`Forwarding request to external A2A agent: ${params.method}`);
+  private async forwardToExternalAgent(
+    params: ExternalA2AParams,
+  ): Promise<ExternalA2AResponse> {
+    this.logger.debug(
+      `Forwarding request to external A2A agent: ${params.method}`,
+    );
 
     const maxAttempts = this.externalConfig!.retry?.attempts || 3;
     const baseDelay = this.externalConfig!.retry?.delay || 1000;
@@ -411,16 +456,16 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
               method: params.method,
               params: params.params,
               id: Date.now().toString(),
-              jsonrpc: '2.0'
+              jsonrpc: '2.0',
             },
             {
               timeout: this.externalConfig!.timeout || 30000,
               headers: {
                 'Content-Type': 'application/json',
-                ...this.buildAuthHeaders()
-              }
-            }
-          )
+                ...this.buildAuthHeaders(),
+              },
+            },
+          ),
         );
 
         if (response.status >= 200 && response.status < 300) {
@@ -430,16 +475,15 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
             metadata: {
               statusCode: response.status,
               attempt,
-              timestamp: new Date().toISOString()
-            }
+              timestamp: new Date().toISOString(),
+            },
           };
         } else {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
       } catch (error) {
         this.logger.warn(`Attempt ${attempt}/${maxAttempts} failed:`, error);
-        
+
         if (attempt === maxAttempts) {
           return {
             success: false,
@@ -447,16 +491,17 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
             error: `All ${maxAttempts} attempts failed. Last error: ${error instanceof Error ? error.message : String(error)}`,
             metadata: {
               finalAttempt: attempt,
-              timestamp: new Date().toISOString()
-            }
+              timestamp: new Date().toISOString(),
+            },
           };
         }
 
         // Calculate delay for next attempt
-        const delay = backoffType === 'exponential' 
-          ? baseDelay * Math.pow(2, attempt - 1)
-          : baseDelay * attempt;
-          
+        const delay =
+          backoffType === 'exponential'
+            ? baseDelay * Math.pow(2, attempt - 1)
+            : baseDelay * attempt;
+
         await this.sleep(delay);
       }
     }
@@ -470,10 +515,10 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
    */
   private buildAuthHeaders(): Record<string, string> {
     const headers: Record<string, string> = {};
-    
+
     if (this.externalConfig?.authentication) {
       const auth = this.externalConfig.authentication;
-      
+
       switch (auth.type) {
         case 'api_key':
           if (auth.header && auth.value) {
@@ -487,24 +532,29 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
           break;
         case 'basic':
           if (auth.key && auth.value) {
-            const credentials = Buffer.from(`${auth.key}:${auth.value}`).toString('base64');
+            const credentials = Buffer.from(
+              `${auth.key}:${auth.value}`,
+            ).toString('base64');
             headers['Authorization'] = `Basic ${credentials}`;
           }
           break;
         // oauth and none don't set headers directly
       }
     }
-    
+
     return headers;
   }
 
   /**
    * Extract external A2A configuration from parsed YAML
    */
-  private extractExternalA2AConfig(yamlData: any): ExternalA2AConfiguration | null {
+  private extractExternalA2AConfig(
+    yamlData: any,
+  ): ExternalA2AConfiguration | null {
     try {
-      const config = yamlData.external_a2a_configuration || yamlData.external_configuration;
-      
+      const config =
+        yamlData.external_a2a_configuration || yamlData.external_configuration;
+
       if (!config) {
         this.logger.debug('No external_a2a_configuration found in YAML');
         return null;
@@ -517,7 +567,7 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
         authentication: config.authentication || null,
         retry: config.retry || { attempts: 3, delay: 1000, backoff: 'linear' },
         capabilities: config.capabilities || [],
-        required_env_vars: config.required_env_vars || []
+        required_env_vars: config.required_env_vars || [],
       };
     } catch (error) {
       this.logger.error('Error extracting external A2A configuration:', error);
@@ -533,7 +583,10 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
       throw new Error('External A2A configuration missing required endpoint');
     }
 
-    if (!config.endpoint.startsWith('http://') && !config.endpoint.startsWith('https://')) {
+    if (
+      !config.endpoint.startsWith('http://') &&
+      !config.endpoint.startsWith('https://')
+    ) {
       throw new Error('External A2A endpoint must be a valid HTTP/HTTPS URL');
     }
 
@@ -570,6 +623,6 @@ export class ExternalA2AAgentBaseService implements OnModuleInit, OnModuleDestro
    * Sleep utility for retry delays
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
-} 
+}

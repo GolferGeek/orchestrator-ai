@@ -8,5 +8,5 @@ export type {
   ValidationError,
   ValidationWarning,
   ErrorTrackingEntry,
-  EvaluationConfig
-} from './evaluation-wrapper.service'; 
+  EvaluationConfig,
+} from './evaluation-wrapper.service';

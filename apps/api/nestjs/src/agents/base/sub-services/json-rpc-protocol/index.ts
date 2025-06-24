@@ -14,4 +14,4 @@ export type {
 } from './json-rpc-protocol.service';
 
 // Constants
-export { JSON_RPC_ERRORS } from './json-rpc-protocol.service'; 
+export { JSON_RPC_ERRORS } from './json-rpc-protocol.service';

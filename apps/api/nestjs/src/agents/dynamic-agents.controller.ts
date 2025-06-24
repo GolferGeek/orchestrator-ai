@@ -1,4 +1,16 @@
-import { Controller, Post, Get, Body, Param, Logger, NotFoundException, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Logger,
+  NotFoundException,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AgentDiscoveryService } from '../agent-discovery.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -11,7 +23,7 @@ export class DynamicAgentsController {
 
   constructor(
     private readonly agentDiscovery: AgentDiscoveryService,
-    private readonly sessionsService: SessionsService
+    private readonly sessionsService: SessionsService,
   ) {}
 
   /**
@@ -26,16 +38,20 @@ export class DynamicAgentsController {
     @Param('agentName') agentName: string,
     @Body() taskRequest: any,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
-    @Request() req: any
+    @Request() req: any,
   ) {
-    this.logger.debug(`Processing task for ${agentType}/${agentName} for user ${currentUser.id}`);
-    
+    this.logger.debug(
+      `Processing task for ${agentType}/${agentName} for user ${currentUser.id}`,
+    );
+
     // Extract auth token from request
     const authHeader = req.headers.authorization;
     const token = authHeader?.replace('Bearer ', '');
-    
-    this.logger.debug(`Auth context: userId=${currentUser.id}, hasToken=${!!token}`);
-    
+
+    this.logger.debug(
+      `Auth context: userId=${currentUser.id}, hasToken=${!!token}`,
+    );
+
     // Find the agent instance
     const agentInstance = this.findAgentInstance(agentType, agentName);
     if (!agentInstance) {
@@ -46,17 +62,28 @@ export class DynamicAgentsController {
     const authenticatedTaskRequest = {
       ...taskRequest,
       currentUser,
-      authToken: token
+      authToken: token,
     };
 
-    this.logger.debug(`Passing auth context to agent: currentUser=${!!authenticatedTaskRequest.currentUser}, authToken=${!!authenticatedTaskRequest.authToken}`);
+    this.logger.debug(
+      `Passing auth context to agent: currentUser=${!!authenticatedTaskRequest.currentUser}, authToken=${!!authenticatedTaskRequest.authToken}`,
+    );
 
-    console.log(`🎯 CONTROLLER found agent instance for ${agentType}/${agentName}:`, agentInstance.constructor.name);
-    console.log(`🎯 CONTROLLER calling processTask with request:`, JSON.stringify(authenticatedTaskRequest, null, 2));
-    
+    console.log(
+      `🎯 CONTROLLER found agent instance for ${agentType}/${agentName}:`,
+      agentInstance.constructor.name,
+    );
+    console.log(
+      `🎯 CONTROLLER calling processTask with request:`,
+      JSON.stringify(authenticatedTaskRequest, null, 2),
+    );
+
     // Process the task using the agent's processTask method
     const result = await agentInstance.processTask(authenticatedTaskRequest);
-    console.log(`🎯 CONTROLLER received result from processTask:`, JSON.stringify(result, null, 2));
+    console.log(
+      `🎯 CONTROLLER received result from processTask:`,
+      JSON.stringify(result, null, 2),
+    );
     return result;
   }
 
@@ -67,10 +94,10 @@ export class DynamicAgentsController {
   @Get(':agentType/:agentName/.well-known/agent.json')
   async getAgentCard(
     @Param('agentType') agentType: string,
-    @Param('agentName') agentName: string
+    @Param('agentName') agentName: string,
   ) {
     this.logger.debug(`Getting agent card for ${agentType}/${agentName}`);
-    
+
     // Find the agent instance
     const agentInstance = this.findAgentInstance(agentType, agentName);
     if (!agentInstance) {
@@ -88,10 +115,10 @@ export class DynamicAgentsController {
   @Get(':agentType/:agentName/health')
   async getAgentHealth(
     @Param('agentType') agentType: string,
-    @Param('agentName') agentName: string
+    @Param('agentName') agentName: string,
   ) {
     this.logger.debug(`Getting health status for ${agentType}/${agentName}`);
-    
+
     // Find the agent instance
     const agentInstance = this.findAgentInstance(agentType, agentName);
     if (!agentInstance) {
@@ -102,7 +129,7 @@ export class DynamicAgentsController {
     if (agentInstance.getHealthStatus) {
       return agentInstance.getHealthStatus();
     }
-    
+
     return { status: 'healthy', message: 'Agent is running' };
   }
 
@@ -111,20 +138,23 @@ export class DynamicAgentsController {
    */
   private findAgentInstance(agentType: string, agentName: string): any {
     const discoveredAgents = this.agentDiscovery.getDiscoveredAgents();
-    
+
     // Match the agent by path logic (e.g., "specialists/blog_post" or "orchestrator/orchestrator")
     const expectedPath = `${agentType}/${agentName}`;
-    const agent = discoveredAgents.find(a => {
+    const agent = discoveredAgents.find((a) => {
       const normalizedAgentPath = this.normalizeAgentName(a.path);
       const normalizedExpectedPath = this.normalizeAgentName(expectedPath);
       return normalizedAgentPath === normalizedExpectedPath;
     });
-    
+
     if (!agent) {
       this.logger.debug(`Agent not found. Looking for: ${expectedPath}`);
-      this.logger.debug(`Available agents:`, discoveredAgents.map(a => a.path));
+      this.logger.debug(
+        `Available agents:`,
+        discoveredAgents.map((a) => a.path),
+      );
     }
-    
+
     return agent?.serviceInstance;
   }
 
@@ -134,4 +164,4 @@ export class DynamicAgentsController {
   private normalizeAgentName(name: string): string {
     return name.toLowerCase().replace(/[\\s_-]+/g, '_');
   }
-} 
+}

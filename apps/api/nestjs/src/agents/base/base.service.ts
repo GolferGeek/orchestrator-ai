@@ -13,4 +13,4 @@ export class BaseService {
     // This will be overridden by specific agent implementations
     throw new Error('getAgentCard must be implemented by derived service');
   }
-} 
+}

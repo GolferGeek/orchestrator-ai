@@ -1,4 +1,6 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
+require('dotenv').config({
+  path: require('path').resolve(__dirname, '../../.env'),
+});
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
@@ -17,14 +19,14 @@ describe('Orchestrator Agent (e2e)', () => {
     await app.init();
 
     // Wait for agents to be discovered
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Authenticate to get token
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
         email: process.env.SUPABASE_TEST_USER || 'testuser@golfergeek.com',
-        password: process.env.SUPABASE_TEST_PASSWORD || 'testuser01!'
+        password: process.env.SUPABASE_TEST_PASSWORD || 'testuser01!',
       })
       .expect(200);
 
@@ -38,8 +40,8 @@ describe('Orchestrator Agent (e2e)', () => {
   describe('Agent Discovery Integration', () => {
     it('should have agents discovered and instantiated', async () => {
       // Wait a bit for agents to be discovered
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       const response = await request(app.getHttpServer())
         .get('/agents')
         .expect(200);
@@ -51,26 +53,30 @@ describe('Orchestrator Agent (e2e)', () => {
 
     it('should have orchestrator agent discovered', async () => {
       // Wait for agent discovery
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       const response = await request(app.getHttpServer())
         .get('/agents')
         .expect(200);
 
-      const orchestratorAgent = response.body.agents.find((agent: any) => agent.name === 'orchestrator');
+      const orchestratorAgent = response.body.agents.find(
+        (agent: any) => agent.name === 'orchestrator',
+      );
       expect(orchestratorAgent).toBeDefined();
       expect(orchestratorAgent.type).toBe('orchestrator');
     });
 
     it('should have specialist agents available', async () => {
       // Wait for agent discovery
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       const response = await request(app.getHttpServer())
         .get('/agents')
         .expect(200);
 
-      const blogPostAgent = response.body.agents.find((agent: any) => agent.name === 'blog_post');
+      const blogPostAgent = response.body.agents.find(
+        (agent: any) => agent.name === 'blog_post',
+      );
       expect(blogPostAgent).toBeDefined();
       expect(blogPostAgent.type).toBe('specialists');
     });
@@ -84,7 +90,7 @@ describe('Orchestrator Agent (e2e)', () => {
 
       expect(response.body.status).toBe('running');
       expect(response.body.discoveredAgents).toBeGreaterThanOrEqual(2);
-      
+
       const agentNames = response.body.agents.map((agent: any) => agent.name);
       expect(agentNames).toContain('orchestrator');
       expect(agentNames).toContain('blog_post');
@@ -94,8 +100,8 @@ describe('Orchestrator Agent (e2e)', () => {
   describe('Agent Cards and Capabilities', () => {
     it('should provide agent cards for discovered agents', async () => {
       // Wait for agent discovery
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Test blog post agent card
       const blogPostResponse = await request(app.getHttpServer())
         .get('/agents/specialists/blog_post/.well-known/agent.json')
@@ -105,22 +111,22 @@ describe('Orchestrator Agent (e2e)', () => {
       expect(blogPostResponse.body.type).toBe('specialist');
       expect(blogPostResponse.body.skills).toBeInstanceOf(Array);
       expect(blogPostResponse.body.skills.length).toBeGreaterThan(0);
-      
+
       // Check that at least one skill has content_creation tag
-      const hasContentCreation = blogPostResponse.body.skills.some((skill: any) => 
-        skill.tags && skill.tags.includes('content-creation')
+      const hasContentCreation = blogPostResponse.body.skills.some(
+        (skill: any) => skill.tags && skill.tags.includes('content-creation'),
       );
       expect(hasContentCreation).toBe(true);
     });
 
     it('should handle task processing for agents', async () => {
       // Wait for agent discovery
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Test that we can make a task request to blog post agent
       const taskRequest = {
         method: 'generate_content',
-        params: { prompt: 'Write a test blog post about NestJS' }
+        params: { prompt: 'Write a test blog post about NestJS' },
       };
 
       const response = await request(app.getHttpServer())
@@ -133,4 +139,4 @@ describe('Orchestrator Agent (e2e)', () => {
       // The response should contain some content or success indicator
     });
   });
-}); 
+});

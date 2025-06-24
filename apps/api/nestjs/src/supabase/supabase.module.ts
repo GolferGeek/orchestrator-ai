@@ -4,10 +4,8 @@ import { SupabaseService } from './supabase.service';
 import supabaseConfig from './supabase.config';
 
 @Module({
-  imports: [
-    ConfigModule.forFeature(supabaseConfig),
-  ],
+  imports: [ConfigModule.forFeature(supabaseConfig)],
   providers: [SupabaseService],
   exports: [SupabaseService],
 })
-export class SupabaseModule {} 
+export class SupabaseModule {}

@@ -9,22 +9,22 @@ export interface ConfigurationOptions {
    * Whether to substitute environment variables in the configuration
    */
   substituteEnvVars?: boolean;
-  
+
   /**
    * Whether to validate the configuration against a schema
    */
   validateSchema?: boolean;
-  
+
   /**
    * Base directory for resolving relative file paths
    */
   baseDirectory?: string;
-  
+
   /**
    * Custom environment variable prefix for substitution
    */
   envVarPrefix?: string;
-  
+
   /**
    * Whether to throw errors on missing environment variables
    */
@@ -36,17 +36,17 @@ export interface ParsedConfiguration<T = any> {
    * The parsed configuration object
    */
   data: T;
-  
+
   /**
    * Any validation errors encountered
    */
   validationErrors?: ValidationError[];
-  
+
   /**
    * Environment variables that were substituted
    */
   substitutedVars?: string[];
-  
+
   /**
    * The source file path
    */
@@ -61,14 +61,14 @@ export class ConfigurationService {
    * Parse a YAML file and return the configuration object
    */
   async parseYamlFile<T = any>(
-    filePath: string, 
-    options: ConfigurationOptions = {}
+    filePath: string,
+    options: ConfigurationOptions = {},
   ): Promise<ParsedConfiguration<T>> {
     this.logger.debug(`Parsing YAML file: ${filePath}`);
 
     // Resolve the file path
     const resolvedPath = this.resolveFilePath(filePath, options.baseDirectory);
-    
+
     if (!fs.existsSync(resolvedPath)) {
       throw new Error(`Configuration file not found: ${resolvedPath}`);
     }
@@ -80,33 +80,39 @@ export class ConfigurationService {
 
       // Parse the YAML
       const parsed = yaml.load(yamlContent) as T;
-      
+
       if (!parsed) {
-        throw new Error('Failed to parse YAML content - file appears to be empty or invalid');
+        throw new Error(
+          'Failed to parse YAML content - file appears to be empty or invalid',
+        );
       }
 
-      let result: ParsedConfiguration<T> = {
+      const result: ParsedConfiguration<T> = {
         data: parsed,
-        sourcePath: resolvedPath
+        sourcePath: resolvedPath,
       };
 
       // Substitute environment variables if requested
-      if (options.substituteEnvVars !== false) { // Default to true
+      if (options.substituteEnvVars !== false) {
+        // Default to true
         const substitutionResult = this.substituteEnvVars(
-          result.data, 
+          result.data,
           options.envVarPrefix,
-          options.strictEnvVars
+          options.strictEnvVars,
         );
         result.data = substitutionResult.data;
         result.substitutedVars = substitutionResult.substitutedVars;
       }
 
-      this.logger.debug(`Successfully parsed YAML configuration from ${resolvedPath}`);
+      this.logger.debug(
+        `Successfully parsed YAML configuration from ${resolvedPath}`,
+      );
       return result;
-
     } catch (error) {
       this.logger.error(`Failed to parse YAML file ${resolvedPath}:`, error);
-      throw new Error(`Failed to parse YAML configuration: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to parse YAML configuration: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -115,15 +121,20 @@ export class ConfigurationService {
    * Supports ${VAR_NAME} and ${VAR_NAME:default_value} syntax
    */
   substituteEnvVars<T = any>(
-    config: T, 
+    config: T,
     envVarPrefix?: string,
-    strict: boolean = false
+    strict: boolean = false,
   ): { data: T; substitutedVars: string[] } {
     const substitutedVars: string[] = [];
-    
+
     const substitute = (obj: any): any => {
       if (typeof obj === 'string') {
-        return this.substituteStringEnvVars(obj, envVarPrefix, strict, substitutedVars);
+        return this.substituteStringEnvVars(
+          obj,
+          envVarPrefix,
+          strict,
+          substitutedVars,
+        );
       } else if (Array.isArray(obj)) {
         return obj.map(substitute);
       } else if (obj && typeof obj === 'object') {
@@ -137,9 +148,11 @@ export class ConfigurationService {
     };
 
     const data = substitute(config);
-    
+
     if (substitutedVars.length > 0) {
-      this.logger.debug(`Substituted environment variables: ${substitutedVars.join(', ')}`);
+      this.logger.debug(
+        `Substituted environment variables: ${substitutedVars.join(', ')}`,
+      );
     }
 
     return { data, substitutedVars };
@@ -149,28 +162,34 @@ export class ConfigurationService {
    * Substitute environment variables in a single string
    */
   private substituteStringEnvVars(
-    str: string, 
+    str: string,
     envVarPrefix: string | undefined,
     strict: boolean,
-    substitutedVars: string[]
+    substitutedVars: string[],
   ): string {
     // Match ${VAR_NAME} or ${VAR_NAME:default_value}
     const envVarRegex = /\$\{([^}:]+)(?::([^}]*))?\}/g;
-    
+
     return str.replace(envVarRegex, (match, varName, defaultValue) => {
       const fullVarName = envVarPrefix ? `${envVarPrefix}${varName}` : varName;
       const envValue = process.env[fullVarName];
-      
+
       if (envValue !== undefined) {
         substitutedVars.push(fullVarName);
         return envValue;
       } else if (defaultValue !== undefined) {
-        this.logger.debug(`Using default value for ${fullVarName}: ${defaultValue}`);
+        this.logger.debug(
+          `Using default value for ${fullVarName}: ${defaultValue}`,
+        );
         return defaultValue;
       } else if (strict) {
-        throw new Error(`Required environment variable not found: ${fullVarName}`);
+        throw new Error(
+          `Required environment variable not found: ${fullVarName}`,
+        );
       } else {
-        this.logger.warn(`Environment variable not found: ${fullVarName}, keeping original placeholder`);
+        this.logger.warn(
+          `Environment variable not found: ${fullVarName}, keeping original placeholder`,
+        );
         return match; // Keep the original placeholder
       }
     });
@@ -180,10 +199,12 @@ export class ConfigurationService {
    * Validate a configuration object against a class-validator schema
    */
   async validateSchema<T extends object>(
-    config: T, 
-    SchemaClass: new () => T
+    config: T,
+    SchemaClass: new () => T,
   ): Promise<ValidationError[]> {
-    this.logger.debug(`Validating configuration against schema: ${SchemaClass.name}`);
+    this.logger.debug(
+      `Validating configuration against schema: ${SchemaClass.name}`,
+    );
 
     try {
       // Create an instance of the schema class and copy properties
@@ -193,23 +214,28 @@ export class ConfigurationService {
       // Validate using class-validator
       const errors = await validate(instance, {
         whitelist: true, // Strip properties that don't have decorators
-        forbidNonWhitelisted: true // Throw error if non-whitelisted properties are present
+        forbidNonWhitelisted: true, // Throw error if non-whitelisted properties are present
       });
 
       if (errors.length > 0) {
-        this.logger.warn(`Configuration validation failed with ${errors.length} errors`);
-        errors.forEach(error => {
-          this.logger.warn(`Validation error for ${error.property}: ${Object.values(error.constraints || {}).join(', ')}`);
+        this.logger.warn(
+          `Configuration validation failed with ${errors.length} errors`,
+        );
+        errors.forEach((error) => {
+          this.logger.warn(
+            `Validation error for ${error.property}: ${Object.values(error.constraints || {}).join(', ')}`,
+          );
         });
       } else {
         this.logger.debug('Configuration validation passed');
       }
 
       return errors;
-
     } catch (error) {
       this.logger.error('Schema validation failed:', error);
-      throw new Error(`Schema validation failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Schema validation failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -224,10 +250,10 @@ export class ConfigurationService {
 
     // If no base directory provided, use current working directory
     const base = baseDirectory || process.cwd();
-    
+
     // Resolve relative path
     const resolved = path.resolve(base, filePath);
-    
+
     this.logger.debug(`Resolved file path: ${filePath} -> ${resolved}`);
     return resolved;
   }
@@ -245,7 +271,7 @@ export class ConfigurationService {
    */
   getFileStats(filePath: string, baseDirectory?: string): fs.Stats | null {
     const resolvedPath = this.resolveFilePath(filePath, baseDirectory);
-    
+
     try {
       return fs.statSync(resolvedPath);
     } catch (error) {
@@ -259,27 +285,30 @@ export class ConfigurationService {
    */
   parseYamlString<T = any>(
     yamlContent: string,
-    options: ConfigurationOptions = {}
+    options: ConfigurationOptions = {},
   ): ParsedConfiguration<T> {
     this.logger.debug('Parsing YAML from string content');
 
     try {
       const parsed = yaml.load(yamlContent) as T;
-      
+
       if (!parsed) {
-        throw new Error('Failed to parse YAML content - content appears to be empty or invalid');
+        throw new Error(
+          'Failed to parse YAML content - content appears to be empty or invalid',
+        );
       }
 
-      let result: ParsedConfiguration<T> = {
-        data: parsed
+      const result: ParsedConfiguration<T> = {
+        data: parsed,
       };
 
       // Substitute environment variables if requested
-      if (options.substituteEnvVars !== false) { // Default to true
+      if (options.substituteEnvVars !== false) {
+        // Default to true
         const substitutionResult = this.substituteEnvVars(
-          result.data, 
+          result.data,
           options.envVarPrefix,
-          options.strictEnvVars
+          options.strictEnvVars,
         );
         result.data = substitutionResult.data;
         result.substitutedVars = substitutionResult.substitutedVars;
@@ -287,10 +316,11 @@ export class ConfigurationService {
 
       this.logger.debug('Successfully parsed YAML from string content');
       return result;
-
     } catch (error) {
       this.logger.error('Failed to parse YAML string:', error);
-      throw new Error(`Failed to parse YAML content: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to parse YAML content: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -300,17 +330,17 @@ export class ConfigurationService {
   async writeYamlFile<T = any>(
     filePath: string,
     config: T,
-    options: ConfigurationOptions = {}
+    options: ConfigurationOptions = {},
   ): Promise<void> {
     const resolvedPath = this.resolveFilePath(filePath, options.baseDirectory);
-    
+
     try {
       // Convert object to YAML string
       const yamlContent = yaml.dump(config, {
         indent: 2,
         lineWidth: 120,
         noRefs: true,
-        sortKeys: false
+        sortKeys: false,
       });
 
       // Ensure directory exists
@@ -321,12 +351,15 @@ export class ConfigurationService {
 
       // Write the file
       fs.writeFileSync(resolvedPath, yamlContent, 'utf8');
-      
-      this.logger.debug(`Successfully wrote YAML configuration to ${resolvedPath}`);
 
+      this.logger.debug(
+        `Successfully wrote YAML configuration to ${resolvedPath}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to write YAML file ${resolvedPath}:`, error);
-      throw new Error(`Failed to write YAML configuration: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to write YAML configuration: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
-} 
+}

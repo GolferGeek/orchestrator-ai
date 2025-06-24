@@ -8,13 +8,12 @@ import { EvaluationWrapperService } from '@agents/base/sub-services/evaluation-w
 
 /**
  * Google Hello World External A2A Agent Service
- * 
+ *
  * This service acts as a local proxy for Google's Hello World A2A agent.
  * It demonstrates the basic functionality of connecting to external A2A agents.
  */
 @Injectable()
 export class GoogleHelloWorldAgentService extends ExternalA2AAgentBaseService {
-
   constructor(
     httpService: HttpService,
     configurationService: ConfigurationService,
@@ -22,8 +21,16 @@ export class GoogleHelloWorldAgentService extends ExternalA2AAgentBaseService {
     loggingService?: LoggingService,
     evaluationService?: EvaluationWrapperService,
   ) {
-    super(httpService, configurationService, agentRegistrationService, loggingService, evaluationService);
-    this.logger.log('🔗 Google Hello World External A2A Agent Service initialized');
+    super(
+      httpService,
+      configurationService,
+      agentRegistrationService,
+      loggingService,
+      evaluationService,
+    );
+    this.logger.log(
+      '🔗 Google Hello World External A2A Agent Service initialized',
+    );
   }
 
   /**
@@ -47,14 +54,16 @@ export class GoogleHelloWorldAgentService extends ExternalA2AAgentBaseService {
     try {
       // Call parent initialization first
       await super.onModuleInit();
-      
+
       this.logger.log('✅ Google Hello World Agent proxy ready');
-      
+
       // Optional: Perform Google-specific initialization
       // For example, validate specific capabilities or perform health checks
-      
     } catch (error) {
-      this.logger.error('❌ Failed to initialize Google Hello World Agent:', error);
+      this.logger.error(
+        '❌ Failed to initialize Google Hello World Agent:',
+        error,
+      );
       throw error;
     }
   }
@@ -67,4 +76,4 @@ export class GoogleHelloWorldAgentService extends ExternalA2AAgentBaseService {
   //   this.logger.debug(`🎯 Google Hello World executing: ${method}`);
   //   return super.executeTask(method, params);
   // }
-} 
+}

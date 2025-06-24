@@ -9,4 +9,4 @@ export { ExternalA2AAgentBaseService } from './external/external-a2a-agent-base.
 // Interface exports
 export * from './a2a-base/interfaces';
 export * from './api';
-export * from './external'; 
+export * from './external';
