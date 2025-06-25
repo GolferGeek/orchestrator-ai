@@ -1,6 +1,6 @@
-# OrchestratorAI Frontend (Ionic + Vue)
+# Hiverarchy AI Frontend (Ionic + Vue)
 
-This directory contains the Ionic + Vue frontend application for the OrchestratorAI project.
+This directory contains the Ionic + Vue frontend application for the Hiverarchy AI project.
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ Example `.env` or `.env.development`:
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
-- `VITE_API_BASE_URL`: The base URL for the backend API orchestrator.
+- `VITE_API_BASE_URL`: The base URL for the backend API.
 
 ## Development
 
