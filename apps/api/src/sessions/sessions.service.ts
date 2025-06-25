@@ -33,7 +33,7 @@ export class SessionsService {
         this.supabaseService.createAuthenticatedClient(token);
 
       const sessionData = {
-        user_id: currentUser.id,
+        profile_id: currentUser.id,
         name: sessionCreate.name,
       };
 
@@ -55,7 +55,7 @@ export class SessionsService {
 
       return {
         id: data.id,
-        user_id: data.user_id,
+        user_id: data.profile_id,
         name: data.name,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -89,7 +89,7 @@ export class SessionsService {
       const { data, error, count } = await authenticatedClient
         .from('sessions')
         .select('*', { count: 'exact' })
-        .eq('user_id', currentUser.id)
+        .eq('profile_id', currentUser.id)
         .order('updated_at', { ascending: false })
         .range(skip, skip + limit - 1);
 
@@ -105,7 +105,7 @@ export class SessionsService {
 
       const sessions = (data || []).map((session) => ({
         id: session.id,
-        user_id: session.user_id,
+        user_id: session.profile_id,
         name: session.name,
         created_at: session.created_at,
         updated_at: session.updated_at,
@@ -144,7 +144,7 @@ export class SessionsService {
         .from('sessions')
         .select('*')
         .eq('id', sessionId)
-        .eq('user_id', currentUser.id)
+        .eq('profile_id', currentUser.id)
         .single();
 
       if (error || !data) {
@@ -156,7 +156,7 @@ export class SessionsService {
 
       return {
         id: data.id,
-        user_id: data.user_id,
+        user_id: data.profile_id,
         name: data.name,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -196,7 +196,7 @@ export class SessionsService {
           .from('sessions')
           .select('id')
           .eq('id', sessionId)
-          .eq('user_id', currentUser.id)
+          .eq('profile_id', currentUser.id)
           .single();
 
       if (sessionError || !sessionData) {
@@ -227,7 +227,7 @@ export class SessionsService {
       const messages = (data || []).map((message) => ({
         id: message.id,
         session_id: message.session_id,
-        user_id: message.user_id,
+        user_id: message.profile_id,
         role: message.role,
         content: message.content,
         timestamp: message.timestamp,
@@ -280,9 +280,9 @@ export class SessionsService {
         const { data: sessionData, error: sessionError } =
           await authenticatedClient
             .from('sessions')
-            .select('id, user_id')
+            .select('id, profile_id')
             .eq('id', sessionId)
-            .eq('user_id', currentUser.id)
+            .eq('profile_id', currentUser.id)
             .single();
 
         if (sessionError || !sessionData) {
@@ -304,7 +304,7 @@ export class SessionsService {
       // Prepare message data
       const messageToInsert = {
         session_id: sessionId,
-        user_id: currentUser?.id || null,
+        profile_id: currentUser?.id || null,
         role: messageData.role,
         content: messageData.content || null,
         order: order,
@@ -337,7 +337,7 @@ export class SessionsService {
       return {
         id: data.id,
         session_id: data.session_id,
-        user_id: data.user_id,
+        user_id: data.profile_id,
         role: data.role,
         content: data.content,
         timestamp: data.timestamp,
@@ -375,7 +375,7 @@ export class SessionsService {
           .from('sessions')
           .select('id')
           .eq('id', sessionId)
-          .eq('user_id', currentUser.id)
+          .eq('profile_id', currentUser.id)
           .single();
 
       if (sessionError || !sessionData) {
@@ -390,7 +390,7 @@ export class SessionsService {
         .from('sessions')
         .delete()
         .eq('id', sessionId)
-        .eq('user_id', currentUser.id);
+        .eq('profile_id', currentUser.id);
 
       if (error) {
         this.logger.error(
