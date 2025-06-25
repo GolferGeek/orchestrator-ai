@@ -177,7 +177,7 @@ export class AuthService {
         this.supabaseService.createAuthenticatedClient(token);
 
       const { data: userData, error } = await authenticatedClient
-        .from('users')
+        .from('profiles')
         .select('id, email, display_name, created_at')
         .eq('id', currentAuthUser.id)
         .single();

@@ -1,10 +1,9 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.golfergeek.orchestratorai',
-  appName: 'OrchestratorAI',
-  webDir: 'dist',
-  bundledWebRuntime: false
+  appId: 'com.golfergeek.hiverarchyai',
+  appName: 'HiverarchyAI',
+  webDir: 'dist'
 };
 
 export default config;
