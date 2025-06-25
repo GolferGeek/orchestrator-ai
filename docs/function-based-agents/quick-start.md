@@ -15,7 +15,7 @@ Get your first function-based agent running in 5 minutes! This guide will walk y
 
 ```bash
 # Navigate to specialists directory
-cd apps/api/nestjs/src/agents/actual/specialists
+cd apps/api/src/agents/actual/specialists
 
 # Create your agent directory
 mkdir my_first_agent
@@ -111,14 +111,14 @@ A simple demonstration agent that shows how function-based agents work.
 
 ```bash
 # Build the project
-cd apps/api/nestjs
+cd apps/api
 pnpm build
 
 # Start the development server
 pnpm start:dev
 
 # Test your agent
-curl -X POST "http://localhost:4000/agents/specialists/my_first_agent/tasks" \
+curl -X POST "http://localhost:4100/agents/specialists/my_first_agent/tasks" \
   -H "Content-Type: application/json" \
   -H "x-test-api-key: test-key-12345" \
   -d '{"prompt": "Hello, this is my first test!"}'
@@ -130,7 +130,7 @@ curl -X POST "http://localhost:4000/agents/specialists/my_first_agent/tasks" \
 
 ```bash
 # Navigate to specialists directory
-cd apps/api/nestjs/src/agents/actual/specialists
+cd apps/api/src/agents/actual/specialists
 
 # Create your agent directory
 mkdir my_python_agent
@@ -263,12 +263,12 @@ A Python-powered demonstration agent showing Python function capabilities.
 
 ```bash
 # Build and start the server
-cd apps/api/nestjs
+cd apps/api
 pnpm build
 pnpm start:dev
 
 # Test your Python agent
-curl -X POST "http://localhost:4000/agents/specialists/my_python_agent/tasks" \
+curl -X POST "http://localhost:4100/agents/specialists/my_python_agent/tasks" \
   -H "Content-Type: application/json" \
   -H "x-test-api-key: test-key-12345" \
   -d '{"prompt": "Hello from my Python agent!"}'
@@ -291,7 +291,7 @@ curl -X POST "http://localhost:4000/agents/specialists/my_python_agent/tasks" \
 ## Troubleshooting
 
 **Agent not found?**
-- Check that your directory is in `apps/api/nestjs/src/agents/actual/specialists/`
+- Check that your directory is in `apps/api/src/agents/actual/specialists/`
 - Ensure `agent-service.ts` exports a class ending in `Service`
 - Verify the build completed successfully
 

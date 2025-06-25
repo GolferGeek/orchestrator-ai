@@ -1,30 +1,23 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import HomePage from '../views/HomePage.vue';
-import FastAPIHomePage from '../views/FastAPIHomePage.vue';
-import NestJSHomePage from '../views/NestJSHomePage.vue';
 import LoginPage from '../views/LoginPage.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
-    redirect: '/fastapi' // Default to FastAPI for now
+    redirect: '/home'
   },
   {
     path: '/home',
     name: 'Home',
-    component: HomePage
-  },
-  {
-    path: '/fastapi',
-    name: 'FastAPI',
-    component: FastAPIHomePage,
+    component: HomePage,
     meta: { requiresAuth: true }
   },
   {
-    path: '/nestjs',
-    name: 'NestJS', 
-    component: NestJSHomePage,
+    path: '/chat',
+    name: 'Chat', 
+    component: HomePage,
     meta: { requiresAuth: true }
   },
   {
@@ -43,7 +36,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   // Check if route requires auth
   if (to.matched.some(record => record.meta.requiresAuth)) {
-    // Check if user is authenticated (you'll need to implement this)
+    // Check if user is authenticated
     const token = localStorage.getItem('authToken');
     if (!token) {
       next({ 

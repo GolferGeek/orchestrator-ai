@@ -1,1 +1,0 @@
-# This file makes 'external' a Python package. 

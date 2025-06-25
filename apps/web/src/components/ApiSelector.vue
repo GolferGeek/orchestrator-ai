@@ -405,7 +405,7 @@ const handleEndpointDropdownChange = (event: any) => {
 const formatEndpointLabel = (endpoint: ApiEndpoint) => {
   // Create cleaner labels combining version and technology
   const versionLabel = endpoint.version.toUpperCase();
-  const techLabel = endpoint.technology === 'python-fastapi' ? 'FastAPI' : 
+  const techLabel = endpoint.technology === 'typescript-nestjs' ? 'NestJS' : 
                    endpoint.technology === 'typescript-nestjs' ? 'TypeScript' : 
                    formatTechnologyName(endpoint.technology);
   
