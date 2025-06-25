@@ -56,7 +56,7 @@ interface UserProfile {
 const DEFAULT_PREFERENCES: UserPreferences = {
   // API Preferences
   preferredApiVersion: 'v1',
-  preferredTechnology: 'python-fastapi',
+  preferredTechnology: 'typescript-nestjs',
   autoSwitchToHealthyEndpoint: true,
   rememberApiSelection: true,
   
@@ -123,22 +123,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
   });
 
   // Watchers for automatic preference application
-  watch(
-    () => preferences.value.preferredApiVersion,
-    async (newVersion) => {
-      if (preferences.value.rememberApiSelection && newVersion) {
-        try {
-          await apiManager.switchToVersion(
-            newVersion, 
-            preferences.value.preferredTechnology
-          );
-          console.log(`Automatically switched to preferred API version: ${newVersion}`);
-        } catch (error) {
-          console.warn('Failed to switch to preferred API version:', error);
-        }
-      }
-    }
-  );
+  // API version switching removed - only NestJS v1 is supported
 
   watch(
     () => preferences.value.theme,
@@ -239,11 +224,11 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     }
   };
 
-  const updatePreference = (
-    key: keyof UserPreferences, 
-    value: any
+  const updatePreference = <K extends keyof UserPreferences>(
+    key: K, 
+    value: UserPreferences[K]
   ) => {
-    (preferences.value as any)[key] = value;
+    preferences.value[key] = value;
     savePreferences();
   };
 
@@ -259,7 +244,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
 
   const resetToDefaults = (category?: keyof UserPreferences) => {
     if (category) {
-      preferences.value[category] = DEFAULT_PREFERENCES[category];
+      (preferences.value as any)[category] = (DEFAULT_PREFERENCES as any)[category];
     } else {
       preferences.value = { ...DEFAULT_PREFERENCES };
     }

@@ -1,14 +1,14 @@
-# Orchestrator AI - Multi-Agent System
+# Hiverarchy AI - Multi-Agent System
 
 ## Overview
 
-Orchestrator AI is a production-ready multi-agent system that intelligently routes conversations to specialized AI agents. Built with Python FastAPI and Vue.js, it provides a professional-grade platform for automating business processes through natural language interaction.
+Hiverarchy AI is a production-ready multi-agent system that intelligently routes conversations to specialized AI agents. Built with TypeScript NestJS and Vue.js, it provides a professional-grade platform for automating business processes through natural language interaction.
 
 **Key Features:**
 - **Intelligent Orchestration**: Central agent that routes requests to specialized agents
 - **Comprehensive Agent Library**: 20+ pre-built agents for business, marketing, HR, and customer service
 - **Session Management**: Maintains conversation context and history
-- **Modern Tech Stack**: FastAPI backend with Vue.js frontend
+- **Modern Tech Stack**: NestJS TypeScript backend with Vue.js frontend
 - **Production Ready**: Docker support, commercial licensing, enterprise architecture
 
 ## Agent Categories
@@ -35,8 +35,6 @@ Orchestrator AI is a production-ready multi-agent system that intelligently rout
 
 ### Prerequisites
 - **Node.js** 18+ with npm
-- **Python** 3.13+
-- **PDM** (Python Dependency Manager): `pip install pdm`
 - **OpenAI API Key** for LLM capabilities
 
 ### Installation
@@ -53,9 +51,9 @@ Orchestrator AI is a production-ready multi-agent system that intelligently rout
    npm install
    
    # API dependencies  
-   cd apps/api/fastapi
-   pdm install
-   cd ../../../..
+   cd apps/api
+   npm install
+   cd ../..
    
    # Frontend dependencies
    cd apps/web
@@ -81,13 +79,13 @@ Orchestrator AI is a production-ready multi-agent system that intelligently rout
 ```bash
 npm run dev
 ```
-- API: http://localhost:8000
-- Web Interface: http://localhost:5173
+- API: http://localhost:4100
+- Web Interface: http://localhost:3100
 
 **Individual Services**
 ```bash
-npm run dev:api:v1    # API only
-npm run dev:web:v1    # Frontend only
+npm run dev:api       # API only
+npm run dev:web       # Frontend only
 ```
 
 ## Docker Deployment
@@ -100,9 +98,9 @@ npm run docker:run
 
 **Management**
 ```bash
-npm run docker:logs:v1    # View logs
-npm run docker:stop       # Stop containers
-npm run docker:clean      # Remove containers and images
+npm run docker:logs      # View logs
+npm run docker:stop      # Stop containers
+npm run docker:clean     # Remove containers and images
 ```
 
 ## Usage Examples
@@ -126,19 +124,20 @@ npm run docker:clean      # Remove containers and images
 ## API Documentation
 
 Once running, access interactive API documentation:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- **Swagger UI**: http://localhost:4100/api
+- **Health Check**: http://localhost:4100/health
 
 ## Project Structure
 
 ```
-orchestrator-ai/
+hiverarchy-ai/
 ├── apps/
-│   ├── api/fastapi/     # Python FastAPI backend
-│   │   ├── agents/         # Agent implementations
-│   │   ├── core/           # Core configurations
-│   │   ├── auth/           # Authentication system
-│   │   └── main.py         # Application entry point
+│   ├── api/             # TypeScript NestJS backend
+│   │   ├── src/
+│   │   │   ├── agents/     # Agent implementations
+│   │   │   ├── auth/       # Authentication system
+│   │   │   ├── supabase/   # Database integration
+│   │   │   └── main.ts     # Application entry point
 │   └── web/             # Vue.js frontend
 │       ├── src/
 │       │   ├── components/ # UI components
@@ -152,9 +151,9 @@ orchestrator-ai/
 ## Technology Stack
 
 **Backend**
-- FastAPI (Python web framework)
-- PDM (dependency management)
-- Pydantic (data validation)
+- NestJS (TypeScript web framework)
+- Supabase (database and authentication)
+- TypeScript (type safety)
 - OpenAI SDK (LLM integration)
 
 **Frontend**  
@@ -166,7 +165,7 @@ orchestrator-ai/
 **Infrastructure**
 - Docker (containerization)
 - Turbo (monorepo management)
-- Node.js (tooling runtime)
+- Node.js (runtime)
 
 ## License
 
