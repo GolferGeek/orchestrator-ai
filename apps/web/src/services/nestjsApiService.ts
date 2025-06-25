@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { TaskResponse, AgentInfo } from '../types/chat';
 
 // NestJS-specific endpoint configuration
-const NESTJS_BASE_URL = import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
+const NESTJS_BASE_URL = import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4100';
 
 interface JsonRpcResponse {
   jsonrpc: '2.0';

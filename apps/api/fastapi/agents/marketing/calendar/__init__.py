@@ -1,1 +1,0 @@
-# This file makes 'calendar' a Python package. 

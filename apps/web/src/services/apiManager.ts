@@ -3,29 +3,15 @@ import { ApiClient, ApiEndpoint, ApiConfiguration, API_FEATURES } from '../types
 import { ApiClient as V1ApiClient } from './clients/apiClient';
 
 // Environment configuration
-const DEFAULT_V1_BASE_URL = import.meta.env.VITE_API_V1_BASE_URL || 'http://localhost:8000';
-const DEFAULT_NESTJS_BASE_URL = import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
+const DEFAULT_NESTJS_BASE_URL = import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4100';
 
-// Default API endpoint configurations
+// Default API endpoint configuration - only NestJS
 const DEFAULT_ENDPOINTS: ApiEndpoint[] = [
-  {
-    version: 'v1',
-    technology: 'python-fastapi',
-    baseUrl: DEFAULT_V1_BASE_URL,
-    name: 'V1 Python FastAPI',
-    description: 'Original Python FastAPI implementation with full agent support',
-    features: [
-      API_FEATURES.ORCHESTRATOR,
-      API_FEATURES.AGENT_DISCOVERY,
-      API_FEATURES.SESSION_MANAGEMENT,
-    ],
-    isAvailable: true,
-  },
   {
     version: 'v1',
     technology: 'typescript-nestjs',
     baseUrl: DEFAULT_NESTJS_BASE_URL,
-    name: 'V1 TypeScript NestJS',
+    name: 'Hiverarchy API',
     description: 'TypeScript NestJS implementation with A2A agent framework',
     features: [
       API_FEATURES.ORCHESTRATOR,
@@ -38,9 +24,9 @@ const DEFAULT_ENDPOINTS: ApiEndpoint[] = [
 
 class ApiManager {
   private _configuration = ref<ApiConfiguration>({
-    currentEndpoint: DEFAULT_ENDPOINTS[0], // Default to V1
+    currentEndpoint: DEFAULT_ENDPOINTS[0], // Default to NestJS
     availableEndpoints: DEFAULT_ENDPOINTS,
-    defaultEndpoint: DEFAULT_ENDPOINTS[0], // Default to V1
+    defaultEndpoint: DEFAULT_ENDPOINTS[0], // Default to NestJS
   });
 
   private _currentClient = ref<ApiClient | null>(null);
@@ -95,7 +81,7 @@ class ApiManager {
     let client: ApiClient;
     
     if (endpoint.version === 'v1') {
-      // Both FastAPI and NestJS use the same API interface for v1
+      // NestJS uses the V1 API interface
       client = new V1ApiClient(endpoint);
     } else {
       throw new Error(`Unsupported API configuration: ${endpoint.version} with ${endpoint.technology}`);
@@ -133,26 +119,7 @@ class ApiManager {
     }
   }
 
-  // Switch to endpoint by version and technology
-  async switchToVersion(version: 'v1', technology?: 'python-fastapi' | 'typescript-nestjs'): Promise<void> {
-    const availableEndpoints = this.availableEndpoints;
-    let targetEndpoint: ApiEndpoint | undefined;
-
-    if (technology) {
-      targetEndpoint = availableEndpoints.find(
-        ep => ep.version === version && ep.technology === technology
-      );
-    } else {
-      // Find first available endpoint for the version
-      targetEndpoint = availableEndpoints.find(ep => ep.version === version);
-    }
-
-    if (!targetEndpoint) {
-      throw new Error(`No available endpoint found for version ${version}${technology ? ` with ${technology}` : ''}`);
-    }
-
-    await this.switchToEndpoint(targetEndpoint);
-  }
+  // Version switching removed - only NestJS v1 is supported
 
   // Check if a feature is supported by the current endpoint
   isFeatureSupported(feature: string): boolean {
@@ -202,30 +169,27 @@ class ApiManager {
         results[endpoint.name] = false;
       }
     }
-
+    
     return results;
   }
 
-  // Reset to default endpoint
+  // Reset to default configuration
   async resetToDefault(): Promise<void> {
     await this.switchToEndpoint(this._configuration.value.defaultEndpoint);
   }
 
-  // Update authorization token for all client instances
+  // Set authentication token for all clients
   setAuthToken(token: string | null): void {
-    // Update all cached client instances
-    this._clientInstances.forEach((client) => {
-      if ('setAuthToken' in client) {
-        (client as any).setAuthToken(token);
+    for (const client of this._clientInstances.values()) {
+      if (client && typeof client.setAuthToken === 'function') {
+        client.setAuthToken(token);
       }
-    });
-
-    // Update the current client
-    if (this._currentClient.value && 'setAuthToken' in this._currentClient.value) {
-      (this._currentClient.value as any).setAuthToken(token);
     }
-
-    console.log(`Auth token ${token ? 'set' : 'cleared'} for all API clients`);
+    
+    // Also set for current client if it exists
+    if (this._currentClient.value && typeof this._currentClient.value.setAuthToken === 'function') {
+      this._currentClient.value.setAuthToken(token);
+    }
   }
 
   // Clear authentication for all clients
@@ -234,7 +198,7 @@ class ApiManager {
   }
 }
 
-// Create and export singleton instance
+// Export singleton instance
 export const apiManager = new ApiManager();
 
 // Export for use in composables

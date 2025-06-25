@@ -24,120 +24,97 @@ export class ApiClient extends BaseApiClient {
     conversationHistory?: Array<{role: string, content: string, metadata?: any}> 
   ): Promise<TaskResponse> {
     try {
-      // Different endpoints for different API technologies
-      const orchestratorPath = this.endpoint.technology === 'typescript-nestjs' 
-        ? '/agents/orchestrator/orchestrator/tasks'
-        : '/agents/orchestrator/tasks';
-
-      let requestPayload: any;
-
-      if (this.endpoint.technology === 'typescript-nestjs') {
-        // Get the current auth token from localStorage to pass to orchestrator
-        const authToken = localStorage.getItem('authToken');
-        
-        // Get current user information for proper database RLS
-        let currentUser = null;
-        if (authToken) {
-          try {
-            // Ensure auth token is set in headers for the /auth/me request
-            const userResponse = await this.axiosInstance.get('/auth/me', {
-              headers: {
-                'Authorization': `Bearer ${authToken}`
-              }
-            });
-            currentUser = userResponse.data.user;
-          } catch (error) {
-            console.warn('Failed to fetch current user for orchestrator:', error);
-          }
-        }
-        
-        // NestJS expects JSON-RPC 2.0 format
-        requestPayload = {
-          jsonrpc: '2.0',
-          method: 'handle_request',
-          params: {
-            message: userInputText,
-            session_id: sessionId,
-            conversation_history: conversationHistory || [],
-            authToken: authToken, // Pass auth token to orchestrator for agent pool refresh
-            currentUser: currentUser // Pass current user for database RLS
-          },
-          id: Date.now() // Use timestamp as unique ID
-        };
-      } else {
-        // FastAPI expects the original format
-        requestPayload = {
-          message: {
-            role: 'user',
-            parts: [{ text: userInputText }]
-          }
-        } as TaskCreationRequest;
-        
-        if (sessionId) {
-          requestPayload.session_id = sessionId;
+      // Get the current auth token from localStorage to pass to orchestrator
+      const authToken = localStorage.getItem('authToken');
+      
+      // Get current user information for proper database RLS
+      let currentUser = null;
+      if (authToken) {
+        try {
+          // Ensure auth token is set in headers for the /auth/me request
+          const userResponse = await this.axiosInstance.get('/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${authToken}`
+            }
+          });
+          currentUser = userResponse.data.user;
+        } catch (error) {
+          console.warn('Failed to fetch current user for orchestrator:', error);
         }
       }
+      
+      // NestJS JSON-RPC 2.0 format
+      const requestPayload = {
+        jsonrpc: '2.0',
+        method: 'handle_request',
+        params: {
+          message: userInputText,
+          session_id: sessionId,
+          conversation_history: conversationHistory || [],
+          authToken: authToken, // Pass auth token to orchestrator for agent pool refresh
+          currentUser: currentUser // Pass current user for database RLS
+        },
+        id: Date.now() // Use timestamp as unique ID
+      };
 
-      const response = await this.axiosInstance.post<TaskResponse | JsonRpcResponse>(
-        orchestratorPath, 
+      const response = await this.axiosInstance.post<JsonRpcResponse>(
+        '/agents/orchestrator/orchestrator/tasks', 
         requestPayload
       );
       
-      // For NestJS JSON-RPC responses, extract the result field and convert to TaskResponse
-      if (this.endpoint.technology === 'typescript-nestjs') {
-        const jsonRpcResponse = response.data as JsonRpcResponse;
+      // Extract the result field and convert to TaskResponse
+      const jsonRpcResponse = response.data;
+      
+      if (jsonRpcResponse.error) {
+        throw new Error(`JSON-RPC Error ${jsonRpcResponse.error.code}: ${jsonRpcResponse.error.message}`);
+      }
+
+      if (jsonRpcResponse.result) {
+        const result = jsonRpcResponse.result;
         
-        if (jsonRpcResponse.error) {
-          throw new Error(`JSON-RPC Error ${jsonRpcResponse.error.code}: ${jsonRpcResponse.error.message}`);
+        // Extract agent name from various possible metadata fields
+        let respondingAgentName = 'Hiverarchy Agent'; // default
+        if (result.metadata) {
+          // Try different fields where agent name might be
+          respondingAgentName = result.metadata.delegatedTo || 
+                              result.metadata.originalAgent?.agentName ||
+                              result.metadata.agentName ||
+                              result.metadata.responding_agent_name ||
+                              'Hiverarchy Agent';
         }
 
-        if (jsonRpcResponse.result) {
-          const result = jsonRpcResponse.result;
-          
-          // Extract agent name from various possible metadata fields
-          let respondingAgentName = 'NestJS Agent'; // default
-          if (result.metadata) {
-            // Try different fields where agent name might be
-            respondingAgentName = result.metadata.delegatedTo || 
-                                result.metadata.originalAgent?.agentName ||
-                                result.metadata.agentName ||
-                                result.metadata.responding_agent_name ||
-                                'NestJS Agent';
-          }
-
-          return {
-            id: jsonRpcResponse.id?.toString() || Date.now().toString(),
-            status: {
-              state: result.success ? 'completed' : 'failed',
-              timestamp: new Date().toISOString(),
-              message: result.success ? 'Task completed successfully' : 'Task failed'
-            },
-            result: result.response || result.result || 'Success',
+        return {
+          id: jsonRpcResponse.id?.toString() || Date.now().toString(),
+          status: {
+            state: result.success ? 'completed' : 'failed',
+            timestamp: new Date().toISOString(),
+            message: result.success ? 'Task completed successfully' : 'Task failed'
+          },
+          result: result.response || result.result || 'Success',
+          metadata: {
+            agentName: respondingAgentName,
+            responding_agent_name: respondingAgentName,
+            ...result.metadata
+          },
+          response_message: {
+            role: 'assistant',
+            parts: [{ 
+              type: 'text',
+              text: result.response || result.message || result.result || 'Task completed' 
+            }],
             metadata: {
-              agentName: respondingAgentName,
-              responding_agent_name: respondingAgentName,
-              ...result.metadata
-            },
-            response_message: {
-              role: 'assistant',
-              parts: [{ 
-                type: 'text',
-                text: result.response || result.message || result.result || 'Task completed' 
-              }],
-              metadata: {
-                responding_agent_name: respondingAgentName
-              }
-            },
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            session_id: sessionId || null
-          };
-        }
+              responding_agent_name: respondingAgentName
+            }
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          session_id: sessionId || null
+        };
       }
       
-      return response.data as TaskResponse;
+      throw new Error('No result received from orchestrator');
     } catch (error) {
-      console.error(`Error posting task to orchestrator (${this.endpoint.technology}):`, error);
+      console.error(`Error posting task to orchestrator:`, error);
       throw error; // Re-throw as it's already processed by the interceptor
     }
   }

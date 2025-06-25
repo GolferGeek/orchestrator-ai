@@ -1,6 +1,6 @@
 // API Configuration Types
 export type ApiVersion = 'v1' | 'v2';
-export type ApiTechnology = 'python-fastapi' | 'typescript-nestjs';
+export type ApiTechnology = 'typescript-nestjs';
 
 export interface ApiEndpoint {
   version: ApiVersion;
@@ -27,6 +27,9 @@ export interface ApiClient {
     conversationHistory?: Array<{role: string, content: string, metadata?: any}>
   ): Promise<any>;
   getAvailableAgents(): Promise<any[]>;
+  
+  // Authentication
+  setAuthToken?(token: string | null): void;
   
   // Metadata
   getEndpointInfo(): ApiEndpoint;

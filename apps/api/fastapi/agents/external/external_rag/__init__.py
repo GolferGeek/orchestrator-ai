@@ -1,1 +1,0 @@
-# This file makes 'external_rag' a Python package. 
