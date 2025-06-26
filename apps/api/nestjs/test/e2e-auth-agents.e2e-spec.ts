@@ -56,6 +56,18 @@ describe('Authenticated Agent End-to-End Tests', () => {
     'metrics',
     'chat_support',
     'email_triage',
+    'voice_receptionist',
+    'voice_summary',
+    'competitors',
+    'external_rag',
+    'market_research',
+    'onboarding',
+    'policy_rag',
+    'leads',
+    'calendar',
+    'content',
+    'meetings',
+    'launcher',
   ];
 
   beforeAll(async () => {
@@ -142,6 +154,66 @@ describe('Authenticated Agent End-to-End Tests', () => {
         agentName: 'email_triage',
         prompt: 'Classify this customer email and determine priority',
         expectedKeywords: ['email', 'classify', 'priority', 'triage', 'routing'],
+      },
+      {
+        agentName: 'voice_receptionist',
+        prompt: 'Handle an incoming call from a new customer',
+        expectedKeywords: ['call', 'customer', 'greeting', 'routing', 'professional'],
+      },
+      {
+        agentName: 'voice_summary',
+        prompt: 'Summarize the key points from our team meeting',
+        expectedKeywords: ['summary', 'meeting', 'action', 'items', 'key'],
+      },
+      {
+        agentName: 'competitors',
+        prompt: 'Analyze our main competitors and their strategies',
+        expectedKeywords: ['competitive', 'analysis', 'market', 'strategy', 'positioning'],
+      },
+      {
+        agentName: 'external_rag',
+        prompt: 'Search external databases for industry best practices',
+        expectedKeywords: ['external', 'search', 'research', 'industry', 'best'],
+      },
+      {
+        agentName: 'market_research',
+        prompt: 'Research market trends in our industry',
+        expectedKeywords: ['market', 'research', 'trends', 'industry', 'analysis'],
+      },
+      {
+        agentName: 'onboarding',
+        prompt: 'Help onboard a new employee to our company',
+        expectedKeywords: ['onboarding', 'employee', 'training', 'welcome', 'process'],
+      },
+      {
+        agentName: 'policy_rag',
+        prompt: 'Find our company policy on remote work',
+        expectedKeywords: ['policy', 'remote', 'work', 'company', 'guidelines'],
+      },
+      {
+        agentName: 'leads',
+        prompt: 'Manage and qualify new sales leads',
+        expectedKeywords: ['leads', 'sales', 'qualify', 'prospects', 'crm'],
+      },
+      {
+        agentName: 'calendar',
+        prompt: 'Schedule a meeting with the development team',
+        expectedKeywords: ['calendar', 'schedule', 'meeting', 'appointment', 'time'],
+      },
+      {
+        agentName: 'content',
+        prompt: 'Create content for our marketing campaign',
+        expectedKeywords: ['content', 'marketing', 'create', 'campaign', 'materials'],
+      },
+      {
+        agentName: 'meetings',
+        prompt: 'Coordinate a project kickoff meeting',
+        expectedKeywords: ['meeting', 'coordinate', 'project', 'kickoff', 'agenda'],
+      },
+      {
+        agentName: 'launcher',
+        prompt: 'Launch our new product feature rollout',
+        expectedKeywords: ['launch', 'product', 'feature', 'rollout', 'deployment'],
       },
     ];
 
@@ -252,7 +324,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .expect(200);
 
       expect(response.body.status).toBe('running');
-      expect(response.body.discoveredAgents).toBeGreaterThanOrEqual(11); // 10 specialists + orchestrator
+      expect(response.body.discoveredAgents).toBeGreaterThanOrEqual(23); // 22 specialists + orchestrator
 
       const agentNames = response.body.agents.map((agent: any) => agent.name);
 
@@ -282,7 +354,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
       console.log('response.body.length:', response.body.length);
 
       expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeGreaterThanOrEqual(11);
+      expect(response.body.length).toBeGreaterThanOrEqual(23);
 
       const poolAgentNames = response.body.map((agent: any) => agent.name);
 
