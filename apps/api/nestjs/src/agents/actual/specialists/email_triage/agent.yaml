@@ -1,0 +1,96 @@
+# Email Triage Agent Configuration
+metadata:
+  name: "Email Triage Agent"
+  type: "specialists"
+  category: "communication_management"
+  version: "1.0.0"
+  description: "A specialist agent for email classification, prioritization, and automated response routing."
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - email_classification
+  - priority_assessment
+  - automated_routing
+  - response_drafting
+  - sentiment_analysis
+  - spam_detection
+  - urgency_evaluation
+
+skills:
+  - id: "email_classification"
+    name: "Email Classification"
+    description: "Automatically classify incoming emails by type, department, and priority level"
+    tags: ["classification", "categorization", "automation", "email-processing"]
+    examples:
+      - "Classify customer support emails by issue type"
+      - "Route sales inquiries to appropriate team members"
+      - "Identify billing and technical support requests"
+    input_modes: ["text/plain", "text/email", "application/json"]
+    output_modes: ["application/json", "text/plain"]
+
+  - id: "priority_assessment"
+    name: "Priority Assessment"
+    description: "Evaluate email urgency and importance for proper prioritization"
+    tags: ["priority", "urgency", "assessment", "ranking"]
+    examples:
+      - "Identify high-priority customer escalations"
+      - "Flag urgent technical issues"
+      - "Prioritize VIP customer communications"
+    input_modes: ["text/plain", "text/email", "application/json"]
+    output_modes: ["application/json", "text/plain"]
+
+  - id: "automated_routing"
+    name: "Automated Routing"
+    description: "Route emails to appropriate departments and team members"
+    tags: ["routing", "automation", "assignment", "workflow"]
+    examples:
+      - "Route billing questions to finance team"
+      - "Send technical issues to engineering support"
+      - "Assign sales leads to available representatives"
+    input_modes: ["text/plain", "text/email", "application/json"]
+    output_modes: ["application/json", "text/plain"]
+
+  - id: "response_drafting"
+    name: "Response Drafting"
+    description: "Generate appropriate response templates and auto-replies"
+    tags: ["responses", "templates", "automation", "communication"]
+    examples:
+      - "Draft acknowledgment responses for support tickets"
+      - "Create out-of-office routing messages"
+      - "Generate follow-up email templates"
+    input_modes: ["text/plain", "text/email", "application/json"]
+    output_modes: ["text/email", "text/plain", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "text/email"
+  - "application/json"
+
+output_modes:
+  - "text/plain"
+  - "text/email"
+  - "application/json"
+
+configuration:
+  default_output_format: "json"
+  classification_categories:
+    - "customer_support"
+    - "sales_inquiry"
+    - "billing_question"
+    - "technical_issue"
+    - "partnership"
+    - "general_inquiry"
+  priority_levels:
+    - "urgent"
+    - "high"
+    - "medium"
+    - "low"
+  routing_rules:
+    support: ["support@company.com"]
+    sales: ["sales@company.com"]
+    billing: ["billing@company.com"]
+    technical: ["tech@company.com"]
+  auto_reply_enabled: true
+  sentiment_analysis: true
