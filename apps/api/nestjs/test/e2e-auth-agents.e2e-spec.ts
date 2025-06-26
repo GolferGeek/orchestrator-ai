@@ -52,6 +52,10 @@ describe('Authenticated Agent End-to-End Tests', () => {
     'requirements_writer',
     'sop',
     'internal_rag',
+    'invoice',
+    'metrics',
+    'chat_support',
+    'email_triage',
   ];
 
   beforeAll(async () => {
@@ -118,6 +122,26 @@ describe('Authenticated Agent End-to-End Tests', () => {
         agentName: 'internal_rag',
         prompt: 'Search our internal knowledge base for company policies',
         expectedKeywords: ['internal', 'knowledge', 'search', 'company', 'policies'],
+      },
+      {
+        agentName: 'invoice',
+        prompt: 'Create an invoice for consulting services',
+        expectedKeywords: ['invoice', 'consulting', 'services', 'billing'],
+      },
+      {
+        agentName: 'metrics',
+        prompt: 'Show me our key performance metrics',
+        expectedKeywords: ['metrics', 'performance', 'kpi', 'analytics'],
+      },
+      {
+        agentName: 'chat_support',
+        prompt: 'I need help with my account login issues',
+        expectedKeywords: ['support', 'help', 'account', 'login', 'assist'],
+      },
+      {
+        agentName: 'email_triage',
+        prompt: 'Classify this customer email and determine priority',
+        expectedKeywords: ['email', 'classify', 'priority', 'triage', 'routing'],
       },
     ];
 
@@ -228,7 +252,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .expect(200);
 
       expect(response.body.status).toBe('running');
-      expect(response.body.discoveredAgents).toBeGreaterThanOrEqual(7); // 6 specialists + orchestrator
+      expect(response.body.discoveredAgents).toBeGreaterThanOrEqual(11); // 10 specialists + orchestrator
 
       const agentNames = response.body.agents.map((agent: any) => agent.name);
 
@@ -258,7 +282,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
       console.log('response.body.length:', response.body.length);
 
       expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeGreaterThanOrEqual(7);
+      expect(response.body.length).toBeGreaterThanOrEqual(11);
 
       const poolAgentNames = response.body.map((agent: any) => agent.name);
 
@@ -272,6 +296,10 @@ describe('Authenticated Agent End-to-End Tests', () => {
         'requirements_writer',
         'sop',
         'internal_rag',
+        'invoice',
+        'metrics',
+        'chat_support',
+        'email_triage',
       ];
       expectedPoolNames.forEach((agentName) => {
         expect(poolAgentNames).toContain(agentName);
