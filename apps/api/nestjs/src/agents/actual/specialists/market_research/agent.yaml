@@ -1,0 +1,87 @@
+# Market Research Agent Configuration
+metadata:
+  name: "Market Research Agent"
+  type: "specialists"
+  category: "business_intelligence"
+  version: "1.0.0"
+  description: "A specialist agent for conducting market research, analyzing industry trends, and providing strategic business insights."
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - market_analysis
+  - trend_research
+  - industry_reports
+  - consumer_insights
+  - competitive_research
+  - market_sizing
+  - demographic_analysis
+  - survey_design
+
+skills:
+  - id: "market_analysis"
+    name: "Market Analysis"
+    description: "Conduct comprehensive market analysis including size, growth, and opportunities"
+    tags: ["market", "analysis", "research", "sizing"]
+    examples:
+      - "Analyze the SaaS market for small businesses"
+      - "Research market trends in renewable energy"
+      - "Assess market potential for new product launch"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "trend_research"
+    name: "Trend Research"
+    description: "Identify and analyze current and emerging market trends"
+    tags: ["trends", "research", "forecasting", "insights"]
+    examples:
+      - "Research emerging trends in fintech"
+      - "Analyze consumer behavior trends post-COVID"
+      - "Identify technology trends affecting retail"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "competitive_research"
+    name: "Competitive Research"
+    description: "Research and analyze competitive landscape and positioning"
+    tags: ["competition", "research", "positioning", "analysis"]
+    examples:
+      - "Research top competitors in e-commerce platform space"
+      - "Analyze competitive pricing strategies"
+      - "Compare feature sets across market leaders"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  research_methodologies:
+    - "primary_research"
+    - "secondary_research"
+    - "quantitative_analysis"
+    - "qualitative_analysis"
+  data_sources:
+    - "industry_reports"
+    - "government_data"
+    - "surveys"
+    - "expert_interviews"
+    - "public_filings"
+  analysis_frameworks:
+    - "porter_five_forces"
+    - "swot_analysis"
+    - "pest_analysis"
+    - "tam_sam_som"
+  report_formats:
+    - "executive_summary"
+    - "detailed_analysis"
+    - "infographic"
+    - "presentation"
