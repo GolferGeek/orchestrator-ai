@@ -83,18 +83,28 @@ export class AppService implements OnModuleInit {
     try {
       this.logger.debug(`📝 Registering ${discoveredAgent.name} with agent pool...`);
 
+      // Get agent card information from the service instance (includes YAML description)
+      let agentCard = null;
+      try {
+        if (serviceInstance && typeof serviceInstance.getAgentCard === 'function') {
+          agentCard = await serviceInstance.getAgentCard();
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to get agent card for ${discoveredAgent.name}:`, error);
+      }
+
       // Build agent registration object
       const agentRegistration = {
         id: this.agentDiscovery.generateAgentId(discoveredAgent.name, discoveredAgent.path),
-        name: discoveredAgent.name,
+        name: agentCard?.name || discoveredAgent.name,
         type: this.agentDiscovery.determineAgentType(discoveredAgent.path),
         path: discoveredAgent.path,
         url: this.agentDiscovery.buildAgentUrl(discoveredAgent.path, discoveredAgent.name),
-        description: `${discoveredAgent.name} - A specialized agent for handling specific tasks`,
-        capabilities: [], // Will be enhanced by individual agents if needed
-        skills: [], // Will be enhanced by individual agents if needed
-        inputModes: ['text/plain', 'application/json'],
-        outputModes: ['text/plain', 'application/json'],
+        description: agentCard?.description || `${discoveredAgent.name} - A specialized agent for handling specific tasks`,
+        capabilities: agentCard?.capabilities || [], // Will be enhanced by individual agents if needed
+        skills: agentCard?.skills || [], // Will be enhanced by individual agents if needed
+        inputModes: agentCard?.inputModes || ['text/plain', 'application/json'],
+        outputModes: agentCard?.outputModes || ['text/plain', 'application/json'],
         metadata: {
           version: '1.0.0',
           agentPath: discoveredAgent.path,
