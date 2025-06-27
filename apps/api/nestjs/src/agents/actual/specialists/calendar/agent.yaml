@@ -1,0 +1,93 @@
+# Calendar Agent Configuration
+metadata:
+  name: "Calendar Agent"
+  type: "specialists"
+  category: "productivity"
+  version: "1.0.0"
+  description: "A specialist agent for scheduling meetings, managing calendars, and coordinating appointments across teams and external parties."
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - meeting_scheduling
+  - calendar_management
+  - appointment_coordination
+  - availability_checking
+  - time_zone_handling
+  - recurring_events
+  - conflict_resolution
+  - reminder_automation
+
+skills:
+  - id: "meeting_scheduling"
+    name: "Meeting Scheduling"
+    description: "Schedule meetings efficiently while considering all participants' availability"
+    tags: ["scheduling", "meetings", "availability", "coordination"]
+    examples:
+      - "Schedule a team meeting for next week"
+      - "Find optimal time for client presentation"
+      - "Book recurring weekly standups"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "availability_management"
+    name: "Availability Management"
+    description: "Check and manage availability across multiple calendars and time zones"
+    tags: ["availability", "time-zones", "calendars", "coordination"]
+    examples:
+      - "Check team availability for urgent meeting"
+      - "Find common free time across multiple calendars"
+      - "Handle time zone conflicts for global teams"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "conflict_resolution"
+    name: "Conflict Resolution"
+    description: "Identify and resolve scheduling conflicts and propose alternatives"
+    tags: ["conflicts", "resolution", "alternatives", "rescheduling"]
+    examples:
+      - "Resolve double-booked meeting conflicts"
+      - "Propose alternative meeting times"
+      - "Handle last-minute schedule changes"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "plain"
+  time_zones:
+    - "UTC"
+    - "EST"
+    - "PST"
+    - "GMT"
+    - "CET"
+  meeting_types:
+    - "one_on_one"
+    - "team_meeting"
+    - "client_meeting"
+    - "interview"
+    - "presentation"
+    - "training"
+  scheduling_preferences:
+    - "morning_preferred"
+    - "afternoon_preferred"
+    - "no_back_to_back"
+    - "buffer_time_required"
+  calendar_integrations:
+    - "google_calendar"
+    - "outlook"
+    - "office365"
+    - "apple_calendar"
+  reminder_settings:
+    - "15_minutes"
+    - "1_hour"
+    - "1_day"
+    - "1_week"
