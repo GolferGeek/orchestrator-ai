@@ -263,8 +263,8 @@ const handleViewAgentCapabilities = (agentInfo: any) => {
       // If it's the orchestrator, ask for agent list
       handleSendMessage("View all that I can do for you");
     } else {
-      // For specific agents, ask them directly about their capabilities
-      handleSendMessage(`What can you help me with? Please tell me about your capabilities and what you specialize in.`);
+      // For specific agents, explicitly request delegation to that agent
+      handleSendMessage(`I want to talk to ${agentName}. ${agentName}, what can you help me with? Please tell me about your capabilities and what you specialize in.`);
     }
   } else {
     // Fallback to orchestrator agent list
