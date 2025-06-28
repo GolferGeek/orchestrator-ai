@@ -1,0 +1,106 @@
+<template>
+  <ion-modal :is-open="isOpen" @willDismiss="onDismiss">
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Available Agents</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="onDismiss">
+            <ion-icon :icon="closeOutline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <div v-if="agents.length === 0" class="no-agents">
+        <ion-text color="medium">
+          <p>No agents are currently available.</p>
+        </ion-text>
+      </div>
+      <div v-else class="agents-list">
+        <ion-text color="primary">
+          <h3>Here's what I can help you with:</h3>
+        </ion-text>
+        <ion-list>
+          <ion-item 
+            v-for="agent in agents" 
+            :key="agent.name"
+            button
+            @click="selectAgent(agent)"
+          >
+            <ion-icon :icon="cogOutline" slot="start" color="primary"></ion-icon>
+            <ion-label>
+              <h2>{{ agent.name }}</h2>
+              <p>{{ agent.description }}</p>
+            </ion-label>
+            <ion-icon :icon="chevronForwardOutline" slot="end" color="medium"></ion-icon>
+          </ion-item>
+        </ion-list>
+      </div>
+    </ion-content>
+  </ion-modal>
+</template>
+
+<script setup lang="ts">
+import { defineProps, defineEmits } from 'vue';
+import {
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonContent,
+  IonText,
+  IonList,
+  IonItem,
+  IonLabel,
+} from '@ionic/vue';
+import { 
+  closeOutline, 
+  cogOutline, 
+  chevronForwardOutline 
+} from 'ionicons/icons';
+
+interface Agent {
+  name: string;
+  description: string;
+}
+
+const props = defineProps<{
+  isOpen: boolean;
+  agents: Agent[];
+}>();
+
+const emit = defineEmits(['dismiss', 'agentSelected']);
+
+const onDismiss = () => {
+  emit('dismiss');
+};
+
+const selectAgent = (agent: Agent) => {
+  emit('agentSelected', agent);
+  onDismiss();
+};
+</script>
+
+<style scoped>
+.no-agents {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.agents-list h3 {
+  margin-bottom: 1rem;
+}
+
+ion-item {
+  --background: var(--ion-color-light);
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+}
+
+ion-item:hover {
+  --background: var(--ion-color-light-shade);
+}
+</style> 

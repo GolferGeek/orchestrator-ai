@@ -39,6 +39,14 @@
         <ion-spinner name="dots" color="primary"></ion-spinner>
       </div>
     </ion-footer>
+
+    <!-- Agent Capabilities Modal -->
+    <AgentCapabilitiesModal 
+      :is-open="showAgentModal"
+      :agents="availableAgents"
+      @dismiss="closeAgentModal"
+      @agentSelected="handleAgentSelected"
+    />
   </ion-page>
 </template>
 
@@ -61,6 +69,7 @@ import { nestjsApiService } from '../services/nestjsApiService';
 
 import MessageListComponent from '../components/MessageList.vue';
 import ChatInputComponent from '../components/ChatInput.vue';
+import AgentCapabilitiesModal from '@/components/AgentCapabilitiesModal.vue';
 
 const auth = useAuthStore();
 const sessionStore = useSessionStore();
@@ -69,6 +78,10 @@ const router = useRouter();
 
 const { currentSessionId, currentSessionMessages } = storeToRefs(sessionStore);
 const chatContentEl = ref<InstanceType<typeof IonContent> | null>(null);
+
+// Modal state
+const showAgentModal = ref(false);
+const availableAgents = ref<Array<{ name: string; description: string }>>([]);
 
 const isIOS = computed(() => isPlatform('ios'));
 
@@ -239,13 +252,64 @@ const handleViewAllAgents = () => {
 
 const handleViewAgentCapabilities = (agentInfo: any) => {
   console.log("[HomePage] View agent capabilities request received for:", agentInfo);
-  // TODO: Implement view agent capabilities functionality
+  // Send a message to the orchestrator to trigger the agent capabilities response
+  handleSendMessage("View all that I can do for you");
 };
 
 const handleAgentCapabilityRequestedFor = (agentName: string) => {
   console.log("[HomePage] Agent capability requested for:", agentName);
   // TODO: Implement agent capability request functionality
 };
+
+// Modal handlers
+const closeAgentModal = () => {
+  showAgentModal.value = false;
+  availableAgents.value = [];
+};
+
+const handleAgentSelected = (agent: { name: string; description: string }) => {
+  console.log("[HomePage] Agent selected from modal:", agent);
+  // Send a message to talk to the specific agent
+  handleSendMessage(`Can I talk to ${agent.name} agent?`);
+};
+
+// Helper function to parse agent list from orchestrator response
+const parseAgentListFromResponse = (responseText: string): Array<{ name: string; description: string }> => {
+  const agents: Array<{ name: string; description: string }> = [];
+  const lines = responseText.split('\n');
+  
+  for (const line of lines) {
+    // Look for lines like "- Agent Name: Blog Post, Description: Handles content creation..."
+    const match = line.match(/- Agent Name:\s*([^,]+),\s*Description:\s*(.+)/i);
+    if (match) {
+      const name = match[1].trim();
+      const description = match[2].trim();
+      agents.push({ name, description });
+    }
+  }
+  
+  return agents;
+};
+
+// Watch for agent list responses and show modal
+watch(currentSessionMessages, (newMessages) => {
+  if (!newMessages || newMessages.length === 0) return;
+  
+  const lastMessage = newMessages[newMessages.length - 1];
+  if (lastMessage?.role === 'assistant' && 
+      lastMessage?.metadata?.contentType === 'agentListFromOrchestrator' &&
+      lastMessage?.content) {
+    
+    console.log("[HomePage] Detected agent list response, parsing for modal...");
+    const agents = parseAgentListFromResponse(lastMessage.content);
+    
+    if (agents.length > 0) {
+      availableAgents.value = agents;
+      showAgentModal.value = true;
+      console.log("[HomePage] Showing agent modal with", agents.length, "agents");
+    }
+  }
+}, { deep: true });
 
 // Keyboard handling for mobile devices
 let keyboardHandler: (info: KeyboardInfo) => void;
