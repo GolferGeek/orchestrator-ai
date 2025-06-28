@@ -1,0 +1,49 @@
+# Onboarding Agent Configuration
+metadata:
+  name: "Onboarding Agent"
+  type: "specialists"
+  category: "human_resources"
+  version: "1.0.0"
+  description: "A specialist agent for guiding new employees through the onboarding process, ensuring smooth integration and productive start."
+
+type: "context"
+
+capabilities:
+  - employee_onboarding
+  - training_coordination
+  - documentation_guidance
+  - system_access_setup
+  - cultural_integration
+  - progress_tracking
+  - feedback_collection
+  - compliance_verification
+
+skills:
+  - id: "onboarding_coordination"
+    name: "Onboarding Coordination"
+    description: "Coordinate comprehensive onboarding experience for new hires"
+    tags: ["onboarding", "coordination", "new-hire", "process"]
+    examples:
+      - "Guide new employee through first week"
+      - "Coordinate department introductions"
+      - "Schedule required training sessions"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  onboarding_stages:
+    - "pre_boarding"
+    - "first_day"
+    - "first_week"
+    - "first_month"
+    - "90_day_review"

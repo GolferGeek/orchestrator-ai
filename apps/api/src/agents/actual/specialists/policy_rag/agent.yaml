@@ -1,0 +1,49 @@
+# Policy RAG Agent Configuration
+metadata:
+  name: "Policy RAG Agent"
+  type: "specialists"
+  category: "knowledge_management"
+  version: "1.0.0"
+  description: "A specialist agent for retrieving and explaining company policies, procedures, and compliance requirements using retrieval-augmented generation."
+
+type: "context"
+
+capabilities:
+  - policy_retrieval
+  - compliance_guidance
+  - procedure_explanation
+  - policy_search
+  - regulatory_assistance
+  - documentation_access
+  - policy_updates
+  - interpretation_support
+
+skills:
+  - id: "policy_search"
+    name: "Policy Search and Retrieval"
+    description: "Search and retrieve relevant company policies and procedures"
+    tags: ["search", "retrieval", "policies", "procedures"]
+    examples:
+      - "Find remote work policy details"
+      - "Search expense reimbursement procedures"
+      - "Locate data privacy guidelines"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  policy_categories:
+    - "hr_policies"
+    - "it_security"
+    - "compliance"
+    - "operational"
+    - "financial"
