@@ -292,16 +292,23 @@ const handleAgentSelected = (agent: { name: string; description: string }) => {
 
 // Helper function to parse agent list from orchestrator response
 const parseAgentListFromResponse = (responseText: string): Array<{ name: string; description: string }> => {
+  console.log("[HomePage] Parsing agent list from response:", responseText);
   const agents: Array<{ name: string; description: string }> = [];
   const lines = responseText.split('\n');
   
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    console.log(`[HomePage] Processing line ${i}: "${line}"`);
+    
     // Handle multiple formats:
     // Format 1: "Agent Name: Blog Post Writer, Description: Blog Post Writer specialist agent"
     let match = line.match(/Agent Name:\s*([^,]+),\s*Description:\s*(.+)/i);
     if (match) {
       const name = match[1].trim();
       const description = match[2].trim();
+      console.log(`[HomePage] Found agent (Format 1): "${name}" - "${description}"`);
       agents.push({ name, description });
       continue;
     }
@@ -311,6 +318,7 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
     if (match) {
       const name = match[1].trim();
       const description = match[2].trim();
+      console.log(`[HomePage] Found agent (Format 2): "${name}" - "${description}"`);
       agents.push({ name, description });
       continue;
     }
@@ -320,6 +328,7 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
     if (match) {
       const name = match[1].trim();
       const description = match[2].trim();
+      console.log(`[HomePage] Found agent (Format 3): "${name}" - "${description}"`);
       agents.push({ name, description });
       continue;
     }
@@ -329,11 +338,15 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
     if (match) {
       const name = match[1].trim();
       const description = match[2].trim();
+      console.log(`[HomePage] Found agent (Format 4): "${name}" - "${description}"`);
       agents.push({ name, description });
       continue;
     }
+    
+    console.log(`[HomePage] No match found for line: "${line}"`);
   }
   
+  console.log(`[HomePage] Parsed ${agents.length} agents:`, agents);
   return agents;
 };
 
@@ -343,20 +356,25 @@ watch(currentSessionMessages, (newMessages) => {
   
   const lastMessage = newMessages[newMessages.length - 1];
   
-  // Only show modal for orchestrator responses that contain agent lists
-  // Don't show modal for individual agent capability responses
-  if (lastMessage?.role === 'assistant' && 
-      lastMessage?.metadata?.contentType === 'agentListFromOrchestrator' &&
-      lastMessage?.metadata?.agentName === 'Orchestrator Agent' &&
-      lastMessage?.content) {
+  // Check if this looks like an orchestrator agent list response
+  if (lastMessage?.role === 'assistant' && lastMessage?.content) {
+    const content = lastMessage.content;
     
-    console.log("[HomePage] Detected orchestrator agent list response, parsing for modal...");
-    const agents = parseAgentListFromResponse(lastMessage.content);
+    // Look for agent list patterns in the content
+    const hasAgentList = content.includes('Agent Name:') && content.includes('Description:') && 
+                        (content.includes('Here are the agents') || content.includes('agents I can work with'));
     
-    if (agents.length > 0) {
-      availableAgents.value = agents;
-      showAgentModal.value = true;
-      console.log("[HomePage] Showing agent modal with", agents.length, "agents");
+    if (hasAgentList) {
+      console.log("[HomePage] Detected orchestrator agent list response by content pattern, parsing for modal...");
+      const agents = parseAgentListFromResponse(content);
+      
+      if (agents.length > 0) {
+        availableAgents.value = agents;
+        showAgentModal.value = true;
+        console.log("[HomePage] Showing agent modal with", agents.length, "agents:", agents);
+      } else {
+        console.log("[HomePage] No agents parsed from response:", content);
+      }
     }
   }
 }, { deep: true });
