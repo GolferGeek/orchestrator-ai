@@ -82,6 +82,7 @@ const chatContentEl = ref<InstanceType<typeof IonContent> | null>(null);
 // Modal state
 const showAgentModal = ref(false);
 const availableAgents = ref<Array<{ name: string; description: string }>>([]);
+const expectingAgentList = ref(false); // Track when we expect an agent list response
 
 const isIOS = computed(() => isPlatform('ios'));
 
@@ -200,19 +201,56 @@ const handleSendMessage = async (text: string) => {
           ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
           : 1);
 
-    const agentMessage: Message = {
-      id: taskResponse.id,
-      session_id: currentSessionId.value,
-      user_id: auth.user?.id || 'unknown-user',
-      role: 'assistant',
-      content: agentText,
-      timestamp: new Date().toISOString(),
-      order: agentMessageOrder,
-      metadata: agentMetadata
-    };
+    // Check if this is an agent list response that should show as modal instead of chat message
+    // Only show modal if we were expecting an agent list (from orchestrator capabilities request)
+    const isAgentListResponse = expectingAgentList.value && 
+                               agentText.includes('Agent Name:') && agentText.includes('Description:') && 
+                               (agentText.includes('Here are the agents') || agentText.includes('agents I can work with'));
+    
+    if (isAgentListResponse) {
+      console.log("[HomePage] Detected expected agent list response, showing modal instead of adding to chat");
+      
+      // Parse agents and show modal instead of adding message to chat
+      const agents = parseAgentListFromResponse(agentText);
+      
+      if (agents.length > 0) {
+        availableAgents.value = agents;
+        showAgentModal.value = true;
+        console.log("[HomePage] Showing agent modal with", agents.length, "agents:", agents);
+      } else {
+        console.log("[HomePage] No agents parsed from response, adding message to chat as fallback");
+        // Fallback to showing text message if parsing fails
+        const agentMessage: Message = {
+          id: taskResponse.id,
+          session_id: currentSessionId.value,
+          user_id: auth.user?.id || 'unknown-user',
+          role: 'assistant',
+          content: agentText,
+          timestamp: new Date().toISOString(),
+          order: agentMessageOrder,
+          metadata: agentMetadata
+        };
+        sessionStore.addMessageToCurrentSession(agentMessage);
+      }
+      
+      // Reset the expectation flag
+      expectingAgentList.value = false;
+    } else {
+      // Regular response - add to chat as normal
+      const agentMessage: Message = {
+        id: taskResponse.id,
+        session_id: currentSessionId.value,
+        user_id: auth.user?.id || 'unknown-user',
+        role: 'assistant',
+        content: agentText,
+        timestamp: new Date().toISOString(),
+        order: agentMessageOrder,
+        metadata: agentMetadata
+      };
 
-    sessionStore.addMessageToCurrentSession(agentMessage);
-    console.log("[HomePage] Agent message added to store:", JSON.parse(JSON.stringify(agentMessage)));
+      sessionStore.addMessageToCurrentSession(agentMessage);
+      console.log("[HomePage] Agent message added to store:", JSON.parse(JSON.stringify(agentMessage)));
+    }
 
     // Message saving is handled automatically by sessionStore
 
@@ -240,9 +278,8 @@ const handleSendMessage = async (text: string) => {
 
 const handleReturnToOrchestrator = () => {
   console.log("[HomePage] Return to orchestrator request received");
-  if (currentSessionId.value) {
-    sessionStore.fetchMessagesForCurrentSession();
-  }
+  // Send a message to clear the sticky agent and return to orchestrator mode
+  handleSendMessage("Return to orchestrator");
 };
 
 const handleViewAllAgents = () => {
@@ -260,15 +297,18 @@ const handleViewAgentCapabilities = (agentInfo: any) => {
     
     // Ask the specific agent what they can do
     if (agentName.toLowerCase() === 'orchestrator' || agentName.toLowerCase() === 'orchestrator agent') {
-      // If it's the orchestrator, ask for agent list
+      // If it's the orchestrator, ask for agent list and expect modal
+      expectingAgentList.value = true;
       handleSendMessage("View all that I can do for you");
-    } else {
-      // For specific agents, explicitly request delegation to that agent
-      handleSendMessage(`I want to talk to ${agentName}. ${agentName}, what can you help me with? Please tell me about your capabilities and what you specialize in.`);
-    }
+          } else {
+        // For specific agents, use standard capability request - orchestrator will handle sticky agent logic
+        expectingAgentList.value = false;
+        handleSendMessage("What can you do?");
+      }
   } else {
     // Fallback to orchestrator agent list
     console.log("[HomePage] No specific agent info, defaulting to orchestrator agent list");
+    expectingAgentList.value = true;
     handleSendMessage("View all that I can do for you");
   }
 };
@@ -350,34 +390,7 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
   return agents;
 };
 
-// Watch for agent list responses and show modal
-watch(currentSessionMessages, (newMessages) => {
-  if (!newMessages || newMessages.length === 0) return;
-  
-  const lastMessage = newMessages[newMessages.length - 1];
-  
-  // Check if this looks like an orchestrator agent list response
-  if (lastMessage?.role === 'assistant' && lastMessage?.content) {
-    const content = lastMessage.content;
-    
-    // Look for agent list patterns in the content
-    const hasAgentList = content.includes('Agent Name:') && content.includes('Description:') && 
-                        (content.includes('Here are the agents') || content.includes('agents I can work with'));
-    
-    if (hasAgentList) {
-      console.log("[HomePage] Detected orchestrator agent list response by content pattern, parsing for modal...");
-      const agents = parseAgentListFromResponse(content);
-      
-      if (agents.length > 0) {
-        availableAgents.value = agents;
-        showAgentModal.value = true;
-        console.log("[HomePage] Showing agent modal with", agents.length, "agents:", agents);
-      } else {
-        console.log("[HomePage] No agents parsed from response:", content);
-      }
-    }
-  }
-}, { deep: true });
+// Agent list detection is now handled directly in handleSendMessage
 
 // Keyboard handling for mobile devices
 let keyboardHandler: (info: KeyboardInfo) => void;
