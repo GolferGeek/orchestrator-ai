@@ -158,8 +158,13 @@ const viewAllAgents = () => {
 };
 
 const viewAgentCapabilities = () => {
-  console.log('[MessageItem.vue] viewAgentCapabilities method called');
-  emit('viewAgentCapabilitiesClicked');
+  console.log('[MessageItem.vue] viewAgentCapabilities method called for agent:', agentName.value);
+  // Pass the agent information so the parent knows which agent to ask about capabilities
+  const agentInfo = {
+    name: agentName.value,
+    metadata: props.message.metadata
+  };
+  emit('viewAgentCapabilitiesClicked', agentInfo);
 };
 
 const handleMessageContentClick = (event: MouseEvent) => {
