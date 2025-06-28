@@ -297,8 +297,8 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
   
   for (const line of lines) {
     // Handle multiple formats:
-    // Format 1: "- Agent Name: Blog Post, Description: Handles content creation..."
-    let match = line.match(/- Agent Name:\s*([^,]+),\s*Description:\s*(.+)/i);
+    // Format 1: "Agent Name: Blog Post Writer, Description: Blog Post Writer specialist agent"
+    let match = line.match(/Agent Name:\s*([^,]+),\s*Description:\s*(.+)/i);
     if (match) {
       const name = match[1].trim();
       const description = match[2].trim();
@@ -306,7 +306,16 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
       continue;
     }
     
-    // Format 2: "- Blog Post Agent: Handles content creation..."
+    // Format 2: "- Agent Name: Blog Post, Description: Handles content creation..."
+    match = line.match(/- Agent Name:\s*([^,]+),\s*Description:\s*(.+)/i);
+    if (match) {
+      const name = match[1].trim();
+      const description = match[2].trim();
+      agents.push({ name, description });
+      continue;
+    }
+    
+    // Format 3: "- Blog Post Agent: Handles content creation..."
     match = line.match(/- ([^:]+):\s*(.+)/);
     if (match) {
       const name = match[1].trim();
@@ -315,7 +324,7 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
       continue;
     }
     
-    // Format 3: "- Blog Post - Handles content creation..."
+    // Format 4: "- Blog Post - Handles content creation..."
     match = line.match(/- ([^-]+)\s*-\s*(.+)/);
     if (match) {
       const name = match[1].trim();
