@@ -26,11 +26,12 @@
             :key="agent.name"
             button
             @click="selectAgent(agent)"
+            class="agent-item"
           >
             <ion-icon :icon="cogOutline" slot="start" color="primary"></ion-icon>
             <ion-label>
-              <h2>{{ agent.name }}</h2>
-              <p>{{ agent.description }}</p>
+              <h2 class="agent-name-link">{{ cleanAgentName(agent.name) }}</h2>
+              <p class="agent-description">{{ agent.description }}</p>
             </ion-label>
             <ion-icon :icon="chevronForwardOutline" slot="end" color="medium"></ion-icon>
           </ion-item>
@@ -82,6 +83,22 @@ const selectAgent = (agent: Agent) => {
   emit('agentSelected', agent);
   onDismiss();
 };
+
+const cleanAgentName = (name: string) => {
+  // Remove common prefixes and suffixes to get clean agent names
+  let cleanName = name.trim();
+  
+  // Remove "Agent Name:" prefix if present
+  cleanName = cleanName.replace(/^Agent Name:\s*/i, '');
+  
+  // Remove "Agent" suffix if present
+  cleanName = cleanName.replace(/\s+Agent$/i, '');
+  
+  // Remove "Agent" prefix if present  
+  cleanName = cleanName.replace(/^Agent\s+/i, '');
+  
+  return cleanName || name; // Return original if cleaning resulted in empty string
+};
 </script>
 
 <style scoped>
@@ -94,13 +111,31 @@ const selectAgent = (agent: Agent) => {
   margin-bottom: 1rem;
 }
 
-ion-item {
+.agent-item {
   --background: var(--ion-color-light);
   margin-bottom: 0.5rem;
   border-radius: 8px;
 }
 
-ion-item:hover {
+.agent-item:hover {
   --background: var(--ion-color-light-shade);
+}
+
+.agent-name-link {
+  color: var(--ion-color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.agent-item:hover .agent-name-link {
+  color: var(--ion-color-primary-shade);
+  text-decoration: underline;
+}
+
+.agent-description {
+  margin-top: 0.25rem;
+  margin-bottom: 0;
 }
 </style> 

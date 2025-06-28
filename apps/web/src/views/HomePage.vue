@@ -286,8 +286,8 @@ const closeAgentModal = () => {
 
 const handleAgentSelected = (agent: { name: string; description: string }) => {
   console.log("[HomePage] Agent selected from modal:", agent);
-  // Send a message to talk to the specific agent
-  handleSendMessage(`Can I talk to ${agent.name} agent?`);
+  // Send a message to talk to the specific agent with the requested format
+  handleSendMessage(`I would like to talk with the ${agent.name} agent.`);
 };
 
 // Helper function to parse agent list from orchestrator response
@@ -296,12 +296,32 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
   const lines = responseText.split('\n');
   
   for (const line of lines) {
-    // Look for lines like "- Agent Name: Blog Post, Description: Handles content creation..."
-    const match = line.match(/- Agent Name:\s*([^,]+),\s*Description:\s*(.+)/i);
+    // Handle multiple formats:
+    // Format 1: "- Agent Name: Blog Post, Description: Handles content creation..."
+    let match = line.match(/- Agent Name:\s*([^,]+),\s*Description:\s*(.+)/i);
     if (match) {
       const name = match[1].trim();
       const description = match[2].trim();
       agents.push({ name, description });
+      continue;
+    }
+    
+    // Format 2: "- Blog Post Agent: Handles content creation..."
+    match = line.match(/- ([^:]+):\s*(.+)/);
+    if (match) {
+      const name = match[1].trim();
+      const description = match[2].trim();
+      agents.push({ name, description });
+      continue;
+    }
+    
+    // Format 3: "- Blog Post - Handles content creation..."
+    match = line.match(/- ([^-]+)\s*-\s*(.+)/);
+    if (match) {
+      const name = match[1].trim();
+      const description = match[2].trim();
+      agents.push({ name, description });
+      continue;
     }
   }
   
