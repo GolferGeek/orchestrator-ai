@@ -252,8 +252,25 @@ const handleViewAllAgents = () => {
 
 const handleViewAgentCapabilities = (agentInfo: any) => {
   console.log("[HomePage] View agent capabilities request received for:", agentInfo);
-  // Send a message to the orchestrator to trigger the agent capabilities response
-  handleSendMessage("View all that I can do for you");
+  
+  if (agentInfo && agentInfo.name) {
+    // We're asking a specific agent about their capabilities
+    const agentName = agentInfo.name;
+    console.log(`[HomePage] Asking ${agentName} about their capabilities`);
+    
+    // Ask the specific agent what they can do
+    if (agentName.toLowerCase() === 'orchestrator' || agentName.toLowerCase() === 'orchestrator agent') {
+      // If it's the orchestrator, ask for agent list
+      handleSendMessage("View all that I can do for you");
+    } else {
+      // For specific agents, ask them directly about their capabilities
+      handleSendMessage(`What can you help me with? Please tell me about your capabilities and what you specialize in.`);
+    }
+  } else {
+    // Fallback to orchestrator agent list
+    console.log("[HomePage] No specific agent info, defaulting to orchestrator agent list");
+    handleSendMessage("View all that I can do for you");
+  }
 };
 
 const handleAgentCapabilityRequestedFor = (agentName: string) => {
@@ -296,11 +313,15 @@ watch(currentSessionMessages, (newMessages) => {
   if (!newMessages || newMessages.length === 0) return;
   
   const lastMessage = newMessages[newMessages.length - 1];
+  
+  // Only show modal for orchestrator responses that contain agent lists
+  // Don't show modal for individual agent capability responses
   if (lastMessage?.role === 'assistant' && 
       lastMessage?.metadata?.contentType === 'agentListFromOrchestrator' &&
+      lastMessage?.metadata?.agentName === 'Orchestrator Agent' &&
       lastMessage?.content) {
     
-    console.log("[HomePage] Detected agent list response, parsing for modal...");
+    console.log("[HomePage] Detected orchestrator agent list response, parsing for modal...");
     const agents = parseAgentListFromResponse(lastMessage.content);
     
     if (agents.length > 0) {
