@@ -1,0 +1,75 @@
+# Content Agent Configuration
+metadata:
+  name: "Content Agent"
+  type: "specialists"
+  category: "content_creation"
+  version: "1.0.0"
+  description: "A specialist agent for creating, editing, and managing various types of content including marketing materials, documentation, and digital assets."
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - content_creation
+  - content_editing
+  - copywriting
+  - content_strategy
+  - seo_optimization
+  - brand_voice_alignment
+  - multimedia_content
+  - content_planning
+
+skills:
+  - id: "content_creation"
+    name: "Content Creation"
+    description: "Create engaging content for various channels and audiences"
+    tags: ["creation", "writing", "content", "marketing"]
+    examples:
+      - "Create blog post about product features"
+      - "Write social media campaign content"
+      - "Develop email newsletter content"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "text/html", "application/json"]
+
+  - id: "content_strategy"
+    name: "Content Strategy"
+    description: "Develop strategic content plans and editorial calendars"
+    tags: ["strategy", "planning", "editorial", "calendar"]
+    examples:
+      - "Plan quarterly content calendar"
+      - "Develop content strategy for product launch"
+      - "Create editorial guidelines for brand voice"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/html"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  content_types:
+    - "blog_posts"
+    - "social_media"
+    - "email_campaigns"
+    - "landing_pages"
+    - "documentation"
+    - "presentations"
+  channels:
+    - "website"
+    - "social_media"
+    - "email"
+    - "print"
+    - "video"
+  tone_options:
+    - "professional"
+    - "casual"
+    - "technical"
+    - "conversational"
+    - "persuasive"
