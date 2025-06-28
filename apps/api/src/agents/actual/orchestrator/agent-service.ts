@@ -400,7 +400,7 @@ export class OrchestratorService extends A2AAgentBaseService {
         uniqueAgents.set(cleanName, {
           name: cleanName,
           description:
-            agent.metadata?.description || `${cleanName} specialist agent`,
+            agent.description || `${cleanName} specialist agent`, // Use agent.description directly from YAML
           originalAgent: agent,
         });
       }
@@ -747,4 +747,6 @@ export class OrchestratorService extends A2AAgentBaseService {
       this.availableAgents = [];
     }
   }
+
+
 }
