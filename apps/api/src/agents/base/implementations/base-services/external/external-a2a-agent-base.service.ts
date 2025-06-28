@@ -21,10 +21,13 @@ export interface ExternalA2AConfiguration {
   protocol: 'A2A';
   timeout?: number;
   authentication?: {
-    type: 'none' | 'api_key' | 'bearer' | 'basic' | 'oauth';
+    type: 'none' | 'api_key' | 'bearer' | 'basic' | 'oauth' | 'login';
     key?: string;
     value?: string;
     header?: string;
+    login_endpoint?: string;
+    username?: string;
+    password?: string;
   } | null;
   retry?: {
     attempts: number;
@@ -107,8 +110,22 @@ export class ExternalA2AAgentBaseService
       // Load local configuration from agent.yaml
       await this.loadLocalConfiguration();
 
-      // Discover remote agent capabilities
-      await this.discoverRemoteAgent();
+      // Discover remote agent capabilities (optional)
+      try {
+        await this.discoverRemoteAgent();
+      } catch (error) {
+        this.logger.warn('Remote agent discovery failed, continuing without discovery:', error);
+        // Create a minimal agent card for registration
+        this.remoteAgentCard = {
+          id: this.getAgentId(),
+          name: this.getAgentName(),
+          description: `External A2A agent: ${this.getAgentName()}`,
+          capabilities: ['content_creation', 'blog_writing', 'article_writing'],
+          inputModes: ['text'],
+          outputModes: ['text'],
+          version: '1.0.0',
+        };
+      }
 
       // Note: Agent registration is now handled by AppService via AgentFactoryService
       // No longer self-registering here to avoid conflicts
@@ -173,6 +190,13 @@ export class ExternalA2AAgentBaseService
    */
   getAgentType(): string {
     return 'external';
+  }
+
+  /**
+   * Get the external configuration (protected for derived classes)
+   */
+  protected getExternalConfig(): ExternalA2AConfiguration | null {
+    return this.externalConfig;
   }
 
   /**
@@ -324,7 +348,6 @@ export class ExternalA2AAgentBaseService
         yamlPath,
         {
           substituteEnvVars: true,
-          envVarPrefix: 'A2A_EXTERNAL_',
           strictEnvVars: false,
         },
       );
@@ -358,7 +381,10 @@ export class ExternalA2AAgentBaseService
     );
 
     try {
-      const wellKnownUrl = `${this.externalConfig!.endpoint}/.well-known/agent.json`;
+      // Extract base URL from endpoint (remove path if present)
+      const endpointUrl = new URL(this.externalConfig!.endpoint);
+      const baseUrl = `${endpointUrl.protocol}//${endpointUrl.host}`;
+      const wellKnownUrl = `${baseUrl}/.well-known/agent.json`;
 
       this.logger.debug(`Fetching agent card from: ${wellKnownUrl}`);
 

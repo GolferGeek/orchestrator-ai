@@ -181,7 +181,7 @@ export class LLMService {
    */
   async generateOrchestrationDecision(
     userMessage: string,
-    availableAgents: string[],
+    availableAgents: Array<{name: string; description: string; type?: string}>,
   ): Promise<{
     action: 'delegate' | 'respond_directly' | 'clarify';
     agent?: string;
@@ -189,15 +189,23 @@ export class LLMService {
     reasoning?: string;
   }> {
     try {
-      const systemPrompt = `You are an AI orchestrator that decides how to handle user requests. You have these agents available: ${availableAgents.join(', ')}.
+      const agentList = availableAgents.map(agent => 
+        `${agent.name}: ${agent.description}`
+      ).join('\n');
+      
+      const systemPrompt = `You are an AI orchestrator that decides how to handle user requests. You have these specialist agents available:
+
+${agentList}
 
 For each request, decide whether to:
-1. "delegate" - send to a specialist agent (specify which one)
+1. "delegate" - send to a specialist agent (specify which agent name to use)
 2. "respond_directly" - handle the request yourself 
 3. "clarify" - ask for more information
 
 **Important**: 
 - If the user asks "Can I talk to the [agent name] agent?" - always use "delegate" action and specify that agent
+- Choose the most appropriate specialist based on their description and the user's request
+- External agents may have broader capabilities than their basic descriptions suggest
 - If the user asks you to list your available agents, describe your capabilities, or asks "what can you do", use "respond_directly" action. Format the agent list like this for each agent:
 - Agent Name: agent_name, Description: agent_description
 
@@ -239,7 +247,7 @@ Respond ONLY with a JSON object in this format:
    */
   async generateOrchestrationDecisionWithHistory(
     userMessage: string,
-    availableAgents: string[],
+    availableAgents: Array<{name: string; description: string; type?: string}>,
     conversationHistory: Array<{
       role: 'user' | 'assistant';
       content: string;
@@ -253,15 +261,23 @@ Respond ONLY with a JSON object in this format:
     reasoning?: string;
   }> {
     try {
-      const systemPrompt = `You are an AI orchestrator that decides how to handle user requests. You have these agents available: ${availableAgents.join(', ')}.
+      const agentList = availableAgents.map(agent => 
+        `${agent.name}: ${agent.description}`
+      ).join('\n');
+      
+      const systemPrompt = `You are an AI orchestrator that decides how to handle user requests. You have these specialist agents available:
+
+${agentList}
 
 For each request, decide whether to:
-1. "delegate" - send to a specialist agent (specify which one)
+1. "delegate" - send to a specialist agent (specify which agent name to use)
 2. "respond_directly" - handle the request yourself 
 3. "clarify" - ask for more information
 
 **Important**: 
 - If the user asks "Can I talk to the [agent name] agent?" - always use "delegate" action and specify that agent
+- Choose the most appropriate specialist based on their description and the user's request
+- External agents may have broader capabilities than their basic descriptions suggest
 - If the user asks you to list your available agents, describe your capabilities, or asks "what can you do", use "respond_directly" action. Format the agent list like this for each agent:
 - Agent Name: agent_name, Description: agent_description
 - Pay attention to conversation history to maintain context and remember user information like their name
@@ -519,7 +535,7 @@ Required JSON format (EXACT FORMAT REQUIRED):
    */
   private getFallbackOrchestrationDecision(
     userMessage: string,
-    availableAgents: string[],
+    availableAgents: Array<{name: string; description: string; type?: string}>,
   ): {
     action: 'delegate' | 'respond_directly' | 'clarify';
     agent?: string;
@@ -581,9 +597,10 @@ Required JSON format (EXACT FORMAT REQUIRED):
       message.includes('hi') ||
       message.includes('help')
     ) {
+      const agentList = availableAgents.map(agent => agent.name).join(', ');
       return {
         action: 'respond_directly',
-        response: `Hello! I'm your AI orchestrator. I can help you directly or connect you with our specialist agents. Available agents: ${availableAgents.join(', ')}. What can I assist you with today?`,
+        response: `Hello! I'm your AI orchestrator. I can help you directly or connect you with our specialist agents. Available agents: ${agentList}. What can I assist you with today?`,
         reasoning: 'Greeting detected',
       };
     }
