@@ -185,7 +185,12 @@ export class AgentDiscoveryService {
     const baseUrl = process.env.API_BASE_URL || 'http://localhost:4000';
     const agentType = this.determineAgentType(agentPath);
     const name = agentName.toLowerCase().replace(/\s+/g, '_');
-    return `${baseUrl}/agents/${agentType}s/${name}/tasks`;
+    
+    // Handle plural forms for agent types - keep singular for external and orchestrator
+    const agentTypePlural = (agentType === 'external' || agentType === 'orchestrator') 
+      ? agentType 
+      : `${agentType}s`;
+    return `${baseUrl}/agents/${agentTypePlural}/${name}/tasks`;
   }
 
   /**

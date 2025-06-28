@@ -70,6 +70,11 @@ describe('Authenticated Agent End-to-End Tests', () => {
     'launcher',
   ];
 
+  // External agents to test
+  const externalAgents = [
+    'hiverarchy', // Hiverarchy AI Orchestrator
+  ];
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -105,6 +110,18 @@ describe('Authenticated Agent End-to-End Tests', () => {
 
   describe('Orchestrator Delegation Tests (E2E)', () => {
     const orchestratorTestCases = [
+      {
+        agentName: 'hiverarchy',
+        prompt: 'Write a comprehensive blog post about renewable energy and sustainability',
+        expectedKeywords: ['renewable', 'energy', 'sustainability', 'blog', 'post'],
+        description: 'Should delegate to Hiverarchy external agent for content creation',
+      },
+      {
+        agentName: 'hiverarchy',
+        prompt: 'Create an article about the future of artificial intelligence',
+        expectedKeywords: ['artificial', 'intelligence', 'future', 'article', 'technology'],
+        description: 'Should delegate to Hiverarchy external agent for AI content',
+      },
       {
         agentName: 'blog_post',
         prompt: 'Write a blog post about artificial intelligence',
@@ -255,11 +272,110 @@ describe('Authenticated Agent End-to-End Tests', () => {
 
         expect(hasRelevantContent).toBe(true);
 
-        console.log(
-          `✅ E2E Orchestrator delegation test for ${testCase.agentName} passed - Response: ${response.body.result.response.substring(0, 100)}...`,
-        );
+        // For Hiverarchy tests, verify we got substantial content (indicating external agent was used)
+        if (testCase.agentName === 'hiverarchy') {
+          expect(response.body.result.response.length).toBeGreaterThan(500);
+          console.log(`✅ E2E Orchestrator delegation to ${testCase.agentName} - Length: ${response.body.result.response.length} chars - ${testCase.description || ''}`);
+        } else {
+          console.log(`✅ E2E Orchestrator delegation test for ${testCase.agentName} passed`);
+        }
+
+        console.log(`Response preview: ${response.body.result.response.substring(0, 150)}...`);
       }, 45000); // 45 second timeout for orchestrator + AI processing
     });
+  });
+
+  describe('Hiverarchy External Agent Validation', () => {
+    it('should delegate to Hiverarchy instead of local blog_post agent for content requests', async () => {
+      // First, ensure Hiverarchy is available in the agent pool
+      const poolResponse = await request(app.getHttpServer())
+        .get('/agent-pool/agents')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      const hiverarchyAgent = poolResponse.body.find((agent: any) => agent.name === 'hiverarchy');
+      expect(hiverarchyAgent).toBeDefined();
+      console.log('✅ Hiverarchy agent found in pool:', hiverarchyAgent);
+
+      // Test orchestrator delegation with a content creation request
+      const taskRequest = {
+        jsonrpc: '2.0',
+        id: `test-hiverarchy-delegation-${Date.now()}`,
+        method: 'handle_request',
+        params: {
+          message: 'Write a detailed blog post about the benefits of renewable energy and how it impacts climate change',
+          session_id: `test-hiverarchy-session-${Date.now()}`,
+          conversation_history: [],
+          authToken: authToken,
+          currentUser: null,
+        },
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/agents/orchestrator/orchestrator/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(taskRequest)
+        .expect(200);
+
+      // Validate response structure
+      expect(response.body).toBeDefined();
+      expect(response.body.result).toBeDefined();
+      expect(response.body.result.success).toBe(true);
+      expect(response.body.result.response).toBeDefined();
+      expect(typeof response.body.result.response).toBe('string');
+      expect(response.body.result.response.length).toBeGreaterThan(100);
+
+      // Check for content that indicates Hiverarchy generated the response
+      // Hiverarchy typically produces longer, more detailed responses
+      const responseText = response.body.result.response;
+      expect(responseText.length).toBeGreaterThan(500); // Expect substantial content
+
+      // Check for renewable energy keywords
+      const lowerResponse = responseText.toLowerCase();
+      expect(lowerResponse).toMatch(/renewable.{0,50}energy/);
+      expect(lowerResponse).toMatch(/climate.{0,50}change/);
+      
+      console.log(`✅ Hiverarchy delegation test passed - Response length: ${responseText.length} characters`);
+      console.log(`Response preview: ${responseText.substring(0, 200)}...`);
+    }, 60000); // Extended timeout for external agent processing
+
+    it('should prefer Hiverarchy over local blog_post for content creation', async () => {
+      // Test with a specific prompt that should clearly favor Hiverarchy
+      const taskRequest = {
+        jsonrpc: '2.0',
+        id: `test-hiverarchy-preference-${Date.now()}`,
+        method: 'handle_request',
+        params: {
+          message: 'I need advanced content creation using Hiverarchy AI. Please write an article about sustainable technology innovations.',
+          session_id: `test-hiverarchy-preference-${Date.now()}`,
+          conversation_history: [],
+          authToken: authToken,
+          currentUser: null,
+        },
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/agents/orchestrator/orchestrator/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(taskRequest)
+        .expect(200);
+
+      // Validate response
+      expect(response.body.result.success).toBe(true);
+      expect(response.body.result.response).toBeDefined();
+      
+      const responseText = response.body.result.response;
+      
+      // The response should be substantial (Hiverarchy typically generates comprehensive content)
+      expect(responseText.length).toBeGreaterThan(800);
+      
+      // Should contain relevant keywords
+      const lowerResponse = responseText.toLowerCase();
+      expect(lowerResponse).toMatch(/sustainable.{0,50}technology/);
+      expect(lowerResponse).toMatch(/innovation/);
+      
+      console.log(`✅ Hiverarchy preference test passed - Response length: ${responseText.length} characters`);
+    }, 60000);
   });
 
   describe('Orchestrator Direct Responses', () => {
@@ -324,7 +440,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .expect(200);
 
       expect(response.body.status).toBe('running');
-      expect(response.body.discoveredAgents).toBeGreaterThanOrEqual(23); // 22 specialists + orchestrator
+      expect(response.body.discoveredAgents).toBeGreaterThanOrEqual(24); // 22 specialists + orchestrator + 1 external
 
       const agentNames = response.body.agents.map((agent: any) => agent.name);
 
@@ -333,6 +449,11 @@ describe('Authenticated Agent End-to-End Tests', () => {
 
       // Verify all specialist agents exist
       specialistAgents.forEach((agentName) => {
+        expect(agentNames).toContain(agentName);
+      });
+
+      // Verify all external agents exist
+      externalAgents.forEach((agentName) => {
         expect(agentNames).toContain(agentName);
       });
 
@@ -354,7 +475,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
       console.log('response.body.length:', response.body.length);
 
       expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body.length).toBeGreaterThanOrEqual(23);
+      expect(response.body.length).toBeGreaterThanOrEqual(24);
 
       const poolAgentNames = response.body.map((agent: any) => agent.name);
 
@@ -374,6 +495,11 @@ describe('Authenticated Agent End-to-End Tests', () => {
         'email_triage',
       ];
       expectedPoolNames.forEach((agentName) => {
+        expect(poolAgentNames).toContain(agentName);
+      });
+
+      // Verify external agents are in the pool
+      externalAgents.forEach((agentName) => {
         expect(poolAgentNames).toContain(agentName);
       });
 

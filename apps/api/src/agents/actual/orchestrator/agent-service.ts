@@ -93,15 +93,23 @@ export class OrchestratorService extends A2AAgentBaseService {
     );
 
     // Extract user message and conversation history from params
+    // Handle both direct params and nested params structure
+    let actualParams = params;
+    if (params.params) {
+      // If we have a nested params structure, use the inner params
+      actualParams = params.params;
+    }
+    
     // Handle both userMessage (from direct requests) and message (from frontend)
-    const userMessage = params.userMessage || params.message || '';
-    const sessionId = params.sessionId || params.session_id || null;
+    const userMessage = actualParams.userMessage || actualParams.message || params.userMessage || params.message || '';
+    const sessionId = actualParams.sessionId || actualParams.session_id || params.sessionId || params.session_id || null;
     const conversationHistory =
+      actualParams.conversationHistory || actualParams.conversation_history || 
       params.conversationHistory || params.conversation_history || [];
 
-    // Extract user authentication context if available
-    const currentUser = params.currentUser || null;
-    const authToken = params.authToken || null;
+    // Extract user authentication context - check both levels
+    const currentUser = params.currentUser || actualParams.currentUser || null;
+    const authToken = params.authToken || actualParams.authToken || null;
 
     this.orchestratorLogger.log(
       `Processing message: "${userMessage}" with ${conversationHistory.length} history messages`,
@@ -222,30 +230,49 @@ export class OrchestratorService extends A2AAgentBaseService {
     // Use LLM to decide whether to delegate or respond directly
     let response;
     try {
-      const agentNames = this.availableAgents.map((agent) => agent.name);
-      // Use the enhanced orchestration decision method with conversation history
-      const decision =
-        await this.llmService.generateOrchestrationDecisionWithHistory(
-          userMessage,
-          agentNames,
-          conversationHistory,
-          agentContinuityContext,
-        );
-
-      if (decision.action === 'delegate' && decision.agent) {
+      // Check if this is a content creation request and if Hiverarchy is available
+      const isContentRequest = this.isContentCreationRequest(userMessage);
+      const hiverarchyAgent = this.availableAgents.find(agent => agent.name === 'hiverarchy');
+      
+      if (isContentRequest && hiverarchyAgent) {
+        this.orchestratorLogger.log(`🎯 Content creation request detected, delegating to Hiverarchy: "${userMessage}"`);
         response = await this.delegateToAgent(
-          decision.agent,
+          'hiverarchy',
           userMessage,
           sessionId,
           authToken,
         );
-      } else if (decision.action === 'respond_directly' && decision.response) {
-        response = this.createResponse(decision.response);
       } else {
-        response = this.createResponse(
-          decision.response ||
-            `I understand you said: "${userMessage}". How can I help you further?`,
-        );
+        // Pass full agent objects with descriptions to the LLM for better decision making
+        const agentObjects = this.availableAgents.map((agent) => ({
+          name: agent.name,
+          description: agent.description,
+          type: agent.type
+        }));
+        // Use the enhanced orchestration decision method with conversation history
+        const decision =
+          await this.llmService.generateOrchestrationDecisionWithHistory(
+            userMessage,
+            agentObjects,
+            conversationHistory,
+            agentContinuityContext,
+          );
+
+        if (decision.action === 'delegate' && decision.agent) {
+          response = await this.delegateToAgent(
+            decision.agent,
+            userMessage,
+            sessionId,
+            authToken,
+          );
+        } else if (decision.action === 'respond_directly' && decision.response) {
+          response = this.createResponse(decision.response);
+        } else {
+          response = this.createResponse(
+            decision.response ||
+              `I understand you said: "${userMessage}". How can I help you further?`,
+          );
+        }
       }
     } catch (error) {
       this.orchestratorLogger.error('Error processing with LLM:', error);
@@ -553,6 +580,34 @@ export class OrchestratorService extends A2AAgentBaseService {
   }
 
   /**
+   * Check if the user message is requesting content creation
+   */
+  private isContentCreationRequest(userMessage: string): boolean {
+    const lowerMessage = userMessage.toLowerCase();
+    const contentKeywords = [
+      'write a blog',
+      'create a blog',
+      'blog post',
+      'write an article',
+      'create an article',
+      'write content',
+      'create content',
+      'content creation',
+      'write about',
+      'article about',
+      'blog about',
+      'copywriting',
+      'creative writing',
+      'content writing',
+      'draft a post',
+      'compose an article',
+      'develop content'
+    ];
+    
+    return contentKeywords.some(keyword => lowerMessage.includes(keyword));
+  }
+
+  /**
    * Fallback routing when LLM is unavailable
    */
   private async handleFallbackRouting(
@@ -600,7 +655,7 @@ export class OrchestratorService extends A2AAgentBaseService {
   }
 
   /**
-   * Initialize available agents from agent pool
+   * Initialize available agents from agent pool HTTP endpoint
    */
   async initializeAvailableAgents(authToken?: string): Promise<void> {
     try {
@@ -635,59 +690,47 @@ export class OrchestratorService extends A2AAgentBaseService {
       );
 
       if (response?.data && Array.isArray(response.data)) {
-        this.availableAgents = response.data;
+        // Filter out orchestrator agents and ensure external agents are properly handled
+        this.availableAgents = response.data
+          .filter((agent: any) => agent.type !== 'orchestrator')
+          .map((agent: any) => ({
+            name: agent.name,
+            description: agent.description,
+            path: agent.path,
+            url: agent.url,
+            type: agent.type,
+            capabilities: agent.capabilities || [],
+            metadata: agent.metadata
+          }));
+
         this.orchestratorLogger.log(
           `✅ Initialized with ${this.availableAgents.length} available agents from pool`,
         );
 
         // Log the agents we found for debugging
-        this.orchestratorLogger.log(
-          '🎯 Available agent names:',
-          this.availableAgents.map((a) => a.name),
-        );
-        this.orchestratorLogger.log(
-          '🎯 Available agent paths:',
-          this.availableAgents.map((a) => a.path),
-        );
+        if (this.availableAgents.length > 0) {
+          this.orchestratorLogger.log(
+            '🎯 Available agent names:',
+            this.availableAgents.map((a) => a.name).join(', '),
+          );
+          this.orchestratorLogger.log(
+            '🎯 Available agent types:',
+            this.availableAgents.map((a) => `${a.name}(${a.type})`).join(', '),
+          );
+          this.orchestratorLogger.log(
+            '🎯 Available agent paths:',
+            this.availableAgents.map((a) => a.path).join(', '),
+          );
+        } else {
+          this.orchestratorLogger.warn(
+            'No agents found in agent pool - this may be normal during startup',
+          );
+        }
       } else {
         this.orchestratorLogger.warn(
-          'No agents found in agent pool, using fallback agents',
+          'No agents found in agent pool response',
         );
-        // Add fallback agents if we couldn't get any from the pool
-        this.availableAgents = [
-          {
-            name: 'blog_post',
-            description: 'Blog Post Writer',
-            path: 'specialists/blog_post',
-            url: `${this.baseApiUrl}/agents/specialists/blog_post/tasks`,
-            type: 'specialists',
-            capabilities: ['blog_writing', 'content_creation'],
-          },
-          {
-            name: 'hr_assistant',
-            description: 'HR Assistant',
-            path: 'specialists/hr_assistant',
-            url: `${this.baseApiUrl}/agents/specialists/hr_assistant/tasks`,
-            type: 'specialists',
-            capabilities: ['hr_policies', 'employee_onboarding'],
-          },
-          {
-            name: 'marketing_swarm',
-            description: 'Marketing Swarm',
-            path: 'specialists/marketing_swarm',
-            url: `${this.baseApiUrl}/agents/specialists/marketing_swarm/tasks`,
-            type: 'specialists',
-            capabilities: ['marketing_campaigns', 'product_promotion'],
-          },
-          {
-            name: 'requirements_writer',
-            description: 'Requirements Writer',
-            path: 'specialists/requirements_writer',
-            url: `${this.baseApiUrl}/agents/specialists/requirements_writer/tasks`,
-            type: 'specialists',
-            capabilities: ['technical_requirements', 'documentation'],
-          },
-        ];
+        this.availableAgents = [];
       }
 
       this.orchestratorLogger.log(
@@ -700,42 +743,8 @@ export class OrchestratorService extends A2AAgentBaseService {
       );
       this.orchestratorLogger.error('❌ Full error:', error);
 
-      // Add fallback agents on error
-      this.orchestratorLogger.log('🔄 Using fallback agents due to error');
-      this.availableAgents = [
-        {
-          name: 'blog_post',
-          description: 'Blog Post Writer',
-          path: 'specialists/blog_post',
-          url: `${this.baseApiUrl}/agents/specialists/blog_post/tasks`,
-          type: 'specialists',
-          capabilities: ['blog_writing', 'content_creation'],
-        },
-        {
-          name: 'hr_assistant',
-          description: 'HR Assistant',
-          path: 'specialists/hr_assistant',
-          url: `${this.baseApiUrl}/agents/specialists/hr_assistant/tasks`,
-          type: 'specialists',
-          capabilities: ['hr_policies', 'employee_onboarding'],
-        },
-        {
-          name: 'marketing_swarm',
-          description: 'Marketing Swarm',
-          path: 'specialists/marketing_swarm',
-          url: `${this.baseApiUrl}/agents/specialists/marketing_swarm/tasks`,
-          type: 'specialists',
-          capabilities: ['marketing_campaigns', 'product_promotion'],
-        },
-        {
-          name: 'requirements_writer',
-          description: 'Requirements Writer',
-          path: 'specialists/requirements_writer',
-          url: `${this.baseApiUrl}/agents/specialists/requirements_writer/tasks`,
-          type: 'specialists',
-          capabilities: ['technical_requirements', 'documentation'],
-        },
-      ];
+      // Initialize with empty array on error - agents will be registered as they come online
+      this.availableAgents = [];
     }
   }
 }

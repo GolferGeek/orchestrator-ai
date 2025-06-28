@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
+import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SupabaseModule } from './supabase/supabase.module';
@@ -21,7 +22,14 @@ import supabaseConfig from './supabase/supabase.config';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['../../../.env.local', '../../../.env'],
+      envFilePath: [
+        '.env.local',
+        '.env',
+        join(process.cwd(), '.env.local'),
+        join(process.cwd(), '.env'),
+        join(__dirname, '../../../.env.local'),
+        join(__dirname, '../../../.env'),
+      ],
       expandVariables: true,
       load: [supabaseConfig],
     }),
