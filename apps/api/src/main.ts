@@ -25,7 +25,7 @@ async function bootstrap() {
   });
 
   // Start the HTTP server
-  const port = parseInt(process.env.API_PORT || '4100');
+  const port = parseInt(process.env.API_PORT || '4000');
   logger.log('🚀 Starting NestJS API server...');
   await app.listen(port);
   logger.log(`✅ NestJS API server is running on http://localhost:${port}`);

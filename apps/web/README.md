@@ -1,6 +1,6 @@
-# Hiverarchy AI Frontend (Ionic + Vue)
+# Orchestrator AI Frontend (Ionic + Vue)
 
-This directory contains the Ionic + Vue frontend application for the Hiverarchy AI project.
+This directory contains the Ionic + Vue frontend application for the Orchestrator AI project.
 
 ## Prerequisites
 

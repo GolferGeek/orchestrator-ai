@@ -44,7 +44,7 @@ export class OrchestratorService extends A2AAgentBaseService {
     super(httpService);
     // Get base API URL from environment variables
     const apiHost = process.env.API_HOST || 'localhost';
-    const apiPort = process.env.API_PORT || '4100';
+    const apiPort = process.env.API_PORT || '4000';
     this.baseApiUrl = `http://${apiHost}:${apiPort}`;
 
     // Debug dependency injection

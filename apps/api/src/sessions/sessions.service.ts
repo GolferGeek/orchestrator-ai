@@ -33,7 +33,7 @@ export class SessionsService {
         this.supabaseService.createAuthenticatedClient(token);
 
       const sessionData = {
-        profile_id: currentUser.id,
+        user_id: currentUser.id,
         name: sessionCreate.name,
       };
 
@@ -55,7 +55,7 @@ export class SessionsService {
 
       return {
         id: data.id,
-        user_id: data.profile_id,
+        user_id: data.user_id,
         name: data.name,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -89,7 +89,7 @@ export class SessionsService {
       const { data, error, count } = await authenticatedClient
         .from('sessions')
         .select('*', { count: 'exact' })
-        .eq('profile_id', currentUser.id)
+        .eq('user_id', currentUser.id)
         .order('updated_at', { ascending: false })
         .range(skip, skip + limit - 1);
 
@@ -105,7 +105,7 @@ export class SessionsService {
 
       const sessions = (data || []).map((session) => ({
         id: session.id,
-        user_id: session.profile_id,
+        user_id: session.user_id,
         name: session.name,
         created_at: session.created_at,
         updated_at: session.updated_at,
@@ -144,7 +144,7 @@ export class SessionsService {
         .from('sessions')
         .select('*')
         .eq('id', sessionId)
-        .eq('profile_id', currentUser.id)
+        .eq('user_id', currentUser.id)
         .single();
 
       if (error || !data) {
@@ -156,7 +156,7 @@ export class SessionsService {
 
       return {
         id: data.id,
-        user_id: data.profile_id,
+        user_id: data.user_id,
         name: data.name,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -196,7 +196,7 @@ export class SessionsService {
           .from('sessions')
           .select('id')
           .eq('id', sessionId)
-          .eq('profile_id', currentUser.id)
+          .eq('user_id', currentUser.id)
           .single();
 
       if (sessionError || !sessionData) {
@@ -227,7 +227,7 @@ export class SessionsService {
       const messages = (data || []).map((message) => ({
         id: message.id,
         session_id: message.session_id,
-        user_id: message.profile_id,
+        user_id: message.user_id,
         role: message.role,
         content: message.content,
         timestamp: message.timestamp,
@@ -250,7 +250,7 @@ export class SessionsService {
         `Unexpected error listing messages for session ${sessionId}, user ${currentUser.id}: ${error}`,
       );
       throw new HttpException(
-        'An unexpected error occurred while listing messages.',
+        'An unexpected error occurred.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -267,64 +267,49 @@ export class SessionsService {
     token?: string,
   ): Promise<MessageResponseDto> {
     this.logger.log(
-      `Adding message to session ${sessionId}, user: ${currentUser?.id}, hasToken: ${!!token}`,
+      `Adding message to session ${sessionId}${currentUser ? ` for user ${currentUser.id}` : ''}`,
     );
 
     try {
       const authenticatedClient = token
         ? this.supabaseService.createAuthenticatedClient(token)
-        : this.supabaseService.getAnonClient();
+        : this.supabaseService.getServiceClient();
 
-      // Verify session exists and get owner if currentUser is provided
+      // If we have a user, verify they own the session
       if (currentUser) {
         const { data: sessionData, error: sessionError } =
           await authenticatedClient
             .from('sessions')
-            .select('id, profile_id')
+            .select('id, user_id')
             .eq('id', sessionId)
-            .eq('profile_id', currentUser.id)
+            .eq('user_id', currentUser.id)
             .single();
 
         if (sessionError || !sessionData) {
           this.logger.warn(
-            `Session ${sessionId} not found for user ${currentUser.id} or access denied`,
+            `User ${currentUser.id} attempted to add message to session ${sessionId} they don't own or doesn't exist`,
           );
           throw new NotFoundException('Session not found or access denied.');
         }
       }
 
-      // Get current message count to determine order
-      const { count: messageCount } = await authenticatedClient
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', sessionId);
-
-      const order = (messageCount || 0) + 1;
-
-      // Prepare message data
-      const messageToInsert = {
+      const insertData = {
         session_id: sessionId,
-        profile_id: currentUser?.id || null,
+        user_id: currentUser?.id || null,
         role: messageData.role,
-        content: messageData.content || null,
-        order: order,
-        metadata: messageData.metadata || null,
-        timestamp: new Date().toISOString(),
+        content: messageData.content,
+        metadata: messageData.metadata,
       };
-
-      this.logger.log(
-        `Attempting to insert message: ${JSON.stringify(messageToInsert)}`,
-      );
 
       const { data, error } = await authenticatedClient
         .from('messages')
-        .insert(messageToInsert)
+        .insert(insertData)
         .select()
         .single();
 
       if (error || !data) {
         this.logger.error(
-          `Failed to add message to session ${sessionId}. Error: ${error?.message}, Code: ${error?.code}, Details: ${error?.details}`,
+          `Failed to add message to session ${sessionId}. Error: ${error?.message}`,
         );
         throw new HttpException(
           error?.message || 'Could not add message.',
@@ -332,12 +317,10 @@ export class SessionsService {
         );
       }
 
-      this.logger.log(`Successfully added message with ID: ${data.id}`);
-
       return {
         id: data.id,
         session_id: data.session_id,
-        user_id: data.profile_id,
+        user_id: data.user_id,
         role: data.role,
         content: data.content,
         timestamp: data.timestamp,
@@ -352,7 +335,7 @@ export class SessionsService {
         `Unexpected error adding message to session ${sessionId}: ${error}`,
       );
       throw new HttpException(
-        'An unexpected error occurred while adding message.',
+        'An unexpected error occurred.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -363,7 +346,9 @@ export class SessionsService {
     currentUser: SupabaseAuthUserDto,
     token: string,
   ): Promise<void> {
-    this.logger.log(`Deleting session ${sessionId} for user ${currentUser.id}`);
+    this.logger.log(
+      `Deleting session ${sessionId} for user ${currentUser.id}`,
+    );
 
     try {
       const authenticatedClient =
@@ -375,7 +360,7 @@ export class SessionsService {
           .from('sessions')
           .select('id')
           .eq('id', sessionId)
-          .eq('profile_id', currentUser.id)
+          .eq('user_id', currentUser.id)
           .single();
 
       if (sessionError || !sessionData) {
@@ -385,12 +370,12 @@ export class SessionsService {
         throw new NotFoundException('Session not found or access denied.');
       }
 
-      // Delete the session
+      // Delete the session (messages will be cascade deleted)
       const { error } = await authenticatedClient
         .from('sessions')
         .delete()
         .eq('id', sessionId)
-        .eq('profile_id', currentUser.id);
+        .eq('user_id', currentUser.id);
 
       if (error) {
         this.logger.error(
@@ -403,7 +388,7 @@ export class SessionsService {
       }
 
       this.logger.log(
-        `Session ${sessionId} deleted successfully for user ${currentUser.id}`,
+        `Successfully deleted session ${sessionId} for user ${currentUser.id}`,
       );
     } catch (error) {
       if (error instanceof HttpException) {
@@ -413,7 +398,7 @@ export class SessionsService {
         `Unexpected error deleting session ${sessionId} for user ${currentUser.id}: ${error}`,
       );
       throw new HttpException(
-        'An unexpected error occurred while deleting session.',
+        'An unexpected error occurred.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

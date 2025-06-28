@@ -182,7 +182,7 @@ export class AgentDiscoveryService {
    * Build agent URL for registration
    */
   buildAgentUrl(agentPath: string, agentName: string): string {
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:4100';
+    const baseUrl = process.env.API_BASE_URL || 'http://localhost:4000';
     const agentType = this.determineAgentType(agentPath);
     const name = agentName.toLowerCase().replace(/\s+/g, '_');
     return `${baseUrl}/agents/${agentType}s/${name}/tasks`;

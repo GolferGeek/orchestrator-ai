@@ -79,8 +79,8 @@ Hiverarchy AI is a production-ready multi-agent system that intelligently routes
 ```bash
 npm run dev
 ```
-- API: http://localhost:4100
-- Web Interface: http://localhost:3100
+- API: http://localhost:4000
+- Web Interface: http://localhost:3000
 
 **Individual Services**
 ```bash

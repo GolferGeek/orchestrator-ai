@@ -180,7 +180,7 @@ export class AgentContextService {
     }
 
     // Otherwise, build URL from environment base + YAML endpoint
-    const baseUrl = process.env.AGENT_BASE_URL || 'http://localhost:4100';
+    const baseUrl = process.env.AGENT_BASE_URL || 'http://localhost:4000';
     const endpoint = parsed.endpoint || parsed.metadata?.endpoint || '/tasks';
 
     // Ensure baseUrl doesn't end with slash and endpoint starts with slash

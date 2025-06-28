@@ -2,16 +2,16 @@
   <ion-list>
     <ion-list-header>
       <div class="sidebar-header">
-        <span>Hiverarchy Sessions</span>
+        <span>Orchestrator AI Sessions</span>
         <div class="api-badge">
-          <span class="api-label hiverarchy">Hiverarchy</span>
+          <span class="api-label orchestrator">Orchestrator AI</span>
         </div>
       </div>
     </ion-list-header>
     
     <ion-item button @click="handleCreateNewSession" lines="none">
       <ion-icon :icon="addCircleOutline" slot="start"></ion-icon>
-      <ion-label>New Hiverarchy Chat</ion-label>
+              <ion-label>New Orchestrator AI Chat</ion-label>
     </ion-item>
     
     <div v-if="isLoading" class="ion-padding ion-text-center">
@@ -32,7 +32,7 @@
       >
         <ion-icon :icon="chatbubbleEllipsesOutline" slot="start"></ion-icon>
         <ion-label>
-          <p>{{ session.name || 'Hiverarchy Chat on ' + formatDate(session.created_at) }}</p>
+          <p>{{ session.name || 'Orchestrator AI Chat on ' + formatDate(session.created_at) }}</p>
           <p><small>Updated: {{ formatRelativeDate(session.updated_at) }}</small></p>
         </ion-label>
         <div class="session-actions" slot="end">
@@ -48,13 +48,13 @@
 
     <ion-item v-if="!isLoading && sessions.length === 0 && !error" lines="none">
         <ion-label class="ion-text-center ion-padding-top">
-            <p><small>No Hiverarchy sessions yet.</small></p>
+            <p><small>No Orchestrator AI sessions yet.</small></p>
         </ion-label>
     </ion-item>
 
-    <!-- Hiverarchy specific tools section -->
+          <!-- Orchestrator AI specific tools section -->
     <ion-list-header class="tools-header">
-      <span>Hiverarchy Tools</span>
+              <span>Orchestrator AI Tools</span>
     </ion-list-header>
     
     <ion-item button lines="none" @click="handleApiHealth">
@@ -90,7 +90,7 @@ const { currentSessionId: selectedSessionId } = storeToRefs(sessionStore);
 
 // Get API base URL from environment variables
 const getApiBaseUrl = () => {
-  return import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4100';
+        return import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
 };
 
 // No need to switch API managers - we use dedicated NestJS service
@@ -109,14 +109,14 @@ const fetchSessions = async () => {
     const response = await sessionService.listSessions();
     sessions.value = response.sessions;
   } catch (e: any) {
-    error.value = e.message || 'Could not load Hiverarchy sessions.';
+          error.value = e.message || 'Could not load Orchestrator AI sessions.';
   } finally {
     isLoading.value = false;
   }
 };
 
 const selectSession = (sessionId: string) => {
-  console.log('Selected Hiverarchy session:', sessionId);
+      console.log('Selected Orchestrator AI session:', sessionId);
   sessionStore.setCurrentSessionId(sessionId);
 };
 
@@ -124,7 +124,7 @@ const handleCreateNewSession = async () => {
   isLoading.value = true;
   error.value = null;
   try {
-    const newSession = await sessionService.createSession({ name: 'New Hiverarchy Chat' });
+    const newSession = await sessionService.createSession({ name: 'New Orchestrator AI Chat' });
     sessions.value.unshift(newSession);
     
     // Create the welcome message
@@ -133,11 +133,11 @@ const handleCreateNewSession = async () => {
       session_id: newSession.id,
       user_id: 'orchestrator',
       role: 'assistant' as const,
-      content: `Welcome ${authStore.user?.display_name || authStore.user?.email || 'there'}, good to see you! 👋\n\nI'm your Hiverarchy orchestrator. How can I help you today?`,
+      content: `Welcome ${authStore.user?.display_name || authStore.user?.email || 'there'}, good to see you! 👋\n\nI'm your Orchestrator AI. How can I help you today?`,
       timestamp: new Date().toISOString(),
       order: 1,
       metadata: {
-        agentName: 'Hiverarchy Orchestrator'
+        agentName: 'Orchestrator AI'
       }
     };
     
@@ -164,7 +164,7 @@ const handleCreateNewSession = async () => {
     
     console.log('Session ID set, welcome message will be added after fetch completes');
   } catch (e: any) {
-    error.value = e.message || 'Could not create new Hiverarchy session.';
+          error.value = e.message || 'Could not create new Orchestrator AI session.';
   } finally {
     isLoading.value = false;
   }
@@ -178,16 +178,16 @@ const handleApiHealth = async () => {
     
     if (isHealthy) {
       const alert = await alertController.create({
-        header: 'Hiverarchy API Health Check',
-        message: `✅ Status: Healthy\n📡 Endpoint: ${apiBaseUrl}/health\n🔵 Hiverarchy API is running normally`,
+        header: 'Orchestrator AI API Health Check',
+        message: `✅ Status: Healthy\n📡 Endpoint: ${apiBaseUrl}/health\n🔵 Orchestrator AI API is running normally`,
         buttons: ['OK'],
         cssClass: 'formatted-alert'
       });
       await alert.present();
     } else {
       const alert = await alertController.create({
-        header: 'Hiverarchy API Health Check',
-        message: `❌ Status: Unhealthy\n📡 Endpoint: ${apiBaseUrl}/health\n🔴 Hiverarchy API is not responding correctly`,
+        header: 'Orchestrator AI API Health Check',
+        message: `❌ Status: Unhealthy\n📡 Endpoint: ${apiBaseUrl}/health\n🔴 Orchestrator AI API is not responding correctly`,
         buttons: ['OK'],
         cssClass: 'formatted-alert'
       });
@@ -195,8 +195,8 @@ const handleApiHealth = async () => {
     }
   } catch (error: any) {
     const alert = await alertController.create({
-      header: 'Hiverarchy Health Check Failed',
-      message: `❌ Could not connect to Hiverarchy API\n\n🔗 Endpoint: ${apiBaseUrl}/health\n💥 Error: ${error.message}\n\n💡 Make sure the Hiverarchy server is running on the configured port`,
+              header: 'Orchestrator AI Health Check Failed',
+        message: `❌ Could not connect to Orchestrator AI API\n\n🔗 Endpoint: ${apiBaseUrl}/health\n💥 Error: ${error.message}\n\n💡 Make sure the Orchestrator AI server is running on the configured port`,
       buttons: ['OK'],
       cssClass: 'formatted-alert'
     });
@@ -251,7 +251,7 @@ const handleAgentPool = async () => {
     formattedMessage += `📡 Endpoint: ${apiBaseUrl}/agent-pool/\n`;
     
     const alert = await alertController.create({
-      header: 'Hiverarchy Agent Pool Status',
+              header: 'Orchestrator AI Agent Pool Status',
       message: formattedMessage,
       buttons: ['OK'],
       cssClass: 'formatted-alert'
@@ -260,7 +260,7 @@ const handleAgentPool = async () => {
   } catch (error: any) {
     const alert = await alertController.create({
       header: 'Agent Pool Check Failed',
-      message: `❌ Could not connect to Agent Pool\n\n🔗 Endpoint: ${apiBaseUrl}/agent-pool/stats\n💥 Error: ${error.message}\n\n💡 Make sure the Hiverarchy server is running on the configured port`,
+      message: `❌ Could not connect to Agent Pool\n\n🔗 Endpoint: ${apiBaseUrl}/agent-pool/stats\n💥 Error: ${error.message}\n\n💡 Make sure the Orchestrator AI server is running on the configured port`,
       buttons: ['OK'],
       cssClass: 'formatted-alert'
     });
@@ -279,7 +279,7 @@ const formatRelativeDate = (dateString: string) => {
 
 const handleEditSessionName = async (session: Session) => {
   const alert = await alertController.create({
-    header: 'Rename Hiverarchy Session',
+    header: 'Rename Orchestrator AI Session',
     inputs: [
       {
         name: 'sessionName',
@@ -311,8 +311,8 @@ const handleEditSessionName = async (session: Session) => {
 
 const handleDeleteSession = async (session: Session) => {
   const alert = await alertController.create({
-    header: 'Delete Hiverarchy Session',
-    message: 'Are you sure you want to delete this Hiverarchy session? This action cannot be undone.',
+    header: 'Delete Orchestrator AI Session',
+    message: 'Are you sure you want to delete this Orchestrator AI session? This action cannot be undone.',
     buttons: [
       {
         text: 'Cancel',
@@ -330,7 +330,7 @@ const handleDeleteSession = async (session: Session) => {
               sessionStore.setCurrentSessionId(null);
             }
           } catch (e: any) {
-            error.value = e.message || 'Could not delete Hiverarchy session.';
+            error.value = e.message || 'Could not delete Orchestrator AI session.';
           } finally {
             isLoading.value = false;
           }
@@ -379,7 +379,7 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
   white-space: nowrap;
 }
 
-.api-label.hiverarchy {
+.api-label.orchestrator {
   background: var(--ion-color-primary, #3880ff);
   color: var(--ion-color-primary-contrast, #ffffff);
 }
