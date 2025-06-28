@@ -194,19 +194,64 @@ export class OrchestratorService extends A2AAgentBaseService {
       );
     }
 
-    // Check if this is an agent listing request
+    // Check if this is a capability request
     const lowerMessage = userMessage.toLowerCase();
-    const isAgentListRequest =
+    const isCapabilityRequest =
       lowerMessage.includes('what can you do') ||
       lowerMessage.includes('view all that i can do for you') ||
+      lowerMessage.includes('what can') ||
+      lowerMessage.includes('capabilities') ||
+      lowerMessage.includes('what you specialize in') ||
+      lowerMessage.includes('introduce yourself') ||
       (lowerMessage.includes('show me') && lowerMessage.includes('agents')) ||
       (lowerMessage.includes('view') && lowerMessage.includes('agents')) ||
       lowerMessage.includes('available agents') ||
       lowerMessage.includes('list agents') ||
       lowerMessage.includes('tell me what agents');
 
-    if (isAgentListRequest) {
-      return this.createAgentListResponse();
+    if (isCapabilityRequest) {
+      // Check if there's a sticky agent from conversation history
+      let stickyAgent = null;
+      if (conversationHistory.length > 0) {
+        const lastAssistantMessage = [...conversationHistory]
+          .reverse()
+          .find((msg: any) => msg.role === 'assistant');
+
+        if (lastAssistantMessage?.metadata?.agentName) {
+          const agentName = lastAssistantMessage.metadata.agentName;
+          // Only treat as sticky agent if it's NOT an orchestrator agent
+          const isOrchestratorAgent = 
+            agentName.toLowerCase().includes('orchestrator') ||
+            agentName === 'Orchestrator Agent' ||
+            agentName === 'Orchestrator AI' ||
+            lastAssistantMessage.metadata?.agentType === 'orchestrator';
+          
+          if (!isOrchestratorAgent) {
+            stickyAgent = agentName;
+          }
+        }
+      }
+
+      if (stickyAgent) {
+        // Return specific agent capabilities
+        return this.createStickyAgentCapabilitiesResponse(stickyAgent);
+      } else {
+        // Return agent list for modal
+        return this.createAgentListResponse();
+      }
+    }
+
+    // Check if this is a return to orchestrator request
+    const isReturnToOrchestratorRequest = 
+      lowerMessage.includes('return to orchestrator') ||
+      lowerMessage.includes('back to orchestrator') ||
+      lowerMessage.includes('switch to orchestrator') ||
+      lowerMessage === 'orchestrator';
+
+    if (isReturnToOrchestratorRequest) {
+      return this.createResponse(
+        'Welcome back! I\'m the Orchestrator and I\'m here to help coordinate your requests. I can either assist you directly with general questions or connect you with specialist agents for specific tasks. What would you like to work on?'
+      );
     }
 
     // Check if user is continuing conversation with a specific agent
@@ -428,6 +473,57 @@ export class OrchestratorService extends A2AAgentBaseService {
         agentType: 'orchestrator',
         agentName: 'Orchestrator Agent',
         contentType: 'agentListFromOrchestrator',
+        processedAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  /**
+   * Create specific agent capabilities response for sticky agent
+   */
+  private createStickyAgentCapabilitiesResponse(stickyAgentName: string): any {
+    // Find the agent in the available agents list
+    const agent = this.availableAgents.find(
+      (a) =>
+        a.name.toLowerCase() === stickyAgentName.toLowerCase() ||
+        a.name.toLowerCase().includes(stickyAgentName.toLowerCase()) ||
+        stickyAgentName.toLowerCase().includes(a.name.toLowerCase())
+    );
+
+    if (!agent) {
+      return this.createResponse(
+        `I don't have detailed information about the ${stickyAgentName} agent available right now.`
+      );
+    }
+
+    // Create a personalized capabilities response
+    const cleanName = agent.name
+      .replace(/_/g, ' ')
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+
+    const description = agent.description || `${cleanName} specialist agent`;
+    
+    let capabilitiesText = `Hello! I'm the ${cleanName}.\n\n`;
+    capabilitiesText += `${description}\n\n`;
+    
+    if (agent.capabilities && agent.capabilities.length > 0) {
+      capabilitiesText += `My specific capabilities include:\n`;
+      agent.capabilities.forEach((capability, index) => {
+        capabilitiesText += `${index + 1}. ${capability}\n`;
+      });
+    } else {
+      capabilitiesText += `I specialize in helping you with ${cleanName.toLowerCase()} related tasks and questions.`;
+    }
+
+    return {
+      success: true,
+      response: capabilitiesText,
+      metadata: {
+        agentType: 'specialists',
+        agentName: `${cleanName} Agent`,
+        contentType: 'agentCapabilities',
         processedAt: new Date().toISOString(),
       },
     };
