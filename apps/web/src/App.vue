@@ -15,18 +15,10 @@
               <ion-label>Logout</ion-label>
             </ion-item>
             
-            <!-- API Technology Switcher -->
-            <ion-item lines="none" :detail="false" :button="true" @click="showApiSwitcher" v-if="isOnApiPage">
-              <ion-icon aria-hidden="true" :icon="swapHorizontal" slot="start"></ion-icon>
-              <ion-label>Switch to {{ switchToApiText }}</ion-label>
-            </ion-item>
-            
             <hr/>
             
-            <!-- Dynamic Sidebar based on current route -->
-            <FastAPISessionSidebar v-if="isFastAPIRoute" />
-            <NestJSSessionSidebar v-else-if="isNestJSRoute" />
-            <SessionSidebar v-else />
+            <!-- Session sidebar -->
+            <SessionSidebar />
           </div>
           <div v-else>
             <ion-list>
@@ -51,52 +43,23 @@ import { computed } from 'vue';
 import { 
   IonApp, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle 
 } from '@ionic/vue';
-import { logInOutline, logOutOutline, swapHorizontal } from 'ionicons/icons';
+import { logInOutline, logOutOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import SessionSidebar from '@/components/SessionSidebar.vue';
-import FastAPISessionSidebar from '@/components/FastAPISessionSidebar.vue';
-import NestJSSessionSidebar from '@/components/NestJSSessionSidebar.vue';
 
 const auth = useAuthStore();
 const router = useRouter();
-const route = useRoute();
-
-// Computed properties for route detection
-const isFastAPIRoute = computed(() => route.path.startsWith('/fastapi'));
-const isNestJSRoute = computed(() => route.path.startsWith('/nestjs'));
-const isOnApiPage = computed(() => isFastAPIRoute.value || isNestJSRoute.value);
 
 // Dynamic titles based on current route
 const menuTitle = computed(() => {
-  return 'Orchestrator AI';
-});
-
-const appTitle = computed(() => {
-  return 'Orchestrator AI';
-});
-
-const switchToApiText = computed(() => {
-  if (isFastAPIRoute.value) return 'JavaScript';
-  if (isNestJSRoute.value) return 'Python';
-  return '';
+  return 'Hiverarchy';
 });
 
 const handleLogout = async () => {
   await auth.logout();
   router.push('/login');
 };
-
-const showApiSwitcher = () => {
-  if (isFastAPIRoute.value) {
-    router.push('/nestjs');
-  } else if (isNestJSRoute.value) {
-    router.push('/fastapi');
-  }
-};
-
-// You might want to add logic here or in a watcher to redirect if auth state changes globally
-// e.g., if token expires and fetchCurrentUser clears it.
 </script>
 
 <style scoped>

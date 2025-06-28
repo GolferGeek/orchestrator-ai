@@ -6,24 +6,6 @@
           <ion-menu-button :auto-hide="false" v-if="auth.isAuthenticated"></ion-menu-button>
         </ion-buttons>
         <ion-title>{{ pageTitle }}</ion-title>
-        <ion-buttons slot="end" v-if="auth.isAuthenticated">
-          <div class="api-selector-container">
-            <ion-select 
-              :value="currentApiDisplay"
-              @ionChange="handleApiChange"
-              interface="popover"
-              class="api-selector"
-            >
-              <ion-select-option 
-                v-for="endpoint in availableEndpoints" 
-                :key="endpoint.name"
-                :value="endpoint.name"
-              >
-                {{ formatApiLabel(endpoint) }}
-              </ion-select-option>
-            </ion-select>
-          </div>
-        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -63,7 +45,7 @@
 <script setup lang="ts">
 import { 
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonFooter, IonSpinner, IonText, 
-  isPlatform, IonButtons, IonMenuButton, IonSelect, IonSelectOption
+  isPlatform, IonButtons, IonMenuButton
 } from '@ionic/vue';
 import { onMounted, onUnmounted, computed, watch, nextTick, ref } from 'vue';
 import { Keyboard, KeyboardInfo } from '@capacitor/keyboard';
@@ -71,10 +53,11 @@ import { Capacitor } from '@capacitor/core';
 import { useAuthStore } from '@/stores/authStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useUiStore } from '@/stores/uiStore';
+import { useRouter } from 'vue-router';
 import { postTaskToOrchestrator } from '@/services/apiService';
 import { storeToRefs } from 'pinia';
-import { apiManager } from '../services/apiManager';
 import { Message } from '../services/sessionService';
+import { nestjsApiService } from '../services/nestjsApiService';
 
 import MessageListComponent from '../components/MessageList.vue';
 import ChatInputComponent from '../components/ChatInput.vue';
@@ -82,6 +65,7 @@ import ChatInputComponent from '../components/ChatInput.vue';
 const auth = useAuthStore();
 const sessionStore = useSessionStore();
 const uiStore = useUiStore();
+const router = useRouter();
 
 const { currentSessionId, currentSessionMessages } = storeToRefs(sessionStore);
 const chatContentEl = ref<InstanceType<typeof IonContent> | null>(null);
@@ -90,22 +74,13 @@ const isIOS = computed(() => isPlatform('ios'));
 
 const currentSessionName = computed(() => {
   if (currentSessionId.value) {
-    return `Chat`;
+    return `Hiverarchy Chat`;
   }
-  return 'Orchestrator Chat';
+  return 'Hiverarchy';
 });
 
 const pageTitle = computed(() => {
-  return currentSessionName.value || 'Orchestrator Chat';
-});
-
-// API-related computed properties
-const availableEndpoints = computed(() => {
-  return apiManager.availableEndpoints;
-});
-
-const currentApiDisplay = computed(() => {
-  return apiManager.currentEndpoint.name;
+  return currentSessionName.value || 'Hiverarchy';
 });
 
 const handleMessagesRenderedInChild = () => {
@@ -149,9 +124,6 @@ watch(currentSessionId, (newId, oldId) => {
   console.log("[HomePage] Watcher for currentSessionId triggered. New ID:", newId);
   if (newId && newId !== oldId) {
     if (!newId) currentSessionMessages.value = [];
-    // Messages will be fetched by store, then MessageList will emit 'messages-rendered'
-    // Do NOT call scrollToBottom() here directly, wait for messages-rendered event.
-    // scrollToBottom(); 
   }
 });
 
@@ -178,34 +150,29 @@ const handleSendMessage = async (text: string) => {
   console.log("[HomePage] User message added to store:", JSON.parse(JSON.stringify(userMessage)));
 
   try {
-    const taskResponse = await postTaskToOrchestrator(text, currentSessionId.value);
-    console.log("[HomePage] Received taskResponse from orchestrator:", JSON.parse(JSON.stringify(taskResponse))); // DEBUG PRINT
+    // Prepare conversation history for context (exclude the message we just added)
+    const conversationHistory = currentSessionMessages.value
+      .filter(msg => msg.id !== userMessage.id) // Exclude the message we just added
+      .map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: msg.content || '',
+        metadata: msg.metadata
+      }));
+
+    const taskResponse = await nestjsApiService.postTaskToOrchestrator(text, currentSessionId.value, conversationHistory);
+    console.log("[HomePage] Received taskResponse from orchestrator:", JSON.parse(JSON.stringify(taskResponse)));
     
-    // Extract response text - support both V1 and V2 A2A formats
+    // Extract response text
     let agentText = 'No response text.';
     let agentMetadata: Record<string, any> = {};
     
-    // V2 A2A Protocol format - check for output_artifacts first
-    if (taskResponse.output_artifacts && taskResponse.output_artifacts.length > 0) {
-      const outputArtifact = taskResponse.output_artifacts[0];
-      if (outputArtifact.data && typeof outputArtifact.data === 'string') {
-        agentText = outputArtifact.data;
-        if (outputArtifact.metadata) {
-          // Use display_name first, then agent_name, then fall back to agent_id
-          agentMetadata.agentName = outputArtifact.metadata.display_name || 
-                                   outputArtifact.metadata.agent_name || 
-                                   outputArtifact.metadata.agent_id;
-        }
-        console.log("[HomePage] Extracted response from V2 A2A output_artifacts format");
-      }
-    }
-    // V1 format fallback - check for response_message.parts
-    else if (taskResponse.response_message && taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0) {
+    // Check for response_message.parts
+    if (taskResponse.response_message && taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0) {
       agentText = taskResponse.response_message.parts[0]?.text || 'No response text.';
       if (taskResponse.response_message?.metadata?.responding_agent_name) {
         agentMetadata.agentName = taskResponse.response_message.metadata.responding_agent_name;
       }
-      console.log("[HomePage] Extracted response from V1 response_message.parts format");
+      console.log("[HomePage] Extracted response from response_message.parts format");
     }
     // Additional fallback - check for direct result field
     else if (taskResponse.result && typeof taskResponse.result === 'string') {
@@ -213,7 +180,7 @@ const handleSendMessage = async (text: string) => {
       console.log("[HomePage] Extracted response from direct result field");
     }
     else {
-      console.warn("[HomePage] No response found in any supported format in taskResponse:", JSON.parse(JSON.stringify(taskResponse))); // DEBUG PRINT
+      console.warn("[HomePage] No response found in taskResponse:", JSON.parse(JSON.stringify(taskResponse)));
     }
 
     const agentMessageOrder = (currentSessionMessages.value.length > 0 
@@ -222,405 +189,117 @@ const handleSendMessage = async (text: string) => {
 
     const agentMessage: Message = {
       id: taskResponse.id,
-      session_id: currentSessionId.value || 'unknown-session',
-      user_id: 'agent',
+      session_id: currentSessionId.value,
+      user_id: auth.user?.id || 'unknown-user',
       role: 'assistant',
       content: agentText,
       timestamp: new Date().toISOString(),
       order: agentMessageOrder,
       metadata: agentMetadata
     };
-    console.log("[HomePage] Constructed agentMessage:", JSON.parse(JSON.stringify(agentMessage))); // DEBUG PRINT
-    sessionStore.addMessageToCurrentSession(agentMessage);
-    console.log("[HomePage] Agent message added to store. Store messages count:", sessionStore.currentSessionMessages.length); // DEBUG PRINT
-    
-    if (taskResponse.session_id && taskResponse.session_id !== currentSessionId.value) {
-        sessionStore.setCurrentSessionId(taskResponse.session_id);
-    }
 
-  } catch (error: any) {
-    console.error('Error sending message:', error);
-    const errorMessageOrder = (currentSessionMessages.value.length > 0 
-            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
-            : 1);
-    const errorMessage = {
-      id: `temp-error-${Date.now()}`,
-      session_id: currentSessionId.value!,
-      user_id: 'system',
-      role: 'system' as const,
-      content: `Error: ${error.message || 'Could not send message.'}`, 
+    sessionStore.addMessageToCurrentSession(agentMessage);
+    console.log("[HomePage] Agent message added to store:", JSON.parse(JSON.stringify(agentMessage)));
+
+    // Message saving is handled automatically by sessionStore
+
+  } catch (error) {
+    console.error("[HomePage] Error sending message:", error);
+    
+    const errorMessage: Message = {
+      id: `error-${Date.now()}`,
+      session_id: currentSessionId.value,
+      user_id: auth.user?.id || 'unknown-user',
+      role: 'assistant',
+      content: `Error: ${error instanceof Error ? error.message : 'An unknown error occurred'}`,
       timestamp: new Date().toISOString(),
-      order: errorMessageOrder
+      order: (currentSessionMessages.value.length > 0 
+            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
+            : 1)
     };
+    
     sessionStore.addMessageToCurrentSession(errorMessage);
+    console.log("[HomePage] Error message added to store:", JSON.parse(JSON.stringify(errorMessage)));
   } finally {
     uiStore.setAppLoading(false);
-    scrollToBottom();
   }
 };
 
-// Keyboard event handling
-const keyboardWillShowHandler = (info: KeyboardInfo) => {
-  console.log('Keyboard will show, height:', info.keyboardHeight);
+const handleReturnToOrchestrator = () => {
+  console.log("[HomePage] Return to orchestrator request received");
+  if (currentSessionId.value) {
+    sessionStore.fetchMessagesForCurrentSession();
+  }
 };
 
-const keyboardWillHideHandler = () => {
-  console.log('Keyboard will hide');
+const handleViewAllAgents = () => {
+  console.log("[HomePage] View all agents request received");
+  // TODO: Implement view all agents functionality
 };
+
+const handleViewAgentCapabilities = (agentInfo: any) => {
+  console.log("[HomePage] View agent capabilities request received for:", agentInfo);
+  // TODO: Implement view agent capabilities functionality
+};
+
+const handleAgentCapabilityRequestedFor = (agentName: string) => {
+  console.log("[HomePage] Agent capability requested for:", agentName);
+  // TODO: Implement agent capability request functionality
+};
+
+// Keyboard handling for mobile devices
+let keyboardHandler: (info: KeyboardInfo) => void;
 
 onMounted(() => {
+  console.log("[HomePage] Component mounted");
+  
   if (Capacitor.isNativePlatform()) {
-    Keyboard.addListener('keyboardWillShow', keyboardWillShowHandler);
-    Keyboard.addListener('keyboardWillHide', keyboardWillHideHandler);
+    keyboardHandler = (info: KeyboardInfo) => {
+      const keyboardHeight = info.keyboardHeight;
+      console.log(`[HomePage] Keyboard event: keyboardHeight = ${keyboardHeight}`);
+      
+      nextTick(() => {
+        scrollToBottom();
+      });
+    };
+    
+    Keyboard.addListener('keyboardWillShow', keyboardHandler);
+    Keyboard.addListener('keyboardDidShow', keyboardHandler);
   }
-  // For initial load, if messages are already there, MessageList should emit on its own mount if messages exist (if we add that logic to MessageList).
-  // For now, deferring this. The user can scroll manually on first load if needed, or we can refine MessageList.
-  // if (currentSessionMessages.value.length > 0) { 
-  //   console.log("[HomePage] onMounted: Messages present, scheduling a scrollToBottom soon.");
-  //   setTimeout(scrollToBottom, 300); // Delay slightly for child component rendering
-  // }
 });
 
 onUnmounted(() => {
-  if (Capacitor.isNativePlatform()) {
+  console.log("[HomePage] Component unmounted");
+  
+  if (Capacitor.isNativePlatform() && typeof keyboardHandler === 'function') {
     Keyboard.removeAllListeners();
   }
 });
-
-const defaultSessionName = () => {
-  return 'Orchestrator Chat';
-};
-
-const handleReturnToOrchestrator = async () => {
-  console.log('[HomePage.vue] handleReturnToOrchestrator method called');
-  if (uiStore.getIsAppLoading) return;
-  uiStore.setAppLoading(true);
-  try {
-    const taskResponse = await postTaskToOrchestrator("Can I return to the orchestrator?", currentSessionId.value);
-    console.log("[HomePage] Received taskResponse from orchestrator (after invisible return request):", JSON.parse(JSON.stringify(taskResponse))); // DEBUG PRINT
-
-    if (taskResponse.response_message && taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0) {
-      const agentText = taskResponse.response_message.parts[0]?.text || 'No response text.';
-      const agentMessageOrder = (currentSessionMessages.value.length > 0 
-            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
-            : 1);
-      const agentMetadata: Record<string, any> = {};
-      if (taskResponse.response_message?.metadata?.responding_agent_name) {
-        agentMetadata.agentName = taskResponse.response_message.metadata.responding_agent_name;
-      } else {
-        agentMetadata.agentName = 'Orchestrator'; // Default to Orchestrator
-      }
-
-      const agentMessage: Message = {
-        id: taskResponse.id,
-        session_id: currentSessionId.value || 'unknown-session',
-        user_id: 'agent',
-        role: 'assistant',
-        content: agentText,
-        timestamp: new Date().toISOString(),
-        order: agentMessageOrder,
-        metadata: agentMetadata
-      };
-      sessionStore.addMessageToCurrentSession(agentMessage);
-    } else if (taskResponse && taskResponse.response_message) { 
-      // Additional fallback for other response formats
-      const fallbackText = typeof taskResponse.response_message === 'string' 
-        ? taskResponse.response_message 
-        : JSON.stringify(taskResponse.response_message);
-      
-      const fallbackMessage = {
-        id: taskResponse.id || Date.now().toString(),
-        session_id: currentSessionId.value || 'unknown-session',
-        user_id: 'agent',
-        role: 'assistant' as const,
-        content: fallbackText,
-        timestamp: new Date().toISOString(),
-        order: (currentSessionMessages.value.length > 0 
-          ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
-          : 1),
-        metadata: { agentName: 'Orchestrator' }
-      };
-      sessionStore.addMessageToCurrentSession(fallbackMessage);
-    }
-  } catch (error) {
-    console.error('Error returning to orchestrator:', error);
-    sessionStore.addMessageToCurrentSession({
-      id: Date.now().toString(),
-      session_id: currentSessionId.value || 'unknown-session',
-      user_id: 'system',
-      content: "Error trying to return to orchestrator. Please try again.",
-      role: 'system',
-      timestamp: new Date().toISOString(),
-      order: (currentSessionMessages.value.length > 0 
-        ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
-        : 1),
-      metadata: null
-    });
-  } finally {
-    uiStore.setAppLoading(false);
-    scrollToBottom();
-  }
-};
-
-const handleViewAllAgents = async () => {
-  if (uiStore.getIsAppLoading) return;
-  uiStore.setAppLoading(true);
-  try {
-    const taskResponse = await postTaskToOrchestrator("Tell me what agents you have", currentSessionId.value);
-    if (taskResponse && taskResponse.response_message) {
-      let messageContent = '';
-      if (typeof taskResponse.response_message === 'string') {
-        messageContent = taskResponse.response_message;
-      } else if (taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0 && taskResponse.response_message.parts[0].text) {
-        messageContent = taskResponse.response_message.parts[0].text;
-      } else {
-        // Fallback if structure is unexpected, or convert object to string for display
-        messageContent = JSON.stringify(taskResponse.response_message);
-        console.warn("[HomePage] viewAllAgents: response_message was an object without expected parts, stringified for display.");
-      }
-
-      const agentMessage: Message = {
-        id: taskResponse.task_id || Date.now().toString(),
-        session_id: currentSessionId.value || 'unknown-session',
-        user_id: 'agent',
-        content: messageContent,
-        role: 'assistant',
-        timestamp: new Date().toISOString(),
-        order: (currentSessionMessages.value.length > 0 
-          ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
-          : 1),
-        metadata: taskResponse.metadata || { responding_agent_name: taskResponse.responding_agent_name || 'Orchestrator' }
-      };
-      sessionStore.addMessageToCurrentSession(agentMessage);
-      console.log("[HomePage] Agent message for viewAllAgents added to store:", JSON.parse(JSON.stringify(agentMessage)));
-      scrollToBottom();
-    } else {
-      console.warn("[HomePage] Received no valid response_message for viewAllAgents from orchestrator", taskResponse);
-    }
-  } catch (error) {
-    console.error("[HomePage] Error in handleViewAllAgents:", error);
-    // Optionally add a user-facing error message to the chat
-  } finally {
-    uiStore.setAppLoading(false);
-  }
-};
-
-const handleViewAgentCapabilities = async () => {
-  if (uiStore.getIsAppLoading) return;
-  uiStore.setAppLoading(true);
-  try {
-    const taskResponse = await postTaskToOrchestrator("What can this agent do for me?", currentSessionId.value);
-    if (taskResponse && taskResponse.response_message) {
-      let messageContent = '';
-      if (typeof taskResponse.response_message === 'string') {
-        messageContent = taskResponse.response_message;
-      } else if (taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0 && taskResponse.response_message.parts[0].text) {
-        messageContent = taskResponse.response_message.parts[0].text;
-      } else {
-        // Fallback for capabilities, ensure it's a string, possibly markdown list
-        // If it's an object, the backend should ideally format it as a markdown string.
-        // For safety, we'll stringify if it's an unexpected object.
-        messageContent = typeof taskResponse.response_message === 'object' ? JSON.stringify(taskResponse.response_message) : String(taskResponse.response_message);
-        if (typeof taskResponse.response_message === 'object') {
-            console.warn("[HomePage] viewAgentCapabilities: response_message was an object, stringified. Backend should provide markdown string for lists.");
-        }
-      }
-      
-      const agentMessage: Message = {
-        id: taskResponse.task_id || Date.now().toString(),
-        session_id: currentSessionId.value || 'unknown-session',
-        user_id: 'agent',
-        content: messageContent,
-        role: 'assistant',
-        timestamp: new Date().toISOString(),
-        order: (currentSessionMessages.value.length > 0 
-          ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
-          : 1),
-        metadata: taskResponse.metadata || { responding_agent_name: taskResponse.responding_agent_name || 'AI', isCapabilitiesResponse: true }
-      };
-      sessionStore.addMessageToCurrentSession(agentMessage);
-      console.log("[HomePage] Agent message for viewAgentCapabilities added to store:", JSON.parse(JSON.stringify(agentMessage)));
-      scrollToBottom();
-    } else {
-      console.warn("[HomePage] Received no valid response_message for viewAgentCapabilities from orchestrator", taskResponse);
-    }
-  } catch (error) {
-    console.error("[HomePage] Error in handleViewAgentCapabilities:", error);
-  } finally {
-    uiStore.setAppLoading(false);
-  }
-};
-
-const handleAgentCapabilityRequestedFor = async (agentName: string) => {
-  if (!agentName) {
-    console.warn("[HomePage] handleAgentCapabilityRequestedFor called without agentName.");
-    return;
-  }
-  if (uiStore.getIsAppLoading) return;
-  uiStore.setAppLoading(true);
-  try {
-    const query = `What can the ${agentName} do for me?`;
-    console.log(`[HomePage] Sending query for ${agentName}: "${query}"`);
-
-    const taskResponse = await postTaskToOrchestrator(query, currentSessionId.value);
-    if (taskResponse && taskResponse.response_message) {
-      let messageContent = '';
-      if (typeof taskResponse.response_message === 'string') {
-        messageContent = taskResponse.response_message;
-      } else if (taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0 && taskResponse.response_message.parts[0].text) {
-        messageContent = taskResponse.response_message.parts[0].text;
-      } else {
-        messageContent = JSON.stringify(taskResponse.response_message);
-        console.warn(`[HomePage] handleAgentCapabilityRequestedFor (${agentName}): response_message was an object, stringified.`);
-      }
-
-      const agentMessage: Message = {
-        id: taskResponse.task_id || Date.now().toString(),
-        session_id: currentSessionId.value || 'unknown-session',
-        user_id: 'agent',
-        content: messageContent,
-        role: 'assistant',
-        timestamp: new Date().toISOString(),
-        order: (currentSessionMessages.value.length > 0 
-          ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
-          : 1),
-        metadata: taskResponse.metadata || { responding_agent_name: taskResponse.responding_agent_name || agentName, isCapabilitiesResponse: true }
-      };
-      sessionStore.addMessageToCurrentSession(agentMessage);
-      console.log(`[HomePage] Agent message for ${agentName} capabilities added to store:`, JSON.parse(JSON.stringify(agentMessage)));
-      scrollToBottom();
-    } else {
-      console.warn(`[HomePage] Received no valid response_message for ${agentName} capabilities from orchestrator`, taskResponse);
-    }
-  } catch (error) {
-    console.error(`[HomePage] Error in handleAgentCapabilityRequestedFor for ${agentName}:`, error);
-  } finally {
-    uiStore.setAppLoading(false);
-  }
-};
-
-const loadSessionData = async () => {
-  // ... existing code ...
-};
-
-// Methods
-const formatApiLabel = (endpoint: any) => {
-  const techLabel = endpoint.technology === 'python-fastapi' ? 'FastAPI' : 
-                   endpoint.technology === 'typescript-nestjs' ? 'NestJS' : 
-                   endpoint.technology.split('-').map((word: string) => 
-                     word.charAt(0).toUpperCase() + word.slice(1)
-                   ).join(' ');
-  
-  return `${endpoint.version.toUpperCase()} ${techLabel}`;
-};
-
-const handleApiChange = async (event: any) => {
-  const endpointName = event.detail.value;
-  const endpoint = availableEndpoints.value.find(ep => ep.name === endpointName);
-  
-  if (endpoint) {
-    try {
-      await apiManager.switchToEndpoint(endpoint);
-      console.log(`Switched to API endpoint: ${endpoint.name}`);
-    } catch (error) {
-      console.error('Failed to switch API endpoint:', error);
-    }
-  }
-};
-
 </script>
 
 <style scoped>
-ion-content {
-  /* ion-padding is applied via class */
-}
-
-.loading-indicator {
-  display: flex;
-  justify-content: flex-start; /* Align to the start of the footer, near input */
-  align-items: center;
-  padding-top: 4px; /* Some space above spinner */
-}
-
-/* Ensure footer can accommodate spinner if shown */
-ion-footer {
-  /* padding-bottom to make space if spinner is outside toolbar */
-}
-
-/* Potential style for keyboard offset */
-/* ion-content {
-  --padding-bottom: calc(env(safe-area-inset-bottom) + var(--keyboard-offset, 0px));
-  transition: padding-bottom 0.2s ease-in-out;
-} */
-
-.ios-header-style {
-  --border-width: 0 0 0.55px 0; /* Add a bottom border for iOS header */
-  --border-color: var(--ion-color-step-250, #c8c7cc); /* Standard iOS border color */
-  --background: var(--ion-toolbar-background, var(--ion-background-color)); /* Ensure iOS specific background if translucent is tricky */
-}
-
-/* Example for MD if needed 
-.md-header-style {
-  --background: var(--ion-toolbar-background-md, var(--ion-color-primary));
-  --color: var(--ion-toolbar-color-md, var(--ion-color-primary-contrast));
-}
-*/
-
 .loading-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 14px;
+  color: var(--ion-color-medium);
 }
 
-.api-selector-container {
-  display: flex;
-  align-items: center;
-  margin-right: 8px;
-}
-
-.api-selector {
-  --padding-start: 8px;
-  --padding-end: 8px;
-  --padding-top: 4px;
-  --padding-bottom: 4px;
+.ios-header-style {
+  --border-color: transparent;
   --background: var(--ion-color-primary);
-  --color: var(--ion-color-primary-contrast);
-  --border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  min-width: 100px;
+  --color: white;
 }
 
-.api-selector::part(text) {
-  color: var(--ion-color-primary-contrast);
-  font-weight: 500;
+ion-content {
+  --overflow: hidden;
 }
 
-.api-selector::part(icon) {
-  color: var(--ion-color-primary-contrast);
+.ion-padding {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
 }
-
-.api-label {
-  background: var(--ion-color-primary);
-  color: var(--ion-color-primary-contrast);
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-@media (max-width: 480px) {
-  .api-selector {
-    font-size: 0.7rem;
-    min-width: 80px;
-    --padding-start: 6px;
-    --padding-end: 6px;
-  }
-  
-  .api-label {
-    font-size: 0.7rem;
-    padding: 3px 6px;
-  }
-}
-</style>
+</style> 

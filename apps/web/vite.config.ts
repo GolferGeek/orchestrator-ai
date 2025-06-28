@@ -16,6 +16,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    port: parseInt(process.env.WEB_PORT || '3100'),
+    host: true
+  },
   test: {
     globals: true,
     environment: 'jsdom'
