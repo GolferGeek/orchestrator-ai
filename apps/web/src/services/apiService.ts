@@ -95,20 +95,7 @@ export const isFeatureSupported = (feature: string): boolean => {
   return apiManager.isFeatureSupported(feature);
 };
 
-/**
- * Switch to a different API version
- */
-export const switchApiVersion = async (version: 'v1' | 'v2') => {
-  try {
-    await apiManager.switchToVersion(version);
-    console.log(`Switched to API version ${version}`);
-    // Update the backward-compatible client's base URL
-    backwardCompatibleClient.defaults.baseURL = apiManager.currentEndpoint.baseUrl;
-  } catch (error) {
-    console.error(`Failed to switch to API version ${version}:`, error);
-    throw error;
-  }
-};
+// Version switching is no longer needed - only NestJS v1 is supported
 
 /**
  * Get all available API endpoints

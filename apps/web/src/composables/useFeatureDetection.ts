@@ -86,45 +86,6 @@ export function useFeatureDetection() {
   const versionCapabilities: VersionCapabilities[] = [
     {
       version: 'v1',
-      technology: 'python-fastapi',
-      features: [
-        API_FEATURES.ORCHESTRATOR,
-        API_FEATURES.AGENT_DISCOVERY,
-        API_FEATURES.SESSION_MANAGEMENT,
-      ],
-      limitations: [
-        'No hierarchical agent support',
-        'No real-time communication',
-        'Limited to basic agent interactions'
-      ],
-      recommendations: [
-        'Stable and reliable for production use',
-        'Recommended for basic agent workflows',
-        'Good performance for standard use cases'
-      ]
-    },
-    {
-      version: 'v2',
-      technology: 'python-fastapi',
-      features: [
-        API_FEATURES.ORCHESTRATOR,
-        API_FEATURES.AGENT_DISCOVERY,
-        API_FEATURES.SESSION_MANAGEMENT,
-        API_FEATURES.HIERARCHICAL_AGENTS,
-        API_FEATURES.MULTI_MODAL,
-      ],
-      limitations: [
-        'Enhanced features may be less stable',
-        'Some features still in development'
-      ],
-      recommendations: [
-        'Recommended for advanced agent workflows',
-        'Better performance with hierarchical agents',
-        'Access to latest features and improvements'
-      ]
-    },
-    {
-      version: 'v2',
       technology: 'typescript-nestjs',
       features: [
         API_FEATURES.ORCHESTRATOR,
@@ -135,13 +96,13 @@ export function useFeatureDetection() {
         API_FEATURES.MULTI_MODAL,
       ],
       limitations: [
-        'Still in development',
-        'May have compatibility issues'
+        'Actively developed and maintained',
+        'Production-ready NestJS implementation'
       ],
       recommendations: [
-        'Future-proof technology stack',
-        'Real-time features when available',
-        'Modern TypeScript ecosystem'
+        'Modern TypeScript ecosystem',
+        'Recommended for all agent workflows',
+        'Real-time features available'
       ]
     }
   ];
@@ -200,7 +161,7 @@ export function useFeatureDetection() {
       const detected = new Set<ApiFeature>();
 
       // Start with static features from endpoint configuration
-      endpoint.features.forEach(feature => detected.add(feature));
+      endpoint.features.forEach(feature => detected.add(feature as ApiFeature));
 
       // For V2 APIs, try dynamic feature detection
       if (endpoint.version === 'v2' && apiManager.currentClient) {

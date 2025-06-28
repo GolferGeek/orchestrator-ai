@@ -83,7 +83,6 @@
           @ionChange="updatePreference('preferredTechnology', $event.detail.value)"
           interface="popover"
         >
-          <ion-select-option value="python-fastapi">Python FastAPI</ion-select-option>
           <ion-select-option value="typescript-nestjs">TypeScript NestJS</ion-select-option>
         </ion-select>
       </div>
@@ -224,9 +223,9 @@
         <ion-range
           :model-value="preferences.messageHistory"
           @ionChange="updatePreference('messageHistory', Number($event.detail.value))"
-          min="10"
-          max="500"
-          step="10"
+          :min="10"
+          :max="500"
+          :step="10"
           pin
           color="primary"
         />
@@ -256,9 +255,9 @@
         <ion-range
           :model-value="preferences.cacheDuration"
           @ionChange="updatePreference('cacheDuration', Number($event.detail.value))"
-          min="1"
-          max="120"
-          step="5"
+          :min="1"
+          :max="120"
+          :step="5"
           pin
           color="primary"
         />
@@ -283,9 +282,9 @@
         <ion-range
           :model-value="preferences.autoSaveInterval"
           @ionChange="updatePreference('autoSaveInterval', Number($event.detail.value))"
-          min="0"
-          max="300"
-          step="10"
+          :min="0"
+          :max="300"
+          :step="10"
           pin
           color="primary"
         />

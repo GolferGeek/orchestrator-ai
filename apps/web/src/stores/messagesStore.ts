@@ -44,7 +44,7 @@ export const useMessagesStore = defineStore('messages', {
     clearMessages() {
       this.messages = [];
       const sessionStore = useSessionStore(); // Also clear session on full message clear
-      sessionStore.clearSession();
+      sessionStore.setCurrentSessionId(null);
     },
     async submitMessageToOrchestrator(text: string) {
       if (!text.trim()) return;
@@ -78,7 +78,7 @@ export const useMessagesStore = defineStore('messages', {
 
       uiStore.setAppLoading(true);
       try {
-        const currentSessionId = sessionStore.getCurrentSessionId;
+        const currentSessionId = sessionStore.currentSessionId;
         const taskResponse: TaskResponse = await postTaskToOrchestrator(text, currentSessionId);
         console.log('[MESSAGES_STORE] Raw Task Response from orchestrator:', JSON.stringify(taskResponse, null, 2));
 

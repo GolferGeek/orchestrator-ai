@@ -3,7 +3,6 @@ import { ref, computed } from 'vue';
 import { authService } from '@/services/authService'; // Removed AuthResponse import from here
 import apiClient, { apiManager } from '@/services/apiService'; // To update axios headers
 import { nestjsApiService } from '@/services/nestjsApiService';
-import { fastapiApiService } from '@/services/fastapiApiService';
 
 // Interface for the token data expected from authService login/signup
 interface TokenData {
@@ -47,9 +46,8 @@ export const useAuthStore = defineStore('auth', () => {
     // Set auth token on all API manager clients
     apiManager.setAuthToken(tokenData.access_token);
     
-    // Set auth token on separated API services
+    // Set auth token on NestJS API service
     nestjsApiService.setAuthToken(tokenData.access_token);
-    fastapiApiService.setAuthToken(tokenData.access_token);
     
     error.value = null; // Clear error on successful token set
   }
@@ -68,9 +66,8 @@ export const useAuthStore = defineStore('auth', () => {
     // Clear auth from all API manager clients
     apiManager.clearAuth();
     
-    // Clear auth from separated API services
+    // Clear auth from NestJS API service
     nestjsApiService.clearAuth();
-    fastapiApiService.clearAuth();
   }
 
   async function login(credentials: { email: string; password: string }) {
@@ -162,9 +159,8 @@ export const useAuthStore = defineStore('auth', () => {
     console.log("authStore: Initializing with existing token.");
     authService.initializeAuthHeader();
     
-    // Initialize auth tokens on separated API services
+    // Initialize auth token on NestJS API service
     nestjsApiService.setAuthToken(token.value);
-    fastapiApiService.setAuthToken(token.value);
     
     fetchCurrentUser();
   }
