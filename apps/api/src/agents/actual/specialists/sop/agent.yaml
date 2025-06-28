@@ -1,0 +1,73 @@
+# SOP Agent Configuration
+metadata:
+  name: "SOP Agent"
+  type: "specialists"
+  category: "process_management"
+  version: "1.0.0"
+  description: "A specialist agent that helps with Standard Operating Procedures, process documentation, and workflow guidance."
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - process_documentation
+  - workflow_optimization
+  - sop_creation
+  - procedure_analysis
+  - process_improvement
+  - training_materials
+  - compliance_guidance
+
+skills:
+  - id: "sop_creation"
+    name: "SOP Creation"
+    description: "Create comprehensive Standard Operating Procedures with clear steps, responsibilities, and quality controls"
+    tags: ["sop", "documentation", "process", "procedures"]
+    examples:
+      - "Create an SOP for customer onboarding process"
+      - "Document the procedure for handling customer complaints"
+      - "Write a standard operating procedure for inventory management"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "text/plain", "application/json"]
+
+  - id: "process_improvement"
+    name: "Process Improvement"
+    description: "Analyze existing processes and suggest improvements for efficiency and effectiveness"
+    tags: ["process-improvement", "optimization", "efficiency", "analysis"]
+    examples:
+      - "Review and improve our current onboarding process"
+      - "Analyze workflow bottlenecks in our support process"
+      - "Suggest improvements to our documentation process"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "compliance_guidance"
+    name: "Compliance Guidance"
+    description: "Provide guidance on maintaining compliance with established procedures and best practices"
+    tags: ["compliance", "best-practices", "quality-control", "standards"]
+    examples:
+      - "How to ensure SOPs are followed consistently"
+      - "Best practices for SOP maintenance and updates"
+      - "Quality control measures for process compliance"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  documentation_standards: "ISO 9001"
+  process_categories:
+    - "administrative"
+    - "operational"
+    - "safety"
+    - "quality_control"
+    - "customer_service"
+    - "training"

@@ -1,0 +1,85 @@
+# Voice Summary Agent Configuration
+metadata:
+  name: "Voice Summary Agent"
+  type: "specialists"
+  category: "content_processing"
+  version: "1.0.0"
+  description: "A specialist agent for processing voice recordings and calls to generate comprehensive summaries, action items, and key insights."
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - voice_transcription_analysis
+  - meeting_summarization
+  - action_item_extraction
+  - key_insight_identification
+  - speaker_identification
+  - sentiment_analysis
+  - follow_up_generation
+  - compliance_tracking
+
+skills:
+  - id: "meeting_summarization"
+    name: "Meeting Summary Generation"
+    description: "Create comprehensive summaries of voice meetings and calls"
+    tags: ["summarization", "meetings", "voice", "documentation"]
+    examples:
+      - "Summarize a 60-minute board meeting"
+      - "Create executive summary of sales call"
+      - "Generate meeting minutes with key decisions"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "action_item_extraction"
+    name: "Action Item Extraction"
+    description: "Identify and extract actionable items from voice conversations"
+    tags: ["action-items", "tasks", "follow-up", "accountability"]
+    examples:
+      - "Extract action items from project meeting"
+      - "Identify follow-up tasks from client call"
+      - "Create task list from team standup"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "sentiment_analysis"
+    name: "Voice Sentiment Analysis"
+    description: "Analyze emotional tone and sentiment in voice conversations"
+    tags: ["sentiment", "emotion", "tone", "analysis"]
+    examples:
+      - "Analyze customer satisfaction in support call"
+      - "Assess team morale from meeting tone"
+      - "Evaluate client engagement level"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  summary_levels:
+    - "executive"
+    - "detailed"
+    - "bullet_points"
+    - "action_focused"
+  speaker_tracking: true
+  timestamp_inclusion: true
+  meeting_types:
+    - "board_meeting"
+    - "sales_call"
+    - "support_call"
+    - "team_standup"
+    - "client_presentation"
+    - "interview"
+  compliance_requirements:
+    - "gdpr_privacy"
+    - "sox_compliance"
+    - "confidentiality"
+  action_item_priority: true

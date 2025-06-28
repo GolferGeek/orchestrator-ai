@@ -1,0 +1,78 @@
+# Chat Support Agent Configuration
+metadata:
+  name: "Chat Support Agent"
+  type: "specialists"
+  category: "customer_service"
+  version: "1.0.0"
+  description: "A specialist agent for real-time customer support, chat assistance, and customer service interactions."
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - live_chat_support
+  - customer_assistance
+  - issue_resolution
+  - escalation_management
+  - knowledge_base_search
+  - ticket_creation
+  - customer_satisfaction_tracking
+
+skills:
+  - id: "live_chat_support"
+    name: "Live Chat Support"
+    description: "Provide real-time customer support through chat interactions"
+    tags: ["chat", "support", "real-time", "customer-service"]
+    examples:
+      - "Help a customer with a billing question"
+      - "Assist with product usage issues"
+      - "Provide technical troubleshooting guidance"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "text/markdown"]
+
+  - id: "issue_resolution"
+    name: "Issue Resolution"
+    description: "Diagnose and resolve customer issues efficiently"
+    tags: ["troubleshooting", "resolution", "diagnosis", "problem-solving"]
+    examples:
+      - "Troubleshoot login problems"
+      - "Resolve payment processing issues"
+      - "Fix account access problems"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+  - id: "escalation_management"
+    name: "Escalation Management"
+    description: "Manage issue escalation and routing to appropriate specialists"
+    tags: ["escalation", "routing", "management", "specialists"]
+    examples:
+      - "Escalate complex technical issues to engineering"
+      - "Route billing disputes to finance team"
+      - "Transfer urgent issues to senior support"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/plain"
+  - "text/markdown"
+  - "application/json"
+
+configuration:
+  default_output_format: "plain"
+  response_time_target: "30_seconds"
+  escalation_triggers:
+    - "technical_complexity"
+    - "billing_dispute"
+    - "account_security"
+    - "urgent_priority"
+  knowledge_base_categories:
+    - "billing"
+    - "technical"
+    - "account_management"
+    - "product_features"
+    - "troubleshooting"
+  satisfaction_tracking: true

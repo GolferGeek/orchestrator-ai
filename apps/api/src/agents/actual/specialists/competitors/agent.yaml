@@ -1,0 +1,83 @@
+# Competitors Agent Configuration
+metadata:
+  name: "Competitors Agent"
+  type: "specialists"
+  category: "market_intelligence"
+  version: "1.0.0"
+  description: "A specialist agent for competitive analysis, market positioning, and competitor intelligence gathering."
+
+# Agent type - determines loading strategy
+type: "context"
+
+capabilities:
+  - competitive_analysis
+  - market_positioning
+  - competitor_tracking
+  - pricing_analysis
+  - feature_comparison
+  - market_share_analysis
+  - swot_analysis
+  - competitive_intelligence
+
+skills:
+  - id: "competitive_analysis"
+    name: "Competitive Analysis"
+    description: "Analyze competitors' strategies, strengths, and weaknesses"
+    tags: ["analysis", "strategy", "competition", "market"]
+    examples:
+      - "Compare our product features against top 3 competitors"
+      - "Analyze competitor pricing strategies"
+      - "Assess competitive market positioning"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "market_positioning"
+    name: "Market Positioning Analysis"
+    description: "Evaluate market position relative to competitors"
+    tags: ["positioning", "market", "differentiation", "strategy"]
+    examples:
+      - "Identify market gaps and opportunities"
+      - "Analyze our competitive advantages"
+      - "Assess brand positioning vs competitors"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/markdown", "application/json"]
+
+  - id: "competitor_intelligence"
+    name: "Competitor Intelligence"
+    description: "Gather and analyze competitor information and activities"
+    tags: ["intelligence", "monitoring", "tracking", "analysis"]
+    examples:
+      - "Track competitor product launches"
+      - "Monitor competitor marketing campaigns"
+      - "Analyze competitor hiring patterns"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+input_modes:
+  - "text/plain"
+  - "application/json"
+
+output_modes:
+  - "text/markdown"
+  - "text/plain"
+  - "application/json"
+
+configuration:
+  default_output_format: "markdown"
+  analysis_frameworks:
+    - "swot"
+    - "porters_five_forces"
+    - "competitive_matrix"
+    - "feature_comparison"
+  competitor_categories:
+    - "direct_competitors"
+    - "indirect_competitors"
+    - "potential_entrants"
+    - "substitute_products"
+  tracking_metrics:
+    - "market_share"
+    - "pricing"
+    - "feature_updates"
+    - "customer_satisfaction"
+    - "funding_rounds"
+  update_frequency: "weekly"
