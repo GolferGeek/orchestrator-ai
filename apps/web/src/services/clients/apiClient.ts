@@ -73,14 +73,14 @@ export class ApiClient extends BaseApiClient {
         const result = jsonRpcResponse.result;
         
         // Extract agent name from various possible metadata fields
-        let respondingAgentName = 'Hiverarchy Agent'; // default
+        let respondingAgentName = 'Orchestrator Agent'; // default
         if (result.metadata) {
           // Try different fields where agent name might be
           respondingAgentName = result.metadata.delegatedTo || 
                               result.metadata.originalAgent?.agentName ||
                               result.metadata.agentName ||
                               result.metadata.responding_agent_name ||
-                              'Hiverarchy Agent';
+                              'Orchestrator Agent';
         }
 
         return {

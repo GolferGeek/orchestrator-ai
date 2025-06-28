@@ -53,7 +53,7 @@ const router = useRouter();
 
 // Dynamic titles based on current route
 const menuTitle = computed(() => {
-  return 'Hiverarchy';
+      return 'Orchestrator AI';
 });
 
 const handleLogout = async () => {

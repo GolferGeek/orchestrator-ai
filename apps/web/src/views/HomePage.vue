@@ -74,13 +74,13 @@ const isIOS = computed(() => isPlatform('ios'));
 
 const currentSessionName = computed(() => {
   if (currentSessionId.value) {
-    return `Hiverarchy Chat`;
+          return `Orchestrator AI Chat`;
   }
-  return 'Hiverarchy';
+      return 'Orchestrator AI';
 });
 
 const pageTitle = computed(() => {
-  return currentSessionName.value || 'Hiverarchy';
+      return currentSessionName.value || 'Orchestrator AI';
 });
 
 const handleMessagesRenderedInChild = () => {

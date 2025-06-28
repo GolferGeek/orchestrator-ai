@@ -11,7 +11,9 @@ echo -e "${BLUE}🚀 Starting OrchAI NestJS API with Python Agent Support${NC}"
 # Load environment variables from project root
 if [ -f "../../.env" ]; then
     echo -e "${BLUE}📄 Loading environment variables from project root...${NC}"
-    export $(cat ../../.env | grep -v '^#' | xargs)
+    set -a
+    source ../../.env
+    set +a
     echo -e "${GREEN}✅ Environment variables loaded${NC}"
 else
     echo -e "${RED}⚠️  No .env file found in project root${NC}"
@@ -84,7 +86,7 @@ NESTJS_PID=$!
 sleep 2
 
 echo -e "${GREEN}✅ Development environment ready!${NC}"
-echo -e "${BLUE}📡 NestJS API: http://localhost:${API_PORT:-4100}${NC}"
+echo -e "${BLUE}📡 NestJS API: http://localhost:${API_PORT:-4000}${NC}"
 echo -e "${BLUE}🐍 Python Virtual Environment: Active${NC}"
 echo -e "${BLUE}🔧 LangGraph: Available for Python agents${NC}"
 echo -e "\n${BLUE}Press Ctrl+C to stop all services${NC}"

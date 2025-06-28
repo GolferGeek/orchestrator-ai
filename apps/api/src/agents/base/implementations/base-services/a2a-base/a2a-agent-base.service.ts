@@ -405,7 +405,7 @@ export abstract class A2AAgentBaseService
 
   private buildAgentUrl(): string {
     // Hardcode the correct URL for now to fix the E2E tests
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:4100';
+    const baseUrl = process.env.API_BASE_URL || 'http://localhost:4000';
     const agentType = this.getAgentType();
     const agentName = this.getAgentName().toLowerCase().replace(/\s+/g, '_');
     const url = `${baseUrl}/agents/${agentType}s/${agentName}/tasks`;

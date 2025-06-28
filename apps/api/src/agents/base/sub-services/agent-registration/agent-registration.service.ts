@@ -403,7 +403,7 @@ export class AgentRegistrationService implements OnModuleDestroy {
    */
   buildAgentUrl(agentPath: string, baseUrl?: string): string {
     const apiHost = process.env.API_HOST || 'localhost';
-    const apiPort = process.env.API_PORT || '4100';
+    const apiPort = process.env.API_PORT || '4000';
     const base = baseUrl || `http://${apiHost}:${apiPort}`;
     return `${base}/agents/${agentPath}/tasks`;
   }
@@ -487,7 +487,7 @@ export class AgentRegistrationService implements OnModuleDestroy {
    */
   private getDefaultAgentPoolUrl(): string {
     const apiHost = process.env.API_HOST || 'localhost';
-    const apiPort = process.env.API_PORT || '4100';
+    const apiPort = process.env.API_PORT || '4000';
     return `http://${apiHost}:${apiPort}/agent-pool`;
   }
 

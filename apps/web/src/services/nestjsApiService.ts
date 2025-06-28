@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { TaskResponse, AgentInfo } from '../types/chat';
 
 // NestJS-specific endpoint configuration
-const NESTJS_BASE_URL = import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4100';
+const NESTJS_BASE_URL = import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
 
 interface JsonRpcResponse {
   jsonrpc: '2.0';
@@ -99,13 +99,13 @@ class NestJSApiService {
         const result = jsonRpcResponse.result;
         
         // Extract agent name from metadata
-        let respondingAgentName = 'JavaScript Agent'; // default for NestJS
+        let respondingAgentName = 'Agent'; // default for NestJS
         if (result.metadata) {
           respondingAgentName = result.metadata.delegatedTo || 
                               result.metadata.originalAgent?.agentName ||
                               result.metadata.agentName ||
                               result.metadata.responding_agent_name ||
-                              'JavaScript Agent';
+                              'Agent';
         }
 
         return {

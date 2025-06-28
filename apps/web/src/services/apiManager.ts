@@ -3,7 +3,7 @@ import { ApiClient, ApiEndpoint, ApiConfiguration, API_FEATURES } from '../types
 import { ApiClient as V1ApiClient } from './clients/apiClient';
 
 // Environment configuration
-const DEFAULT_NESTJS_BASE_URL = import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4100';
+const DEFAULT_NESTJS_BASE_URL = import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
 
 // Default API endpoint configuration - only NestJS
 const DEFAULT_ENDPOINTS: ApiEndpoint[] = [
@@ -11,7 +11,7 @@ const DEFAULT_ENDPOINTS: ApiEndpoint[] = [
     version: 'v1',
     technology: 'typescript-nestjs',
     baseUrl: DEFAULT_NESTJS_BASE_URL,
-    name: 'Hiverarchy API',
+    name: 'Orchestrator AI API',
     description: 'TypeScript NestJS implementation with A2A agent framework',
     features: [
       API_FEATURES.ORCHESTRATOR,
