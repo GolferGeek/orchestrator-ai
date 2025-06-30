@@ -238,22 +238,24 @@ export class UsageController {
     @Query('end_date') endDate?: string,
     @Query('min_usage') minUsage: number = 1,
     @Query('sort_by') sortBy: 'rating' | 'speed' | 'cost' | 'usage' = 'rating',
-  ): Promise<Array<{
-    model: any;
-    metrics: {
-      usage_count: number;
-      avg_user_rating: number;
-      avg_speed_rating: number;
-      avg_accuracy_rating: number;
-      avg_response_time_ms: number;
-      avg_cost_per_request: number;
-      total_cost: number;
-      total_tokens: number;
-      cost_efficiency_score: number;
-      performance_score: number;
-    };
-    rank: number;
-  }>> {
+  ): Promise<
+    Array<{
+      model: any;
+      metrics: {
+        usage_count: number;
+        avg_user_rating: number;
+        avg_speed_rating: number;
+        avg_accuracy_rating: number;
+        avg_response_time_ms: number;
+        avg_cost_per_request: number;
+        total_cost: number;
+        total_tokens: number;
+        cost_efficiency_score: number;
+        performance_score: number;
+      };
+      rank: number;
+    }>
+  > {
     return this.usageService.getModelPerformance(user.id, {
       startDate,
       endDate,
@@ -263,7 +265,9 @@ export class UsageController {
   }
 
   @Get('insights/spending-patterns')
-  @ApiOperation({ summary: 'Get spending pattern insights and recommendations' })
+  @ApiOperation({
+    summary: 'Get spending pattern insights and recommendations',
+  })
   @ApiQuery({
     name: 'lookback_days',
     required: false,

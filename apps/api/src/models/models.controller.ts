@@ -155,7 +155,10 @@ export class ModelsController {
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 404, description: 'Provider not found' })
-  @ApiResponse({ status: 409, description: 'Model ID already exists for provider' })
+  @ApiResponse({
+    status: 409,
+    description: 'Model ID already exists for provider',
+  })
   async createModel(
     @Body() createModelDto: CreateModelDto,
   ): Promise<ModelResponseDto> {

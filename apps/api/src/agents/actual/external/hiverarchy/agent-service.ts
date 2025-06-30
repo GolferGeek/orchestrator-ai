@@ -12,9 +12,9 @@ import { EvaluationWrapperService } from '@agents/base/sub-services/evaluation-w
  *
  * This service acts as a local proxy for the Hiverarchy AI orchestrator.
  * It routes content writing requests to specialist agents with intelligent delegation
- * using LLM decision-making. Specializes in blog writing, article creation, and 
+ * using LLM decision-making. Specializes in blog writing, article creation, and
  * hierarchical content development.
- * 
+ *
  * Features:
  * - Dynamic JWT authentication with Hiverarchy service
  * - Automatic token refresh handling
@@ -40,10 +40,10 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       loggingService,
       evaluationService,
     );
-    
+
     // Keep our own reference for custom authentication
     this.customHttpService = httpService;
-    
+
     this.logger.log(
       '🔗 Hiverarchy AI Orchestrator Agent Service initialized with dynamic auth',
     );
@@ -91,14 +91,14 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
    */
   async processTask(taskRequest: any): Promise<any> {
     this.logger.debug(`🎯 Hiverarchy AI Orchestrator processing task`);
-    
+
     try {
       // Ensure we have a valid authentication token
       await this.ensureAuthenticated();
-      
+
       // Transform the request to match Hiverarchy's expected format
       const hiverarchyParams = this.transformRequestParams(taskRequest);
-      
+
       // Forward the task request to the external Hiverarchy agent
       return await this.executeTaskWithAuth('processTask', hiverarchyParams);
     } catch (error) {
@@ -112,12 +112,16 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
    */
   private async ensureAuthenticated(): Promise<void> {
     // Check if token is still valid (with 5-minute buffer)
-    if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry - 300000) {
+    if (
+      this.accessToken &&
+      this.tokenExpiry &&
+      Date.now() < this.tokenExpiry - 300000
+    ) {
       return;
     }
 
     this.logger.debug('🔐 Authenticating with Hiverarchy...');
-    
+
     try {
       // Read authentication configuration from YAML
       const config = this.getExternalConfig();
@@ -131,27 +135,32 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       const password = authConfig.password;
 
       if (!loginUrl || !username || !password) {
-        throw new Error('Missing authentication configuration: login_endpoint, username, or password');
+        throw new Error(
+          'Missing authentication configuration: login_endpoint, username, or password',
+        );
       }
-      
+
       const response = await firstValueFrom(
         this.customHttpService.post(loginUrl, {
           email: username,
           password: password,
-        })
+        }),
       );
 
       if (response.data?.access_token) {
         this.accessToken = response.data.access_token;
         // Token expires in 1 hour (3600 seconds)
-        this.tokenExpiry = Date.now() + (response.data.expires_in || 3600) * 1000;
+        this.tokenExpiry =
+          Date.now() + (response.data.expires_in || 3600) * 1000;
         this.logger.log('✅ Successfully authenticated with Hiverarchy');
       } else {
         throw new Error('No access token received from Hiverarchy');
       }
     } catch (error) {
       this.logger.error('❌ Failed to authenticate with Hiverarchy:', error);
-      throw new Error(`Hiverarchy authentication failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Hiverarchy authentication failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -161,7 +170,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
   private transformRequestParams(taskRequest: any): any {
     // Extract user message from various possible locations
     let userMessage = '';
-    
+
     if (taskRequest?.userMessage) {
       userMessage = taskRequest.userMessage;
     } else if (taskRequest?.params?.userMessage) {
@@ -197,37 +206,34 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       }
 
       const requestBody = {
-        jsonrpc: "2.0",
+        jsonrpc: '2.0',
         id: `external-hiverarchy-${Date.now()}`,
-        method: "handle_request",
+        method: 'handle_request',
         params: {
-          message: params.userMessage || params.message || "No message provided",
+          message:
+            params.userMessage || params.message || 'No message provided',
           session_id: `external-session-${Date.now()}`,
           conversation_history: [],
           authToken: this.accessToken, // Pass our auth token like frontend does
           currentUser: null, // External call, no specific user
-        }
+        },
       };
 
       this.logger.debug(`🚀 Sending request to Hiverarchy: ${endpoint}`);
 
       const response = await firstValueFrom(
-        this.customHttpService.post(
-          endpoint,
-          requestBody,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.accessToken}`,
-            },
-            timeout: 30000,
-          }
-        )
+        this.customHttpService.post(endpoint, requestBody, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+          },
+          timeout: 30000,
+        }),
       );
 
       if (response.status >= 200 && response.status < 300) {
         this.logger.log('✅ Successfully received response from Hiverarchy');
-        
+
         // Extract the actual response text from the JSON-RPC wrapper
         let actualResponse = response.data;
         if (response.data?.result?.response) {
@@ -237,7 +243,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
           // Direct response format
           actualResponse = response.data.response;
         }
-        
+
         return {
           success: true,
           response: actualResponse,

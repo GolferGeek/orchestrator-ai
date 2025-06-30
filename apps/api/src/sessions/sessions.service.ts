@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
+import { HttpService } from '@nestjs/axios';
 import {
   SessionCreateDto,
   SessionResponseDto,
@@ -14,12 +15,19 @@ import {
   MessageResponseDto,
   MessageListResponseDto,
 } from './dto/session.dto';
+import {
+  EnhancedMessageCreateDto,
+  EnhancedMessageResponseDto,
+} from '../dto/llm-evaluation.dto';
 
 @Injectable()
 export class SessionsService {
   private readonly logger = new Logger(SessionsService.name);
 
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private readonly httpService: HttpService,
+  ) {}
 
   async createSession(
     sessionCreate: SessionCreateDto,
@@ -346,9 +354,7 @@ export class SessionsService {
     currentUser: SupabaseAuthUserDto,
     token: string,
   ): Promise<void> {
-    this.logger.log(
-      `Deleting session ${sessionId} for user ${currentUser.id}`,
-    );
+    this.logger.log(`Deleting session ${sessionId} for user ${currentUser.id}`);
 
     try {
       const authenticatedClient =
@@ -396,6 +402,308 @@ export class SessionsService {
       }
       this.logger.error(
         `Unexpected error deleting session ${sessionId} for user ${currentUser.id}: ${error}`,
+      );
+      throw new HttpException(
+        'An unexpected error occurred.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async sendMessage(
+    sessionId: string,
+    messageCreateDto: EnhancedMessageCreateDto,
+    currentUser: SupabaseAuthUserDto,
+    token: string,
+  ): Promise<EnhancedMessageResponseDto> {
+    this.logger.log(
+      `Sending enhanced message to session ${sessionId} for user ${currentUser.id}`,
+    );
+
+    try {
+      const authenticatedClient =
+        this.supabaseService.createAuthenticatedClient(token);
+
+      // Verify user owns the session
+      const { data: sessionData, error: sessionError } =
+        await authenticatedClient
+          .from('sessions')
+          .select('id, user_id')
+          .eq('id', sessionId)
+          .eq('user_id', currentUser.id)
+          .single();
+
+      if (sessionError || !sessionData) {
+        this.logger.warn(
+          `User ${currentUser.id} attempted to send message to session ${sessionId} they don't own or doesn't exist`,
+        );
+        throw new NotFoundException('Session not found or access denied.');
+      }
+
+      // Add user message to database
+      const userMessage = await this.addMessage(
+        sessionId,
+        {
+          role: 'user',
+          content: messageCreateDto.content,
+          metadata: {
+            llmSelection: messageCreateDto.llm_selection,
+            clientSentAt: new Date().toISOString(),
+          },
+        },
+        currentUser,
+        token,
+      );
+
+      // Process message through orchestrator with LLM preferences
+      const apiHost = process.env.API_HOST || 'localhost';
+      const apiPort = process.env.API_PORT || '4000';
+      const orchestratorUrl = `http://${apiHost}:${apiPort}/agents/orchestrator/tasks`;
+
+      try {
+        this.logger.log(
+          `Calling orchestrator at ${orchestratorUrl} with LLM preferences`,
+        );
+
+        // Prepare orchestrator request with LLM preferences
+        const orchestratorPayload = {
+          jsonrpc: '2.0',
+          method: 'processTask',
+          params: {
+            message: messageCreateDto.content,
+            userMessage: messageCreateDto.content,
+            sessionId: sessionId,
+            session_id: sessionId,
+            currentUser: currentUser,
+            authToken: token,
+            // Pass LLM preferences
+            providerId: messageCreateDto.llm_selection?.provider_id,
+            provider_id: messageCreateDto.llm_selection?.provider_id,
+            modelId: messageCreateDto.llm_selection?.model_id,
+            model_id: messageCreateDto.llm_selection?.model_id,
+            cidafmOptions: messageCreateDto.llm_selection?.cidafm_options,
+            cidafm_options: messageCreateDto.llm_selection?.cidafm_options,
+            temperature: messageCreateDto.llm_selection?.temperature,
+            maxTokens: messageCreateDto.llm_selection?.max_tokens,
+            max_tokens: messageCreateDto.llm_selection?.max_tokens,
+          },
+          id: `sessions-orchestrator-${Date.now()}`,
+        };
+
+        this.logger.log(
+          `Orchestrator payload: ${JSON.stringify(orchestratorPayload, null, 2)}`,
+        );
+
+        const headers = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        };
+
+        const orchestratorResponse = await this.httpService.axiosRef.post(
+          orchestratorUrl,
+          orchestratorPayload,
+          { headers, timeout: 30000 },
+        );
+
+        this.logger.log(
+          `Orchestrator response status: ${orchestratorResponse.status}`,
+        );
+        this.logger.log(
+          `Orchestrator response data: ${JSON.stringify(orchestratorResponse.data)?.substring(0, 200)}...`,
+        );
+
+        // Handle JSON-RPC response format
+        const result =
+          orchestratorResponse.data?.result || orchestratorResponse.data;
+        const assistantContent =
+          result?.response ||
+          'I apologize, but I was unable to process your request.';
+
+        const assistantMessage = await this.addMessage(
+          sessionId,
+          {
+            role: 'assistant',
+            content: assistantContent,
+            metadata: {
+              processedBy: 'orchestrator_via_sessions',
+              llmPreferences: messageCreateDto.llm_selection,
+              orchestratorMetadata: result?.metadata,
+              processedAt: new Date().toISOString(),
+            },
+          },
+          currentUser,
+          token,
+        );
+
+        // Return enhanced message response with orchestrator data
+        const enhancedResponse: EnhancedMessageResponseDto = {
+          ...assistantMessage,
+          provider_id: messageCreateDto.llm_selection?.provider_id,
+          model_id: messageCreateDto.llm_selection?.model_id,
+          cidafm_options: messageCreateDto.llm_selection?.cidafm_options,
+          // Include any LLM usage data from orchestrator metadata if available
+          input_tokens: result?.metadata?.llmUsage?.input_tokens,
+          output_tokens: result?.metadata?.llmUsage?.output_tokens,
+          total_cost: result?.metadata?.costCalculation?.total_cost,
+          response_time_ms: result?.metadata?.llmUsage?.response_time_ms,
+          langsmith_run_id: result?.metadata?.langsmithRunId,
+        };
+
+        return enhancedResponse;
+      } catch (orchestratorError) {
+        this.logger.error(
+          'Error calling orchestrator service:',
+          orchestratorError,
+        );
+
+        // Fallback: create a simple assistant message
+        const assistantMessage = await this.addMessage(
+          sessionId,
+          {
+            role: 'assistant',
+            content: `I received your message: "${messageCreateDto.content}". The orchestrator service is currently unavailable, but I've noted your LLM preferences.`,
+            metadata: {
+              processedBy: 'sessions_service_fallback',
+              llmPreferences: messageCreateDto.llm_selection,
+              orchestratorError:
+                orchestratorError instanceof Error
+                  ? orchestratorError.message
+                  : String(orchestratorError),
+              processedAt: new Date().toISOString(),
+            },
+          },
+          currentUser,
+          token,
+        );
+
+        // Return enhanced message response
+        const enhancedResponse: EnhancedMessageResponseDto = {
+          ...assistantMessage,
+          provider_id: messageCreateDto.llm_selection?.provider_id,
+          model_id: messageCreateDto.llm_selection?.model_id,
+          cidafm_options: messageCreateDto.llm_selection?.cidafm_options,
+        };
+
+        return enhancedResponse;
+      }
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(
+        `Unexpected error sending message to session ${sessionId} for user ${currentUser.id}: ${error}`,
+      );
+      throw new HttpException(
+        'An unexpected error occurred.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getEnhancedSessionMessages(
+    sessionId: string,
+    currentUser: SupabaseAuthUserDto,
+    token: string,
+    options: {
+      skip: number;
+      limit: number;
+      includeEvaluations: boolean;
+      includeLlmData: boolean;
+    },
+  ): Promise<EnhancedMessageResponseDto[]> {
+    this.logger.log(
+      `Getting enhanced messages for session ${sessionId}, user ${currentUser.id}`,
+    );
+
+    try {
+      const authenticatedClient =
+        this.supabaseService.createAuthenticatedClient(token);
+
+      // Verify user owns the session
+      const { data: sessionData, error: sessionError } =
+        await authenticatedClient
+          .from('sessions')
+          .select('id')
+          .eq('id', sessionId)
+          .eq('user_id', currentUser.id)
+          .single();
+
+      if (sessionError || !sessionData) {
+        this.logger.warn(
+          `User ${currentUser.id} attempted to access enhanced messages for session ${sessionId} they don't own or doesn't exist`,
+        );
+        throw new NotFoundException('Session not found or access denied.');
+      }
+
+      // Build query with optional joins
+      const selectQuery = `
+        *
+        ${options.includeLlmData ? ', provider:providers(*), model:models(*)' : ''}
+      `;
+
+      // Fetch enhanced messages
+      const { data, error } = await authenticatedClient
+        .from('messages')
+        .select(selectQuery)
+        .eq('session_id', sessionId)
+        .order('order', { ascending: true })
+        .range(options.skip, options.skip + options.limit - 1);
+
+      if (error) {
+        this.logger.error(
+          `Error listing enhanced messages for session ${sessionId}, user ${currentUser.id}: ${error.message}`,
+        );
+        throw new HttpException(
+          error.message || 'Error listing enhanced messages.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Transform to enhanced message format
+      const enhancedMessages: EnhancedMessageResponseDto[] = (data || []).map(
+        (message) => ({
+          id: message.id,
+          session_id: message.session_id,
+          user_id: message.user_id,
+          role: message.role,
+          content: message.content,
+          timestamp: message.timestamp,
+          order: message.order,
+          metadata: message.metadata,
+          // LLM fields
+          provider_id: message.provider_id,
+          model_id: message.model_id,
+          input_tokens: message.input_tokens,
+          output_tokens: message.output_tokens,
+          total_cost: message.total_cost,
+          response_time_ms: message.response_time_ms,
+          langsmith_run_id: message.langsmith_run_id,
+          // Evaluation fields (if requested)
+          ...(options.includeEvaluations && {
+            user_rating: message.user_rating,
+            speed_rating: message.speed_rating,
+            accuracy_rating: message.accuracy_rating,
+            user_notes: message.user_notes,
+            evaluation_timestamp: message.evaluation_timestamp,
+          }),
+          // CIDAFM and additional data
+          cidafm_options: message.cidafm_options,
+          evaluation_details: message.evaluation_details,
+          // Joined data (if requested)
+          ...(options.includeLlmData && {
+            provider: message.provider,
+            model: message.model,
+          }),
+        }),
+      );
+
+      return enhancedMessages;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(
+        `Unexpected error getting enhanced messages for session ${sessionId}, user ${currentUser.id}: ${error}`,
       );
       throw new HttpException(
         'An unexpected error occurred.',

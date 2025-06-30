@@ -99,13 +99,51 @@ export class OrchestratorService extends A2AAgentBaseService {
       // If we have a nested params structure, use the inner params
       actualParams = params.params;
     }
-    
+
     // Handle both userMessage (from direct requests) and message (from frontend)
-    const userMessage = actualParams.userMessage || actualParams.message || params.userMessage || params.message || '';
-    const sessionId = actualParams.sessionId || actualParams.session_id || params.sessionId || params.session_id || null;
+    const userMessage =
+      actualParams.userMessage ||
+      actualParams.message ||
+      params.userMessage ||
+      params.message ||
+      '';
+    const sessionId =
+      actualParams.sessionId ||
+      actualParams.session_id ||
+      params.sessionId ||
+      params.session_id ||
+      null;
     const conversationHistory =
-      actualParams.conversationHistory || actualParams.conversation_history || 
-      params.conversationHistory || params.conversation_history || [];
+      actualParams.conversationHistory ||
+      actualParams.conversation_history ||
+      params.conversationHistory ||
+      params.conversation_history ||
+      [];
+
+    // Extract LLM preferences for enhanced response generation
+    const llmPreferences = {
+      providerId:
+        actualParams.providerId ||
+        actualParams.provider_id ||
+        params.providerId ||
+        params.provider_id,
+      modelId:
+        actualParams.modelId ||
+        actualParams.model_id ||
+        params.modelId ||
+        params.model_id,
+      cidafmOptions:
+        actualParams.cidafmOptions ||
+        actualParams.cidafm_options ||
+        params.cidafmOptions ||
+        params.cidafm_options,
+      temperature: actualParams.temperature || params.temperature,
+      maxTokens:
+        actualParams.maxTokens ||
+        actualParams.max_tokens ||
+        params.maxTokens ||
+        params.max_tokens,
+    };
 
     // Extract user authentication context - check both levels
     const currentUser = params.currentUser || actualParams.currentUser || null;
@@ -113,6 +151,9 @@ export class OrchestratorService extends A2AAgentBaseService {
 
     this.orchestratorLogger.log(
       `Processing message: "${userMessage}" with ${conversationHistory.length} history messages`,
+    );
+    this.orchestratorLogger.log(
+      `LLM preferences: provider=${llmPreferences.providerId || 'default'}, model=${llmPreferences.modelId || 'default'}, CIDAFM=${!!llmPreferences.cidafmOptions}`,
     );
     if (conversationHistory.length > 0) {
       this.orchestratorLogger.log(
@@ -220,12 +261,12 @@ export class OrchestratorService extends A2AAgentBaseService {
         if (lastAssistantMessage?.metadata?.agentName) {
           const agentName = lastAssistantMessage.metadata.agentName;
           // Only treat as sticky agent if it's NOT an orchestrator agent
-          const isOrchestratorAgent = 
+          const isOrchestratorAgent =
             agentName.toLowerCase().includes('orchestrator') ||
             agentName === 'Orchestrator Agent' ||
             agentName === 'Orchestrator AI' ||
             lastAssistantMessage.metadata?.agentType === 'orchestrator';
-          
+
           if (!isOrchestratorAgent) {
             stickyAgent = agentName;
           }
@@ -242,7 +283,7 @@ export class OrchestratorService extends A2AAgentBaseService {
     }
 
     // Check if this is a return to orchestrator request
-    const isReturnToOrchestratorRequest = 
+    const isReturnToOrchestratorRequest =
       lowerMessage.includes('return to orchestrator') ||
       lowerMessage.includes('back to orchestrator') ||
       lowerMessage.includes('switch to orchestrator') ||
@@ -250,7 +291,7 @@ export class OrchestratorService extends A2AAgentBaseService {
 
     if (isReturnToOrchestratorRequest) {
       return this.createResponse(
-        'Welcome back! I\'m the Orchestrator and I\'m here to help coordinate your requests. I can either assist you directly with general questions or connect you with specialist agents for specific tasks. What would you like to work on?'
+        "Welcome back! I'm the Orchestrator and I'm here to help coordinate your requests. I can either assist you directly with general questions or connect you with specialist agents for specific tasks. What would you like to work on?",
       );
     }
 
@@ -277,22 +318,27 @@ export class OrchestratorService extends A2AAgentBaseService {
     try {
       // Check if this is a content creation request and if Hiverarchy is available
       const isContentRequest = this.isContentCreationRequest(userMessage);
-      const hiverarchyAgent = this.availableAgents.find(agent => agent.name === 'hiverarchy');
-      
+      const hiverarchyAgent = this.availableAgents.find(
+        (agent) => agent.name === 'hiverarchy',
+      );
+
       if (isContentRequest && hiverarchyAgent) {
-        this.orchestratorLogger.log(`🎯 Content creation request detected, delegating to Hiverarchy: "${userMessage}"`);
+        this.orchestratorLogger.log(
+          `🎯 Content creation request detected, delegating to Hiverarchy: "${userMessage}"`,
+        );
         response = await this.delegateToAgent(
           'hiverarchy',
           userMessage,
           sessionId,
           authToken,
+          llmPreferences,
         );
       } else {
         // Pass full agent objects with descriptions to the LLM for better decision making
         const agentObjects = this.availableAgents.map((agent) => ({
           name: agent.name,
           description: agent.description,
-          type: agent.type
+          type: agent.type,
         }));
         // Use the enhanced orchestration decision method with conversation history
         const decision =
@@ -309,14 +355,103 @@ export class OrchestratorService extends A2AAgentBaseService {
             userMessage,
             sessionId,
             authToken,
+            llmPreferences,
           );
-        } else if (decision.action === 'respond_directly' && decision.response) {
-          response = this.createResponse(decision.response);
+        } else if (
+          decision.action === 'respond_directly' &&
+          decision.response
+        ) {
+          // Check if user has LLM preferences for enhanced response generation
+          if (
+            llmPreferences.providerId ||
+            llmPreferences.modelId ||
+            llmPreferences.cidafmOptions
+          ) {
+            try {
+              this.orchestratorLogger.log(
+                '🚀 Using enhanced LLM service for direct response with user preferences',
+              );
+              const enhancedResponse =
+                await this.llmService.generateEnhancedResponse(
+                  currentUser?.id || 'anonymous',
+                  'You are a helpful AI assistant orchestrator. Provide direct assistance to the user.',
+                  userMessage,
+                  {
+                    providerId: llmPreferences.providerId,
+                    modelId: llmPreferences.modelId,
+                    cidafmOptions: llmPreferences.cidafmOptions,
+                    sessionId: sessionId,
+                    temperature: llmPreferences.temperature,
+                    maxTokens: llmPreferences.maxTokens,
+                  },
+                );
+
+              response = this.createResponse(enhancedResponse.content, {
+                llmUsage: enhancedResponse.usage,
+                costCalculation: enhancedResponse.costCalculation,
+                processedPrompt: enhancedResponse.processedPrompt,
+                cidafmState: enhancedResponse.cidafmState,
+                langsmithRunId: enhancedResponse.langsmithRunId,
+                usedEnhancedLLM: true,
+              });
+            } catch (enhancedError) {
+              this.orchestratorLogger.warn(
+                'Enhanced LLM service failed, falling back to standard response:',
+                enhancedError,
+              );
+              response = this.createResponse(decision.response);
+            }
+          } else {
+            response = this.createResponse(decision.response);
+          }
         } else {
-          response = this.createResponse(
+          // For clarification requests, also use enhanced LLM if preferences are provided
+          const clarificationMessage =
             decision.response ||
-              `I understand you said: "${userMessage}". How can I help you further?`,
-          );
+            `I understand you said: "${userMessage}". How can I help you further?`;
+
+          if (
+            llmPreferences.providerId ||
+            llmPreferences.modelId ||
+            llmPreferences.cidafmOptions
+          ) {
+            try {
+              this.orchestratorLogger.log(
+                '🚀 Using enhanced LLM service for clarification with user preferences',
+              );
+              const enhancedResponse =
+                await this.llmService.generateEnhancedResponse(
+                  currentUser?.id || 'anonymous',
+                  'You are a helpful AI assistant orchestrator. Ask for clarification to better assist the user.',
+                  userMessage,
+                  {
+                    providerId: llmPreferences.providerId,
+                    modelId: llmPreferences.modelId,
+                    cidafmOptions: llmPreferences.cidafmOptions,
+                    sessionId: sessionId,
+                    temperature: llmPreferences.temperature,
+                    maxTokens: llmPreferences.maxTokens,
+                  },
+                );
+
+              response = this.createResponse(enhancedResponse.content, {
+                llmUsage: enhancedResponse.usage,
+                costCalculation: enhancedResponse.costCalculation,
+                processedPrompt: enhancedResponse.processedPrompt,
+                cidafmState: enhancedResponse.cidafmState,
+                langsmithRunId: enhancedResponse.langsmithRunId,
+                usedEnhancedLLM: true,
+              });
+            } catch (enhancedError) {
+              this.orchestratorLogger.warn(
+                'Enhanced LLM service failed for clarification, using standard response:',
+                enhancedError,
+              );
+              response = this.createResponse(clarificationMessage);
+            }
+          } else {
+            response = this.createResponse(clarificationMessage);
+          }
         }
       }
     } catch (error) {
@@ -444,8 +579,7 @@ export class OrchestratorService extends A2AAgentBaseService {
       if (!uniqueAgents.has(cleanName)) {
         uniqueAgents.set(cleanName, {
           name: cleanName,
-          description:
-            agent.description || `${cleanName} specialist agent`, // Use agent.description directly from YAML
+          description: agent.description || `${cleanName} specialist agent`, // Use agent.description directly from YAML
           originalAgent: agent,
         });
       }
@@ -487,12 +621,12 @@ export class OrchestratorService extends A2AAgentBaseService {
       (a) =>
         a.name.toLowerCase() === stickyAgentName.toLowerCase() ||
         a.name.toLowerCase().includes(stickyAgentName.toLowerCase()) ||
-        stickyAgentName.toLowerCase().includes(a.name.toLowerCase())
+        stickyAgentName.toLowerCase().includes(a.name.toLowerCase()),
     );
 
     if (!agent) {
       return this.createResponse(
-        `I don't have detailed information about the ${stickyAgentName} agent available right now.`
+        `I don't have detailed information about the ${stickyAgentName} agent available right now.`,
       );
     }
 
@@ -504,10 +638,10 @@ export class OrchestratorService extends A2AAgentBaseService {
       .join(' ');
 
     const description = agent.description || `${cleanName} specialist agent`;
-    
+
     let capabilitiesText = `Hello! I'm the ${cleanName}.\n\n`;
     capabilitiesText += `${description}\n\n`;
-    
+
     if (agent.capabilities && agent.capabilities.length > 0) {
       capabilitiesText += `My specific capabilities include:\n`;
       agent.capabilities.forEach((capability, index) => {
@@ -537,6 +671,7 @@ export class OrchestratorService extends A2AAgentBaseService {
     request: string,
     sessionId?: string,
     authToken?: string,
+    llmPreferences?: any,
   ): Promise<any> {
     try {
       this.orchestratorLogger.log(
@@ -584,6 +719,18 @@ export class OrchestratorService extends A2AAgentBaseService {
         params: {
           userMessage: messageToAgent,
           sessionId: sessionId || `orchestrator-delegation-${Date.now()}`,
+          // Pass LLM preferences to the delegated agent
+          ...(llmPreferences && {
+            providerId: llmPreferences.providerId,
+            provider_id: llmPreferences.providerId,
+            modelId: llmPreferences.modelId,
+            model_id: llmPreferences.modelId,
+            cidafmOptions: llmPreferences.cidafmOptions,
+            cidafm_options: llmPreferences.cidafmOptions,
+            temperature: llmPreferences.temperature,
+            maxTokens: llmPreferences.maxTokens,
+            max_tokens: llmPreferences.maxTokens,
+          }),
         },
         id: `orchestrator-delegation-${Date.now()}`,
       };
@@ -591,6 +738,14 @@ export class OrchestratorService extends A2AAgentBaseService {
       this.orchestratorLogger.log(
         `Delegating to agent at: ${agentUrl} with message: "${messageToAgent}"`,
       );
+      if (
+        llmPreferences &&
+        (llmPreferences.providerId || llmPreferences.modelId)
+      ) {
+        this.orchestratorLogger.log(
+          `🚀 Passing LLM preferences to delegated agent: provider=${llmPreferences.providerId || 'default'}, model=${llmPreferences.modelId || 'default'}`,
+        );
+      }
       this.orchestratorLogger.log(`Payload: ${JSON.stringify(payload)}`);
 
       // Prepare headers with authentication if available
@@ -663,7 +818,7 @@ export class OrchestratorService extends A2AAgentBaseService {
   /**
    * Create a standard response format
    */
-  private createResponse(responseText: string): any {
+  private createResponse(responseText: string, additionalMetadata?: any): any {
     return {
       success: true,
       response: responseText,
@@ -671,6 +826,7 @@ export class OrchestratorService extends A2AAgentBaseService {
         agentType: 'orchestrator',
         agentName: 'Orchestrator Agent',
         processedAt: new Date().toISOString(),
+        ...additionalMetadata,
       },
     };
   }
@@ -697,10 +853,10 @@ export class OrchestratorService extends A2AAgentBaseService {
       'content writing',
       'draft a post',
       'compose an article',
-      'develop content'
+      'develop content',
     ];
-    
-    return contentKeywords.some(keyword => lowerMessage.includes(keyword));
+
+    return contentKeywords.some((keyword) => lowerMessage.includes(keyword));
   }
 
   /**
@@ -796,7 +952,7 @@ export class OrchestratorService extends A2AAgentBaseService {
             url: agent.url,
             type: agent.type,
             capabilities: agent.capabilities || [],
-            metadata: agent.metadata
+            metadata: agent.metadata,
           }));
 
         this.orchestratorLogger.log(
@@ -823,9 +979,7 @@ export class OrchestratorService extends A2AAgentBaseService {
           );
         }
       } else {
-        this.orchestratorLogger.warn(
-          'No agents found in agent pool response',
-        );
+        this.orchestratorLogger.warn('No agents found in agent pool response');
         this.availableAgents = [];
       }
 
@@ -843,6 +997,4 @@ export class OrchestratorService extends A2AAgentBaseService {
       this.availableAgents = [];
     }
   }
-
-
 }

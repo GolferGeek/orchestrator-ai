@@ -16,6 +16,10 @@ import { DynamicAgentsController } from './agents/dynamic-agents.controller';
 import { BaseSubServicesModule } from './agents/base/sub-services/base-sub-services.module';
 import { ConfigurationService } from './agents/base/sub-services/configuration/configuration.service';
 import { AgentRegistrationService } from './agents/base/sub-services/agent-registration/agent-registration.service';
+import { ProvidersModule } from './providers/providers.module';
+import { CIDAFMModule } from './cidafm/cidafm.module';
+import { EvaluationModule } from './evaluation/evaluation.module';
+import { UsageModule } from './usage/usage.module';
 import supabaseConfig from './supabase/supabase.config';
 
 @Module({
@@ -41,6 +45,11 @@ import supabaseConfig from './supabase/supabase.config';
     SessionsModule,
     HealthModule,
     AgentPoolModule,
+    // LLM Evaluation Enhancement Modules
+    ProvidersModule, // LLM providers and models management
+    CIDAFMModule, // AI Function Module behavior modification
+    EvaluationModule, // Message evaluation and feedback
+    UsageModule, // Usage analytics and cost tracking
   ],
   controllers: [AppController, DynamicAgentsController],
   providers: [
