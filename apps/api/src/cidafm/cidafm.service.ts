@@ -256,10 +256,10 @@ export class CIDAFMService {
     currentState?: Record<string, any>,
     sessionId?: string,
   ): Promise<{
-    modified_prompt: string;
-    active_state_modifiers: string[];
-    executed_commands: string[];
-    processing_notes: string[];
+    modifiedPrompt: string;
+    activeStateModifiers: string[];
+    executedCommands: string[];
+    processingNotes: string[];
   }> {
     const commands = await this.findAllCommands(userId, {
       includeUserCommands: true,
@@ -352,10 +352,10 @@ export class CIDAFMService {
     );
 
     return {
-      modified_prompt: modifiedPrompt,
-      active_state_modifiers: state.active_state_modifiers,
-      executed_commands: executedCommands,
-      processing_notes: processingNotes,
+      modifiedPrompt: modifiedPrompt,
+      activeStateModifiers: state.active_state_modifiers,
+      executedCommands: executedCommands,
+      processingNotes: processingNotes,
     };
   }
 

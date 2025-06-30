@@ -29,11 +29,11 @@ export class JwtAuthGuard implements CanActivate {
         email: 'test_api_key_user@example.com',
         aud: 'authenticated',
         role: 'authenticated',
-        app_metadata: { provider: 'api_key', providers: ['api_key'] },
-        user_metadata: { name: 'Test API Key User' },
+        appMetadata: { provider: 'api_key', providers: ['api_key'] },
+        userMetadata: { name: 'Test API Key User' },
         identities: [],
-        created_at: new Date(),
-        updated_at: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
       return true;
     }
@@ -71,20 +71,20 @@ export class JwtAuthGuard implements CanActivate {
         email: user.email,
         aud: user.aud,
         role: user.role,
-        app_metadata: user.app_metadata || {},
-        user_metadata: user.user_metadata || {},
+        appMetadata: user.app_metadata || {},
+        userMetadata: user.user_metadata || {},
         phone: user.phone,
-        email_confirmed_at: user.email_confirmed_at
+        emailConfirmedAt: user.email_confirmed_at
           ? new Date(user.email_confirmed_at)
           : undefined,
-        confirmed_at: user.confirmed_at
+        confirmedAt: user.confirmed_at
           ? new Date(user.confirmed_at)
           : undefined,
-        last_sign_in_at: user.last_sign_in_at
+        lastSignInAt: user.last_sign_in_at
           ? new Date(user.last_sign_in_at)
           : undefined,
-        created_at: user.created_at ? new Date(user.created_at) : undefined,
-        updated_at: user.updated_at ? new Date(user.updated_at) : undefined,
+        createdAt: user.created_at ? new Date(user.created_at) : undefined,
+        updatedAt: user.updated_at ? new Date(user.updated_at) : undefined,
         identities: user.identities || [],
       };
 
