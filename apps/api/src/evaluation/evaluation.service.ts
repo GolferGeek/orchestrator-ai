@@ -40,7 +40,7 @@ export class EvaluationService {
     evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto | null> {
     const client = this.supabaseService.getClient();
-    
+
     // Verify message exists and belongs to user
     const { data: message, error: messageError } = await client
       .from('messages')
@@ -66,11 +66,13 @@ export class EvaluationService {
       })
       .eq('id', messageId)
       .eq('user_id', userId)
-      .select(`
+      .select(
+        `
         *,
         provider:providers(*),
         model:models(*)
-      `)
+      `,
+      )
       .single();
 
     if (updateError) {
@@ -98,14 +100,16 @@ export class EvaluationService {
     messageId: string,
   ): Promise<EnhancedMessageResponseDto | null> {
     const client = this.supabaseService.getClient();
-    
+
     const { data: message, error } = await client
       .from('messages')
-      .select(`
+      .select(
+        `
         *,
         provider:providers(*),
         model:models(*)
-      `)
+      `,
+      )
       .eq('id', messageId)
       .eq('user_id', userId)
       .single();
@@ -129,14 +133,16 @@ export class EvaluationService {
     filters: EvaluationFilters = {},
   ): Promise<EnhancedMessageResponseDto[]> {
     const client = this.supabaseService.getClient();
-    
+
     let query = client
       .from('messages')
-      .select(`
+      .select(
+        `
         *,
         provider:providers(*),
         model:models(*)
-      `)
+      `,
+      )
       .eq('user_id', userId)
       .eq('session_id', sessionId)
       .not('user_rating', 'is', null)
@@ -178,11 +184,12 @@ export class EvaluationService {
     }>;
   }> {
     const client = this.supabaseService.getClient();
-    
+
     // Build base query
     let query = client
       .from('messages')
-      .select(`
+      .select(
+        `
         user_rating,
         speed_rating,
         accuracy_rating,
@@ -190,7 +197,8 @@ export class EvaluationService {
         model_id,
         model:models(*),
         timestamp
-      `)
+      `,
+      )
       .eq('user_id', userId)
       .not('user_rating', 'is', null);
 
@@ -242,10 +250,11 @@ export class EvaluationService {
     options: FeedbackExportOptions,
   ): Promise<any[] | string> {
     const client = this.supabaseService.getClient();
-    
+
     let query = client
       .from('messages')
-      .select(`
+      .select(
+        `
         id,
         timestamp,
         ${options.includeContent ? 'content,' : ''}
@@ -260,7 +269,8 @@ export class EvaluationService {
         response_time_ms,
         provider:providers(name),
         model:models(name, model_id)
-      `)
+      `,
+      )
       .eq('user_id', userId)
       .not('user_rating', 'is', null)
       .order('timestamp');
@@ -308,10 +318,11 @@ export class EvaluationService {
     recommendations: string[];
   }> {
     const client = this.supabaseService.getClient();
-    
+
     let query = client
       .from('messages')
-      .select(`
+      .select(
+        `
         user_rating,
         speed_rating,
         accuracy_rating,
@@ -319,7 +330,8 @@ export class EvaluationService {
         total_cost,
         model:models(*),
         timestamp
-      `)
+      `,
+      )
       .eq('user_id', userId)
       .in('model_id', modelIds)
       .not('user_rating', 'is', null);
@@ -374,7 +386,8 @@ export class EvaluationService {
       // Update existing stats with new rating
       const currentRating = existingStats.avg_user_rating || 0;
       const ratingCount = existingStats.total_requests;
-      const newAvgRating = (currentRating * ratingCount + rating) / (ratingCount + 1);
+      const newAvgRating =
+        (currentRating * ratingCount + rating) / (ratingCount + 1);
 
       await client
         .from('user_usage_stats')
@@ -393,22 +406,30 @@ export class EvaluationService {
     evaluation_distribution: Record<string, number>;
   } {
     const totalEvaluations = evaluations.length;
-    
-    const avgOverallRating = totalEvaluations > 0 
-      ? evaluations.reduce((sum, eval) => sum + (eval.user_rating || 0), 0) / totalEvaluations
-      : 0;
 
-    const avgSpeedRating = evaluations.filter(e => e.speed_rating).length > 0
-      ? evaluations.reduce((sum, eval) => sum + (eval.speed_rating || 0), 0) / evaluations.filter(e => e.speed_rating).length
-      : 0;
+    const avgOverallRating =
+      totalEvaluations > 0
+        ? evaluations.reduce((sum, eval) => sum + (eval.user_rating || 0), 0) /
+          totalEvaluations
+        : 0;
 
-    const avgAccuracyRating = evaluations.filter(e => e.accuracy_rating).length > 0
-      ? evaluations.reduce((sum, eval) => sum + (eval.accuracy_rating || 0), 0) / evaluations.filter(e => e.accuracy_rating).length
-      : 0;
+    const avgSpeedRating =
+      evaluations.filter((e) => e.speed_rating).length > 0
+        ? evaluations.reduce((sum, eval) => sum + (eval.speed_rating || 0), 0) /
+          evaluations.filter((e) => e.speed_rating).length
+        : 0;
+
+    const avgAccuracyRating =
+      evaluations.filter((e) => e.accuracy_rating).length > 0
+        ? evaluations.reduce(
+            (sum, eval) => sum + (eval.accuracy_rating || 0),
+            0,
+          ) / evaluations.filter((e) => e.accuracy_rating).length
+        : 0;
 
     // Calculate rating distribution
     const distribution = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
-    evaluations.forEach(eval => {
+    evaluations.forEach((eval) => {
       if (eval.user_rating) {
         distribution[eval.user_rating.toString()]++;
       }
@@ -444,9 +465,13 @@ export class EvaluationService {
 
     return Object.values(modelGroups).map((group: any) => ({
       model: group.model,
-      avg_rating: group.ratings.length > 0 
-        ? group.ratings.reduce((sum: number, rating: number) => sum + rating, 0) / group.ratings.length
-        : 0,
+      avg_rating:
+        group.ratings.length > 0
+          ? group.ratings.reduce(
+              (sum: number, rating: number) => sum + rating,
+              0,
+            ) / group.ratings.length
+          : 0,
       evaluation_count: group.ratings.length,
     }));
   }
@@ -474,13 +499,17 @@ export class EvaluationService {
           costs: [],
         };
       }
-      
-      if (msg.user_rating) groups[modelId].overall_ratings.push(msg.user_rating);
-      if (msg.speed_rating) groups[modelId].speed_ratings.push(msg.speed_rating);
-      if (msg.accuracy_rating) groups[modelId].accuracy_ratings.push(msg.accuracy_rating);
-      if (msg.response_time_ms) groups[modelId].response_times.push(msg.response_time_ms);
+
+      if (msg.user_rating)
+        groups[modelId].overall_ratings.push(msg.user_rating);
+      if (msg.speed_rating)
+        groups[modelId].speed_ratings.push(msg.speed_rating);
+      if (msg.accuracy_rating)
+        groups[modelId].accuracy_ratings.push(msg.accuracy_rating);
+      if (msg.response_time_ms)
+        groups[modelId].response_times.push(msg.response_time_ms);
       if (msg.total_cost) groups[modelId].costs.push(msg.total_cost);
-      
+
       return groups;
     }, {});
 
@@ -499,37 +528,47 @@ export class EvaluationService {
 
   private generateModelRecommendations(comparison: any[]): string[] {
     const recommendations = [];
-    
+
     // Find best performer by rating
-    const bestRated = comparison.reduce((best, current) => 
-      current.metrics.avg_overall_rating > best.metrics.avg_overall_rating ? current : best
+    const bestRated = comparison.reduce((best, current) =>
+      current.metrics.avg_overall_rating > best.metrics.avg_overall_rating
+        ? current
+        : best,
     );
-    
+
     // Find most cost-effective
-    const cheapest = comparison.reduce((cheapest, current) => 
-      current.metrics.avg_cost < cheapest.metrics.avg_cost ? current : cheapest
+    const cheapest = comparison.reduce((cheapest, current) =>
+      current.metrics.avg_cost < cheapest.metrics.avg_cost ? current : cheapest,
     );
-    
-    recommendations.push(`${bestRated.model?.name} has the highest user satisfaction rating`);
-    recommendations.push(`${cheapest.model?.name} is the most cost-effective option`);
-    
+
+    recommendations.push(
+      `${bestRated.model?.name} has the highest user satisfaction rating`,
+    );
+    recommendations.push(
+      `${cheapest.model?.name} is the most cost-effective option`,
+    );
+
     return recommendations;
   }
 
   private calculateAverage(values: number[]): number {
-    return values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : 0;
+    return values.length > 0
+      ? values.reduce((sum, val) => sum + val, 0) / values.length
+      : 0;
   }
 
   private convertFeedbackToCSV(feedback: any[]): string {
     if (feedback.length === 0) return '';
-    
+
     const headers = Object.keys(feedback[0]).join(',');
-    const rows = feedback.map(item => 
-      Object.values(item).map(val => 
-        typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val
-      ).join(',')
+    const rows = feedback.map((item) =>
+      Object.values(item)
+        .map((val) =>
+          typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val,
+        )
+        .join(','),
     );
-    
+
     return [headers, ...rows].join('\n');
   }
 }

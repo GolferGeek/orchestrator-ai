@@ -19,11 +19,8 @@ export class ProvidersService {
 
   async findAll(status?: ProviderStatus): Promise<ProviderResponseDto[]> {
     const client = this.supabaseService.getClient();
-    
-    let query = client
-      .from('providers')
-      .select('*')
-      .order('name');
+
+    let query = client.from('providers').select('*').order('name');
 
     if (status) {
       query = query.eq('status', status);
@@ -43,7 +40,7 @@ export class ProvidersService {
 
   async findOne(id: string): Promise<ProviderResponseDto | null> {
     const client = this.supabaseService.getClient();
-    
+
     const { data, error } = await client
       .from('providers')
       .select('*')
@@ -68,13 +65,15 @@ export class ProvidersService {
     status?: ModelStatus,
   ): Promise<ModelResponseDto[]> {
     const client = this.supabaseService.getClient();
-    
+
     let query = client
       .from('models')
-      .select(`
+      .select(
+        `
         *,
         provider:providers(*)
-      `)
+      `,
+      )
       .eq('provider_id', providerId)
       .order('name');
 
@@ -94,9 +93,11 @@ export class ProvidersService {
     return data || [];
   }
 
-  async create(createProviderDto: CreateProviderDto): Promise<ProviderResponseDto> {
+  async create(
+    createProviderDto: CreateProviderDto,
+  ): Promise<ProviderResponseDto> {
     const client = this.supabaseService.getServiceClient();
-    
+
     // Check if provider name already exists
     const { data: existingProvider } = await client
       .from('providers')
@@ -137,7 +138,7 @@ export class ProvidersService {
     updateProviderDto: UpdateProviderDto,
   ): Promise<ProviderResponseDto | null> {
     const client = this.supabaseService.getServiceClient();
-    
+
     // Check if provider exists
     const existing = await this.findOne(id);
     if (!existing) {
@@ -183,7 +184,7 @@ export class ProvidersService {
 
   async delete(id: string): Promise<boolean> {
     const client = this.supabaseService.getServiceClient();
-    
+
     // Check if provider exists
     const existing = await this.findOne(id);
     if (!existing) {
@@ -204,10 +205,7 @@ export class ProvidersService {
       );
     }
 
-    const { error } = await client
-      .from('providers')
-      .delete()
-      .eq('id', id);
+    const { error } = await client.from('providers').delete().eq('id', id);
 
     if (error) {
       throw new HttpException(
@@ -222,7 +220,7 @@ export class ProvidersService {
   // Helper method to get provider by name
   async findByName(name: string): Promise<ProviderResponseDto | null> {
     const client = this.supabaseService.getClient();
-    
+
     const { data, error } = await client
       .from('providers')
       .select('*')
@@ -243,15 +241,19 @@ export class ProvidersService {
   }
 
   // Helper method to get all active providers with their models
-  async findAllWithModels(): Promise<(ProviderResponseDto & { models: ModelResponseDto[] })[]> {
+  async findAllWithModels(): Promise<
+    (ProviderResponseDto & { models: ModelResponseDto[] })[]
+  > {
     const client = this.supabaseService.getClient();
-    
+
     const { data, error } = await client
       .from('providers')
-      .select(`
+      .select(
+        `
         *,
         models:models(*)
-      `)
+      `,
+      )
       .eq('status', 'active')
       .eq('models.status', 'active')
       .order('name');

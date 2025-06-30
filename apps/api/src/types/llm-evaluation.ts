@@ -3,15 +3,15 @@
 
 // ==================== Core Enums and Types ====================
 
-export type LLMProvider = 
-  | 'openai' 
-  | 'anthropic' 
-  | 'google' 
-  | 'cohere' 
-  | 'mistral' 
-  | 'ollama' 
-  | 'xai' 
-  | 'together' 
+export type LLMProvider =
+  | 'openai'
+  | 'anthropic'
+  | 'google'
+  | 'cohere'
+  | 'mistral'
+  | 'ollama'
+  | 'xai'
+  | 'together'
   | 'groq';
 
 export type ProviderStatus = 'active' | 'inactive' | 'deprecated';
@@ -19,7 +19,10 @@ export type ModelStatus = 'active' | 'inactive' | 'deprecated';
 export type AuthType = 'api_key' | 'oauth' | 'none';
 
 export type CIDAFMCommandType = '^' | '&' | '!';
-export type CIDAFMTypeName = 'Response Modifier' | 'State Modifier' | 'Execution Command';
+export type CIDAFMTypeName =
+  | 'Response Modifier'
+  | 'State Modifier'
+  | 'Execution Command';
 
 export type UserRatingScale = 1 | 2 | 3 | 4 | 5;
 
@@ -136,29 +139,29 @@ export interface EnhancedMessage {
   timestamp: string;
   order: number;
   metadata?: Record<string, any>;
-  
+
   // LLM Selection
   provider_id?: string;
   model_id?: string;
-  
+
   // Usage Metrics
   input_tokens?: number;
   output_tokens?: number;
   total_cost?: number;
   response_time_ms?: number;
   langsmith_run_id?: string;
-  
+
   // Evaluation Data
   user_rating?: UserRatingScale;
   speed_rating?: UserRatingScale;
   accuracy_rating?: UserRatingScale;
   user_notes?: string;
   evaluation_timestamp?: string;
-  
+
   // CIDAFM and Additional Data
   cidafm_options?: CIDAFMOptions;
   evaluation_details?: EvaluationDetails;
-  
+
   // Joined data when fetching with relations
   provider?: Provider;
   model?: Model;
@@ -227,7 +230,7 @@ export interface UsageAnalytics {
   total_cost: number;
   average_response_time: number;
   average_user_rating?: number;
-  
+
   // Breakdown by provider/model
   by_provider: Array<{
     provider: Provider;
@@ -236,7 +239,7 @@ export interface UsageAnalytics {
     cost: number;
     avg_rating?: number;
   }>;
-  
+
   by_model: Array<{
     model: Model;
     requests: number;
@@ -244,7 +247,7 @@ export interface UsageAnalytics {
     cost: number;
     avg_rating?: number;
   }>;
-  
+
   // Daily breakdown
   daily_stats: Array<{
     date: string;

@@ -112,15 +112,30 @@ describe('Authenticated Agent End-to-End Tests', () => {
     const orchestratorTestCases = [
       {
         agentName: 'hiverarchy',
-        prompt: 'Write a comprehensive blog post about renewable energy and sustainability',
-        expectedKeywords: ['renewable', 'energy', 'sustainability', 'blog', 'post'],
-        description: 'Should delegate to Hiverarchy external agent for content creation',
+        prompt:
+          'Write a comprehensive blog post about renewable energy and sustainability',
+        expectedKeywords: [
+          'renewable',
+          'energy',
+          'sustainability',
+          'blog',
+          'post',
+        ],
+        description:
+          'Should delegate to Hiverarchy external agent for content creation',
       },
       {
         agentName: 'hiverarchy',
         prompt: 'Create an article about the future of artificial intelligence',
-        expectedKeywords: ['artificial', 'intelligence', 'future', 'article', 'technology'],
-        description: 'Should delegate to Hiverarchy external agent for AI content',
+        expectedKeywords: [
+          'artificial',
+          'intelligence',
+          'future',
+          'article',
+          'technology',
+        ],
+        description:
+          'Should delegate to Hiverarchy external agent for AI content',
       },
       {
         agentName: 'blog_post',
@@ -144,13 +159,26 @@ describe('Authenticated Agent End-to-End Tests', () => {
       },
       {
         agentName: 'sop',
-        prompt: 'Help me create a standard operating procedure for customer onboarding',
-        expectedKeywords: ['standard', 'operating', 'procedure', 'onboarding', 'sop'],
+        prompt:
+          'Help me create a standard operating procedure for customer onboarding',
+        expectedKeywords: [
+          'standard',
+          'operating',
+          'procedure',
+          'onboarding',
+          'sop',
+        ],
       },
       {
         agentName: 'internal_rag',
         prompt: 'Search our internal knowledge base for company policies',
-        expectedKeywords: ['internal', 'knowledge', 'search', 'company', 'policies'],
+        expectedKeywords: [
+          'internal',
+          'knowledge',
+          'search',
+          'company',
+          'policies',
+        ],
       },
       {
         agentName: 'invoice',
@@ -170,12 +198,24 @@ describe('Authenticated Agent End-to-End Tests', () => {
       {
         agentName: 'email_triage',
         prompt: 'Classify this customer email and determine priority',
-        expectedKeywords: ['email', 'classify', 'priority', 'triage', 'routing'],
+        expectedKeywords: [
+          'email',
+          'classify',
+          'priority',
+          'triage',
+          'routing',
+        ],
       },
       {
         agentName: 'voice_receptionist',
         prompt: 'Handle an incoming call from a new customer',
-        expectedKeywords: ['call', 'customer', 'greeting', 'routing', 'professional'],
+        expectedKeywords: [
+          'call',
+          'customer',
+          'greeting',
+          'routing',
+          'professional',
+        ],
       },
       {
         agentName: 'voice_summary',
@@ -185,22 +225,46 @@ describe('Authenticated Agent End-to-End Tests', () => {
       {
         agentName: 'competitors',
         prompt: 'Analyze our main competitors and their strategies',
-        expectedKeywords: ['competitive', 'analysis', 'market', 'strategy', 'positioning'],
+        expectedKeywords: [
+          'competitive',
+          'analysis',
+          'market',
+          'strategy',
+          'positioning',
+        ],
       },
       {
         agentName: 'external_rag',
         prompt: 'Search external databases for industry best practices',
-        expectedKeywords: ['external', 'search', 'research', 'industry', 'best'],
+        expectedKeywords: [
+          'external',
+          'search',
+          'research',
+          'industry',
+          'best',
+        ],
       },
       {
         agentName: 'market_research',
         prompt: 'Research market trends in our industry',
-        expectedKeywords: ['market', 'research', 'trends', 'industry', 'analysis'],
+        expectedKeywords: [
+          'market',
+          'research',
+          'trends',
+          'industry',
+          'analysis',
+        ],
       },
       {
         agentName: 'onboarding',
         prompt: 'Help onboard a new employee to our company',
-        expectedKeywords: ['onboarding', 'employee', 'training', 'welcome', 'process'],
+        expectedKeywords: [
+          'onboarding',
+          'employee',
+          'training',
+          'welcome',
+          'process',
+        ],
       },
       {
         agentName: 'policy_rag',
@@ -215,22 +279,46 @@ describe('Authenticated Agent End-to-End Tests', () => {
       {
         agentName: 'calendar',
         prompt: 'Schedule a meeting with the development team',
-        expectedKeywords: ['calendar', 'schedule', 'meeting', 'appointment', 'time'],
+        expectedKeywords: [
+          'calendar',
+          'schedule',
+          'meeting',
+          'appointment',
+          'time',
+        ],
       },
       {
         agentName: 'content',
         prompt: 'Create content for our marketing campaign',
-        expectedKeywords: ['content', 'marketing', 'create', 'campaign', 'materials'],
+        expectedKeywords: [
+          'content',
+          'marketing',
+          'create',
+          'campaign',
+          'materials',
+        ],
       },
       {
         agentName: 'meetings',
         prompt: 'Coordinate a project kickoff meeting',
-        expectedKeywords: ['meeting', 'coordinate', 'project', 'kickoff', 'agenda'],
+        expectedKeywords: [
+          'meeting',
+          'coordinate',
+          'project',
+          'kickoff',
+          'agenda',
+        ],
       },
       {
         agentName: 'launcher',
         prompt: 'Launch our new product feature rollout',
-        expectedKeywords: ['launch', 'product', 'feature', 'rollout', 'deployment'],
+        expectedKeywords: [
+          'launch',
+          'product',
+          'feature',
+          'rollout',
+          'deployment',
+        ],
       },
     ];
 
@@ -275,12 +363,18 @@ describe('Authenticated Agent End-to-End Tests', () => {
         // For Hiverarchy tests, verify we got substantial content (indicating external agent was used)
         if (testCase.agentName === 'hiverarchy') {
           expect(response.body.result.response.length).toBeGreaterThan(500);
-          console.log(`✅ E2E Orchestrator delegation to ${testCase.agentName} - Length: ${response.body.result.response.length} chars - ${testCase.description || ''}`);
+          console.log(
+            `✅ E2E Orchestrator delegation to ${testCase.agentName} - Length: ${response.body.result.response.length} chars - ${testCase.description || ''}`,
+          );
         } else {
-          console.log(`✅ E2E Orchestrator delegation test for ${testCase.agentName} passed`);
+          console.log(
+            `✅ E2E Orchestrator delegation test for ${testCase.agentName} passed`,
+          );
         }
 
-        console.log(`Response preview: ${response.body.result.response.substring(0, 150)}...`);
+        console.log(
+          `Response preview: ${response.body.result.response.substring(0, 150)}...`,
+        );
       }, 45000); // 45 second timeout for orchestrator + AI processing
     });
   });
@@ -293,7 +387,9 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      const hiverarchyAgent = poolResponse.body.find((agent: any) => agent.name === 'hiverarchy');
+      const hiverarchyAgent = poolResponse.body.find(
+        (agent: any) => agent.name === 'hiverarchy',
+      );
       expect(hiverarchyAgent).toBeDefined();
       console.log('✅ Hiverarchy agent found in pool:', hiverarchyAgent);
 
@@ -303,7 +399,8 @@ describe('Authenticated Agent End-to-End Tests', () => {
         id: `test-hiverarchy-delegation-${Date.now()}`,
         method: 'handle_request',
         params: {
-          message: 'Write a detailed blog post about the benefits of renewable energy and how it impacts climate change',
+          message:
+            'Write a detailed blog post about the benefits of renewable energy and how it impacts climate change',
           session_id: `test-hiverarchy-session-${Date.now()}`,
           conversation_history: [],
           authToken: authToken,
@@ -334,8 +431,10 @@ describe('Authenticated Agent End-to-End Tests', () => {
       const lowerResponse = responseText.toLowerCase();
       expect(lowerResponse).toMatch(/renewable.{0,50}energy/);
       expect(lowerResponse).toMatch(/climate.{0,50}change/);
-      
-      console.log(`✅ Hiverarchy delegation test passed - Response length: ${responseText.length} characters`);
+
+      console.log(
+        `✅ Hiverarchy delegation test passed - Response length: ${responseText.length} characters`,
+      );
       console.log(`Response preview: ${responseText.substring(0, 200)}...`);
     }, 60000); // Extended timeout for external agent processing
 
@@ -346,7 +445,8 @@ describe('Authenticated Agent End-to-End Tests', () => {
         id: `test-hiverarchy-preference-${Date.now()}`,
         method: 'handle_request',
         params: {
-          message: 'I need advanced content creation using Hiverarchy AI. Please write an article about sustainable technology innovations.',
+          message:
+            'I need advanced content creation using Hiverarchy AI. Please write an article about sustainable technology innovations.',
           session_id: `test-hiverarchy-preference-${Date.now()}`,
           conversation_history: [],
           authToken: authToken,
@@ -363,18 +463,20 @@ describe('Authenticated Agent End-to-End Tests', () => {
       // Validate response
       expect(response.body.result.success).toBe(true);
       expect(response.body.result.response).toBeDefined();
-      
+
       const responseText = response.body.result.response;
-      
+
       // The response should be substantial (Hiverarchy typically generates comprehensive content)
       expect(responseText.length).toBeGreaterThan(800);
-      
+
       // Should contain relevant keywords
       const lowerResponse = responseText.toLowerCase();
       expect(lowerResponse).toMatch(/sustainable.{0,50}technology/);
       expect(lowerResponse).toMatch(/innovation/);
-      
-      console.log(`✅ Hiverarchy preference test passed - Response length: ${responseText.length} characters`);
+
+      console.log(
+        `✅ Hiverarchy preference test passed - Response length: ${responseText.length} characters`,
+      );
     }, 60000);
   });
 

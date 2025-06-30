@@ -259,7 +259,9 @@ export class SessionsController {
   @Post(':sessionId/messages')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Send a message to a chat session with LLM selection' })
+  @ApiOperation({
+    summary: 'Send a message to a chat session with LLM selection',
+  })
   @ApiResponse({
     status: 201,
     description: 'Message sent successfully',
@@ -306,7 +308,9 @@ export class SessionsController {
   @Get(':sessionId/messages/enhanced')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List enhanced messages with LLM and evaluation data' })
+  @ApiOperation({
+    summary: 'List enhanced messages with LLM and evaluation data',
+  })
   @ApiResponse({
     status: 200,
     description: 'Enhanced messages retrieved successfully',

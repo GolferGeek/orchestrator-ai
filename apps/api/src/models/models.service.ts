@@ -7,11 +7,7 @@ import {
   CostEstimateDto,
   CostEstimateResponseDto,
 } from '../dto/llm-evaluation.dto';
-import {
-  Model,
-  ModelStatus,
-  CostCalculation,
-} from '../types/llm-evaluation';
+import { Model, ModelStatus, CostCalculation } from '../types/llm-evaluation';
 
 interface ModelFilters {
   providerId?: string;
@@ -32,14 +28,10 @@ export class ModelsService {
 
   async findAll(filters: ModelFilters = {}): Promise<ModelResponseDto[]> {
     const client = this.supabaseService.getClient();
-    
+
     let query = client
       .from('models')
-      .select(
-        filters.includeProvider
-          ? `*, provider:providers(*)`
-          : '*'
-      )
+      .select(filters.includeProvider ? `*, provider:providers(*)` : '*')
       .order('name');
 
     if (filters.providerId) {
@@ -66,16 +58,15 @@ export class ModelsService {
     return data || [];
   }
 
-  async findOne(id: string, includeProvider = false): Promise<ModelResponseDto | null> {
+  async findOne(
+    id: string,
+    includeProvider = false,
+  ): Promise<ModelResponseDto | null> {
     const client = this.supabaseService.getClient();
-    
+
     const { data, error } = await client
       .from('models')
-      .select(
-        includeProvider
-          ? `*, provider:providers(*)`
-          : '*'
-      )
+      .select(includeProvider ? `*, provider:providers(*)` : '*')
       .eq('id', id)
       .single();
 
@@ -97,7 +88,7 @@ export class ModelsService {
     providerId?: string,
   ): Promise<ModelResponseDto | null> {
     const client = this.supabaseService.getClient();
-    
+
     let query = client
       .from('models')
       .select(`*, provider:providers(*)`)
@@ -124,7 +115,7 @@ export class ModelsService {
 
   async create(createModelDto: CreateModelDto): Promise<ModelResponseDto> {
     const client = this.supabaseService.getServiceClient();
-    
+
     // Check if provider exists
     const { data: provider } = await client
       .from('providers')
@@ -185,7 +176,7 @@ export class ModelsService {
     updateModelDto: UpdateModelDto,
   ): Promise<ModelResponseDto | null> {
     const client = this.supabaseService.getServiceClient();
-    
+
     // Check if model exists
     const existing = await this.findOne(id);
     if (!existing) {
@@ -193,7 +184,10 @@ export class ModelsService {
     }
 
     // If updating model_id, check for conflicts
-    if (updateModelDto.model_id && updateModelDto.model_id !== existing.model_id) {
+    if (
+      updateModelDto.model_id &&
+      updateModelDto.model_id !== existing.model_id
+    ) {
       const { data: existingModel } = await client
         .from('models')
         .select('id')
@@ -232,7 +226,7 @@ export class ModelsService {
 
   async delete(id: string): Promise<boolean> {
     const client = this.supabaseService.getServiceClient();
-    
+
     // Check if model exists
     const existing = await this.findOne(id);
     if (!existing) {
@@ -253,10 +247,7 @@ export class ModelsService {
       );
     }
 
-    const { error } = await client
-      .from('models')
-      .delete()
-      .eq('id', id);
+    const { error } = await client.from('models').delete().eq('id', id);
 
     if (error) {
       throw new HttpException(
@@ -268,7 +259,9 @@ export class ModelsService {
     return true;
   }
 
-  async estimateCost(costEstimateDto: CostEstimateDto): Promise<CostEstimateResponseDto> {
+  async estimateCost(
+    costEstimateDto: CostEstimateDto,
+  ): Promise<CostEstimateResponseDto> {
     const model = await this.findOne(costEstimateDto.model_id, true);
     if (!model) {
       throw new HttpException('Model not found', HttpStatus.NOT_FOUND);
@@ -284,7 +277,9 @@ export class ModelsService {
     // Simple token estimation (4 characters ≈ 1 token)
     const estimatedInputTokens = Math.ceil(costEstimateDto.content.length / 4);
     const responseLengthFactor = costEstimateDto.response_length_factor || 1.0;
-    const estimatedOutputTokens = Math.ceil(estimatedInputTokens * responseLengthFactor);
+    const estimatedOutputTokens = Math.ceil(
+      estimatedInputTokens * responseLengthFactor,
+    );
 
     const estimatedCost = this.calculateCost(
       estimatedInputTokens,
@@ -302,16 +297,18 @@ export class ModelsService {
     };
 
     // Add warning for expensive operations
-    if (estimatedCost.total_cost > 0.10) {
+    if (estimatedCost.total_cost > 0.1) {
       result.max_cost_warning = `This operation may cost more than $0.10. Estimated: $${estimatedCost.total_cost.toFixed(4)}`;
     }
 
     return result;
   }
 
-  async getRecommendations(filters: RecommendationFilters): Promise<ModelResponseDto[]> {
+  async getRecommendations(
+    filters: RecommendationFilters,
+  ): Promise<ModelResponseDto[]> {
     const client = this.supabaseService.getClient();
-    
+
     let query = client
       .from('models')
       .select(`*, provider:providers(*)`)
@@ -348,7 +345,7 @@ export class ModelsService {
   ): CostCalculation {
     const inputCost = (inputTokens / 1000) * inputPricePer1k;
     const outputCost = (outputTokens / 1000) * outputPricePer1k;
-    
+
     return {
       input_tokens: inputTokens,
       output_tokens: outputTokens,
@@ -362,7 +359,7 @@ export class ModelsService {
   // Helper method to get models by provider name
   async findByProviderName(providerName: string): Promise<ModelResponseDto[]> {
     const client = this.supabaseService.getClient();
-    
+
     const { data, error } = await client
       .from('models')
       .select(`*, provider:providers(*)`)

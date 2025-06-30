@@ -116,7 +116,10 @@ export class CIDAFMController {
     type: CIDAFMCommandResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
-  @ApiResponse({ status: 409, description: 'Command name already exists for user' })
+  @ApiResponse({
+    status: 409,
+    description: 'Command name already exists for user',
+  })
   async createUserCommand(
     @CurrentUser() user: any,
     @Body() createCommandDto: CreateCIDAFMCommandDto,
@@ -185,7 +188,8 @@ export class CIDAFMController {
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   async processCommands(
     @CurrentUser() user: any,
-    @Body() body: {
+    @Body()
+    body: {
       message: string;
       current_state?: Record<string, any>;
       session_id?: string;
@@ -215,7 +219,10 @@ export class CIDAFMController {
       properties: {
         active_state_modifiers: { type: 'array', items: { type: 'string' } },
         session_state: { type: 'object' },
-        available_commands: { type: 'array', items: { $ref: '#/components/schemas/CIDAFMCommandResponseDto' } },
+        available_commands: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/CIDAFMCommandResponseDto' },
+        },
       },
     },
   })
@@ -273,7 +280,11 @@ export class CIDAFMController {
     overview: string;
     command_types: Record<string, string>;
     examples: Array<{ command: string; description: string; example: string }>;
-    built_in_commands: Array<{ type: string; name: string; description: string }>;
+    built_in_commands: Array<{
+      type: string;
+      name: string;
+      description: string;
+    }>;
   }> {
     return this.cidafmService.getHelp();
   }

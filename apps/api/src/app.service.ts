@@ -45,21 +45,29 @@ export class AppService implements OnModuleInit {
       for (const discoveredAgent of this.discoveredAgents) {
         try {
           this.logger.debug(`🔧 Creating agent: ${discoveredAgent.name}`);
-          const serviceInstance = await this.agentFactory.createAgent(discoveredAgent);
-          
+          const serviceInstance =
+            await this.agentFactory.createAgent(discoveredAgent);
+
           // Step 3: Register with agent pool
           await this.registerAgentWithPool(serviceInstance, discoveredAgent);
-          
+
           this.agentInstances.push(serviceInstance);
 
-          this.logger.log(`✅ Successfully created and registered: ${discoveredAgent.name}`);
+          this.logger.log(
+            `✅ Successfully created and registered: ${discoveredAgent.name}`,
+          );
         } catch (error: any) {
-          this.logger.error(`❌ Failed to create agent ${discoveredAgent.name}:`, error.message);
+          this.logger.error(
+            `❌ Failed to create agent ${discoveredAgent.name}:`,
+            error.message,
+          );
           // Continue with other agents
         }
       }
 
-      this.logger.log(`🚀 ${this.agentInstances.length} agent services are running and registered`);
+      this.logger.log(
+        `🚀 ${this.agentInstances.length} agent services are running and registered`,
+      );
 
       // Summary log
       if (this.discoveredAgents.length > 0) {
@@ -69,7 +77,6 @@ export class AppService implements OnModuleInit {
           this.logger.log(`   ${status} ${agent.type}: ${agent.name}`);
         });
       }
-
     } catch (error: any) {
       this.logger.error('❌ Failed to initialize agent system:', error.message);
       throw error;
@@ -79,32 +86,54 @@ export class AppService implements OnModuleInit {
   /**
    * Register agent with internal agent pool
    */
-  private async registerAgentWithPool(serviceInstance: any, discoveredAgent: any): Promise<void> {
+  private async registerAgentWithPool(
+    serviceInstance: any,
+    discoveredAgent: any,
+  ): Promise<void> {
     try {
-      this.logger.debug(`📝 Registering ${discoveredAgent.name} with agent pool...`);
+      this.logger.debug(
+        `📝 Registering ${discoveredAgent.name} with agent pool...`,
+      );
 
       // Get agent card information from the service instance (includes YAML description)
       let agentCard = null;
       try {
-        if (serviceInstance && typeof serviceInstance.getAgentCard === 'function') {
+        if (
+          serviceInstance &&
+          typeof serviceInstance.getAgentCard === 'function'
+        ) {
           agentCard = await serviceInstance.getAgentCard();
         }
       } catch (error) {
-        this.logger.warn(`Failed to get agent card for ${discoveredAgent.name}:`, error);
+        this.logger.warn(
+          `Failed to get agent card for ${discoveredAgent.name}:`,
+          error,
+        );
       }
 
       // Build agent registration object
       const agentRegistration = {
-        id: this.agentDiscovery.generateAgentId(discoveredAgent.name, discoveredAgent.path),
+        id: this.agentDiscovery.generateAgentId(
+          discoveredAgent.name,
+          discoveredAgent.path,
+        ),
         name: agentCard?.name || discoveredAgent.name,
         type: this.agentDiscovery.determineAgentType(discoveredAgent.path),
         path: discoveredAgent.path,
-        url: this.agentDiscovery.buildAgentUrl(discoveredAgent.path, discoveredAgent.name),
-        description: agentCard?.description || `${discoveredAgent.name} - A specialized agent for handling specific tasks`,
+        url: this.agentDiscovery.buildAgentUrl(
+          discoveredAgent.path,
+          discoveredAgent.name,
+        ),
+        description:
+          agentCard?.description ||
+          `${discoveredAgent.name} - A specialized agent for handling specific tasks`,
         capabilities: agentCard?.capabilities || [], // Will be enhanced by individual agents if needed
         skills: agentCard?.skills || [], // Will be enhanced by individual agents if needed
         inputModes: agentCard?.inputModes || ['text/plain', 'application/json'],
-        outputModes: agentCard?.outputModes || ['text/plain', 'application/json'],
+        outputModes: agentCard?.outputModes || [
+          'text/plain',
+          'application/json',
+        ],
         metadata: {
           version: '1.0.0',
           agentPath: discoveredAgent.path,
@@ -120,10 +149,14 @@ export class AppService implements OnModuleInit {
       // Register with internal agent pool
       await this.agentPoolService.registerAgent(agentRegistration);
 
-      this.logger.debug(`✅ Successfully registered ${discoveredAgent.name} with agent pool`);
-
+      this.logger.debug(
+        `✅ Successfully registered ${discoveredAgent.name} with agent pool`,
+      );
     } catch (error: any) {
-      this.logger.error(`❌ Failed to register ${discoveredAgent.name} with agent pool:`, error.message);
+      this.logger.error(
+        `❌ Failed to register ${discoveredAgent.name} with agent pool:`,
+        error.message,
+      );
       throw error;
     }
   }

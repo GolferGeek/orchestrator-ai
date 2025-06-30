@@ -1,30 +1,30 @@
 // LLM Evaluation DTOs
 // Data Transfer Objects for LLM evaluation API endpoints
 
-import { 
-  IsString, 
-  IsNumber, 
-  IsBoolean, 
-  IsOptional, 
-  IsEnum, 
-  IsArray, 
-  IsObject, 
+import {
+  IsString,
+  IsNumber,
+  IsBoolean,
+  IsOptional,
+  IsEnum,
+  IsArray,
+  IsObject,
   IsUUID,
   IsDateString,
   Min,
   Max,
   ValidateNested,
-  IsNotEmpty
+  IsNotEmpty,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { 
-  LLMProvider, 
-  ProviderStatus, 
-  ModelStatus, 
-  AuthType, 
-  CIDAFMCommandType, 
-  UserRatingScale 
+import {
+  LLMProvider,
+  ProviderStatus,
+  ModelStatus,
+  AuthType,
+  CIDAFMCommandType,
+  UserRatingScale,
 } from '../types/llm-evaluation';
 
 // ==================== Provider DTOs ====================
@@ -35,16 +35,25 @@ export class CreateProviderDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiPropertyOptional({ description: 'API base URL', example: 'https://api.openai.com/v1' })
+  @ApiPropertyOptional({
+    description: 'API base URL',
+    example: 'https://api.openai.com/v1',
+  })
   @IsString()
   @IsOptional()
   api_base_url?: string;
 
-  @ApiProperty({ enum: ['api_key', 'oauth', 'none'], description: 'Authentication type' })
+  @ApiProperty({
+    enum: ['api_key', 'oauth', 'none'],
+    description: 'Authentication type',
+  })
   @IsEnum(['api_key', 'oauth', 'none'])
   auth_type: AuthType;
 
-  @ApiPropertyOptional({ enum: ['active', 'inactive', 'deprecated'], default: 'active' })
+  @ApiPropertyOptional({
+    enum: ['active', 'inactive', 'deprecated'],
+    default: 'active',
+  })
   @IsEnum(['active', 'inactive', 'deprecated'])
   @IsOptional()
   status?: ProviderStatus;
@@ -112,19 +121,28 @@ export class CreateModelDto {
   @IsNotEmpty()
   model_id: string;
 
-  @ApiPropertyOptional({ description: 'Input pricing per 1K tokens (USD)', example: 0.0025 })
+  @ApiPropertyOptional({
+    description: 'Input pricing per 1K tokens (USD)',
+    example: 0.0025,
+  })
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(0)
   @IsOptional()
   pricing_input_per_1k?: number;
 
-  @ApiPropertyOptional({ description: 'Output pricing per 1K tokens (USD)', example: 0.01 })
+  @ApiPropertyOptional({
+    description: 'Output pricing per 1K tokens (USD)',
+    example: 0.01,
+  })
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(0)
   @IsOptional()
   pricing_output_per_1k?: number;
 
-  @ApiPropertyOptional({ description: 'Supports thinking mode', default: false })
+  @ApiPropertyOptional({
+    description: 'Supports thinking mode',
+    default: false,
+  })
   @IsBoolean()
   @IsOptional()
   supports_thinking?: boolean;
@@ -159,7 +177,10 @@ export class CreateModelDto {
   @IsOptional()
   use_cases?: string[];
 
-  @ApiPropertyOptional({ enum: ['active', 'inactive', 'deprecated'], default: 'active' })
+  @ApiPropertyOptional({
+    enum: ['active', 'inactive', 'deprecated'],
+    default: 'active',
+  })
   @IsEnum(['active', 'inactive', 'deprecated'])
   @IsOptional()
   status?: ModelStatus;
@@ -282,11 +303,17 @@ export class ModelResponseDto {
 // ==================== CIDAFM Command DTOs ====================
 
 export class CreateCIDAFMCommandDto {
-  @ApiProperty({ enum: ['^', '&', '!'], description: 'Command type: ^ (response), & (state), ! (execution)' })
+  @ApiProperty({
+    enum: ['^', '&', '!'],
+    description: 'Command type: ^ (response), & (state), ! (execution)',
+  })
   @IsEnum(['^', '&', '!'])
   type: CIDAFMCommandType;
 
-  @ApiProperty({ description: 'Command name (without type prefix)', example: 'concise' })
+  @ApiProperty({
+    description: 'Command name (without type prefix)',
+    example: 'concise',
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -346,21 +373,33 @@ export class LLMSelectionDto {
 }
 
 export class MessageEvaluationDto {
-  @ApiPropertyOptional({ description: 'Overall rating (1-5)', minimum: 1, maximum: 5 })
+  @ApiPropertyOptional({
+    description: 'Overall rating (1-5)',
+    minimum: 1,
+    maximum: 5,
+  })
   @IsNumber()
   @Min(1)
   @Max(5)
   @IsOptional()
   user_rating?: UserRatingScale;
 
-  @ApiPropertyOptional({ description: 'Speed rating (1-5)', minimum: 1, maximum: 5 })
+  @ApiPropertyOptional({
+    description: 'Speed rating (1-5)',
+    minimum: 1,
+    maximum: 5,
+  })
   @IsNumber()
   @Min(1)
   @Max(5)
   @IsOptional()
   speed_rating?: UserRatingScale;
 
-  @ApiPropertyOptional({ description: 'Accuracy rating (1-5)', minimum: 1, maximum: 5 })
+  @ApiPropertyOptional({
+    description: 'Accuracy rating (1-5)',
+    minimum: 1,
+    maximum: 5,
+  })
   @IsNumber()
   @Min(1)
   @Max(5)
@@ -372,7 +411,10 @@ export class MessageEvaluationDto {
   @IsOptional()
   user_notes?: string;
 
-  @ApiPropertyOptional({ description: 'Additional evaluation details', type: Object })
+  @ApiPropertyOptional({
+    description: 'Additional evaluation details',
+    type: Object,
+  })
   @IsObject()
   @IsOptional()
   evaluation_details?: {
@@ -497,7 +539,10 @@ export class UsageStatsQueryDto {
   @IsOptional()
   model_id?: string;
 
-  @ApiPropertyOptional({ description: 'Include detailed breakdown', default: false })
+  @ApiPropertyOptional({
+    description: 'Include detailed breakdown',
+    default: false,
+  })
   @IsBoolean()
   @IsOptional()
   include_details?: boolean;
@@ -568,7 +613,10 @@ export class CostEstimateDto {
   @IsUUID()
   model_id: string;
 
-  @ApiPropertyOptional({ description: 'Estimated response length factor', default: 1.0 })
+  @ApiPropertyOptional({
+    description: 'Estimated response length factor',
+    default: 1.0,
+  })
   @IsNumber()
   @Min(0.1)
   @Max(10.0)

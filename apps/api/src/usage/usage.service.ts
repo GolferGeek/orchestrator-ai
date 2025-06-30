@@ -40,7 +40,7 @@ export class UsageService {
     options: UsageStatsOptions,
   ): Promise<UsageStatsResponseDto> {
     const client = this.supabaseService.getClient();
-    
+
     // Set default date range if not provided
     const endDate = options.endDate || new Date().toISOString().split('T')[0];
     const startDate = options.startDate || this.getDateDaysAgo(30);
@@ -48,12 +48,14 @@ export class UsageService {
     // Build base query for messages
     let query = client
       .from('messages')
-      .select(`
+      .select(
+        `
         id, timestamp, total_cost, input_tokens, output_tokens, response_time_ms,
         user_rating, speed_rating, accuracy_rating,
         provider:providers(id, name),
         model:models(id, name, model_id)
-      `)
+      `,
+      )
       .eq('user_id', userId)
       .gte('timestamp', startDate)
       .lte('timestamp', endDate)
@@ -81,7 +83,10 @@ export class UsageService {
     if (options.includeDetails) {
       stats.by_provider = this.groupByProvider(messages || []);
       stats.by_model = this.groupByModel(messages || []);
-      stats.daily_stats = this.groupByDate(messages || [], options.granularity || 'daily');
+      stats.daily_stats = this.groupByDate(
+        messages || [],
+        options.granularity || 'daily',
+      );
     }
 
     return stats;
@@ -134,22 +139,24 @@ export class UsageService {
   async getModelPerformance(
     userId: string,
     options: ModelPerformanceOptions,
-  ): Promise<Array<{
-    model: any;
-    metrics: {
-      usage_count: number;
-      avg_user_rating: number;
-      avg_speed_rating: number;
-      avg_accuracy_rating: number;
-      avg_response_time_ms: number;
-      avg_cost_per_request: number;
-      total_cost: number;
-      total_tokens: number;
-      cost_efficiency_score: number;
-      performance_score: number;
-    };
-    rank: number;
-  }>> {
+  ): Promise<
+    Array<{
+      model: any;
+      metrics: {
+        usage_count: number;
+        avg_user_rating: number;
+        avg_speed_rating: number;
+        avg_accuracy_rating: number;
+        avg_response_time_ms: number;
+        avg_cost_per_request: number;
+        total_cost: number;
+        total_tokens: number;
+        cost_efficiency_score: number;
+        performance_score: number;
+      };
+      rank: number;
+    }>
+  > {
     const stats = await this.getUserStats(userId, {
       startDate: options.startDate,
       endDate: options.endDate,
@@ -157,8 +164,8 @@ export class UsageService {
     });
 
     const modelMetrics = (stats.by_model || [])
-      .filter(model => model.requests >= options.minUsage)
-      .map(model => ({
+      .filter((model) => model.requests >= options.minUsage)
+      .map((model) => ({
         model: model.model,
         metrics: {
           usage_count: model.requests,
@@ -166,7 +173,8 @@ export class UsageService {
           avg_speed_rating: 0, // Would need to calculate from message data
           avg_accuracy_rating: 0, // Would need to calculate from message data
           avg_response_time_ms: 0, // Would need to calculate from message data
-          avg_cost_per_request: model.requests > 0 ? model.cost / model.requests : 0,
+          avg_cost_per_request:
+            model.requests > 0 ? model.cost / model.requests : 0,
           total_cost: model.cost,
           total_tokens: model.tokens,
           cost_efficiency_score: this.calculateCostEfficiency(model),
@@ -181,9 +189,13 @@ export class UsageService {
         case 'rating':
           return b.metrics.avg_user_rating - a.metrics.avg_user_rating;
         case 'speed':
-          return a.metrics.avg_response_time_ms - b.metrics.avg_response_time_ms;
+          return (
+            a.metrics.avg_response_time_ms - b.metrics.avg_response_time_ms
+          );
         case 'cost':
-          return a.metrics.avg_cost_per_request - b.metrics.avg_cost_per_request;
+          return (
+            a.metrics.avg_cost_per_request - b.metrics.avg_cost_per_request
+          );
         case 'usage':
           return b.metrics.usage_count - a.metrics.usage_count;
         default:
@@ -247,7 +259,11 @@ export class UsageService {
     const spendingSummary = this.calculateSpendingSummary(stats, lookbackDays);
     const usagePatterns = this.analyzeUsagePatterns(stats);
     const modelInsights = this.analyzeModelInsights(stats);
-    const recommendations = this.generateRecommendations(stats, spendingSummary, modelInsights);
+    const recommendations = this.generateRecommendations(
+      stats,
+      spendingSummary,
+      modelInsights,
+    );
 
     return {
       analysis_period: {
@@ -316,18 +332,26 @@ export class UsageService {
     }>;
   }> {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .split('T')[0];
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      .toISOString()
+      .split('T')[0];
 
     const monthlyStats = await this.getUserStats(userId, {
       startDate: startOfMonth,
       endDate: endOfMonth,
     });
 
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysInMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+    ).getDate();
     const daysElapsed = now.getDate();
     const daysRemaining = daysInMonth - daysElapsed;
-    
+
     const dailyAverage = monthlyStats.total_cost / daysElapsed;
     const projectedTotal = dailyAverage * daysInMonth;
 
@@ -343,7 +367,10 @@ export class UsageService {
     };
 
     const alerts = this.generateBudgetAlerts(currentMonth);
-    const recommendations = this.generateBudgetRecommendations(currentMonth, monthlyStats);
+    const recommendations = this.generateBudgetRecommendations(
+      currentMonth,
+      monthlyStats,
+    );
 
     return {
       current_month: currentMonth,
@@ -353,16 +380,30 @@ export class UsageService {
   }
 
   // Helper methods
-  private calculateStats(messages: any[], startDate: string, endDate: string): UsageStatsResponseDto {
+  private calculateStats(
+    messages: any[],
+    startDate: string,
+    endDate: string,
+  ): UsageStatsResponseDto {
     const totalRequests = messages.length;
-    const totalTokens = messages.reduce((sum, msg) => sum + (msg.input_tokens || 0) + (msg.output_tokens || 0), 0);
-    const totalCost = messages.reduce((sum, msg) => sum + (msg.total_cost || 0), 0);
-    const avgResponseTime = messages.length > 0 
-      ? messages.reduce((sum, msg) => sum + (msg.response_time_ms || 0), 0) / messages.length
-      : 0;
-    const avgUserRating = messages.filter(msg => msg.user_rating).length > 0
-      ? messages.reduce((sum, msg) => sum + (msg.user_rating || 0), 0) / messages.filter(msg => msg.user_rating).length
-      : undefined;
+    const totalTokens = messages.reduce(
+      (sum, msg) => sum + (msg.input_tokens || 0) + (msg.output_tokens || 0),
+      0,
+    );
+    const totalCost = messages.reduce(
+      (sum, msg) => sum + (msg.total_cost || 0),
+      0,
+    );
+    const avgResponseTime =
+      messages.length > 0
+        ? messages.reduce((sum, msg) => sum + (msg.response_time_ms || 0), 0) /
+          messages.length
+        : 0;
+    const avgUserRating =
+      messages.filter((msg) => msg.user_rating).length > 0
+        ? messages.reduce((sum, msg) => sum + (msg.user_rating || 0), 0) /
+          messages.filter((msg) => msg.user_rating).length
+        : undefined;
 
     return {
       user_id: messages[0]?.user_id || '',
@@ -387,7 +428,8 @@ export class UsageService {
         };
       }
       acc[providerId].requests++;
-      acc[providerId].tokens += (msg.input_tokens || 0) + (msg.output_tokens || 0);
+      acc[providerId].tokens +=
+        (msg.input_tokens || 0) + (msg.output_tokens || 0);
       acc[providerId].cost += msg.total_cost || 0;
       return acc;
     }, {});
@@ -436,13 +478,16 @@ export class UsageService {
     return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  private createBreakdown(stats: UsageStatsResponseDto, groupBy: string): any[] {
+  private createBreakdown(
+    stats: UsageStatsResponseDto,
+    groupBy: string,
+  ): any[] {
     // Implementation depends on groupBy parameter
     return [];
   }
 
   private createTrends(dailyStats: any[]): any[] {
-    return dailyStats.map(day => ({
+    return dailyStats.map((day) => ({
       date: day.date,
       cost: day.cost,
       tokens: day.tokens,
@@ -457,10 +502,15 @@ export class UsageService {
 
   private calculatePerformanceScore(model: any): number {
     // Composite score based on rating and cost efficiency
-    return (model.avg_rating || 0) * 0.7 + this.calculateCostEfficiency(model) * 0.3;
+    return (
+      (model.avg_rating || 0) * 0.7 + this.calculateCostEfficiency(model) * 0.3
+    );
   }
 
-  private calculateSpendingSummary(stats: UsageStatsResponseDto, days: number): any {
+  private calculateSpendingSummary(
+    stats: UsageStatsResponseDto,
+    days: number,
+  ): any {
     return {
       total_spent: stats.total_cost,
       daily_average: stats.total_cost / days,
@@ -488,12 +538,17 @@ export class UsageService {
     };
   }
 
-  private generateRecommendations(stats: any, spending: any, insights: any): any[] {
+  private generateRecommendations(
+    stats: any,
+    spending: any,
+    insights: any,
+  ): any[] {
     return [
       {
         type: 'cost_optimization',
         title: 'Consider using more cost-effective models',
-        description: 'Switch to GPT-4o Mini for simpler tasks to reduce costs by up to 80%',
+        description:
+          'Switch to GPT-4o Mini for simpler tasks to reduce costs by up to 80%',
         potential_savings: spending.total_spent * 0.3,
         priority: 'medium',
       },
@@ -502,7 +557,7 @@ export class UsageService {
 
   private generateBudgetAlerts(currentMonth: any): any[] {
     const alerts = [];
-    
+
     if (currentMonth.percentage_used > 90) {
       alerts.push({
         level: 'danger' as const,

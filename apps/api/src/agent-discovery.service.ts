@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { readdirSync, statSync } from 'fs';
@@ -77,7 +77,10 @@ export class AgentDiscoveryService {
         }
       }
     } catch (error: any) {
-      this.logger.error(`Error traversing directory ${dirPath}:`, error.message);
+      this.logger.error(
+        `Error traversing directory ${dirPath}:`,
+        error.message,
+      );
     }
   }
 
@@ -90,16 +93,16 @@ export class AgentDiscoveryService {
 
       // Extract agent information from path
       const pathParts = servicePath.split('/');
-      const agentIndex = pathParts.findIndex(part => part === 'agents');
+      const agentIndex = pathParts.findIndex((part) => part === 'agents');
 
       if (agentIndex >= 0 && agentIndex < pathParts.length - 2) {
         // Skip 'agents/actual' to get to the type/name structure
         const relevantParts = pathParts.slice(agentIndex + 2, -1); // Remove 'agents', 'actual', and 'agent-service.ts'
-        
-                         if (relevantParts.length >= 1) {
+
+        if (relevantParts.length >= 1) {
           const agentType = relevantParts[0] || 'unknown'; // e.g., 'orchestrator', 'specialists'
           let agentName: string;
-          
+
           if (relevantParts.length === 1) {
             // Single level agent (e.g., orchestrator)
             agentName = agentType;
@@ -121,13 +124,18 @@ export class AgentDiscoveryService {
           this.discoveredAgents.push(agent);
           this.logger.log(`📁 Found agent: ${agentPath} at ${servicePath}`);
         } else {
-          this.logger.warn(`Could not parse agent path structure from: ${servicePath}`);
+          this.logger.warn(
+            `Could not parse agent path structure from: ${servicePath}`,
+          );
         }
       } else {
         this.logger.warn(`Invalid agent path structure: ${servicePath}`);
       }
     } catch (error: any) {
-      this.logger.error(`❌ Error processing agent service ${servicePath}:`, error);
+      this.logger.error(
+        `❌ Error processing agent service ${servicePath}:`,
+        error,
+      );
     }
   }
 
@@ -139,29 +147,41 @@ export class AgentDiscoveryService {
 
     for (const agent of this.discoveredAgents) {
       try {
-        const agentDirectory = agent.servicePath.replace('/agent-service.ts', '');
+        const agentDirectory = agent.servicePath.replace(
+          '/agent-service.ts',
+          '',
+        );
 
         // Look for TypeScript function
         const functionPath = join(agentDirectory, 'agent-function.ts');
         if (fs.existsSync(functionPath)) {
           agent.functionPath = functionPath;
-          this.logger.debug(`📄 Found TypeScript function for ${agent.name}: ${functionPath}`);
+          this.logger.debug(
+            `📄 Found TypeScript function for ${agent.name}: ${functionPath}`,
+          );
         }
 
         // Look for Python function
         const pythonFunctionPath = join(agentDirectory, 'agent-function.py');
         if (fs.existsSync(pythonFunctionPath)) {
           agent.pythonFunctionPath = pythonFunctionPath;
-          this.logger.debug(`🐍 Found Python function for ${agent.name}: ${pythonFunctionPath}`);
+          this.logger.debug(
+            `🐍 Found Python function for ${agent.name}: ${pythonFunctionPath}`,
+          );
         }
-
       } catch (error: any) {
-        this.logger.warn(`⚠️ Could not discover functions for ${agent.name}: ${error.message}`);
+        this.logger.warn(
+          `⚠️ Could not discover functions for ${agent.name}: ${error.message}`,
+        );
       }
     }
 
-    const withFunctions = this.discoveredAgents.filter(a => a.functionPath || a.pythonFunctionPath);
-    this.logger.log(`📄 Discovered ${withFunctions.length} agents with function files`);
+    const withFunctions = this.discoveredAgents.filter(
+      (a) => a.functionPath || a.pythonFunctionPath,
+    );
+    this.logger.log(
+      `📄 Discovered ${withFunctions.length} agents with function files`,
+    );
   }
 
   /**
@@ -185,18 +205,21 @@ export class AgentDiscoveryService {
     const baseUrl = process.env.API_BASE_URL || 'http://localhost:4000';
     const agentType = this.determineAgentType(agentPath);
     const name = agentName.toLowerCase().replace(/\s+/g, '_');
-    
+
     // Handle plural forms for agent types - keep singular for external and orchestrator
-    const agentTypePlural = (agentType === 'external' || agentType === 'orchestrator') 
-      ? agentType 
-      : `${agentType}s`;
+    const agentTypePlural =
+      agentType === 'external' || agentType === 'orchestrator'
+        ? agentType
+        : `${agentType}s`;
     return `${baseUrl}/agents/${agentTypePlural}/${name}/tasks`;
   }
 
   /**
    * Determine agent type from path
    */
-  determineAgentType(agentPath: string): 'orchestrator' | 'specialist' | 'manager' | 'external' {
+  determineAgentType(
+    agentPath: string,
+  ): 'orchestrator' | 'specialist' | 'manager' | 'external' {
     if (agentPath.includes('orchestrator')) {
       return 'orchestrator';
     } else if (agentPath.includes('specialists')) {

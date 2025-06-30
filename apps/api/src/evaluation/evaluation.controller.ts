@@ -42,7 +42,10 @@ export class EvaluationController {
     type: EnhancedMessageResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Message not found' })
-  @ApiResponse({ status: 403, description: 'Not authorized to evaluate this message' })
+  @ApiResponse({
+    status: 403,
+    description: 'Not authorized to evaluate this message',
+  })
   async evaluateMessage(
     @CurrentUser() user: any,
     @Param('messageId') messageId: string,
@@ -260,7 +263,10 @@ export class EvaluationController {
     type: EnhancedMessageResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Message not found' })
-  @ApiResponse({ status: 403, description: 'Not authorized to update this evaluation' })
+  @ApiResponse({
+    status: 403,
+    description: 'Not authorized to update this evaluation',
+  })
   async updateMessageEvaluation(
     @CurrentUser() user: any,
     @Param('messageId') messageId: string,
@@ -346,7 +352,7 @@ export class EvaluationController {
     }>;
     recommendations: string[];
   }> {
-    const modelIds = models.split(',').map(id => id.trim());
+    const modelIds = models.split(',').map((id) => id.trim());
     return this.evaluationService.compareModels(user.id, modelIds, {
       startDate,
       endDate,

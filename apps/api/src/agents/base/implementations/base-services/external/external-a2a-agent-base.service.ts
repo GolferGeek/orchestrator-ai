@@ -114,7 +114,10 @@ export class ExternalA2AAgentBaseService
       try {
         await this.discoverRemoteAgent();
       } catch (error) {
-        this.logger.warn('Remote agent discovery failed, continuing without discovery:', error);
+        this.logger.warn(
+          'Remote agent discovery failed, continuing without discovery:',
+          error,
+        );
         // Create a minimal agent card for registration
         this.remoteAgentCard = {
           id: this.getAgentId(),

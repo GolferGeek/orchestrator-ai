@@ -26,8 +26,8 @@ export class CIDAFMService {
     userId: string,
     filters: CommandFilters = {},
   ): Promise<CIDAFMCommandResponseDto[]> {
-    const client = this.supabaseService.getClient();
-    
+    const client = this.supabaseService.getServiceClient();
+
     // Get built-in commands
     let builtinQuery = client
       .from('cidafm_commands')
@@ -74,7 +74,7 @@ export class CIDAFMService {
       }
 
       // Transform user commands to match built-in command structure
-      const transformedUserCommands = (userCommands || []).map(cmd => ({
+      const transformedUserCommands = (userCommands || []).map((cmd: any) => ({
         ...cmd,
         default_active: false,
         is_builtin: false,
@@ -87,8 +87,8 @@ export class CIDAFMService {
   }
 
   async findCommandById(id: string): Promise<CIDAFMCommandResponseDto | null> {
-    const client = this.supabaseService.getClient();
-    
+    const client = this.supabaseService.getServiceClient();
+
     // Try built-in commands first
     const { data: builtinCommand, error: builtinError } = await client
       .from('cidafm_commands')
@@ -122,8 +122,8 @@ export class CIDAFMService {
     userId: string,
     createCommandDto: CreateCIDAFMCommandDto,
   ): Promise<CIDAFMCommandResponseDto> {
-    const client = this.supabaseService.getClient();
-    
+    const client = this.supabaseService.getServiceClient();
+
     // Check if user already has a command with this name and type
     const { data: existingCommand } = await client
       .from('user_cidafm_commands')
@@ -170,8 +170,8 @@ export class CIDAFMService {
     commandId: string,
     updateCommandDto: Partial<CreateCIDAFMCommandDto>,
   ): Promise<CIDAFMCommandResponseDto | null> {
-    const client = this.supabaseService.getClient();
-    
+    const client = this.supabaseService.getServiceClient();
+
     // Check if command exists and belongs to user
     const { data: existing } = await client
       .from('user_cidafm_commands')
@@ -229,8 +229,8 @@ export class CIDAFMService {
   }
 
   async deleteUserCommand(userId: string, commandId: string): Promise<boolean> {
-    const client = this.supabaseService.getClient();
-    
+    const client = this.supabaseService.getServiceClient();
+
     const { error } = await client
       .from('user_cidafm_commands')
       .delete()
@@ -261,8 +261,10 @@ export class CIDAFMService {
     executed_commands: string[];
     processing_notes: string[];
   }> {
-    const commands = await this.findAllCommands(userId, { includeUserCommands: true });
-    
+    const commands = await this.findAllCommands(userId, {
+      includeUserCommands: true,
+    });
+
     // Initialize state
     const state = currentState || { active_state_modifiers: [] };
     const executedCommands: string[] = [];
@@ -271,13 +273,14 @@ export class CIDAFMService {
 
     // Parse CIDAFM commands from the message
     const commandPattern = /([^&!]|^)([&^!])([a-zA-Z0-9_-]+)/g;
-    const foundCommands: Array<{ type: string; name: string; full: string }> = [];
-    
+    const foundCommands: Array<{ type: string; name: string; full: string }> =
+      [];
+
     let match;
     while ((match = commandPattern.exec(message)) !== null) {
       foundCommands.push({
-        type: match[2],
-        name: match[3],
+        type: match[2] || '',
+        name: match[3] || '',
         full: match[0].trim(),
       });
     }
@@ -285,7 +288,8 @@ export class CIDAFMService {
     // Process each command
     for (const foundCommand of foundCommands) {
       const command = commands.find(
-        cmd => cmd.type === foundCommand.type && cmd.name === foundCommand.name,
+        (cmd) =>
+          cmd.type === foundCommand.type && cmd.name === foundCommand.name,
       );
 
       if (!command) {
@@ -295,23 +299,31 @@ export class CIDAFMService {
 
       switch (foundCommand.type) {
         case '^': // Response modifier
-          processingNotes.push(`Applied response modifier: ${foundCommand.name}`);
+          processingNotes.push(
+            `Applied response modifier: ${foundCommand.name}`,
+          );
           // Remove the command from the prompt
           modifiedPrompt = modifiedPrompt.replace(foundCommand.full, '').trim();
           break;
 
         case '&': // State modifier
-          const isActive = state.active_state_modifiers.includes(foundCommand.name);
+          const isActive = state.active_state_modifiers.includes(
+            foundCommand.name,
+          );
           if (isActive) {
             // Toggle off
             state.active_state_modifiers = state.active_state_modifiers.filter(
-              mod => mod !== foundCommand.name,
+              (mod: string) => mod !== foundCommand.name,
             );
-            processingNotes.push(`Disabled state modifier: ${foundCommand.name}`);
+            processingNotes.push(
+              `Disabled state modifier: ${foundCommand.name}`,
+            );
           } else {
             // Toggle on
             state.active_state_modifiers.push(foundCommand.name);
-            processingNotes.push(`Enabled state modifier: ${foundCommand.name}`);
+            processingNotes.push(
+              `Enabled state modifier: ${foundCommand.name}`,
+            );
           }
           // Remove the command from the prompt
           modifiedPrompt = modifiedPrompt.replace(foundCommand.full, '').trim();
@@ -321,7 +333,11 @@ export class CIDAFMService {
           executedCommands.push(foundCommand.name);
           processingNotes.push(`Executed command: ${foundCommand.name}`);
           // Handle specific execution commands
-          await this.handleExecutionCommand(foundCommand.name, state, processingNotes);
+          await this.handleExecutionCommand(
+            foundCommand.name,
+            state,
+            processingNotes,
+          );
           // Remove the command from the prompt
           modifiedPrompt = modifiedPrompt.replace(foundCommand.full, '').trim();
           break;
@@ -352,8 +368,8 @@ export class CIDAFMService {
     available_commands: CIDAFMCommandResponseDto[];
   }> {
     // Get session state from the last message with CIDAFM options
-    const client = this.supabaseService.getClient();
-    
+    const client = this.supabaseService.getServiceClient();
+
     const { data: lastMessage } = await client
       .from('messages')
       .select('cidafm_options')
@@ -365,7 +381,9 @@ export class CIDAFMService {
       .single();
 
     const state = lastMessage?.cidafm_options || { active_state_modifiers: [] };
-    const commands = await this.findAllCommands(userId, { includeUserCommands: true });
+    const commands = await this.findAllCommands(userId, {
+      includeUserCommands: true,
+    });
 
     return {
       active_state_modifiers: state.active_state_modifiers || [],
@@ -396,12 +414,17 @@ export class CIDAFMService {
     overview: string;
     command_types: Record<string, string>;
     examples: Array<{ command: string; description: string; example: string }>;
-    built_in_commands: Array<{ type: string; name: string; description: string }>;
+    built_in_commands: Array<{
+      type: string;
+      name: string;
+      description: string;
+    }>;
   }> {
     const commands = await this.findAllCommands('', { builtinOnly: true });
 
     return {
-      overview: 'CIDAFM (Context Import Document + AI Function Module) is a protocol for modifying AI behavior through structured commands.',
+      overview:
+        'CIDAFM (Context Import Document + AI Function Module) is a protocol for modifying AI behavior through structured commands.',
       command_types: {
         '^': 'Response Modifiers - Apply only to the current response',
         '&': 'State Modifiers - Persistent until toggled off',
@@ -424,7 +447,7 @@ export class CIDAFMService {
           example: '!state-check',
         },
       ],
-      built_in_commands: commands.map(cmd => ({
+      built_in_commands: commands.map((cmd) => ({
         type: cmd.type,
         name: cmd.name,
         description: cmd.description || '',
@@ -444,10 +467,14 @@ export class CIDAFMService {
         );
         break;
       case 'export-context':
-        processingNotes.push('Context export requested - provide session summary');
+        processingNotes.push(
+          'Context export requested - provide session summary',
+        );
         break;
       case 'step-by-step':
-        processingNotes.push('Step-by-step mode activated - break response into steps');
+        processingNotes.push(
+          'Step-by-step mode activated - break response into steps',
+        );
         break;
       default:
         processingNotes.push(`Execution command '${commandName}' processed`);
@@ -463,9 +490,9 @@ export class CIDAFMService {
 
     for (const modifierName of activeModifiers) {
       const command = commands.find(
-        cmd => cmd.type === '&' && cmd.name === modifierName,
+        (cmd) => cmd.type === '&' && cmd.name === modifierName,
       );
-      
+
       if (command && command.description) {
         // Add the modifier instruction to the prompt
         modifiedPrompt = `[CIDAFM &${modifierName}: ${command.description}]\n\n${modifiedPrompt}`;

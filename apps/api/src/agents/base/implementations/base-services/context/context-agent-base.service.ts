@@ -236,12 +236,18 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   async getAgentCard(): Promise<any> {
     const baseCard = await super.getAgentCard();
-    
+
     // Include skills from AgentContextService if available
-    const skills = this.agentContextService.isLoaded ? this.agentContextService.skills : [];
-    const name = this.agentContextService.isLoaded ? this.agentContextService.name : baseCard.name;
-    const description = this.agentContextService.isLoaded ? this.agentContextService.description : baseCard.description || '';
-    
+    const skills = this.agentContextService.isLoaded
+      ? this.agentContextService.skills
+      : [];
+    const name = this.agentContextService.isLoaded
+      ? this.agentContextService.name
+      : baseCard.name;
+    const description = this.agentContextService.isLoaded
+      ? this.agentContextService.description
+      : baseCard.description || '';
+
     return {
       ...baseCard,
       name,
