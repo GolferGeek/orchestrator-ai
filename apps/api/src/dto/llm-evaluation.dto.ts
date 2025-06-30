@@ -33,7 +33,7 @@ export class CreateProviderDto {
   @ApiProperty({ description: 'Provider name', example: 'OpenAI' })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({
     description: 'API base URL',
@@ -48,7 +48,7 @@ export class CreateProviderDto {
     description: 'Authentication type',
   })
   @IsEnum(['api_key', 'oauth', 'none'])
-  authType: AuthType;
+  authType!: AuthType;
 
   @ApiPropertyOptional({
     enum: ['active', 'inactive', 'deprecated'],
@@ -83,25 +83,25 @@ export class UpdateProviderDto {
 
 export class ProviderResponseDto {
   @ApiProperty({ description: 'Provider UUID' })
-  id: string;
+  id!: string;
 
   @ApiProperty({ description: 'Provider name' })
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ description: 'API base URL' })
   apiBaseUrl?: string;
 
   @ApiProperty({ enum: ['api_key', 'oauth', 'none'] })
-  authType: AuthType;
+  authType!: AuthType;
 
   @ApiProperty({ enum: ['active', 'inactive', 'deprecated'] })
-  status: ProviderStatus;
+  status!: ProviderStatus;
 
   @ApiProperty({ description: 'Creation timestamp' })
-  createdAt: string;
+  createdAt!: string;
 
   @ApiProperty({ description: 'Last update timestamp' })
-  updatedAt: string;
+  updatedAt!: string;
 }
 
 // ==================== Model DTOs ====================
@@ -109,17 +109,17 @@ export class ProviderResponseDto {
 export class CreateModelDto {
   @ApiProperty({ description: 'Provider UUID' })
   @IsUUID()
-  providerId: string;
+  providerId!: string;
 
   @ApiProperty({ description: 'Human-readable model name', example: 'GPT-4o' })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @ApiProperty({ description: 'Model ID for API calls', example: 'gpt-4o' })
   @IsString()
   @IsNotEmpty()
-  modelId: string;
+  modelId!: string;
 
   @ApiPropertyOptional({
     description: 'Input pricing per 1K tokens (USD)',
@@ -252,16 +252,16 @@ export class UpdateModelDto {
 
 export class ModelResponseDto {
   @ApiProperty({ description: 'Model UUID' })
-  id: string;
+  id!: string;
 
   @ApiProperty({ description: 'Provider UUID' })
-  providerId: string;
+  providerId!: string;
 
   @ApiProperty({ description: 'Human-readable model name' })
-  name: string;
+  name!: string;
 
   @ApiProperty({ description: 'Model ID for API calls' })
-  modelId: string;
+  modelId!: string;
 
   @ApiPropertyOptional({ description: 'Input pricing per 1K tokens (USD)' })
   pricingInputPer1k?: number;
@@ -270,7 +270,7 @@ export class ModelResponseDto {
   pricingOutputPer1k?: number;
 
   @ApiProperty({ description: 'Supports thinking mode' })
-  supportsThinking: boolean;
+  supportsThinking!: boolean;
 
   @ApiPropertyOptional({ description: 'Maximum output tokens' })
   maxTokens?: number;
@@ -288,13 +288,13 @@ export class ModelResponseDto {
   useCases?: string[];
 
   @ApiProperty({ enum: ['active', 'inactive', 'deprecated'] })
-  status: ModelStatus;
+  status!: ModelStatus;
 
   @ApiProperty({ description: 'Creation timestamp' })
-  createdAt: string;
+  createdAt!: string;
 
   @ApiProperty({ description: 'Last update timestamp' })
-  updatedAt: string;
+  updatedAt!: string;
 
   @ApiPropertyOptional({ description: 'Provider details (when joined)' })
   provider?: ProviderResponseDto;
@@ -308,7 +308,7 @@ export class CreateCIDAFMCommandDto {
     description: 'Command type: ^ (response), & (state), ! (execution)',
   })
   @IsEnum(['^', '&', '!'])
-  type: CIDAFMCommandType;
+  type!: CIDAFMCommandType;
 
   @ApiProperty({
     description: 'Command name (without type prefix)',
@@ -316,7 +316,7 @@ export class CreateCIDAFMCommandDto {
   })
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ description: 'Command description' })
   @IsString()
@@ -326,28 +326,28 @@ export class CreateCIDAFMCommandDto {
 
 export class CIDAFMCommandResponseDto {
   @ApiProperty({ description: 'Command UUID' })
-  id: string;
+  id!: string;
 
   @ApiProperty({ enum: ['^', '&', '!'] })
-  type: CIDAFMCommandType;
+  type!: CIDAFMCommandType;
 
   @ApiProperty({ description: 'Command name' })
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ description: 'Command description' })
   description?: string;
 
   @ApiProperty({ description: 'Whether command is active by default' })
-  defaultActive: boolean;
+  defaultActive!: boolean;
 
   @ApiProperty({ description: 'Whether this is a built-in command' })
-  isBuiltin: boolean;
+  isBuiltin!: boolean;
 
   @ApiProperty({ description: 'Creation timestamp' })
-  createdAt: string;
+  createdAt!: string;
 
   @ApiProperty({ description: 'Last update timestamp' })
-  updatedAt: string;
+  updatedAt!: string;
 }
 
 // ==================== Message Enhancement DTOs ====================
@@ -355,11 +355,11 @@ export class CIDAFMCommandResponseDto {
 export class LLMSelectionDto {
   @ApiProperty({ description: 'Provider UUID' })
   @IsUUID()
-  providerId: string;
+  providerId!: string;
 
   @ApiProperty({ description: 'Model UUID' })
   @IsUUID()
-  modelId: string;
+  modelId!: string;
 
   @ApiPropertyOptional({ description: 'CIDAFM options', type: Object })
   @IsObject()
@@ -430,7 +430,7 @@ export class EnhancedMessageCreateDto {
   @ApiProperty({ description: 'Message content' })
   @IsString()
   @IsNotEmpty()
-  content: string;
+  content!: string;
 
   @ApiPropertyOptional({ description: 'LLM selection for this message' })
   @ValidateNested()
@@ -441,25 +441,25 @@ export class EnhancedMessageCreateDto {
 
 export class EnhancedMessageResponseDto {
   @ApiProperty({ description: 'Message UUID' })
-  id: string;
+  id!: string;
 
   @ApiProperty({ description: 'Session UUID' })
-  sessionId: string;
+  sessionId!: string;
 
   @ApiProperty({ description: 'User UUID' })
-  userId: string;
+  userId!: string;
 
   @ApiProperty({ enum: ['user', 'assistant', 'system', 'tool'] })
-  role: 'user' | 'assistant' | 'system' | 'tool';
+  role!: 'user' | 'assistant' | 'system' | 'tool';
 
   @ApiPropertyOptional({ description: 'Message content' })
   content?: string;
 
   @ApiProperty({ description: 'Message timestamp' })
-  timestamp: string;
+  timestamp!: string;
 
   @ApiProperty({ description: 'Message order in session' })
-  order: number;
+  order!: number;
 
   @ApiPropertyOptional({ description: 'Message metadata' })
   metadata?: Record<string, any>;
@@ -550,25 +550,25 @@ export class UsageStatsQueryDto {
 
 export class UsageStatsResponseDto {
   @ApiProperty({ description: 'User UUID' })
-  userId: string;
+  userId!: string;
 
   @ApiProperty({ description: 'Date range queried' })
-  dateRange: {
+  dateRange!: {
     startDate: string;
     endDate: string;
   };
 
   @ApiProperty({ description: 'Total requests made' })
-  totalRequests: number;
+  totalRequests!: number;
 
   @ApiProperty({ description: 'Total tokens consumed' })
-  totalTokens: number;
+  totalTokens!: number;
 
   @ApiProperty({ description: 'Total cost in USD' })
-  totalCost: number;
+  totalCost!: number;
 
   @ApiProperty({ description: 'Average response time in ms' })
-  averageResponseTime: number;
+  averageResponseTime!: number;
 
   @ApiPropertyOptional({ description: 'Average user rating' })
   averageUserRating?: number;
@@ -607,11 +607,11 @@ export class CostEstimateDto {
   @ApiProperty({ description: 'Message content to estimate' })
   @IsString()
   @IsNotEmpty()
-  content: string;
+  content!: string;
 
   @ApiProperty({ description: 'Model UUID for pricing' })
   @IsUUID()
-  modelId: string;
+  modelId!: string;
 
   @ApiPropertyOptional({
     description: 'Estimated response length factor',
@@ -626,20 +626,20 @@ export class CostEstimateDto {
 
 export class CostEstimateResponseDto {
   @ApiProperty({ description: 'Estimated input tokens' })
-  estimatedInputTokens: number;
+  estimatedInputTokens!: number;
 
   @ApiProperty({ description: 'Estimated output tokens' })
-  estimatedOutputTokens: number;
+  estimatedOutputTokens!: number;
 
   @ApiProperty({ description: 'Estimated total cost in USD' })
-  estimatedCost: number;
+  estimatedCost!: number;
 
   @ApiPropertyOptional({ description: 'Cost warning if expensive' })
   maxCostWarning?: string;
 
   @ApiProperty({ description: 'Currency (USD)' })
-  currency: string;
+  currency!: string;
 
   @ApiProperty({ description: 'Model used for estimation' })
-  model: ModelResponseDto;
+  model!: ModelResponseDto;
 }

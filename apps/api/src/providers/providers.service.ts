@@ -23,7 +23,7 @@ export class ProvidersService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async findAll(status?: ProviderStatus): Promise<ProviderResponseDto[]> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
 
     let query = client.from('providers').select('*').order('name');
 
@@ -44,7 +44,7 @@ export class ProvidersService {
   }
 
   async findOne(id: string): Promise<ProviderResponseDto | null> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
 
     const { data, error } = await client
       .from('providers')
@@ -69,7 +69,7 @@ export class ProvidersService {
     providerId: string,
     status?: ModelStatus,
   ): Promise<ModelResponseDto[]> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
 
     let query = client
       .from('models')
@@ -231,7 +231,7 @@ export class ProvidersService {
 
   // Helper method to get provider by name
   async findByName(name: string): Promise<ProviderResponseDto | null> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
 
     const { data, error } = await client
       .from('providers')
@@ -256,7 +256,7 @@ export class ProvidersService {
   async findAllWithModels(): Promise<
     (ProviderResponseDto & { models: ModelResponseDto[] })[]
   > {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
 
     const { data, error } = await client
       .from('providers')

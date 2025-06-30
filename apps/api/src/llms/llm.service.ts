@@ -236,7 +236,7 @@ export class LLMService {
       };
 
       this.logger.debug(
-        `Enhanced response generated: ${content.length} chars, ${inputTokens + outputTokens} tokens, $${costCalculation.total_cost.toFixed(6)}`,
+        `Enhanced response generated: ${content.length} chars, ${inputTokens + outputTokens} tokens, $${costCalculation.totalCost.toFixed(6)}`,
       );
 
       return {

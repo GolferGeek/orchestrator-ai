@@ -1,9 +1,71 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { LLMService } from './llm.service';
+import { SupabaseService } from '../supabase/supabase.service';
+import { CIDAFMService } from '../cidafm/cidafm.service';
+import { Provider, Model } from '../types/llm-evaluation';
 
 describe('LLMService', () => {
   let service: LLMService;
+  let supabaseService: SupabaseService;
+  let cidafmService: CIDAFMService;
+
+  const mockProvider: Provider = {
+    id: '123e4567-e89b-12d3-a456-426614174000',
+    name: 'OpenAI',
+    apiBaseUrl: 'https://api.openai.com/v1',
+    authType: 'api_key',
+    status: 'active',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  };
+
+  const mockModel: Model = {
+    id: '456e7890-e89b-12d3-a456-426614174000',
+    providerId: '123e4567-e89b-12d3-a456-426614174000',
+    name: 'GPT-4o',
+    modelId: 'gpt-4o',
+    pricingInputPer1k: 0.0025,
+    pricingOutputPer1k: 0.01,
+    supportsThinking: false,
+    maxTokens: 4096,
+    contextWindow: 128000,
+    strengths: ['reasoning', 'code'],
+    weaknesses: ['math'],
+    useCases: ['chat', 'coding'],
+    status: 'active',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  };
+
+  // Create a complete mock that supports the full chain
+  const mockSupabaseClient: any = {};
+  
+  const resetMocks = () => {
+    mockSupabaseClient.from = jest.fn().mockReturnValue(mockSupabaseClient);
+    mockSupabaseClient.select = jest.fn().mockReturnValue(mockSupabaseClient);
+    mockSupabaseClient.eq = jest.fn().mockReturnValue(mockSupabaseClient);
+    mockSupabaseClient.neq = jest.fn().mockReturnValue(mockSupabaseClient);
+    mockSupabaseClient.order = jest.fn().mockReturnValue(mockSupabaseClient);
+    mockSupabaseClient.insert = jest.fn().mockReturnValue(mockSupabaseClient);
+    mockSupabaseClient.update = jest.fn().mockReturnValue(mockSupabaseClient);
+    mockSupabaseClient.delete = jest.fn().mockReturnValue(mockSupabaseClient);
+    mockSupabaseClient.limit = jest.fn().mockReturnValue(mockSupabaseClient);
+    mockSupabaseClient.single = jest.fn();
+  };
+  
+  // Initialize mocks
+  resetMocks();
+
+  const mockSupabaseService = {
+    getServiceClient: jest.fn().mockReturnValue(mockSupabaseClient),
+    getAnonClient: jest.fn().mockReturnValue(mockSupabaseClient),
+    createAuthenticatedClient: jest.fn().mockReturnValue(mockSupabaseClient),
+  };
+
+  const mockCIDAFMService = {
+    processMessage: jest.fn(),
+  };
 
   beforeEach(async () => {
     // Set test environment variables
@@ -22,10 +84,22 @@ describe('LLMService', () => {
           expandVariables: true,
         }),
       ],
-      providers: [LLMService],
+      providers: [
+        LLMService,
+        {
+          provide: SupabaseService,
+          useValue: mockSupabaseService,
+        },
+        {
+          provide: CIDAFMService,
+          useValue: mockCIDAFMService,
+        },
+      ],
     }).compile();
 
     service = module.get<LLMService>(LLMService);
+    supabaseService = module.get<SupabaseService>(SupabaseService);
+    cidafmService = module.get<CIDAFMService>(CIDAFMService);
   });
 
   afterEach(() => {
@@ -39,6 +113,8 @@ describe('LLMService', () => {
     if (process.env.GOOGLE_API_KEY === 'test-google-key') {
       delete process.env.GOOGLE_API_KEY;
     }
+    jest.clearAllMocks();
+    resetMocks();
   });
 
   it('should be defined', () => {
@@ -119,6 +195,353 @@ describe('LLMService', () => {
     it('should have orchestration decision method available', () => {
       expect(service.generateOrchestrationDecision).toBeDefined();
       expect(typeof service.generateOrchestrationDecision).toBe('function');
+    });
+  });
+
+  describe('Enhanced Messaging with LLM Selection', () => {
+    // Mock LangChain LLM
+    const mockLLM = {
+      invoke: jest.fn(),
+    };
+
+    beforeEach(() => {
+      // Mock private methods to avoid external dependencies
+      jest.spyOn(service as any, 'getProviderAndModel').mockResolvedValue({
+        provider: mockProvider,
+        model: mockModel,
+      });
+
+      jest.spyOn(service as any, 'createLLMFromModel').mockResolvedValue(mockLLM);
+
+      mockCIDAFMService.processMessage.mockResolvedValue({
+        modifiedPrompt: 'Processed user message',
+        activeStateModifiers: ['disciplined'],
+        executedCommands: ['state-check'],
+        processingNotes: ['Applied response modifier: concise'],
+      });
+
+      mockLLM.invoke.mockResolvedValue({
+        content: 'Enhanced response with LLM selection',
+      });
+    });
+
+    describe('generateEnhancedResponse', () => {
+      it('should generate enhanced response with LLM selection and CIDAFM processing', async () => {
+        const result = await service.generateEnhancedResponse(
+          'user-123',
+          'You are a helpful assistant.',
+          '^concise &disciplined Tell me about AI',
+          {
+            providerId: '123e4567-e89b-12d3-a456-426614174000',
+            modelId: '456e7890-e89b-12d3-a456-426614174000',
+            cidafmOptions: { activeStateModifiers: [] },
+            sessionId: 'session-123',
+            temperature: 0.7,
+            maxTokens: 2000,
+          }
+        );
+
+        expect(result).toHaveProperty('content', 'Enhanced response with LLM selection');
+        expect(result).toHaveProperty('usage');
+        expect(result).toHaveProperty('costCalculation');
+        expect(result).toHaveProperty('processedPrompt', 'Processed user message');
+        expect(result).toHaveProperty('cidafmState');
+
+        // Verify CIDAFM processing was called
+        expect(mockCIDAFMService.processMessage).toHaveBeenCalledWith(
+          'user-123',
+          '^concise &disciplined Tell me about AI',
+          { activeStateModifiers: [] },
+          'session-123'
+        );
+
+        // Verify cost calculation
+        expect(result.costCalculation).toEqual({
+          inputTokens: expect.any(Number),
+          outputTokens: expect.any(Number),
+          inputCost: expect.any(Number),
+          outputCost: expect.any(Number),
+          totalCost: expect.any(Number),
+          currency: 'USD',
+        });
+
+        // Verify usage metrics
+        expect(result.usage).toEqual({
+          inputTokens: expect.any(Number),
+          outputTokens: expect.any(Number),
+          totalCost: expect.any(Number),
+          responseTimeMs: expect.any(Number),
+        });
+      });
+
+      it('should work without CIDAFM options', async () => {
+        const result = await service.generateEnhancedResponse(
+          'user-123',
+          'You are a helpful assistant.',
+          'Simple message without CIDAFM',
+          {
+            providerId: '123e4567-e89b-12d3-a456-426614174000',
+            modelId: '456e7890-e89b-12d3-a456-426614174000',
+          }
+        );
+
+        expect(result.content).toBe('Enhanced response with LLM selection');
+        expect(result.processedPrompt).toBe('Simple message without CIDAFM');
+        expect(mockCIDAFMService.processMessage).not.toHaveBeenCalled();
+      });
+
+      it('should apply state modifiers to system prompt', async () => {
+        await service.generateEnhancedResponse(
+          'user-123',
+          'You are a helpful assistant.',
+          'Test message',
+          {
+            providerId: '123e4567-e89b-12d3-a456-426614174000',
+            modelId: '456e7890-e89b-12d3-a456-426614174000',
+            cidafmOptions: { activeStateModifiers: [] },
+            sessionId: 'session-123',
+          }
+        );
+
+        // Verify that the LLM was called with enhanced system prompt
+        const expectedSystemPrompt = expect.stringContaining('[CIDAFM');
+        expect(mockLLM.invoke).toHaveBeenCalledWith([
+          { role: 'system', content: expectedSystemPrompt },
+          { role: 'user', content: 'Processed user message' },
+        ]);
+      });
+
+      it('should use fallback provider/model when IDs are not provided', async () => {
+        // Mock fallback to default OpenAI provider/model
+        mockSupabaseClient.single
+          .mockResolvedValueOnce({
+            data: {
+              id: 'default-provider-id',
+              name: 'OpenAI',
+              api_base_url: 'https://api.openai.com/v1',
+              auth_type: 'api_key',
+              status: 'active',
+              created_at: '2024-01-01T00:00:00.000Z',
+              updated_at: '2024-01-01T00:00:00.000Z',
+            },
+            error: null,
+          })
+          .mockResolvedValueOnce({
+            data: {
+              id: 'default-model-id',
+              provider_id: 'default-provider-id',
+              name: 'GPT-4o Mini',
+              model_id: 'gpt-4o-mini',
+              pricing_input_per_1k: 0.00015,
+              pricing_output_per_1k: 0.0006,
+              supports_thinking: false,
+              max_tokens: 16384,
+              context_window: 128000,
+              strengths: ['chat', 'reasoning'],
+              weaknesses: [],
+              use_cases: ['general'],
+              status: 'active',
+              created_at: '2024-01-01T00:00:00.000Z',
+              updated_at: '2024-01-01T00:00:00.000Z',
+            },
+            error: null,
+          });
+
+        const result = await service.generateEnhancedResponse(
+          'user-123',
+          'You are a helpful assistant.',
+          'Test message'
+        );
+
+        expect(result.content).toBe('Enhanced response with LLM selection');
+      });
+
+      it('should handle errors in enhanced response generation', async () => {
+        mockLLM.invoke.mockRejectedValue(new Error('LLM API Error'));
+
+        await expect(
+          service.generateEnhancedResponse(
+            'user-123',
+            'You are a helpful assistant.',
+            'Test message',
+            {
+              providerId: '123e4567-e89b-12d3-a456-426614174000',
+              modelId: '456e7890-e89b-12d3-a456-426614174000',
+            }
+          )
+        ).rejects.toThrow('Enhanced LLM service error: LLM API Error');
+      });
+
+      it('should calculate costs correctly based on model pricing', async () => {
+        const result = await service.generateEnhancedResponse(
+          'user-123',
+          'You are a helpful assistant.',
+          'Test message for cost calculation',
+          {
+            providerId: '123e4567-e89b-12d3-a456-426614174000',
+            modelId: '456e7890-e89b-12d3-a456-426614174000',
+          }
+        );
+
+        expect(result.costCalculation.inputCost).toBeGreaterThan(0);
+        expect(result.costCalculation.outputCost).toBeGreaterThan(0);
+        expect(result.costCalculation.totalCost).toBe(
+          result.costCalculation.inputCost + result.costCalculation.outputCost
+        );
+        expect(result.costCalculation.currency).toBe('USD');
+      });
+
+      it('should track response time metrics', async () => {
+        const result = await service.generateEnhancedResponse(
+          'user-123',
+          'You are a helpful assistant.',
+          'Test message for timing',
+          {
+            providerId: '123e4567-e89b-12d3-a456-426614174000',
+            modelId: '456e7890-e89b-12d3-a456-426614174000',
+          }
+        );
+
+        expect(result.usage.responseTimeMs).toBeGreaterThanOrEqual(0);
+        expect(typeof result.usage.responseTimeMs).toBe('number');
+      });
+
+      it('should pass custom temperature and maxTokens to LLM', async () => {
+        await service.generateEnhancedResponse(
+          'user-123',
+          'You are a helpful assistant.',
+          'Test message',
+          {
+            providerId: '123e4567-e89b-12d3-a456-426614174000',
+            modelId: '456e7890-e89b-12d3-a456-426614174000',
+            temperature: 0.9,
+            maxTokens: 1500,
+          }
+        );
+
+        // Verify createLLMFromModel was called with custom overrides
+        expect(service as any).toHaveProperty('createLLMFromModel');
+      });
+    });
+
+    describe('generateResponseWithHistory', () => {
+      beforeEach(() => {
+        jest.spyOn(service, 'getLangGraphLLM').mockReturnValue(mockLLM as any);
+      });
+
+      it('should generate response with conversation history', async () => {
+        const mockResponse = {
+          content: 'Response with conversation context',
+        };
+
+        mockLLM.invoke.mockResolvedValue(mockResponse);
+
+        const conversationHistory = [
+          { role: 'user' as const, content: 'Hello' },
+          { role: 'assistant' as const, content: 'Hi there!' },
+        ];
+
+        const result = await service.generateResponseWithHistory(
+          'You are a helpful assistant.',
+          conversationHistory,
+          'What did I say before?'
+        );
+
+        expect(result).toBe('Response with conversation context');
+        expect(mockLLM.invoke).toHaveBeenCalledWith([
+          { role: 'system', content: 'You are a helpful assistant.' },
+          { role: 'user', content: 'Hello' },
+          { role: 'assistant', content: 'Hi there!' },
+          { role: 'user', content: 'What did I say before?' },
+        ]);
+      });
+
+      it('should handle empty conversation history', async () => {
+        const mockResponse = {
+          content: 'Response without history',
+        };
+
+        mockLLM.invoke.mockResolvedValue(mockResponse);
+
+        const result = await service.generateResponseWithHistory(
+          'You are a helpful assistant.',
+          [],
+          'Hello'
+        );
+
+        expect(result).toBe('Response without history');
+        expect(mockLLM.invoke).toHaveBeenCalledWith([
+          { role: 'system', content: 'You are a helpful assistant.' },
+          { role: 'user', content: 'Hello' },
+        ]);
+      });
+    });
+
+    describe('generateOrchestrationDecision', () => {
+      beforeEach(() => {
+        jest.spyOn(service, 'generateResponse').mockImplementation(() => Promise.resolve(''));
+      });
+
+      it('should generate orchestration decision for agent delegation', async () => {
+        const mockResponse = JSON.stringify({
+          action: 'delegate',
+          agent: 'blog_post',
+          reasoning: 'User wants to write a blog post',
+        });
+
+        jest.spyOn(service, 'generateResponse').mockResolvedValue(mockResponse);
+
+        const availableAgents = [
+          { name: 'blog_post', description: 'Writes blog posts' },
+          { name: 'hr_assistant', description: 'Helps with HR tasks' },
+        ];
+
+        const result = await service.generateOrchestrationDecision(
+          'Write a blog post about AI',
+          availableAgents
+        );
+
+        expect(result).toEqual({
+          action: 'delegate',
+          agent: 'blog_post',
+          reasoning: 'User wants to write a blog post',
+        });
+      });
+
+      it('should fallback to rule-based decision when JSON parsing fails', async () => {
+        jest.spyOn(service, 'generateResponse').mockResolvedValue('Invalid JSON response');
+
+        const availableAgents = [
+          { name: 'blog_post', description: 'Writes blog posts' },
+        ];
+
+        const result = await service.generateOrchestrationDecision(
+          'Write a blog post about AI',
+          availableAgents
+        );
+
+        expect(result.action).toBe('delegate');
+        expect(result.agent).toBe('blog_post');
+        expect(result.reasoning).toBe('Content creation request identified');
+      });
+
+      it('should handle greeting requests', async () => {
+        jest.spyOn(service, 'generateResponse').mockResolvedValue('Invalid JSON response');
+
+        const availableAgents = [
+          { name: 'blog_post', description: 'Writes blog posts' },
+          { name: 'hr_assistant', description: 'Helps with HR tasks' },
+        ];
+
+        const result = await service.generateOrchestrationDecision(
+          'Hello there!',
+          availableAgents
+        );
+
+        expect(result.action).toBe('respond_directly');
+        expect(result.response).toContain('Hello!');
+        expect(result.response).toContain('blog_post, hr_assistant');
+      });
     });
   });
 });
