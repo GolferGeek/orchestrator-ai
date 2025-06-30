@@ -21,7 +21,7 @@ export class UserCreateDto {
   @ApiPropertyOptional({ example: 'John Doe' })
   @IsString()
   @IsOptional()
-  display_name?: string;
+  displayName?: string;
 }
 
 export class UserLoginDto {
@@ -38,16 +38,16 @@ export class UserLoginDto {
 
 export class TokenResponseDto {
   @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
-  access_token!: string;
+  accessToken!: string;
 
   @ApiPropertyOptional({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
-  refresh_token?: string;
+  refreshToken?: string;
 
   @ApiProperty({ example: 'bearer' })
-  token_type: string = 'bearer';
+  tokenType: string = 'bearer';
 
   @ApiPropertyOptional({ example: 3600 })
-  expires_in?: number;
+  expiresIn?: number;
 }
 
 export class AuthenticatedUserResponseDto {
@@ -63,7 +63,7 @@ export class AuthenticatedUserResponseDto {
   @ApiPropertyOptional({ example: 'John Doe' })
   @IsString()
   @IsOptional()
-  display_name?: string;
+  displayName?: string;
 }
 
 export class SupabaseAuthUserDto {
@@ -87,7 +87,7 @@ export class SupabaseAuthUserDto {
   email?: string;
 
   @ApiPropertyOptional()
-  email_confirmed_at?: Date;
+  emailConfirmedAt?: Date;
 
   @ApiPropertyOptional({ example: '+1234567890' })
   @IsString()
@@ -95,23 +95,23 @@ export class SupabaseAuthUserDto {
   phone?: string;
 
   @ApiPropertyOptional()
-  confirmed_at?: Date;
+  confirmedAt?: Date;
 
   @ApiPropertyOptional()
-  last_sign_in_at?: Date;
+  lastSignInAt?: Date;
 
   @ApiPropertyOptional()
-  app_metadata?: Record<string, any>;
+  appMetadata?: Record<string, any>;
 
   @ApiPropertyOptional()
-  user_metadata?: Record<string, any>;
+  userMetadata?: Record<string, any>;
 
   @ApiPropertyOptional()
   identities?: any[];
 
   @ApiPropertyOptional()
-  created_at?: Date;
+  createdAt?: Date;
 
   @ApiPropertyOptional()
-  updated_at?: Date;
+  updatedAt?: Date;
 }

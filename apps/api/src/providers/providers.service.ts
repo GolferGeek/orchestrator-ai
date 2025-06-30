@@ -12,6 +12,11 @@ import {
   ProviderStatus,
   ModelStatus,
 } from '../types/llm-evaluation';
+import {
+  mapProviderFromDb,
+  mapProviderToDb,
+  mapModelFromDb,
+} from '../utils/case-converter';
 
 @Injectable()
 export class ProvidersService {
@@ -35,7 +40,7 @@ export class ProvidersService {
       );
     }
 
-    return data || [];
+    return (data || []).map(mapProviderFromDb);
   }
 
   async findOne(id: string): Promise<ProviderResponseDto | null> {
@@ -57,7 +62,7 @@ export class ProvidersService {
       );
     }
 
-    return data;
+    return data ? mapProviderFromDb(data) : null;
   }
 
   async findModelsByProvider(
@@ -90,7 +95,7 @@ export class ProvidersService {
       );
     }
 
-    return data || [];
+    return (data || []).map(mapModelFromDb);
   }
 
   async create(
@@ -112,14 +117,16 @@ export class ProvidersService {
       );
     }
 
+    const dbPayload = {
+      name: createProviderDto.name,
+      api_base_url: createProviderDto.apiBaseUrl,
+      auth_type: createProviderDto.authType,
+      status: createProviderDto.status || 'active',
+    };
+
     const { data, error } = await client
       .from('providers')
-      .insert({
-        name: createProviderDto.name,
-        api_base_url: createProviderDto.api_base_url,
-        auth_type: createProviderDto.auth_type,
-        status: createProviderDto.status || 'active',
-      })
+      .insert(dbPayload)
       .select()
       .single();
 
@@ -130,7 +137,7 @@ export class ProvidersService {
       );
     }
 
-    return data;
+    return mapProviderFromDb(data);
   }
 
   async update(
@@ -162,12 +169,17 @@ export class ProvidersService {
       }
     }
 
+    // Convert camelCase DTO to snake_case for database
+    const dbPayload: any = {};
+    if (updateProviderDto.name !== undefined) dbPayload.name = updateProviderDto.name;
+    if (updateProviderDto.apiBaseUrl !== undefined) dbPayload.api_base_url = updateProviderDto.apiBaseUrl;
+    if (updateProviderDto.authType !== undefined) dbPayload.auth_type = updateProviderDto.authType;
+    if (updateProviderDto.status !== undefined) dbPayload.status = updateProviderDto.status;
+    dbPayload.updated_at = new Date().toISOString();
+
     const { data, error } = await client
       .from('providers')
-      .update({
-        ...updateProviderDto,
-        updated_at: new Date().toISOString(),
-      })
+      .update(dbPayload)
       .eq('id', id)
       .select()
       .single();
@@ -179,7 +191,7 @@ export class ProvidersService {
       );
     }
 
-    return data;
+    return mapProviderFromDb(data);
   }
 
   async delete(id: string): Promise<boolean> {
@@ -237,7 +249,7 @@ export class ProvidersService {
       );
     }
 
-    return data;
+    return data ? mapProviderFromDb(data) : null;
   }
 
   // Helper method to get all active providers with their models
@@ -265,6 +277,9 @@ export class ProvidersService {
       );
     }
 
-    return data || [];
+    return (data || []).map((provider: any) => ({
+      ...mapProviderFromDb(provider),
+      models: (provider.models || []).map(mapModelFromDb),
+    }));
   }
 }

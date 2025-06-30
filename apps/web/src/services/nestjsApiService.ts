@@ -1,5 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { TaskResponse, AgentInfo } from '../types/chat';
+import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
+import { convertLLMSelectionToAPI, convertAPIResponseToFrontend } from '../utils/caseConverter';
 
 // NestJS-specific endpoint configuration
 const NESTJS_BASE_URL = import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
@@ -38,12 +40,47 @@ class NestJSApiService {
   }
 
   /**
-   * Post a task to the NestJS orchestrator
+   * Send enhanced message with LLM preferences to sessions API
+   */
+  async sendEnhancedMessage(
+    sessionId: string,
+    messageRequest: SendMessageRequest
+  ): Promise<SendMessageResponse> {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      // API now expects camelCase directly
+      const apiRequest = {
+        content: messageRequest.content,
+        llmSelection: messageRequest.llmSelection
+      };
+      
+      const response = await this.axiosInstance.post<any>(
+        `/sessions/${sessionId}/messages`,
+        apiRequest,
+        {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined
+          }
+        }
+      );
+      
+      // API now returns camelCase directly
+      return response.data;
+    } catch (error) {
+      console.error('Error sending enhanced message:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Post a task to the NestJS orchestrator (legacy method)
    */
   async postTaskToOrchestrator(
     userInputText: string, 
     sessionId?: string | null,
-    conversationHistory?: Array<{role: string, content: string, metadata?: any}> 
+    conversationHistory?: Array<{role: string, content: string, metadata?: any}>,
+    llmSelection?: LLMSelection
   ): Promise<TaskResponse> {
     try {
       // Get the current auth token from localStorage to pass to orchestrator
@@ -74,7 +111,9 @@ class NestJSApiService {
           session_id: sessionId,
           conversation_history: conversationHistory || [],
           authToken: authToken, // Pass auth token to orchestrator for agent pool refresh
-          currentUser: currentUser // Pass current user for database RLS
+          currentUser: currentUser, // Pass current user for database RLS
+          // Add LLM preferences if provided (API expects camelCase)
+          ...(llmSelection && { llmSelection })
         },
         id: Date.now() // Use timestamp as unique ID
       };
@@ -239,6 +278,89 @@ class NestJSApiService {
    */
   clearAuth(): void {
     delete this.axiosInstance.defaults.headers.common['Authorization'];
+  }
+
+  /**
+   * Create a new session
+   */
+  async createSession(name: string): Promise<any> {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await this.axiosInstance.post('/sessions', 
+        { name },
+        {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined
+          }
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error creating session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get session messages with LLM evaluation data
+   */
+  async getSessionMessages(
+    sessionId: string, 
+    options: {
+      skip?: number;
+      limit?: number;
+      includeEvaluations?: boolean;
+      includeLlmData?: boolean;
+    } = {}
+  ): Promise<SendMessageResponse[]> {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const queryParams = new URLSearchParams();
+      if (options.skip !== undefined) queryParams.append('skip', options.skip.toString());
+      if (options.limit !== undefined) queryParams.append('limit', options.limit.toString());
+      if (options.includeEvaluations) queryParams.append('include_evaluations', 'true');
+      if (options.includeLlmData) queryParams.append('include_llm_data', 'true');
+      
+      const response = await this.axiosInstance.get(
+        `/sessions/${sessionId}/messages/enhanced?${queryParams.toString()}`,
+        {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined
+          }
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching session messages:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user sessions
+   */
+  async getUserSessions(skip: number = 0, limit: number = 100): Promise<any> {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await this.axiosInstance.get(
+        `/sessions?skip=${skip}&limit=${limit}`,
+        {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined
+          }
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user sessions:', error);
+      throw error;
+    }
   }
 }
 
