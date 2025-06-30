@@ -316,6 +316,15 @@ interface AgentFunctionParams {
    - Most complex, requires other systems in place
    - Builds on established data storage patterns
 
+6. **Phase 5: Evaluations by framework and users** (2-3 weeks)
+   - Allow the user to evaluate, from their perspective, the success, speed, and ease of an agent call
+   - Allow the system to evaluate and change LLMs and cidafm settings with agents
+
+7. **Phase 6: Context Management** (2-3 weeks)
+  - Address passing context between agents in a string of agent calls
+  - Allow for context summary for efficiency
+
+
 ### Success Metrics
 - **Dynamic LLM**: 5+ different LLM configurations actively used per customer
 - **Authentication**: Support 3+ enterprise identity providers  
