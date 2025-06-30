@@ -2,6 +2,9 @@ import { defineStore } from 'pinia';
 import { ChatMessage, MessageSender, AgentInfo, MessageDisplayType, TaskResponse } from '../types/chat';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs
 import { postTaskToOrchestrator } from '../services/apiService'; // Name is already updated
+import { nestjsApiService } from '../services/nestjsApiService';
+import { useLLMStore } from './llmStore';
+import type { LLMSelection } from '../types/llm';
 import { useUiStore } from './uiStore'; // Import UI store to manage loading state
 import { useAgentsStore } from './agentsStore'; // Keep this for instantiating agentsStore
 import { useSessionStore } from './sessionStore'; // Import session store
@@ -46,13 +49,14 @@ export const useMessagesStore = defineStore('messages', {
       const sessionStore = useSessionStore(); // Also clear session on full message clear
       sessionStore.setCurrentSessionId(null);
     },
-    async submitMessageToOrchestrator(text: string) {
+    async submitMessageToOrchestrator(text: string, llmSelection?: LLMSelection) {
       if (!text.trim()) return;
       this.addUserMessage(text);
       
       const uiStore = useUiStore();
       const agentsStore = useAgentsStore();
       const sessionStore = useSessionStore();
+      const llmStore = useLLMStore();
 
       const discoveryKeywords = ['list agents', 'show agents', 'available agents', 'what can you do', 'help'];
       const lowerCaseText = text.toLowerCase().trim();
@@ -79,7 +83,38 @@ export const useMessagesStore = defineStore('messages', {
       uiStore.setAppLoading(true);
       try {
         const currentSessionId = sessionStore.currentSessionId;
-        const taskResponse: TaskResponse = await postTaskToOrchestrator(text, currentSessionId);
+        
+        // Use enhanced messaging if LLM preferences are provided and we have a session
+        if (llmSelection && currentSessionId) {
+          try {
+            console.log('[MESSAGES_STORE] Using enhanced messaging with LLM preferences:', llmSelection);
+            
+            const enhancedResponse = await nestjsApiService.sendEnhancedMessage(currentSessionId, {
+              content: text,
+              llmSelection: llmSelection
+            });
+            
+            console.log('[MESSAGES_STORE] Enhanced message response:', enhancedResponse);
+            
+            // Extract the agent response
+            if (enhancedResponse.content && enhancedResponse.role === 'assistant') {
+              const agentName = enhancedResponse.metadata?.processedBy || 'AI Assistant';
+              this.addAgentMessage(enhancedResponse.content, agentName);
+            } else {
+              this.addSystemMessage('Message sent with LLM preferences, but no response received.');
+            }
+            
+            uiStore.setAppLoading(false);
+            return;
+          } catch (enhancedError) {
+            console.warn('[MESSAGES_STORE] Enhanced messaging failed, falling back to orchestrator:', enhancedError);
+            // Fall through to legacy orchestrator method
+          }
+        }
+        
+        // Legacy orchestrator method with LLM preferences
+        const finalLLMSelection = llmSelection || llmStore.currentLLMSelection;
+        const taskResponse: TaskResponse = await postTaskToOrchestrator(text, currentSessionId, undefined, finalLLMSelection);
         console.log('[MESSAGES_STORE] Raw Task Response from orchestrator:', JSON.stringify(taskResponse, null, 2));
 
         if (taskResponse.session_id) {

@@ -14,6 +14,10 @@ import {
   LLMUsageMetrics,
   CIDAFMOptions,
 } from '../types/llm-evaluation';
+import {
+  mapProviderFromDb,
+  mapModelFromDb,
+} from '../utils/case-converter';
 
 // Explicitly set LangSmith environment variables for automatic tracing
 // Support both the official LangSmith env vars and our custom ones for backward compatibility
@@ -171,11 +175,11 @@ export class LLMService {
           options.sessionId,
         );
 
-        processedPrompt = cidafmResult.modified_prompt;
+        processedPrompt = cidafmResult.modifiedPrompt;
         cidafmState = {
-          active_state_modifiers: cidafmResult.active_state_modifiers,
-          executed_commands: cidafmResult.executed_commands,
-          processing_notes: cidafmResult.processing_notes,
+          activeStateModifiers: cidafmResult.activeStateModifiers,
+          executedCommands: cidafmResult.executedCommands,
+          processingNotes: cidafmResult.processingNotes,
         };
       }
 
@@ -188,7 +192,7 @@ export class LLMService {
       // Apply state modifiers to system prompt if any
       const enhancedSystemPrompt = this.applyStateModifiersToPrompt(
         systemPrompt,
-        cidafmState.active_state_modifiers || [],
+        cidafmState.activeStateModifiers || [],
       );
 
       const messages = [
@@ -219,16 +223,16 @@ export class LLMService {
       const costCalculation = this.calculateCost(
         inputTokens,
         outputTokens,
-        model.pricing_input_per_1k || 0,
-        model.pricing_output_per_1k || 0,
+        model.pricingInputPer1k || 0,
+        model.pricingOutputPer1k || 0,
       );
 
       const usage: LLMUsageMetrics = {
-        input_tokens: inputTokens,
-        output_tokens: outputTokens,
-        total_cost: costCalculation.total_cost,
-        response_time_ms: responseTimeMs,
-        // langsmith_run_id would be extracted from LangSmith tracing
+        inputTokens: inputTokens,
+        outputTokens: outputTokens,
+        totalCost: costCalculation.totalCost,
+        responseTimeMs: responseTimeMs,
+        // langsmithRunId would be extracted from LangSmith tracing
       };
 
       this.logger.debug(
@@ -695,8 +699,8 @@ Required JSON format (EXACT FORMAT REQUIRED):
 
       if (providerResult.data && modelResult.data) {
         return {
-          provider: providerResult.data,
-          model: modelResult.data,
+          provider: mapProviderFromDb(providerResult.data),
+          model: mapModelFromDb(modelResult.data),
         };
       }
     }
@@ -719,8 +723,8 @@ Required JSON format (EXACT FORMAT REQUIRED):
     }
 
     return {
-      provider: defaultProvider,
-      model: defaultModel,
+      provider: mapProviderFromDb(defaultProvider),
+      model: mapModelFromDb(defaultModel),
     };
   }
 
@@ -740,12 +744,14 @@ Required JSON format (EXACT FORMAT REQUIRED):
     const { data: provider } = await client
       .from('providers')
       .select('*')
-      .eq('id', model.provider_id)
+      .eq('id', model.providerId)
       .single();
 
     if (!provider) {
       throw new Error(`Provider not found for model ${model.name}`);
     }
+
+    const mappedProvider = mapProviderFromDb(provider);
 
     // Map provider names to our LLM creation logic
     const providerMap: Record<string, string> = {
@@ -760,14 +766,14 @@ Required JSON format (EXACT FORMAT REQUIRED):
       Mistral: 'openai', // Mistral uses OpenAI-compatible API
     };
 
-    const providerType = providerMap[provider.name] || 'openai';
+    const providerType = providerMap[mappedProvider.name] || 'openai';
 
     return this.createCustomLangGraphLLM({
       provider: providerType as any,
-      model: model.model_id,
+      model: model.modelId,
       temperature: overrides?.temperature,
-      maxTokens: overrides?.maxTokens || model.max_tokens,
-      baseUrl: provider.api_base_url,
+      maxTokens: overrides?.maxTokens || model.maxTokens,
+      baseUrl: mappedProvider.apiBaseUrl,
     });
   }
 
@@ -839,11 +845,11 @@ Required JSON format (EXACT FORMAT REQUIRED):
     const outputCost = (outputTokens / 1000) * outputPricePer1k;
 
     return {
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      input_cost: inputCost,
-      output_cost: outputCost,
-      total_cost: inputCost + outputCost,
+      inputTokens: inputTokens,
+      outputTokens: outputTokens,
+      inputCost: inputCost,
+      outputCost: outputCost,
+      totalCost: inputCost + outputCost,
       currency: 'USD',
     };
   }

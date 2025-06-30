@@ -41,14 +41,14 @@ export class CreateProviderDto {
   })
   @IsString()
   @IsOptional()
-  api_base_url?: string;
+  apiBaseUrl?: string;
 
   @ApiProperty({
     enum: ['api_key', 'oauth', 'none'],
     description: 'Authentication type',
   })
   @IsEnum(['api_key', 'oauth', 'none'])
-  auth_type: AuthType;
+  authType: AuthType;
 
   @ApiPropertyOptional({
     enum: ['active', 'inactive', 'deprecated'],
@@ -68,12 +68,12 @@ export class UpdateProviderDto {
   @ApiPropertyOptional({ description: 'API base URL' })
   @IsString()
   @IsOptional()
-  api_base_url?: string;
+  apiBaseUrl?: string;
 
   @ApiPropertyOptional({ enum: ['api_key', 'oauth', 'none'] })
   @IsEnum(['api_key', 'oauth', 'none'])
   @IsOptional()
-  auth_type?: AuthType;
+  authType?: AuthType;
 
   @ApiPropertyOptional({ enum: ['active', 'inactive', 'deprecated'] })
   @IsEnum(['active', 'inactive', 'deprecated'])
@@ -89,19 +89,19 @@ export class ProviderResponseDto {
   name: string;
 
   @ApiPropertyOptional({ description: 'API base URL' })
-  api_base_url?: string;
+  apiBaseUrl?: string;
 
   @ApiProperty({ enum: ['api_key', 'oauth', 'none'] })
-  auth_type: AuthType;
+  authType: AuthType;
 
   @ApiProperty({ enum: ['active', 'inactive', 'deprecated'] })
   status: ProviderStatus;
 
   @ApiProperty({ description: 'Creation timestamp' })
-  created_at: string;
+  createdAt: string;
 
   @ApiProperty({ description: 'Last update timestamp' })
-  updated_at: string;
+  updatedAt: string;
 }
 
 // ==================== Model DTOs ====================
@@ -109,7 +109,7 @@ export class ProviderResponseDto {
 export class CreateModelDto {
   @ApiProperty({ description: 'Provider UUID' })
   @IsUUID()
-  provider_id: string;
+  providerId: string;
 
   @ApiProperty({ description: 'Human-readable model name', example: 'GPT-4o' })
   @IsString()
@@ -119,7 +119,7 @@ export class CreateModelDto {
   @ApiProperty({ description: 'Model ID for API calls', example: 'gpt-4o' })
   @IsString()
   @IsNotEmpty()
-  model_id: string;
+  modelId: string;
 
   @ApiPropertyOptional({
     description: 'Input pricing per 1K tokens (USD)',
@@ -128,7 +128,7 @@ export class CreateModelDto {
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(0)
   @IsOptional()
-  pricing_input_per_1k?: number;
+  pricingInputPer1k?: number;
 
   @ApiPropertyOptional({
     description: 'Output pricing per 1K tokens (USD)',
@@ -137,7 +137,7 @@ export class CreateModelDto {
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(0)
   @IsOptional()
-  pricing_output_per_1k?: number;
+  pricingOutputPer1k?: number;
 
   @ApiPropertyOptional({
     description: 'Supports thinking mode',
@@ -145,19 +145,19 @@ export class CreateModelDto {
   })
   @IsBoolean()
   @IsOptional()
-  supports_thinking?: boolean;
+  supportsThinking?: boolean;
 
   @ApiPropertyOptional({ description: 'Maximum output tokens', example: 4096 })
   @IsNumber()
   @Min(1)
   @IsOptional()
-  max_tokens?: number;
+  maxTokens?: number;
 
   @ApiPropertyOptional({ description: 'Context window size', example: 128000 })
   @IsNumber()
   @Min(1)
   @IsOptional()
-  context_window?: number;
+  contextWindow?: number;
 
   @ApiPropertyOptional({ description: 'Model strengths', type: [String] })
   @IsArray()
@@ -175,7 +175,7 @@ export class CreateModelDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  use_cases?: string[];
+  useCases?: string[];
 
   @ApiPropertyOptional({
     enum: ['active', 'inactive', 'deprecated'],
@@ -195,36 +195,36 @@ export class UpdateModelDto {
   @ApiPropertyOptional({ description: 'Model ID for API calls' })
   @IsString()
   @IsOptional()
-  model_id?: string;
+  modelId?: string;
 
   @ApiPropertyOptional({ description: 'Input pricing per 1K tokens (USD)' })
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(0)
   @IsOptional()
-  pricing_input_per_1k?: number;
+  pricingInputPer1k?: number;
 
   @ApiPropertyOptional({ description: 'Output pricing per 1K tokens (USD)' })
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(0)
   @IsOptional()
-  pricing_output_per_1k?: number;
+  pricingOutputPer1k?: number;
 
   @ApiPropertyOptional({ description: 'Supports thinking mode' })
   @IsBoolean()
   @IsOptional()
-  supports_thinking?: boolean;
+  supportsThinking?: boolean;
 
   @ApiPropertyOptional({ description: 'Maximum output tokens' })
   @IsNumber()
   @Min(1)
   @IsOptional()
-  max_tokens?: number;
+  maxTokens?: number;
 
   @ApiPropertyOptional({ description: 'Context window size' })
   @IsNumber()
   @Min(1)
   @IsOptional()
-  context_window?: number;
+  contextWindow?: number;
 
   @ApiPropertyOptional({ description: 'Model strengths', type: [String] })
   @IsArray()
@@ -242,7 +242,7 @@ export class UpdateModelDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  use_cases?: string[];
+  useCases?: string[];
 
   @ApiPropertyOptional({ enum: ['active', 'inactive', 'deprecated'] })
   @IsEnum(['active', 'inactive', 'deprecated'])
@@ -255,28 +255,28 @@ export class ModelResponseDto {
   id: string;
 
   @ApiProperty({ description: 'Provider UUID' })
-  provider_id: string;
+  providerId: string;
 
   @ApiProperty({ description: 'Human-readable model name' })
   name: string;
 
   @ApiProperty({ description: 'Model ID for API calls' })
-  model_id: string;
+  modelId: string;
 
   @ApiPropertyOptional({ description: 'Input pricing per 1K tokens (USD)' })
-  pricing_input_per_1k?: number;
+  pricingInputPer1k?: number;
 
   @ApiPropertyOptional({ description: 'Output pricing per 1K tokens (USD)' })
-  pricing_output_per_1k?: number;
+  pricingOutputPer1k?: number;
 
   @ApiProperty({ description: 'Supports thinking mode' })
-  supports_thinking: boolean;
+  supportsThinking: boolean;
 
   @ApiPropertyOptional({ description: 'Maximum output tokens' })
-  max_tokens?: number;
+  maxTokens?: number;
 
   @ApiPropertyOptional({ description: 'Context window size' })
-  context_window?: number;
+  contextWindow?: number;
 
   @ApiPropertyOptional({ description: 'Model strengths', type: [String] })
   strengths?: string[];
@@ -285,16 +285,16 @@ export class ModelResponseDto {
   weaknesses?: string[];
 
   @ApiPropertyOptional({ description: 'Recommended use cases', type: [String] })
-  use_cases?: string[];
+  useCases?: string[];
 
   @ApiProperty({ enum: ['active', 'inactive', 'deprecated'] })
   status: ModelStatus;
 
   @ApiProperty({ description: 'Creation timestamp' })
-  created_at: string;
+  createdAt: string;
 
   @ApiProperty({ description: 'Last update timestamp' })
-  updated_at: string;
+  updatedAt: string;
 
   @ApiPropertyOptional({ description: 'Provider details (when joined)' })
   provider?: ProviderResponseDto;
@@ -338,16 +338,16 @@ export class CIDAFMCommandResponseDto {
   description?: string;
 
   @ApiProperty({ description: 'Whether command is active by default' })
-  default_active: boolean;
+  defaultActive: boolean;
 
   @ApiProperty({ description: 'Whether this is a built-in command' })
-  is_builtin: boolean;
+  isBuiltin: boolean;
 
   @ApiProperty({ description: 'Creation timestamp' })
-  created_at: string;
+  createdAt: string;
 
   @ApiProperty({ description: 'Last update timestamp' })
-  updated_at: string;
+  updatedAt: string;
 }
 
 // ==================== Message Enhancement DTOs ====================
@@ -355,20 +355,20 @@ export class CIDAFMCommandResponseDto {
 export class LLMSelectionDto {
   @ApiProperty({ description: 'Provider UUID' })
   @IsUUID()
-  provider_id: string;
+  providerId: string;
 
   @ApiProperty({ description: 'Model UUID' })
   @IsUUID()
-  model_id: string;
+  modelId: string;
 
   @ApiPropertyOptional({ description: 'CIDAFM options', type: Object })
   @IsObject()
   @IsOptional()
-  cidafm_options?: {
-    active_state_modifiers?: string[];
-    response_modifiers?: string[];
-    executed_commands?: string[];
-    custom_options?: Record<string, any>;
+  cidafmOptions?: {
+    activeStateModifiers?: string[];
+    responseModifiers?: string[];
+    executedCommands?: string[];
+    customOptions?: Record<string, any>;
   };
 }
 
@@ -382,7 +382,7 @@ export class MessageEvaluationDto {
   @Min(1)
   @Max(5)
   @IsOptional()
-  user_rating?: UserRatingScale;
+  userRating?: UserRatingScale;
 
   @ApiPropertyOptional({
     description: 'Speed rating (1-5)',
@@ -393,7 +393,7 @@ export class MessageEvaluationDto {
   @Min(1)
   @Max(5)
   @IsOptional()
-  speed_rating?: UserRatingScale;
+  speedRating?: UserRatingScale;
 
   @ApiPropertyOptional({
     description: 'Accuracy rating (1-5)',
@@ -404,12 +404,12 @@ export class MessageEvaluationDto {
   @Min(1)
   @Max(5)
   @IsOptional()
-  accuracy_rating?: UserRatingScale;
+  accuracyRating?: UserRatingScale;
 
   @ApiPropertyOptional({ description: 'User notes and feedback' })
   @IsString()
   @IsOptional()
-  user_notes?: string;
+  userNotes?: string;
 
   @ApiPropertyOptional({
     description: 'Additional evaluation details',
@@ -417,12 +417,12 @@ export class MessageEvaluationDto {
   })
   @IsObject()
   @IsOptional()
-  evaluation_details?: {
-    additional_metrics?: Record<string, number>;
+  evaluationDetails?: {
+    additionalMetrics?: Record<string, number>;
     tags?: string[];
     feedback?: string;
-    user_context?: string;
-    model_confidence?: number;
+    userContext?: string;
+    modelConfidence?: number;
   };
 }
 
@@ -436,7 +436,7 @@ export class EnhancedMessageCreateDto {
   @ValidateNested()
   @Type(() => LLMSelectionDto)
   @IsOptional()
-  llm_selection?: LLMSelectionDto;
+  llmSelection?: LLMSelectionDto;
 }
 
 export class EnhancedMessageResponseDto {
@@ -444,10 +444,10 @@ export class EnhancedMessageResponseDto {
   id: string;
 
   @ApiProperty({ description: 'Session UUID' })
-  session_id: string;
+  sessionId: string;
 
   @ApiProperty({ description: 'User UUID' })
-  user_id: string;
+  userId: string;
 
   @ApiProperty({ enum: ['user', 'assistant', 'system', 'tool'] })
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -466,47 +466,47 @@ export class EnhancedMessageResponseDto {
 
   // LLM fields
   @ApiPropertyOptional({ description: 'Provider UUID' })
-  provider_id?: string;
+  providerId?: string;
 
   @ApiPropertyOptional({ description: 'Model UUID' })
-  model_id?: string;
+  modelId?: string;
 
   @ApiPropertyOptional({ description: 'Input tokens consumed' })
-  input_tokens?: number;
+  inputTokens?: number;
 
   @ApiPropertyOptional({ description: 'Output tokens generated' })
-  output_tokens?: number;
+  outputTokens?: number;
 
   @ApiPropertyOptional({ description: 'Total cost in USD' })
-  total_cost?: number;
+  totalCost?: number;
 
   @ApiPropertyOptional({ description: 'Response time in milliseconds' })
-  response_time_ms?: number;
+  responseTimeMs?: number;
 
   @ApiPropertyOptional({ description: 'LangSmith run ID' })
-  langsmith_run_id?: string;
+  langsmithRunId?: string;
 
   // Evaluation fields
   @ApiPropertyOptional({ description: 'Overall rating (1-5)' })
-  user_rating?: UserRatingScale;
+  userRating?: UserRatingScale;
 
   @ApiPropertyOptional({ description: 'Speed rating (1-5)' })
-  speed_rating?: UserRatingScale;
+  speedRating?: UserRatingScale;
 
   @ApiPropertyOptional({ description: 'Accuracy rating (1-5)' })
-  accuracy_rating?: UserRatingScale;
+  accuracyRating?: UserRatingScale;
 
   @ApiPropertyOptional({ description: 'User notes' })
-  user_notes?: string;
+  userNotes?: string;
 
   @ApiPropertyOptional({ description: 'Evaluation timestamp' })
-  evaluation_timestamp?: string;
+  evaluationTimestamp?: string;
 
   @ApiPropertyOptional({ description: 'CIDAFM options used' })
-  cidafm_options?: Record<string, any>;
+  cidafmOptions?: Record<string, any>;
 
   @ApiPropertyOptional({ description: 'Additional evaluation details' })
-  evaluation_details?: Record<string, any>;
+  evaluationDetails?: Record<string, any>;
 
   // Joined data
   @ApiPropertyOptional({ description: 'Provider details (when joined)' })
@@ -522,22 +522,22 @@ export class UsageStatsQueryDto {
   @ApiPropertyOptional({ description: 'Start date (YYYY-MM-DD)' })
   @IsDateString()
   @IsOptional()
-  start_date?: string;
+  startDate?: string;
 
   @ApiPropertyOptional({ description: 'End date (YYYY-MM-DD)' })
   @IsDateString()
   @IsOptional()
-  end_date?: string;
+  endDate?: string;
 
   @ApiPropertyOptional({ description: 'Filter by provider UUID' })
   @IsUUID()
   @IsOptional()
-  provider_id?: string;
+  providerId?: string;
 
   @ApiPropertyOptional({ description: 'Filter by model UUID' })
   @IsUUID()
   @IsOptional()
-  model_id?: string;
+  modelId?: string;
 
   @ApiPropertyOptional({
     description: 'Include detailed breakdown',
@@ -545,59 +545,59 @@ export class UsageStatsQueryDto {
   })
   @IsBoolean()
   @IsOptional()
-  include_details?: boolean;
+  includeDetails?: boolean;
 }
 
 export class UsageStatsResponseDto {
   @ApiProperty({ description: 'User UUID' })
-  user_id: string;
+  userId: string;
 
   @ApiProperty({ description: 'Date range queried' })
-  date_range: {
-    start_date: string;
-    end_date: string;
+  dateRange: {
+    startDate: string;
+    endDate: string;
   };
 
   @ApiProperty({ description: 'Total requests made' })
-  total_requests: number;
+  totalRequests: number;
 
   @ApiProperty({ description: 'Total tokens consumed' })
-  total_tokens: number;
+  totalTokens: number;
 
   @ApiProperty({ description: 'Total cost in USD' })
-  total_cost: number;
+  totalCost: number;
 
   @ApiProperty({ description: 'Average response time in ms' })
-  average_response_time: number;
+  averageResponseTime: number;
 
   @ApiPropertyOptional({ description: 'Average user rating' })
-  average_user_rating?: number;
+  averageUserRating?: number;
 
   @ApiPropertyOptional({ description: 'Breakdown by provider', type: Array })
-  by_provider?: Array<{
+  byProvider?: Array<{
     provider: ProviderResponseDto;
     requests: number;
     tokens: number;
     cost: number;
-    avg_rating?: number;
+    avgRating?: number;
   }>;
 
   @ApiPropertyOptional({ description: 'Breakdown by model', type: Array })
-  by_model?: Array<{
+  byModel?: Array<{
     model: ModelResponseDto;
     requests: number;
     tokens: number;
     cost: number;
-    avg_rating?: number;
+    avgRating?: number;
   }>;
 
   @ApiPropertyOptional({ description: 'Daily statistics', type: Array })
-  daily_stats?: Array<{
+  dailyStats?: Array<{
     date: string;
     requests: number;
     tokens: number;
     cost: number;
-    avg_response_time?: number;
+    avgResponseTime?: number;
   }>;
 }
 
@@ -611,7 +611,7 @@ export class CostEstimateDto {
 
   @ApiProperty({ description: 'Model UUID for pricing' })
   @IsUUID()
-  model_id: string;
+  modelId: string;
 
   @ApiPropertyOptional({
     description: 'Estimated response length factor',
@@ -621,21 +621,21 @@ export class CostEstimateDto {
   @Min(0.1)
   @Max(10.0)
   @IsOptional()
-  response_length_factor?: number;
+  responseLengthFactor?: number;
 }
 
 export class CostEstimateResponseDto {
   @ApiProperty({ description: 'Estimated input tokens' })
-  estimated_input_tokens: number;
+  estimatedInputTokens: number;
 
   @ApiProperty({ description: 'Estimated output tokens' })
-  estimated_output_tokens: number;
+  estimatedOutputTokens: number;
 
   @ApiProperty({ description: 'Estimated total cost in USD' })
-  estimated_cost: number;
+  estimatedCost: number;
 
   @ApiPropertyOptional({ description: 'Cost warning if expensive' })
-  max_cost_warning?: string;
+  maxCostWarning?: string;
 
   @ApiProperty({ description: 'Currency (USD)' })
   currency: string;

@@ -34,7 +34,7 @@
     </ion-content>
 
     <ion-footer v-if="auth.isAuthenticated && sessionStore.currentSessionId">
-      <ChatInputComponent @send-message="handleSendMessage" :disabled="uiStore.getIsAppLoading" />
+      <EnhancedChatInput @send-message="handleEnhancedSendMessage" :disabled="uiStore.getIsAppLoading" />
       <div v-if="uiStore.getIsAppLoading" class="loading-indicator ion-padding-start ion-padding-bottom">
         <ion-spinner name="dots" color="primary"></ion-spinner>
       </div>
@@ -69,11 +69,13 @@ import { nestjsApiService } from '../services/nestjsApiService';
 
 import MessageListComponent from '../components/MessageList.vue';
 import ChatInputComponent from '../components/ChatInput.vue';
+import EnhancedChatInput from '../components/EnhancedChatInput.vue';
 import AgentCapabilitiesModal from '@/components/AgentCapabilitiesModal.vue';
 
 const auth = useAuthStore();
 const sessionStore = useSessionStore();
 const uiStore = useUiStore();
+const messagesStore = useMessagesStore();
 const router = useRouter();
 
 const { currentSessionId, currentSessionMessages } = storeToRefs(sessionStore);
@@ -140,6 +142,17 @@ watch(currentSessionId, (newId, oldId) => {
     if (!newId) currentSessionMessages.value = [];
   }
 });
+
+const handleEnhancedSendMessage = async (text: string, llmSelection?: any) => {
+  console.log("[HomePage] Enhanced send message called with LLM selection:", llmSelection);
+  if (!currentSessionId.value) {
+    console.error("No active session to send message to.");
+    return;
+  }
+  
+  // Use the messages store's enhanced submission method
+  await messagesStore.submitMessageToOrchestrator(text, llmSelection);
+};
 
 const handleSendMessage = async (text: string) => {
   if (!currentSessionId.value) {
