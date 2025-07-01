@@ -481,7 +481,7 @@ async function executeMarketingSwarm(
     finalContent: null,
     metadata: {
       workflow_id: `swarm_${Date.now()}`,
-      session_id: sessionId || 'unknown',
+      sessionId: sessionId || 'unknown',
       steps_completed: [],
       start_time: new Date().toISOString(),
     },

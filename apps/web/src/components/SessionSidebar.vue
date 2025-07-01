@@ -133,7 +133,7 @@ const handleCreateNewSession = async () => {
       session_id: newSession.id,
       user_id: 'orchestrator',
       role: 'assistant' as const,
-      content: `Welcome ${authStore.user?.display_name || authStore.user?.email || 'there'}, good to see you! 👋\n\nI'm your Orchestrator AI. How can I help you today?`,
+      content: `Welcome ${authStore.user?.displayName || authStore.user?.email || 'there'}, good to see you! 👋\n\nI'm your Orchestrator AI. How can I help you today?`,
       timestamp: new Date().toISOString(),
       order: 1,
       metadata: {

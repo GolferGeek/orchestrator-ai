@@ -39,8 +39,8 @@
           :value="model"
         >
           {{ model.name }}
-          <span v-if="model.pricing_input_per_1k" class="model-pricing">
-            (${{ model.pricing_input_per_1k }}/1k in, ${{ model.pricing_output_per_1k }}/1k out)
+          <span v-if="model.pricingInputPer1k" class="model-pricing">
+            (${{ model.pricingInputPer1k }}/1k in, ${{ model.pricingOutputPer1k }}/1k out)
           </span>
         </option>
       </select>
@@ -53,7 +53,7 @@
     <div v-if="selectedModel" class="model-info">
       <div class="model-info-header">
         <h4>{{ selectedModel.name }}</h4>
-        <span class="provider-badge">{{ selectedProvider?.name }}</span>
+        <span class="provider-badge">{{ (selectedProvider && typeof selectedProvider === 'object') ? selectedProvider.name : '' }}</span>
       </div>
       
       <p v-if="selectedModel.description" class="model-description">
@@ -61,24 +61,24 @@
       </p>
       
       <div class="model-details">
-        <div v-if="selectedModel.max_tokens" class="detail-item">
+        <div v-if="selectedModel.maxTokens" class="detail-item">
           <span class="detail-label">Max Tokens:</span>
-          <span class="detail-value">{{ selectedModel.max_tokens?.toLocaleString() }}</span>
+          <span class="detail-value">{{ selectedModel.maxTokens?.toLocaleString() }}</span>
         </div>
         
-        <div v-if="selectedModel.pricing_input_per_1k" class="detail-item">
+        <div v-if="selectedModel.pricingInputPer1k" class="detail-item">
           <span class="detail-label">Pricing:</span>
           <span class="detail-value">
-            ${{ selectedModel.pricing_input_per_1k }}/1k input, 
-            ${{ selectedModel.pricing_output_per_1k }}/1k output
+            ${{ selectedModel.pricingInputPer1k }}/1k input, 
+            ${{ selectedModel.pricingOutputPer1k }}/1k output
           </span>
         </div>
         
         <div class="detail-item">
           <span class="detail-label">Features:</span>
           <span class="detail-value">
-            <span v-if="selectedModel.supports_streaming" class="feature-tag">Streaming</span>
-            <span v-if="selectedModel.supports_function_calling" class="feature-tag">Functions</span>
+            <span v-if="selectedModel.supportsStreaming" class="feature-tag">Streaming</span>
+            <span v-if="selectedModel.supportsFunctionCalling" class="feature-tag">Functions</span>
           </span>
         </div>
       </div>
@@ -95,10 +95,10 @@
         </span>
       </div>
 
-      <div v-if="selectedModel.use_cases?.length" class="model-tags">
+      <div v-if="selectedModel.useCases?.length" class="model-tags">
         <span class="tags-label">Best for:</span>
         <span 
-          v-for="useCase in selectedModel.use_cases" 
+          v-for="useCase in selectedModel.useCases" 
           :key="useCase" 
           class="tag use-case-tag"
         >
@@ -133,7 +133,7 @@
           v-model.number="maxTokens"
           type="number" 
           min="1" 
-          :max="selectedModel?.max_tokens || 4000"
+          :max="(selectedModel && typeof selectedModel === 'object') ? (selectedModel.maxTokens || 4000) : 4000"
           class="setting-input"
           placeholder="Leave empty for default"
           @input="onMaxTokensChange"

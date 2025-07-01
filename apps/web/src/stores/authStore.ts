@@ -6,10 +6,10 @@ import { nestjsApiService } from '@/services/nestjsApiService';
 
 // Interface for the token data expected from authService login/signup
 interface TokenData {
-  access_token: string;
-  refresh_token?: string;
-  token_type: string;
-  expires_in?: number;
+  accessToken: string;
+  refreshToken?: string;
+  tokenType: string;
+  expiresIn?: number;
 }
 
 // Define a shape for the user object you want to store (fetched from /auth/me)
@@ -17,7 +17,7 @@ interface TokenData {
 interface UserProfile {
   id: string; // UUID typically comes as string
   email?: string;
-  display_name?: string;
+  displayName?: string;
   // Add other relevant user properties from your /auth/me endpoint
 }
 
@@ -33,21 +33,21 @@ export const useAuthStore = defineStore('auth', () => {
   // This function is primarily for internal state update after successful token acquisition
   function setTokenData(tokenData: TokenData) {
     console.log("authStore: Setting token data", tokenData);
-    token.value = tokenData.access_token;
-    localStorage.setItem('authToken', tokenData.access_token);
-    if (tokenData.refresh_token) {
-      refreshToken.value = tokenData.refresh_token;
-      localStorage.setItem('refreshToken', tokenData.refresh_token);
+    token.value = tokenData.accessToken;
+    localStorage.setItem('authToken', tokenData.accessToken);
+    if (tokenData.refreshToken) {
+      refreshToken.value = tokenData.refreshToken;
+      localStorage.setItem('refreshToken', tokenData.refreshToken);
     }
     
     // Set auth token on backward-compatible client
-    apiClient.defaults.headers.common['Authorization'] = `Bearer ${tokenData.access_token}`;
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${tokenData.accessToken}`;
     
     // Set auth token on all API manager clients
-    apiManager.setAuthToken(tokenData.access_token);
+    apiManager.setAuthToken(tokenData.accessToken);
     
     // Set auth token on NestJS API service
-    nestjsApiService.setAuthToken(tokenData.access_token);
+    nestjsApiService.setAuthToken(tokenData.accessToken);
     
     error.value = null; // Clear error on successful token set
   }

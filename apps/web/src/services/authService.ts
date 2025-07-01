@@ -7,17 +7,17 @@ interface UserCredentials {
 }
 
 interface SignupData extends UserCredentials {
-  display_name?: string;
+  displayName?: string;
   // Add any other signup-specific fields here
 }
 
 export interface AuthResponse {
-  access_token: string;
-  refresh_token?: string;
-  token_type: string;
-  expires_in?: number;
+  accessToken: string;
+  refreshToken?: string;
+  tokenType: string;
+  expiresIn?: number;
   // You might also want to include basic user info here if your API returns it
-  // user?: { id: string; email: string; display_name?: string };
+  // user?: { id: string; email: string; displayName?: string };
 }
 
 const AUTH_TOKEN_KEY = 'authToken';
@@ -29,21 +29,21 @@ export const authService = {
     try {
       const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
       console.log("authService: login API response received", response.data);
-      if (response.data.access_token) {
-        localStorage.setItem(AUTH_TOKEN_KEY, response.data.access_token);
-        if (response.data.refresh_token) {
-            localStorage.setItem(REFRESH_TOKEN_KEY, response.data.refresh_token);
+      if (response.data.accessToken) {
+        localStorage.setItem(AUTH_TOKEN_KEY, response.data.accessToken);
+        if (response.data.refreshToken) {
+            localStorage.setItem(REFRESH_TOKEN_KEY, response.data.refreshToken);
         }
         
         // Set auth token on backward-compatible client
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`;
         
         // Set auth token on all API manager clients
-        apiManager.setAuthToken(response.data.access_token);
+        apiManager.setAuthToken(response.data.accessToken);
         
         console.log("authService: Token stored and headers set on all clients.");
       } else {
-        console.error('authService: Login successful response but no access_token received:', response.data);
+        console.error('authService: Login successful response but no accessToken received:', response.data);
         throw new Error('Login completed but no token was provided by the server.');
       }
       return response.data;
@@ -65,21 +65,21 @@ export const authService = {
     try {
       const response = await apiClient.post<AuthResponse>('/auth/signup', data);
       console.log("authService: signup API response received", response.data);
-      if (response.data.access_token) {
-        localStorage.setItem(AUTH_TOKEN_KEY, response.data.access_token);
-        if (response.data.refresh_token) {
-            localStorage.setItem(REFRESH_TOKEN_KEY, response.data.refresh_token);
+      if (response.data.accessToken) {
+        localStorage.setItem(AUTH_TOKEN_KEY, response.data.accessToken);
+        if (response.data.refreshToken) {
+            localStorage.setItem(REFRESH_TOKEN_KEY, response.data.refreshToken);
         }
         
         // Set auth token on backward-compatible client
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`;
         
         // Set auth token on all API manager clients
-        apiManager.setAuthToken(response.data.access_token);
+        apiManager.setAuthToken(response.data.accessToken);
         
         console.log("authService: Token stored (after signup) and headers set on all clients.");
       } else {
-        console.error('authService: Signup successful response but no access_token received:', response.data);
+        console.error('authService: Signup successful response but no accessToken received:', response.data);
         throw new Error('Signup completed but no token was provided by the server.');
       }
       return response.data;

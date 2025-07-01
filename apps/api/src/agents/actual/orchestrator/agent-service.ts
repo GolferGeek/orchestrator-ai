@@ -726,7 +726,6 @@ export class OrchestratorService extends A2AAgentBaseService {
             modelId: llmPreferences.modelId,
             model_id: llmPreferences.modelId,
             cidafmOptions: llmPreferences.cidafmOptions,
-            cidafm_options: llmPreferences.cidafmOptions,
             temperature: llmPreferences.temperature,
             maxTokens: llmPreferences.maxTokens,
             max_tokens: llmPreferences.maxTokens,

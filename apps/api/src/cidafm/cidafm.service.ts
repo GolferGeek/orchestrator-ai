@@ -266,7 +266,7 @@ export class CIDAFMService {
     });
 
     // Initialize state
-    const state = currentState || { active_state_modifiers: [] };
+    const state = currentState || { activeStateModifiers: [] };
     const executedCommands: string[] = [];
     const processingNotes: string[] = [];
     let modifiedPrompt = message;
@@ -363,7 +363,7 @@ export class CIDAFMService {
     userId: string,
     sessionId: string,
   ): Promise<{
-    active_state_modifiers: string[];
+    activeStateModifiers: string[];
     session_state: Record<string, any>;
     available_commands: CIDAFMCommandResponseDto[];
   }> {
@@ -380,13 +380,13 @@ export class CIDAFMService {
       .limit(1)
       .single();
 
-    const state = lastMessage?.cidafm_options || { active_state_modifiers: [] };
+    const state = lastMessage?.cidafm_options || { activeStateModifiers: [] };
     const commands = await this.findAllCommands(userId, {
       includeUserCommands: true,
     });
 
     return {
-      active_state_modifiers: state.active_state_modifiers || [],
+      activeStateModifiers: state.active_state_modifiers || [],
       session_state: state,
       available_commands: commands,
     };
@@ -400,7 +400,7 @@ export class CIDAFMService {
     reset_state: Record<string, any>;
   }> {
     const resetState = {
-      active_state_modifiers: ['token-efficient'], // Default state
+      activeStateModifiers: ['token-efficient'], // Default state
       custom_options: {},
     };
 

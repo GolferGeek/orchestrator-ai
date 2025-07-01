@@ -34,7 +34,7 @@ export class AuthService {
         options: {
           data: {
             display_name:
-              userCreateDto.display_name || userCreateDto.email.split('@')[0],
+              userCreateDto.displayName || userCreateDto.email.split('@')[0],
           },
         },
       });
@@ -53,10 +53,10 @@ export class AuthService {
           `User created successfully with session: ${authResponse.user.id}`,
         );
         return {
-          access_token: authResponse.session.access_token,
-          refresh_token: authResponse.session.refresh_token || undefined,
-          token_type: 'bearer',
-          expires_in: authResponse.session.expires_in || undefined,
+          accessToken: authResponse.session.access_token,
+          refreshToken: authResponse.session.refresh_token || undefined,
+          tokenType: 'bearer',
+          expiresIn: authResponse.session.expires_in || undefined,
         };
       }
 
@@ -118,10 +118,10 @@ export class AuthService {
 
       this.logger.log(`Login successful for: ${userLoginDto.email}`);
       return {
-        access_token: authResponse.session.access_token,
-        refresh_token: authResponse.session.refresh_token || undefined,
-        token_type: 'bearer',
-        expires_in: authResponse.session.expires_in || undefined,
+        accessToken: authResponse.session.access_token,
+        refreshToken: authResponse.session.refresh_token || undefined,
+        tokenType: 'bearer',
+        expiresIn: authResponse.session.expires_in || undefined,
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -187,7 +187,7 @@ export class AuthService {
         return {
           id: currentAuthUser.id,
           email: currentAuthUser.email, // Email from auth is authoritative
-          display_name: userData.display_name,
+          displayName: userData.display_name,
         };
       } else {
         // Fallback to auth user data if no public profile found
@@ -197,7 +197,7 @@ export class AuthService {
         return {
           id: currentAuthUser.id,
           email: currentAuthUser.email,
-          display_name: currentAuthUser.user_metadata?.display_name,
+          displayName: currentAuthUser.userMetadata?.display_name,
         };
       }
     } catch (error) {
@@ -228,19 +228,19 @@ export class AuthService {
         email: user.email,
         aud: user.aud,
         role: user.role,
-        app_metadata: user.app_metadata,
-        user_metadata: user.user_metadata,
-        email_confirmed_at: user.email_confirmed_at
+        appMetadata: user.app_metadata,
+        userMetadata: user.user_metadata,
+        emailConfirmedAt: user.email_confirmed_at
           ? new Date(user.email_confirmed_at)
           : undefined,
-        confirmed_at: user.confirmed_at
+        confirmedAt: user.confirmed_at
           ? new Date(user.confirmed_at)
           : undefined,
-        last_sign_in_at: user.last_sign_in_at
+        lastSignInAt: user.last_sign_in_at
           ? new Date(user.last_sign_in_at)
           : undefined,
-        created_at: user.created_at ? new Date(user.created_at) : undefined,
-        updated_at: user.updated_at ? new Date(user.updated_at) : undefined,
+        createdAt: user.created_at ? new Date(user.created_at) : undefined,
+        updatedAt: user.updated_at ? new Date(user.updated_at) : undefined,
         identities: user.identities,
       };
     } catch (error) {

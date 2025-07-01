@@ -178,10 +178,10 @@ export class CIDAFMController {
     schema: {
       type: 'object',
       properties: {
-        modified_prompt: { type: 'string' },
-        active_state_modifiers: { type: 'array', items: { type: 'string' } },
-        executed_commands: { type: 'array', items: { type: 'string' } },
-        processing_notes: { type: 'array', items: { type: 'string' } },
+        modifiedPrompt: { type: 'string' },
+        activeStateModifiers: { type: 'array', items: { type: 'string' } },
+        executedCommands: { type: 'array', items: { type: 'string' } },
+        processingNotes: { type: 'array', items: { type: 'string' } },
       },
     },
   })
@@ -195,10 +195,10 @@ export class CIDAFMController {
       session_id?: string;
     },
   ): Promise<{
-    modified_prompt: string;
-    active_state_modifiers: string[];
-    executed_commands: string[];
-    processing_notes: string[];
+    modifiedPrompt: string;
+    activeStateModifiers: string[];
+    executedCommands: string[];
+    processingNotes: string[];
   }> {
     return this.cidafmService.processMessage(
       user.id,
@@ -217,7 +217,7 @@ export class CIDAFMController {
     schema: {
       type: 'object',
       properties: {
-        active_state_modifiers: { type: 'array', items: { type: 'string' } },
+        activeStateModifiers: { type: 'array', items: { type: 'string' } },
         session_state: { type: 'object' },
         available_commands: {
           type: 'array',
@@ -230,7 +230,7 @@ export class CIDAFMController {
     @CurrentUser() user: any,
     @Param('sessionId') sessionId: string,
   ): Promise<{
-    active_state_modifiers: string[];
+    activeStateModifiers: string[];
     session_state: Record<string, any>;
     available_commands: CIDAFMCommandResponseDto[];
   }> {

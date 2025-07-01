@@ -110,14 +110,14 @@ export class UsageController {
     schema: {
       type: 'object',
       properties: {
-        total_cost: { type: 'number' },
-        total_tokens: { type: 'number' },
-        total_requests: { type: 'number' },
+        totalCost: { type: 'number' },
+        totalTokens: { type: 'number' },
+        totalRequests: { type: 'number' },
         period: {
           type: 'object',
           properties: {
-            start_date: { type: 'string' },
-            end_date: { type: 'string' },
+            startDate: { type: 'string' },
+            endDate: { type: 'string' },
           },
         },
         breakdown: {
@@ -154,10 +154,10 @@ export class UsageController {
     @Query('end_date') endDate?: string,
     @Query('group_by') groupBy: 'provider' | 'model' | 'date' = 'provider',
   ): Promise<{
-    total_cost: number;
-    total_tokens: number;
-    total_requests: number;
-    period: { start_date: string; end_date: string };
+    totalCost: number;
+    totalTokens: number;
+    totalRequests: number;
+    period: { startDate: string; endDate: string };
     breakdown: Array<{
       key: string;
       cost: number;
@@ -216,13 +216,13 @@ export class UsageController {
             type: 'object',
             properties: {
               usage_count: { type: 'number' },
-              avg_user_rating: { type: 'number' },
-              avg_speed_rating: { type: 'number' },
-              avg_accuracy_rating: { type: 'number' },
-              avg_response_time_ms: { type: 'number' },
+              avg_userRating: { type: 'number' },
+              avg_speedRating: { type: 'number' },
+              avg_accuracyRating: { type: 'number' },
+              avg_responseTimeMs: { type: 'number' },
               avg_cost_per_request: { type: 'number' },
-              total_cost: { type: 'number' },
-              total_tokens: { type: 'number' },
+              totalCost: { type: 'number' },
+              totalTokens: { type: 'number' },
               cost_efficiency_score: { type: 'number' },
               performance_score: { type: 'number' },
             },
@@ -242,16 +242,16 @@ export class UsageController {
     Array<{
       model: any;
       metrics: {
-        usage_count: number;
-        avg_user_rating: number;
-        avg_speed_rating: number;
-        avg_accuracy_rating: number;
-        avg_response_time_ms: number;
-        avg_cost_per_request: number;
-        total_cost: number;
-        total_tokens: number;
-        cost_efficiency_score: number;
-        performance_score: number;
+        usageCount: number;
+        avgUserRating: number;
+        avgSpeedRating: number;
+        avgAccuracyRating: number;
+        avgResponseTimeMs: number;
+        avgCostPerRequest: number;
+        totalCost: number;
+        totalTokens: number;
+        costEfficiencyScore: number;
+        performanceScore: number;
       };
       rank: number;
     }>
@@ -283,8 +283,8 @@ export class UsageController {
         analysis_period: {
           type: 'object',
           properties: {
-            start_date: { type: 'string' },
-            end_date: { type: 'string' },
+            startDate: { type: 'string' },
+            endDate: { type: 'string' },
             days: { type: 'number' },
           },
         },
@@ -336,35 +336,35 @@ export class UsageController {
     @CurrentUser() user: any,
     @Query('lookback_days') lookbackDays: number = 30,
   ): Promise<{
-    analysis_period: {
-      start_date: string;
-      end_date: string;
+    analysisPeriod: {
+      startDate: string;
+      endDate: string;
       days: number;
     };
-    spending_summary: {
-      total_spent: number;
-      daily_average: number;
-      projected_monthly: number;
-      most_expensive_day: string;
-      most_expensive_amount: number;
+    spendingSummary: {
+      totalSpent: number;
+      dailyAverage: number;
+      projectedMonthly: number;
+      mostExpensiveDay: string;
+      mostExpensiveAmount: number;
     };
-    usage_patterns: {
-      peak_hours: number[];
-      busiest_day_of_week: string;
-      avg_requests_per_day: number;
-      avg_tokens_per_request: number;
+    usagePatterns: {
+      peakHours: number[];
+      busiestDayOfWeek: string;
+      avgRequestsPerDay: number;
+      avgTokensPerRequest: number;
     };
-    model_insights: {
-      most_used_model: string;
-      most_expensive_model: string;
-      best_value_model: string;
-      underutilized_models: string[];
+    modelInsights: {
+      mostUsedModel: string;
+      mostExpensiveModel: string;
+      bestValueModel: string;
+      underutilizedModels: string[];
     };
     recommendations: Array<{
       type: string;
       title: string;
       description: string;
-      potential_savings: number;
+      potentialSavings: number;
       priority: string;
     }>;
   }> {
@@ -480,23 +480,23 @@ export class UsageController {
     @CurrentUser() user: any,
     @Query('monthly_budget') monthlyBudget?: number,
   ): Promise<{
-    current_month: {
+    currentMonth: {
       spent: number;
       budget: number;
-      percentage_used: number;
-      days_remaining: number;
-      projected_total: number;
+      percentageUsed: number;
+      daysRemaining: number;
+      projectedTotal: number;
     };
     alerts: Array<{
       level: 'info' | 'warning' | 'danger';
       message: string;
       threshold: number;
-      current_value: number;
+      currentValue: number;
     }>;
     recommendations: Array<{
       action: string;
       description: string;
-      estimated_savings: number;
+      estimatedSavings: number;
     }>;
   }> {
     return this.usageService.getBudgetStatus(user.id, monthlyBudget);
