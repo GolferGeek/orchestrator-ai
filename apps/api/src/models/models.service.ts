@@ -27,7 +27,7 @@ export class ModelsService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async findAll(filters: ModelFilters = {}): Promise<ModelResponseDto[]> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
 
     let query = client
       .from('models')
@@ -62,7 +62,7 @@ export class ModelsService {
     id: string,
     includeProvider = false,
   ): Promise<ModelResponseDto | null> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
 
     const { data, error } = await client
       .from('models')
@@ -87,7 +87,7 @@ export class ModelsService {
     modelId: string,
     providerId?: string,
   ): Promise<ModelResponseDto | null> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
 
     let query = client
       .from('models')
@@ -120,7 +120,7 @@ export class ModelsService {
     const { data: provider } = await client
       .from('providers')
       .select('id')
-      .eq('id', createModelDto.provider_id)
+      .eq('id', createModelDto.providerId)
       .single();
 
     if (!provider) {
@@ -131,8 +131,8 @@ export class ModelsService {
     const { data: existingModel } = await client
       .from('models')
       .select('id')
-      .eq('provider_id', createModelDto.provider_id)
-      .eq('model_id', createModelDto.model_id)
+      .eq('provider_id', createModelDto.providerId)
+      .eq('model_id', createModelDto.modelId)
       .single();
 
     if (existingModel) {
@@ -145,17 +145,17 @@ export class ModelsService {
     const { data, error } = await client
       .from('models')
       .insert({
-        provider_id: createModelDto.provider_id,
+        provider_id: createModelDto.providerId,
         name: createModelDto.name,
-        model_id: createModelDto.model_id,
-        pricing_input_per_1k: createModelDto.pricing_input_per_1k,
-        pricing_output_per_1k: createModelDto.pricing_output_per_1k,
-        supports_thinking: createModelDto.supports_thinking || false,
-        max_tokens: createModelDto.max_tokens,
-        context_window: createModelDto.context_window,
+        model_id: createModelDto.modelId,
+        pricing_input_per_1k: createModelDto.pricingInputPer1k,
+        pricing_output_per_1k: createModelDto.pricingOutputPer1k,
+        supports_thinking: createModelDto.supportsThinking || false,
+        max_tokens: createModelDto.maxTokens,
+        context_window: createModelDto.contextWindow,
         strengths: createModelDto.strengths,
         weaknesses: createModelDto.weaknesses,
-        use_cases: createModelDto.use_cases,
+        use_cases: createModelDto.useCases,
         status: createModelDto.status || 'active',
       })
       .select()
@@ -185,14 +185,14 @@ export class ModelsService {
 
     // If updating model_id, check for conflicts
     if (
-      updateModelDto.model_id &&
-      updateModelDto.model_id !== existing.model_id
+      updateModelDto.modelId &&
+      updateModelDto.modelId !== existing.modelId
     ) {
       const { data: existingModel } = await client
         .from('models')
         .select('id')
-        .eq('provider_id', existing.provider_id)
-        .eq('model_id', updateModelDto.model_id)
+        .eq('provider_id', existing.providerId)
+        .eq('model_id', updateModelDto.modelId)
         .neq('id', id)
         .single();
 
@@ -262,12 +262,12 @@ export class ModelsService {
   async estimateCost(
     costEstimateDto: CostEstimateDto,
   ): Promise<CostEstimateResponseDto> {
-    const model = await this.findOne(costEstimateDto.model_id, true);
+    const model = await this.findOne(costEstimateDto.modelId, true);
     if (!model) {
       throw new HttpException('Model not found', HttpStatus.NOT_FOUND);
     }
 
-    if (!model.pricing_input_per_1k || !model.pricing_output_per_1k) {
+    if (!model.pricingInputPer1k || !model.pricingOutputPer1k) {
       throw new HttpException(
         'Model pricing information not available',
         HttpStatus.BAD_REQUEST,
@@ -276,7 +276,7 @@ export class ModelsService {
 
     // Simple token estimation (4 characters ≈ 1 token)
     const estimatedInputTokens = Math.ceil(costEstimateDto.content.length / 4);
-    const responseLengthFactor = costEstimateDto.response_length_factor || 1.0;
+    const responseLengthFactor = costEstimateDto.responseLengthFactor || 1.0;
     const estimatedOutputTokens = Math.ceil(
       estimatedInputTokens * responseLengthFactor,
     );
@@ -284,21 +284,21 @@ export class ModelsService {
     const estimatedCost = this.calculateCost(
       estimatedInputTokens,
       estimatedOutputTokens,
-      model.pricing_input_per_1k,
-      model.pricing_output_per_1k,
+      model.pricingInputPer1k,
+      model.pricingOutputPer1k,
     );
 
     const result: CostEstimateResponseDto = {
-      estimated_input_tokens: estimatedInputTokens,
-      estimated_output_tokens: estimatedOutputTokens,
-      estimated_cost: estimatedCost.total_cost,
+      estimatedInputTokens: estimatedInputTokens,
+      estimatedOutputTokens: estimatedOutputTokens,
+      estimatedCost: estimatedCost.totalCost,
       currency: 'USD',
       model,
     };
 
     // Add warning for expensive operations
-    if (estimatedCost.total_cost > 0.1) {
-      result.max_cost_warning = `This operation may cost more than $0.10. Estimated: $${estimatedCost.total_cost.toFixed(4)}`;
+    if (estimatedCost.totalCost > 0.1) {
+      result.maxCostWarning = `This operation may cost more than $0.10. Estimated: $${estimatedCost.totalCost.toFixed(4)}`;
     }
 
     return result;
@@ -307,7 +307,7 @@ export class ModelsService {
   async getRecommendations(
     filters: RecommendationFilters,
   ): Promise<ModelResponseDto[]> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
 
     let query = client
       .from('models')
@@ -347,18 +347,18 @@ export class ModelsService {
     const outputCost = (outputTokens / 1000) * outputPricePer1k;
 
     return {
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      input_cost: inputCost,
-      output_cost: outputCost,
-      total_cost: inputCost + outputCost,
+      inputTokens: inputTokens,
+      outputTokens: outputTokens,
+      inputCost: inputCost,
+      outputCost: outputCost,
+      totalCost: inputCost + outputCost,
       currency: 'USD',
     };
   }
 
   // Helper method to get models by provider name
   async findByProviderName(providerName: string): Promise<ModelResponseDto[]> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
 
     const { data, error } = await client
       .from('models')
