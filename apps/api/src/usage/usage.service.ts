@@ -39,7 +39,7 @@ export class UsageService {
     userId: string,
     options: UsageStatsOptions,
   ): Promise<UsageStatsResponseDto> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
 
     // Set default date range if not provided
     const endDate = options.endDate || new Date().toISOString().split('T')[0];
@@ -406,13 +406,13 @@ export class UsageService {
         : undefined;
 
     return {
-      user_id: messages[0]?.user_id || '',
-      date_range: { start_date: startDate, end_date: endDate },
-      total_requests: totalRequests,
-      total_tokens: totalTokens,
-      total_cost: totalCost,
-      average_response_time: avgResponseTime,
-      average_user_rating: avgUserRating,
+      userId: messages[0]?.user_id || '',
+      dateRange: { startDate: startDate, endDate: endDate },
+      totalRequests: totalRequests,
+      totalTokens: totalTokens,
+      totalCost: totalCost,
+      averageResponseTime: avgResponseTime,
+      averageUserRating: avgUserRating,
     };
   }
 
