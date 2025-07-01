@@ -19,6 +19,7 @@ import {
   EnhancedMessageCreateDto,
   EnhancedMessageResponseDto,
 } from '../dto/llm-evaluation.dto';
+import { mapEnhancedMessageFromDb } from '../utils/case-converter';
 
 @Injectable()
 export class SessionsService {
@@ -63,10 +64,10 @@ export class SessionsService {
 
       return {
         id: data.id,
-        user_id: data.user_id,
+        userId: data.user_id,
         name: data.name,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -113,10 +114,10 @@ export class SessionsService {
 
       const sessions = (data || []).map((session) => ({
         id: session.id,
-        user_id: session.user_id,
+        userId: session.user_id,
         name: session.name,
-        created_at: session.created_at,
-        updated_at: session.updated_at,
+        createdAt: session.created_at,
+        updatedAt: session.updated_at,
       }));
 
       return {
@@ -164,10 +165,10 @@ export class SessionsService {
 
       return {
         id: data.id,
-        user_id: data.user_id,
+        userId: data.user_id,
         name: data.name,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -234,8 +235,8 @@ export class SessionsService {
 
       const messages = (data || []).map((message) => ({
         id: message.id,
-        session_id: message.session_id,
-        user_id: message.user_id,
+        sessionId: message.session_id,
+        userId: message.user_id,
         role: message.role,
         content: message.content,
         timestamp: message.timestamp,
@@ -245,7 +246,7 @@ export class SessionsService {
 
       return {
         messages,
-        session_id: sessionId,
+        sessionId: sessionId,
         count: count || 0,
         skip,
         limit,
@@ -327,8 +328,8 @@ export class SessionsService {
 
       return {
         id: data.id,
-        session_id: data.session_id,
-        user_id: data.user_id,
+        sessionId: data.session_id,
+        userId: data.user_id,
         role: data.role,
         content: data.content,
         timestamp: data.timestamp,
@@ -447,7 +448,7 @@ export class SessionsService {
           role: 'user',
           content: messageCreateDto.content,
           metadata: {
-            llmSelection: messageCreateDto.llm_selection,
+            llmSelection: messageCreateDto.llmSelection,
             clientSentAt: new Date().toISOString(),
           },
         },
@@ -473,19 +474,14 @@ export class SessionsService {
             message: messageCreateDto.content,
             userMessage: messageCreateDto.content,
             sessionId: sessionId,
-            session_id: sessionId,
             currentUser: currentUser,
             authToken: token,
             // Pass LLM preferences
-            providerId: messageCreateDto.llm_selection?.provider_id,
-            provider_id: messageCreateDto.llm_selection?.provider_id,
-            modelId: messageCreateDto.llm_selection?.model_id,
-            model_id: messageCreateDto.llm_selection?.model_id,
-            cidafmOptions: messageCreateDto.llm_selection?.cidafm_options,
-            cidafm_options: messageCreateDto.llm_selection?.cidafm_options,
-            temperature: messageCreateDto.llm_selection?.temperature,
-            maxTokens: messageCreateDto.llm_selection?.max_tokens,
-            max_tokens: messageCreateDto.llm_selection?.max_tokens,
+            providerId: messageCreateDto.llmSelection?.providerId,
+            provider_id: messageCreateDto.llmSelection?.providerId,
+            modelId: messageCreateDto.llmSelection?.modelId,
+            model_id: messageCreateDto.llmSelection?.modelId,
+            cidafmOptions: messageCreateDto.llmSelection?.cidafmOptions,
           },
           id: `sessions-orchestrator-${Date.now()}`,
         };
@@ -526,7 +522,7 @@ export class SessionsService {
             content: assistantContent,
             metadata: {
               processedBy: 'orchestrator_via_sessions',
-              llmPreferences: messageCreateDto.llm_selection,
+              llmPreferences: messageCreateDto.llmSelection,
               orchestratorMetadata: result?.metadata,
               processedAt: new Date().toISOString(),
             },
@@ -538,15 +534,15 @@ export class SessionsService {
         // Return enhanced message response with orchestrator data
         const enhancedResponse: EnhancedMessageResponseDto = {
           ...assistantMessage,
-          provider_id: messageCreateDto.llm_selection?.provider_id,
-          model_id: messageCreateDto.llm_selection?.model_id,
-          cidafm_options: messageCreateDto.llm_selection?.cidafm_options,
+          providerId: messageCreateDto.llmSelection?.providerId,
+          modelId: messageCreateDto.llmSelection?.modelId,
+          cidafmOptions: messageCreateDto.llmSelection?.cidafmOptions,
           // Include any LLM usage data from orchestrator metadata if available
-          input_tokens: result?.metadata?.llmUsage?.input_tokens,
-          output_tokens: result?.metadata?.llmUsage?.output_tokens,
-          total_cost: result?.metadata?.costCalculation?.total_cost,
-          response_time_ms: result?.metadata?.llmUsage?.response_time_ms,
-          langsmith_run_id: result?.metadata?.langsmithRunId,
+          inputTokens: result?.metadata?.llmUsage?.input_tokens,
+          outputTokens: result?.metadata?.llmUsage?.output_tokens,
+          totalCost: result?.metadata?.costCalculation?.total_cost,
+          responseTimeMs: result?.metadata?.llmUsage?.response_time_ms,
+          langsmithRunId: result?.metadata?.langsmithRunId,
         };
 
         return enhancedResponse;
@@ -564,7 +560,7 @@ export class SessionsService {
             content: `I received your message: "${messageCreateDto.content}". The orchestrator service is currently unavailable, but I've noted your LLM preferences.`,
             metadata: {
               processedBy: 'sessions_service_fallback',
-              llmPreferences: messageCreateDto.llm_selection,
+              llmPreferences: messageCreateDto.llmSelection,
               orchestratorError:
                 orchestratorError instanceof Error
                   ? orchestratorError.message
@@ -579,9 +575,9 @@ export class SessionsService {
         // Return enhanced message response
         const enhancedResponse: EnhancedMessageResponseDto = {
           ...assistantMessage,
-          provider_id: messageCreateDto.llm_selection?.provider_id,
-          model_id: messageCreateDto.llm_selection?.model_id,
-          cidafm_options: messageCreateDto.llm_selection?.cidafm_options,
+          providerId: messageCreateDto.llmSelection?.providerId,
+          modelId: messageCreateDto.llmSelection?.modelId,
+          cidafmOptions: messageCreateDto.llmSelection?.cidafmOptions,
         };
 
         return enhancedResponse;
@@ -659,42 +655,9 @@ export class SessionsService {
         );
       }
 
-      // Transform to enhanced message format
+      // Transform to enhanced message format using case converter
       const enhancedMessages: EnhancedMessageResponseDto[] = (data || []).map(
-        (message) => ({
-          id: message.id,
-          session_id: message.session_id,
-          user_id: message.user_id,
-          role: message.role,
-          content: message.content,
-          timestamp: message.timestamp,
-          order: message.order,
-          metadata: message.metadata,
-          // LLM fields
-          provider_id: message.provider_id,
-          model_id: message.model_id,
-          input_tokens: message.input_tokens,
-          output_tokens: message.output_tokens,
-          total_cost: message.total_cost,
-          response_time_ms: message.response_time_ms,
-          langsmith_run_id: message.langsmith_run_id,
-          // Evaluation fields (if requested)
-          ...(options.includeEvaluations && {
-            user_rating: message.user_rating,
-            speed_rating: message.speed_rating,
-            accuracy_rating: message.accuracy_rating,
-            user_notes: message.user_notes,
-            evaluation_timestamp: message.evaluation_timestamp,
-          }),
-          // CIDAFM and additional data
-          cidafm_options: message.cidafm_options,
-          evaluation_details: message.evaluation_details,
-          // Joined data (if requested)
-          ...(options.includeLlmData && {
-            provider: message.provider,
-            model: message.model,
-          }),
-        }),
+        (message: any) => mapEnhancedMessageFromDb(message),
       );
 
       return enhancedMessages;

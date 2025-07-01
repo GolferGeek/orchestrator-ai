@@ -39,7 +39,7 @@ export class EvaluationService {
     messageId: string,
     evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto | null> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
 
     // Verify message exists and belongs to user
     const { data: message, error: messageError } = await client
@@ -57,11 +57,11 @@ export class EvaluationService {
     const { data: updatedMessage, error: updateError } = await client
       .from('messages')
       .update({
-        user_rating: evaluationDto.user_rating,
-        speed_rating: evaluationDto.speed_rating,
-        accuracy_rating: evaluationDto.accuracy_rating,
-        user_notes: evaluationDto.user_notes,
-        evaluation_details: evaluationDto.evaluation_details,
+        user_rating: evaluationDto.userRating,
+        speed_rating: evaluationDto.speedRating,
+        accuracy_rating: evaluationDto.accuracyRating,
+        user_notes: evaluationDto.userNotes,
+        evaluation_details: evaluationDto.evaluationDetails,
         evaluation_timestamp: new Date().toISOString(),
       })
       .eq('id', messageId)
@@ -83,12 +83,12 @@ export class EvaluationService {
     }
 
     // Update usage statistics if ratings are provided
-    if (evaluationDto.user_rating) {
+    if (evaluationDto.userRating) {
       await this.updateUsageStatsWithRating(
         userId,
         message.provider_id,
         message.model_id,
-        evaluationDto.user_rating,
+        evaluationDto.userRating,
       );
     }
 
@@ -99,7 +99,7 @@ export class EvaluationService {
     userId: string,
     messageId: string,
   ): Promise<EnhancedMessageResponseDto | null> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
 
     const { data: message, error } = await client
       .from('messages')
@@ -132,7 +132,7 @@ export class EvaluationService {
     sessionId: string,
     filters: EvaluationFilters = {},
   ): Promise<EnhancedMessageResponseDto[]> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
 
     let query = client
       .from('messages')
@@ -172,18 +172,18 @@ export class EvaluationService {
     userId: string,
     filters: EvaluationStatsFilters = {},
   ): Promise<{
-    total_evaluations: number;
-    average_overall_rating: number;
-    average_speed_rating: number;
-    average_accuracy_rating: number;
-    evaluation_distribution: Record<string, number>;
-    model_performance: Array<{
+    totalEvaluations: number;
+    averageOverallRating: number;
+    averageSpeedRating: number;
+    averageAccuracyRating: number;
+    evaluationDistribution: Record<string, number>;
+    modelPerformance: Array<{
       model: any;
-      avg_rating: number;
-      evaluation_count: number;
+      avgRating: number;
+      evaluationCount: number;
     }>;
   }> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
 
     // Build base query
     let query = client
@@ -232,7 +232,7 @@ export class EvaluationService {
 
     return {
       ...stats,
-      model_performance: modelPerformance,
+      modelPerformance: modelPerformance,
     };
   }
 
@@ -249,28 +249,28 @@ export class EvaluationService {
     userId: string,
     options: FeedbackExportOptions,
   ): Promise<any[] | string> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
+
+    const selectFields = [
+      'id',
+      'timestamp', 
+      options.includeContent ? 'content' : null,
+      'user_rating',
+      'speed_rating',
+      'accuracy_rating', 
+      'user_notes',
+      'evaluation_timestamp',
+      'total_cost',
+      'input_tokens',
+      'output_tokens',
+      'response_time_ms',
+      'provider:providers(name)',
+      'model:models(name, model_id)'
+    ].filter(Boolean).join(', ');
 
     let query = client
       .from('messages')
-      .select(
-        `
-        id,
-        timestamp,
-        ${options.includeContent ? 'content,' : ''}
-        user_rating,
-        speed_rating,
-        accuracy_rating,
-        user_notes,
-        evaluation_timestamp,
-        total_cost,
-        input_tokens,
-        output_tokens,
-        response_time_ms,
-        provider:providers(name),
-        model:models(name, model_id)
-      `,
-      )
+      .select(selectFields)
       .eq('user_id', userId)
       .not('user_rating', 'is', null)
       .order('timestamp');
@@ -307,17 +307,17 @@ export class EvaluationService {
     comparison: Array<{
       model: any;
       metrics: {
-        avg_overall_rating: number;
-        avg_speed_rating: number;
-        avg_accuracy_rating: number;
-        avg_response_time_ms: number;
-        avg_cost: number;
-        evaluation_count: number;
+        avgOverallRating: number;
+        avgSpeedRating: number;
+        avgAccuracyRating: number;
+        avgResponseTimeMs: number;
+        avgCost: number;
+        evaluationCount: number;
       };
     }>;
     recommendations: string[];
   }> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
 
     let query = client
       .from('messages')
@@ -369,7 +369,7 @@ export class EvaluationService {
     modelId: string,
     rating: UserRatingScale,
   ): Promise<void> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getAnonClient();
     const today = new Date().toISOString().split('T')[0];
 
     // Get current stats for today
@@ -399,92 +399,95 @@ export class EvaluationService {
   }
 
   private calculateEvaluationStats(evaluations: any[]): {
-    total_evaluations: number;
-    average_overall_rating: number;
-    average_speed_rating: number;
-    average_accuracy_rating: number;
-    evaluation_distribution: Record<string, number>;
+    totalEvaluations: number;
+    averageOverallRating: number;
+    averageSpeedRating: number;
+    averageAccuracyRating: number;
+    evaluationDistribution: Record<string, number>;
   } {
     const totalEvaluations = evaluations.length;
 
     const avgOverallRating =
       totalEvaluations > 0
-        ? evaluations.reduce((sum, eval) => sum + (eval.user_rating || 0), 0) /
+        ? evaluations.reduce((sum, evaluation) => sum + (evaluation.user_rating || 0), 0) /
           totalEvaluations
         : 0;
 
     const avgSpeedRating =
       evaluations.filter((e) => e.speed_rating).length > 0
-        ? evaluations.reduce((sum, eval) => sum + (eval.speed_rating || 0), 0) /
+        ? evaluations.reduce((sum, evaluation) => sum + (evaluation.speed_rating || 0), 0) /
           evaluations.filter((e) => e.speed_rating).length
         : 0;
 
     const avgAccuracyRating =
       evaluations.filter((e) => e.accuracy_rating).length > 0
         ? evaluations.reduce(
-            (sum, eval) => sum + (eval.accuracy_rating || 0),
+            (sum, evaluation) => sum + (evaluation.accuracy_rating || 0),
             0,
           ) / evaluations.filter((e) => e.accuracy_rating).length
         : 0;
 
     // Calculate rating distribution
-    const distribution = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
-    evaluations.forEach((eval) => {
-      if (eval.user_rating) {
-        distribution[eval.user_rating.toString()]++;
+    const distribution: Record<string, number> = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+    evaluations.forEach((evaluation) => {
+      if (evaluation.user_rating) {
+        const ratingKey = evaluation.user_rating.toString();
+        if (distribution[ratingKey] !== undefined) {
+          distribution[ratingKey]++;
+        }
       }
     });
 
     return {
-      total_evaluations: totalEvaluations,
-      average_overall_rating: avgOverallRating,
-      average_speed_rating: avgSpeedRating,
-      average_accuracy_rating: avgAccuracyRating,
-      evaluation_distribution: distribution,
+      totalEvaluations: totalEvaluations,
+      averageOverallRating: avgOverallRating,
+      averageSpeedRating: avgSpeedRating,
+      averageAccuracyRating: avgAccuracyRating,
+      evaluationDistribution: distribution,
     };
   }
 
   private calculateModelPerformance(evaluations: any[]): Array<{
     model: any;
-    avg_rating: number;
-    evaluation_count: number;
+    avgRating: number;
+    evaluationCount: number;
   }> {
-    const modelGroups = evaluations.reduce((groups, eval) => {
-      const modelId = eval.model?.id || 'unknown';
+    const modelGroups = evaluations.reduce((groups, evaluation) => {
+      const modelId = evaluation.model?.id || 'unknown';
       if (!groups[modelId]) {
         groups[modelId] = {
-          model: eval.model,
+          model: evaluation.model,
           ratings: [],
         };
       }
-      if (eval.user_rating) {
-        groups[modelId].ratings.push(eval.user_rating);
+      if (evaluation.user_rating) {
+        groups[modelId].ratings.push(evaluation.user_rating);
       }
       return groups;
     }, {});
 
     return Object.values(modelGroups).map((group: any) => ({
       model: group.model,
-      avg_rating:
+      avgRating:
         group.ratings.length > 0
           ? group.ratings.reduce(
               (sum: number, rating: number) => sum + rating,
               0,
             ) / group.ratings.length
           : 0,
-      evaluation_count: group.ratings.length,
+      evaluationCount: group.ratings.length,
     }));
   }
 
   private calculateModelComparison(messages: any[]): Array<{
     model: any;
     metrics: {
-      avg_overall_rating: number;
-      avg_speed_rating: number;
-      avg_accuracy_rating: number;
-      avg_response_time_ms: number;
-      avg_cost: number;
-      evaluation_count: number;
+      avgOverallRating: number;
+      avgSpeedRating: number;
+      avgAccuracyRating: number;
+      avgResponseTimeMs: number;
+      avgCost: number;
+      evaluationCount: number;
     };
   }> {
     const modelGroups = messages.reduce((groups, msg) => {
@@ -516,12 +519,12 @@ export class EvaluationService {
     return Object.values(modelGroups).map((group: any) => ({
       model: group.model,
       metrics: {
-        avg_overall_rating: this.calculateAverage(group.overall_ratings),
-        avg_speed_rating: this.calculateAverage(group.speed_ratings),
-        avg_accuracy_rating: this.calculateAverage(group.accuracy_ratings),
-        avg_response_time_ms: this.calculateAverage(group.response_times),
-        avg_cost: this.calculateAverage(group.costs),
-        evaluation_count: group.overall_ratings.length,
+        avgOverallRating: this.calculateAverage(group.overall_ratings),
+        avgSpeedRating: this.calculateAverage(group.speed_ratings),
+        avgAccuracyRating: this.calculateAverage(group.accuracy_ratings),
+        avgResponseTimeMs: this.calculateAverage(group.response_times),
+        avgCost: this.calculateAverage(group.costs),
+        evaluationCount: group.overall_ratings.length,
       },
     }));
   }
@@ -531,14 +534,14 @@ export class EvaluationService {
 
     // Find best performer by rating
     const bestRated = comparison.reduce((best, current) =>
-      current.metrics.avg_overall_rating > best.metrics.avg_overall_rating
+      current.metrics.avgOverallRating > best.metrics.avgOverallRating
         ? current
         : best,
     );
 
     // Find most cost-effective
     const cheapest = comparison.reduce((cheapest, current) =>
-      current.metrics.avg_cost < cheapest.metrics.avg_cost ? current : cheapest,
+      current.metrics.avgCost < cheapest.metrics.avgCost ? current : cheapest,
     );
 
     recommendations.push(

@@ -78,12 +78,12 @@ export class UsageService {
       );
     }
 
-    const stats = this.calculateStats(messages || [], startDate, endDate);
+    const stats = this.calculateStats(messages || [], startDate, endDate!);
 
     if (options.includeDetails) {
-      stats.by_provider = this.groupByProvider(messages || []);
-      stats.by_model = this.groupByModel(messages || []);
-      stats.daily_stats = this.groupByDate(
+      stats.byProvider = this.groupByProvider(messages || []);
+      stats.byModel = this.groupByModel(messages || []);
+      stats.dailyStats = this.groupByDate(
         messages || [],
         options.granularity || 'daily',
       );
@@ -96,10 +96,10 @@ export class UsageService {
     userId: string,
     options: CostSummaryOptions,
   ): Promise<{
-    total_cost: number;
-    total_tokens: number;
-    total_requests: number;
-    period: { start_date: string; end_date: string };
+    totalCost: number;
+    totalTokens: number;
+    totalRequests: number;
+    period: { startDate: string; endDate: string };
     breakdown: Array<{
       key: string;
       cost: number;
@@ -124,13 +124,13 @@ export class UsageService {
     });
 
     const breakdown = this.createBreakdown(stats, options.groupBy);
-    const trends = this.createTrends(stats.daily_stats || []);
+    const trends = this.createTrends(stats.dailyStats || []);
 
     return {
-      total_cost: stats.total_cost,
-      total_tokens: stats.total_tokens,
-      total_requests: stats.total_requests,
-      period: { start_date: startDate, end_date: endDate },
+      totalCost: stats.totalCost,
+      totalTokens: stats.totalTokens,
+      totalRequests: stats.totalRequests,
+      period: { startDate: startDate, endDate: endDate! },
       breakdown,
       trends,
     };
@@ -143,16 +143,16 @@ export class UsageService {
     Array<{
       model: any;
       metrics: {
-        usage_count: number;
-        avg_user_rating: number;
-        avg_speed_rating: number;
-        avg_accuracy_rating: number;
-        avg_response_time_ms: number;
-        avg_cost_per_request: number;
-        total_cost: number;
-        total_tokens: number;
-        cost_efficiency_score: number;
-        performance_score: number;
+        usageCount: number;
+        avgUserRating: number;
+        avgSpeedRating: number;
+        avgAccuracyRating: number;
+        avgResponseTimeMs: number;
+        avgCostPerRequest: number;
+        totalCost: number;
+        totalTokens: number;
+        costEfficiencyScore: number;
+        performanceScore: number;
       };
       rank: number;
     }>
@@ -163,22 +163,22 @@ export class UsageService {
       includeDetails: true,
     });
 
-    const modelMetrics = (stats.by_model || [])
+    const modelMetrics = (stats.byModel || [])
       .filter((model) => model.requests >= options.minUsage)
       .map((model) => ({
         model: model.model,
         metrics: {
-          usage_count: model.requests,
-          avg_user_rating: model.avg_rating || 0,
-          avg_speed_rating: 0, // Would need to calculate from message data
-          avg_accuracy_rating: 0, // Would need to calculate from message data
-          avg_response_time_ms: 0, // Would need to calculate from message data
-          avg_cost_per_request:
+          usageCount: model.requests,
+          avgUserRating: model.avgRating || 0,
+          avgSpeedRating: 0, // Would need to calculate from message data
+          avgAccuracyRating: 0, // Would need to calculate from message data
+          avgResponseTimeMs: 0, // Would need to calculate from message data
+          avgCostPerRequest:
             model.requests > 0 ? model.cost / model.requests : 0,
-          total_cost: model.cost,
-          total_tokens: model.tokens,
-          cost_efficiency_score: this.calculateCostEfficiency(model),
-          performance_score: this.calculatePerformanceScore(model),
+          totalCost: model.cost,
+          totalTokens: model.tokens,
+          costEfficiencyScore: this.calculateCostEfficiency(model),
+          performanceScore: this.calculatePerformanceScore(model),
         },
         rank: 0, // Will be assigned after sorting
       }));
@@ -187,19 +187,19 @@ export class UsageService {
     modelMetrics.sort((a, b) => {
       switch (options.sortBy) {
         case 'rating':
-          return b.metrics.avg_user_rating - a.metrics.avg_user_rating;
+          return b.metrics.avgUserRating - a.metrics.avgUserRating;
         case 'speed':
           return (
-            a.metrics.avg_response_time_ms - b.metrics.avg_response_time_ms
+            a.metrics.avgResponseTimeMs - b.metrics.avgResponseTimeMs
           );
         case 'cost':
           return (
-            a.metrics.avg_cost_per_request - b.metrics.avg_cost_per_request
+            a.metrics.avgCostPerRequest - b.metrics.avgCostPerRequest
           );
         case 'usage':
-          return b.metrics.usage_count - a.metrics.usage_count;
+          return b.metrics.usageCount - a.metrics.usageCount;
         default:
-          return b.metrics.performance_score - a.metrics.performance_score;
+          return b.metrics.performanceScore - a.metrics.performanceScore;
       }
     });
 
@@ -215,39 +215,39 @@ export class UsageService {
     userId: string,
     lookbackDays: number,
   ): Promise<{
-    analysis_period: {
-      start_date: string;
-      end_date: string;
+    analysisPeriod: {
+      startDate: string;
+      endDate: string;
       days: number;
     };
-    spending_summary: {
-      total_spent: number;
-      daily_average: number;
-      projected_monthly: number;
-      most_expensive_day: string;
-      most_expensive_amount: number;
+    spendingSummary: {
+      totalSpent: number;
+      dailyAverage: number;
+      projectedMonthly: number;
+      mostExpensiveDay: string;
+      mostExpensiveAmount: number;
     };
-    usage_patterns: {
-      peak_hours: number[];
-      busiest_day_of_week: string;
-      avg_requests_per_day: number;
-      avg_tokens_per_request: number;
+    usagePatterns: {
+      peakHours: number[];
+      busiestDayOfWeek: string;
+      avgRequestsPerDay: number;
+      avgTokensPerRequest: number;
     };
-    model_insights: {
-      most_used_model: string;
-      most_expensive_model: string;
-      best_value_model: string;
-      underutilized_models: string[];
+    modelInsights: {
+      mostUsedModel: string;
+      mostExpensiveModel: string;
+      bestValueModel: string;
+      underutilizedModels: string[];
     };
     recommendations: Array<{
       type: string;
       title: string;
       description: string;
-      potential_savings: number;
+      potentialSavings: number;
       priority: string;
     }>;
   }> {
-    const endDate = new Date().toISOString().split('T')[0];
+    const endDate = new Date().toISOString().split('T')[0]!;
     const startDate = this.getDateDaysAgo(lookbackDays);
 
     const stats = await this.getUserStats(userId, {
@@ -266,14 +266,14 @@ export class UsageService {
     );
 
     return {
-      analysis_period: {
-        start_date: startDate,
-        end_date: endDate,
+      analysisPeriod: {
+        startDate: startDate,
+        endDate: endDate,
         days: lookbackDays,
       },
-      spending_summary: spendingSummary,
-      usage_patterns: usagePatterns,
-      model_insights: modelInsights,
+      spendingSummary: spendingSummary,
+      usagePatterns: usagePatterns,
+      modelInsights: modelInsights,
       recommendations,
     };
   }
@@ -290,15 +290,15 @@ export class UsageService {
 
     const exportData = {
       summary: {
-        total_requests: stats.total_requests,
-        total_tokens: stats.total_tokens,
-        total_cost: stats.total_cost,
-        average_response_time: stats.average_response_time,
-        average_user_rating: stats.average_user_rating,
+        totalRequests: stats.totalRequests,
+        totalTokens: stats.totalTokens,
+        totalCost: stats.totalCost,
+        averageResponseTime: stats.averageResponseTime,
+        averageUserRating: stats.averageUserRating,
       },
-      by_provider: stats.by_provider,
-      by_model: stats.by_model,
-      daily_stats: stats.daily_stats,
+      byProvider: stats.byProvider,
+      byModel: stats.byModel,
+      dailyStats: stats.dailyStats,
     };
 
     if (options.format === 'csv') {
@@ -312,23 +312,23 @@ export class UsageService {
     userId: string,
     monthlyBudget?: number,
   ): Promise<{
-    current_month: {
+    currentMonth: {
       spent: number;
       budget: number;
-      percentage_used: number;
-      days_remaining: number;
-      projected_total: number;
+      percentageUsed: number;
+      daysRemaining: number;
+      projectedTotal: number;
     };
     alerts: Array<{
       level: 'info' | 'warning' | 'danger';
       message: string;
       threshold: number;
-      current_value: number;
+      currentValue: number;
     }>;
     recommendations: Array<{
       action: string;
       description: string;
-      estimated_savings: number;
+      estimatedSavings: number;
     }>;
   }> {
     const now = new Date();
@@ -352,18 +352,18 @@ export class UsageService {
     const daysElapsed = now.getDate();
     const daysRemaining = daysInMonth - daysElapsed;
 
-    const dailyAverage = monthlyStats.total_cost / daysElapsed;
+    const dailyAverage = monthlyStats.totalCost / daysElapsed;
     const projectedTotal = dailyAverage * daysInMonth;
 
     const budget = monthlyBudget || 100; // Default $100 budget
-    const percentageUsed = (monthlyStats.total_cost / budget) * 100;
+    const percentageUsed = (monthlyStats.totalCost / budget) * 100;
 
     const currentMonth = {
-      spent: monthlyStats.total_cost,
+      spent: monthlyStats.totalCost,
       budget,
-      percentage_used: percentageUsed,
-      days_remaining: daysRemaining,
-      projected_total: projectedTotal,
+      percentageUsed: percentageUsed,
+      daysRemaining: daysRemaining,
+      projectedTotal: projectedTotal,
     };
 
     const alerts = this.generateBudgetAlerts(currentMonth);
@@ -373,7 +373,7 @@ export class UsageService {
     );
 
     return {
-      current_month: currentMonth,
+      currentMonth: currentMonth,
       alerts,
       recommendations,
     };
@@ -459,8 +459,8 @@ export class UsageService {
   }
 
   private groupByDate(messages: any[], granularity: string): any[] {
-    const grouped = messages.reduce((acc, msg) => {
-      const date = new Date(msg.timestamp).toISOString().split('T')[0];
+    const grouped = messages.reduce((acc: Record<string, any>, msg) => {
+      const date = new Date(msg.timestamp).toISOString().split('T')[0]!;
       if (!acc[date]) {
         acc[date] = {
           date,
@@ -475,7 +475,7 @@ export class UsageService {
       return acc;
     }, {});
 
-    return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date));
+    return Object.values(grouped).sort((a: any, b: any) => a.date.localeCompare(b.date));
   }
 
   private createBreakdown(
@@ -512,29 +512,29 @@ export class UsageService {
     days: number,
   ): any {
     return {
-      total_spent: stats.total_cost,
-      daily_average: stats.total_cost / days,
-      projected_monthly: (stats.total_cost / days) * 30,
-      most_expensive_day: '',
-      most_expensive_amount: 0,
+      totalSpent: stats.totalCost,
+      dailyAverage: stats.totalCost / days,
+      projectedMonthly: (stats.totalCost / days) * 30,
+      mostExpensiveDay: '',
+      mostExpensiveAmount: 0,
     };
   }
 
   private analyzeUsagePatterns(stats: UsageStatsResponseDto): any {
     return {
-      peak_hours: [9, 10, 14, 15], // Mock data
-      busiest_day_of_week: 'Tuesday',
-      avg_requests_per_day: stats.total_requests / 30,
-      avg_tokens_per_request: stats.total_tokens / stats.total_requests,
+      peakHours: [9, 10, 14, 15], // Mock data
+      busiestDayOfWeek: 'Tuesday',
+      avgRequestsPerDay: stats.totalRequests / 30,
+      avgTokensPerRequest: stats.totalTokens / stats.totalRequests,
     };
   }
 
   private analyzeModelInsights(stats: UsageStatsResponseDto): any {
     return {
-      most_used_model: 'GPT-4o',
-      most_expensive_model: 'Claude 3 Opus',
-      best_value_model: 'GPT-4o Mini',
-      underutilized_models: [],
+      mostUsedModel: 'GPT-4o',
+      mostExpensiveModel: 'Claude 3 Opus',
+      bestValueModel: 'GPT-4o Mini',
+      underutilizedModels: [],
     };
   }
 
@@ -549,7 +549,7 @@ export class UsageService {
         title: 'Consider using more cost-effective models',
         description:
           'Switch to GPT-4o Mini for simpler tasks to reduce costs by up to 80%',
-        potential_savings: spending.total_spent * 0.3,
+        potentialSavings: spending.totalSpent * 0.3,
         priority: 'medium',
       },
     ];
@@ -558,28 +558,28 @@ export class UsageService {
   private generateBudgetAlerts(currentMonth: any): any[] {
     const alerts = [];
 
-    if (currentMonth.percentage_used > 90) {
+    if (currentMonth.percentageUsed > 90) {
       alerts.push({
         level: 'danger' as const,
         message: 'You have exceeded 90% of your monthly budget',
         threshold: 90,
-        current_value: currentMonth.percentage_used,
+        currentValue: currentMonth.percentageUsed,
       });
-    } else if (currentMonth.percentage_used > 75) {
+    } else if (currentMonth.percentageUsed > 75) {
       alerts.push({
         level: 'warning' as const,
         message: 'You have used 75% of your monthly budget',
         threshold: 75,
-        current_value: currentMonth.percentage_used,
+        currentValue: currentMonth.percentageUsed,
       });
     }
 
-    if (currentMonth.projected_total > currentMonth.budget * 1.2) {
+    if (currentMonth.projectedTotal > currentMonth.budget * 1.2) {
       alerts.push({
         level: 'warning' as const,
         message: 'Current spending pace will exceed budget by 20%',
         threshold: currentMonth.budget,
-        current_value: currentMonth.projected_total,
+        currentValue: currentMonth.projectedTotal,
       });
     }
 
@@ -591,7 +591,7 @@ export class UsageService {
       {
         action: 'switch_to_cheaper_models',
         description: 'Use more cost-effective models for routine tasks',
-        estimated_savings: currentMonth.spent * 0.2,
+        estimatedSavings: currentMonth.spent * 0.2,
       },
     ];
   }
@@ -604,6 +604,7 @@ export class UsageService {
   private getDateDaysAgo(days: number): string {
     const date = new Date();
     date.setDate(date.getDate() - days);
-    return date.toISOString().split('T')[0];
+    const dateString = date.toISOString().split('T')[0]!;
+    return dateString;
   }
 }

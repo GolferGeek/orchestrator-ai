@@ -145,11 +145,11 @@ export class EvaluationController {
     schema: {
       type: 'object',
       properties: {
-        total_evaluations: { type: 'number' },
-        average_overall_rating: { type: 'number' },
-        average_speed_rating: { type: 'number' },
-        average_accuracy_rating: { type: 'number' },
-        evaluation_distribution: {
+        totalEvaluations: { type: 'number' },
+        averageOverallRating: { type: 'number' },
+        averageSpeedRating: { type: 'number' },
+        averageAccuracyRating: { type: 'number' },
+        evaluationDistribution: {
           type: 'object',
           properties: {
             '1': { type: 'number' },
@@ -159,14 +159,14 @@ export class EvaluationController {
             '5': { type: 'number' },
           },
         },
-        model_performance: {
+        modelPerformance: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
               model: { $ref: '#/components/schemas/ModelResponseDto' },
-              avg_rating: { type: 'number' },
-              evaluation_count: { type: 'number' },
+              avgRating: { type: 'number' },
+              evaluationCount: { type: 'number' },
             },
           },
         },
@@ -180,15 +180,15 @@ export class EvaluationController {
     @Query('provider_id') providerId?: string,
     @Query('model_id') modelId?: string,
   ): Promise<{
-    total_evaluations: number;
-    average_overall_rating: number;
-    average_speed_rating: number;
-    average_accuracy_rating: number;
-    evaluation_distribution: Record<string, number>;
-    model_performance: Array<{
+    totalEvaluations: number;
+    averageOverallRating: number;
+    averageSpeedRating: number;
+    averageAccuracyRating: number;
+    evaluationDistribution: Record<string, number>;
+    modelPerformance: Array<{
       model: any;
-      avg_rating: number;
-      evaluation_count: number;
+      avgRating: number;
+      evaluationCount: number;
     }>;
   }> {
     return this.evaluationService.getEvaluationStats(user.id, {
@@ -315,12 +315,12 @@ export class EvaluationController {
               metrics: {
                 type: 'object',
                 properties: {
-                  avg_overall_rating: { type: 'number' },
-                  avg_speed_rating: { type: 'number' },
-                  avg_accuracy_rating: { type: 'number' },
-                  avg_response_time_ms: { type: 'number' },
-                  avg_cost: { type: 'number' },
-                  evaluation_count: { type: 'number' },
+                  avgOverallRating: { type: 'number' },
+                  avgSpeedRating: { type: 'number' },
+                  avgAccuracyRating: { type: 'number' },
+                  avgResponseTimeMs: { type: 'number' },
+                  avgCost: { type: 'number' },
+                  evaluationCount: { type: 'number' },
                 },
               },
             },
@@ -342,12 +342,12 @@ export class EvaluationController {
     comparison: Array<{
       model: any;
       metrics: {
-        avg_overall_rating: number;
-        avg_speed_rating: number;
-        avg_accuracy_rating: number;
-        avg_response_time_ms: number;
-        avg_cost: number;
-        evaluation_count: number;
+        avgOverallRating: number;
+        avgSpeedRating: number;
+        avgAccuracyRating: number;
+        avgResponseTimeMs: number;
+        avgCost: number;
+        evaluationCount: number;
       };
     }>;
     recommendations: string[];

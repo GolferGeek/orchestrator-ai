@@ -8,30 +8,30 @@ export interface Provider {
   id: string;
   name: string;
   description?: string;
-  website_url?: string;
-  api_base_url?: string;
-  auth_type: AuthType;
+  websiteUrl?: string;
+  apiBaseUrl?: string;
+  authType: AuthType;
   status: ProviderStatus;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Model {
   id: string;
-  provider_id: string;
+  providerId: string;
   name: string;
   description?: string;
-  model_id: string;
-  max_tokens?: number;
-  supports_streaming?: boolean;
-  supports_function_calling?: boolean;
-  pricing_input_per_1k?: number;
-  pricing_output_per_1k?: number;
+  modelId: string;
+  maxTokens?: number;
+  supportsStreaming?: boolean;
+  supportsFunctionCalling?: boolean;
+  pricingInputPer1k?: number;
+  pricingOutputPer1k?: number;
   strengths?: string[];
   limitations?: string[];
-  use_cases?: string[];
-  created_at: string;
-  updated_at: string;
+  useCases?: string[];
+  createdAt: string;
+  updatedAt: string;
   // Populated when fetching with provider info
   provider?: Provider;
 }
@@ -41,19 +41,19 @@ export interface CIDAFMCommand {
   type: CIDAFMCommandType;
   name: string;
   description: string;
-  is_builtin: boolean;
-  default_active: boolean;
+  isBuiltin: boolean;
+  defaultActive: boolean;
   example?: string;
   category?: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CIDAFMOptions {
-  selected_commands?: string[];
-  custom_modifiers?: string[];
-  temperature_override?: number;
-  max_tokens_override?: number;
+  activeStateModifiers?: string[];
+  responseModifiers?: string[];
+  executedCommands?: string[];
+  customOptions?: Record<string, any>;
 }
 
 export interface LLMSelection {

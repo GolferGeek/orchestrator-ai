@@ -8,6 +8,7 @@ import {
   CostEstimateResponseDto,
 } from '../dto/llm-evaluation.dto';
 import { Model, ModelStatus, CostCalculation } from '../types/llm-evaluation';
+import { mapModelFromDb } from '../utils/case-converter';
 
 interface ModelFilters {
   providerId?: string;
@@ -55,7 +56,7 @@ export class ModelsService {
       );
     }
 
-    return data || [];
+    return (data || []).map((model: any) => mapModelFromDb(model));
   }
 
   async findOne(
@@ -80,7 +81,7 @@ export class ModelsService {
       );
     }
 
-    return data;
+    return data ? mapModelFromDb(data) : null;
   }
 
   async findByModelId(

@@ -114,7 +114,7 @@ export const useMessagesStore = defineStore('messages', {
         
         // Legacy orchestrator method with LLM preferences
         const finalLLMSelection = llmSelection || llmStore.currentLLMSelection;
-        const taskResponse: TaskResponse = await postTaskToOrchestrator(text, currentSessionId, undefined, finalLLMSelection);
+        const taskResponse: TaskResponse = await postTaskToOrchestrator(text, currentSessionId, undefined);
         console.log('[MESSAGES_STORE] Raw Task Response from orchestrator:', JSON.stringify(taskResponse, null, 2));
 
         if (taskResponse.session_id) {

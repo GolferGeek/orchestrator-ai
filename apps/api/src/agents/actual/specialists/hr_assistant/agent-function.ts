@@ -195,7 +195,7 @@ async function executeHRWorkflow(
     response: '',
     metadata: {
       workflow_id: `hr_${Date.now()}`,
-      session_id: sessionId || 'unknown',
+      sessionId: sessionId || 'unknown',
       steps_completed: [],
     },
   };

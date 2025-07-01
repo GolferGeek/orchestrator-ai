@@ -191,9 +191,9 @@ const estimatedCost = computed(() => {
   
   const textLength = inputText.value.length;
   const estimatedTokens = Math.ceil(textLength / 4); // Rough estimation
-  const inputCost = llmStore.selectedModel.pricing_input_per_1k || 0;
+  const inputCost = llmStore.selectedModel.pricingInputPer1k || 0;
   const estimatedOutputTokens = estimatedTokens * 0.5; // Assume response is half the input
-  const outputCost = llmStore.selectedModel.pricing_output_per_1k || 0;
+  const outputCost = llmStore.selectedModel.pricingOutputPer1k || 0;
   
   const totalCost = (estimatedTokens / 1000) * inputCost + (estimatedOutputTokens / 1000) * outputCost;
   

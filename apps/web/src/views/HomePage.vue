@@ -61,6 +61,7 @@ import { Capacitor } from '@capacitor/core';
 import { useAuthStore } from '@/stores/authStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useUiStore } from '@/stores/uiStore';
+import { useMessagesStore } from '@/stores/messagesStore';
 import { useRouter } from 'vue-router';
 import { postTaskToOrchestrator } from '@/services/apiService';
 import { storeToRefs } from 'pinia';

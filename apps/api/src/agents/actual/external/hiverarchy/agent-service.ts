@@ -212,7 +212,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         params: {
           message:
             params.userMessage || params.message || 'No message provided',
-          session_id: `external-session-${Date.now()}`,
+          sessionId: `external-session-${Date.now()}`,
           conversation_history: [],
           authToken: this.accessToken, // Pass our auth token like frontend does
           currentUser: null, // External call, no specific user

@@ -509,7 +509,7 @@ export class ApiAgentBaseService
     if (!config?.requestTransform) {
       const defaultData = {
         message: params.userMessage,
-        session_id: params.sessionId,
+        sessionId: params.sessionId,
         user: params.currentUser,
         timestamp: params.metadata.timestamp,
       };
@@ -574,7 +574,7 @@ export class ApiAgentBaseService
         // Fall back to default
         const defaultData = {
           message: params.userMessage,
-          session_id: params.sessionId,
+          sessionId: params.sessionId,
         };
         this.apiLogger.debug(
           `Falling back to default request transform:`,
@@ -604,7 +604,7 @@ export class ApiAgentBaseService
     // Default fallback
     const defaultData = {
       message: params.userMessage,
-      session_id: params.sessionId,
+      sessionId: params.sessionId,
       user: params.currentUser,
       timestamp: params.metadata.timestamp,
     };
