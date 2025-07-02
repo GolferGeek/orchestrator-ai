@@ -11,6 +11,7 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
 import {
   ApiTags,
   ApiOperation,
@@ -35,6 +36,7 @@ export class CIDAFMController {
   constructor(private readonly cidafmService: CIDAFMService) {}
 
   @Get('commands')
+  @Public()
   @ApiOperation({ summary: 'Get all available CIDAFM commands' })
   @ApiQuery({
     name: 'type',
@@ -60,15 +62,17 @@ export class CIDAFMController {
     type: [CIDAFMCommandResponseDto],
   })
   async getCommands(
-    @CurrentUser() user: any,
+    @CurrentUser() user?: any,
     @Query('type') type?: '^' | '&' | '!',
     @Query('builtin_only') builtinOnly?: boolean,
     @Query('include_user_commands') includeUserCommands?: boolean,
   ): Promise<CIDAFMCommandResponseDto[]> {
-    return this.cidafmService.findAllCommands(user.id, {
+    // For public access, use null for user ID to get only builtin commands
+    const userId = user?.id || null;
+    return this.cidafmService.findAllCommands(userId, {
       type,
-      builtinOnly,
-      includeUserCommands,
+      builtinOnly: builtinOnly ?? true, // Default to builtin only for public access
+      includeUserCommands: includeUserCommands ?? false, // Don't include user commands for public access
     });
   }
 

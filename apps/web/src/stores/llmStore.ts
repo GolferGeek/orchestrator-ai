@@ -109,11 +109,12 @@ export const useLLMStore = defineStore('llm', {
         }
 
         // Use the NestJS API endpoint
+        const authToken = localStorage.getItem('authToken');
         const response = await fetch(`${apiManager.currentEndpoint.baseUrl}/providers`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            // Add auth headers if needed
+            ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
           },
         });
 
@@ -141,10 +142,12 @@ export const useLLMStore = defineStore('llm', {
           throw new Error('No API client available');
         }
 
+        const authToken = localStorage.getItem('authToken');
         const response = await fetch(`${apiManager.currentEndpoint.baseUrl}/models`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
           },
         });
 
@@ -172,10 +175,12 @@ export const useLLMStore = defineStore('llm', {
           throw new Error('No API client available');
         }
 
+        const authToken = localStorage.getItem('authToken');
         const response = await fetch(`${apiManager.currentEndpoint.baseUrl}/cidafm/commands`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
           },
         });
 

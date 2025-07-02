@@ -51,7 +51,6 @@ export const useMessagesStore = defineStore('messages', {
     },
     async submitMessageToOrchestrator(text: string, llmSelection?: LLMSelection) {
       if (!text.trim()) return;
-      this.addUserMessage(text);
       
       const uiStore = useUiStore();
       const agentsStore = useAgentsStore();
@@ -96,13 +95,9 @@ export const useMessagesStore = defineStore('messages', {
             
             console.log('[MESSAGES_STORE] Enhanced message response:', enhancedResponse);
             
-            // Extract the agent response
-            if (enhancedResponse.content && enhancedResponse.role === 'assistant') {
-              const agentName = enhancedResponse.metadata?.processedBy || 'AI Assistant';
-              this.addAgentMessage(enhancedResponse.content, agentName);
-            } else {
-              this.addSystemMessage('Message sent with LLM preferences, but no response received.');
-            }
+            // Enhanced messaging saves to database, so refresh session messages to get both user and assistant messages
+            const sessionStore = useSessionStore();
+            await sessionStore.fetchMessagesForCurrentSession();
             
             uiStore.setAppLoading(false);
             return;
@@ -112,7 +107,7 @@ export const useMessagesStore = defineStore('messages', {
           }
         }
         
-        // Legacy orchestrator method with LLM preferences
+        // Legacy orchestrator method - also refresh session to avoid duplication
         const finalLLMSelection = llmSelection || llmStore.currentLLMSelection;
         const taskResponse: TaskResponse = await postTaskToOrchestrator(text, currentSessionId, undefined);
         console.log('[MESSAGES_STORE] Raw Task Response from orchestrator:', JSON.stringify(taskResponse, null, 2));
@@ -121,44 +116,8 @@ export const useMessagesStore = defineStore('messages', {
           sessionStore.setCurrentSessionId(taskResponse.session_id);
         }
 
-        const taskId = taskResponse.id;
-        const taskStatus = taskResponse.status?.state; // Should be string: e.g., "completed"
-        const agentResponseMessage = taskResponse.response_message;
-        const agentOutput = agentResponseMessage?.parts?.find(part => part.type === 'text')?.text;
-        
-        // Enhanced logging for debugging the conditional flow
-        console.log('[MESSAGES_STORE] Parsed values for condition check:');
-        console.log('[MESSAGES_STORE] taskId:', taskId, '(type:', typeof taskId, ')');
-        console.log('[MESSAGES_STORE] taskStatus:', taskStatus, '(type:', typeof taskStatus, ')');
-        console.log('[MESSAGES_STORE] agentOutput:', agentOutput, '(type:', typeof agentOutput, ')');
-        console.log('[MESSAGES_STORE] Condition (agentOutput && taskStatus === \'completed\'):', (agentOutput && taskStatus === 'completed'));
-
-        let respondingAgentName = "Agent";
-        if (agentResponseMessage?.role === 'agent') {
-          respondingAgentName = 
-            agentResponseMessage.metadata?.source_agent_name || 
-            agentResponseMessage.metadata?.agent_name || 
-            agentResponseMessage.metadata?.agent_id || 
-            "Agent";
-        }
-
-        if (agentOutput && taskStatus === 'completed') { 
-          console.log('[MESSAGES_STORE] Condition met: Adding agent message.');
-          this.addAgentMessage(agentOutput, respondingAgentName);
-        } else if (taskStatus === 'failed') {
-          console.log('[MESSAGES_STORE] Condition met: Task failed.');
-          this.addSystemMessage(
-            `Task ${taskId || 'unknown'} failed. ${taskResponse.status?.message || 'No specific error details.'}`
-          );
-        } else if (taskStatus === 'completed' && !agentOutput) {
-          console.log('[MESSAGES_STORE] Condition met: Task completed but no output.');
-          this.addSystemMessage(
-            `Task ${taskId || 'unknown'} completed but no output was provided.`
-          );
-        } else { 
-          console.log('[MESSAGES_STORE] Condition met: Fallback - other status or issue.');
-          this.addSystemMessage(`Task ${taskId || 'unknown'} status: ${taskStatus || 'unknown'}. ${taskResponse.status?.message || 'Waiting for result...'}`);
-        }
+        // For consistency with enhanced messaging, refresh session messages
+        await sessionStore.fetchMessagesForCurrentSession();
       } catch (error) {
         console.error("Error submitting task to orchestrator:", error);
         this.addSystemMessage(

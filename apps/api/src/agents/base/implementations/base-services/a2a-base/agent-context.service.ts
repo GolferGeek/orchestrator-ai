@@ -95,7 +95,7 @@ export class AgentContextService {
 
     try {
       const yamlContent = fs.readFileSync(yamlPath, 'utf8');
-      this.logger.debug(`Loaded YAML content length: ${yamlContent.length}`);
+      // YAML content loaded
 
       const parsed = yaml.load(yamlContent) as any;
 
@@ -132,9 +132,7 @@ export class AgentContextService {
         },
       };
 
-      this.logger.debug(
-        `Parsed context: name=${context.name}, type=${context.type}, capabilities=${context.capabilities.length}, skills=${context.skills.length}`,
-      );
+      // Context parsed successfully
 
       return context;
     } catch (error) {

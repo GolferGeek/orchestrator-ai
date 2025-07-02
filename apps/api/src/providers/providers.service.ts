@@ -23,7 +23,8 @@ export class ProvidersService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async findAll(status?: ProviderStatus): Promise<ProviderResponseDto[]> {
-    const client = this.supabaseService.getAnonClient();
+    // Try service client first to bypass RLS
+    const client = this.supabaseService.getServiceClient();
 
     let query = client.from('providers').select('*').order('name');
 
@@ -44,7 +45,7 @@ export class ProvidersService {
   }
 
   async findOne(id: string): Promise<ProviderResponseDto | null> {
-    const client = this.supabaseService.getAnonClient();
+    const client = this.supabaseService.getServiceClient();
 
     const { data, error } = await client
       .from('providers')

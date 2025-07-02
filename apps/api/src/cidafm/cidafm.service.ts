@@ -266,7 +266,7 @@ export class CIDAFMService {
     });
 
     // Initialize state
-    const state = currentState || { activeStateModifiers: [] };
+    const state = currentState || { active_state_modifiers: [] };
     const executedCommands: string[] = [];
     const processingNotes: string[] = [];
     let modifiedPrompt = message;
@@ -488,7 +488,10 @@ export class CIDAFMService {
   ): string {
     let modifiedPrompt = prompt;
 
-    for (const modifierName of activeModifiers) {
+    // Ensure activeModifiers is an array
+    const modifiersArray = Array.isArray(activeModifiers) ? activeModifiers : [];
+
+    for (const modifierName of modifiersArray) {
       const command = commands.find(
         (cmd) => cmd.type === '&' && cmd.name === modifierName,
       );

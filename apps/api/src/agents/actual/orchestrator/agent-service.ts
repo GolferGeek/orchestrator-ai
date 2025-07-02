@@ -188,7 +188,9 @@ export class OrchestratorService extends A2AAgentBaseService {
 
     // Save the user message to the database first
     let userMessageId = null;
-    if (sessionId && userMessage && currentUser && authToken) {
+    // Only save user message if not handling persistence elsewhere
+    const skipMessagePersistence = params?.skipMessagePersistence === true;
+    if (sessionId && userMessage && currentUser && authToken && !skipMessagePersistence) {
       try {
         const userMessageRecord = await this.sessionsService.addMessage(
           sessionId,
@@ -465,7 +467,7 @@ export class OrchestratorService extends A2AAgentBaseService {
     }
 
     // Save the assistant response to the database
-    if (sessionId && response?.response && currentUser && authToken) {
+    if (sessionId && response?.response && currentUser && authToken && !skipMessagePersistence) {
       try {
         // Determine the responding agent information
         const isResponseFromOrchestrator = !response.metadata?.delegatedTo;
@@ -683,11 +685,17 @@ export class OrchestratorService extends A2AAgentBaseService {
 
       // Find the agent in the available agents list
       const agent = this.availableAgents.find(
-        (a) =>
-          a.name.toLowerCase().includes(agentName.toLowerCase()) ||
-          agentName.toLowerCase().includes(a.name.toLowerCase()) ||
-          (agentName.toLowerCase().includes('blog') &&
-            a.name.toLowerCase().includes('blog')),
+        (a) => {
+          const agentNameLower = a.name.toLowerCase().replace(/[_\s-]+/g, ' ');
+          const searchNameLower = agentName.toLowerCase().replace(/[_\s-]+/g, ' ');
+          
+          return (
+            agentNameLower.includes(searchNameLower) ||
+            searchNameLower.includes(agentNameLower) ||
+            (searchNameLower.includes('blog') && agentNameLower.includes('blog')) ||
+            (searchNameLower.includes('golf') && agentNameLower.includes('golf'))
+          );
+        }
       );
 
       if (!agent) {
@@ -899,6 +907,34 @@ export class OrchestratorService extends A2AAgentBaseService {
       );
     }
 
+    // Check for golf-related queries
+    if (
+      lowerMessage.includes('golf') ||
+      lowerMessage.includes('rules of golf') ||
+      lowerMessage.includes('penalty') ||
+      lowerMessage.includes('usga') ||
+      lowerMessage.includes('r&a') ||
+      lowerMessage.includes('handicap') ||
+      lowerMessage.includes('golf rules') ||
+      lowerMessage.includes('golf rule') ||
+      lowerMessage.includes('water hazard') ||
+      lowerMessage.includes('unplayable') ||
+      lowerMessage.includes('relief') ||
+      lowerMessage.includes('drop') ||
+      lowerMessage.includes('bunker') ||
+      lowerMessage.includes('green') ||
+      lowerMessage.includes('fairway') ||
+      lowerMessage.includes('tee box') ||
+      lowerMessage.includes('golf course')
+    ) {
+      return await this.delegateToAgent(
+        'rules_of_golf',
+        userMessage,
+        sessionId,
+        authToken,
+      );
+    }
+
     // Default response for unmatched requests
     return this.createResponse(
       `I received your message: "${userMessage}". I'm here to help coordinate with various specialist agents, but I'm currently unable to determine the best way to assist you. Could you be more specific about what you need?`,
@@ -932,12 +968,8 @@ export class OrchestratorService extends A2AAgentBaseService {
         },
       );
 
-      this.orchestratorLogger.log(
-        `🔍 Agent pool response status: ${response.status}`,
-      );
-      this.orchestratorLogger.log(
-        `🔍 Agent pool response data:`,
-        JSON.stringify(response.data, null, 2),
+      this.orchestratorLogger.debug(
+        `Agent pool refreshed: ${response.data?.length || 0} agents found`,
       );
 
       if (response?.data && Array.isArray(response.data)) {
