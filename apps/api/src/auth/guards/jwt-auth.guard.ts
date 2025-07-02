@@ -5,6 +5,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { CanActivate } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { Request } from 'express';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { SupabaseAuthUserDto } from '../dto/auth.dto';
@@ -13,9 +15,20 @@ import { SupabaseAuthUserDto } from '../dto/auth.dto';
 export class JwtAuthGuard implements CanActivate {
   private readonly logger = new Logger(JwtAuthGuard.name);
 
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private reflector: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<Request>();
 
     // Check for API key authentication as fallback FIRST

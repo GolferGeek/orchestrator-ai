@@ -11,6 +11,7 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
 import {
   ApiTags,
   ApiOperation,
@@ -37,6 +38,7 @@ export class ModelsController {
   constructor(private readonly modelsService: ModelsService) {}
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Get all LLM models' })
   @ApiQuery({
     name: 'provider_id',

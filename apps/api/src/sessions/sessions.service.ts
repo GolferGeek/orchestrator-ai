@@ -459,7 +459,7 @@ export class SessionsService {
       // Process message through orchestrator with LLM preferences
       const apiHost = process.env.API_HOST || 'localhost';
       const apiPort = process.env.API_PORT || '4000';
-      const orchestratorUrl = `http://${apiHost}:${apiPort}/agents/orchestrator/tasks`;
+      const orchestratorUrl = `http://${apiHost}:${apiPort}/agents/orchestrator/orchestrator/tasks`;
 
       try {
         this.logger.log(
@@ -482,6 +482,8 @@ export class SessionsService {
             modelId: messageCreateDto.llmSelection?.modelId,
             model_id: messageCreateDto.llmSelection?.modelId,
             cidafmOptions: messageCreateDto.llmSelection?.cidafmOptions,
+            // Skip message persistence since we're handling it in sessions service
+            skipMessagePersistence: true,
           },
           id: `sessions-orchestrator-${Date.now()}`,
         };

@@ -11,6 +11,7 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
 import {
   ApiTags,
   ApiOperation,
@@ -36,6 +37,7 @@ export class ProvidersController {
   constructor(private readonly providersService: ProvidersService) {}
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Get all LLM providers' })
   @ApiQuery({
     name: 'status',
@@ -55,6 +57,7 @@ export class ProvidersController {
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: 'Get a specific LLM provider by ID' })
   @ApiParam({ name: 'id', description: 'Provider UUID' })
   @ApiResponse({

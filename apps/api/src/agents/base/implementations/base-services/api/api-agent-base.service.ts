@@ -269,10 +269,7 @@ export class ApiAgentBaseService
   private extractApiConfigurationFromContext(): ApiConfiguration | null {
     try {
       const context = this.agentContextService;
-      this.apiLogger.debug(
-        'Full agent context loaded:',
-        JSON.stringify(context, null, 2),
-      );
+      // Agent context available
 
       if (!context?.metadata?.api_configuration) {
         this.apiLogger.warn(

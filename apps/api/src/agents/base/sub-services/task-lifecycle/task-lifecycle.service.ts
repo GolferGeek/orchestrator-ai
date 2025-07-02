@@ -303,7 +303,10 @@ export class TaskLifecycleService {
       this.cleanupTask(task.id);
     }
 
-    this.logger.debug(`Cleaned up ${tasksToCleanup.length} completed tasks`);
+    // Only log cleanup if tasks were actually cleaned up
+    if (tasksToCleanup.length > 0) {
+      this.logger.debug(`Cleaned up ${tasksToCleanup.length} completed tasks`);
+    }
     return tasksToCleanup.length;
   }
 

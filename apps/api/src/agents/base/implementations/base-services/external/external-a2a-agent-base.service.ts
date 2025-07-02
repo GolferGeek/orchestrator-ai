@@ -115,8 +115,7 @@ export class ExternalA2AAgentBaseService
         await this.discoverRemoteAgent();
       } catch (error) {
         this.logger.warn(
-          'Remote agent discovery failed, continuing without discovery:',
-          error,
+          `Remote agent discovery failed, continuing without discovery: ${error instanceof Error ? error.message : String(error)}`,
         );
         // Create a minimal agent card for registration
         this.remoteAgentCard = {
@@ -409,7 +408,7 @@ export class ExternalA2AAgentBaseService
         `Capabilities: ${this.remoteAgentCard.capabilities?.join(', ') || 'none'}`,
       );
     } catch (error) {
-      this.logger.error(`Failed to discover remote agent:`, error);
+      this.logger.debug(`Failed to discover remote agent: ${error instanceof Error ? error.message : String(error)}`);
       throw new Error(
         `Remote agent discovery failed: ${error instanceof Error ? error.message : String(error)}`,
       );

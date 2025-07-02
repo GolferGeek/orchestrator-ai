@@ -155,10 +155,7 @@ export class AgentRegistrationService implements OnModuleDestroy {
         this.logger.debug(
           `Registration attempt ${attempt}/${this.config.maxRetryAttempts} to: ${url}`,
         );
-        this.logger.debug(
-          'Registration payload:',
-          JSON.stringify(registration, null, 2),
-        );
+        this.logger.debug(`Registering agent: ${registration.name}`);
 
         const response = await this.httpService.axiosRef.post(
           url,

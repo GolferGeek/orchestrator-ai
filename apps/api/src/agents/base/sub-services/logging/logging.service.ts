@@ -65,12 +65,15 @@ export class LoggingService {
     responseTime?: number,
     context?: LogContext,
   ): void {
-    this.logWithContext('log', 'Request completed', {
-      ...context,
-      method,
-      success,
-      responseTime: responseTime ? `${responseTime}ms` : undefined,
-    });
+    // Only log errors, not successful requests
+    if (!success) {
+      this.logWithContext('error', 'Request failed', {
+        ...context,
+        method,
+        success,
+        responseTime: responseTime ? `${responseTime}ms` : undefined,
+      });
+    }
   }
 
   /**
