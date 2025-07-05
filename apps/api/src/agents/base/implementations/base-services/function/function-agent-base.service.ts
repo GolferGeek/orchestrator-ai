@@ -7,28 +7,8 @@ import { JsonRpcProtocolService } from '../../../sub-services/json-rpc-protocol/
 import { LoggingService } from '../../../sub-services/logging/logging.service';
 import { AuthService } from '../../../sub-services/auth/auth.service';
 import { ConfigurationService } from '../../../sub-services/configuration/configuration.service';
+import { AgentFunctionParams } from '../a2a-base/interfaces';
 
-export interface AgentFunctionParams {
-  userMessage: string;
-  sessionId?: string;
-  conversationHistory?: any[];
-  currentUser?: any;
-  authToken?: string;
-  llmService: LLMService;
-  metadata: {
-    method: string;
-    originalParams: any;
-    agentName: string;
-    timestamp: string;
-  };
-  llmPreferences?: {
-    providerId?: string;
-    modelId?: string;
-    temperature?: number;
-    maxTokens?: number;
-    cidafmOptions?: any;
-  };
-}
 
 export interface AgentFunctionResponse {
   response: string;
