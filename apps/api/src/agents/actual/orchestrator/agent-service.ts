@@ -303,28 +303,87 @@ export class OrchestratorService extends A2AAgentBaseService {
     // Use ConversationContextService to build agent continuity context
     const agentContinuityContext = this.conversationContextService.buildAgentContinuityContext(conversationHistory);
 
+    // Enhanced sticky agent context check
+    const continuityDecision = this.conversationContextService.shouldContinueWithSameAgent(userMessage, conversationHistory);
+    this.orchestratorLogger.log(
+      `🔄 Sticky agent continuity check: shouldContinue=${continuityDecision.shouldContinue}, agent=${continuityDecision.agentName}, confidence=${continuityDecision.confidence}, reason="${continuityDecision.reason}"`
+    );
+
     // Use LLM to decide whether to delegate or respond directly
     let response;
     try {
-      // Check if this is a content creation request and if Hiverarchy is available
-      const isContentRequest = this.isContentCreationRequest(userMessage);
-      const hiverarchyAgent = this.availableAgents.find(
-        (agent) => agent.name === 'hiverarchy',
-      );
-
-      if (isContentRequest && hiverarchyAgent) {
+      // First priority: Check for sticky agent continuation with high confidence
+      if (continuityDecision.shouldContinue && continuityDecision.confidence && continuityDecision.confidence > 0.7) {
         this.orchestratorLogger.log(
-          `🎯 Content creation request detected, delegating to Hiverarchy: "${userMessage}"`,
+          `🎯 High-confidence sticky agent continuation to ${continuityDecision.agentName}: "${userMessage}"`
         );
+        
+        // Generate context handoff for seamless transition
+        const agentInteractions = this.conversationContextService.analyzeAgentInteractions(conversationHistory);
+        
         response = await this.delegateToAgent(
-          'hiverarchy',
+          continuityDecision.agentName!,
           userMessage,
           sessionId,
           authToken,
           llmPreferences,
+          {
+            stickyContext: true,
+            continuityReason: continuityDecision.reason,
+            confidence: continuityDecision.confidence,
+            agentContext: agentInteractions.currentAgentContext
+          }
         );
-      } else {
-        // Use orchestrator's own LLM reasoning through AgentDiscoveryService
+      } 
+      // Second priority: Check if this is a content creation request and if Hiverarchy is available
+      else if (this.isContentCreationRequest(userMessage)) {
+        const hiverarchyAgent = this.availableAgents.find(
+          (agent) => agent.name === 'hiverarchy',
+        );
+
+        if (hiverarchyAgent) {
+          this.orchestratorLogger.log(
+            `🎯 Content creation request detected, delegating to Hiverarchy: "${userMessage}"`
+          );
+          response = await this.delegateToAgent(
+            'hiverarchy',
+            userMessage,
+            sessionId,
+            authToken,
+            llmPreferences,
+          );
+        } else {
+          // Fallback to LLM decision if Hiverarchy not available
+          const decision = await this.agentDiscoveryService.analyzeRequestForAgentMatch(
+            userMessage,
+            this.availableAgents,
+            conversationHistory,
+            true
+          );
+          response = await this.handleAgentDiscoveryDecision(decision, userMessage, sessionId, authToken, llmPreferences, conversationHistory);
+        }
+      }
+      // Third priority: Check for medium-confidence sticky agent continuation
+      else if (continuityDecision.shouldContinue && continuityDecision.confidence && continuityDecision.confidence > 0.5) {
+        this.orchestratorLogger.log(
+          `🎯 Medium-confidence sticky agent continuation to ${continuityDecision.agentName}: "${userMessage}"`
+        );
+        
+        response = await this.delegateToAgent(
+          continuityDecision.agentName!,
+          userMessage,
+          sessionId,
+          authToken,
+          llmPreferences,
+          {
+            stickyContext: true,
+            continuityReason: continuityDecision.reason,
+            confidence: continuityDecision.confidence
+          }
+        );
+      }
+      // Default: Use orchestrator's own LLM reasoning through AgentDiscoveryService
+      else {
         const decision = await this.agentDiscoveryService.analyzeRequestForAgentMatch(
           userMessage,
           this.availableAgents,
@@ -332,38 +391,7 @@ export class OrchestratorService extends A2AAgentBaseService {
           true // Enable LLM reasoning
         );
 
-        if (decision.action === 'delegate' && decision.agent) {
-          response = await this.delegateToAgent(
-            decision.agent.name,
-            userMessage,
-            sessionId,
-            authToken,
-            llmPreferences,
-          );
-        } else if (decision.action === 'respond_directly') {
-          response = await this.responseGenerationService.generateDirectResponse(
-            userMessage,
-            this.availableAgents,
-            conversationHistory,
-            undefined,
-            llmPreferences
-          );
-        } else if (decision.action === 'clarify') {
-          response = this.responseGenerationService.generateClarificationRequest(
-            userMessage,
-            this.availableAgents,
-            decision.reasoning
-          );
-        } else {
-          // Fallback - use response generation service for any unhandled cases
-          response = await this.responseGenerationService.generateDirectResponse(
-            userMessage,
-            this.availableAgents,
-            conversationHistory,
-            undefined,
-            llmPreferences
-          );
-        }
+        response = await this.handleAgentDiscoveryDecision(decision, userMessage, sessionId, authToken, llmPreferences, conversationHistory);
       }
     } catch (error) {
       this.orchestratorLogger.error('Error processing with LLM:', error);
@@ -703,6 +731,51 @@ export class OrchestratorService extends A2AAgentBaseService {
   }
 
   /**
+   * Handle agent discovery decision with enhanced context
+   */
+  private async handleAgentDiscoveryDecision(
+    decision: any,
+    userMessage: string,
+    sessionId?: string,
+    authToken?: string,
+    llmPreferences?: any,
+    conversationHistory?: any[]
+  ): Promise<any> {
+    if (decision.action === 'delegate' && decision.agent) {
+      return await this.delegateToAgent(
+        decision.agent.name,
+        userMessage,
+        sessionId,
+        authToken,
+        llmPreferences,
+      );
+    } else if (decision.action === 'respond_directly') {
+      return await this.responseGenerationService.generateDirectResponse(
+        userMessage,
+        this.availableAgents,
+        conversationHistory || [],
+        undefined,
+        llmPreferences
+      );
+    } else if (decision.action === 'clarify') {
+      return this.responseGenerationService.generateClarificationRequest(
+        userMessage,
+        this.availableAgents,
+        decision.reasoning
+      );
+    } else {
+      // Fallback - use response generation service for any unhandled cases
+      return await this.responseGenerationService.generateDirectResponse(
+        userMessage,
+        this.availableAgents,
+        conversationHistory || [],
+        undefined,
+        llmPreferences
+      );
+    }
+  }
+
+  /**
    * Delegate request to a specific agent
    */
   private async delegateToAgent(
@@ -711,6 +784,12 @@ export class OrchestratorService extends A2AAgentBaseService {
     sessionId?: string,
     authToken?: string,
     llmPreferences?: any,
+    contextOptions?: {
+      stickyContext?: boolean;
+      continuityReason?: string;
+      confidence?: number;
+      agentContext?: any;
+    }
   ): Promise<any> {
     try {
       this.orchestratorLogger.log(
@@ -752,13 +831,30 @@ export class OrchestratorService extends A2AAgentBaseService {
         );
       }
 
-      // Use DelegationService for cleaner delegation logic
+      // Log sticky context information if provided
+      if (contextOptions?.stickyContext) {
+        this.orchestratorLogger.log(
+          `🔗 Sticky context delegation: reason="${contextOptions.continuityReason}", confidence=${contextOptions.confidence}`
+        );
+      }
+
+      // Use DelegationService for cleaner delegation logic with enhanced metadata
+      const enhancedLlmPreferences = {
+        ...llmPreferences,
+        delegationContext: contextOptions ? {
+          stickyContext: contextOptions.stickyContext,
+          continuityReason: contextOptions.continuityReason,
+          confidence: contextOptions.confidence,
+          agentContext: contextOptions.agentContext
+        } : undefined
+      };
+
       return await this.delegationService.delegateToAgent(
         agent,
         request,
         sessionId,
         authToken,
-        llmPreferences
+        enhancedLlmPreferences
       );
     } catch (error) {
       this.orchestratorLogger.error('Error delegating to agent:', error);

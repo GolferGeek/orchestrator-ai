@@ -6,6 +6,16 @@
           <ion-menu-button :auto-hide="false" v-if="auth.isAuthenticated"></ion-menu-button>
         </ion-buttons>
         <ion-title>{{ pageTitle }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button 
+            v-if="auth.isAuthenticated && sessionStore.currentSessionId" 
+            fill="clear" 
+            @click="toggleDebugPanel"
+            :color="showDebugPanel ? 'primary' : 'medium'"
+          >
+            <ion-icon :icon="bugOutline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -54,14 +64,21 @@
       :single-agent="currentAgentCapabilities"
       @dismiss="closeAgentCapabilitiesModal"
     />
+
+    <!-- Delegation Debug Panel -->
+    <DelegationDebugPanel 
+      :visible="showDebugPanel"
+      @close="closeDebugPanel"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import { 
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonFooter, IonSpinner, IonText, 
-  isPlatform, IonButtons, IonMenuButton
+  isPlatform, IonButtons, IonMenuButton, IonButton, IonIcon
 } from '@ionic/vue';
+import { bugOutline } from 'ionicons/icons';
 import { onMounted, onUnmounted, computed, watch, nextTick, ref } from 'vue';
 import { Keyboard, KeyboardInfo } from '@capacitor/keyboard';
 import { Capacitor } from '@capacitor/core';
@@ -79,6 +96,7 @@ import MessageListComponent from '../components/MessageList.vue';
 import ChatInputComponent from '../components/ChatInput.vue';
 import EnhancedChatInput from '../components/EnhancedChatInput.vue';
 import AgentCapabilitiesModal from '@/components/AgentCapabilitiesModal.vue';
+import DelegationDebugPanel from '@/components/DelegationDebugPanel.vue';
 
 const auth = useAuthStore();
 const sessionStore = useSessionStore();
@@ -97,6 +115,9 @@ const expectingAgentList = ref(false); // Track when we expect an agent list res
 // Agent capabilities modal state
 const showAgentCapabilitiesModal = ref(false);
 const currentAgentCapabilities = ref<any>(null);
+
+// Debug panel state
+const showDebugPanel = ref(false);
 
 const isIOS = computed(() => isPlatform('ios'));
 
@@ -473,6 +494,15 @@ const closeAgentModal = () => {
 const closeAgentCapabilitiesModal = () => {
   showAgentCapabilitiesModal.value = false;
   currentAgentCapabilities.value = null;
+};
+
+// Debug panel methods
+const toggleDebugPanel = () => {
+  showDebugPanel.value = !showDebugPanel.value;
+};
+
+const closeDebugPanel = () => {
+  showDebugPanel.value = false;
 };
 
 const handleAgentSelected = (agent: { name: string; description: string }) => {
