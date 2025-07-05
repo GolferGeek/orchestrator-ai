@@ -130,6 +130,7 @@ const SPECIALIST_AGENTS: Record<string, AgentSpecialist> = {
 async function analyzeMarketingTask(
   state: SwarmWorkflowState,
   llmService: any,
+  llmPreferences?: any,
 ): Promise<SwarmWorkflowState> {
   const analysisPrompt = `Analyze this marketing request and classify it:
 
@@ -160,7 +161,12 @@ Respond with JSON:
     const analysisResponse = await llmService.generateResponse(
       'You are a marketing strategy analyst. Always respond with valid JSON.',
       analysisPrompt,
-      { temperature: 0.1, maxTokens: 400 },
+      { 
+        temperature: 0.1, 
+        maxTokens: 400,
+        // Pass user preferences
+        ...llmPreferences 
+      },
     );
 
     const taskAnalysis: MarketingTask = JSON.parse(analysisResponse);
@@ -471,6 +477,7 @@ async function executeMarketingSwarm(
   userMessage: string,
   llmService: any,
   sessionId?: string,
+  llmPreferences?: any,
 ): Promise<{ response: string; metadata: Record<string, any> }> {
   let state: SwarmWorkflowState = {
     originalRequest: userMessage,
@@ -489,7 +496,7 @@ async function executeMarketingSwarm(
 
   try {
     // Step 1: Analyze marketing task
-    state = await analyzeMarketingTask(state, llmService);
+    state = await analyzeMarketingTask(state, llmService, llmPreferences);
     state.metadata.steps_completed.push('task_analysis');
 
     // Step 2: Select agent team
@@ -547,12 +554,12 @@ async function executeMarketingSwarm(
 export async function execute(
   params: AgentFunctionParams,
 ): Promise<AgentFunctionResponse> {
-  const { userMessage, sessionId, llmService } = params;
+  const { userMessage, sessionId, llmService, llmPreferences } = params;
   const startTime = Date.now();
 
   try {
     const { response, metadata: workflowMetadata } =
-      await executeMarketingSwarm(userMessage, llmService, sessionId);
+      await executeMarketingSwarm(userMessage, llmService, sessionId, llmPreferences);
 
     const processingTime = Date.now() - startTime;
 

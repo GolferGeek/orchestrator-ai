@@ -24,6 +24,13 @@ export interface AgentFunctionParams {
     agentName: string;
     timestamp: string;
   };
+  llmPreferences?: {
+    providerId?: string;
+    modelId?: string;
+    temperature?: number;
+    maxTokens?: number;
+    cidafmOptions?: any;
+  };
 }
 
 export interface AgentFunctionResponse {
@@ -110,6 +117,14 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           originalParams: params,
           agentName: agentName,
           timestamp: new Date().toISOString(),
+        },
+        // Pass LLM preferences to the Python function
+        llmPreferences: {
+          providerId: params.providerId,
+          modelId: params.modelId,
+          temperature: params.temperature,
+          maxTokens: params.maxTokens,
+          cidafmOptions: params.cidafmOptions,
         },
       };
 
