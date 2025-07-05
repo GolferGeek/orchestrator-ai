@@ -81,6 +81,7 @@ export const useMessagesStore = defineStore('messages', {
 
       uiStore.setAppLoading(true);
       try {
+        const sessionStore = useSessionStore();
         const currentSessionId = sessionStore.currentSessionId;
         
         // Use enhanced messaging if LLM preferences are provided and we have a session
@@ -96,7 +97,6 @@ export const useMessagesStore = defineStore('messages', {
             console.log('[MESSAGES_STORE] Enhanced message response:', enhancedResponse);
             
             // Enhanced messaging saves to database, so refresh session messages to get both user and assistant messages
-            const sessionStore = useSessionStore();
             await sessionStore.fetchMessagesForCurrentSession();
             
             uiStore.setAppLoading(false);
@@ -109,9 +109,6 @@ export const useMessagesStore = defineStore('messages', {
         
         // Legacy orchestrator method - also refresh session to avoid duplication
         const finalLLMSelection = llmSelection || llmStore.currentLLMSelection;
-        
-        // Get conversation history from session store
-        const sessionStore = useSessionStore();
         const conversationHistory = sessionStore.currentSessionMessages
           .filter(msg => msg.content) // Only include messages with content
           .map(msg => ({
@@ -153,7 +150,7 @@ export const useMessagesStore = defineStore('messages', {
         if (taskResponse.response_message?.parts?.[0]?.text) {
           responseText = taskResponse.response_message.parts[0].text;
         } else if (taskResponse.result) {
-          responseText = typeof taskResponse.result === 'string' ? taskResponse.result : taskResponse.result.response || taskResponse.result;
+          responseText = typeof taskResponse.result === 'string' ? taskResponse.result : (taskResponse.result as any).response || taskResponse.result;
         }
         
         // The orchestrator saves messages to the database
@@ -166,7 +163,7 @@ export const useMessagesStore = defineStore('messages', {
           
         const userMsg = {
           id: `temp-user-${Date.now()}`,
-          session_id: currentSessionId,
+          session_id: currentSessionId || 'no-session',
           user_id: 'user',
           role: 'user' as const,
           content: text,
@@ -186,7 +183,7 @@ export const useMessagesStore = defineStore('messages', {
           
           const agentMsg = {
             id: taskResponse.id || `temp-agent-${Date.now()}`,
-            session_id: currentSessionId,
+            session_id: currentSessionId || 'no-session',
             user_id: 'assistant',
             role: 'assistant' as const,
             content: responseText,

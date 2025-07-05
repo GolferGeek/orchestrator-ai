@@ -190,7 +190,7 @@ const uniqueAgents = computed(() => {
   const agents = new Set();
   sessionMessages.value.forEach(msg => {
     if (msg.role === 'assistant' && msg.metadata?.agentName) {
-      agents.add(msg.metadata.agentName);
+      agents.add(msg.metadata!.agentName);
     }
   });
   return Array.from(agents);
@@ -205,7 +205,7 @@ const delegationCount = computed(() => {
 const averageConfidence = computed(() => {
   const confidenceValues = sessionMessages.value
     .filter(msg => msg.metadata?.confidence)
-    .map(msg => msg.metadata.confidence);
+    .map(msg => msg.metadata!.confidence);
   
   if (confidenceValues.length === 0) return 0;
   
@@ -236,7 +236,7 @@ const agentStats = computed(() => {
   
   sessionMessages.value.forEach(msg => {
     if (msg.role === 'assistant' && msg.metadata?.agentName) {
-      const agentName = msg.metadata.agentName;
+      const agentName = msg.metadata!.agentName;
       
       if (!stats[agentName]) {
         stats[agentName] = {
@@ -251,12 +251,12 @@ const agentStats = computed(() => {
       
       stats[agentName].usageCount++;
       
-      if (msg.metadata.confidence) {
-        stats[agentName].confidenceSum += msg.metadata.confidence;
+      if (msg.metadata!.confidence) {
+        stats[agentName].confidenceSum += msg.metadata!.confidence;
         stats[agentName].confidenceCount++;
       }
       
-      if (msg.metadata.stickyContext) {
+      if (msg.metadata!.stickyContext) {
         stats[agentName].stickyCount++;
       }
       

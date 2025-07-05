@@ -76,10 +76,17 @@ export const sessionService = {
   async getSessionMessages(sessionId: string, skip: number = 0, limit: number = 50): Promise<MessageListResponse> {
     try {
       const response = await apiService.getSessionMessages(sessionId, { skip, limit });
+      // Convert SendMessageResponse[] to Message[] by ensuring required fields
+      const messages: Message[] = (response || []).map(msg => ({
+        ...msg,
+        user_id: msg.user_id || 'unknown-user', // Ensure user_id is never undefined
+        session_id: msg.session_id || sessionId // Ensure session_id is never undefined
+      }));
+      
       return {
-        messages: response || [],
+        messages,
         session_id: sessionId,
-        count: response?.length || 0,
+        count: messages.length,
         skip,
         limit
       };

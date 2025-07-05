@@ -252,11 +252,11 @@ const handleSendMessage = async (text: string) => {
       // Handle both string and object result formats
       if (typeof taskResponse.result === 'string') {
         agentText = taskResponse.result;
-      } else if (taskResponse.result.response) {
-        agentText = taskResponse.result.response;
+      } else if ((taskResponse.result as any).response) {
+        agentText = (taskResponse.result as any).response;
         // Extract metadata if available
-        if (taskResponse.result.metadata) {
-          agentMetadata = { ...taskResponse.result.metadata };
+        if ((taskResponse.result as any).metadata) {
+          agentMetadata = { ...(taskResponse.result as any).metadata };
         }
       }
       console.log("[HomePage] Extracted response from direct result field, metadata:", agentMetadata);
@@ -286,13 +286,13 @@ const handleSendMessage = async (text: string) => {
           : 1);
 
     // Check if this response should show a modal based on structured metadata
-    const contentType = taskResponse.result?.metadata?.contentType || agentMetadata.contentType;
+    const contentType = (taskResponse.result as any)?.metadata?.contentType || agentMetadata.contentType;
     
     if (contentType === 'agentListModal') {
       console.log("[HomePage] Detected agent list modal response");
       
       // Extract agent list from structured metadata
-      const agentListData = taskResponse.result?.metadata?.agentList || agentMetadata.agentList;
+      const agentListData = (taskResponse.result as any)?.metadata?.agentList || agentMetadata.agentList;
       
       if (agentListData && agentListData.length > 0) {
         // Use the structured data directly
@@ -324,7 +324,7 @@ const handleSendMessage = async (text: string) => {
       console.log("[HomePage] Detected agent capabilities modal response");
       
       // Extract agent capabilities from structured metadata
-      const agentCapabilitiesData = taskResponse.result?.metadata?.agentCapabilities || agentMetadata.agentCapabilities;
+      const agentCapabilitiesData = (taskResponse.result as any)?.metadata?.agentCapabilities || agentMetadata.agentCapabilities;
       
       if (agentCapabilitiesData) {
         // Show agent capabilities modal
