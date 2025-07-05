@@ -104,7 +104,10 @@ describe('ModelsController', () => {
     it('should filter by status and provider when provided', async () => {
       mockModelsService.findAll.mockResolvedValue([mockModelResponse]);
 
-      await controller.getModels('123e4567-e89b-12d3-a456-426614174000', 'active');
+      await controller.getModels(
+        '123e4567-e89b-12d3-a456-426614174000',
+        'active',
+      );
 
       expect(mockModelsService.findAll).toHaveBeenCalledWith({
         providerId: '123e4567-e89b-12d3-a456-426614174000',
@@ -119,22 +122,27 @@ describe('ModelsController', () => {
     it('should return a single model in camelCase format', async () => {
       mockModelsService.findOne.mockResolvedValue(mockModelResponse);
 
-      const result = await controller.getModel('456e7890-e89b-12d3-a456-426614174000');
+      const result = await controller.getModel(
+        '456e7890-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual(mockModelResponse);
       expect(result).toHaveProperty('providerId'); // camelCase
       expect(result).toHaveProperty('modelId'); // camelCase
       expect(result).toHaveProperty('pricingInputPer1k'); // camelCase
       expect(result).toHaveProperty('supportsThinking'); // camelCase
-      expect(mockModelsService.findOne).toHaveBeenCalledWith('456e7890-e89b-12d3-a456-426614174000', undefined);
+      expect(mockModelsService.findOne).toHaveBeenCalledWith(
+        '456e7890-e89b-12d3-a456-426614174000',
+        undefined,
+      );
     });
 
     it('should throw HttpException when model not found', async () => {
       mockModelsService.findOne.mockResolvedValue(null);
 
-      await expect(
-        controller.getModel('non-existent-id')
-      ).rejects.toThrow(new HttpException('Model not found', HttpStatus.NOT_FOUND));
+      await expect(controller.getModel('non-existent-id')).rejects.toThrow(
+        new HttpException('Model not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 
@@ -182,22 +190,30 @@ describe('ModelsController', () => {
 
       mockModelsService.update.mockResolvedValue(mockModelResponse);
 
-      const result = await controller.updateModel('456e7890-e89b-12d3-a456-426614174000', updateDto);
+      const result = await controller.updateModel(
+        '456e7890-e89b-12d3-a456-426614174000',
+        updateDto,
+      );
 
       expect(result).toEqual(mockModelResponse);
       expect(result).toHaveProperty('providerId'); // camelCase response
       expect(result).toHaveProperty('modelId'); // camelCase response
       expect(result).toHaveProperty('pricingInputPer1k'); // camelCase response
       expect(result).toHaveProperty('supportsThinking'); // camelCase response
-      expect(mockModelsService.update).toHaveBeenCalledWith('456e7890-e89b-12d3-a456-426614174000', updateDto);
+      expect(mockModelsService.update).toHaveBeenCalledWith(
+        '456e7890-e89b-12d3-a456-426614174000',
+        updateDto,
+      );
     });
 
     it('should throw HttpException when model not found for update', async () => {
       mockModelsService.update.mockResolvedValue(null);
 
       await expect(
-        controller.updateModel('non-existent-id', {})
-      ).rejects.toThrow(new HttpException('Model not found', HttpStatus.NOT_FOUND));
+        controller.updateModel('non-existent-id', {}),
+      ).rejects.toThrow(
+        new HttpException('Model not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 
@@ -205,18 +221,22 @@ describe('ModelsController', () => {
     it('should delete model successfully', async () => {
       mockModelsService.delete.mockResolvedValue(true);
 
-      const result = await controller.deleteModel('456e7890-e89b-12d3-a456-426614174000');
+      const result = await controller.deleteModel(
+        '456e7890-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual({ message: 'Model deleted successfully' });
-      expect(mockModelsService.delete).toHaveBeenCalledWith('456e7890-e89b-12d3-a456-426614174000');
+      expect(mockModelsService.delete).toHaveBeenCalledWith(
+        '456e7890-e89b-12d3-a456-426614174000',
+      );
     });
 
     it('should throw HttpException when model not found for deletion', async () => {
       mockModelsService.delete.mockResolvedValue(false);
 
-      await expect(
-        controller.deleteModel('non-existent-id')
-      ).rejects.toThrow(new HttpException('Model not found', HttpStatus.NOT_FOUND));
+      await expect(controller.deleteModel('non-existent-id')).rejects.toThrow(
+        new HttpException('Model not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 });

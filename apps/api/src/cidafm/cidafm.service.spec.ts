@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { CIDAFMService } from './cidafm.service';
 import { SupabaseService } from '../supabase/supabase.service';
-import { CreateCIDAFMCommandDto, CIDAFMCommandResponseDto } from '../dto/llm-evaluation.dto';
+import {
+  CreateCIDAFMCommandDto,
+  CIDAFMCommandResponseDto,
+} from '../dto/llm-evaluation.dto';
 
 describe('CIDAFMService', () => {
   let service: CIDAFMService;
@@ -32,7 +35,7 @@ describe('CIDAFMService', () => {
 
   // Create a complete mock that supports the full chain
   const mockSupabaseClient: any = {};
-  
+
   const resetMocks = () => {
     mockSupabaseClient.from = jest.fn().mockReturnValue(mockSupabaseClient);
     mockSupabaseClient.select = jest.fn().mockReturnValue(mockSupabaseClient);
@@ -46,7 +49,7 @@ describe('CIDAFMService', () => {
     mockSupabaseClient.not = jest.fn().mockReturnValue(mockSupabaseClient);
     mockSupabaseClient.single = jest.fn();
   };
-  
+
   // Initialize mocks
   resetMocks();
 
@@ -78,10 +81,9 @@ describe('CIDAFMService', () => {
   describe('findAllCommands', () => {
     it('should return built-in and user commands when no filters', async () => {
       // Mock the service method to test business logic rather than complex DB chaining
-      jest.spyOn(service, 'findAllCommands').mockResolvedValue([
-        mockBuiltinCommand,
-        mockUserCommand,
-      ]);
+      jest
+        .spyOn(service, 'findAllCommands')
+        .mockResolvedValue([mockBuiltinCommand, mockUserCommand]);
 
       const result = await service.findAllCommands('user-123');
 
@@ -91,7 +93,9 @@ describe('CIDAFMService', () => {
     });
 
     it('should filter commands by type', async () => {
-      jest.spyOn(service, 'findAllCommands').mockResolvedValue([mockBuiltinCommand]);
+      jest
+        .spyOn(service, 'findAllCommands')
+        .mockResolvedValue([mockBuiltinCommand]);
 
       const result = await service.findAllCommands('user-123', { type: '^' });
 
@@ -99,9 +103,13 @@ describe('CIDAFMService', () => {
     });
 
     it('should return only built-in commands when requested', async () => {
-      jest.spyOn(service, 'findAllCommands').mockResolvedValue([mockBuiltinCommand]);
+      jest
+        .spyOn(service, 'findAllCommands')
+        .mockResolvedValue([mockBuiltinCommand]);
 
-      const result = await service.findAllCommands('user-123', { builtinOnly: true });
+      const result = await service.findAllCommands('user-123', {
+        builtinOnly: true,
+      });
 
       expect(result).toEqual([mockBuiltinCommand]);
     });
@@ -109,9 +117,13 @@ describe('CIDAFMService', () => {
 
   describe('findCommandById', () => {
     it('should return built-in command by ID', async () => {
-      jest.spyOn(service, 'findCommandById').mockResolvedValue(mockBuiltinCommand);
+      jest
+        .spyOn(service, 'findCommandById')
+        .mockResolvedValue(mockBuiltinCommand);
 
-      const result = await service.findCommandById('123e4567-e89b-12d3-a456-426614174000');
+      const result = await service.findCommandById(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual(mockBuiltinCommand);
     });
@@ -119,7 +131,9 @@ describe('CIDAFMService', () => {
     it('should return user command if found', async () => {
       jest.spyOn(service, 'findCommandById').mockResolvedValue(mockUserCommand);
 
-      const result = await service.findCommandById('456e7890-e89b-12d3-a456-426614174000');
+      const result = await service.findCommandById(
+        '456e7890-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual(mockUserCommand);
     });
@@ -141,7 +155,9 @@ describe('CIDAFMService', () => {
         description: 'Test command',
       };
 
-      jest.spyOn(service, 'createUserCommand').mockResolvedValue(mockUserCommand);
+      jest
+        .spyOn(service, 'createUserCommand')
+        .mockResolvedValue(mockUserCommand);
 
       const result = await service.createUserCommand('user-123', createDto);
 
@@ -155,12 +171,22 @@ describe('CIDAFMService', () => {
         description: 'Existing command',
       };
 
-      jest.spyOn(service, 'createUserCommand').mockRejectedValue(
-        new HttpException('Command name already exists for this user and type', HttpStatus.CONFLICT)
-      );
+      jest
+        .spyOn(service, 'createUserCommand')
+        .mockRejectedValue(
+          new HttpException(
+            'Command name already exists for this user and type',
+            HttpStatus.CONFLICT,
+          ),
+        );
 
-      await expect(service.createUserCommand('user-123', createDto)).rejects.toThrow(
-        new HttpException('Command name already exists for this user and type', HttpStatus.CONFLICT)
+      await expect(
+        service.createUserCommand('user-123', createDto),
+      ).rejects.toThrow(
+        new HttpException(
+          'Command name already exists for this user and type',
+          HttpStatus.CONFLICT,
+        ),
       );
     });
   });
@@ -177,9 +203,15 @@ describe('CIDAFMService', () => {
         ...updateDto,
       };
 
-      jest.spyOn(service, 'updateUserCommand').mockResolvedValue(updatedCommand);
+      jest
+        .spyOn(service, 'updateUserCommand')
+        .mockResolvedValue(updatedCommand);
 
-      const result = await service.updateUserCommand('user-123', 'command-id', updateDto);
+      const result = await service.updateUserCommand(
+        'user-123',
+        'command-id',
+        updateDto,
+      );
 
       expect(result).toEqual(updatedCommand);
     });
@@ -187,7 +219,11 @@ describe('CIDAFMService', () => {
     it('should return null if command not found', async () => {
       jest.spyOn(service, 'updateUserCommand').mockResolvedValue(null);
 
-      const result = await service.updateUserCommand('user-123', 'non-existent', {});
+      const result = await service.updateUserCommand(
+        'user-123',
+        'non-existent',
+        {},
+      );
 
       expect(result).toBeNull();
     });
@@ -195,14 +231,22 @@ describe('CIDAFMService', () => {
     it('should throw conflict error on name collision', async () => {
       const updateDto = { name: 'existing' };
 
-      jest.spyOn(service, 'updateUserCommand').mockRejectedValue(
-        new HttpException('Command name already exists for this user and type', HttpStatus.CONFLICT)
-      );
+      jest
+        .spyOn(service, 'updateUserCommand')
+        .mockRejectedValue(
+          new HttpException(
+            'Command name already exists for this user and type',
+            HttpStatus.CONFLICT,
+          ),
+        );
 
       await expect(
-        service.updateUserCommand('user-123', 'command-id', updateDto)
+        service.updateUserCommand('user-123', 'command-id', updateDto),
       ).rejects.toThrow(
-        new HttpException('Command name already exists for this user and type', HttpStatus.CONFLICT)
+        new HttpException(
+          'Command name already exists for this user and type',
+          HttpStatus.CONFLICT,
+        ),
       );
     });
   });
@@ -219,7 +263,10 @@ describe('CIDAFMService', () => {
     it('should return false if command not found', async () => {
       jest.spyOn(service, 'deleteUserCommand').mockResolvedValue(false);
 
-      const result = await service.deleteUserCommand('user-123', 'non-existent');
+      const result = await service.deleteUserCommand(
+        'user-123',
+        'non-existent',
+      );
 
       expect(result).toBe(false);
     });
@@ -265,39 +312,47 @@ describe('CIDAFMService', () => {
     it('should process response modifier commands', async () => {
       const result = await service.processMessage(
         'user-123',
-        '^concise Explain quantum computing'
+        '^concise Explain quantum computing',
       );
 
       expect(result.modifiedPrompt).toBe('Explain quantum computing');
-      expect(result.processingNotes).toContain('Applied response modifier: concise');
+      expect(result.processingNotes).toContain(
+        'Applied response modifier: concise',
+      );
     });
 
     it('should process state modifier commands', async () => {
       const result = await service.processMessage(
         'user-123',
-        '&disciplined Enable strict mode'
+        '&disciplined Enable strict mode',
       );
 
-      expect(result.modifiedPrompt).toContain('[CIDAFM &disciplined: Use disciplined approach]');
+      expect(result.modifiedPrompt).toContain(
+        '[CIDAFM &disciplined: Use disciplined approach]',
+      );
       expect(result.activeStateModifiers).toContain('disciplined');
-      expect(result.processingNotes).toContain('Enabled state modifier: disciplined');
+      expect(result.processingNotes).toContain(
+        'Enabled state modifier: disciplined',
+      );
     });
 
     it('should toggle off existing state modifiers', async () => {
       const result = await service.processMessage(
         'user-123',
         '&disciplined Toggle off',
-        { active_state_modifiers: ['disciplined'] }
+        { active_state_modifiers: ['disciplined'] },
       );
 
       expect(result.activeStateModifiers).not.toContain('disciplined');
-      expect(result.processingNotes).toContain('Disabled state modifier: disciplined');
+      expect(result.processingNotes).toContain(
+        'Disabled state modifier: disciplined',
+      );
     });
 
     it('should process execution commands', async () => {
       const result = await service.processMessage(
         'user-123',
-        '!state-check Show current state'
+        '!state-check Show current state',
       );
 
       expect(result.executedCommands).toContain('state-check');
@@ -307,7 +362,7 @@ describe('CIDAFMService', () => {
     it('should handle unknown commands', async () => {
       const result = await service.processMessage(
         'user-123',
-        '^unknown Test unknown command'
+        '^unknown Test unknown command',
       );
 
       expect(result.processingNotes).toContain('Unknown command: ^unknown');
@@ -316,7 +371,7 @@ describe('CIDAFMService', () => {
     it('should process multiple commands in one message', async () => {
       const result = await service.processMessage(
         'user-123',
-        '^concise &disciplined !state-check Process multiple commands'
+        '^concise &disciplined !state-check Process multiple commands',
       );
 
       // Expecting 4 notes: concise, disciplined enable, state-check execution, and state-check result
@@ -364,7 +419,9 @@ describe('CIDAFMService', () => {
       const result = await service.resetSessionState('user-123', 'session-123');
 
       expect(result.message).toBe('Session state reset successfully');
-      expect(result.reset_state.activeStateModifiers).toEqual(['token-efficient']);
+      expect(result.reset_state.activeStateModifiers).toEqual([
+        'token-efficient',
+      ]);
     });
   });
 

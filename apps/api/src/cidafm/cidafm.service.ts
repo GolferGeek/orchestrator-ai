@@ -489,7 +489,9 @@ export class CIDAFMService {
     let modifiedPrompt = prompt;
 
     // Ensure activeModifiers is an array
-    const modifiersArray = Array.isArray(activeModifiers) ? activeModifiers : [];
+    const modifiersArray = Array.isArray(activeModifiers)
+      ? activeModifiers
+      : [];
 
     for (const modifierName of modifiersArray) {
       const command = commands.find(

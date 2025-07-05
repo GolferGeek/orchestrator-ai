@@ -253,11 +253,11 @@ export class EvaluationService {
 
     const selectFields = [
       'id',
-      'timestamp', 
+      'timestamp',
       options.includeContent ? 'content' : null,
       'user_rating',
       'speed_rating',
-      'accuracy_rating', 
+      'accuracy_rating',
       'user_notes',
       'evaluation_timestamp',
       'total_cost',
@@ -265,8 +265,10 @@ export class EvaluationService {
       'output_tokens',
       'response_time_ms',
       'provider:providers(name)',
-      'model:models(name, model_id)'
-    ].filter(Boolean).join(', ');
+      'model:models(name, model_id)',
+    ]
+      .filter(Boolean)
+      .join(', ');
 
     let query = client
       .from('messages')
@@ -409,14 +411,18 @@ export class EvaluationService {
 
     const avgOverallRating =
       totalEvaluations > 0
-        ? evaluations.reduce((sum, evaluation) => sum + (evaluation.user_rating || 0), 0) /
-          totalEvaluations
+        ? evaluations.reduce(
+            (sum, evaluation) => sum + (evaluation.user_rating || 0),
+            0,
+          ) / totalEvaluations
         : 0;
 
     const avgSpeedRating =
       evaluations.filter((e) => e.speed_rating).length > 0
-        ? evaluations.reduce((sum, evaluation) => sum + (evaluation.speed_rating || 0), 0) /
-          evaluations.filter((e) => e.speed_rating).length
+        ? evaluations.reduce(
+            (sum, evaluation) => sum + (evaluation.speed_rating || 0),
+            0,
+          ) / evaluations.filter((e) => e.speed_rating).length
         : 0;
 
     const avgAccuracyRating =
@@ -428,7 +434,13 @@ export class EvaluationService {
         : 0;
 
     // Calculate rating distribution
-    const distribution: Record<string, number> = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+    const distribution: Record<string, number> = {
+      '1': 0,
+      '2': 0,
+      '3': 0,
+      '4': 0,
+      '5': 0,
+    };
     evaluations.forEach((evaluation) => {
       if (evaluation.user_rating) {
         const ratingKey = evaluation.user_rating.toString();

@@ -68,11 +68,11 @@ describe('ProvidersController', () => {
         },
       ],
     })
-    .overrideGuard(JwtAuthGuard)
-    .useValue({
-      canActivate: jest.fn().mockReturnValue(true),
-    })
-    .compile();
+      .overrideGuard(JwtAuthGuard)
+      .useValue({
+        canActivate: jest.fn().mockReturnValue(true),
+      })
+      .compile();
 
     controller = module.get<ProvidersController>(ProvidersController);
     service = module.get<ProvidersService>(ProvidersService);
@@ -109,29 +109,37 @@ describe('ProvidersController', () => {
     it('should return a single provider in camelCase format', async () => {
       mockProvidersService.findOne.mockResolvedValue(mockProviderResponse);
 
-      const result = await controller.getProvider('123e4567-e89b-12d3-a456-426614174000');
+      const result = await controller.getProvider(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual(mockProviderResponse);
       expect(result).toHaveProperty('apiBaseUrl'); // camelCase
       expect(result).toHaveProperty('authType'); // camelCase
-      expect(mockProvidersService.findOne).toHaveBeenCalledWith('123e4567-e89b-12d3-a456-426614174000');
+      expect(mockProvidersService.findOne).toHaveBeenCalledWith(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
     });
 
     it('should throw HttpException when provider not found', async () => {
       mockProvidersService.findOne.mockResolvedValue(null);
 
-      await expect(
-        controller.getProvider('non-existent-id')
-      ).rejects.toThrow(new HttpException('Provider not found', HttpStatus.NOT_FOUND));
+      await expect(controller.getProvider('non-existent-id')).rejects.toThrow(
+        new HttpException('Provider not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 
   describe('getProviderModels', () => {
     it('should return models for provider in camelCase format', async () => {
       mockProvidersService.findOne.mockResolvedValue(mockProviderResponse);
-      mockProvidersService.findModelsByProvider.mockResolvedValue([mockModelResponse]);
+      mockProvidersService.findModelsByProvider.mockResolvedValue([
+        mockModelResponse,
+      ]);
 
-      const result = await controller.getProviderModels('123e4567-e89b-12d3-a456-426614174000');
+      const result = await controller.getProviderModels(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual([mockModelResponse]);
       expect(result[0]).toHaveProperty('providerId'); // camelCase
@@ -150,8 +158,10 @@ describe('ProvidersController', () => {
       mockProvidersService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.getProviderModels('non-existent-id')
-      ).rejects.toThrow(new HttpException('Provider not found', HttpStatus.NOT_FOUND));
+        controller.getProviderModels('non-existent-id'),
+      ).rejects.toThrow(
+        new HttpException('Provider not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 
@@ -185,20 +195,28 @@ describe('ProvidersController', () => {
 
       mockProvidersService.update.mockResolvedValue(mockProviderResponse);
 
-      const result = await controller.updateProvider('123e4567-e89b-12d3-a456-426614174000', updateDto);
+      const result = await controller.updateProvider(
+        '123e4567-e89b-12d3-a456-426614174000',
+        updateDto,
+      );
 
       expect(result).toEqual(mockProviderResponse);
       expect(result).toHaveProperty('apiBaseUrl'); // camelCase response
       expect(result).toHaveProperty('authType'); // camelCase response
-      expect(mockProvidersService.update).toHaveBeenCalledWith('123e4567-e89b-12d3-a456-426614174000', updateDto);
+      expect(mockProvidersService.update).toHaveBeenCalledWith(
+        '123e4567-e89b-12d3-a456-426614174000',
+        updateDto,
+      );
     });
 
     it('should throw HttpException when provider not found for update', async () => {
       mockProvidersService.update.mockResolvedValue(null);
 
       await expect(
-        controller.updateProvider('non-existent-id', {})
-      ).rejects.toThrow(new HttpException('Provider not found', HttpStatus.NOT_FOUND));
+        controller.updateProvider('non-existent-id', {}),
+      ).rejects.toThrow(
+        new HttpException('Provider not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 
@@ -206,18 +224,24 @@ describe('ProvidersController', () => {
     it('should delete provider successfully', async () => {
       mockProvidersService.delete.mockResolvedValue(true);
 
-      const result = await controller.deleteProvider('123e4567-e89b-12d3-a456-426614174000');
+      const result = await controller.deleteProvider(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual({ message: 'Provider deleted successfully' });
-      expect(mockProvidersService.delete).toHaveBeenCalledWith('123e4567-e89b-12d3-a456-426614174000');
+      expect(mockProvidersService.delete).toHaveBeenCalledWith(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
     });
 
     it('should throw HttpException when provider not found for deletion', async () => {
       mockProvidersService.delete.mockResolvedValue(false);
 
       await expect(
-        controller.deleteProvider('non-existent-id')
-      ).rejects.toThrow(new HttpException('Provider not found', HttpStatus.NOT_FOUND));
+        controller.deleteProvider('non-existent-id'),
+      ).rejects.toThrow(
+        new HttpException('Provider not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 });

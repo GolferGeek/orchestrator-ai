@@ -408,7 +408,9 @@ export class ExternalA2AAgentBaseService
         `Capabilities: ${this.remoteAgentCard.capabilities?.join(', ') || 'none'}`,
       );
     } catch (error) {
-      this.logger.debug(`Failed to discover remote agent: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.debug(
+        `Failed to discover remote agent: ${error instanceof Error ? error.message : String(error)}`,
+      );
       throw new Error(
         `Remote agent discovery failed: ${error instanceof Error ? error.message : String(error)}`,
       );

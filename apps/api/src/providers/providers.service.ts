@@ -172,10 +172,14 @@ export class ProvidersService {
 
     // Convert camelCase DTO to snake_case for database
     const dbPayload: any = {};
-    if (updateProviderDto.name !== undefined) dbPayload.name = updateProviderDto.name;
-    if (updateProviderDto.apiBaseUrl !== undefined) dbPayload.api_base_url = updateProviderDto.apiBaseUrl;
-    if (updateProviderDto.authType !== undefined) dbPayload.auth_type = updateProviderDto.authType;
-    if (updateProviderDto.status !== undefined) dbPayload.status = updateProviderDto.status;
+    if (updateProviderDto.name !== undefined)
+      dbPayload.name = updateProviderDto.name;
+    if (updateProviderDto.apiBaseUrl !== undefined)
+      dbPayload.api_base_url = updateProviderDto.apiBaseUrl;
+    if (updateProviderDto.authType !== undefined)
+      dbPayload.auth_type = updateProviderDto.authType;
+    if (updateProviderDto.status !== undefined)
+      dbPayload.status = updateProviderDto.status;
     dbPayload.updated_at = new Date().toISOString();
 
     const { data, error } = await client

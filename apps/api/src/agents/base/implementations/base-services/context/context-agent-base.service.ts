@@ -84,12 +84,14 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       const llmResult = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
-        params // Pass all params including LLM preferences
+        params, // Pass all params including LLM preferences
       );
 
       // Extract response content and metadata
-      const responseContent = typeof llmResult === 'string' ? llmResult : llmResult.content;
-      const llmMetadata = typeof llmResult === 'object' ? llmResult.llmMetadata : undefined;
+      const responseContent =
+        typeof llmResult === 'string' ? llmResult : llmResult.content;
+      const llmMetadata =
+        typeof llmResult === 'object' ? llmResult.llmMetadata : undefined;
 
       return {
         success: true,
@@ -104,7 +106,10 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           ...(llmMetadata && {
             llmUsed: llmMetadata,
             usage: typeof llmResult === 'object' ? llmResult.usage : undefined,
-            costCalculation: typeof llmResult === 'object' ? llmResult.costCalculation : undefined,
+            costCalculation:
+              typeof llmResult === 'object'
+                ? llmResult.costCalculation
+                : undefined,
           }),
         },
       };

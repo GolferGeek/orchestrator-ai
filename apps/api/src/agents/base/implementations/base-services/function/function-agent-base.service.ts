@@ -9,7 +9,6 @@ import { AuthService } from '../../../sub-services/auth/auth.service';
 import { ConfigurationService } from '../../../sub-services/configuration/configuration.service';
 import { AgentFunctionParams } from '../a2a-base/interfaces';
 
-
 export interface AgentFunctionResponse {
   response: string;
   metadata?: any;
@@ -84,7 +83,11 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
 
       const wrappedLLMService = {
         ...this.llmService,
-        generateResponse: async (systemPrompt: string, userMessage: string, options?: any) => {
+        generateResponse: async (
+          systemPrompt: string,
+          userMessage: string,
+          options?: any,
+        ) => {
           // Merge user preferences with function options
           const mergedOptions = {
             ...options,
@@ -97,8 +100,12 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
             sessionId: params.sessionId || options?.sessionId,
           };
 
-          const result = await this.llmService.generateResponse(systemPrompt, userMessage, mergedOptions);
-          
+          const result = await this.llmService.generateResponse(
+            systemPrompt,
+            userMessage,
+            mergedOptions,
+          );
+
           // Track metadata if this was an enhanced response
           if (typeof result === 'object' && result.llmMetadata) {
             llmMetadataTracker.calls.push(result.llmMetadata);
@@ -106,8 +113,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
               llmMetadataTracker.totalCost += result.costCalculation.totalCost;
             }
             if (result.usage) {
-              llmMetadataTracker.totalTokens.input += result.usage.inputTokens || 0;
-              llmMetadataTracker.totalTokens.output += result.usage.outputTokens || 0;
+              llmMetadataTracker.totalTokens.input +=
+                result.usage.inputTokens || 0;
+              llmMetadataTracker.totalTokens.output +=
+                result.usage.outputTokens || 0;
             }
           }
 
@@ -143,13 +152,16 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       );
 
       // Aggregate LLM metadata from all calls
-      const aggregatedLLMMetadata = llmMetadataTracker.calls.length > 0 ? {
-        primaryLLM: llmMetadataTracker.calls[0], // First/main LLM call
-        totalCalls: llmMetadataTracker.calls.length,
-        totalCost: llmMetadataTracker.totalCost,
-        totalTokens: llmMetadataTracker.totalTokens,
-        allCalls: llmMetadataTracker.calls,
-      } : undefined;
+      const aggregatedLLMMetadata =
+        llmMetadataTracker.calls.length > 0
+          ? {
+              primaryLLM: llmMetadataTracker.calls[0], // First/main LLM call
+              totalCalls: llmMetadataTracker.calls.length,
+              totalCost: llmMetadataTracker.totalCost,
+              totalTokens: llmMetadataTracker.totalTokens,
+              allCalls: llmMetadataTracker.calls,
+            }
+          : undefined;
 
       // Return structured response format to match ContextAgentBaseService
       return {
@@ -172,7 +184,9 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
             llmCallsSummary: {
               totalCalls: aggregatedLLMMetadata.totalCalls,
               totalCost: aggregatedLLMMetadata.totalCost,
-              allModelsUsed: aggregatedLLMMetadata.allCalls.map(call => call.modelName),
+              allModelsUsed: aggregatedLLMMetadata.allCalls.map(
+                (call) => call.modelName,
+              ),
             },
           }),
         },

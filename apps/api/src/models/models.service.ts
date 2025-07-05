@@ -185,10 +185,7 @@ export class ModelsService {
     }
 
     // If updating model_id, check for conflicts
-    if (
-      updateModelDto.modelId &&
-      updateModelDto.modelId !== existing.modelId
-    ) {
+    if (updateModelDto.modelId && updateModelDto.modelId !== existing.modelId) {
       const { data: existingModel } = await client
         .from('models')
         .select('id')

@@ -20,9 +20,13 @@ export class ResponseGenerationService {
   async generateDirectResponse(
     userMessage: string,
     availableAgents: AvailableAgent[],
-    conversationHistory?: Array<{ role: string; content: string; metadata?: any }>,
+    conversationHistory?: Array<{
+      role: string;
+      content: string;
+      metadata?: any;
+    }>,
     userContext?: string,
-    llmPreferences?: any
+    llmPreferences?: any,
   ): Promise<any> {
     try {
       // Use enhanced LLM if preferences provided
@@ -32,7 +36,7 @@ export class ResponseGenerationService {
           availableAgents,
           conversationHistory,
           userContext,
-          llmPreferences
+          llmPreferences,
         );
       }
 
@@ -41,9 +45,8 @@ export class ResponseGenerationService {
         userMessage,
         availableAgents,
         conversationHistory,
-        userContext
+        userContext,
       );
-
     } catch (error) {
       this.logger.error('Error generating direct response:', error);
       return this.createFallbackResponse(userMessage);
@@ -56,10 +59,10 @@ export class ResponseGenerationService {
   generateClarificationRequest(
     userMessage: string,
     availableAgents: AvailableAgent[],
-    reasoning?: string
+    reasoning?: string,
   ): any {
     const agentList = this.formatAgentList(availableAgents);
-    
+
     const clarificationMessage = `I understand you said: "${userMessage}". 
 
 To help you better, could you be more specific? I can connect you with these specialists:
@@ -86,14 +89,14 @@ What specific type of assistance are you looking for?`;
    */
   generateAgentListResponse(
     availableAgents: AvailableAgent[],
-    userContext?: string
+    userContext?: string,
   ): any {
-    const greeting = userContext 
+    const greeting = userContext
       ? `Hello${userContext}! Here's what I can help you with:`
       : 'Hello! Here are the specialists I can connect you with:';
 
     const agentList = this.formatAgentListWithLinks(availableAgents);
-    
+
     const response = `${greeting}
 
 ${agentList}
@@ -117,11 +120,12 @@ Just let me know what you need help with, and I'll connect you with the right sp
    */
   generateAgentCapabilityResponse(
     agentName: string,
-    availableAgents: AvailableAgent[]
+    availableAgents: AvailableAgent[],
   ): any {
-    const agent = availableAgents.find(a =>
-      a.name.toLowerCase().includes(agentName.toLowerCase()) ||
-      agentName.toLowerCase().includes(a.name.toLowerCase())
+    const agent = availableAgents.find(
+      (a) =>
+        a.name.toLowerCase().includes(agentName.toLowerCase()) ||
+        agentName.toLowerCase().includes(a.name.toLowerCase()),
     );
 
     if (!agent) {
@@ -136,9 +140,10 @@ Just let me know what you need help with, and I'll connect you with the right sp
       };
     }
 
-    const capabilities = agent.capabilities && agent.capabilities.length > 0
-      ? agent.capabilities.map(cap => `• ${cap}`).join('\n')
-      : '• General assistance within their specialty area';
+    const capabilities =
+      agent.capabilities && agent.capabilities.length > 0
+        ? agent.capabilities.map((cap) => `• ${cap}`).join('\n')
+        : '• General assistance within their specialty area';
 
     const response = `The ${agent.name} specializes in:
 
@@ -163,13 +168,20 @@ Would you like me to connect you with them?`;
   private async generateEnhancedResponse(
     userMessage: string,
     availableAgents: AvailableAgent[],
-    conversationHistory?: Array<{ role: string; content: string; metadata?: any }>,
+    conversationHistory?: Array<{
+      role: string;
+      content: string;
+      metadata?: any;
+    }>,
     userContext?: string,
-    llmPreferences?: any
+    llmPreferences?: any,
   ): Promise<any> {
     try {
-      const systemPrompt = this.buildOrchestratorSystemPrompt(availableAgents, userContext);
-      
+      const systemPrompt = this.buildOrchestratorSystemPrompt(
+        availableAgents,
+        userContext,
+      );
+
       const enhancedResponse = await this.llmService.generateEnhancedResponse(
         'orchestrator',
         systemPrompt,
@@ -180,7 +192,7 @@ Would you like me to connect you with them?`;
           cidafmOptions: llmPreferences.cidafmOptions,
           temperature: 0.7,
           maxTokens: 500,
-        }
+        },
       );
 
       return {
@@ -196,18 +208,29 @@ Would you like me to connect you with them?`;
           enhanced: true,
         },
       };
-
     } catch (error) {
-      this.logger.warn('Enhanced response failed, falling back to standard:', error);
-      return await this.generateStandardResponse(userMessage, availableAgents, conversationHistory, userContext);
+      this.logger.warn(
+        'Enhanced response failed, falling back to standard:',
+        error,
+      );
+      return await this.generateStandardResponse(
+        userMessage,
+        availableAgents,
+        conversationHistory,
+        userContext,
+      );
     }
   }
 
   private async generateStandardResponse(
     userMessage: string,
     availableAgents: AvailableAgent[],
-    conversationHistory?: Array<{ role: string; content: string; metadata?: any }>,
-    userContext?: string
+    conversationHistory?: Array<{
+      role: string;
+      content: string;
+      metadata?: any;
+    }>,
+    userContext?: string,
   ): Promise<any> {
     // Simple template-based response for when LLM is unavailable
     const response = `I received your message: "${userMessage}". ${userContext ? `${userContext}, ` : ''}I'm here to help coordinate with various specialist agents. 
@@ -241,9 +264,12 @@ ${this.formatAgentList(availableAgents)}`;
     };
   }
 
-  private buildOrchestratorSystemPrompt(availableAgents: AvailableAgent[], userContext?: string): string {
+  private buildOrchestratorSystemPrompt(
+    availableAgents: AvailableAgent[],
+    userContext?: string,
+  ): string {
     const agentList = availableAgents
-      .map(agent => `${agent.name}: ${agent.description}`)
+      .map((agent) => `${agent.name}: ${agent.description}`)
       .join('\n');
 
     return `You are an AI orchestrator assistant. Your role is to help users by either providing direct assistance or connecting them with specialist agents.
@@ -263,8 +289,8 @@ Guidelines:
 
   private formatAgentList(availableAgents: AvailableAgent[]): string {
     return availableAgents
-      .filter(agent => agent.type !== 'orchestrator')
-      .map(agent => `• ${agent.name}: ${agent.description}`)
+      .filter((agent) => agent.type !== 'orchestrator')
+      .map((agent) => `• ${agent.name}: ${agent.description}`)
       .join('\n');
   }
 
@@ -272,16 +298,20 @@ Guidelines:
     // Format the agent list in the way the frontend parser expects
     // Format: "- Agent Name: <name>, Description: <description>"
     return availableAgents
-      .filter(agent => agent.type !== 'orchestrator')
-      .map(agent => {
+      .filter((agent) => agent.type !== 'orchestrator')
+      .map((agent) => {
         // Clean up the agent name - remove underscores, capitalize properly
         const cleanName = agent.name
           .replace(/_/g, ' ')
           .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .map(
+            (word) =>
+              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+          )
           .join(' ');
-        
-        const description = agent.description || `${cleanName} specialist agent`;
+
+        const description =
+          agent.description || `${cleanName} specialist agent`;
         return `- Agent Name: ${cleanName}, Description: ${description}`;
       })
       .join('\n');

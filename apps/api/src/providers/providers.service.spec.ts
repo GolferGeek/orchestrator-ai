@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ProvidersService } from './providers.service';
 import { SupabaseService } from '../supabase/supabase.service';
-import { CreateProviderDto, UpdateProviderDto } from '../dto/llm-evaluation.dto';
+import {
+  CreateProviderDto,
+  UpdateProviderDto,
+} from '../dto/llm-evaluation.dto';
 import { AuthType } from '../types/llm-evaluation';
 
 describe('ProvidersService', () => {
@@ -71,7 +74,7 @@ describe('ProvidersService', () => {
 
   // Create a complete mock that supports the full chain
   const mockSupabaseClient: any = {};
-  
+
   const resetMocks = () => {
     mockSupabaseClient.from = jest.fn().mockReturnValue(mockSupabaseClient);
     mockSupabaseClient.select = jest.fn().mockReturnValue(mockSupabaseClient);
@@ -84,7 +87,7 @@ describe('ProvidersService', () => {
     mockSupabaseClient.limit = jest.fn().mockReturnValue(mockSupabaseClient);
     mockSupabaseClient.single = jest.fn();
   };
-  
+
   // Initialize mocks
   resetMocks();
 
@@ -149,7 +152,10 @@ describe('ProvidersService', () => {
       });
 
       await expect(service.findAll()).rejects.toThrow(
-        new HttpException('Failed to fetch providers: Database error', HttpStatus.INTERNAL_SERVER_ERROR)
+        new HttpException(
+          'Failed to fetch providers: Database error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
       );
     });
   });
@@ -161,7 +167,9 @@ describe('ProvidersService', () => {
         error: null,
       });
 
-      const result = await service.findOne('123e4567-e89b-12d3-a456-426614174000');
+      const result = await service.findOne(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual(expectedProviderResponse);
       expect(result).toHaveProperty('apiBaseUrl'); // Converted to camelCase
@@ -187,7 +195,9 @@ describe('ProvidersService', () => {
         error: null,
       });
 
-      const result = await service.findModelsByProvider('123e4567-e89b-12d3-a456-426614174000');
+      const result = await service.findModelsByProvider(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual([expectedModelResponse]);
       expect(result[0]).toHaveProperty('providerId'); // Converted to camelCase
@@ -209,9 +219,14 @@ describe('ProvidersService', () => {
         error: null,
       });
 
-      await service.findModelsByProvider('123e4567-e89b-12d3-a456-426614174000');
+      await service.findModelsByProvider(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
-      expect(mockSupabaseClient.eq).toHaveBeenCalledWith('provider_id', '123e4567-e89b-12d3-a456-426614174000');
+      expect(mockSupabaseClient.eq).toHaveBeenCalledWith(
+        'provider_id',
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
     });
   });
 
@@ -223,14 +238,14 @@ describe('ProvidersService', () => {
         authType: 'api_key',
         status: 'active',
       };
-      
+
       // Mock check for existing provider (first call)
       mockSupabaseClient.single.mockResolvedValueOnce({
         data: null,
         error: { code: 'PGRST116' },
       });
 
-      // Mock insert response (second call)  
+      // Mock insert response (second call)
       mockSupabaseClient.single.mockResolvedValueOnce({
         data: mockDbProvider,
         error: null,
@@ -265,7 +280,7 @@ describe('ProvidersService', () => {
       });
 
       await expect(service.create(createDto)).rejects.toThrow(
-        new HttpException('Provider name already exists', HttpStatus.CONFLICT)
+        new HttpException('Provider name already exists', HttpStatus.CONFLICT),
       );
     });
   });
@@ -279,7 +294,9 @@ describe('ProvidersService', () => {
       };
 
       // Mock findOne to return existing provider
-      jest.spyOn(service, 'findOne').mockResolvedValue(expectedProviderResponse);
+      jest
+        .spyOn(service, 'findOne')
+        .mockResolvedValue(expectedProviderResponse);
 
       // Mock name conflict check (first call returns no conflict)
       mockSupabaseClient.single.mockResolvedValueOnce({
@@ -293,7 +310,10 @@ describe('ProvidersService', () => {
         error: null,
       });
 
-      const result = await service.update('123e4567-e89b-12d3-a456-426614174000', updateDto);
+      const result = await service.update(
+        '123e4567-e89b-12d3-a456-426614174000',
+        updateDto,
+      );
 
       expect(result).toEqual(expectedProviderResponse);
       expect(result).toHaveProperty('apiBaseUrl'); // Response in camelCase
@@ -306,7 +326,7 @@ describe('ProvidersService', () => {
           api_base_url: 'https://api.updated.com', // Converted to snake_case for DB
           auth_type: 'oauth', // Converted to snake_case for DB
           updated_at: expect.any(String),
-        })
+        }),
       );
     });
 

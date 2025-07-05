@@ -12,7 +12,6 @@ import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { AgentFunctionParams } from '../a2a-base/interfaces';
 
-
 export interface AgentFunctionResponse {
   response: string;
   metadata?: any;

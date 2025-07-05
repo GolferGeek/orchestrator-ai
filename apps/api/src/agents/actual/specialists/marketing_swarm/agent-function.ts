@@ -161,11 +161,11 @@ Respond with JSON:
     const analysisResponse = await llmService.generateResponse(
       'You are a marketing strategy analyst. Always respond with valid JSON.',
       analysisPrompt,
-      { 
-        temperature: 0.1, 
+      {
+        temperature: 0.1,
         maxTokens: 400,
         // Pass user preferences
-        ...llmPreferences 
+        ...llmPreferences,
       },
     );
 

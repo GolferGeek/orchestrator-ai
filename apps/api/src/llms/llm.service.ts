@@ -14,10 +14,7 @@ import {
   LLMUsageMetrics,
   CIDAFMOptions,
 } from '../types/llm-evaluation';
-import {
-  mapProviderFromDb,
-  mapModelFromDb,
-} from '../utils/case-converter';
+import { mapProviderFromDb, mapModelFromDb } from '../utils/case-converter';
 
 // Explicitly set LangSmith environment variables for automatic tracing
 // Support both the official LangSmith env vars and our custom ones for backward compatibility
@@ -95,7 +92,7 @@ export class LLMService {
         this.logger.log(
           `🎯 Full LLM preferences detected, delegating to enhanced response method`,
         );
-        
+
         const enhancedResult = await this.generateEnhancedResponse(
           options.authToken || 'system',
           systemPrompt,
@@ -107,9 +104,9 @@ export class LLMService {
             sessionId: options.sessionId,
             temperature: options.temperature,
             maxTokens: options.maxTokens,
-          }
+          },
         );
-        
+
         // Return the full enhanced result with metadata
         return enhancedResult;
       }
@@ -368,8 +365,6 @@ export class LLMService {
       throw new Error(`LLM service error: ${errorMessage}`);
     }
   }
-
-
 
   /**
    * Get a LangGraph-compatible LLM instance for the specified provider with automatic LangSmith tracing
@@ -692,5 +687,4 @@ export class LLMService {
       currency: 'USD',
     };
   }
-
 }

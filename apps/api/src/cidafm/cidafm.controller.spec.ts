@@ -77,11 +77,14 @@ describe('CIDAFMController', () => {
       const result = await controller.getCommands(mockUser);
 
       expect(result).toEqual([mockCIDAFMCommand]);
-      expect(mockCIDAFMService.findAllCommands).toHaveBeenCalledWith(mockUser.id, {
-        type: undefined,
-        builtinOnly: true,
-        includeUserCommands: false,
-      });
+      expect(mockCIDAFMService.findAllCommands).toHaveBeenCalledWith(
+        mockUser.id,
+        {
+          type: undefined,
+          builtinOnly: true,
+          includeUserCommands: false,
+        },
+      );
     });
 
     it('should filter commands by type', async () => {
@@ -89,11 +92,14 @@ describe('CIDAFMController', () => {
 
       await controller.getCommands(mockUser, '^', true, false);
 
-      expect(mockCIDAFMService.findAllCommands).toHaveBeenCalledWith(mockUser.id, {
-        type: '^',
-        builtinOnly: true,
-        includeUserCommands: false,
-      });
+      expect(mockCIDAFMService.findAllCommands).toHaveBeenCalledWith(
+        mockUser.id,
+        {
+          type: '^',
+          builtinOnly: true,
+          includeUserCommands: false,
+        },
+      );
     });
   });
 
@@ -104,9 +110,12 @@ describe('CIDAFMController', () => {
       const result = await controller.getCommandsByType(mockUser, '^');
 
       expect(result).toEqual([mockCIDAFMCommand]);
-      expect(mockCIDAFMService.findAllCommands).toHaveBeenCalledWith(mockUser.id, {
-        type: '^',
-      });
+      expect(mockCIDAFMService.findAllCommands).toHaveBeenCalledWith(
+        mockUser.id,
+        {
+          type: '^',
+        },
+      );
     });
   });
 
@@ -114,18 +123,22 @@ describe('CIDAFMController', () => {
     it('should return a single command', async () => {
       mockCIDAFMService.findCommandById.mockResolvedValue(mockCIDAFMCommand);
 
-      const result = await controller.getCommand('456e7890-e89b-12d3-a456-426614174000');
+      const result = await controller.getCommand(
+        '456e7890-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual(mockCIDAFMCommand);
-      expect(mockCIDAFMService.findCommandById).toHaveBeenCalledWith('456e7890-e89b-12d3-a456-426614174000');
+      expect(mockCIDAFMService.findCommandById).toHaveBeenCalledWith(
+        '456e7890-e89b-12d3-a456-426614174000',
+      );
     });
 
     it('should throw HttpException when command not found', async () => {
       mockCIDAFMService.findCommandById.mockResolvedValue(null);
 
-      await expect(
-        controller.getCommand('non-existent-id')
-      ).rejects.toThrow(new HttpException('Command not found', HttpStatus.NOT_FOUND));
+      await expect(controller.getCommand('non-existent-id')).rejects.toThrow(
+        new HttpException('Command not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 
@@ -144,7 +157,7 @@ describe('CIDAFMController', () => {
       expect(result).toEqual(mockCIDAFMCommand);
       expect(mockCIDAFMService.createUserCommand).toHaveBeenCalledWith(
         mockUser.id,
-        createDto
+        createDto,
       );
     });
   });
@@ -161,14 +174,14 @@ describe('CIDAFMController', () => {
       const result = await controller.updateUserCommand(
         mockUser,
         '456e7890-e89b-12d3-a456-426614174000',
-        updateDto
+        updateDto,
       );
 
       expect(result).toEqual(mockCIDAFMCommand);
       expect(mockCIDAFMService.updateUserCommand).toHaveBeenCalledWith(
         mockUser.id,
         '456e7890-e89b-12d3-a456-426614174000',
-        updateDto
+        updateDto,
       );
     });
 
@@ -176,8 +189,10 @@ describe('CIDAFMController', () => {
       mockCIDAFMService.updateUserCommand.mockResolvedValue(null);
 
       await expect(
-        controller.updateUserCommand(mockUser, 'non-existent-id', {})
-      ).rejects.toThrow(new HttpException('Command not found', HttpStatus.NOT_FOUND));
+        controller.updateUserCommand(mockUser, 'non-existent-id', {}),
+      ).rejects.toThrow(
+        new HttpException('Command not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 
@@ -187,13 +202,13 @@ describe('CIDAFMController', () => {
 
       const result = await controller.deleteUserCommand(
         mockUser,
-        '456e7890-e89b-12d3-a456-426614174000'
+        '456e7890-e89b-12d3-a456-426614174000',
       );
 
       expect(result).toEqual({ message: 'Command deleted successfully' });
       expect(mockCIDAFMService.deleteUserCommand).toHaveBeenCalledWith(
         mockUser.id,
-        '456e7890-e89b-12d3-a456-426614174000'
+        '456e7890-e89b-12d3-a456-426614174000',
       );
     });
 
@@ -201,8 +216,10 @@ describe('CIDAFMController', () => {
       mockCIDAFMService.deleteUserCommand.mockResolvedValue(false);
 
       await expect(
-        controller.deleteUserCommand(mockUser, 'non-existent-id')
-      ).rejects.toThrow(new HttpException('Command not found', HttpStatus.NOT_FOUND));
+        controller.deleteUserCommand(mockUser, 'non-existent-id'),
+      ).rejects.toThrow(
+        new HttpException('Command not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 
@@ -230,7 +247,7 @@ describe('CIDAFMController', () => {
         mockUser.id,
         body.message,
         body.current_state,
-        body.session_id
+        body.session_id,
       );
     });
   });
@@ -250,7 +267,7 @@ describe('CIDAFMController', () => {
       expect(result).toEqual(sessionState);
       expect(mockCIDAFMService.getSessionState).toHaveBeenCalledWith(
         mockUser.id,
-        'session-123'
+        'session-123',
       );
     });
   });
@@ -264,12 +281,15 @@ describe('CIDAFMController', () => {
 
       mockCIDAFMService.resetSessionState.mockResolvedValue(resetResult);
 
-      const result = await controller.resetSessionState(mockUser, 'session-123');
+      const result = await controller.resetSessionState(
+        mockUser,
+        'session-123',
+      );
 
       expect(result).toEqual(resetResult);
       expect(mockCIDAFMService.resetSessionState).toHaveBeenCalledWith(
         mockUser.id,
-        'session-123'
+        'session-123',
       );
     });
   });

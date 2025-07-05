@@ -189,13 +189,9 @@ export class UsageService {
         case 'rating':
           return b.metrics.avgUserRating - a.metrics.avgUserRating;
         case 'speed':
-          return (
-            a.metrics.avgResponseTimeMs - b.metrics.avgResponseTimeMs
-          );
+          return a.metrics.avgResponseTimeMs - b.metrics.avgResponseTimeMs;
         case 'cost':
-          return (
-            a.metrics.avgCostPerRequest - b.metrics.avgCostPerRequest
-          );
+          return a.metrics.avgCostPerRequest - b.metrics.avgCostPerRequest;
         case 'usage':
           return b.metrics.usageCount - a.metrics.usageCount;
         default:
@@ -475,7 +471,9 @@ export class UsageService {
       return acc;
     }, {});
 
-    return Object.values(grouped).sort((a: any, b: any) => a.date.localeCompare(b.date));
+    return Object.values(grouped).sort((a: any, b: any) =>
+      a.date.localeCompare(b.date),
+    );
   }
 
   private createBreakdown(
