@@ -29,7 +29,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
           .send(testUser)
           .expect(200);
 
-        authToken = loginResponse.body.access_token;
+        authToken = loginResponse.body.accessToken;
         console.log('Token refreshed successfully');
       }
     } catch (error: any) {
@@ -39,7 +39,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .send(testUser)
         .expect(200);
 
-      authToken = loginResponse.body.access_token;
+      authToken = loginResponse.body.accessToken;
       console.log('Token refreshed after error');
     }
   };
@@ -99,7 +99,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
       })
       .expect(200);
 
-    authToken = loginResponse.body.access_token;
+    authToken = loginResponse.body.accessToken;
     expect(authToken).toBeDefined();
     console.log('Authentication successful, token obtained');
   }, 60000); // 60 second timeout for module setup and agent loading

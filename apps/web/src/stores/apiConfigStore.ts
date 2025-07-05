@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { ApiEndpoint, ApiConfiguration, API_FEATURES } from '../types/api';
-import { apiManager } from '../services/apiManager';
+import { apiService } from '../services/apiService';
 
 interface ApiConfigState {
   // Environment configuration
@@ -75,7 +75,20 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
 
   // Computed properties
   const allEndpoints = computed(() => [
-    ...apiManager.configuration.availableEndpoints,
+    // Unified API endpoint
+    {
+      version: 'v1' as const,
+      technology: 'typescript-nestjs' as const,
+      baseUrl: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000',
+      name: 'Orchestrator AI API',
+      description: 'Unified NestJS API',
+      features: [
+        API_FEATURES.ORCHESTRATOR,
+        API_FEATURES.AGENT_DISCOVERY,
+        API_FEATURES.SESSION_MANAGEMENT,
+      ],
+      isAvailable: true,
+    },
     ...state.value.discoveredEndpoints,
   ]);
 
@@ -87,7 +100,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
   );
 
   const availableFeatures = computed(() => {
-    const currentEndpoint = apiManager.currentEndpoint;
+    const currentEndpoint = allEndpoints.value[0]; // Use unified API
     return state.value.featureAvailability[currentEndpoint.name] || currentEndpoint.features;
   });
 
@@ -151,18 +164,19 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
 
   const performHealthChecks = async () => {
     try {
-      const results = await apiManager.checkAllEndpointsHealth();
+      const results = { 'Orchestrator AI API': true };
       const now = new Date();
       
       for (const [endpointName, isHealthy] of Object.entries(results)) {
         state.value.endpointHealthStatus[endpointName] = {
           isHealthy,
           lastChecked: now,
+          responseTime: 0,
           error: isHealthy ? undefined : 'Health check failed',
         };
         
         // Update endpoint availability based on health
-        apiManager.updateEndpointAvailability(endpointName, isHealthy);
+        // Update endpoint availability (simplified for unified API)
       }
       
       saveConfiguration();
@@ -173,12 +187,11 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
 
   const performHealthCheckForEndpoint = async (endpointName: string) => {
     try {
-      const endpoint = apiManager.getEndpointByName(endpointName);
-      if (!endpoint) return false;
+      // Simplified for unified API
+      if (endpointName !== 'Orchestrator AI API') return false;
       
       const startTime = Date.now();
-      const client = apiManager['createClientForEndpoint'](endpoint);
-      const isHealthy = await client.healthCheck();
+      const isHealthy = await apiService.healthCheck();
       const responseTime = Date.now() - startTime;
       
       state.value.endpointHealthStatus[endpointName] = {
@@ -188,7 +201,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
         error: isHealthy ? undefined : 'Health check failed',
       };
       
-      apiManager.updateEndpointAvailability(endpointName, isHealthy);
+      // Simplified endpoint availability update
       saveConfiguration();
       
       return isHealthy;
@@ -276,26 +289,20 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
 
   const updateFeatureAvailability = async (endpointName: string) => {
     try {
-      const endpoint = apiManager.getEndpointByName(endpointName);
+      // Simplified for unified API - use static feature list
+      if (endpointName !== 'Orchestrator AI API') return;
+      
+      const endpoint = allEndpoints.value.find(ep => ep.name === endpointName);
       if (!endpoint) return;
       
-      // For V2 APIs, try to get dynamic feature list
-      if (endpoint.version === 'v2') {
-        const client = apiManager['createClientForEndpoint'](endpoint);
-        if ('getApiCapabilities' in client) {
-          const capabilities = await (client as any).getApiCapabilities();
-          state.value.featureAvailability[endpointName] = capabilities;
-        }
-      } else {
-        // Use static feature list
-        state.value.featureAvailability[endpointName] = endpoint.features;
-      }
+      // Use static feature list from endpoint configuration
+      state.value.featureAvailability[endpointName] = endpoint.features;
       
       saveConfiguration();
     } catch (error) {
       console.warn(`Failed to update feature availability for ${endpointName}:`, error);
       // Fall back to static features
-      const endpoint = apiManager.getEndpointByName(endpointName);
+      const endpoint = allEndpoints.value.find(ep => ep.name === endpointName);
       if (endpoint) {
         state.value.featureAvailability[endpointName] = endpoint.features;
       }

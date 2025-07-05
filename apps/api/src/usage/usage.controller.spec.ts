@@ -100,8 +100,8 @@ describe('UsageController', () => {
   };
 
   const mockCostSummary = {
-    total_cost: 0.75,
-    total_tokens: 15000,
+    totalCost: 0.75,
+    totalTokens: 15000,
     total_requests: 50,
     period: { start_date: '2024-01-01', end_date: '2024-01-31' },
     breakdown: [
@@ -128,80 +128,80 @@ describe('UsageController', () => {
 
   const mockModelPerformance = [
     {
-      model: mockUsageStats.byModel![0].model,
+      model: mockUsageStats.byModel?.[0]?.model || 'test-model',
       metrics: {
-        usage_count: 25,
-        avg_user_rating: 4.3,
-        avg_speed_rating: 4.1,
-        avg_accuracy_rating: 4.2,
-        avg_response_time_ms: 1150,
-        avg_cost_per_request: 0.02,
-        total_cost: 0.50,
-        total_tokens: 7500,
-        cost_efficiency_score: 0.85,
-        performance_score: 4.1,
+        usageCount: 25,
+        avgUserRating: 4.3,
+        avgSpeedRating: 4.1,
+        avgAccuracyRating: 4.2,
+        avgResponseTimeMs: 1150,
+        avgCostPerRequest: 0.02,
+        totalCost: 0.50,
+        totalTokens: 7500,
+        costEfficiencyScore: 0.85,
+        performanceScore: 4.1,
       },
       rank: 1,
     },
   ];
 
   const mockSpendingInsights = {
-    analysis_period: {
-      start_date: '2024-01-01',
-      end_date: '2024-01-31',
+    analysisPeriod: {
+      startDate: '2024-01-01',
+      endDate: '2024-01-31',
       days: 30,
     },
-    spending_summary: {
-      total_spent: 0.75,
-      daily_average: 0.025,
-      projected_monthly: 0.75,
-      most_expensive_day: '2024-01-15',
-      most_expensive_amount: 0.15,
+    spendingSummary: {
+      totalSpent: 0.75,
+      dailyAverage: 0.025,
+      projectedMonthly: 0.75,
+      mostExpensiveDay: '2024-01-15',
+      mostExpensiveAmount: 0.15,
     },
-    usage_patterns: {
-      peak_hours: [9, 10, 14, 15],
-      busiest_day_of_week: 'Tuesday',
-      avg_requests_per_day: 1.67,
-      avg_tokens_per_request: 300,
+    usagePatterns: {
+      peakHours: [9, 10, 14, 15],
+      busiestDayOfWeek: 'Tuesday',
+      avgRequestsPerDay: 1.67,
+      avgTokensPerRequest: 300,
     },
-    model_insights: {
-      most_used_model: 'GPT-4o',
-      most_expensive_model: 'Claude 3 Opus',
-      best_value_model: 'GPT-4o Mini',
-      underutilized_models: ['Claude 3 Haiku'],
+    modelInsights: {
+      mostUsedModel: 'GPT-4o',
+      mostExpensiveModel: 'Claude 3 Opus',
+      bestValueModel: 'GPT-4o Mini',
+      underutilizedModels: ['Claude 3 Haiku'],
     },
     recommendations: [
       {
         type: 'cost_optimization',
         title: 'Consider using more cost-effective models',
         description: 'Switch to GPT-4o Mini for simpler tasks to reduce costs by up to 80%',
-        potential_savings: 0.225,
+        potentialSavings: 0.225,
         priority: 'medium',
       },
     ],
   };
 
   const mockBudgetStatus = {
-    current_month: {
+    currentMonth: {
       spent: 85.50,
       budget: 100,
-      percentage_used: 85.5,
-      days_remaining: 15,
-      projected_total: 95.00,
+      percentageUsed: 85.5,
+      daysRemaining: 15,
+      projectedTotal: 95.00,
     },
     alerts: [
       {
         level: 'warning' as const,
         message: 'You have used 75% of your monthly budget',
         threshold: 75,
-        current_value: 85.5,
+        currentValue: 85.5,
       },
     ],
     recommendations: [
       {
         action: 'switch_to_cheaper_models',
         description: 'Use more cost-effective models for routine tasks',
-        estimated_savings: 17.10,
+        estimatedSavings: 17.10,
       },
     ],
   };
@@ -407,15 +407,15 @@ describe('UsageController', () => {
     it('should return comprehensive insights structure', async () => {
       const result = await controller.getSpendingInsights(mockUser);
 
-      expect(result).toHaveProperty('analysis_period');
-      expect(result).toHaveProperty('spending_summary');
-      expect(result).toHaveProperty('usage_patterns');
-      expect(result).toHaveProperty('model_insights');
+      expect(result).toHaveProperty('analysisPeriod');
+      expect(result).toHaveProperty('spendingSummary');
+      expect(result).toHaveProperty('usagePatterns');
+      expect(result).toHaveProperty('modelInsights');
       expect(result).toHaveProperty('recommendations');
       
-      expect(result.analysis_period).toHaveProperty('start_date');
-      expect(result.analysis_period).toHaveProperty('end_date');
-      expect(result.analysis_period).toHaveProperty('days');
+      expect(result.analysisPeriod).toHaveProperty('startDate');
+      expect(result.analysisPeriod).toHaveProperty('endDate');
+      expect(result.analysisPeriod).toHaveProperty('days');
     });
   });
 
@@ -492,15 +492,15 @@ describe('UsageController', () => {
     it('should return proper budget status structure', async () => {
       const result = await controller.getBudgetStatus(mockUser);
 
-      expect(result).toHaveProperty('current_month');
+      expect(result).toHaveProperty('currentMonth');
       expect(result).toHaveProperty('alerts');
       expect(result).toHaveProperty('recommendations');
       
-      expect(result.current_month).toHaveProperty('spent');
-      expect(result.current_month).toHaveProperty('budget');
-      expect(result.current_month).toHaveProperty('percentage_used');
-      expect(result.current_month).toHaveProperty('days_remaining');
-      expect(result.current_month).toHaveProperty('projected_total');
+      expect(result.currentMonth).toHaveProperty('spent');
+      expect(result.currentMonth).toHaveProperty('budget');
+      expect(result.currentMonth).toHaveProperty('percentageUsed');
+      expect(result.currentMonth).toHaveProperty('daysRemaining');
+      expect(result.currentMonth).toHaveProperty('projectedTotal');
       
       expect(Array.isArray(result.alerts)).toBe(true);
       expect(Array.isArray(result.recommendations)).toBe(true);
@@ -509,25 +509,29 @@ describe('UsageController', () => {
     it('should handle alerts structure correctly', async () => {
       const result = await controller.getBudgetStatus(mockUser);
 
-      if (result.alerts.length > 0) {
+      if (result.alerts && result.alerts.length > 0) {
         const alert = result.alerts[0];
         expect(alert).toHaveProperty('level');
         expect(alert).toHaveProperty('message');
         expect(alert).toHaveProperty('threshold');
-        expect(alert).toHaveProperty('current_value');
-        expect(['info', 'warning', 'danger']).toContain(alert.level);
+        expect(alert).toHaveProperty('currentValue');
+        if (alert) {
+          expect(['info', 'warning', 'danger']).toContain(alert.level);
+        }
       }
     });
 
     it('should handle recommendations structure correctly', async () => {
       const result = await controller.getBudgetStatus(mockUser);
 
-      if (result.recommendations.length > 0) {
+      if (result.recommendations && result.recommendations.length > 0) {
         const recommendation = result.recommendations[0];
         expect(recommendation).toHaveProperty('action');
         expect(recommendation).toHaveProperty('description');
-        expect(recommendation).toHaveProperty('estimated_savings');
-        expect(typeof recommendation.estimated_savings).toBe('number');
+        expect(recommendation).toHaveProperty('estimatedSavings');
+        if (recommendation) {
+          expect(typeof recommendation.estimatedSavings).toBe('number');
+        }
       }
     });
   });

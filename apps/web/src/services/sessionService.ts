@@ -1,5 +1,10 @@
-import apiClient, { BackendErrorDetail } from './apiService';
+import { apiService } from './apiService';
 import { AxiosError } from 'axios';
+
+interface BackendErrorDetail {
+  message: string;
+  detail?: string;
+}
 
 // Interfaces should align with backend Pydantic schemas (apps/api/sessions/schemas.py)
 export interface Session {
@@ -41,8 +46,13 @@ export interface SessionCreatePayload {
 export const sessionService = {
   async listSessions(): Promise<SessionListResponse> {
     try {
-      const response = await apiClient.get<SessionListResponse>('/sessions/');
-      return response.data;
+      const response = await apiService.getUserSessions();
+      // The response should be an array of sessions directly from the backend
+      const sessions = Array.isArray(response) ? response : (response?.sessions || []);
+      return {
+        sessions: sessions,
+        count: sessions.length
+      };
     } catch (error) {
       const axiosError = error as AxiosError<BackendErrorDetail>; 
       const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to list sessions';
@@ -53,8 +63,8 @@ export const sessionService = {
 
   async createSession(payload: SessionCreatePayload): Promise<Session> {
     try {
-      const response = await apiClient.post<Session>('/sessions/', payload);
-      return response.data;
+      const response = await apiService.createSession(payload.name || 'New Session');
+      return response;
     } catch (error) {
       const axiosError = error as AxiosError<BackendErrorDetail>; 
       const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to create session';
@@ -65,10 +75,14 @@ export const sessionService = {
 
   async getSessionMessages(sessionId: string, skip: number = 0, limit: number = 50): Promise<MessageListResponse> {
     try {
-      const response = await apiClient.get<MessageListResponse>(`/sessions/${sessionId}/messages`, {
-        params: { skip, limit }
-      });
-      return response.data;
+      const response = await apiService.getSessionMessages(sessionId, { skip, limit });
+      return {
+        messages: response || [],
+        session_id: sessionId,
+        count: response?.length || 0,
+        skip,
+        limit
+      };
     } catch (error) {
       const axiosError = error as AxiosError<BackendErrorDetail>; 
       const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to get session messages';
@@ -92,7 +106,7 @@ export const sessionService = {
   
   async deleteSession(sessionId: string): Promise<void> {
     try {
-      await apiClient.delete(`/sessions/${sessionId}`);
+      await apiService.deleteSession(sessionId);
       console.log(`Session ${sessionId} deleted successfully`);
     } catch (error) {
       const axiosError = error as AxiosError<BackendErrorDetail>; 

@@ -186,11 +186,28 @@ export class AgentFactoryService {
       switch (config.type) {
         case 'orchestrator':
           this.logger.debug(`🎯 Creating orchestrator agent`);
+          // Import and create the modular services for orchestrator
+          const { AgentDiscoveryService } = await import('./agents/actual/orchestrator/services/agent-discovery.service');
+          const { ConversationContextService } = await import('./agents/actual/orchestrator/services/conversation-context.service');
+          const { DelegationService } = await import('./agents/actual/orchestrator/services/delegation.service');
+          const { ResponseGenerationService } = await import('./agents/actual/orchestrator/services/response-generation.service');
+          
+          // Create instances of the modular services
+          const agentDiscoveryService = new AgentDiscoveryService(this.llmService);
+          const conversationContextService = new ConversationContextService();
+          const delegationService = new DelegationService(this.httpService);
+          const responseGenerationService = new ResponseGenerationService(this.llmService);
+          
           return new ServiceClass(
             this.httpService,
             this.llmService,
             this.sessionsService,
             this.supabaseService,
+            // Add the modular services
+            agentDiscoveryService,
+            conversationContextService,
+            delegationService,
+            responseGenerationService,
           );
 
         case 'function':

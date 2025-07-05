@@ -79,8 +79,8 @@ describe('CIDAFMController', () => {
       expect(result).toEqual([mockCIDAFMCommand]);
       expect(mockCIDAFMService.findAllCommands).toHaveBeenCalledWith(mockUser.id, {
         type: undefined,
-        builtinOnly: undefined,
-        includeUserCommands: undefined,
+        builtinOnly: true,
+        includeUserCommands: false,
       });
     });
 

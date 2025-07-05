@@ -77,7 +77,7 @@ import { sessionService, Session } from '@/services/sessionService';
 import { useAuthStore } from '@/stores/authStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { storeToRefs } from 'pinia';
-import { nestjsApiService } from '../services/nestjsApiService';
+import { apiService } from '../services/apiService';
 
 const authStore = useAuthStore();
 const sessionStore = useSessionStore();
@@ -107,7 +107,7 @@ const fetchSessions = async () => {
   error.value = null;
   try {
     const response = await sessionService.listSessions();
-    sessions.value = response.sessions;
+    sessions.value = Array.isArray(response.sessions) ? response.sessions : [];
   } catch (e: any) {
           error.value = e.message || 'Could not load Orchestrator AI sessions.';
   } finally {
@@ -125,6 +125,10 @@ const handleCreateNewSession = async () => {
   error.value = null;
   try {
     const newSession = await sessionService.createSession({ name: 'New Orchestrator AI Chat' });
+    // Ensure sessions.value is an array before unshift
+    if (!Array.isArray(sessions.value)) {
+      sessions.value = [];
+    }
     sessions.value.unshift(newSession);
     
     // Create the welcome message
@@ -174,7 +178,7 @@ const handleApiHealth = async () => {
   const apiBaseUrl = getApiBaseUrl();
   try {
     // Use dedicated NestJS API service for health check
-    const isHealthy = await nestjsApiService.healthCheck();
+    const isHealthy = await apiService.healthCheck();
     
     if (isHealthy) {
       const alert = await alertController.create({
@@ -209,8 +213,8 @@ const handleAgentPool = async () => {
   try {
     // Use dedicated NestJS API service for agent pool operations
     const [poolStats, agents] = await Promise.all([
-      nestjsApiService.getAgentPoolStats(),
-      nestjsApiService.getRegisteredAgents()
+      apiService.getAgentPoolStats(),
+      apiService.getRegisteredAgents()
     ]);
     
     // Format the agent pool data nicely

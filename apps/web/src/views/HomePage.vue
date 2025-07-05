@@ -40,12 +40,19 @@
       </div>
     </ion-footer>
 
-    <!-- Agent Capabilities Modal -->
+    <!-- Agent List Modal -->
     <AgentCapabilitiesModal 
       :is-open="showAgentModal"
       :agents="availableAgents"
       @dismiss="closeAgentModal"
       @agentSelected="handleAgentSelected"
+    />
+
+    <!-- Individual Agent Capabilities Modal -->
+    <AgentCapabilitiesModal 
+      :is-open="showAgentCapabilitiesModal"
+      :single-agent="currentAgentCapabilities"
+      @dismiss="closeAgentCapabilitiesModal"
     />
   </ion-page>
 </template>
@@ -63,10 +70,10 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { useRouter } from 'vue-router';
-import { postTaskToOrchestrator } from '@/services/apiService';
+// Removed obsolete import
 import { storeToRefs } from 'pinia';
 import { Message } from '../services/sessionService';
-import { nestjsApiService } from '../services/nestjsApiService';
+import { apiService } from '../services/apiService';
 
 import MessageListComponent from '../components/MessageList.vue';
 import ChatInputComponent from '../components/ChatInput.vue';
@@ -86,6 +93,10 @@ const chatContentEl = ref<InstanceType<typeof IonContent> | null>(null);
 const showAgentModal = ref(false);
 const availableAgents = ref<Array<{ name: string; description: string }>>([]);
 const expectingAgentList = ref(false); // Track when we expect an agent list response
+
+// Agent capabilities modal state
+const showAgentCapabilitiesModal = ref(false);
+const currentAgentCapabilities = ref<any>(null);
 
 const isIOS = computed(() => isPlatform('ios'));
 
@@ -186,8 +197,21 @@ const handleSendMessage = async (text: string) => {
         content: msg.content || '',
         metadata: msg.metadata
       }));
+    
+    console.log("[HomePage] Sending conversation history with", conversationHistory.length, "messages");
+    // Log last few messages to see if agent metadata is present
+    if (conversationHistory.length > 0) {
+      const recentMessages = conversationHistory.slice(-3);
+      recentMessages.forEach((msg, index) => {
+        console.log(`[HomePage] History[${conversationHistory.length - 3 + index}]:`, {
+          role: msg.role,
+          contentLength: msg.content.length,
+          metadata: msg.metadata
+        });
+      });
+    }
 
-    const taskResponse = await nestjsApiService.postTaskToOrchestrator(text, currentSessionId.value, conversationHistory);
+    const taskResponse = await apiService.postTaskToOrchestrator(text, currentSessionId.value, conversationHistory);
     console.log("[HomePage] Received taskResponse from orchestrator:", JSON.parse(JSON.stringify(taskResponse)));
     
     // Extract response text
@@ -203,9 +227,34 @@ const handleSendMessage = async (text: string) => {
       console.log("[HomePage] Extracted response from response_message.parts format");
     }
     // Additional fallback - check for direct result field
-    else if (taskResponse.result && typeof taskResponse.result === 'string') {
-      agentText = taskResponse.result;
-      console.log("[HomePage] Extracted response from direct result field");
+    else if (taskResponse.result) {
+      // Handle both string and object result formats
+      if (typeof taskResponse.result === 'string') {
+        agentText = taskResponse.result;
+      } else if (taskResponse.result.response) {
+        agentText = taskResponse.result.response;
+        // Extract metadata if available
+        if (taskResponse.result.metadata) {
+          agentMetadata = { ...taskResponse.result.metadata };
+        }
+      }
+      console.log("[HomePage] Extracted response from direct result field, metadata:", agentMetadata);
+    }
+    
+    // Also check taskResponse.metadata for agent information
+    if (taskResponse.metadata) {
+      // Merge taskResponse.metadata into agentMetadata, preserving any existing values
+      agentMetadata = { ...taskResponse.metadata, ...agentMetadata };
+      
+      // Ensure agentName is set from various possible fields
+      if (!agentMetadata.agentName) {
+        agentMetadata.agentName = taskResponse.metadata.delegatedTo || 
+                                  taskResponse.metadata.originalAgent?.agentName ||
+                                  taskResponse.metadata.agentName ||
+                                  taskResponse.metadata.responding_agent_name ||
+                                  taskResponse.metadata.respondingAgentName;
+      }
+      console.log("[HomePage] Merged taskResponse.metadata, final agentMetadata:", agentMetadata);
     }
     else {
       console.warn("[HomePage] No response found in taskResponse:", JSON.parse(JSON.stringify(taskResponse)));
@@ -215,14 +264,70 @@ const handleSendMessage = async (text: string) => {
           ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 
           : 1);
 
-    // Check if this is an agent list response that should show as modal instead of chat message
-    // Only show modal if we were expecting an agent list (from orchestrator capabilities request)
-    const isAgentListResponse = expectingAgentList.value && 
-                               agentText.includes('Agent Name:') && agentText.includes('Description:') && 
-                               (agentText.includes('Here are the agents') || agentText.includes('agents I can work with'));
+    // Check if this response should show a modal based on structured metadata
+    const contentType = taskResponse.result?.metadata?.contentType || agentMetadata.contentType;
     
-    if (isAgentListResponse) {
-      console.log("[HomePage] Detected expected agent list response, showing modal instead of adding to chat");
+    if (contentType === 'agentListModal') {
+      console.log("[HomePage] Detected agent list modal response");
+      
+      // Extract agent list from structured metadata
+      const agentListData = taskResponse.result?.metadata?.agentList || agentMetadata.agentList;
+      
+      if (agentListData && agentListData.length > 0) {
+        // Use the structured data directly
+        availableAgents.value = agentListData.map((agent: any) => ({
+          name: agent.name,
+          description: agent.description
+        }));
+        showAgentModal.value = true;
+        console.log("[HomePage] Showing agent list modal with", agentListData.length, "agents:", agentListData);
+      } else {
+        console.log("[HomePage] No agent list data found, adding message to chat as fallback");
+        // Fallback to showing text message
+        const agentMessage: Message = {
+          id: taskResponse.id,
+          session_id: currentSessionId.value,
+          user_id: auth.user?.id || 'unknown-user',
+          role: 'assistant',
+          content: agentText,
+          timestamp: new Date().toISOString(),
+          order: agentMessageOrder,
+          metadata: agentMetadata
+        };
+        sessionStore.addMessageToCurrentSession(agentMessage);
+      }
+      
+      // Reset the expectation flag
+      expectingAgentList.value = false;
+    } else if (contentType === 'agentCapabilitiesModal') {
+      console.log("[HomePage] Detected agent capabilities modal response");
+      
+      // Extract agent capabilities from structured metadata
+      const agentCapabilitiesData = taskResponse.result?.metadata?.agentCapabilities || agentMetadata.agentCapabilities;
+      
+      if (agentCapabilitiesData) {
+        // Show agent capabilities modal
+        showAgentCapabilitiesModal.value = true;
+        currentAgentCapabilities.value = agentCapabilitiesData;
+        console.log("[HomePage] Showing agent capabilities modal for:", agentCapabilitiesData.name);
+      } else {
+        console.log("[HomePage] No agent capabilities data found, adding message to chat as fallback");
+        // Fallback to showing text message
+        const agentMessage: Message = {
+          id: taskResponse.id,
+          session_id: currentSessionId.value,
+          user_id: auth.user?.id || 'unknown-user',
+          role: 'assistant',
+          content: agentText,
+          timestamp: new Date().toISOString(),
+          order: agentMessageOrder,
+          metadata: agentMetadata
+        };
+        sessionStore.addMessageToCurrentSession(agentMessage);
+      }
+    } else if (contentType === 'agentListFromOrchestrator' && (expectingAgentList.value || agentText.includes('Agent Name:'))) {
+      // Legacy text-based agent list response - still support parsing for backward compatibility
+      console.log("[HomePage] Detected legacy agent list response, showing modal instead of adding to chat");
       
       // Parse agents and show modal instead of adding message to chat
       const agents = parseAgentListFromResponse(agentText);
@@ -232,7 +337,7 @@ const handleSendMessage = async (text: string) => {
         showAgentModal.value = true;
         console.log("[HomePage] Showing agent modal with", agents.length, "agents:", agents);
       } else {
-        console.log("[HomePage] No agents parsed from response, adding message to chat as fallback");
+        console.log("[HomePage] No agents parsed from legacy response, adding message to chat as fallback");
         // Fallback to showing text message if parsing fails
         const agentMessage: Message = {
           id: taskResponse.id,
@@ -301,29 +406,56 @@ const handleViewAllAgents = () => {
   // TODO: Implement view all agents functionality
 };
 
-const handleViewAgentCapabilities = (agentInfo: any) => {
+const handleViewAgentCapabilities = async (agentInfo: any) => {
   console.log("[HomePage] View agent capabilities request received for:", agentInfo);
   
-  if (agentInfo && agentInfo.name) {
-    // We're asking a specific agent about their capabilities
-    const agentName = agentInfo.name;
-    console.log(`[HomePage] Asking ${agentName} about their capabilities`);
-    
-    // Ask the specific agent what they can do
-    if (agentName.toLowerCase() === 'orchestrator' || agentName.toLowerCase() === 'orchestrator agent') {
-      // If it's the orchestrator, ask for agent list and expect modal
-      expectingAgentList.value = true;
-      handleSendMessage("View all that I can do for you");
-          } else {
-        // For specific agents, use standard capability request - orchestrator will handle sticky agent logic
-        expectingAgentList.value = false;
-        handleSendMessage("What can you do?");
+  try {
+    if (agentInfo && agentInfo.name) {
+      // We're asking a specific agent about their capabilities via UI click
+      const agentName = agentInfo.name;
+      console.log(`[HomePage] UI click: Asking ${agentName} about their capabilities`);
+      
+      if (agentName.toLowerCase() === 'orchestrator' || agentName.toLowerCase() === 'orchestrator agent') {
+        // If it's the orchestrator, call REST endpoint for agent list modal
+        console.log("[HomePage] Calling REST endpoint for agent list");
+        const response = await apiService.getAgentsList();
+        
+        if (response.metadata?.agentList) {
+          availableAgents.value = response.metadata.agentList.map((agent: any) => ({
+            name: agent.name,
+            description: agent.description
+          }));
+          showAgentModal.value = true;
+          console.log("[HomePage] Showing agent list modal with", response.metadata.agentList.length, "agents");
+        }
+      } else {
+        // For specific agents, call REST endpoint for capabilities modal
+        console.log(`[HomePage] Calling REST endpoint for ${agentName} capabilities`);
+        const response = await apiService.getAgentCapabilities(agentName);
+        
+        if (response.metadata?.agentCapabilities) {
+          currentAgentCapabilities.value = response.metadata.agentCapabilities;
+          showAgentCapabilitiesModal.value = true;
+          console.log("[HomePage] Showing agent capabilities modal for:", agentName);
+        }
       }
-  } else {
-    // Fallback to orchestrator agent list
-    console.log("[HomePage] No specific agent info, defaulting to orchestrator agent list");
-    expectingAgentList.value = true;
-    handleSendMessage("View all that I can do for you");
+    } else {
+      // Fallback to orchestrator agent list modal
+      console.log("[HomePage] No specific agent info, defaulting to orchestrator agent list modal");
+      const response = await apiService.getAgentsList();
+      
+      if (response.metadata?.agentList) {
+        availableAgents.value = response.metadata.agentList.map((agent: any) => ({
+          name: agent.name,
+          description: agent.description
+        }));
+        showAgentModal.value = true;
+        console.log("[HomePage] Showing agent list modal with", response.metadata.agentList.length, "agents");
+      }
+    }
+  } catch (error) {
+    console.error("[HomePage] Error fetching agent capabilities:", error);
+    // Could show an error toast here
   }
 };
 
@@ -336,6 +468,11 @@ const handleAgentCapabilityRequestedFor = (agentName: string) => {
 const closeAgentModal = () => {
   showAgentModal.value = false;
   availableAgents.value = [];
+};
+
+const closeAgentCapabilitiesModal = () => {
+  showAgentCapabilitiesModal.value = false;
+  currentAgentCapabilities.value = null;
 };
 
 const handleAgentSelected = (agent: { name: string; description: string }) => {

@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { authService } from '@/services/authService'; // Removed AuthResponse import from here
-import apiClient, { apiManager } from '@/services/apiService'; // To update axios headers
-import { nestjsApiService } from '@/services/nestjsApiService';
+import { apiService } from '@/services/apiService';
 
 // Interface for the token data expected from authService login/signup
 interface TokenData {
@@ -40,14 +39,8 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('refreshToken', tokenData.refreshToken);
     }
     
-    // Set auth token on backward-compatible client
-    apiClient.defaults.headers.common['Authorization'] = `Bearer ${tokenData.accessToken}`;
-    
-    // Set auth token on all API manager clients
-    apiManager.setAuthToken(tokenData.accessToken);
-    
-    // Set auth token on NestJS API service
-    nestjsApiService.setAuthToken(tokenData.accessToken);
+    // Set auth token on API service
+    apiService.setAuthToken(tokenData.accessToken);
     
     error.value = null; // Clear error on successful token set
   }
@@ -60,14 +53,8 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     
-    // Clear auth from backward-compatible client
-    delete apiClient.defaults.headers.common['Authorization'];
-    
-    // Clear auth from all API manager clients
-    apiManager.clearAuth();
-    
-    // Clear auth from NestJS API service
-    nestjsApiService.clearAuth();
+    // Clear auth from API service
+    apiService.clearAuth();
   }
 
   async function login(credentials: { email: string; password: string }) {
@@ -138,8 +125,8 @@ export const useAuthStore = defineStore('auth', () => {
     }
     // isLoading.value = true; // This can be a separate loading state if desired, or rely on component
     try {
-      const response = await apiClient.get<UserProfile>('/auth/me'); 
-      user.value = response.data;
+      const userData = await apiService.getCurrentUser(); 
+      user.value = userData;
       error.value = null; // Clear previous errors if user fetch is successful
       console.log("authStore: User fetched successfully:", user.value);
     } catch (e: any) {
@@ -160,7 +147,7 @@ export const useAuthStore = defineStore('auth', () => {
     authService.initializeAuthHeader();
     
     // Initialize auth token on NestJS API service
-    nestjsApiService.setAuthToken(token.value);
+    apiService.setAuthToken(token.value);
     
     fetchCurrentUser();
   }

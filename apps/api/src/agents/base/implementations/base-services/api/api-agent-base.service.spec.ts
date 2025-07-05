@@ -11,6 +11,7 @@ import { AgentRegistrationService } from '../../../sub-services/agent-registrati
 import { JsonRpcProtocolService } from '../../../sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService } from '../../../sub-services/logging/logging.service';
 import { AuthService } from '../../../sub-services/auth/auth.service';
+import { ConfigurationService } from '../../../sub-services/configuration/configuration.service';
 
 // Mock implementation of ApiAgentBaseService for testing
 class TestApiAgentBaseService extends ApiAgentBaseService {
@@ -30,6 +31,7 @@ describe('ApiAgentBaseService', () => {
   let jsonRpcProtocolService: jest.Mocked<JsonRpcProtocolService>;
   let loggingService: jest.Mocked<LoggingService>;
   let authService: jest.Mocked<AuthService>;
+  let configurationService: jest.Mocked<ConfigurationService>;
 
   beforeEach(async () => {
     const mockHttpService = {
@@ -58,6 +60,25 @@ describe('ApiAgentBaseService', () => {
       extractAuthContext: jest.fn().mockReturnValue({}),
     };
 
+    const mockConfigurationService = {
+      substituteEnvVars: jest.fn((config: any) => ({
+        data: {
+          ...config,
+          endpoint: config.endpoint
+            ?.replace('${TEST_ENDPOINT}', 'https://api.example.com')
+            ?.replace('${TEST_API_KEY}', 'secret-key'),
+          authentication: config.authentication ? {
+            ...config.authentication,
+            value: config.authentication.value
+              ?.replace('${TEST_ENDPOINT}', 'https://api.example.com')
+              ?.replace('${TEST_API_KEY}', 'secret-key')
+          } : undefined
+        },
+        substitutedVars: []
+      })),
+      loadConfiguration: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TestApiAgentBaseService,
@@ -72,6 +93,7 @@ describe('ApiAgentBaseService', () => {
         },
         { provide: LoggingService, useValue: mockLoggingService },
         { provide: AuthService, useValue: mockAuthService },
+        { provide: ConfigurationService, useValue: mockConfigurationService },
       ],
     }).compile();
 
@@ -81,6 +103,7 @@ describe('ApiAgentBaseService', () => {
     jsonRpcProtocolService = module.get(JsonRpcProtocolService);
     loggingService = module.get(LoggingService);
     authService = module.get(AuthService);
+    configurationService = module.get(ConfigurationService);
   });
 
   afterEach(() => {
@@ -88,7 +111,7 @@ describe('ApiAgentBaseService', () => {
   });
 
   describe('setApiConfiguration', () => {
-    it('should set API configuration with environment variable substitution', () => {
+    it('should set API configuration with environment variable substitution', async () => {
       process.env.TEST_API_KEY = 'secret-key';
       process.env.TEST_ENDPOINT = 'https://api.example.com';
 
@@ -102,11 +125,13 @@ describe('ApiAgentBaseService', () => {
         },
       };
 
-      service.setApiConfiguration(config);
+      // Simulate what the configuration service would do
+      const substitutedConfig = configurationService.substituteEnvVars(config);
+      service.setApiConfiguration(substitutedConfig.data);
 
       // Access the private configuration through a public method
-      const agentCard = service.getAgentCard();
-      expect(agentCard).resolves.toMatchObject({
+      const agentCard = await service.getAgentCard();
+      expect(agentCard).toMatchObject({
         apiStatus: 'configured',
         endpoint: 'https://api.example.com/v1/chat',
       });

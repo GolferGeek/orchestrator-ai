@@ -7,7 +7,7 @@ import {
   LLMPreferencesState,
   CIDAFMOptions 
 } from '../types/llm';
-import { apiManager } from '../services/apiManager';
+import { apiService } from '../services/apiService';
 
 export const useLLMStore = defineStore('llm', {
   state: (): LLMPreferencesState => ({
@@ -103,14 +103,10 @@ export const useLLMStore = defineStore('llm', {
       this.providerError = undefined;
 
       try {
-        const client = apiManager.currentClient;
-        if (!client) {
-          throw new Error('No API client available');
-        }
-
-        // Use the NestJS API endpoint
+        // Use unified API service
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
         const authToken = localStorage.getItem('authToken');
-        const response = await fetch(`${apiManager.currentEndpoint.baseUrl}/providers`, {
+        const response = await fetch(`${baseUrl}/providers`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -137,13 +133,10 @@ export const useLLMStore = defineStore('llm', {
       this.modelError = undefined;
 
       try {
-        const client = apiManager.currentClient;
-        if (!client) {
-          throw new Error('No API client available');
-        }
-
+        // Use unified API service
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
         const authToken = localStorage.getItem('authToken');
-        const response = await fetch(`${apiManager.currentEndpoint.baseUrl}/models`, {
+        const response = await fetch(`${baseUrl}/models`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -170,13 +163,10 @@ export const useLLMStore = defineStore('llm', {
       this.commandError = undefined;
 
       try {
-        const client = apiManager.currentClient;
-        if (!client) {
-          throw new Error('No API client available');
-        }
-
+        // Use unified API service
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
         const authToken = localStorage.getItem('authToken');
-        const response = await fetch(`${apiManager.currentEndpoint.baseUrl}/cidafm/commands`, {
+        const response = await fetch(`${baseUrl}/cidafm/commands`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
