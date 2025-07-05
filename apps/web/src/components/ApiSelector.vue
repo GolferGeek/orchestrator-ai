@@ -155,8 +155,8 @@
             class="feature-support"
           >
             <ion-icon 
-              :icon="endpoint.features.includes(feature) ? checkmarkCircle : closeCircle"
-              :color="endpoint.features.includes(feature) ? 'success' : 'medium'"
+              :icon="endpoint.features.includes(feature as any) ? checkmarkCircle : closeCircle"
+              :color="endpoint.features.includes(feature as any) ? 'success' : 'medium'"
             />
           </div>
         </div>

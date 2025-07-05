@@ -248,8 +248,8 @@ const quickRate = async (type: 'positive' | 'negative') => {
   }
 };
 
-const setRating = (type: keyof EvaluationRequest, value: UserRatingScale) => {
-  (draftRating.value as any)[type] = value;
+const setRating = (type: keyof EvaluationRequest, value: number) => {
+  (draftRating.value as any)[type] = value as UserRatingScale;
 };
 
 const saveRating = async () => {
@@ -262,8 +262,7 @@ const saveRating = async () => {
       ...draftRating.value,
       evaluationDetails: {
         userContext: 'Detailed rating form',
-        tags: ['detailed-rating'],
-        agentName: props.agentName
+        tags: ['detailed-rating']
       }
     };
     

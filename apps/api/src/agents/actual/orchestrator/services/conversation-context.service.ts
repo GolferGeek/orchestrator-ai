@@ -304,8 +304,8 @@ export class ConversationContextService {
         
         // Simple keyword extraction for specializations
         const topicsInResponse = this.extractTopics(message.content);
-        agentSpecializations[agentName].push(...topicsInResponse.filter(
-          topic => !agentSpecializations[agentName].includes(topic)
+        agentSpecializations[agentName]?.push(...topicsInResponse.filter(
+          topic => !agentSpecializations[agentName]?.includes(topic)
         ));
         
         lastAgent = agentName;
@@ -335,7 +335,7 @@ export class ConversationContextService {
     }
     
     const lastAgentInteraction = agentSequence[agentSequence.length - 1];
-    const agentName = lastAgentInteraction.agentName;
+    const agentName = lastAgentInteraction?.agentName;
     
     // Find the last message from this agent
     const lastAgentMessage = [...conversationHistory]
@@ -359,7 +359,7 @@ export class ConversationContextService {
     else if (messagesSince === 2) contextStrength += 0.1;
     
     // Consecutive interactions with same agent
-    const consecutiveInteractions = this.getConsecutiveAgentInteractions(agentSequence, agentName);
+    const consecutiveInteractions = this.getConsecutiveAgentInteractions(agentSequence, agentName || '');
     contextStrength += Math.min(0.2, consecutiveInteractions * 0.05);
     
     // Response completeness (longer responses suggest more investment in context)
@@ -386,7 +386,7 @@ export class ConversationContextService {
   ): number {
     let count = 0;
     for (let i = agentSequence.length - 1; i >= 0; i--) {
-      if (agentSequence[i].agentName === targetAgent) {
+      if (agentSequence[i]?.agentName === targetAgent) {
         count++;
       } else {
         break;
@@ -470,7 +470,7 @@ export class ConversationContextService {
     
     if (fromAgentMessages.length > 0) {
       const lastAgentResponse = fromAgentMessages[fromAgentMessages.length - 1];
-      summary += `Previous context: ${lastAgentResponse.content.substring(0, 150)}...`;
+      summary += `Previous context: ${lastAgentResponse?.content?.substring(0, 150)}...`;
     }
     
     if (userMessages.length > 0) {
