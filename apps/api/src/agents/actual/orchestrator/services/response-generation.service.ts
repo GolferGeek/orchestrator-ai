@@ -191,6 +191,8 @@ Would you like me to connect you with them?`;
           agentName: 'Orchestrator Agent',
           processedAt: new Date().toISOString(),
           llmUsage: enhancedResponse.usage,
+          llmUsed: enhancedResponse.llmMetadata,
+          costCalculation: enhancedResponse.costCalculation,
           enhanced: true,
         },
       };

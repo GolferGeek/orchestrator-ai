@@ -88,7 +88,7 @@ export class LLMService {
       authToken?: string;
       sessionId?: string;
     },
-  ): Promise<string> {
+  ): Promise<string | any> {
     try {
       // If full LLM preferences are provided, delegate to enhanced response
       if (options?.providerId || options?.modelId || options?.cidafmOptions) {
@@ -110,7 +110,8 @@ export class LLMService {
           }
         );
         
-        return enhancedResult.content;
+        // Return the full enhanced result with metadata
+        return enhancedResult;
       }
 
       // Original simple implementation for backward compatibility
@@ -179,6 +180,15 @@ export class LLMService {
     langsmithRunId?: string;
     processedPrompt: string;
     cidafmState?: any;
+    llmMetadata?: {
+      providerId: string;
+      providerName: string;
+      modelId: string;
+      modelName: string;
+      temperature?: number;
+      maxTokens?: number;
+      responseTimeMs?: number;
+    };
   }> {
     const startTime = Date.now();
 
@@ -275,6 +285,16 @@ export class LLMService {
         costCalculation,
         processedPrompt,
         cidafmState,
+        // Include LLM metadata for transparency
+        llmMetadata: {
+          providerId: provider.id,
+          providerName: provider.name,
+          modelId: model.id,
+          modelName: model.name,
+          temperature: options?.temperature,
+          maxTokens: options?.maxTokens,
+          responseTimeMs: responseTimeMs,
+        },
       };
     } catch (error) {
       this.logger.error('Error generating enhanced LLM response:', error);

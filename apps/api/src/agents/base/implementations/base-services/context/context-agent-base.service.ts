@@ -81,21 +81,31 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
 
       // Process with LLM using context
       const systemPrompt = this.buildSystemPrompt(agentName, agentType);
-      const response = await this.llmService.generateResponse(
+      const llmResult = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
         params // Pass all params including LLM preferences
       );
 
+      // Extract response content and metadata
+      const responseContent = typeof llmResult === 'string' ? llmResult : llmResult.content;
+      const llmMetadata = typeof llmResult === 'object' ? llmResult.llmMetadata : undefined;
+
       return {
         success: true,
-        response,
+        response: responseContent,
         metadata: {
           agentName: agentName,
           agentType: agentType,
           contextUsed: true,
           contextLength: this.contextData.length,
           processedAt: new Date().toISOString(),
+          // Include LLM information used for this response
+          ...(llmMetadata && {
+            llmUsed: llmMetadata,
+            usage: typeof llmResult === 'object' ? llmResult.usage : undefined,
+            costCalculation: typeof llmResult === 'object' ? llmResult.costCalculation : undefined,
+          }),
         },
       };
     } catch (error) {
