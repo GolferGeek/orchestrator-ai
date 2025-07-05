@@ -82,8 +82,9 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       // Process with LLM using context
       const systemPrompt = this.buildSystemPrompt(agentName, agentType);
       const response = await this.llmService.generateResponse(
-        userMessage,
         systemPrompt,
+        userMessage,
+        params // Pass all params including LLM preferences
       );
 
       return {

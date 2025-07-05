@@ -81,9 +81,39 @@ export class LLMService {
       temperature?: number;
       maxTokens?: number;
       provider?: 'openai' | 'anthropic' | 'ollama' | 'google';
+      // Support full LLM preferences from UI
+      providerId?: string;
+      modelId?: string;
+      cidafmOptions?: CIDAFMOptions;
+      authToken?: string;
+      sessionId?: string;
     },
   ): Promise<string> {
     try {
+      // If full LLM preferences are provided, delegate to enhanced response
+      if (options?.providerId || options?.modelId || options?.cidafmOptions) {
+        this.logger.log(
+          `🎯 Full LLM preferences detected, delegating to enhanced response method`,
+        );
+        
+        const enhancedResult = await this.generateEnhancedResponse(
+          options.authToken || 'system',
+          systemPrompt,
+          userMessage,
+          {
+            providerId: options.providerId,
+            modelId: options.modelId,
+            cidafmOptions: options.cidafmOptions,
+            sessionId: options.sessionId,
+            temperature: options.temperature,
+            maxTokens: options.maxTokens,
+          }
+        );
+        
+        return enhancedResult.content;
+      }
+
+      // Original simple implementation for backward compatibility
       this.logger.log(
         `🔄 generateResponse called - using LangChain LLM for automatic LangSmith tracing`,
       );
