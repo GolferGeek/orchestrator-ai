@@ -22,6 +22,14 @@
           <div class="message-text" v-if="message.content" v-html="renderedText" @click="handleMessageContentClick"></div>
           <div class="message-timestamp">{{ formattedTimestamp }}</div>
         </div>
+        
+        <!-- Message Rating Component -->
+        <MessageRating
+          :messageId="message.id"
+          :agentName="agentName"
+          :messageRole="message.role"
+        />
+        
         <div v-if="showReturnToOrchestratorLink" class="return-to-orchestrator-link">
           <a href="#" @click.prevent="returnToOrchestrator">Return to Orchestrator</a>
         </div>
@@ -39,6 +47,7 @@ import type { Message } from '@/services/sessionService';
 import { marked } from 'marked';
 import { IonAvatar, IonIcon } from '@ionic/vue';
 import { personCircleOutline, cogOutline } from 'ionicons/icons';
+import MessageRating from './MessageRating.vue';
 
 const props = defineProps<{
   message: Message;

@@ -2,77 +2,154 @@
   <ion-list>
     <ion-list-header>
       <div class="sidebar-header">
-        <span>Orchestrator AI Sessions</span>
-        <div class="api-badge">
-          <span class="api-label orchestrator">Orchestrator AI</span>
-        </div>
+        <span>Sessions</span>
+        <ion-button fill="clear" size="small" @click="handleCreateNewSession">
+          <ion-icon :icon="addCircleOutline" slot="start"></ion-icon>
+          New
+        </ion-button>
       </div>
     </ion-list-header>
     
-    <ion-item button @click="handleCreateNewSession" lines="none">
-      <ion-icon :icon="addCircleOutline" slot="start"></ion-icon>
-              <ion-label>New Orchestrator AI Chat</ion-label>
-    </ion-item>
-    
-    <div v-if="isLoading" class="ion-padding ion-text-center">
-      <ion-spinner name="crescent"></ion-spinner>
+    <div v-if="isLoading" class="loading-container">
+      <ion-spinner name="crescent" size="small"></ion-spinner>
     </div>
     
-    <div v-if="error" class="ion-padding ion-text-center">
-      <ion-text color="danger">{{ error }}</ion-text>
+    <div v-if="error" class="error-container">
+      <ion-text color="danger"><small>{{ error }}</small></ion-text>
     </div>
 
-    <ion-menu-toggle :auto-hide="false" v-for="session in sessions" :key="session.id">
-      <ion-item 
-        button 
-        @click="() => selectSession(session.id)" 
-        :class="{ 'selected-session': session.id === selectedSessionId }"
-        lines="none"
-        :detail="false"
-      >
-        <ion-icon :icon="chatbubbleEllipsesOutline" slot="start"></ion-icon>
-        <ion-label>
-          <p>{{ session.name || 'Orchestrator AI Chat on ' + formatDate(session.created_at) }}</p>
-          <p><small>Updated: {{ formatRelativeDate(session.updated_at) }}</small></p>
-        </ion-label>
-        <div class="session-actions" slot="end">
-          <ion-button fill="clear" @click.stop="() => handleEditSessionName(session)">
-            <ion-icon :icon="createOutline" slot="icon-only"></ion-icon>
-          </ion-button>
-          <ion-button fill="clear" color="danger" @click.stop="() => handleDeleteSession(session)">
-            <ion-icon :icon="trashOutline" slot="icon-only"></ion-icon>
-          </ion-button>
+    <!-- Session Groups -->
+    <div v-if="!isLoading && groupedSessions">
+      <!-- Today Sessions -->
+      <div v-if="groupedSessions.today.length > 0" class="session-group">
+        <div class="session-group-header">Today</div>
+        <ion-menu-toggle :auto-hide="false" v-for="session in groupedSessions.today" :key="session.id">
+          <div 
+            class="session-item"
+            :class="{ 'selected': session.id === selectedSessionId }"
+            @click="() => selectSession(session.id)"
+          >
+            <div class="session-content">
+              <div 
+                class="session-name"
+                :class="{ 'editing': editingSessionId === session.id }"
+                @click.stop="editingSessionId === session.id ? null : startEditingSession(session)"
+              >
+                <input 
+                  v-if="editingSessionId === session.id"
+                  v-model="editingSessionName"
+                  @blur="saveSessionName(session)"
+                  @keyup.enter="saveSessionName(session)"
+                  @keyup.escape="cancelEditingSession()"
+                  ref="editInput"
+                  class="session-name-input"
+                />
+                <span v-else>{{ getDisplayName(session) }}</span>
+              </div>
+              <div class="session-meta">
+                <span class="session-time">{{ formatTime(session.updated_at) }}</span>
+                <span v-if="getSessionAgents(session).length > 0" class="session-agents">
+                  {{ getSessionAgents(session).join(', ') }}
+                </span>
+              </div>
+            </div>
+            <div class="session-actions">
+              <ion-button fill="clear" size="small" @click.stop="() => handleDeleteSession(session)">
+                <ion-icon :icon="trashOutline" size="small"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+        </ion-menu-toggle>
+      </div>
+
+      <!-- Yesterday Sessions -->
+      <div v-if="groupedSessions.yesterday.length > 0" class="session-group">
+        <div class="session-group-header">Yesterday</div>
+        <ion-menu-toggle :auto-hide="false" v-for="session in groupedSessions.yesterday" :key="session.id">
+          <div 
+            class="session-item"
+            :class="{ 'selected': session.id === selectedSessionId }"
+            @click="() => selectSession(session.id)"
+          >
+            <div class="session-content">
+              <div 
+                class="session-name"
+                @click.stop="startEditingSession(session)"
+              >
+                <span>{{ getDisplayName(session) }}</span>
+              </div>
+              <div class="session-meta">
+                <span class="session-time">{{ formatTime(session.updated_at) }}</span>
+              </div>
+            </div>
+            <div class="session-actions">
+              <ion-button fill="clear" size="small" @click.stop="() => handleDeleteSession(session)">
+                <ion-icon :icon="trashOutline" size="small"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+        </ion-menu-toggle>
+      </div>
+
+      <!-- Older Sessions -->
+      <div v-if="groupedSessions.older.length > 0" class="session-group">
+        <div class="session-group-header collapsible" @click="toggleOlderSessions">
+          <ion-icon :icon="showOlderSessions ? chevronDownOutline : chevronForwardOutline" size="small"></ion-icon>
+          Older ({{ groupedSessions.older.length }})
         </div>
-      </ion-item>
-    </ion-menu-toggle>
+        <div v-show="showOlderSessions">
+          <ion-menu-toggle :auto-hide="false" v-for="session in groupedSessions.older" :key="session.id">
+            <div 
+              class="session-item"
+              :class="{ 'selected': session.id === selectedSessionId }"
+              @click="() => selectSession(session.id)"
+            >
+              <div class="session-content">
+                <div class="session-name">
+                  <span>{{ getDisplayName(session) }}</span>
+                </div>
+                <div class="session-meta">
+                  <span class="session-time">{{ formatDate(session.updated_at) }}</span>
+                </div>
+              </div>
+              <div class="session-actions">
+                <ion-button fill="clear" size="small" @click.stop="() => handleDeleteSession(session)">
+                  <ion-icon :icon="trashOutline" size="small"></ion-icon>
+                </ion-button>
+              </div>
+            </div>
+          </ion-menu-toggle>
+        </div>
+      </div>
+    </div>
 
-    <ion-item v-if="!isLoading && sessions.length === 0 && !error" lines="none">
-        <ion-label class="ion-text-center ion-padding-top">
-            <p><small>No Orchestrator AI sessions yet.</small></p>
-        </ion-label>
-    </ion-item>
+    <div v-if="!isLoading && sessions.length === 0 && !error" class="empty-state">
+      <p><small>No sessions yet.</small></p>
+      <ion-button fill="clear" size="small" @click="handleCreateNewSession">
+        <ion-icon :icon="addCircleOutline" slot="start"></ion-icon>
+        Create your first session
+      </ion-button>
+    </div>
 
-          <!-- Orchestrator AI specific tools section -->
-    <ion-list-header class="tools-header">
-              <span>Orchestrator AI Tools</span>
-    </ion-list-header>
-    
-    <ion-item button lines="none" @click="handleApiHealth">
-      <ion-icon :icon="heartOutline" slot="start"></ion-icon>
-      <ion-label>API Health Check</ion-label>
-    </ion-item>
-    
-    <ion-item button lines="none" @click="handleAgentPool">
-      <ion-icon :icon="layersOutline" slot="start"></ion-icon>
-      <ion-label>Agent Pool Status</ion-label>
-    </ion-item>
+    <!-- Developer Tools -->
+    <div class="tools-section">
+      <div class="session-group-header">Developer Tools</div>
+      <div class="tool-item" @click="handleApiHealth">
+        <ion-icon :icon="heartOutline" size="small"></ion-icon>
+        <span>API Health</span>
+      </div>
+      <div class="tool-item" @click="handleAgentPool">
+        <ion-icon :icon="layersOutline" size="small"></ion-icon>
+        <span>Agent Pool</span>
+      </div>
+    </div>
   </ion-list>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { IonList, IonListHeader, IonItem, IonLabel, IonIcon, IonMenuToggle, IonSpinner, IonText, alertController, IonButton } from '@ionic/vue';
-import { addCircleOutline, chatbubbleEllipsesOutline, createOutline, trashOutline, heartOutline, layersOutline } from 'ionicons/icons';
+import { addCircleOutline, chatbubbleEllipsesOutline, createOutline, trashOutline, heartOutline, layersOutline, chevronDownOutline, chevronForwardOutline } from 'ionicons/icons';
 import { sessionService, Session } from '@/services/sessionService';
 import { useAuthStore } from '@/stores/authStore';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -86,7 +163,77 @@ const sessions = ref<Session[]>([]);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 
+// Session editing state
+const editingSessionId = ref<string | null>(null);
+const editingSessionName = ref<string>('');
+const editInput = ref<HTMLInputElement | null>(null);
+
+// UI state
+const showOlderSessions = ref(false);
+
 const { currentSessionId: selectedSessionId } = storeToRefs(sessionStore);
+
+// Helper functions for date/time formatting
+const isToday = (date: string) => {
+  const today = new Date();
+  const sessionDate = new Date(date);
+  return today.toDateString() === sessionDate.toDateString();
+};
+
+const isYesterday = (date: string) => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const sessionDate = new Date(date);
+  return yesterday.toDateString() === sessionDate.toDateString();
+};
+
+const formatTime = (date: string) => {
+  return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const getDisplayName = (session: Session) => {
+  if (session.name && session.name !== 'New Orchestrator AI Chat') {
+    return session.name;
+  }
+  // Auto-generate name based on date/time
+  const date = new Date(session.created_at);
+  if (isToday(session.created_at)) {
+    return `Chat ${formatTime(session.created_at)}`;
+  }
+  return `Chat ${date.toLocaleDateString()}`;
+};
+
+const getSessionAgents = (session: Session) => {
+  // TODO: Extract agents from session messages when available
+  // For now, return empty array
+  return [];
+};
+
+// Computed property for grouped sessions
+const groupedSessions = computed(() => {
+  const groups = {
+    today: [] as Session[],
+    yesterday: [] as Session[],
+    older: [] as Session[]
+  };
+
+  sessions.value.forEach(session => {
+    if (isToday(session.updated_at)) {
+      groups.today.push(session);
+    } else if (isYesterday(session.updated_at)) {
+      groups.yesterday.push(session);
+    } else {
+      groups.older.push(session);
+    }
+  });
+
+  // Sort each group by updated_at descending
+  groups.today.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  groups.yesterday.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  groups.older.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+
+  return groups;
+});
 
 // Get API base URL from environment variables
 const getApiBaseUrl = () => {
@@ -116,15 +263,61 @@ const fetchSessions = async () => {
 };
 
 const selectSession = (sessionId: string) => {
-      console.log('Selected Orchestrator AI session:', sessionId);
+  console.log('Selected session:', sessionId);
   sessionStore.setCurrentSessionId(sessionId);
+};
+
+// Session editing functions
+const startEditingSession = async (session: Session) => {
+  editingSessionId.value = session.id;
+  editingSessionName.value = session.name || getDisplayName(session);
+  
+  await nextTick();
+  if (editInput.value) {
+    editInput.value.focus();
+    editInput.value.select();
+  }
+};
+
+const saveSessionName = async (session: Session) => {
+  if (editingSessionName.value.trim() && editingSessionName.value !== session.name) {
+    try {
+      // Update session name via API
+      await sessionService.updateSessionName?.(session.id, editingSessionName.value.trim());
+      
+      // Update local sessions array
+      const sessionIndex = sessions.value.findIndex(s => s.id === session.id);
+      if (sessionIndex !== -1) {
+        sessions.value[sessionIndex].name = editingSessionName.value.trim();
+      }
+    } catch (error) {
+      console.error('Failed to update session name:', error);
+      // Could show error toast here
+    }
+  }
+  
+  cancelEditingSession();
+};
+
+const cancelEditingSession = () => {
+  editingSessionId.value = null;
+  editingSessionName.value = '';
+};
+
+// UI functions
+const toggleOlderSessions = () => {
+  showOlderSessions.value = !showOlderSessions.value;
 };
 
 const handleCreateNewSession = async () => {
   isLoading.value = true;
   error.value = null;
   try {
-    const newSession = await sessionService.createSession({ name: 'New Orchestrator AI Chat' });
+    // Auto-generate a session name based on current time
+    const now = new Date();
+    const autoName = `Chat ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    
+    const newSession = await sessionService.createSession({ name: autoName });
     // Ensure sessions.value is an array before unshift
     if (!Array.isArray(sessions.value)) {
       sessions.value = [];
@@ -362,78 +555,196 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  padding: 8px 0;
 }
 
-.tools-header {
-  margin-top: 16px;
+.sidebar-header span {
+  font-weight: 600;
   font-size: 0.9rem;
+}
+
+/* Loading and Error States */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+
+.error-container {
+  padding: 8px 16px;
+  text-align: center;
+}
+
+.empty-state {
+  padding: 20px 16px;
+  text-align: center;
   color: var(--ion-color-medium);
 }
 
-.api-badge {
-  display: flex;
-  align-items: center;
+/* Session Groups */
+.session-group {
+  margin-bottom: 8px;
 }
 
-.api-label {
-  padding: 2px 6px;
-  border-radius: 8px;
-  font-size: 0.65rem;
+.session-group-header {
+  padding: 8px 16px 4px 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.session-group-header.collapsible {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.session-group-header.collapsible:hover {
+  color: var(--ion-color-primary);
+}
+
+/* Session Items */
+.session-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.session-item:hover {
+  background-color: var(--ion-color-light);
+}
+
+.session-item.selected {
+  background-color: var(--ion-color-primary-tint);
+  border-left-color: var(--ion-color-primary);
+}
+
+.session-content {
+  flex: 1;
+  min-width: 0; /* Allows text to truncate */
+}
+
+.session-name {
+  font-size: 0.9rem;
   font-weight: 500;
+  color: var(--ion-color-dark);
+  margin-bottom: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-name.editing {
+  cursor: default;
+}
+
+.session-name:hover:not(.editing) {
+  color: var(--ion-color-primary);
+}
+
+.session-name-input {
+  width: 100%;
+  border: 1px solid var(--ion-color-primary);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: white;
+  outline: none;
+}
+
+.session-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--ion-color-medium);
+}
+
+.session-time {
   white-space: nowrap;
 }
 
-.api-label.orchestrator {
-  background: var(--ion-color-primary, #3880ff);
-  color: var(--ion-color-primary-contrast, #ffffff);
+.session-agents {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
 }
 
-.selected-session {
-  --background: var(--ion-color-primary, #3880ff);
-  --color: #ffffff;
-}
-
-.selected-session ion-label,
-.selected-session ion-label p,
-.selected-session ion-label small {
-  color: #ffffff !important;
+.session-agents::before {
+  content: "•";
+  margin-right: 4px;
 }
 
 .session-actions {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-.session-actions ion-button {
-  --color: rgba(255, 255, 255, 0.7);
-  --color-hover: #ffffff;
-  --color-focused: #ffffff;
+.session-item:hover .session-actions {
+  opacity: 1;
 }
 
-.selected-session .session-actions ion-button {
-  --color: rgba(255, 255, 255, 0.8) !important;
-  --color-hover: #ffffff !important;
-  --color-focused: #ffffff !important;
+/* Developer Tools */
+.tools-section {
+  margin-top: 20px;
+  border-top: 1px solid var(--ion-color-light);
+  padding-top: 12px;
 }
 
-/* Override the danger color specifically for delete button in selected sessions */
-.selected-session .session-actions ion-button[color="danger"] {
-  --color: rgba(255, 255, 255, 0.9) !important;
-  --color-hover: #ffffff !important;
-  --color-focused: #ffffff !important;
-  --ion-color-danger: rgba(255, 255, 255, 0.9) !important;
-  --ion-color-danger-shade: #ffffff !important;
-  --ion-color-danger-tint: rgba(255, 255, 255, 0.7) !important;
+.tool-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+  transition: color 0.2s ease;
 }
 
-/* Target the icon specifically */
-.selected-session .session-actions ion-button[color="danger"] ion-icon {
-  color: rgba(255, 255, 255, 0.9) !important;
+.tool-item:hover {
+  color: var(--ion-color-primary);
+  background-color: var(--ion-color-light);
 }
 
-/* Make the chat bubble icon white in selected sessions */
-.selected-session ion-icon[slot="start"] {
-  color: #ffffff !important;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .session-item {
+    padding: 10px 12px;
+  }
+  
+  .session-group-header {
+    padding: 8px 12px 4px 12px;
+  }
+  
+  .session-agents {
+    display: none; /* Hide agent names on mobile to save space */
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .session-item.selected {
+    background-color: var(--ion-color-primary-shade);
+  }
+  
+  .session-name-input {
+    background: var(--ion-color-dark);
+    color: var(--ion-color-light);
+    border-color: var(--ion-color-primary);
+  }
 }
 
 /* Improve alert dialog formatting */

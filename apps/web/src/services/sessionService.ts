@@ -116,5 +116,20 @@ export const sessionService = {
     }
   },
 
+  async updateSessionName(sessionId: string, name: string): Promise<void> {
+    try {
+      // Note: This endpoint doesn't exist yet in the backend
+      // For now, this is a placeholder - the frontend will handle local updates
+      console.log(`Would update session ${sessionId} name to: ${name}`);
+      // TODO: Implement backend endpoint for session updates
+      // await apiService.updateSession(sessionId, { name });
+    } catch (error) {
+      const axiosError = error as AxiosError<BackendErrorDetail>; 
+      const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to update session name';
+      console.error('Error updating session name:', errorMessage);
+      throw new Error(errorMessage);
+    }
+  },
+
 
 }; 
