@@ -69,6 +69,13 @@ describe('UsageService', () => {
     mockSupabaseClient.delete = jest.fn().mockReturnValue(mockSupabaseClient);
     mockSupabaseClient.limit = jest.fn().mockReturnValue(mockSupabaseClient);
     mockSupabaseClient.single = jest.fn();
+    
+    // Make the client thenable so it can be awaited
+    mockSupabaseClient.then = jest.fn((resolve) => {
+      // This will be the default response unless overridden in individual tests
+      resolve({ data: mockMessages, error: null });
+      return Promise.resolve({ data: mockMessages, error: null });
+    });
   };
   
   // Initialize mocks
@@ -102,10 +109,10 @@ describe('UsageService', () => {
 
   describe('getUserStats', () => {
     it('should calculate basic usage statistics correctly', async () => {
-      // Mock the database query
-      mockSupabaseClient.eq.mockReturnValue({
-        data: mockMessages,
-        error: null,
+      // Override the thenable behavior for this specific test
+      mockSupabaseClient.then = jest.fn((resolve) => {
+        resolve({ data: mockMessages, error: null });
+        return Promise.resolve({ data: mockMessages, error: null });
       });
 
       const result = await service.getUserStats('user-123', {
@@ -116,14 +123,14 @@ describe('UsageService', () => {
       expect(result.totalRequests).toBe(3);
       expect(result.totalTokens).toBe(950); // 100+150 + 80+120 + 200+300
       expect(result.totalCost).toBe(0.020); // 0.005 + 0.003 + 0.012
-      expect(result.averageResponseTime).toBe(1443.33); // (1250 + 980 + 2100) / 3
+      expect(result.averageResponseTime).toBeCloseTo(1443.33, 2); // (1250 + 980 + 2100) / 3
       expect(result.averageUserRating).toBe(4); // (4 + 5 + 3) / 3
     });
 
     it('should handle empty results gracefully', async () => {
-      mockSupabaseClient.eq.mockReturnValue({
-        data: [],
-        error: null,
+      mockSupabaseClient.then = jest.fn((resolve) => {
+        resolve({ data: [], error: null });
+        return Promise.resolve({ data: [], error: null });
       });
 
       const result = await service.getUserStats('user-123', {});
@@ -136,7 +143,7 @@ describe('UsageService', () => {
     });
 
     it('should include detailed breakdowns when requested', async () => {
-      mockSupabaseClient.eq.mockReturnValue({
+      mockSupabaseClient.not.mockResolvedValue({
         data: mockMessages,
         error: null,
       });
@@ -161,9 +168,9 @@ describe('UsageService', () => {
 
     it('should filter by provider ID correctly', async () => {
       const filteredMessages = mockMessages.filter(msg => msg.provider.id === 'provider-1');
-      mockSupabaseClient.eq.mockReturnValue({
-        data: filteredMessages,
-        error: null,
+      mockSupabaseClient.then = jest.fn((resolve) => {
+        resolve({ data: filteredMessages, error: null });
+        return Promise.resolve({ data: filteredMessages, error: null });
       });
 
       const result = await service.getUserStats('user-123', {
@@ -176,9 +183,9 @@ describe('UsageService', () => {
 
     it('should filter by model ID correctly', async () => {
       const filteredMessages = mockMessages.filter(msg => msg.model.id === 'model-1');
-      mockSupabaseClient.eq.mockReturnValue({
-        data: filteredMessages,
-        error: null,
+      mockSupabaseClient.then = jest.fn((resolve) => {
+        resolve({ data: filteredMessages, error: null });
+        return Promise.resolve({ data: filteredMessages, error: null });
       });
 
       const result = await service.getUserStats('user-123', {
@@ -190,7 +197,7 @@ describe('UsageService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      mockSupabaseClient.eq.mockReturnValue({
+      mockSupabaseClient.not.mockResolvedValue({
         data: null,
         error: { message: 'Database connection failed' },
       });
@@ -206,7 +213,7 @@ describe('UsageService', () => {
     });
 
     it('should use default date range when not provided', async () => {
-      mockSupabaseClient.eq.mockReturnValue({
+      mockSupabaseClient.not.mockResolvedValue({
         data: mockMessages,
         error: null,
       });
@@ -246,7 +253,14 @@ describe('UsageService', () => {
             cost: 0.008,
           },
           {
-            provider: { id: 'provider-2', name: 'Anthropic' },
+            provider: { 
+              id: 'provider-2', 
+              name: 'Anthropic',
+              authType: 'api_key' as const,
+              status: 'active' as const,
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
             requests: 1,
             tokens: 500,
             cost: 0.012,
@@ -254,19 +268,46 @@ describe('UsageService', () => {
         ],
         byModel: [
           {
-            model: { id: 'model-1', name: 'GPT-4o' },
+            model: { 
+              id: 'model-1', 
+              name: 'GPT-4o',
+              providerId: 'provider-1',
+              modelId: 'gpt-4o',
+              supportsThinking: false,
+              status: 'active' as const,
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
             requests: 1,
             tokens: 250,
             cost: 0.005,
           },
           {
-            model: { id: 'model-2', name: 'GPT-4o Mini' },
+            model: { 
+              id: 'model-2', 
+              name: 'GPT-4o Mini',
+              providerId: 'provider-1',
+              modelId: 'gpt-4o-mini',
+              supportsThinking: false,
+              status: 'active' as const,
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
             requests: 1,
             tokens: 200,
             cost: 0.003,
           },
           {
-            model: { id: 'model-3', name: 'Claude 3 Opus' },
+            model: { 
+              id: 'model-3', 
+              name: 'Claude 3 Opus',
+              providerId: 'provider-2',
+              modelId: 'claude-3-opus-20240229',
+              supportsThinking: false,
+              status: 'active' as const,
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
             requests: 1,
             tokens: 500,
             cost: 0.012,
@@ -285,12 +326,12 @@ describe('UsageService', () => {
         groupBy: 'provider',
       });
 
-      expect(result.total_cost).toBe(0.020);
-      expect(result.total_tokens).toBe(950);
-      expect(result.total_requests).toBe(3);
+      expect(result.totalCost).toBe(0.020);
+      expect(result.totalTokens).toBe(950);
+      expect(result.totalRequests).toBe(3);
       expect(result.period).toEqual({
-        start_date: expect.any(String),
-        end_date: expect.any(String),
+        startDate: expect.any(String),
+        endDate: expect.any(String),
       });
       expect(result.breakdown).toBeDefined();
       expect(result.trends).toBeDefined();
@@ -302,8 +343,8 @@ describe('UsageService', () => {
         groupBy: 'model',
       });
 
-      expect(result.period.start_date).toBeDefined();
-      expect(result.period.end_date).toBeDefined();
+      expect(result.period.startDate).toBeDefined();
+      expect(result.period.endDate).toBeDefined();
     });
   });
 
@@ -319,25 +360,52 @@ describe('UsageService', () => {
         averageUserRating: 4,
         byModel: [
           {
-            model: { id: 'model-1', name: 'GPT-4o' },
+            model: { 
+              id: 'model-1', 
+              name: 'GPT-4o',
+              providerId: 'provider-1',
+              modelId: 'gpt-4o',
+              supportsThinking: false,
+              status: 'active' as const,
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
             requests: 2,
             tokens: 450,
             cost: 0.010,
-            avg_rating: 4.5,
+            avgRating: 4.5,
           },
           {
-            model: { id: 'model-2', name: 'GPT-4o Mini' },
+            model: { 
+              id: 'model-2', 
+              name: 'GPT-4o Mini',
+              providerId: 'provider-1',
+              modelId: 'gpt-4o-mini',
+              supportsThinking: false,
+              status: 'active' as const,
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
             requests: 5,
             tokens: 800,
             cost: 0.005,
-            avg_rating: 4.2,
+            avgRating: 4.2,
           },
           {
-            model: { id: 'model-3', name: 'Claude 3 Opus' },
+            model: { 
+              id: 'model-3', 
+              name: 'Claude 3 Opus',
+              providerId: 'provider-2',
+              modelId: 'claude-3-opus-20240229',
+              supportsThinking: false,
+              status: 'active' as const,
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
             requests: 1,
             tokens: 500,
             cost: 0.015,
-            avg_rating: 3.5,
+            avgRating: 3.5,
           },
         ],
       });
@@ -350,13 +418,13 @@ describe('UsageService', () => {
       });
 
       expect(result).toHaveLength(3);
-      expect(result[0].metrics.avg_user_rating).toBeGreaterThanOrEqual(result[1].metrics.avg_user_rating);
-      expect(result[1].metrics.avg_user_rating).toBeGreaterThanOrEqual(result[2].metrics.avg_user_rating);
+      expect(result[0]?.metrics.avgUserRating).toBeGreaterThanOrEqual(result[1]?.metrics.avgUserRating || 0);
+      expect(result[1]?.metrics.avgUserRating).toBeGreaterThanOrEqual(result[2]?.metrics.avgUserRating || 0);
       
       // Check that ranks are assigned correctly
-      expect(result[0].rank).toBe(1);
-      expect(result[1].rank).toBe(2);
-      expect(result[2].rank).toBe(3);
+      expect(result[0]?.rank).toBe(1);
+      expect(result[1]?.rank).toBe(2);
+      expect(result[2]?.rank).toBe(3);
     });
 
     it('should filter models by minimum usage threshold', async () => {
@@ -367,7 +435,7 @@ describe('UsageService', () => {
 
       expect(result).toHaveLength(2); // Only models with >= 2 requests
       result.forEach(model => {
-        expect(model.metrics.usage_count).toBeGreaterThanOrEqual(2);
+        expect(model.metrics.usageCount).toBeGreaterThanOrEqual(2);
       });
     });
 
@@ -381,8 +449,8 @@ describe('UsageService', () => {
       
       // Should be sorted by lowest cost per request first
       for (let i = 0; i < result.length - 1; i++) {
-        expect(result[i].metrics.avg_cost_per_request).toBeLessThanOrEqual(
-          result[i + 1].metrics.avg_cost_per_request
+        expect(result[i]?.metrics.avgCostPerRequest).toBeLessThanOrEqual(
+          result[i + 1]?.metrics.avgCostPerRequest || 0
         );
       }
     });
@@ -394,11 +462,11 @@ describe('UsageService', () => {
       });
 
       result.forEach(model => {
-        expect(model.metrics.cost_efficiency_score).toBeGreaterThanOrEqual(0);
-        expect(model.metrics.performance_score).toBeGreaterThanOrEqual(0);
-        expect(model.metrics.avg_cost_per_request).toBeGreaterThan(0);
-        expect(typeof model.metrics.total_cost).toBe('number');
-        expect(typeof model.metrics.total_tokens).toBe('number');
+        expect(model.metrics.costEfficiencyScore).toBeGreaterThanOrEqual(0);
+        expect(model.metrics.performanceScore).toBeGreaterThanOrEqual(0);
+        expect(model.metrics.avgCostPerRequest).toBeGreaterThan(0);
+        expect(typeof model.metrics.totalCost).toBe('number');
+        expect(typeof model.metrics.totalTokens).toBe('number');
       });
     });
   });
@@ -415,7 +483,14 @@ describe('UsageService', () => {
         averageUserRating: 4.2,
         byProvider: [
           {
-            provider: { id: 'provider-1', name: 'OpenAI' },
+            provider: { 
+              id: 'provider-1', 
+              name: 'OpenAI',
+              authType: 'api_key' as const,
+              status: 'active' as const,
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
             requests: 30,
             tokens: 9000,
             cost: 0.45,
@@ -423,7 +498,16 @@ describe('UsageService', () => {
         ],
         byModel: [
           {
-            model: { id: 'model-1', name: 'GPT-4o' },
+            model: { 
+              id: 'model-1', 
+              name: 'GPT-4o',
+              providerId: 'provider-1',
+              modelId: 'gpt-4o',
+              supportsThinking: false,
+              status: 'active' as const,
+              createdAt: '2024-01-01T00:00:00.000Z',
+              updatedAt: '2024-01-01T00:00:00.000Z'
+            },
             requests: 25,
             tokens: 7500,
             cost: 0.50,
@@ -439,28 +523,28 @@ describe('UsageService', () => {
     it('should return comprehensive spending insights', async () => {
       const result = await service.getSpendingInsights('user-123', 30);
 
-      expect(result.analysis_period).toEqual({
-        start_date: expect.any(String),
-        end_date: expect.any(String),
+      expect(result.analysisPeriod).toEqual({
+        startDate: expect.any(String),
+        endDate: expect.any(String),
         days: 30,
       });
 
-      expect(result.spending_summary).toEqual({
-        total_spent: 0.75,
-        daily_average: 0.025, // 0.75 / 30
-        projected_monthly: 0.75, // (0.75 / 30) * 30
-        most_expensive_day: '',
-        most_expensive_amount: 0,
+      expect(result.spendingSummary).toEqual({
+        totalSpent: 0.75,
+        dailyAverage: 0.025, // 0.75 / 30
+        projectedMonthly: 0.75, // (0.75 / 30) * 30
+        mostExpensiveDay: '',
+        mostExpensiveAmount: 0,
       });
 
-      expect(result.usage_patterns).toEqual({
-        peak_hours: [9, 10, 14, 15],
-        busiest_day_of_week: 'Tuesday',
-        avg_requests_per_day: expect.any(Number),
-        avg_tokens_per_request: expect.any(Number),
+      expect(result.usagePatterns).toEqual({
+        peakHours: [9, 10, 14, 15],
+        busiestDayOfWeek: 'Tuesday',
+        avgRequestsPerDay: expect.any(Number),
+        avgTokensPerRequest: expect.any(Number),
       });
 
-      expect(result.model_insights).toBeDefined();
+      expect(result.modelInsights).toBeDefined();
       expect(result.recommendations).toBeDefined();
       expect(Array.isArray(result.recommendations)).toBe(true);
     });
@@ -468,7 +552,7 @@ describe('UsageService', () => {
     it('should use default lookback period when not specified', async () => {
       const result = await service.getSpendingInsights('user-123', 30);
 
-      expect(result.analysis_period.days).toBe(30);
+      expect(result.analysisPeriod.days).toBe(30);
     });
   });
 
@@ -488,10 +572,10 @@ describe('UsageService', () => {
     it('should return budget status with alerts for high spending', async () => {
       const result = await service.getBudgetStatus('user-123', 100);
 
-      expect(result.current_month.budget).toBe(100);
-      expect(result.current_month.spent).toBe(85.50);
-      expect(result.current_month.percentage_used).toBe(85.5);
-      expect(result.current_month.days_remaining).toBeGreaterThan(0);
+      expect(result.currentMonth.budget).toBe(100);
+      expect(result.currentMonth.spent).toBe(85.50);
+      expect(result.currentMonth.percentageUsed).toBe(85.5);
+      expect(result.currentMonth.daysRemaining).toBeGreaterThan(0);
 
       // Should have warning alert for high spending
       expect(result.alerts.length).toBeGreaterThan(0);
@@ -504,7 +588,7 @@ describe('UsageService', () => {
     it('should use default budget when not provided', async () => {
       const result = await service.getBudgetStatus('user-123');
 
-      expect(result.current_month.budget).toBe(100); // Default budget
+      expect(result.currentMonth.budget).toBe(100); // Default budget
     });
 
     it('should generate danger alert when budget is exceeded', async () => {
@@ -577,14 +661,14 @@ describe('UsageService', () => {
   describe('Cost Calculation Logic', () => {
     it('should correctly aggregate costs across multiple messages', () => {
       const messages = [
-        { total_cost: 0.005, input_tokens: 100, output_tokens: 150 },
-        { total_cost: 0.003, input_tokens: 80, output_tokens: 120 },
-        { total_cost: 0.012, input_tokens: 200, output_tokens: 300 },
+        { totalCost: 0.005, inputTokens: 100, outputTokens: 150 },
+        { totalCost: 0.003, inputTokens: 80, outputTokens: 120 },
+        { totalCost: 0.012, inputTokens: 200, outputTokens: 300 },
       ];
 
-      const totalCost = messages.reduce((sum, msg) => sum + (msg.total_cost || 0), 0);
+      const totalCost = messages.reduce((sum, msg) => sum + (msg.totalCost || 0), 0);
       const totalTokens = messages.reduce(
-        (sum, msg) => sum + (msg.input_tokens || 0) + (msg.output_tokens || 0),
+        (sum, msg) => sum + (msg.inputTokens || 0) + (msg.outputTokens || 0),
         0
       );
 
@@ -594,12 +678,12 @@ describe('UsageService', () => {
 
     it('should handle null and undefined cost values gracefully', () => {
       const messages = [
-        { total_cost: 0.005, input_tokens: 100, output_tokens: 150 },
-        { total_cost: null, input_tokens: 80, output_tokens: 120 },
-        { total_cost: undefined, input_tokens: 200, output_tokens: 300 },
+        { totalCost: 0.005, inputTokens: 100, outputTokens: 150 },
+        { totalCost: null, inputTokens: 80, outputTokens: 120 },
+        { totalCost: undefined, inputTokens: 200, outputTokens: 300 },
       ];
 
-      const totalCost = messages.reduce((sum, msg) => sum + (msg.total_cost || 0), 0);
+      const totalCost = messages.reduce((sum, msg) => sum + (msg.totalCost || 0), 0);
       expect(totalCost).toBe(0.005);
     });
 
@@ -616,11 +700,11 @@ describe('UsageService', () => {
       const getDateDaysAgo = (days: number): string => {
         const date = new Date();
         date.setDate(date.getDate() - days);
-        return date.toISOString().split('T')[0];
+        return date.toISOString().split('T')[0] || '';
       };
 
       const thirtyDaysAgo = getDateDaysAgo(30);
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0] || '';
 
       expect(thirtyDaysAgo).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);

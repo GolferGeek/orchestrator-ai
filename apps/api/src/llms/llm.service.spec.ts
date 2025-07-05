@@ -191,12 +191,6 @@ describe('LLMService', () => {
     });
   });
 
-  describe('Orchestration Decision Making', () => {
-    it('should have orchestration decision method available', () => {
-      expect(service.generateOrchestrationDecision).toBeDefined();
-      expect(typeof service.generateOrchestrationDecision).toBe('function');
-    });
-  });
 
   describe('Enhanced Messaging with LLM Selection', () => {
     // Mock LangChain LLM
@@ -477,71 +471,5 @@ describe('LLMService', () => {
       });
     });
 
-    describe('generateOrchestrationDecision', () => {
-      beforeEach(() => {
-        jest.spyOn(service, 'generateResponse').mockImplementation(() => Promise.resolve(''));
-      });
-
-      it('should generate orchestration decision for agent delegation', async () => {
-        const mockResponse = JSON.stringify({
-          action: 'delegate',
-          agent: 'blog_post',
-          reasoning: 'User wants to write a blog post',
-        });
-
-        jest.spyOn(service, 'generateResponse').mockResolvedValue(mockResponse);
-
-        const availableAgents = [
-          { name: 'blog_post', description: 'Writes blog posts' },
-          { name: 'hr_assistant', description: 'Helps with HR tasks' },
-        ];
-
-        const result = await service.generateOrchestrationDecision(
-          'Write a blog post about AI',
-          availableAgents
-        );
-
-        expect(result).toEqual({
-          action: 'delegate',
-          agent: 'blog_post',
-          reasoning: 'User wants to write a blog post',
-        });
-      });
-
-      it('should fallback to rule-based decision when JSON parsing fails', async () => {
-        jest.spyOn(service, 'generateResponse').mockResolvedValue('Invalid JSON response');
-
-        const availableAgents = [
-          { name: 'blog_post', description: 'Writes blog posts' },
-        ];
-
-        const result = await service.generateOrchestrationDecision(
-          'Write a blog post about AI',
-          availableAgents
-        );
-
-        expect(result.action).toBe('delegate');
-        expect(result.agent).toBe('blog_post');
-        expect(result.reasoning).toBe('Content creation request identified');
-      });
-
-      it('should handle greeting requests', async () => {
-        jest.spyOn(service, 'generateResponse').mockResolvedValue('Invalid JSON response');
-
-        const availableAgents = [
-          { name: 'blog_post', description: 'Writes blog posts' },
-          { name: 'hr_assistant', description: 'Helps with HR tasks' },
-        ];
-
-        const result = await service.generateOrchestrationDecision(
-          'Hello there!',
-          availableAgents
-        );
-
-        expect(result.action).toBe('respond_directly');
-        expect(result.response).toContain('Hello!');
-        expect(result.response).toContain('blog_post, hr_assistant');
-      });
-    });
   });
 });

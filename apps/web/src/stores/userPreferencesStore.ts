@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { ApiEndpoint, ApiVersion, ApiTechnology } from '../types/api';
-import { apiManager } from '../services/apiManager';
+import { apiService } from '../services/apiService';
 
 interface UserPreferences {
   // API Preferences
@@ -109,7 +109,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
   });
 
   const preferredEndpoint = computed(() => {
-    const available = apiManager.availableEndpoints;
+    const available = [{ version: 'v1', technology: 'typescript-nestjs' }]; // Simplified for unified API
     return available.find(ep => 
       ep.version === preferences.value.preferredApiVersion && 
       ep.technology === preferences.value.preferredTechnology
@@ -283,7 +283,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
   const applyApiPreferences = async () => {
     if (preferences.value.rememberApiSelection && preferredEndpoint.value) {
       try {
-        await apiManager.switchToEndpoint(preferredEndpoint.value);
+        // Simplified for unified API - no switching needed
       } catch (error) {
         console.warn('Failed to apply API preferences:', error);
       }

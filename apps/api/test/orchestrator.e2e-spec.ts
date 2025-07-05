@@ -30,7 +30,7 @@ describe('Orchestrator Agent (e2e)', () => {
       })
       .expect(200);
 
-    authToken = loginResponse.body.access_token;
+    authToken = loginResponse.body.accessToken;
   });
 
   afterEach(async () => {

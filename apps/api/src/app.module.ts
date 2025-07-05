@@ -20,6 +20,7 @@ import { ProvidersModule } from './providers/providers.module';
 import { CIDAFMModule } from './cidafm/cidafm.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
 import { UsageModule } from './usage/usage.module';
+import { OrchestratorModule } from './agents/actual/orchestrator/agent.module';
 import supabaseConfig from './supabase/supabase.config';
 
 @Module({
@@ -50,6 +51,8 @@ import supabaseConfig from './supabase/supabase.config';
     CIDAFMModule, // AI Function Module behavior modification
     EvaluationModule, // Message evaluation and feedback
     UsageModule, // Usage analytics and cost tracking
+    // Agent Modules
+    OrchestratorModule, // Orchestrator agent with UI endpoints
   ],
   controllers: [AppController, DynamicAgentsController],
   providers: [

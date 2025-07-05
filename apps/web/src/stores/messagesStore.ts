@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
 import { ChatMessage, MessageSender, AgentInfo, MessageDisplayType, TaskResponse } from '../types/chat';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs
-import { postTaskToOrchestrator } from '../services/apiService'; // Name is already updated
-import { nestjsApiService } from '../services/nestjsApiService';
+// Removed obsolete import
+import { apiService } from '../services/apiService';
 import { useLLMStore } from './llmStore';
 import type { LLMSelection } from '../types/llm';
 import { useUiStore } from './uiStore'; // Import UI store to manage loading state
@@ -88,7 +88,7 @@ export const useMessagesStore = defineStore('messages', {
           try {
             console.log('[MESSAGES_STORE] Using enhanced messaging with LLM preferences:', llmSelection);
             
-            const enhancedResponse = await nestjsApiService.sendEnhancedMessage(currentSessionId, {
+            const enhancedResponse = await apiService.sendEnhancedMessage(currentSessionId, {
               content: text,
               llmSelection: llmSelection
             });
@@ -109,15 +109,96 @@ export const useMessagesStore = defineStore('messages', {
         
         // Legacy orchestrator method - also refresh session to avoid duplication
         const finalLLMSelection = llmSelection || llmStore.currentLLMSelection;
-        const taskResponse: TaskResponse = await postTaskToOrchestrator(text, currentSessionId, undefined);
+        
+        // Get conversation history from session store
+        const sessionStore = useSessionStore();
+        const conversationHistory = sessionStore.currentSessionMessages
+          .filter(msg => msg.content) // Only include messages with content
+          .map(msg => ({
+            role: msg.role === 'assistant' ? 'assistant' : 'user',
+            content: msg.content || '',
+            metadata: msg.metadata
+          }));
+        
+        console.log('[MESSAGES_STORE] Sending to orchestrator with conversation history:', conversationHistory.length, 'messages');
+        
+        const taskResponse: TaskResponse = await apiService.postTaskToOrchestrator(text, currentSessionId, conversationHistory);
         console.log('[MESSAGES_STORE] Raw Task Response from orchestrator:', JSON.stringify(taskResponse, null, 2));
 
         if (taskResponse.session_id) {
           sessionStore.setCurrentSessionId(taskResponse.session_id);
         }
 
-        // For consistency with enhanced messaging, refresh session messages
-        await sessionStore.fetchMessagesForCurrentSession();
+        // Extract agent information from response
+        let agentName = 'Agent'; // default
+        let agentMetadata: any = {};
+        
+        if (taskResponse.metadata) {
+          agentName = taskResponse.metadata.delegatedTo || 
+                      taskResponse.metadata.originalAgent?.agentName ||
+                      taskResponse.metadata.agentName ||
+                      taskResponse.metadata.responding_agent_name ||
+                      taskResponse.metadata.respondingAgentName ||
+                      'Agent';
+          agentMetadata = { ...taskResponse.metadata };
+        }
+        
+        if (taskResponse.response_message?.metadata?.responding_agent_name) {
+          agentName = taskResponse.response_message.metadata.responding_agent_name;
+          agentMetadata = { ...agentMetadata, ...taskResponse.response_message.metadata };
+        }
+        
+        // Extract response text
+        let responseText = '';
+        if (taskResponse.response_message?.parts?.[0]?.text) {
+          responseText = taskResponse.response_message.parts[0].text;
+        } else if (taskResponse.result) {
+          responseText = typeof taskResponse.result === 'string' ? taskResponse.result : taskResponse.result.response || taskResponse.result;
+        }
+        
+        // The orchestrator saves messages to the database
+        // We need to update the session store (not this store) since that's what the UI displays
+        
+        // Create proper message objects for the session store
+        const userMessageOrder = sessionStore.currentSessionMessages.length > 0 
+          ? Math.max(...sessionStore.currentSessionMessages.map(m => m.order)) + 1 
+          : 1;
+          
+        const userMsg = {
+          id: `temp-user-${Date.now()}`,
+          session_id: currentSessionId,
+          user_id: 'user',
+          role: 'user' as const,
+          content: text,
+          timestamp: new Date().toISOString(),
+          order: userMessageOrder,
+          metadata: {}
+        };
+        
+        // Add to session store (which is what the UI displays)
+        sessionStore.addMessageToCurrentSession(userMsg);
+        
+        if (responseText) {
+          // Ensure agentMetadata includes agentName
+          if (!agentMetadata.agentName && agentName !== 'Agent') {
+            agentMetadata.agentName = agentName;
+          }
+          
+          const agentMsg = {
+            id: taskResponse.id || `temp-agent-${Date.now()}`,
+            session_id: currentSessionId,
+            user_id: 'assistant',
+            role: 'assistant' as const,
+            content: responseText,
+            timestamp: new Date().toISOString(),
+            order: userMessageOrder + 1,
+            metadata: agentMetadata
+          };
+          
+          // Add to session store with full metadata
+          sessionStore.addMessageToCurrentSession(agentMsg);
+          console.log('[MESSAGES_STORE] Added agent message to session store with metadata:', agentMetadata);
+        }
       } catch (error) {
         console.error("Error submitting task to orchestrator:", error);
         this.addSystemMessage(

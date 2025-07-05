@@ -584,7 +584,30 @@ export class ApiAgentBaseService
     // If transform format is a JSON template string, parse and use it
     if (typeof config.requestTransform === 'string') {
       try {
-        const template = JSON.parse(config.requestTransform);
+        // First do template substitution
+        let templateString = config.requestTransform;
+        templateString = templateString.replace(
+          /\{\{sessionId\}\}/g,
+          `"${params.sessionId}"`,
+        );
+        templateString = templateString.replace(
+          /\{\{userMessage\}\}/g,
+          `"${params.userMessage}"`,
+        );
+        templateString = templateString.replace(
+          /\{\{userId\}\}/g,
+          `"${params.currentUser?.id || 'anonymous'}"`,
+        );
+        templateString = templateString.replace(
+          /\{\{userEmail\}\}/g,
+          `"${params.currentUser?.email || 'anonymous'}"`,
+        );
+        templateString = templateString.replace(
+          /\{\{timestamp\}\}/g,
+          `"${params.metadata.timestamp}"`,
+        );
+
+        const template = JSON.parse(templateString);
         this.apiLogger.debug(
           `Using JSON template request transform:`,
           template,

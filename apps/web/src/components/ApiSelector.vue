@@ -242,7 +242,6 @@ import {
   closeOutline
 } from 'ionicons/icons';
 
-import { apiManager } from '../services/apiManager';
 import { useApiConfigStore } from '../stores/apiConfigStore';
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
 import { ApiEndpoint, API_FEATURES } from '../types/api';
@@ -275,11 +274,11 @@ const showFeatureComparison = ref(false);
 const healthCheckInProgress = ref(false);
 
 // Computed properties
-const currentEndpoint = computed(() => apiManager.currentEndpoint);
+const currentEndpoint = computed(() => apiConfigStore.allEndpoints[0]);
 const availableEndpoints = computed(() => {
   // Show all configured endpoints, not just healthy ones
   // This allows users to see and test endpoints even if health checks haven't run
-  return apiManager.availableEndpoints;
+  return apiConfigStore.allEndpoints;
 });
 const healthyEndpoints = computed(() => apiConfigStore.healthyEndpoints);
 const preferences = computed(() => userPreferencesStore.preferences);
@@ -362,7 +361,7 @@ const selectEndpoint = async (endpoint: ApiEndpoint) => {
   if (!endpoint.isAvailable) return;
   
   try {
-    await apiManager.switchToEndpoint(endpoint);
+    // For unified API, endpoint switching is simplified
     emit('endpointChanged', endpoint);
     
     // Update user preferences if enabled
@@ -421,7 +420,7 @@ const formatTechnologyName = (technology: string) => {
 // Lifecycle
 onMounted(async () => {
   console.log('ApiSelector: Starting initialization...');
-  console.log('ApiManager endpoints:', apiManager.availableEndpoints);
+  console.log('Available endpoints:', availableEndpoints.value);
   
   showAdvanced.value = preferences.value.showAdvancedOptions;
   

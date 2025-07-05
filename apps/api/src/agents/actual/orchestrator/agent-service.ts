@@ -5,6 +5,12 @@ import { LLMService } from '@/llms/llm.service';
 import { SessionsService } from '../../../sessions/sessions.service';
 import { SupabaseService } from '../../../supabase/supabase.service';
 
+// Import the modular sub-services
+import { AgentDiscoveryService } from './services/agent-discovery.service';
+import { ConversationContextService } from './services/conversation-context.service';
+import { DelegationService } from './services/delegation.service';
+import { ResponseGenerationService } from './services/response-generation.service';
+
 interface AvailableAgent {
   name: string;
   description: string;
@@ -40,6 +46,11 @@ export class OrchestratorService extends A2AAgentBaseService {
     private readonly llmService: LLMService,
     private readonly sessionsService: SessionsService,
     private readonly supabaseService: SupabaseService,
+    // Inject the modular sub-services
+    private readonly agentDiscoveryService: AgentDiscoveryService,
+    private readonly conversationContextService: ConversationContextService,
+    private readonly delegationService: DelegationService,
+    private readonly responseGenerationService: ResponseGenerationService,
   ) {
     super(httpService);
     // Get base API URL from environment variables
@@ -50,6 +61,9 @@ export class OrchestratorService extends A2AAgentBaseService {
     // Debug dependency injection
     this.orchestratorLogger.log(
       `OrchestratorService constructor: sessionsService=${!!this.sessionsService}, llmService=${!!this.llmService}, supabaseService=${!!this.supabaseService}`,
+    );
+    this.orchestratorLogger.log(
+      `OrchestratorService services: agentDiscoveryService=${!!this.agentDiscoveryService}, conversationContextService=${!!this.conversationContextService}, delegationService=${!!this.delegationService}, responseGenerationService=${!!this.responseGenerationService}`,
     );
   }
 
@@ -237,11 +251,15 @@ export class OrchestratorService extends A2AAgentBaseService {
       );
     }
 
-    // Check if this is a capability request
+    // Check for UI commands that should trigger modals
+    if (userMessage.startsWith('__UI_COMMAND__:')) {
+      return this.handleUICommand(userMessage);
+    }
+
+    // Check if this is a conversational capability request (typed by user)
     const lowerMessage = userMessage.toLowerCase();
     const isCapabilityRequest =
       lowerMessage.includes('what can you do') ||
-      lowerMessage.includes('view all that i can do for you') ||
       lowerMessage.includes('what can') ||
       lowerMessage.includes('capabilities') ||
       lowerMessage.includes('what you specialize in') ||
@@ -253,33 +271,15 @@ export class OrchestratorService extends A2AAgentBaseService {
       lowerMessage.includes('tell me what agents');
 
     if (isCapabilityRequest) {
-      // Check if there's a sticky agent from conversation history
-      let stickyAgent = null;
-      if (conversationHistory.length > 0) {
-        const lastAssistantMessage = [...conversationHistory]
-          .reverse()
-          .find((msg: any) => msg.role === 'assistant');
-
-        if (lastAssistantMessage?.metadata?.agentName) {
-          const agentName = lastAssistantMessage.metadata.agentName;
-          // Only treat as sticky agent if it's NOT an orchestrator agent
-          const isOrchestratorAgent =
-            agentName.toLowerCase().includes('orchestrator') ||
-            agentName === 'Orchestrator Agent' ||
-            agentName === 'Orchestrator AI' ||
-            lastAssistantMessage.metadata?.agentType === 'orchestrator';
-
-          if (!isOrchestratorAgent) {
-            stickyAgent = agentName;
-          }
-        }
-      }
+      // For conversational requests, return text responses for chat
+      const continuityCheck = this.conversationContextService.shouldContinueWithSameAgent(userMessage, conversationHistory);
+      const stickyAgent = continuityCheck.shouldContinue ? continuityCheck.agentName : null;
 
       if (stickyAgent) {
-        // Return specific agent capabilities
+        // Return text-based agent capabilities for chat
         return this.createStickyAgentCapabilitiesResponse(stickyAgent);
       } else {
-        // Return agent list for modal
+        // Return text-based agent list for chat
         return this.createAgentListResponse();
       }
     }
@@ -292,28 +292,16 @@ export class OrchestratorService extends A2AAgentBaseService {
       lowerMessage === 'orchestrator';
 
     if (isReturnToOrchestratorRequest) {
-      return this.createResponse(
-        "Welcome back! I'm the Orchestrator and I'm here to help coordinate your requests. I can either assist you directly with general questions or connect you with specialist agents for specific tasks. What would you like to work on?",
+      return this.responseGenerationService.generateDirectResponse(
+        userMessage,
+        this.availableAgents,
+        conversationHistory,
+        "Welcome back!"
       );
     }
 
-    // Check if user is continuing conversation with a specific agent
-    let agentContinuityContext = '';
-    if (conversationHistory.length > 0) {
-      const lastAssistantMessage = [...conversationHistory]
-        .reverse()
-        .find((msg: any) => msg.role === 'assistant');
-
-      if (
-        lastAssistantMessage?.metadata?.agentName &&
-        lastAssistantMessage.metadata.agentName !== 'Orchestrator Agent'
-      ) {
-        this.orchestratorLogger.log(
-          `User appears to be continuing conversation with: ${lastAssistantMessage.metadata.agentName}`,
-        );
-        agentContinuityContext = `\n\nNote: User was previously talking to ${lastAssistantMessage.metadata.agentName}. Unless they want to switch topics, continue with that agent.`;
-      }
-    }
+    // Use ConversationContextService to build agent continuity context
+    const agentContinuityContext = this.conversationContextService.buildAgentContinuityContext(conversationHistory);
 
     // Use LLM to decide whether to delegate or respond directly
     let response;
@@ -336,124 +324,45 @@ export class OrchestratorService extends A2AAgentBaseService {
           llmPreferences,
         );
       } else {
-        // Pass full agent objects with descriptions to the LLM for better decision making
-        const agentObjects = this.availableAgents.map((agent) => ({
-          name: agent.name,
-          description: agent.description,
-          type: agent.type,
-        }));
-        // Use the enhanced orchestration decision method with conversation history
-        const decision =
-          await this.llmService.generateOrchestrationDecisionWithHistory(
-            userMessage,
-            agentObjects,
-            conversationHistory,
-            agentContinuityContext,
-          );
+        // Use orchestrator's own LLM reasoning through AgentDiscoveryService
+        const decision = await this.agentDiscoveryService.analyzeRequestForAgentMatch(
+          userMessage,
+          this.availableAgents,
+          conversationHistory,
+          true // Enable LLM reasoning
+        );
 
         if (decision.action === 'delegate' && decision.agent) {
           response = await this.delegateToAgent(
-            decision.agent,
+            decision.agent.name,
             userMessage,
             sessionId,
             authToken,
             llmPreferences,
           );
-        } else if (
-          decision.action === 'respond_directly' &&
-          decision.response
-        ) {
-          // Check if user has LLM preferences for enhanced response generation
-          if (
-            llmPreferences.providerId ||
-            llmPreferences.modelId ||
-            llmPreferences.cidafmOptions
-          ) {
-            try {
-              this.orchestratorLogger.log(
-                '🚀 Using enhanced LLM service for direct response with user preferences',
-              );
-              const enhancedResponse =
-                await this.llmService.generateEnhancedResponse(
-                  currentUser?.id || 'anonymous',
-                  'You are a helpful AI assistant orchestrator. Provide direct assistance to the user.',
-                  userMessage,
-                  {
-                    providerId: llmPreferences.providerId,
-                    modelId: llmPreferences.modelId,
-                    cidafmOptions: llmPreferences.cidafmOptions,
-                    sessionId: sessionId,
-                    temperature: llmPreferences.temperature,
-                    maxTokens: llmPreferences.maxTokens,
-                  },
-                );
-
-              response = this.createResponse(enhancedResponse.content, {
-                llmUsage: enhancedResponse.usage,
-                costCalculation: enhancedResponse.costCalculation,
-                processedPrompt: enhancedResponse.processedPrompt,
-                cidafmState: enhancedResponse.cidafmState,
-                langsmithRunId: enhancedResponse.langsmithRunId,
-                usedEnhancedLLM: true,
-              });
-            } catch (enhancedError) {
-              this.orchestratorLogger.warn(
-                'Enhanced LLM service failed, falling back to standard response:',
-                enhancedError,
-              );
-              response = this.createResponse(decision.response);
-            }
-          } else {
-            response = this.createResponse(decision.response);
-          }
+        } else if (decision.action === 'respond_directly') {
+          response = await this.responseGenerationService.generateDirectResponse(
+            userMessage,
+            this.availableAgents,
+            conversationHistory,
+            undefined,
+            llmPreferences
+          );
+        } else if (decision.action === 'clarify') {
+          response = this.responseGenerationService.generateClarificationRequest(
+            userMessage,
+            this.availableAgents,
+            decision.reasoning
+          );
         } else {
-          // For clarification requests, also use enhanced LLM if preferences are provided
-          const clarificationMessage =
-            decision.response ||
-            `I understand you said: "${userMessage}". How can I help you further?`;
-
-          if (
-            llmPreferences.providerId ||
-            llmPreferences.modelId ||
-            llmPreferences.cidafmOptions
-          ) {
-            try {
-              this.orchestratorLogger.log(
-                '🚀 Using enhanced LLM service for clarification with user preferences',
-              );
-              const enhancedResponse =
-                await this.llmService.generateEnhancedResponse(
-                  currentUser?.id || 'anonymous',
-                  'You are a helpful AI assistant orchestrator. Ask for clarification to better assist the user.',
-                  userMessage,
-                  {
-                    providerId: llmPreferences.providerId,
-                    modelId: llmPreferences.modelId,
-                    cidafmOptions: llmPreferences.cidafmOptions,
-                    sessionId: sessionId,
-                    temperature: llmPreferences.temperature,
-                    maxTokens: llmPreferences.maxTokens,
-                  },
-                );
-
-              response = this.createResponse(enhancedResponse.content, {
-                llmUsage: enhancedResponse.usage,
-                costCalculation: enhancedResponse.costCalculation,
-                processedPrompt: enhancedResponse.processedPrompt,
-                cidafmState: enhancedResponse.cidafmState,
-                langsmithRunId: enhancedResponse.langsmithRunId,
-                usedEnhancedLLM: true,
-              });
-            } catch (enhancedError) {
-              this.orchestratorLogger.warn(
-                'Enhanced LLM service failed for clarification, using standard response:',
-                enhancedError,
-              );
-              response = this.createResponse(clarificationMessage);
-            }
-          } else {
-            response = this.createResponse(clarificationMessage);
-          }
+          // Fallback - use response generation service for any unhandled cases
+          response = await this.responseGenerationService.generateDirectResponse(
+            userMessage,
+            this.availableAgents,
+            conversationHistory,
+            undefined,
+            llmPreferences
+          );
         }
       }
     } catch (error) {
@@ -615,6 +524,134 @@ export class OrchestratorService extends A2AAgentBaseService {
   }
 
   /**
+   * Handle UI commands that should trigger modals instead of conversational responses
+   */
+  private handleUICommand(userMessage: string): any {
+    this.orchestratorLogger.log(`Handling UI command: ${userMessage}`);
+
+    if (userMessage === '__UI_COMMAND__:SHOW_AGENT_LIST_MODAL') {
+      // UI click for agent list modal
+      return this.createAgentListModalResponse();
+    }
+
+    if (userMessage.startsWith('__UI_COMMAND__:SHOW_AGENT_CAPABILITIES_MODAL:')) {
+      // UI click for specific agent capabilities modal
+      const agentName = userMessage.replace('__UI_COMMAND__:SHOW_AGENT_CAPABILITIES_MODAL:', '').trim();
+      this.orchestratorLogger.log(`UI command for agent capabilities: ${agentName}`);
+      return this.createAgentCapabilitiesModalResponse(agentName);
+    }
+
+    // Unknown UI command, fallback to agent list modal
+    this.orchestratorLogger.warn(`Unknown UI command: ${userMessage}`);
+    return this.createAgentListModalResponse();
+  }
+
+  /**
+   * Create structured agent list response for modal
+   */
+  private createAgentListModalResponse(): any {
+    if (!this.availableAgents || this.availableAgents.length === 0) {
+      return {
+        success: true,
+        response: 'No specialist agents are currently available.',
+        metadata: {
+          agentType: 'orchestrator',
+          agentName: 'Orchestrator Agent',
+          contentType: 'message',
+          processedAt: new Date().toISOString(),
+        },
+      };
+    }
+
+    // Filter and format agents for modal
+    const agentList = this.availableAgents
+      .filter(agent => !agent.name.toLowerCase().includes('orchestrator'))
+      .map(agent => {
+        // Clean up the name - remove underscores, capitalize properly
+        const cleanName = agent.name
+          .replace(/_/g, ' ')
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+
+        return {
+          name: cleanName,
+          description: agent.description || `${cleanName} specialist agent`,
+          originalName: agent.name,
+          type: agent.type,
+          capabilities: agent.capabilities || []
+        };
+      });
+
+    return {
+      success: true,
+      response: 'Here are the specialists I can connect you with:', // Fallback text
+      metadata: {
+        agentType: 'orchestrator',
+        agentName: 'Orchestrator Agent',
+        contentType: 'agentListModal',
+        processedAt: new Date().toISOString(),
+        agentList: agentList, // Structured data for modal
+      },
+    };
+  }
+
+  /**
+   * Create structured agent capabilities response for modal
+   */
+  private createAgentCapabilitiesModalResponse(stickyAgentName: string): any {
+    // Find the agent in the available agents list
+    const agent = this.availableAgents.find(
+      (a) =>
+        a.name.toLowerCase() === stickyAgentName.toLowerCase() ||
+        a.name.toLowerCase().includes(stickyAgentName.toLowerCase()) ||
+        stickyAgentName.toLowerCase().includes(a.name.toLowerCase()),
+    );
+
+    if (!agent) {
+      return {
+        success: true,
+        response: `I don't have detailed information about the ${stickyAgentName} agent available right now.`,
+        metadata: {
+          agentType: 'orchestrator',
+          agentName: 'Orchestrator Agent',
+          contentType: 'message',
+          processedAt: new Date().toISOString(),
+        },
+      };
+    }
+
+    // Create a clean agent name
+    const cleanName = agent.name
+      .replace(/_/g, ' ')
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+
+    const capabilities = agent.capabilities && agent.capabilities.length > 0
+      ? agent.capabilities
+      : [`I specialize in helping you with ${cleanName.toLowerCase()} related tasks and questions.`];
+
+    return {
+      success: true,
+      response: `Hello! I'm the ${cleanName}. ${agent.description || `${cleanName} specialist agent`}`, // Fallback text
+      metadata: {
+        agentType: 'specialists',
+        agentName: `${cleanName} Agent`,
+        contentType: 'agentCapabilitiesModal',
+        processedAt: new Date().toISOString(),
+        agentCapabilities: {
+          name: cleanName,
+          description: agent.description || `${cleanName} specialist agent`,
+          capabilities: capabilities,
+          originalName: agent.name,
+          type: agent.type
+        }
+      },
+    };
+  }
+
+  /**
    * Create specific agent capabilities response for sticky agent
    */
   private createStickyAgentCapabilitiesResponse(stickyAgentName: string): any {
@@ -683,20 +720,28 @@ export class OrchestratorService extends A2AAgentBaseService {
         `Available agents: ${this.availableAgents.map((a) => a.name).join(', ')}`,
       );
 
-      // Find the agent in the available agents list
-      const agent = this.availableAgents.find(
-        (a) => {
-          const agentNameLower = a.name.toLowerCase().replace(/[_\s-]+/g, ' ');
-          const searchNameLower = agentName.toLowerCase().replace(/[_\s-]+/g, ' ');
-          
-          return (
-            agentNameLower.includes(searchNameLower) ||
-            searchNameLower.includes(agentNameLower) ||
-            (searchNameLower.includes('blog') && agentNameLower.includes('blog')) ||
-            (searchNameLower.includes('golf') && agentNameLower.includes('golf'))
-          );
-        }
-      );
+      // Find the agent in the available agents list with more flexible matching
+      const agent = this.availableAgents.find((a) => {
+        const agentNameLower = a.name.toLowerCase();
+        const requestedNameLower = agentName.toLowerCase();
+        
+        // Direct name match
+        if (agentNameLower === requestedNameLower) return true;
+        
+        // Check if either name contains the other
+        if (agentNameLower.includes(requestedNameLower) || requestedNameLower.includes(agentNameLower)) return true;
+        
+        // Check metadata display names if available
+        if (a.metadata?.display_name && a.metadata.display_name.toLowerCase() === requestedNameLower) return true;
+        if (a.metadata?.name && a.metadata.name.toLowerCase() === requestedNameLower) return true;
+        
+        // Remove common words and check for matches (e.g., "hiverarchy ai orchestrator" -> "hiverarchy")
+        const cleanAgentName = agentNameLower.replace(/\s+(agent|ai|orchestrator|specialist)\s*/g, '').trim();
+        const cleanRequestedName = requestedNameLower.replace(/\s+(agent|ai|orchestrator|specialist)\s*/g, '').trim();
+        if (cleanAgentName === cleanRequestedName) return true;
+        
+        return false;
+      });
 
       if (!agent) {
         this.orchestratorLogger.warn(
@@ -707,112 +752,13 @@ export class OrchestratorService extends A2AAgentBaseService {
         );
       }
 
-      const agentUrl = agent.url;
-      this.orchestratorLogger.log(
-        `Found agent: ${agent.name} at URL: ${agentUrl}`,
-      );
-
-      // Check if this is a "Can I talk to [agent] agent?" request
-      const isGreetingRequest =
-        request.toLowerCase().includes('can i talk to') &&
-        request.toLowerCase().includes('agent');
-
-      // For greeting requests, send a simple hello message so the agent can respond with a personalized greeting
-      const messageToAgent = isGreetingRequest ? 'Hello' : request;
-
-      // Use the processTask method that all agents understand from our A2A architecture
-      const payload = {
-        jsonrpc: '2.0',
-        method: 'processTask',
-        params: {
-          userMessage: messageToAgent,
-          sessionId: sessionId || `orchestrator-delegation-${Date.now()}`,
-          // Pass LLM preferences to the delegated agent
-          ...(llmPreferences && {
-            providerId: llmPreferences.providerId,
-            provider_id: llmPreferences.providerId,
-            modelId: llmPreferences.modelId,
-            model_id: llmPreferences.modelId,
-            cidafmOptions: llmPreferences.cidafmOptions,
-            temperature: llmPreferences.temperature,
-            maxTokens: llmPreferences.maxTokens,
-            max_tokens: llmPreferences.maxTokens,
-          }),
-        },
-        id: `orchestrator-delegation-${Date.now()}`,
-      };
-
-      this.orchestratorLogger.log(
-        `Delegating to agent at: ${agentUrl} with message: "${messageToAgent}"`,
-      );
-      if (
-        llmPreferences &&
-        (llmPreferences.providerId || llmPreferences.modelId)
-      ) {
-        this.orchestratorLogger.log(
-          `🚀 Passing LLM preferences to delegated agent: provider=${llmPreferences.providerId || 'default'}, model=${llmPreferences.modelId || 'default'}`,
-        );
-      }
-      this.orchestratorLogger.log(`Payload: ${JSON.stringify(payload)}`);
-
-      // Prepare headers with authentication if available
-      const headers: any = { 'Content-Type': 'application/json' };
-      this.orchestratorLogger.log(
-        `Auth token received in delegateToAgent: ${authToken ? 'YES (length: ' + authToken.length + ')' : 'NO'}`,
-      );
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-        this.orchestratorLogger.log(
-          'Including authorization header in delegation request',
-        );
-        this.orchestratorLogger.log(
-          `Authorization header value: Bearer ${authToken.substring(0, 20)}...`,
-        );
-      } else {
-        this.orchestratorLogger.warn(
-          'No auth token available for delegation - specialist agent may reject request',
-        );
-      }
-
-      this.orchestratorLogger.log(
-        `Final headers to be sent: ${JSON.stringify(headers)}`,
-      );
-
-      const response = await this.httpService.axiosRef.post(agentUrl, payload, {
-        headers,
-        timeout: 30000,
-      });
-
-      this.orchestratorLogger.log(
-        `Response status: ${response.status}, data: ${JSON.stringify(response.data)?.substring(0, 200)}...`,
-      );
-
-      // Handle JSON-RPC response format where actual response is in 'result' field
-      const agentResponse = response.data?.result || response.data;
-
-      if (agentResponse?.success) {
-        return {
-          success: true,
-          response: agentResponse.response,
-          metadata: {
-            delegatedTo: agent.name,
-            originalAgent: agentResponse.metadata || {},
-            processedAt: new Date().toISOString(),
-            responding_agent_name: `${agent.name} Agent`,
-          },
-        };
-      } else if (response.data?.error || agentResponse?.error) {
-        this.orchestratorLogger.error(
-          'Delegated agent error:',
-          response.data?.error || agentResponse?.error,
-        );
-        return this.createResponse(
-          'I attempted to delegate your request to a specialist, but encountered an error. Let me try to help you directly instead.',
-        );
-      }
-
-      return this.createResponse(
-        'I successfully delegated your request, but received an unexpected response format.',
+      // Use DelegationService for cleaner delegation logic
+      return await this.delegationService.delegateToAgent(
+        agent,
+        request,
+        sessionId,
+        authToken,
+        llmPreferences
       );
     } catch (error) {
       this.orchestratorLogger.error('Error delegating to agent:', error);
@@ -877,10 +823,25 @@ export class OrchestratorService extends A2AAgentBaseService {
     // Simple keyword-based routing as fallback
     const lowerMessage = userMessage.toLowerCase();
 
-    // Check for "Can I talk to [agent] agent?" pattern
-    const talkToAgentMatch = lowerMessage.match(
+    // Check for various "talk to agent" patterns
+    let talkToAgentMatch = lowerMessage.match(
       /can i talk to (?:the )?(.+?)\s*agent/,
     );
+    
+    // Also check for "I would like to talk with [agent] agent" pattern from frontend
+    if (!talkToAgentMatch) {
+      talkToAgentMatch = lowerMessage.match(
+        /i would like to talk with (?:the )?(.+?)\s*agent/,
+      );
+    }
+    
+    // Also check for "talk to [agent]" or "connect me with [agent]" patterns
+    if (!talkToAgentMatch) {
+      talkToAgentMatch = lowerMessage.match(
+        /(?:talk to|connect me with|switch to) (?:the )?(.+?)(?:\s*agent)?(?:\.|$)/,
+      );
+    }
+    
     if (talkToAgentMatch && talkToAgentMatch[1]) {
       const requestedAgent = talkToAgentMatch[1].trim();
       this.orchestratorLogger.log(
@@ -939,6 +900,20 @@ export class OrchestratorService extends A2AAgentBaseService {
     return this.createResponse(
       `I received your message: "${userMessage}". I'm here to help coordinate with various specialist agents, but I'm currently unable to determine the best way to assist you. Could you be more specific about what you need?`,
     );
+  }
+
+  /**
+   * Public method to get agent list data for modal (UI endpoint)
+   */
+  public getAgentListForModal(): any {
+    return this.createAgentListModalResponse();
+  }
+
+  /**
+   * Public method to get agent capabilities data for modal (UI endpoint)
+   */
+  public getAgentCapabilitiesForModal(agentName: string): any {
+    return this.createAgentCapabilitiesModalResponse(agentName);
   }
 
   /**

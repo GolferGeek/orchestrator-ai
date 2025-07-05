@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ModelsController } from './models.controller';
 import { ModelsService } from './models.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import {
   CreateModelDto,
   UpdateModelDto,
@@ -48,6 +49,10 @@ describe('ModelsController', () => {
     findByProvider: jest.fn(),
   };
 
+  const mockSupabaseService = {
+    getServiceClient: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ModelsController],
@@ -55,6 +60,10 @@ describe('ModelsController', () => {
         {
           provide: ModelsService,
           useValue: mockModelsService,
+        },
+        {
+          provide: SupabaseService,
+          useValue: mockSupabaseService,
         },
       ],
     }).compile();
@@ -84,15 +93,25 @@ describe('ModelsController', () => {
       expect(result[0]).toHaveProperty('useCases'); // camelCase
       expect(result[0]).toHaveProperty('createdAt'); // camelCase
       expect(result[0]).toHaveProperty('updatedAt'); // camelCase
-      expect(mockModelsService.findAll).toHaveBeenCalledWith(undefined, undefined);
+      expect(mockModelsService.findAll).toHaveBeenCalledWith({
+        providerId: undefined,
+        status: undefined,
+        supportsThinking: undefined,
+        includeProvider: undefined,
+      });
     });
 
     it('should filter by status and provider when provided', async () => {
       mockModelsService.findAll.mockResolvedValue([mockModelResponse]);
 
-      await controller.getModels('active', '123e4567-e89b-12d3-a456-426614174000');
+      await controller.getModels('123e4567-e89b-12d3-a456-426614174000', 'active');
 
-      expect(mockModelsService.findAll).toHaveBeenCalledWith('active', '123e4567-e89b-12d3-a456-426614174000');
+      expect(mockModelsService.findAll).toHaveBeenCalledWith({
+        providerId: '123e4567-e89b-12d3-a456-426614174000',
+        status: 'active',
+        supportsThinking: undefined,
+        includeProvider: undefined,
+      });
     });
   });
 
@@ -107,7 +126,7 @@ describe('ModelsController', () => {
       expect(result).toHaveProperty('modelId'); // camelCase
       expect(result).toHaveProperty('pricingInputPer1k'); // camelCase
       expect(result).toHaveProperty('supportsThinking'); // camelCase
-      expect(mockModelsService.findOne).toHaveBeenCalledWith('456e7890-e89b-12d3-a456-426614174000');
+      expect(mockModelsService.findOne).toHaveBeenCalledWith('456e7890-e89b-12d3-a456-426614174000', undefined);
     });
 
     it('should throw HttpException when model not found', async () => {

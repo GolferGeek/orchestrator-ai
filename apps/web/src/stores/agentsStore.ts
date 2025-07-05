@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { AgentInfo } from '../types/chat';
-import { getAvailableAgents } from '../services/apiService'; // Import the API function
+import { apiService } from '../services/apiService'; // Import the API service
 
 export interface AgentsState {
   availableAgents: AgentInfo[];
@@ -31,7 +31,7 @@ export const useAgentsStore = defineStore('agents', {
       this.setLoading(true);
       this.setError(null); // Clear previous errors
       try {
-        const agents = await getAvailableAgents(); // Call the actual API service
+        const agents = await apiService.getAvailableAgents(); // Call the actual API service
         this.setAgents(agents);
       } catch (e) {
         const errorMessage = e instanceof Error ? e.message : 'Failed to fetch agents';

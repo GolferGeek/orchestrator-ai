@@ -1,5 +1,5 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { apiManager } from '../services/apiManager';
+import { apiService } from '../services/apiService';
 import { useApiConfigStore } from '../stores/apiConfigStore';
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
 import { API_FEATURES, ApiFeature, ApiVersion, ApiTechnology } from '../types/api';
@@ -107,8 +107,17 @@ export function useFeatureDetection() {
     }
   ];
 
-  // Computed properties
-  const currentEndpoint = computed(() => apiManager.currentEndpoint);
+  // Computed properties  
+  const currentEndpoint = computed(() => ({
+    version: 'v1' as ApiVersion,
+    technology: 'typescript-nestjs' as ApiTechnology,
+    name: 'Orchestrator AI API',
+    features: [
+      API_FEATURES.ORCHESTRATOR,
+      API_FEATURES.AGENT_DISCOVERY, 
+      API_FEATURES.SESSION_MANAGEMENT,
+    ]
+  }));
   
   const currentCapabilities = computed(() => {
     return versionCapabilities.find(cap => 
@@ -164,18 +173,10 @@ export function useFeatureDetection() {
       endpoint.features.forEach(feature => detected.add(feature as ApiFeature));
 
       // For V2 APIs, try dynamic feature detection
-      if (endpoint.version === 'v2' && apiManager.currentClient) {
+      if (endpoint.version === 'v2') {
         try {
-          const client = apiManager.currentClient as any;
-          if (typeof client.getApiCapabilities === 'function') {
-            const dynamicFeatures = await client.getApiCapabilities();
-            dynamicFeatures.forEach((feature: string) => {
-              const apiFeatureValues = Object.values(API_FEATURES) as string[];
-              if (apiFeatureValues.includes(feature)) {
-                detected.add(feature as any);
-              }
-            });
-          }
+          // Since we're using a single API service now, skip dynamic feature detection
+          console.log('Dynamic feature detection skipped for unified API');
         } catch (error) {
           console.warn('Dynamic feature detection failed:', error);
         }

@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AgentDiscoveryService } from './agent-discovery.service';
+import { AgentFactoryService } from './agent-factory.service';
+import { AgentPoolService } from './agent-pool/agent-pool.service';
 import { LLMService } from './llms/llm.service';
 
 describe('AppController', () => {
@@ -18,6 +20,15 @@ describe('AppController', () => {
       // Add any methods that might be called during AppService initialization
     };
 
+    const mockAgentFactoryService = {
+      createAgentInstance: jest.fn(),
+    };
+
+    const mockAgentPoolService = {
+      getAgentPool: jest.fn().mockReturnValue([]),
+      addAgent: jest.fn(),
+    };
+
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
       providers: [
@@ -29,6 +40,14 @@ describe('AppController', () => {
         {
           provide: LLMService,
           useValue: mockLLMService,
+        },
+        {
+          provide: AgentFactoryService,
+          useValue: mockAgentFactoryService,
+        },
+        {
+          provide: AgentPoolService,
+          useValue: mockAgentPoolService,
         },
       ],
     }).compile();

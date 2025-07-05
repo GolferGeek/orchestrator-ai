@@ -341,7 +341,7 @@ describe('CIDAFMService', () => {
 
       const result = await service.getSessionState('user-123', 'session-123');
 
-      expect(result.active_state_modifiers).toEqual(['disciplined']);
+      expect(result.activeStateModifiers).toEqual(['disciplined']);
       expect(result.session_state).toEqual(mockMessage.cidafm_options);
     });
 
@@ -355,7 +355,7 @@ describe('CIDAFMService', () => {
 
       const result = await service.getSessionState('user-123', 'session-123');
 
-      expect(result.active_state_modifiers).toEqual([]);
+      expect(result.activeStateModifiers).toEqual([]);
     });
   });
 
@@ -364,7 +364,7 @@ describe('CIDAFMService', () => {
       const result = await service.resetSessionState('user-123', 'session-123');
 
       expect(result.message).toBe('Session state reset successfully');
-      expect(result.reset_state.active_state_modifiers).toEqual(['token-efficient']);
+      expect(result.reset_state.activeStateModifiers).toEqual(['token-efficient']);
     });
   });
 
