@@ -58,8 +58,8 @@ export class DelegationService {
 
       this.logger.log(`Response from ${agent.name}:`, response.status);
 
-      // Process the response
-      return this.processAgentResponse(response.data, agent);
+      // Process the response with delegation context
+      return this.processAgentResponse(response.data, agent, llmPreferences?.delegationContext);
 
     } catch (error) {
       this.logger.error(`Error delegating to ${agent.name}:`, error);
@@ -93,9 +93,26 @@ export class DelegationService {
   /**
    * Process and normalize agent response
    */
-  private processAgentResponse(responseData: any, agent: AvailableAgent): any {
+  private processAgentResponse(responseData: any, agent: AvailableAgent, delegationContext?: any): any {
     // Handle different response formats
     let processedResponse;
+
+    // Extract delegation context from llmPreferences if available
+    const delegationInfo = delegationContext || {};
+
+    const baseMetadata = {
+      agentType: agent.type || 'specialist',
+      agentName: agent.name,
+      delegatedTo: agent.name,
+      processedAt: new Date().toISOString(),
+      // Include delegation context information
+      ...(delegationInfo.stickyContext && {
+        stickyContext: delegationInfo.stickyContext,
+        continuityReason: delegationInfo.continuityReason,
+        confidence: delegationInfo.confidence,
+        agentContext: delegationInfo.agentContext
+      })
+    };
 
     if (responseData?.result) {
       // JSON-RPC format
@@ -104,10 +121,7 @@ export class DelegationService {
         response: responseData.result.response || responseData.result,
         metadata: {
           ...responseData.result.metadata,
-          agentType: agent.type || 'specialist',
-          agentName: agent.name,
-          delegatedTo: agent.name,
-          processedAt: new Date().toISOString(),
+          ...baseMetadata,
         },
       };
     } else if (responseData?.response) {
@@ -117,10 +131,7 @@ export class DelegationService {
         response: responseData.response,
         metadata: {
           ...responseData.metadata,
-          agentType: agent.type || 'specialist',
-          agentName: agent.name,
-          delegatedTo: agent.name,
-          processedAt: new Date().toISOString(),
+          ...baseMetadata,
         },
       };
     } else if (typeof responseData === 'string') {
@@ -128,12 +139,7 @@ export class DelegationService {
       processedResponse = {
         success: true,
         response: responseData,
-        metadata: {
-          agentType: agent.type || 'specialist',
-          agentName: agent.name,
-          delegatedTo: agent.name,
-          processedAt: new Date().toISOString(),
-        },
+        metadata: baseMetadata,
       };
     } else {
       // Fallback for unknown formats
@@ -141,10 +147,7 @@ export class DelegationService {
         success: true,
         response: JSON.stringify(responseData),
         metadata: {
-          agentType: agent.type || 'specialist',
-          agentName: agent.name,
-          delegatedTo: agent.name,
-          processedAt: new Date().toISOString(),
+          ...baseMetadata,
           originalFormat: 'unknown',
         },
       };

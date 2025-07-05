@@ -23,6 +23,19 @@
           <div class="message-timestamp">{{ formattedTimestamp }}</div>
         </div>
         
+        <!-- Delegation Information Component -->
+        <DelegationInfo
+          v-if="message.role === 'assistant' && message.metadata"
+          :agentName="agentName"
+          :reason="message.metadata.delegationReason || message.metadata.continuityReason"
+          :confidence="message.metadata.confidence"
+          :stickyContext="message.metadata.stickyContext"
+          :continuityReason="message.metadata.continuityReason"
+          :agentContext="message.metadata.agentContext"
+          :delegationType="getDelegationType()"
+          :agentSpecialization="getAgentSpecialization()"
+        />
+        
         <!-- Message Rating Component -->
         <MessageRating
           :messageId="message.id"
@@ -48,6 +61,7 @@ import { marked } from 'marked';
 import { IonAvatar, IonIcon } from '@ionic/vue';
 import { personCircleOutline, cogOutline } from 'ionicons/icons';
 import MessageRating from './MessageRating.vue';
+import DelegationInfo from './DelegationInfo.vue';
 
 const props = defineProps<{
   message: Message;
@@ -186,6 +200,47 @@ const handleMessageContentClick = (event: MouseEvent) => {
       emit('agentCapabilityRequestedFor', agentToQuery);
     }
   }
+};
+
+const getDelegationType = (): 'new' | 'continuation' | 'handoff' | undefined => {
+  if (!props.message.metadata) return undefined;
+  
+  if (props.message.metadata.stickyContext) {
+    return 'continuation';
+  }
+  
+  if (props.message.metadata.delegatedTo || props.message.metadata.isDelegated) {
+    return 'handoff';
+  }
+  
+  return 'new';
+};
+
+const getAgentSpecialization = (): string | undefined => {
+  if (!props.message.metadata || !agentName.value) return undefined;
+  
+  const name = agentName.value.toLowerCase();
+  
+  // Map agent names to their specializations
+  const specializations: Record<string, string> = {
+    'hr assistant': 'Human Resources & Employee Benefits',
+    'golf rules agent': 'Golf Rules & Regulations',
+    'blog post': 'Content Creation & Writing',
+    'calendar': 'Scheduling & Time Management', 
+    'email triage': 'Email Management & Communication',
+    'content': 'Content Strategy & Marketing',
+    'external rag': 'External Knowledge & Research',
+    'internal rag': 'Internal Documentation & Knowledge',
+    'hiverarchy': 'Advanced Content Creation & Strategy'
+  };
+  
+  for (const [key, specialization] of Object.entries(specializations)) {
+    if (name.includes(key)) {
+      return specialization;
+    }
+  }
+  
+  return `${agentName.value} Specialist`;
 };
 
 </script>
