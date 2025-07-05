@@ -303,6 +303,14 @@ export interface AgentFunctionParams {
   llmService?: any;
   /** Additional context or metadata */
   metadata?: Record<string, any>;
+  /** LLM preferences from the user (provider, model, temperature, etc.) */
+  llmPreferences?: {
+    providerId?: string;
+    modelId?: string;
+    temperature?: number;
+    maxTokens?: number;
+    cidafmOptions?: any;
+  };
 }
 
 /**
