@@ -22,7 +22,9 @@ export function snakeToCamel(obj: any): any {
   const camelObj: any = {};
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
-      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      const camelKey = key.replace(/_([a-z])/g, (_, letter) =>
+        letter.toUpperCase(),
+      );
       camelObj[camelKey] = snakeToCamel(obj[key]);
     }
   }
@@ -42,7 +44,10 @@ export function camelToSnake(obj: any): any {
   const snakeObj: any = {};
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
-      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      const snakeKey = key.replace(
+        /[A-Z]/g,
+        (letter) => `_${letter.toLowerCase()}`,
+      );
       snakeObj[snakeKey] = camelToSnake(obj[key]);
     }
   }
@@ -92,7 +97,9 @@ export function mapModelFromDb(dbModel: any): Model {
     status: dbModel.status,
     createdAt: dbModel.created_at,
     updatedAt: dbModel.updated_at,
-    provider: dbModel.provider ? mapProviderFromDb(dbModel.provider) : undefined,
+    provider: dbModel.provider
+      ? mapProviderFromDb(dbModel.provider)
+      : undefined,
   };
 }
 
@@ -166,7 +173,9 @@ export function mapEnhancedMessageFromDb(dbMessage: any): EnhancedMessage {
     evaluationTimestamp: dbMessage.evaluation_timestamp,
     cidafmOptions: dbMessage.cidafm_options,
     evaluationDetails: dbMessage.evaluation_details,
-    provider: dbMessage.provider ? mapProviderFromDb(dbMessage.provider) : undefined,
+    provider: dbMessage.provider
+      ? mapProviderFromDb(dbMessage.provider)
+      : undefined,
     model: dbMessage.model ? mapModelFromDb(dbMessage.model) : undefined,
   };
 }
@@ -212,7 +221,9 @@ export function mapUserUsageStatsFromDb(dbStats: any): UserUsageStats {
     avgUserRating: dbStats.avg_user_rating,
     createdAt: dbStats.created_at,
     updatedAt: dbStats.updated_at,
-    provider: dbStats.provider ? mapProviderFromDb(dbStats.provider) : undefined,
+    provider: dbStats.provider
+      ? mapProviderFromDb(dbStats.provider)
+      : undefined,
     model: dbStats.model ? mapModelFromDb(dbStats.model) : undefined,
   };
 }

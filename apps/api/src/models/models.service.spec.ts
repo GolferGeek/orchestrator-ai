@@ -2,11 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ModelsService } from './models.service';
 import { SupabaseService } from '../supabase/supabase.service';
-import { 
-  CreateModelDto, 
-  UpdateModelDto, 
+import {
+  CreateModelDto,
+  UpdateModelDto,
   CostEstimateDto,
-  ModelResponseDto 
+  ModelResponseDto,
 } from '../dto/llm-evaluation.dto';
 
 describe('ModelsService', () => {
@@ -64,7 +64,7 @@ describe('ModelsService', () => {
 
   // Create a complete mock that supports the full chain
   const mockSupabaseClient: any = {};
-  
+
   const resetMocks = () => {
     mockSupabaseClient.from = jest.fn().mockReturnValue(mockSupabaseClient);
     mockSupabaseClient.select = jest.fn().mockReturnValue(mockSupabaseClient);
@@ -80,7 +80,7 @@ describe('ModelsService', () => {
     mockSupabaseClient.limit = jest.fn().mockReturnValue(mockSupabaseClient);
     mockSupabaseClient.single = jest.fn();
   };
-  
+
   // Initialize mocks
   resetMocks();
 
@@ -174,7 +174,9 @@ describe('ModelsService', () => {
         // Warning threshold might be higher than the calculated cost
         if (result.maxCostWarning) {
           expect(result.maxCostWarning).toContain('$0.10');
-          expect(result.maxCostWarning).toContain(result.estimatedCost.toFixed(4));
+          expect(result.maxCostWarning).toContain(
+            result.estimatedCost.toFixed(4),
+          );
         }
       });
 
@@ -199,7 +201,7 @@ describe('ModelsService', () => {
         };
 
         await expect(service.estimateCost(costEstimate)).rejects.toThrow(
-          new HttpException('Model not found', HttpStatus.NOT_FOUND)
+          new HttpException('Model not found', HttpStatus.NOT_FOUND),
         );
       });
 
@@ -217,7 +219,10 @@ describe('ModelsService', () => {
         };
 
         await expect(service.estimateCost(costEstimate)).rejects.toThrow(
-          new HttpException('Model pricing information not available', HttpStatus.BAD_REQUEST)
+          new HttpException(
+            'Model pricing information not available',
+            HttpStatus.BAD_REQUEST,
+          ),
         );
       });
 
@@ -315,7 +320,7 @@ describe('ModelsService', () => {
       const contentWithSpecialChars = 'Hello, 世界! @#$%^&*()';
       const expectedTokens = Math.ceil(contentWithSpecialChars.length / 4);
       const actualTokens = Math.ceil(contentWithSpecialChars.length / 4);
-      
+
       expect(actualTokens).toBe(expectedTokens);
     });
 
@@ -323,7 +328,7 @@ describe('ModelsService', () => {
       const contentWithWhitespace = 'Line 1\nLine 2\tTabbed';
       const expectedTokens = Math.ceil(contentWithWhitespace.length / 4);
       const actualTokens = Math.ceil(contentWithWhitespace.length / 4);
-      
+
       expect(actualTokens).toBe(expectedTokens);
     });
   });
@@ -385,9 +390,9 @@ describe('ModelsService', () => {
       }));
 
       const startTime = Date.now();
-      
+
       const results = await Promise.all(
-        requests.map(request => service.estimateCost(request))
+        requests.map((request) => service.estimateCost(request)),
       );
 
       const endTime = Date.now();
@@ -395,9 +400,9 @@ describe('ModelsService', () => {
 
       expect(results).toHaveLength(100);
       expect(duration).toBeLessThan(1000); // Should complete within 1 second
-      
+
       // Verify all results are valid
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.estimatedInputTokens).toBeGreaterThan(0);
         expect(result.estimatedCost).toBeGreaterThan(0);
         expect(result.currency).toBe('USD');
@@ -413,17 +418,17 @@ describe('ModelsService', () => {
       };
 
       // Run 50 concurrent estimations
-      const promises = Array.from({ length: 50 }, () => 
-        service.estimateCost(costEstimate)
+      const promises = Array.from({ length: 50 }, () =>
+        service.estimateCost(costEstimate),
       );
 
       const results = await Promise.all(promises);
 
       expect(results).toHaveLength(50);
-      
+
       // All results should be identical
       const firstResult = results[0];
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result).toEqual(firstResult);
       });
     });
@@ -436,7 +441,8 @@ describe('ModelsService', () => {
 
     it('should estimate cost for a typical chat message', async () => {
       const costEstimate: CostEstimateDto = {
-        content: 'Can you help me write a Python function to calculate the factorial of a number?',
+        content:
+          'Can you help me write a Python function to calculate the factorial of a number?',
         modelId: '456e7890-e89b-12d3-a456-426614174000',
         responseLengthFactor: 2.0, // Expecting a code example response
       };
@@ -476,7 +482,8 @@ describe('ModelsService', () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(mockExpensiveModel);
 
       const costEstimate: CostEstimateDto = {
-        content: 'Generate comprehensive API documentation for a REST API with 20 endpoints, including examples, error codes, and authentication details.',
+        content:
+          'Generate comprehensive API documentation for a REST API with 20 endpoints, including examples, error codes, and authentication details.',
         modelId: '789e1234-e89b-12d3-a456-426614174001',
         responseLengthFactor: 10.0, // Expecting very long response
       };

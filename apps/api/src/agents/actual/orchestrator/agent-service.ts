@@ -204,7 +204,13 @@ export class OrchestratorService extends A2AAgentBaseService {
     let userMessageId = null;
     // Only save user message if not handling persistence elsewhere
     const skipMessagePersistence = params?.skipMessagePersistence === true;
-    if (sessionId && userMessage && currentUser && authToken && !skipMessagePersistence) {
+    if (
+      sessionId &&
+      userMessage &&
+      currentUser &&
+      authToken &&
+      !skipMessagePersistence
+    ) {
       try {
         const userMessageRecord = await this.sessionsService.addMessage(
           sessionId,
@@ -272,8 +278,14 @@ export class OrchestratorService extends A2AAgentBaseService {
 
     if (isCapabilityRequest) {
       // For conversational requests, return text responses for chat
-      const continuityCheck = this.conversationContextService.shouldContinueWithSameAgent(userMessage, conversationHistory);
-      const stickyAgent = continuityCheck.shouldContinue ? continuityCheck.agentName : null;
+      const continuityCheck =
+        this.conversationContextService.shouldContinueWithSameAgent(
+          userMessage,
+          conversationHistory,
+        );
+      const stickyAgent = continuityCheck.shouldContinue
+        ? continuityCheck.agentName
+        : null;
 
       if (stickyAgent) {
         // Return text-based agent capabilities for chat
@@ -296,31 +308,45 @@ export class OrchestratorService extends A2AAgentBaseService {
         userMessage,
         this.availableAgents,
         conversationHistory,
-        "Welcome back!"
+        'Welcome back!',
       );
     }
 
     // Use ConversationContextService to build agent continuity context
-    const agentContinuityContext = this.conversationContextService.buildAgentContinuityContext(conversationHistory);
+    const agentContinuityContext =
+      this.conversationContextService.buildAgentContinuityContext(
+        conversationHistory,
+      );
 
     // Enhanced sticky agent context check
-    const continuityDecision = this.conversationContextService.shouldContinueWithSameAgent(userMessage, conversationHistory);
+    const continuityDecision =
+      this.conversationContextService.shouldContinueWithSameAgent(
+        userMessage,
+        conversationHistory,
+      );
     this.orchestratorLogger.log(
-      `🔄 Sticky agent continuity check: shouldContinue=${continuityDecision.shouldContinue}, agent=${continuityDecision.agentName}, confidence=${continuityDecision.confidence}, reason="${continuityDecision.reason}"`
+      `🔄 Sticky agent continuity check: shouldContinue=${continuityDecision.shouldContinue}, agent=${continuityDecision.agentName}, confidence=${continuityDecision.confidence}, reason="${continuityDecision.reason}"`,
     );
 
     // Use LLM to decide whether to delegate or respond directly
     let response;
     try {
       // First priority: Check for sticky agent continuation with high confidence
-      if (continuityDecision.shouldContinue && continuityDecision.confidence && continuityDecision.confidence > 0.7) {
+      if (
+        continuityDecision.shouldContinue &&
+        continuityDecision.confidence &&
+        continuityDecision.confidence > 0.7
+      ) {
         this.orchestratorLogger.log(
-          `🎯 High-confidence sticky agent continuation to ${continuityDecision.agentName}: "${userMessage}"`
+          `🎯 High-confidence sticky agent continuation to ${continuityDecision.agentName}: "${userMessage}"`,
         );
-        
+
         // Generate context handoff for seamless transition
-        const agentInteractions = this.conversationContextService.analyzeAgentInteractions(conversationHistory);
-        
+        const agentInteractions =
+          this.conversationContextService.analyzeAgentInteractions(
+            conversationHistory,
+          );
+
         response = await this.delegateToAgent(
           continuityDecision.agentName!,
           userMessage,
@@ -331,10 +357,10 @@ export class OrchestratorService extends A2AAgentBaseService {
             stickyContext: true,
             continuityReason: continuityDecision.reason,
             confidence: continuityDecision.confidence,
-            agentContext: agentInteractions.currentAgentContext
-          }
+            agentContext: agentInteractions.currentAgentContext,
+          },
         );
-      } 
+      }
       // Second priority: Check if this is a content creation request and if Hiverarchy is available
       else if (this.isContentCreationRequest(userMessage)) {
         const hiverarchyAgent = this.availableAgents.find(
@@ -343,7 +369,7 @@ export class OrchestratorService extends A2AAgentBaseService {
 
         if (hiverarchyAgent) {
           this.orchestratorLogger.log(
-            `🎯 Content creation request detected, delegating to Hiverarchy: "${userMessage}"`
+            `🎯 Content creation request detected, delegating to Hiverarchy: "${userMessage}"`,
           );
           response = await this.delegateToAgent(
             'hiverarchy',
@@ -354,21 +380,33 @@ export class OrchestratorService extends A2AAgentBaseService {
           );
         } else {
           // Fallback to LLM decision if Hiverarchy not available
-          const decision = await this.agentDiscoveryService.analyzeRequestForAgentMatch(
+          const decision =
+            await this.agentDiscoveryService.analyzeRequestForAgentMatch(
+              userMessage,
+              this.availableAgents,
+              conversationHistory,
+              true,
+            );
+          response = await this.handleAgentDiscoveryDecision(
+            decision,
             userMessage,
-            this.availableAgents,
+            sessionId,
+            authToken,
+            llmPreferences,
             conversationHistory,
-            true
           );
-          response = await this.handleAgentDiscoveryDecision(decision, userMessage, sessionId, authToken, llmPreferences, conversationHistory);
         }
       }
       // Third priority: Check for medium-confidence sticky agent continuation
-      else if (continuityDecision.shouldContinue && continuityDecision.confidence && continuityDecision.confidence > 0.5) {
+      else if (
+        continuityDecision.shouldContinue &&
+        continuityDecision.confidence &&
+        continuityDecision.confidence > 0.5
+      ) {
         this.orchestratorLogger.log(
-          `🎯 Medium-confidence sticky agent continuation to ${continuityDecision.agentName}: "${userMessage}"`
+          `🎯 Medium-confidence sticky agent continuation to ${continuityDecision.agentName}: "${userMessage}"`,
         );
-        
+
         response = await this.delegateToAgent(
           continuityDecision.agentName!,
           userMessage,
@@ -378,20 +416,28 @@ export class OrchestratorService extends A2AAgentBaseService {
           {
             stickyContext: true,
             continuityReason: continuityDecision.reason,
-            confidence: continuityDecision.confidence
-          }
+            confidence: continuityDecision.confidence,
+          },
         );
       }
       // Default: Use orchestrator's own LLM reasoning through AgentDiscoveryService
       else {
-        const decision = await this.agentDiscoveryService.analyzeRequestForAgentMatch(
-          userMessage,
-          this.availableAgents,
-          conversationHistory,
-          true // Enable LLM reasoning
-        );
+        const decision =
+          await this.agentDiscoveryService.analyzeRequestForAgentMatch(
+            userMessage,
+            this.availableAgents,
+            conversationHistory,
+            true, // Enable LLM reasoning
+          );
 
-        response = await this.handleAgentDiscoveryDecision(decision, userMessage, sessionId, authToken, llmPreferences, conversationHistory);
+        response = await this.handleAgentDiscoveryDecision(
+          decision,
+          userMessage,
+          sessionId,
+          authToken,
+          llmPreferences,
+          conversationHistory,
+        );
       }
     } catch (error) {
       this.orchestratorLogger.error('Error processing with LLM:', error);
@@ -404,7 +450,13 @@ export class OrchestratorService extends A2AAgentBaseService {
     }
 
     // Save the assistant response to the database
-    if (sessionId && response?.response && currentUser && authToken && !skipMessagePersistence) {
+    if (
+      sessionId &&
+      response?.response &&
+      currentUser &&
+      authToken &&
+      !skipMessagePersistence
+    ) {
       try {
         // Determine the responding agent information
         const isResponseFromOrchestrator = !response.metadata?.delegatedTo;
@@ -562,10 +614,16 @@ export class OrchestratorService extends A2AAgentBaseService {
       return this.createAgentListModalResponse();
     }
 
-    if (userMessage.startsWith('__UI_COMMAND__:SHOW_AGENT_CAPABILITIES_MODAL:')) {
+    if (
+      userMessage.startsWith('__UI_COMMAND__:SHOW_AGENT_CAPABILITIES_MODAL:')
+    ) {
       // UI click for specific agent capabilities modal
-      const agentName = userMessage.replace('__UI_COMMAND__:SHOW_AGENT_CAPABILITIES_MODAL:', '').trim();
-      this.orchestratorLogger.log(`UI command for agent capabilities: ${agentName}`);
+      const agentName = userMessage
+        .replace('__UI_COMMAND__:SHOW_AGENT_CAPABILITIES_MODAL:', '')
+        .trim();
+      this.orchestratorLogger.log(
+        `UI command for agent capabilities: ${agentName}`,
+      );
       return this.createAgentCapabilitiesModalResponse(agentName);
     }
 
@@ -593,13 +651,16 @@ export class OrchestratorService extends A2AAgentBaseService {
 
     // Filter and format agents for modal
     const agentList = this.availableAgents
-      .filter(agent => !agent.name.toLowerCase().includes('orchestrator'))
-      .map(agent => {
+      .filter((agent) => !agent.name.toLowerCase().includes('orchestrator'))
+      .map((agent) => {
         // Clean up the name - remove underscores, capitalize properly
         const cleanName = agent.name
           .replace(/_/g, ' ')
           .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .map(
+            (word) =>
+              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+          )
           .join(' ');
 
         return {
@@ -607,7 +668,7 @@ export class OrchestratorService extends A2AAgentBaseService {
           description: agent.description || `${cleanName} specialist agent`,
           originalName: agent.name,
           type: agent.type,
-          capabilities: agent.capabilities || []
+          capabilities: agent.capabilities || [],
         };
       });
 
@@ -656,9 +717,12 @@ export class OrchestratorService extends A2AAgentBaseService {
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
 
-    const capabilities = agent.capabilities && agent.capabilities.length > 0
-      ? agent.capabilities
-      : [`I specialize in helping you with ${cleanName.toLowerCase()} related tasks and questions.`];
+    const capabilities =
+      agent.capabilities && agent.capabilities.length > 0
+        ? agent.capabilities
+        : [
+            `I specialize in helping you with ${cleanName.toLowerCase()} related tasks and questions.`,
+          ];
 
     return {
       success: true,
@@ -673,8 +737,8 @@ export class OrchestratorService extends A2AAgentBaseService {
           description: agent.description || `${cleanName} specialist agent`,
           capabilities: capabilities,
           originalName: agent.name,
-          type: agent.type
-        }
+          type: agent.type,
+        },
       },
     };
   }
@@ -739,7 +803,7 @@ export class OrchestratorService extends A2AAgentBaseService {
     sessionId?: string,
     authToken?: string,
     llmPreferences?: any,
-    conversationHistory?: any[]
+    conversationHistory?: any[],
   ): Promise<any> {
     if (decision.action === 'delegate' && decision.agent) {
       return await this.delegateToAgent(
@@ -755,13 +819,13 @@ export class OrchestratorService extends A2AAgentBaseService {
         this.availableAgents,
         conversationHistory || [],
         undefined,
-        llmPreferences
+        llmPreferences,
       );
     } else if (decision.action === 'clarify') {
       return this.responseGenerationService.generateClarificationRequest(
         userMessage,
         this.availableAgents,
-        decision.reasoning
+        decision.reasoning,
       );
     } else {
       // Fallback - use response generation service for any unhandled cases
@@ -770,7 +834,7 @@ export class OrchestratorService extends A2AAgentBaseService {
         this.availableAgents,
         conversationHistory || [],
         undefined,
-        llmPreferences
+        llmPreferences,
       );
     }
   }
@@ -789,7 +853,7 @@ export class OrchestratorService extends A2AAgentBaseService {
       continuityReason?: string;
       confidence?: number;
       agentContext?: any;
-    }
+    },
   ): Promise<any> {
     try {
       this.orchestratorLogger.log(
@@ -803,22 +867,38 @@ export class OrchestratorService extends A2AAgentBaseService {
       const agent = this.availableAgents.find((a) => {
         const agentNameLower = a.name.toLowerCase();
         const requestedNameLower = agentName.toLowerCase();
-        
+
         // Direct name match
         if (agentNameLower === requestedNameLower) return true;
-        
+
         // Check if either name contains the other
-        if (agentNameLower.includes(requestedNameLower) || requestedNameLower.includes(agentNameLower)) return true;
-        
+        if (
+          agentNameLower.includes(requestedNameLower) ||
+          requestedNameLower.includes(agentNameLower)
+        )
+          return true;
+
         // Check metadata display names if available
-        if (a.metadata?.display_name && a.metadata.display_name.toLowerCase() === requestedNameLower) return true;
-        if (a.metadata?.name && a.metadata.name.toLowerCase() === requestedNameLower) return true;
-        
+        if (
+          a.metadata?.display_name &&
+          a.metadata.display_name.toLowerCase() === requestedNameLower
+        )
+          return true;
+        if (
+          a.metadata?.name &&
+          a.metadata.name.toLowerCase() === requestedNameLower
+        )
+          return true;
+
         // Remove common words and check for matches (e.g., "hiverarchy ai orchestrator" -> "hiverarchy")
-        const cleanAgentName = agentNameLower.replace(/\s+(agent|ai|orchestrator|specialist)\s*/g, '').trim();
-        const cleanRequestedName = requestedNameLower.replace(/\s+(agent|ai|orchestrator|specialist)\s*/g, '').trim();
+        const cleanAgentName = agentNameLower
+          .replace(/\s+(agent|ai|orchestrator|specialist)\s*/g, '')
+          .trim();
+        const cleanRequestedName = requestedNameLower
+          .replace(/\s+(agent|ai|orchestrator|specialist)\s*/g, '')
+          .trim();
         if (cleanAgentName === cleanRequestedName) return true;
-        
+
         return false;
       });
 
@@ -834,19 +914,21 @@ export class OrchestratorService extends A2AAgentBaseService {
       // Log sticky context information if provided
       if (contextOptions?.stickyContext) {
         this.orchestratorLogger.log(
-          `🔗 Sticky context delegation: reason="${contextOptions.continuityReason}", confidence=${contextOptions.confidence}`
+          `🔗 Sticky context delegation: reason="${contextOptions.continuityReason}", confidence=${contextOptions.confidence}`,
         );
       }
 
       // Use DelegationService for cleaner delegation logic with enhanced metadata
       const enhancedLlmPreferences = {
         ...llmPreferences,
-        delegationContext: contextOptions ? {
-          stickyContext: contextOptions.stickyContext,
-          continuityReason: contextOptions.continuityReason,
-          confidence: contextOptions.confidence,
-          agentContext: contextOptions.agentContext
-        } : undefined
+        delegationContext: contextOptions
+          ? {
+              stickyContext: contextOptions.stickyContext,
+              continuityReason: contextOptions.continuityReason,
+              confidence: contextOptions.confidence,
+              agentContext: contextOptions.agentContext,
+            }
+          : undefined,
       };
 
       return await this.delegationService.delegateToAgent(
@@ -854,7 +936,7 @@ export class OrchestratorService extends A2AAgentBaseService {
         request,
         sessionId,
         authToken,
-        enhancedLlmPreferences
+        enhancedLlmPreferences,
       );
     } catch (error) {
       this.orchestratorLogger.error('Error delegating to agent:', error);
@@ -923,21 +1005,21 @@ export class OrchestratorService extends A2AAgentBaseService {
     let talkToAgentMatch = lowerMessage.match(
       /can i talk to (?:the )?(.+?)\s*agent/,
     );
-    
+
     // Also check for "I would like to talk with [agent] agent" pattern from frontend
     if (!talkToAgentMatch) {
       talkToAgentMatch = lowerMessage.match(
         /i would like to talk with (?:the )?(.+?)\s*agent/,
       );
     }
-    
+
     // Also check for "talk to [agent]" or "connect me with [agent]" patterns
     if (!talkToAgentMatch) {
       talkToAgentMatch = lowerMessage.match(
         /(?:talk to|connect me with|switch to) (?:the )?(.+?)(?:\s*agent)?(?:\.|$)/,
       );
     }
-    
+
     if (talkToAgentMatch && talkToAgentMatch[1]) {
       const requestedAgent = talkToAgentMatch[1].trim();
       this.orchestratorLogger.log(

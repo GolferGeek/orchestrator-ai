@@ -52,7 +52,7 @@ describe('UsageController', () => {
         },
         requests: 20,
         tokens: 6000,
-        cost: 0.30,
+        cost: 0.3,
         avgRating: 3.8,
       },
     ],
@@ -77,7 +77,7 @@ describe('UsageController', () => {
         },
         requests: 25,
         tokens: 7500,
-        cost: 0.50,
+        cost: 0.5,
         avgRating: 4.3,
       },
     ],
@@ -114,7 +114,7 @@ describe('UsageController', () => {
       },
       {
         key: 'Anthropic',
-        cost: 0.30,
+        cost: 0.3,
         tokens: 6000,
         requests: 20,
         percentage: 40,
@@ -136,7 +136,7 @@ describe('UsageController', () => {
         avgAccuracyRating: 4.2,
         avgResponseTimeMs: 1150,
         avgCostPerRequest: 0.02,
-        totalCost: 0.50,
+        totalCost: 0.5,
         totalTokens: 7500,
         costEfficiencyScore: 0.85,
         performanceScore: 4.1,
@@ -174,7 +174,8 @@ describe('UsageController', () => {
       {
         type: 'cost_optimization',
         title: 'Consider using more cost-effective models',
-        description: 'Switch to GPT-4o Mini for simpler tasks to reduce costs by up to 80%',
+        description:
+          'Switch to GPT-4o Mini for simpler tasks to reduce costs by up to 80%',
         potentialSavings: 0.225,
         priority: 'medium',
       },
@@ -183,11 +184,11 @@ describe('UsageController', () => {
 
   const mockBudgetStatus = {
     currentMonth: {
-      spent: 85.50,
+      spent: 85.5,
       budget: 100,
       percentageUsed: 85.5,
       daysRemaining: 15,
-      projectedTotal: 95.00,
+      projectedTotal: 95.0,
     },
     alerts: [
       {
@@ -201,7 +202,7 @@ describe('UsageController', () => {
       {
         action: 'switch_to_cheaper_models',
         description: 'Use more cost-effective models for routine tasks',
-        estimatedSavings: 17.10,
+        estimatedSavings: 17.1,
       },
     ],
   };
@@ -260,7 +261,7 @@ describe('UsageController', () => {
         'provider-1',
         'model-1',
         true,
-        'weekly'
+        'weekly',
       );
 
       expect(usageService.getUserStats).toHaveBeenCalledWith('user-123', {
@@ -276,16 +277,25 @@ describe('UsageController', () => {
     it('should use default granularity when not specified', async () => {
       await controller.getUserStats(mockUser);
 
-      expect(usageService.getUserStats).toHaveBeenCalledWith('user-123', 
-        expect.objectContaining({ granularity: 'daily' })
+      expect(usageService.getUserStats).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({ granularity: 'daily' }),
       );
     });
 
     it('should handle includeDetails parameter correctly', async () => {
-      await controller.getUserStats(mockUser, undefined, undefined, undefined, undefined, true);
+      await controller.getUserStats(
+        mockUser,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      );
 
-      expect(usageService.getUserStats).toHaveBeenCalledWith('user-123',
-        expect.objectContaining({ includeDetails: true })
+      expect(usageService.getUserStats).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({ includeDetails: true }),
       );
     });
   });
@@ -307,7 +317,7 @@ describe('UsageController', () => {
         mockUser,
         '2024-01-01',
         '2024-01-31',
-        'model'
+        'model',
       );
 
       expect(usageService.getCostSummary).toHaveBeenCalledWith('user-123', {
@@ -320,16 +330,18 @@ describe('UsageController', () => {
     it('should use default groupBy when not specified', async () => {
       await controller.getCostSummary(mockUser);
 
-      expect(usageService.getCostSummary).toHaveBeenCalledWith('user-123',
-        expect.objectContaining({ groupBy: 'provider' })
+      expect(usageService.getCostSummary).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({ groupBy: 'provider' }),
       );
     });
 
     it('should handle date groupBy option', async () => {
       await controller.getCostSummary(mockUser, undefined, undefined, 'date');
 
-      expect(usageService.getCostSummary).toHaveBeenCalledWith('user-123',
-        expect.objectContaining({ groupBy: 'date' })
+      expect(usageService.getCostSummary).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({ groupBy: 'date' }),
       );
     });
   });
@@ -339,12 +351,15 @@ describe('UsageController', () => {
       const result = await controller.getModelPerformance(mockUser);
 
       expect(result).toEqual(mockModelPerformance);
-      expect(usageService.getModelPerformance).toHaveBeenCalledWith('user-123', {
-        startDate: undefined,
-        endDate: undefined,
-        minUsage: 1,
-        sortBy: 'rating',
-      });
+      expect(usageService.getModelPerformance).toHaveBeenCalledWith(
+        'user-123',
+        {
+          startDate: undefined,
+          endDate: undefined,
+          minUsage: 1,
+          sortBy: 'rating',
+        },
+      );
     });
 
     it('should pass query parameters to the service', async () => {
@@ -353,33 +368,44 @@ describe('UsageController', () => {
         '2024-01-01',
         '2024-01-31',
         5,
-        'cost'
+        'cost',
       );
 
-      expect(usageService.getModelPerformance).toHaveBeenCalledWith('user-123', {
-        startDate: '2024-01-01',
-        endDate: '2024-01-31',
-        minUsage: 5,
-        sortBy: 'cost',
-      });
+      expect(usageService.getModelPerformance).toHaveBeenCalledWith(
+        'user-123',
+        {
+          startDate: '2024-01-01',
+          endDate: '2024-01-31',
+          minUsage: 5,
+          sortBy: 'cost',
+        },
+      );
     });
 
     it('should use default values when parameters not specified', async () => {
       await controller.getModelPerformance(mockUser);
 
-      expect(usageService.getModelPerformance).toHaveBeenCalledWith('user-123',
-        expect.objectContaining({ 
-          minUsage: 1, 
-          sortBy: 'rating' 
-        })
+      expect(usageService.getModelPerformance).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({
+          minUsage: 1,
+          sortBy: 'rating',
+        }),
       );
     });
 
     it('should handle different sort options', async () => {
-      await controller.getModelPerformance(mockUser, undefined, undefined, undefined, 'speed');
+      await controller.getModelPerformance(
+        mockUser,
+        undefined,
+        undefined,
+        undefined,
+        'speed',
+      );
 
-      expect(usageService.getModelPerformance).toHaveBeenCalledWith('user-123',
-        expect.objectContaining({ sortBy: 'speed' })
+      expect(usageService.getModelPerformance).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({ sortBy: 'speed' }),
       );
     });
   });
@@ -389,19 +415,28 @@ describe('UsageController', () => {
       const result = await controller.getSpendingInsights(mockUser);
 
       expect(result).toEqual(mockSpendingInsights);
-      expect(usageService.getSpendingInsights).toHaveBeenCalledWith('user-123', 30);
+      expect(usageService.getSpendingInsights).toHaveBeenCalledWith(
+        'user-123',
+        30,
+      );
     });
 
     it('should pass custom lookback days to the service', async () => {
       await controller.getSpendingInsights(mockUser, 7);
 
-      expect(usageService.getSpendingInsights).toHaveBeenCalledWith('user-123', 7);
+      expect(usageService.getSpendingInsights).toHaveBeenCalledWith(
+        'user-123',
+        7,
+      );
     });
 
     it('should use default lookback days when not specified', async () => {
       await controller.getSpendingInsights(mockUser);
 
-      expect(usageService.getSpendingInsights).toHaveBeenCalledWith('user-123', 30);
+      expect(usageService.getSpendingInsights).toHaveBeenCalledWith(
+        'user-123',
+        30,
+      );
     });
 
     it('should return comprehensive insights structure', async () => {
@@ -412,7 +447,7 @@ describe('UsageController', () => {
       expect(result).toHaveProperty('usagePatterns');
       expect(result).toHaveProperty('modelInsights');
       expect(result).toHaveProperty('recommendations');
-      
+
       expect(result.analysisPeriod).toHaveProperty('startDate');
       expect(result.analysisPeriod).toHaveProperty('endDate');
       expect(result.analysisPeriod).toHaveProperty('days');
@@ -435,10 +470,7 @@ describe('UsageController', () => {
     it('should export usage data in CSV format when requested', async () => {
       mockUsageService.exportUsageData.mockResolvedValueOnce('csv,data,here');
 
-      const result = await controller.exportUsageData(
-        mockUser,
-        'csv'
-      );
+      const result = await controller.exportUsageData(mockUser, 'csv');
 
       expect(result).toBe('csv,data,here');
       expect(usageService.exportUsageData).toHaveBeenCalledWith('user-123', {
@@ -455,7 +487,7 @@ describe('UsageController', () => {
         'json',
         '2024-01-01',
         '2024-01-31',
-        true
+        true,
       );
 
       expect(usageService.exportUsageData).toHaveBeenCalledWith('user-123', {
@@ -469,8 +501,9 @@ describe('UsageController', () => {
     it('should use default format when not specified', async () => {
       await controller.exportUsageData(mockUser);
 
-      expect(usageService.exportUsageData).toHaveBeenCalledWith('user-123',
-        expect.objectContaining({ format: 'json' })
+      expect(usageService.exportUsageData).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({ format: 'json' }),
       );
     });
   });
@@ -480,13 +513,19 @@ describe('UsageController', () => {
       const result = await controller.getBudgetStatus(mockUser);
 
       expect(result).toEqual(mockBudgetStatus);
-      expect(usageService.getBudgetStatus).toHaveBeenCalledWith('user-123', undefined);
+      expect(usageService.getBudgetStatus).toHaveBeenCalledWith(
+        'user-123',
+        undefined,
+      );
     });
 
     it('should pass monthly budget to the service when provided', async () => {
       await controller.getBudgetStatus(mockUser, 150);
 
-      expect(usageService.getBudgetStatus).toHaveBeenCalledWith('user-123', 150);
+      expect(usageService.getBudgetStatus).toHaveBeenCalledWith(
+        'user-123',
+        150,
+      );
     });
 
     it('should return proper budget status structure', async () => {
@@ -495,13 +534,13 @@ describe('UsageController', () => {
       expect(result).toHaveProperty('currentMonth');
       expect(result).toHaveProperty('alerts');
       expect(result).toHaveProperty('recommendations');
-      
+
       expect(result.currentMonth).toHaveProperty('spent');
       expect(result.currentMonth).toHaveProperty('budget');
       expect(result.currentMonth).toHaveProperty('percentageUsed');
       expect(result.currentMonth).toHaveProperty('daysRemaining');
       expect(result.currentMonth).toHaveProperty('projectedTotal');
-      
+
       expect(Array.isArray(result.alerts)).toBe(true);
       expect(Array.isArray(result.recommendations)).toBe(true);
     });
@@ -545,7 +584,10 @@ describe('UsageController', () => {
     it('should extract user information correctly from JWT token', async () => {
       const result = await controller.getUserStats(mockUser);
 
-      expect(usageService.getUserStats).toHaveBeenCalledWith('user-123', expect.any(Object));
+      expect(usageService.getUserStats).toHaveBeenCalledWith(
+        'user-123',
+        expect.any(Object),
+      );
     });
   });
 
@@ -554,21 +596,27 @@ describe('UsageController', () => {
       const error = new Error('Service unavailable');
       mockUsageService.getUserStats.mockRejectedValueOnce(error);
 
-      await expect(controller.getUserStats(mockUser)).rejects.toThrow('Service unavailable');
+      await expect(controller.getUserStats(mockUser)).rejects.toThrow(
+        'Service unavailable',
+      );
     });
 
     it('should handle service errors gracefully in getCostSummary', async () => {
       const error = new Error('Database connection failed');
       mockUsageService.getCostSummary.mockRejectedValueOnce(error);
 
-      await expect(controller.getCostSummary(mockUser)).rejects.toThrow('Database connection failed');
+      await expect(controller.getCostSummary(mockUser)).rejects.toThrow(
+        'Database connection failed',
+      );
     });
 
     it('should handle service errors gracefully in exportUsageData', async () => {
       const error = new Error('Export failed');
       mockUsageService.exportUsageData.mockRejectedValueOnce(error);
 
-      await expect(controller.exportUsageData(mockUser)).rejects.toThrow('Export failed');
+      await expect(controller.exportUsageData(mockUser)).rejects.toThrow(
+        'Export failed',
+      );
     });
   });
 
@@ -576,11 +624,12 @@ describe('UsageController', () => {
     it('should accept valid date formats', async () => {
       await controller.getUserStats(mockUser, '2024-01-01', '2024-01-31');
 
-      expect(usageService.getUserStats).toHaveBeenCalledWith('user-123',
+      expect(usageService.getUserStats).toHaveBeenCalledWith(
+        'user-123',
         expect.objectContaining({
           startDate: '2024-01-01',
           endDate: '2024-01-31',
-        })
+        }),
       );
     });
 
@@ -588,29 +637,46 @@ describe('UsageController', () => {
       const providerId = '123e4567-e89b-12d3-a456-426614174000';
       const modelId = '456e7890-e89b-12d3-a456-426614174001';
 
-      await controller.getUserStats(mockUser, undefined, undefined, providerId, modelId);
+      await controller.getUserStats(
+        mockUser,
+        undefined,
+        undefined,
+        providerId,
+        modelId,
+      );
 
-      expect(usageService.getUserStats).toHaveBeenCalledWith('user-123',
+      expect(usageService.getUserStats).toHaveBeenCalledWith(
+        'user-123',
         expect.objectContaining({
           providerId,
           modelId,
-        })
+        }),
       );
     });
 
     it('should accept valid granularity options', async () => {
-      await controller.getUserStats(mockUser, undefined, undefined, undefined, undefined, undefined, 'monthly');
+      await controller.getUserStats(
+        mockUser,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'monthly',
+      );
 
-      expect(usageService.getUserStats).toHaveBeenCalledWith('user-123',
-        expect.objectContaining({ granularity: 'monthly' })
+      expect(usageService.getUserStats).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({ granularity: 'monthly' }),
       );
     });
 
     it('should accept valid groupBy options for cost summary', async () => {
       await controller.getCostSummary(mockUser, undefined, undefined, 'date');
 
-      expect(usageService.getCostSummary).toHaveBeenCalledWith('user-123',
-        expect.objectContaining({ groupBy: 'date' })
+      expect(usageService.getCostSummary).toHaveBeenCalledWith(
+        'user-123',
+        expect.objectContaining({ groupBy: 'date' }),
       );
     });
   });

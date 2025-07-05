@@ -12,8 +12,9 @@ describe('Orchestrator Core (e2e)', () => {
 
   beforeAll(async () => {
     // Set environment to use real Hiverarchy endpoint for testing
-    process.env.HIVERARCHY_EXTERNAL_ENDPOINT = 'http://localhost:4100/agents/orchestrator/orchestrator/tasks';
-    
+    process.env.HIVERARCHY_EXTERNAL_ENDPOINT =
+      'http://localhost:4100/agents/orchestrator/orchestrator/tasks';
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -37,7 +38,9 @@ describe('Orchestrator Core (e2e)', () => {
         authToken = loginResponse.body.accessToken;
       }
     } catch (error) {
-      console.log('Authentication failed, continuing without token for basic tests');
+      console.log(
+        'Authentication failed, continuing without token for basic tests',
+      );
     }
   }, 60000);
 
@@ -47,10 +50,8 @@ describe('Orchestrator Core (e2e)', () => {
 
   describe('Basic API Functionality', () => {
     it('should respond to health check', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/')
-        .expect(200);
-      
+      const response = await request(app.getHttpServer()).get('/').expect(200);
+
       expect(response.text).toBe('NestJS A2A Agent Framework - Ready!');
     });
 
@@ -61,10 +62,10 @@ describe('Orchestrator Core (e2e)', () => {
 
       expect(response.body.status).toBe('running');
       expect(response.body.discoveredAgents).toBeGreaterThan(0);
-      
+
       // Should have orchestrator agent
       const orchestratorAgent = response.body.agents.find(
-        (agent: any) => agent.name === 'orchestrator'
+        (agent: any) => agent.name === 'orchestrator',
       );
       expect(orchestratorAgent).toBeDefined();
       expect(orchestratorAgent.type).toBe('orchestrator');
@@ -76,7 +77,7 @@ describe('Orchestrator Core (e2e)', () => {
         .expect(200);
 
       const agentNames = response.body.agents.map((agent: any) => agent.name);
-      
+
       // Check for key specialist agents
       expect(agentNames).toContain('blog_post');
       expect(agentNames).toContain('hr_assistant');
@@ -117,7 +118,7 @@ describe('Orchestrator Core (e2e)', () => {
         console.log('Skipping test - no auth token available');
         return;
       }
-      
+
       const taskRequest = {
         jsonrpc: '2.0',
         id: 'test-conversation-1',
@@ -148,7 +149,7 @@ describe('Orchestrator Core (e2e)', () => {
         console.log('Skipping test - no auth token available');
         return;
       }
-      
+
       const taskRequest = {
         jsonrpc: '2.0',
         id: 'test-delegation-1',
@@ -170,13 +171,13 @@ describe('Orchestrator Core (e2e)', () => {
       expect(response.body.result).toBeDefined();
       expect(response.body.result.success).toBe(true);
       expect(response.body.result.response).toBeDefined();
-      
+
       // Response should contain content related to blog post writing
       const responseText = response.body.result.response.toLowerCase();
       expect(
-        responseText.includes('blog') || 
-        responseText.includes('typescript') || 
-        responseText.includes('write')
+        responseText.includes('blog') ||
+          responseText.includes('typescript') ||
+          responseText.includes('write'),
       ).toBe(true);
     }, 45000);
   });
@@ -189,7 +190,7 @@ describe('Orchestrator Core (e2e)', () => {
         .expect(200);
 
       const orchestratorAgent = response.body.agents.find(
-        (agent: any) => agent.name === 'orchestrator'
+        (agent: any) => agent.name === 'orchestrator',
       );
 
       expect(orchestratorAgent).toBeDefined();

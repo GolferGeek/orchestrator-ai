@@ -40,7 +40,7 @@ describe('LLMService', () => {
 
   // Create a complete mock that supports the full chain
   const mockSupabaseClient: any = {};
-  
+
   const resetMocks = () => {
     mockSupabaseClient.from = jest.fn().mockReturnValue(mockSupabaseClient);
     mockSupabaseClient.select = jest.fn().mockReturnValue(mockSupabaseClient);
@@ -53,7 +53,7 @@ describe('LLMService', () => {
     mockSupabaseClient.limit = jest.fn().mockReturnValue(mockSupabaseClient);
     mockSupabaseClient.single = jest.fn();
   };
-  
+
   // Initialize mocks
   resetMocks();
 
@@ -191,7 +191,6 @@ describe('LLMService', () => {
     });
   });
 
-
   describe('Enhanced Messaging with LLM Selection', () => {
     // Mock LangChain LLM
     const mockLLM = {
@@ -205,7 +204,9 @@ describe('LLMService', () => {
         model: mockModel,
       });
 
-      jest.spyOn(service as any, 'createLLMFromModel').mockResolvedValue(mockLLM);
+      jest
+        .spyOn(service as any, 'createLLMFromModel')
+        .mockResolvedValue(mockLLM);
 
       mockCIDAFMService.processMessage.mockResolvedValue({
         modifiedPrompt: 'Processed user message',
@@ -232,13 +233,19 @@ describe('LLMService', () => {
             sessionId: 'session-123',
             temperature: 0.7,
             maxTokens: 2000,
-          }
+          },
         );
 
-        expect(result).toHaveProperty('content', 'Enhanced response with LLM selection');
+        expect(result).toHaveProperty(
+          'content',
+          'Enhanced response with LLM selection',
+        );
         expect(result).toHaveProperty('usage');
         expect(result).toHaveProperty('costCalculation');
-        expect(result).toHaveProperty('processedPrompt', 'Processed user message');
+        expect(result).toHaveProperty(
+          'processedPrompt',
+          'Processed user message',
+        );
         expect(result).toHaveProperty('cidafmState');
 
         // Verify CIDAFM processing was called
@@ -246,7 +253,7 @@ describe('LLMService', () => {
           'user-123',
           '^concise &disciplined Tell me about AI',
           { activeStateModifiers: [] },
-          'session-123'
+          'session-123',
         );
 
         // Verify cost calculation
@@ -276,7 +283,7 @@ describe('LLMService', () => {
           {
             providerId: '123e4567-e89b-12d3-a456-426614174000',
             modelId: '456e7890-e89b-12d3-a456-426614174000',
-          }
+          },
         );
 
         expect(result.content).toBe('Enhanced response with LLM selection');
@@ -294,7 +301,7 @@ describe('LLMService', () => {
             modelId: '456e7890-e89b-12d3-a456-426614174000',
             cidafmOptions: { activeStateModifiers: [] },
             sessionId: 'session-123',
-          }
+          },
         );
 
         // Verify that the LLM was called with enhanced system prompt
@@ -344,7 +351,7 @@ describe('LLMService', () => {
         const result = await service.generateEnhancedResponse(
           'user-123',
           'You are a helpful assistant.',
-          'Test message'
+          'Test message',
         );
 
         expect(result.content).toBe('Enhanced response with LLM selection');
@@ -361,8 +368,8 @@ describe('LLMService', () => {
             {
               providerId: '123e4567-e89b-12d3-a456-426614174000',
               modelId: '456e7890-e89b-12d3-a456-426614174000',
-            }
-          )
+            },
+          ),
         ).rejects.toThrow('Enhanced LLM service error: LLM API Error');
       });
 
@@ -374,13 +381,13 @@ describe('LLMService', () => {
           {
             providerId: '123e4567-e89b-12d3-a456-426614174000',
             modelId: '456e7890-e89b-12d3-a456-426614174000',
-          }
+          },
         );
 
         expect(result.costCalculation.inputCost).toBeGreaterThan(0);
         expect(result.costCalculation.outputCost).toBeGreaterThan(0);
         expect(result.costCalculation.totalCost).toBe(
-          result.costCalculation.inputCost + result.costCalculation.outputCost
+          result.costCalculation.inputCost + result.costCalculation.outputCost,
         );
         expect(result.costCalculation.currency).toBe('USD');
       });
@@ -393,7 +400,7 @@ describe('LLMService', () => {
           {
             providerId: '123e4567-e89b-12d3-a456-426614174000',
             modelId: '456e7890-e89b-12d3-a456-426614174000',
-          }
+          },
         );
 
         expect(result.usage.responseTimeMs).toBeGreaterThanOrEqual(0);
@@ -410,7 +417,7 @@ describe('LLMService', () => {
             modelId: '456e7890-e89b-12d3-a456-426614174000',
             temperature: 0.9,
             maxTokens: 1500,
-          }
+          },
         );
 
         // Verify createLLMFromModel was called with custom overrides
@@ -438,7 +445,7 @@ describe('LLMService', () => {
         const result = await service.generateResponseWithHistory(
           'You are a helpful assistant.',
           conversationHistory,
-          'What did I say before?'
+          'What did I say before?',
         );
 
         expect(result).toBe('Response with conversation context');
@@ -460,7 +467,7 @@ describe('LLMService', () => {
         const result = await service.generateResponseWithHistory(
           'You are a helpful assistant.',
           [],
-          'Hello'
+          'Hello',
         );
 
         expect(result).toBe('Response without history');
@@ -470,6 +477,5 @@ describe('LLMService', () => {
         ]);
       });
     });
-
   });
 });

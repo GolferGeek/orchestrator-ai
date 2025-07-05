@@ -67,14 +67,16 @@ describe('ApiAgentBaseService', () => {
           endpoint: config.endpoint
             ?.replace('${TEST_ENDPOINT}', 'https://api.example.com')
             ?.replace('${TEST_API_KEY}', 'secret-key'),
-          authentication: config.authentication ? {
-            ...config.authentication,
-            value: config.authentication.value
-              ?.replace('${TEST_ENDPOINT}', 'https://api.example.com')
-              ?.replace('${TEST_API_KEY}', 'secret-key')
-          } : undefined
+          authentication: config.authentication
+            ? {
+                ...config.authentication,
+                value: config.authentication.value
+                  ?.replace('${TEST_ENDPOINT}', 'https://api.example.com')
+                  ?.replace('${TEST_API_KEY}', 'secret-key'),
+              }
+            : undefined,
         },
-        substitutedVars: []
+        substitutedVars: [],
       })),
       loadConfiguration: jest.fn(),
     };

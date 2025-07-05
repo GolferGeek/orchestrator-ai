@@ -42,25 +42,35 @@ export class DelegationService {
         request,
         sessionId,
         authToken,
-        llmPreferences
+        llmPreferences,
       );
 
-      this.logger.log(`Sending payload to ${agent.name}:`, JSON.stringify(payload, null, 2));
+      this.logger.log(
+        `Sending payload to ${agent.name}:`,
+        JSON.stringify(payload, null, 2),
+      );
 
       // Make the request to the agent
-      const response = await this.httpService.axiosRef.post(agent.url, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authToken && { Authorization: `Bearer ${authToken}` }),
+      const response = await this.httpService.axiosRef.post(
+        agent.url,
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authToken && { Authorization: `Bearer ${authToken}` }),
+          },
+          timeout: 30000,
         },
-        timeout: 30000,
-      });
+      );
 
       this.logger.log(`Response from ${agent.name}:`, response.status);
 
       // Process the response with delegation context
-      return this.processAgentResponse(response.data, agent, llmPreferences?.delegationContext);
-
+      return this.processAgentResponse(
+        response.data,
+        agent,
+        llmPreferences?.delegationContext,
+      );
     } catch (error) {
       this.logger.error(`Error delegating to ${agent.name}:`, error);
       return this.createErrorResponse(agent, error);
@@ -71,9 +81,10 @@ export class DelegationService {
    * Create a greeting response for agent introduction
    */
   private createGreetingResponse(agent: AvailableAgent): any {
-    const capabilities = agent.capabilities && agent.capabilities.length > 0
-      ? agent.capabilities.join(', ')
-      : 'various specialized tasks';
+    const capabilities =
+      agent.capabilities && agent.capabilities.length > 0
+        ? agent.capabilities.join(', ')
+        : 'various specialized tasks';
 
     const greeting = `Hello! I'm the ${agent.name}. I specialize in ${capabilities}. How can I help you today?`;
 
@@ -93,7 +104,11 @@ export class DelegationService {
   /**
    * Process and normalize agent response
    */
-  private processAgentResponse(responseData: any, agent: AvailableAgent, delegationContext?: any): any {
+  private processAgentResponse(
+    responseData: any,
+    agent: AvailableAgent,
+    delegationContext?: any,
+  ): any {
     // Handle different response formats
     let processedResponse;
 
@@ -110,8 +125,8 @@ export class DelegationService {
         stickyContext: delegationInfo.stickyContext,
         continuityReason: delegationInfo.continuityReason,
         confidence: delegationInfo.confidence,
-        agentContext: delegationInfo.agentContext
-      })
+        agentContext: delegationInfo.agentContext,
+      }),
     };
 
     if (responseData?.result) {
@@ -153,7 +168,10 @@ export class DelegationService {
       };
     }
 
-    this.logger.log(`Processed response from ${agent.name}:`, processedResponse.response?.substring(0, 200) + '...');
+    this.logger.log(
+      `Processed response from ${agent.name}:`,
+      processedResponse.response?.substring(0, 200) + '...',
+    );
     return processedResponse;
   }
 
@@ -162,7 +180,7 @@ export class DelegationService {
    */
   private createErrorResponse(agent: AvailableAgent, error: any): any {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    
+
     return {
       success: false,
       response: `I attempted to connect you with the ${agent.name}, but the service is currently unavailable. Please try again later.`,
@@ -190,7 +208,7 @@ export class DelegationService {
       /what do you do/,
     ];
 
-    return greetingPatterns.some(pattern => pattern.test(lowerRequest));
+    return greetingPatterns.some((pattern) => pattern.test(lowerRequest));
   }
 
   /**
@@ -200,7 +218,7 @@ export class DelegationService {
     request: string,
     sessionId?: string,
     authToken?: string,
-    llmPreferences?: any
+    llmPreferences?: any,
   ): any {
     return {
       jsonrpc: '2.0',
