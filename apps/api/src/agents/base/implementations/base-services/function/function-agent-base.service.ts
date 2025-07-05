@@ -75,6 +75,46 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         return this.processWithContext(method, params);
       }
 
+      // Create a wrapper LLM service that tracks metadata and applies user preferences
+      const llmMetadataTracker = {
+        calls: [] as any[],
+        totalCost: 0,
+        totalTokens: { input: 0, output: 0 },
+      };
+
+      const wrappedLLMService = {
+        ...this.llmService,
+        generateResponse: async (systemPrompt: string, userMessage: string, options?: any) => {
+          // Merge user preferences with function options
+          const mergedOptions = {
+            ...options,
+            providerId: params.providerId || options?.providerId,
+            modelId: params.modelId || options?.modelId,
+            temperature: params.temperature ?? options?.temperature,
+            maxTokens: params.maxTokens || options?.maxTokens,
+            cidafmOptions: params.cidafmOptions || options?.cidafmOptions,
+            authToken: params.authToken || options?.authToken,
+            sessionId: params.sessionId || options?.sessionId,
+          };
+
+          const result = await this.llmService.generateResponse(systemPrompt, userMessage, mergedOptions);
+          
+          // Track metadata if this was an enhanced response
+          if (typeof result === 'object' && result.llmMetadata) {
+            llmMetadataTracker.calls.push(result.llmMetadata);
+            if (result.costCalculation) {
+              llmMetadataTracker.totalCost += result.costCalculation.totalCost;
+            }
+            if (result.usage) {
+              llmMetadataTracker.totalTokens.input += result.usage.inputTokens || 0;
+              llmMetadataTracker.totalTokens.output += result.usage.outputTokens || 0;
+            }
+          }
+
+          return result;
+        },
+      };
+
       // Prepare standardized parameters for the agent function
       const functionParams: AgentFunctionParams = {
         userMessage: this.extractUserMessage(params),
@@ -82,20 +122,12 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         conversationHistory: params.conversationHistory || [],
         currentUser: params.currentUser,
         authToken: params.authToken,
-        llmService: this.llmService,
+        llmService: wrappedLLMService,
         metadata: {
           method,
           originalParams: params,
           agentName: agentName,
           timestamp: new Date().toISOString(),
-        },
-        // Pass LLM preferences to the function
-        llmPreferences: {
-          providerId: params.providerId,
-          modelId: params.modelId,
-          temperature: params.temperature,
-          maxTokens: params.maxTokens,
-          cidafmOptions: params.cidafmOptions,
         },
       };
 
@@ -110,6 +142,15 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         JSON.stringify(result, null, 2),
       );
 
+      // Aggregate LLM metadata from all calls
+      const aggregatedLLMMetadata = llmMetadataTracker.calls.length > 0 ? {
+        primaryLLM: llmMetadataTracker.calls[0], // First/main LLM call
+        totalCalls: llmMetadataTracker.calls.length,
+        totalCost: llmMetadataTracker.totalCost,
+        totalTokens: llmMetadataTracker.totalTokens,
+        allCalls: llmMetadataTracker.calls,
+      } : undefined;
+
       // Return structured response format to match ContextAgentBaseService
       return {
         success: true,
@@ -119,6 +160,21 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           functionStatus: 'executed',
           processedAt: new Date().toISOString(),
           ...functionParams.metadata,
+          ...(result.metadata || {}),
+          // Include aggregated LLM metadata
+          ...(aggregatedLLMMetadata && {
+            llmUsed: aggregatedLLMMetadata.primaryLLM,
+            usage: {
+              inputTokens: aggregatedLLMMetadata.totalTokens.input,
+              outputTokens: aggregatedLLMMetadata.totalTokens.output,
+              totalCost: aggregatedLLMMetadata.totalCost,
+            },
+            llmCallsSummary: {
+              totalCalls: aggregatedLLMMetadata.totalCalls,
+              totalCost: aggregatedLLMMetadata.totalCost,
+              allModelsUsed: aggregatedLLMMetadata.allCalls.map(call => call.modelName),
+            },
+          }),
         },
       };
     } catch (error) {

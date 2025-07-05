@@ -554,12 +554,12 @@ async function executeMarketingSwarm(
 export async function execute(
   params: AgentFunctionParams,
 ): Promise<AgentFunctionResponse> {
-  const { userMessage, sessionId, llmService, llmPreferences } = params;
+  const { userMessage, sessionId, llmService } = params;
   const startTime = Date.now();
 
   try {
     const { response, metadata: workflowMetadata } =
-      await executeMarketingSwarm(userMessage, llmService, sessionId, llmPreferences);
+      await executeMarketingSwarm(userMessage, llmService, sessionId);
 
     const processingTime = Date.now() - startTime;
 

@@ -85,6 +85,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       }
 
       // Prepare standardized parameters for the Python script
+      // Note: Python scripts use API calls, so we pass user preferences in metadata
       const functionParams: AgentFunctionParams = {
         userMessage: this.extractUserMessage(params),
         sessionId: params.sessionId,
@@ -97,14 +98,14 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           originalParams: params,
           agentName: agentName,
           timestamp: new Date().toISOString(),
-        },
-        // Pass LLM preferences to the Python function
-        llmPreferences: {
-          providerId: params.providerId,
-          modelId: params.modelId,
-          temperature: params.temperature,
-          maxTokens: params.maxTokens,
-          cidafmOptions: params.cidafmOptions,
+          // Pass LLM preferences to Python script via metadata
+          llmPreferences: {
+            providerId: params.providerId,
+            modelId: params.modelId,
+            temperature: params.temperature,
+            maxTokens: params.maxTokens,
+            cidafmOptions: params.cidafmOptions,
+          },
         },
       };
 
