@@ -5,7 +5,6 @@ import { SupabaseService } from '../supabase/supabase.service';
 
 describe('UsageService', () => {
   let service: UsageService;
-  let supabaseService: SupabaseService;
 
   // Mock message data for testing
   const mockMessages = [

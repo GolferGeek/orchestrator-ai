@@ -1,5 +1,7 @@
-require('dotenv').config({
-  path: require('path').resolve(__dirname, '../../.env'),
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+dotenv.config({
+  path: path.resolve(__dirname, '../../.env'),
 });
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';

@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
 import { ProvidersController } from './providers.controller';
 import { ProvidersService } from './providers.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -13,7 +12,6 @@ import {
 
 describe('ProvidersController', () => {
   let controller: ProvidersController;
-  let service: ProvidersService;
 
   const mockProviderResponse: ProviderResponseDto = {
     id: '123e4567-e89b-12d3-a456-426614174000',

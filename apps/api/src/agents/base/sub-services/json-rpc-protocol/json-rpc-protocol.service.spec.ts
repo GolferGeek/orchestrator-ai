@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import {
   JsonRpcProtocolService,
   JsonRpcRequest,
-  JsonRpcResponse,
   JsonRpcNotification,
   JSON_RPC_ERRORS,
   JsonRpcProcessingOptions,

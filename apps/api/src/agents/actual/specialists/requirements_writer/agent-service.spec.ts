@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RequirementsWriterService } from './agent-service';
 import { LLMService } from '@/llms/llm.service';
 import { HttpService } from '@nestjs/axios';
-import * as path from 'path';
 import * as fs from 'fs';
 
 // Mock fs to control file existence
@@ -11,7 +10,6 @@ const mockFs = fs as jest.Mocked<typeof fs>;
 
 describe('RequirementsWriterService', () => {
   let service: RequirementsWriterService;
-  let llmService: jest.Mocked<LLMService>;
 
   beforeEach(async () => {
     const mockLLMService = {
@@ -29,11 +27,6 @@ describe('RequirementsWriterService', () => {
       delete: jest.fn(),
     };
 
-    const mockContextService = {
-      loadAgentContext: jest.fn().mockResolvedValue('Mock context'),
-      getContextData: jest.fn().mockReturnValue('Mock context data'),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RequirementsWriterService,
@@ -49,7 +42,6 @@ describe('RequirementsWriterService', () => {
     }).compile();
 
     service = module.get<RequirementsWriterService>(RequirementsWriterService);
-    llmService = module.get<LLMService>(LLMService) as jest.Mocked<LLMService>;
 
     // Mock required methods from base class
     jest
@@ -97,7 +89,6 @@ describe('RequirementsWriterService', () => {
   describe('Python script integration', () => {
     it('should have Python script path set', () => {
       // Verify that the Python script path is properly set during construction
-      const expectedScriptPath = path.join(__dirname, 'agent-function.py');
 
       // We can't directly access the private property, but we can test the behavior
       // by checking if the service attempts to use the Python script

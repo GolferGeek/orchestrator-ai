@@ -240,7 +240,7 @@ describe('UsageController', () => {
 
   describe('getUserStats', () => {
     it('should return usage statistics for the current user', async () => {
-      const result = await controller.getUserStats(mockUser);
+      const _result = await controller.getUserStats(mockUser);
 
       expect(result).toEqual(mockUsageStats);
       expect(usageService.getUserStats).toHaveBeenCalledWith('user-123', {
@@ -582,7 +582,7 @@ describe('UsageController', () => {
     });
 
     it('should extract user information correctly from JWT token', async () => {
-      const result = await controller.getUserStats(mockUser);
+      const _result = await controller.getUserStats(mockUser);
 
       expect(usageService.getUserStats).toHaveBeenCalledWith(
         'user-123',

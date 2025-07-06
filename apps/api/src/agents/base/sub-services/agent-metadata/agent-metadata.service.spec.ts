@@ -3,11 +3,9 @@ import {
   AgentMetadataService,
   AgentCard,
   AgentMetadata,
-  AgentStructure,
   AgentCardConfig,
 } from './agent-metadata.service';
 import * as fs from 'fs-extra';
-import * as path from 'path';
 
 // Mock fs-extra
 jest.mock('fs-extra');
@@ -47,11 +45,6 @@ describe('AgentMetadataService', () => {
     });
 
     it('should initialize with custom cache options', () => {
-      const cacheOptions = {
-        maxSize: 50,
-        ttl: 10000,
-        updateAgeOnGet: false,
-      };
       const newService = new AgentMetadataService();
       expect(newService).toBeDefined();
     });

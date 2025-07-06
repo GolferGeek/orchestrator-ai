@@ -5,7 +5,6 @@ import { AxiosResponse } from 'axios';
 import {
   ApiAgentBaseService,
   ApiConfiguration,
-  ApiAgentParams,
 } from './api-agent-base.service';
 import { AgentRegistrationService } from '../../../sub-services/agent-registration/agent-registration.service';
 import { JsonRpcProtocolService } from '../../../sub-services/json-rpc-protocol/json-rpc-protocol.service';
@@ -27,10 +26,6 @@ class TestApiAgentBaseService extends ApiAgentBaseService {
 describe('ApiAgentBaseService', () => {
   let service: TestApiAgentBaseService;
   let httpService: jest.Mocked<HttpService>;
-  let agentRegistrationService: jest.Mocked<AgentRegistrationService>;
-  let jsonRpcProtocolService: jest.Mocked<JsonRpcProtocolService>;
-  let loggingService: jest.Mocked<LoggingService>;
-  let authService: jest.Mocked<AuthService>;
   let configurationService: jest.Mocked<ConfigurationService>;
 
   beforeEach(async () => {
@@ -101,10 +96,6 @@ describe('ApiAgentBaseService', () => {
 
     service = module.get<TestApiAgentBaseService>(TestApiAgentBaseService);
     httpService = module.get(HttpService);
-    agentRegistrationService = module.get(AgentRegistrationService);
-    jsonRpcProtocolService = module.get(JsonRpcProtocolService);
-    loggingService = module.get(LoggingService);
-    authService = module.get(AuthService);
     configurationService = module.get(ConfigurationService);
   });
 

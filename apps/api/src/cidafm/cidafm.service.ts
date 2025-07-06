@@ -4,13 +4,7 @@ import {
   CreateCIDAFMCommandDto,
   CIDAFMCommandResponseDto,
 } from '../dto/llm-evaluation.dto';
-import {
-  CIDAFMCommand,
-  UserCIDAFMCommand,
-  CIDAFMCommandType,
-  CIDAFMState,
-  CIDAFMProcessingResult,
-} from '../types/llm-evaluation';
+import { CIDAFMCommandType } from '../types/llm-evaluation';
 
 interface CommandFilters {
   type?: CIDAFMCommandType;
