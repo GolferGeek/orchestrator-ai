@@ -2,6 +2,7 @@
   "name": "orchestrator-ai-monorepo",
   "private": true,
   "license": "PROPRIETARY",
+  "packageManager": "npm@10.2.4",
   "scripts": {
     "contracts:generate": "turbo run generate --filter=@orchestrator-ai/shared-contracts",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
@@ -21,6 +22,7 @@
     "turbo": "^2.3.3"
   },
   "workspaces": [
+    "apps/api",
     "apps/web"
   ],
   "dependencies": {

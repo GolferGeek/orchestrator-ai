@@ -1,6 +1,6 @@
 import { BaseApiClient } from './baseApiClient';
 import { ApiEndpoint } from '../../types/api';
-import { TaskCreationRequest, TaskResponse, AgentInfo } from '../../types/chat';
+import { TaskResponse, AgentInfo } from '../../types/chat';
 
 interface JsonRpcResponse {
   jsonrpc: '2.0';

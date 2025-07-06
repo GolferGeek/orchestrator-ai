@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { ApiEndpoint, ApiConfiguration, API_FEATURES } from '../types/api';
+import { ApiEndpoint, API_FEATURES } from '../types/api';
 import { apiService } from '../services/apiService';
 
 interface ApiConfigState {
