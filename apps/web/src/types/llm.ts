@@ -130,7 +130,7 @@ export interface SendMessageRequest {
   llmSelection?: LLMSelection;
 }
 
-export interface SendMessageResponse extends EnhancedMessage {}
+export type SendMessageResponse = EnhancedMessage;
 
 export interface UsageStats {
   user_id: string;

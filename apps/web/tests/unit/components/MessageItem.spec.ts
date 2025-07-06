@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import MessageItem from '../../../src/components/MessageItem.vue';
 // AgentListDisplay is mocked below, so direct import for type might not be needed
 // import AgentListDisplay from '../../../src/components/AgentListDisplay.vue'; 
-import { ChatMessage, MessageSender, MessageDisplayType, AgentInfo } from '../../../src/types/chat';
+import { ChatMessage, AgentInfo } from '../../../src/types/chat';
 import { IonicVue } from '@ionic/vue'; // Import IonicVue for Ionic components
 
 vi.mock('../../../src/components/AgentListDisplay.vue', () => ({

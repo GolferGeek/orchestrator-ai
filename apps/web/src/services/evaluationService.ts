@@ -1,5 +1,4 @@
-import { apiService } from './apiService';
-import type { EvaluationRequest, EvaluationResponse, MessageEvaluation } from '../types/evaluation';
+import type { EvaluationRequest, EvaluationResponse } from '../types/evaluation';
 
 class EvaluationService {
   /**

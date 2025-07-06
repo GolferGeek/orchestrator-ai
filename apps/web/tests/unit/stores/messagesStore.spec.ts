@@ -36,13 +36,11 @@ vi.mock('../../../src/stores/agentsStore', () => ({
 describe('Messages Store', () => {
   let messagesStore: ReturnType<typeof useMessagesStore>;
   let mockUiStoreInstance: ReturnType<typeof useUiStore>;
-  let mockAgentsStoreInstance: ReturnType<typeof useAgentsStore>;
 
   beforeEach(() => {
     setActivePinia(createPinia());
     messagesStore = useMessagesStore();
-    mockUiStoreInstance = useUiStore();
-    mockAgentsStoreInstance = useAgentsStore(); 
+    mockUiStoreInstance = useUiStore(); 
 
     // Reset shared mock states/spies before each test
     vi.clearAllMocks(); // Clears call history etc. for vi.fn()
@@ -62,7 +60,6 @@ describe('Messages Store', () => {
         setPttRecording: vi.fn(),
     });
     mockUiStoreInstance = useUiStore(); // re-get after configuring mockReturnValue
-    mockAgentsStoreInstance = useAgentsStore(); // re-get
   });
 
   it('initializes with an empty messages array', () => {

@@ -1,7 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { TaskResponse, AgentInfo } from '../types/chat';
 import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
-import { convertLLMSelectionToAPI, convertAPIResponseToFrontend } from '../utils/caseConverter';
 
 // API endpoint configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useLLMStore } from '../../../src/stores/llmStore';
-import { apiManager } from '../../../src/services/apiManager';
 
 // Mock the apiManager
 vi.mock('../../../src/services/apiManager', () => ({

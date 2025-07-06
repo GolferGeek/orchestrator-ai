@@ -1,7 +1,5 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { apiService } from '../services/apiService';
 import { useApiConfigStore } from '../stores/apiConfigStore';
-import { useUserPreferencesStore } from '../stores/userPreferencesStore';
 import { API_FEATURES, ApiFeature, ApiVersion, ApiTechnology } from '../types/api';
 
 interface FeatureCompatibility {
@@ -24,7 +22,6 @@ interface VersionCapabilities {
 export function useFeatureDetection() {
   // Stores
   const apiConfigStore = useApiConfigStore();
-  const userPreferencesStore = useUserPreferencesStore();
 
   // Reactive state
   const detectedFeatures = ref<Set<ApiFeature>>(new Set());
