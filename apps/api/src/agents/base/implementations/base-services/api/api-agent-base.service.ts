@@ -635,7 +635,7 @@ export class ApiAgentBaseService
   /**
    * Transform API response to A2A format
    */
-  private transformResponse(apiResponse: any, params: ApiAgentParams): string {
+  private transformResponse(apiResponse: any, _params: ApiAgentParams): string {
     const config = this.apiConfiguration;
 
     this.apiLogger.debug(`Raw API response received:`, apiResponse);
@@ -764,7 +764,7 @@ export class ApiAgentBaseService
    */
   private prepareHeaders(
     config: ApiConfiguration,
-    params: ApiAgentParams,
+    _params: ApiAgentParams,
   ): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -852,7 +852,7 @@ export class ApiAgentBaseService
   /**
    * Fallback response when no API configuration is available
    */
-  private async fallbackResponse(method: string, params: any): Promise<any> {
+  private async fallbackResponse(method: string, _params: any): Promise<any> {
     this.apiLogger.debug(`Using fallback response for ${this.getAgentName()}`);
 
     return {

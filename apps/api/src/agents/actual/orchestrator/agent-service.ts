@@ -6,7 +6,6 @@ import { SessionsService } from '../../../sessions/sessions.service';
 import { SupabaseService } from '../../../supabase/supabase.service';
 
 // Import the modular sub-services
-import { AgentDiscoveryService } from './services/agent-discovery.service';
 import { ConversationContextService } from './services/conversation-context.service';
 import { DelegationService } from './services/delegation.service';
 import { ResponseGenerationService } from './services/response-generation.service';
@@ -25,16 +24,6 @@ interface AvailableAgent {
   };
 }
 
-interface ConversationContext {
-  sessionId?: string;
-  userId?: string;
-  conversationHistory: Array<{
-    role: 'user' | 'assistant';
-    content: string;
-    agentName?: string;
-  }>;
-}
-
 @Injectable()
 export class OrchestratorService extends A2AAgentBaseService {
   private readonly orchestratorLogger = new Logger(OrchestratorService.name);
@@ -47,7 +36,6 @@ export class OrchestratorService extends A2AAgentBaseService {
     private readonly sessionsService: SessionsService,
     private readonly supabaseService: SupabaseService,
     // Inject the modular sub-services
-    private readonly agentDiscoveryService: AgentDiscoveryService,
     private readonly conversationContextService: ConversationContextService,
     private readonly delegationService: DelegationService,
     private readonly responseGenerationService: ResponseGenerationService,
@@ -63,7 +51,7 @@ export class OrchestratorService extends A2AAgentBaseService {
       `OrchestratorService constructor: sessionsService=${!!this.sessionsService}, llmService=${!!this.llmService}, supabaseService=${!!this.supabaseService}`,
     );
     this.orchestratorLogger.log(
-      `OrchestratorService services: agentDiscoveryService=${!!this.agentDiscoveryService}, conversationContextService=${!!this.conversationContextService}, delegationService=${!!this.delegationService}, responseGenerationService=${!!this.responseGenerationService}`,
+      `OrchestratorService services: conversationContextService=${!!this.conversationContextService}, delegationService=${!!this.delegationService}, responseGenerationService=${!!this.responseGenerationService}`,
     );
   }
 
@@ -312,12 +300,6 @@ export class OrchestratorService extends A2AAgentBaseService {
       );
     }
 
-    // Use ConversationContextService to build agent continuity context
-    const agentContinuityContext =
-      this.conversationContextService.buildAgentContinuityContext(
-        conversationHistory,
-      );
-
     // Enhanced sticky agent context check
     const continuityDecision =
       this.conversationContextService.shouldContinueWithSameAgent(
@@ -352,7 +334,7 @@ export class OrchestratorService extends A2AAgentBaseService {
           userMessage,
           sessionId,
           authToken,
-          llmPreferences,
+          llmPreferences, // User preferences for content processing
           {
             stickyContext: true,
             continuityReason: continuityDecision.reason,
@@ -379,22 +361,51 @@ export class OrchestratorService extends A2AAgentBaseService {
             llmPreferences,
           );
         } else {
-          // Fallback to LLM decision if Hiverarchy not available
-          const decision =
-            await this.agentDiscoveryService.analyzeRequestForAgentMatch(
-              userMessage,
-              this.availableAgents,
-              conversationHistory,
-              true,
-            );
-          response = await this.handleAgentDiscoveryDecision(
-            decision,
+          // Use enhanced delegation service with hybrid rule-based + LLM analysis
+          const analysis = await this.delegationService.analyzeAndSelectAgent(
             userMessage,
-            sessionId,
-            authToken,
-            llmPreferences,
+            this.availableAgents,
             conversationHistory,
           );
+
+          if (analysis) {
+            if (analysis.action === 'delegate' && analysis.selectedAgent) {
+              response = await this.delegateToAgent(
+                analysis.selectedAgent.name,
+                userMessage,
+                sessionId,
+                authToken,
+                llmPreferences, // User preferences for content processing
+                {
+                  selectionReasoning: analysis.reasoning,
+                  systemSelection: true,
+                },
+              );
+            } else if (analysis.action === 'clarify') {
+              response =
+                this.responseGenerationService.generateClarificationRequest(
+                  userMessage,
+                  this.availableAgents,
+                  analysis.reasoning,
+                );
+            } else {
+              // respond_directly
+              response =
+                await this.responseGenerationService.generateDirectResponse(
+                  userMessage,
+                  this.availableAgents,
+                  conversationHistory,
+                );
+            }
+          } else {
+            // Fallback if analysis fails
+            response =
+              await this.responseGenerationService.generateDirectResponse(
+                userMessage,
+                this.availableAgents,
+                conversationHistory,
+              );
+          }
         }
       }
       // Third priority: Check for medium-confidence sticky agent continuation
@@ -412,7 +423,7 @@ export class OrchestratorService extends A2AAgentBaseService {
           userMessage,
           sessionId,
           authToken,
-          llmPreferences,
+          llmPreferences, // User preferences for content processing
           {
             stickyContext: true,
             continuityReason: continuityDecision.reason,
@@ -420,24 +431,52 @@ export class OrchestratorService extends A2AAgentBaseService {
           },
         );
       }
-      // Default: Use orchestrator's own LLM reasoning through AgentDiscoveryService
+      // Default: Use enhanced delegation service with hybrid analysis
       else {
-        const decision =
-          await this.agentDiscoveryService.analyzeRequestForAgentMatch(
-            userMessage,
-            this.availableAgents,
-            conversationHistory,
-            true, // Enable LLM reasoning
-          );
-
-        response = await this.handleAgentDiscoveryDecision(
-          decision,
+        const analysis = await this.delegationService.analyzeAndSelectAgent(
           userMessage,
-          sessionId,
-          authToken,
-          llmPreferences,
+          this.availableAgents,
           conversationHistory,
         );
+
+        if (analysis) {
+          if (analysis.action === 'delegate' && analysis.selectedAgent) {
+            response = await this.delegateToAgent(
+              analysis.selectedAgent.name,
+              userMessage,
+              sessionId,
+              authToken,
+              llmPreferences, // User preferences for content processing
+              {
+                selectionReasoning: analysis.reasoning,
+                systemSelection: true,
+              },
+            );
+          } else if (analysis.action === 'clarify') {
+            response =
+              this.responseGenerationService.generateClarificationRequest(
+                userMessage,
+                this.availableAgents,
+                analysis.reasoning,
+              );
+          } else {
+            // respond_directly
+            response =
+              await this.responseGenerationService.generateDirectResponse(
+                userMessage,
+                this.availableAgents,
+                conversationHistory,
+              );
+          }
+        } else {
+          // Fallback if analysis fails
+          response =
+            await this.responseGenerationService.generateDirectResponse(
+              userMessage,
+              this.availableAgents,
+              conversationHistory,
+            );
+        }
       }
     } catch (error) {
       this.orchestratorLogger.error('Error processing with LLM:', error);
@@ -818,8 +857,6 @@ export class OrchestratorService extends A2AAgentBaseService {
         userMessage,
         this.availableAgents,
         conversationHistory || [],
-        undefined,
-        llmPreferences,
       );
     } else if (decision.action === 'clarify') {
       return this.responseGenerationService.generateClarificationRequest(
@@ -833,8 +870,6 @@ export class OrchestratorService extends A2AAgentBaseService {
         userMessage,
         this.availableAgents,
         conversationHistory || [],
-        undefined,
-        llmPreferences,
       );
     }
   }
@@ -853,6 +888,8 @@ export class OrchestratorService extends A2AAgentBaseService {
       continuityReason?: string;
       confidence?: number;
       agentContext?: any;
+      selectionReasoning?: string;
+      systemSelection?: boolean;
     },
   ): Promise<any> {
     try {

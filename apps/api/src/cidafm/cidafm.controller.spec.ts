@@ -62,7 +62,6 @@ describe('CIDAFMController', () => {
       .compile();
 
     controller = module.get<CIDAFMController>(CIDAFMController);
-    service = module.get<CIDAFMService>(CIDAFMService);
   });
 
   afterEach(() => {

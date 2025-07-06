@@ -13,6 +13,9 @@ import {
   CostCalculation,
   LLMUsageMetrics,
   CIDAFMOptions,
+  SystemLLMConfigs,
+  SystemOperationType,
+  UserLLMPreferences,
 } from '../types/llm-evaluation';
 import { mapProviderFromDb, mapModelFromDb } from '../utils/case-converter';
 
@@ -49,6 +52,7 @@ if (langsmithEnabled && langsmithApiKey) {
 export class LLMService {
   private readonly logger = new Logger(LLMService.name);
   private readonly openai: OpenAI;
+  private readonly systemLLMConfigs: SystemLLMConfigs;
 
   constructor(
     private readonly supabaseService: SupabaseService,
@@ -63,6 +67,90 @@ export class LLMService {
       apiKey: process.env.OPENAI_API_KEY,
     });
     this.logger.log('✅ OpenAI client created');
+
+    // Initialize system LLM configurations for different orchestrator operations
+    // Each operation type can have its own optimized configuration
+    this.systemLLMConfigs = {
+      delegation: {
+        provider:
+          (process.env.SYSTEM_DELEGATION_LLM_PROVIDER as any) || 'openai',
+        model: process.env.SYSTEM_DELEGATION_LLM_MODEL || 'gpt-3.5-turbo',
+        temperature: parseFloat(
+          process.env.SYSTEM_DELEGATION_LLM_TEMPERATURE || '0.0',
+        ),
+        maxTokens: parseInt(
+          process.env.SYSTEM_DELEGATION_LLM_MAX_TOKENS || '300',
+        ),
+        enabled: process.env.SYSTEM_DELEGATION_LLM_ENABLED !== 'false',
+        description: 'Fast delegation decisions - which agent to use',
+      },
+      agent_selection: {
+        provider:
+          (process.env.SYSTEM_AGENT_SELECTION_LLM_PROVIDER as any) || 'openai',
+        model: process.env.SYSTEM_AGENT_SELECTION_LLM_MODEL || 'gpt-3.5-turbo',
+        temperature: parseFloat(
+          process.env.SYSTEM_AGENT_SELECTION_LLM_TEMPERATURE || '0.1',
+        ),
+        maxTokens: parseInt(
+          process.env.SYSTEM_AGENT_SELECTION_LLM_MAX_TOKENS || '400',
+        ),
+        enabled: process.env.SYSTEM_AGENT_SELECTION_LLM_ENABLED !== 'false',
+        description: 'Agent selection and matching logic',
+      },
+      response_coordination: {
+        provider:
+          (process.env.SYSTEM_RESPONSE_COORD_LLM_PROVIDER as any) || 'openai',
+        model: process.env.SYSTEM_RESPONSE_COORD_LLM_MODEL || 'gpt-3.5-turbo',
+        temperature: parseFloat(
+          process.env.SYSTEM_RESPONSE_COORD_LLM_TEMPERATURE || '0.2',
+        ),
+        maxTokens: parseInt(
+          process.env.SYSTEM_RESPONSE_COORD_LLM_MAX_TOKENS || '800',
+        ),
+        enabled: process.env.SYSTEM_RESPONSE_COORD_LLM_ENABLED !== 'false',
+        description: 'Response coordination and organization',
+      },
+      conversation_analysis: {
+        provider:
+          (process.env.SYSTEM_CONVERSATION_LLM_PROVIDER as any) || 'openai',
+        model: process.env.SYSTEM_CONVERSATION_LLM_MODEL || 'gpt-3.5-turbo',
+        temperature: parseFloat(
+          process.env.SYSTEM_CONVERSATION_LLM_TEMPERATURE || '0.1',
+        ),
+        maxTokens: parseInt(
+          process.env.SYSTEM_CONVERSATION_LLM_MAX_TOKENS || '600',
+        ),
+        enabled: process.env.SYSTEM_CONVERSATION_LLM_ENABLED !== 'false',
+        description: 'Conversation context analysis',
+      },
+      error_handling: {
+        provider: (process.env.SYSTEM_ERROR_LLM_PROVIDER as any) || 'openai',
+        model: process.env.SYSTEM_ERROR_LLM_MODEL || 'gpt-3.5-turbo',
+        temperature: parseFloat(
+          process.env.SYSTEM_ERROR_LLM_TEMPERATURE || '0.0',
+        ),
+        maxTokens: parseInt(process.env.SYSTEM_ERROR_LLM_MAX_TOKENS || '200'),
+        enabled: process.env.SYSTEM_ERROR_LLM_ENABLED !== 'false',
+        description: 'Error handling and fallback operations',
+      },
+      default: {
+        provider: (process.env.SYSTEM_DEFAULT_LLM_PROVIDER as any) || 'openai',
+        model: process.env.SYSTEM_DEFAULT_LLM_MODEL || 'gpt-3.5-turbo',
+        temperature: parseFloat(
+          process.env.SYSTEM_DEFAULT_LLM_TEMPERATURE || '0.1',
+        ),
+        maxTokens: parseInt(process.env.SYSTEM_DEFAULT_LLM_MAX_TOKENS || '500'),
+        enabled: process.env.SYSTEM_DEFAULT_LLM_ENABLED !== 'false',
+        description: 'Default system operations',
+      },
+    };
+
+    this.logger.log('✅ System LLM configurations initialized:');
+    Object.entries(this.systemLLMConfigs).forEach(([operation, config]) => {
+      this.logger.log(
+        `- ${operation}: ${config.model} (temp: ${config.temperature}, tokens: ${config.maxTokens})`,
+      );
+    });
     this.logger.log(
       '✅ LLMService initialized - LangChain LLMs will automatically trace to LangSmith',
     );
@@ -363,6 +451,119 @@ export class LLMService {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       throw new Error(`LLM service error: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate response for system operations using optimized configurations
+   * This method is for orchestrator internal operations, not user content
+   */
+  async generateSystemResponse(
+    operationType: SystemOperationType,
+    systemPrompt: string,
+    userMessage: string,
+  ): Promise<string> {
+    try {
+      const config = this.systemLLMConfigs[operationType];
+
+      if (!config.enabled) {
+        this.logger.warn(
+          `System operation type '${operationType}' is disabled, using default`,
+        );
+        const defaultConfig = this.systemLLMConfigs.default;
+        if (!defaultConfig.enabled) {
+          throw new Error('All system LLM configurations are disabled');
+        }
+      }
+
+      const activeConfig = config.enabled
+        ? config
+        : this.systemLLMConfigs.default;
+
+      this.logger.log(
+        `🔧 System operation '${operationType}' using ${activeConfig.model} (temp: ${activeConfig.temperature})`,
+      );
+
+      // Create LLM instance with system configuration
+      const llm = this.createCustomLangGraphLLM({
+        provider: activeConfig.provider as any,
+        model: activeConfig.model,
+        temperature: activeConfig.temperature,
+        maxTokens: activeConfig.maxTokens,
+      });
+
+      const messages = [
+        { role: 'system' as const, content: systemPrompt },
+        { role: 'user' as const, content: userMessage },
+      ];
+
+      const response = await llm.invoke(messages);
+      const content =
+        (response.content as string) ||
+        'I apologize, but I was unable to generate a system response.';
+
+      this.logger.debug(
+        `System operation '${operationType}' completed (${content.length} characters)`,
+      );
+
+      return content;
+    } catch (error) {
+      this.logger.error(`Error in system operation '${operationType}':`, error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(`System LLM operation error: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate response for user content using their preferences
+   * This is the method that should be used for actual user content generation
+   */
+  async generateUserContentResponse(
+    systemPrompt: string,
+    userMessage: string,
+    userPreferences: UserLLMPreferences,
+    authToken?: string,
+    sessionId?: string,
+  ): Promise<{
+    content: string;
+    usage: LLMUsageMetrics;
+    costCalculation: CostCalculation;
+    langsmithRunId?: string;
+    processedPrompt: string;
+    cidafmState?: any;
+    llmMetadata?: {
+      providerId: string;
+      providerName: string;
+      modelId: string;
+      modelName: string;
+      temperature?: number;
+      maxTokens?: number;
+      responseTimeMs?: number;
+    };
+  }> {
+    try {
+      this.logger.log('🎨 User content generation with preferences');
+
+      // Delegate to the existing enhanced response method
+      return await this.generateEnhancedResponse(
+        authToken || 'user',
+        systemPrompt,
+        userMessage,
+        {
+          providerId: userPreferences.providerId,
+          modelId: userPreferences.modelId,
+          cidafmOptions: userPreferences.cidafmOptions,
+          sessionId: sessionId,
+          temperature: userPreferences.temperature,
+          maxTokens: userPreferences.maxTokens,
+        },
+      );
+    } catch (error) {
+      this.logger.error('Error generating user content response:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(`User content LLM error: ${errorMessage}`);
     }
   }
 

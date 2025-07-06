@@ -31,7 +31,7 @@ async function bootstrap() {
   logger.log(`✅ NestJS API server is running on http://localhost:${port}`);
 
   // Ensure agent pool service is ready
-  const agentPoolService = app.get(AgentPoolService);
+  app.get(AgentPoolService);
   logger.log('🔧 Agent pool service is ready');
 
   // Agent discovery and instantiation is now handled by AppService.onModuleInit()

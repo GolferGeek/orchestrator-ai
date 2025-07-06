@@ -68,7 +68,6 @@ describe('ModelsController', () => {
     }).compile();
 
     controller = module.get<ModelsController>(ModelsController);
-    service = module.get<ModelsService>(ModelsService);
   });
 
   afterEach(() => {

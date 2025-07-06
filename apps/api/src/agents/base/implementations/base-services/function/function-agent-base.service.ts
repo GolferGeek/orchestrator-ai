@@ -246,7 +246,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   /**
    * Simple context-based fallback processing
    */
-  private async processWithContext(method: string, params: any): Promise<any> {
+  private async processWithContext(method: string, _params: any): Promise<any> {
     this.functionLogger.debug(
       `Using context fallback for ${this.getAgentName()}`,
     );

@@ -26,6 +26,73 @@ export type CIDAFMTypeName =
 
 export type UserRatingScale = 1 | 2 | 3 | 4 | 5;
 
+// ==================== System Configuration Interfaces ====================
+
+/**
+ * System operation types that may need different LLM configurations
+ */
+export type SystemOperationType =
+  | 'delegation' // Deciding which agent to delegate to
+  | 'agent_selection' // Selecting best agent for task
+  | 'response_coordination' // Coordinating/organizing responses
+  | 'conversation_analysis' // Understanding conversation context
+  | 'error_handling' // Fallback operations
+  | 'default'; // Default system operations
+
+/**
+ * System LLM configuration for orchestrator internal operations
+ * Optimized for fast, cost-effective decision making
+ */
+export interface SystemLLMConfig {
+  /** Provider for system operations (e.g., 'openai') */
+  provider: LLMProvider;
+  /** Model for system operations (e.g., 'gpt-3.5-turbo') */
+  model: string;
+  /** Temperature for consistent decision making (typically low, e.g., 0.1) */
+  temperature: number;
+  /** Max tokens for system operations (typically low for efficiency) */
+  maxTokens: number;
+  /** Whether this config is enabled */
+  enabled: boolean;
+  /** Description of what this config is used for */
+  description?: string;
+}
+
+/**
+ * Collection of system LLM configurations for different operation types
+ */
+export interface SystemLLMConfigs {
+  /** Configuration for delegation decisions */
+  delegation: SystemLLMConfig;
+  /** Configuration for agent selection logic */
+  agent_selection: SystemLLMConfig;
+  /** Configuration for response coordination */
+  response_coordination: SystemLLMConfig;
+  /** Configuration for conversation analysis */
+  conversation_analysis: SystemLLMConfig;
+  /** Configuration for error handling/fallback */
+  error_handling: SystemLLMConfig;
+  /** Default configuration for other system operations */
+  default: SystemLLMConfig;
+}
+
+/**
+ * User LLM preferences for content generation
+ * User-configurable settings for their actual work
+ */
+export interface UserLLMPreferences {
+  /** User's preferred provider ID from database */
+  providerId?: string;
+  /** User's preferred model ID from database */
+  modelId?: string;
+  /** User's preferred temperature setting */
+  temperature?: number;
+  /** User's preferred max tokens */
+  maxTokens?: number;
+  /** CIDAFM options for content modification */
+  cidafmOptions?: CIDAFMOptions;
+}
+
 // ==================== Database Entity Interfaces ====================
 
 export interface Provider {

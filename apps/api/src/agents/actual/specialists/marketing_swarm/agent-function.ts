@@ -208,7 +208,7 @@ Respond with JSON:
  */
 async function selectAgentTeam(
   state: SwarmWorkflowState,
-  llmService: any,
+  _llmService: any,
 ): Promise<SwarmWorkflowState> {
   if (!state.taskAnalysis) {
     throw new Error('Task analysis required before agent selection');

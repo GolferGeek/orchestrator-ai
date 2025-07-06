@@ -454,7 +454,7 @@ export class UsageService {
     return Object.values(grouped);
   }
 
-  private groupByDate(messages: any[], granularity: string): any[] {
+  private groupByDate(messages: any[], _granularity: string): any[] {
     const grouped = messages.reduce((acc: Record<string, any>, msg) => {
       const date = new Date(msg.timestamp).toISOString().split('T')[0]!;
       if (!acc[date]) {
@@ -477,8 +477,8 @@ export class UsageService {
   }
 
   private createBreakdown(
-    stats: UsageStatsResponseDto,
-    groupBy: string,
+    _stats: UsageStatsResponseDto,
+    _groupBy: string,
   ): any[] {
     // Implementation depends on groupBy parameter
     return [];
@@ -527,7 +527,7 @@ export class UsageService {
     };
   }
 
-  private analyzeModelInsights(stats: UsageStatsResponseDto): any {
+  private analyzeModelInsights(_stats: UsageStatsResponseDto): any {
     return {
       mostUsedModel: 'GPT-4o',
       mostExpensiveModel: 'Claude 3 Opus',
@@ -537,9 +537,9 @@ export class UsageService {
   }
 
   private generateRecommendations(
-    stats: any,
+    _stats: any,
     spending: any,
-    insights: any,
+    _insights: any,
   ): any[] {
     return [
       {
@@ -584,7 +584,7 @@ export class UsageService {
     return alerts;
   }
 
-  private generateBudgetRecommendations(currentMonth: any, stats: any): any[] {
+  private generateBudgetRecommendations(currentMonth: any, _stats: any): any[] {
     return [
       {
         action: 'switch_to_cheaper_models',

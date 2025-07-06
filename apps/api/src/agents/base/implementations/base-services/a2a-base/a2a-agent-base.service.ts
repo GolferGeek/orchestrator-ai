@@ -21,10 +21,7 @@ import {
   LoggingService,
   LogContext,
 } from '@agents/base/sub-services/logging/logging.service';
-import {
-  AuthService,
-  AuthContext,
-} from '@agents/base/sub-services/auth/auth.service';
+import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 
 /**

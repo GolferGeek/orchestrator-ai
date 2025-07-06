@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  UseGuards,
-  HttpStatus,
-  HttpException,
-} from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -16,10 +9,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UsageService } from './usage.service';
-import {
-  UsageStatsQueryDto,
-  UsageStatsResponseDto,
-} from '../dto/llm-evaluation.dto';
+import { UsageStatsResponseDto } from '../dto/llm-evaluation.dto';
 
 @ApiTags('Usage Analytics')
 @Controller('usage')
@@ -74,7 +64,8 @@ export class UsageController {
     @Query('provider_id') providerId?: string,
     @Query('model_id') modelId?: string,
     @Query('include_details') includeDetails?: boolean,
-    @Query('granularity') granularity: 'daily' | 'weekly' | 'monthly' = 'daily',
+    @Query('granularity')
+    _granularity: 'daily' | 'weekly' | 'monthly' = 'daily',
   ): Promise<UsageStatsResponseDto> {
     return this.usageService.getUserStats(user.id, {
       startDate,
@@ -82,7 +73,7 @@ export class UsageController {
       providerId,
       modelId,
       includeDetails,
-      granularity,
+      granularity: _granularity,
     });
   }
 
@@ -152,7 +143,7 @@ export class UsageController {
     @CurrentUser() user: any,
     @Query('start_date') startDate?: string,
     @Query('end_date') endDate?: string,
-    @Query('group_by') groupBy: 'provider' | 'model' | 'date' = 'provider',
+    @Query('group_by') _groupBy: 'provider' | 'model' | 'date' = 'provider',
   ): Promise<{
     totalCost: number;
     totalTokens: number;
@@ -175,7 +166,7 @@ export class UsageController {
     return this.usageService.getCostSummary(user.id, {
       startDate,
       endDate,
-      groupBy,
+      groupBy: _groupBy,
     });
   }
 

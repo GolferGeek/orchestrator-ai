@@ -214,7 +214,7 @@ export class ConversationContextService {
   private checkTopicContinuity(
     userMessage: string,
     lastAgentMessage: any,
-    conversationHistory: Array<{
+    _conversationHistory: Array<{
       role: string;
       content: string;
       metadata?: any;
@@ -704,7 +704,7 @@ export class ConversationContextService {
     fromAgent: string,
     toAgent: string,
     userMessage: string,
-    conversationHistory: Array<{
+    _conversationHistory: Array<{
       role: string;
       content: string;
       metadata?: any;

@@ -84,7 +84,7 @@ export class CIDAFMService {
     const client = this.supabaseService.getServiceClient();
 
     // Try built-in commands first
-    const { data: builtinCommand, error: builtinError } = await client
+    const { data: builtinCommand } = await client
       .from('cidafm_commands')
       .select('*')
       .eq('id', id)
@@ -95,7 +95,7 @@ export class CIDAFMService {
     }
 
     // If not found in built-in, try user commands
-    const { data: userCommand, error: userError } = await client
+    const { data: userCommand } = await client
       .from('user_cidafm_commands')
       .select('*')
       .eq('id', id)
@@ -248,7 +248,7 @@ export class CIDAFMService {
     userId: string,
     message: string,
     currentState?: Record<string, any>,
-    sessionId?: string,
+    _sessionId?: string,
   ): Promise<{
     modifiedPrompt: string;
     activeStateModifiers: string[];
@@ -300,7 +300,8 @@ export class CIDAFMService {
           modifiedPrompt = modifiedPrompt.replace(foundCommand.full, '').trim();
           break;
 
-        case '&': // State modifier
+        case '&': {
+          // State modifier
           const isActive = state.active_state_modifiers.includes(
             foundCommand.name,
           );
@@ -322,6 +323,7 @@ export class CIDAFMService {
           // Remove the command from the prompt
           modifiedPrompt = modifiedPrompt.replace(foundCommand.full, '').trim();
           break;
+        }
 
         case '!': // Execution command
           executedCommands.push(foundCommand.name);
@@ -387,8 +389,8 @@ export class CIDAFMService {
   }
 
   async resetSessionState(
-    userId: string,
-    sessionId: string,
+    _userId: string,
+    _sessionId: string,
   ): Promise<{
     message: string;
     reset_state: Record<string, any>;

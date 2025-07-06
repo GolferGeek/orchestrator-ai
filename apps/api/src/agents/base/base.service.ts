@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class BaseService {
-  async processTask(taskRequest: any): Promise<any> {
+  async processTask(_taskRequest: any): Promise<any> {
     // Base implementation for task processing
     // This will be overridden by specific agent implementations
     throw new Error('processTask must be implemented by derived service');

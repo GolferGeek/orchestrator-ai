@@ -39,7 +39,7 @@ describe('Orchestrator Core (e2e)', () => {
       if (loginResponse.status === 200) {
         authToken = loginResponse.body.accessToken;
       }
-    } catch (_error) {
+    } catch {
       console.log(
         'Authentication failed, continuing without token for basic tests',
       );

@@ -184,12 +184,9 @@ export class AgentFactoryService {
 
     try {
       switch (config.type) {
-        case 'orchestrator':
+        case 'orchestrator': {
           this.logger.debug(`🎯 Creating orchestrator agent`);
           // Import and create the modular services for orchestrator
-          const { AgentDiscoveryService } = await import(
-            './agents/actual/orchestrator/services/agent-discovery.service'
-          );
           const { ConversationContextService } = await import(
             './agents/actual/orchestrator/services/conversation-context.service'
           );
@@ -201,11 +198,11 @@ export class AgentFactoryService {
           );
 
           // Create instances of the modular services
-          const agentDiscoveryService = new AgentDiscoveryService(
+          const conversationContextService = new ConversationContextService();
+          const delegationService = new DelegationService(
+            this.httpService,
             this.llmService,
           );
-          const conversationContextService = new ConversationContextService();
-          const delegationService = new DelegationService(this.httpService);
           const responseGenerationService = new ResponseGenerationService(
             this.llmService,
           );
@@ -216,41 +213,47 @@ export class AgentFactoryService {
             this.sessionsService,
             this.supabaseService,
             // Add the modular services
-            agentDiscoveryService,
             conversationContextService,
             delegationService,
             responseGenerationService,
           );
+        }
 
-        case 'function':
+        case 'function': {
           this.logger.debug(`⚙️ Creating TypeScript function agent`);
           return new ServiceClass(this.httpService, this.llmService);
+        }
 
-        case 'python-function':
+        case 'python-function': {
           this.logger.debug(`🐍 Creating Python function agent`);
           return new ServiceClass(this.llmService, this.httpService);
+        }
 
-        case 'context':
+        case 'context': {
           this.logger.debug(`📝 Creating context agent`);
           return new ServiceClass(this.httpService, this.llmService);
+        }
 
-        case 'api':
+        case 'api': {
           this.logger.debug(`🌐 Creating API agent`);
           return new ServiceClass(this.httpService, this.llmService);
+        }
 
-        case 'external':
+        case 'external': {
           this.logger.debug(`🔗 Creating external A2A agent`);
           return new ServiceClass(
             this.httpService,
             this.configurationService,
             this.agentRegistrationService,
           );
+        }
 
-        default:
+        default: {
           this.logger.warn(
             `❓ Unknown agent type: ${config.type}, using minimal dependencies`,
           );
           return new ServiceClass(this.httpService);
+        }
       }
     } catch (error: any) {
       this.logger.error(`Failed to instantiate ${serviceName}:`, error.message);

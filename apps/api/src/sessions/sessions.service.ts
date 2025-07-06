@@ -442,7 +442,7 @@ export class SessionsService {
       }
 
       // Add user message to database
-      const userMessage = await this.addMessage(
+      await this.addMessage(
         sessionId,
         {
           role: 'user',

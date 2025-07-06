@@ -202,7 +202,7 @@ export class SupabaseService implements OnModuleInit {
 
     try {
       // Attempt a simple query to test connectivity
-      const { data, error } = await this.anonClient
+      const { error } = await this.anonClient
         .from('users') // Assuming users table exists from FastAPI schema
         .select('id')
         .limit(1);

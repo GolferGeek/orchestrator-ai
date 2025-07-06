@@ -73,7 +73,6 @@ describe('ProvidersController', () => {
       .compile();
 
     controller = module.get<ProvidersController>(ProvidersController);
-    service = module.get<ProvidersService>(ProvidersService);
   });
 
   afterEach(() => {

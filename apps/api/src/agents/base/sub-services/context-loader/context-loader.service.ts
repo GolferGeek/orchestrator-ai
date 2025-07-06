@@ -213,8 +213,8 @@ export class ContextLoaderService {
    */
   buildSystemPrompt(
     context: AgentContextContent,
-    agentName: string,
-    agentType: string,
+    _agentName: string,
+    _agentType: string,
   ): string {
     let prompt = context.systemPrompt;
 

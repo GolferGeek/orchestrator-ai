@@ -19,7 +19,6 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  LLMProvider,
   ProviderStatus,
   ModelStatus,
   AuthType,

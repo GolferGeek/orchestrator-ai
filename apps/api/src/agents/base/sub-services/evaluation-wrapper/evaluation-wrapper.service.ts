@@ -143,9 +143,6 @@ export class EvaluationWrapperService {
     };
 
     // Initialize caches with configuration
-    const cacheOptions = {
-      maxSize: this.config.maxCacheSize || 1000,
-    };
 
     this.metricsCache = new Map<string, EvaluationMetrics>();
     this.performanceSnapshots = new Map<string, PerformanceSnapshot>();
@@ -347,8 +344,8 @@ export class EvaluationWrapperService {
     // Check for required fields in A2A responses
     if (typeof response === 'object' && response !== null) {
       if (
-        !response.hasOwnProperty('success') &&
-        !response.hasOwnProperty('result')
+        !Object.prototype.hasOwnProperty.call(response, 'success') &&
+        !Object.prototype.hasOwnProperty.call(response, 'result')
       ) {
         warnings.push({
           field: 'response',
@@ -647,7 +644,7 @@ export class EvaluationWrapperService {
    */
   private evaluateAccuracy(
     response: any,
-    context?: Record<string, any>,
+    _context?: Record<string, any>,
   ): number {
     // This would typically involve more sophisticated accuracy checking
     // For now, we'll use basic heuristics
@@ -806,7 +803,7 @@ export class EvaluationWrapperService {
 
     if (schema.required && Array.isArray(schema.required)) {
       for (const requiredField of schema.required) {
-        if (!response.hasOwnProperty(requiredField)) {
+        if (!Object.prototype.hasOwnProperty.call(response, requiredField)) {
           errors.push({
             field: requiredField,
             message: `Required field '${requiredField}' is missing`,
