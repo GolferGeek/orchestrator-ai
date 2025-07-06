@@ -25,18 +25,7 @@ describe('ModelsService', () => {
     updatedAt: '2024-01-01T00:00:00.000Z',
   };
 
-  const mockModelWithProvider = {
-    ...mockModel,
-    provider: {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      name: 'OpenAI',
-      apiBaseUrl: 'https://api.openai.com/v1',
-      authType: 'api_key',
-      status: 'active',
-      createdAt: '2024-01-01T00:00:00.000Z',
-      updatedAt: '2024-01-01T00:00:00.000Z',
-    },
-  };
+  // Removed unused mockModelWithProvider
 
   const mockExpensiveModel: ModelResponseDto = {
     id: '789e1234-e89b-12d3-a456-426614174001',
@@ -96,7 +85,6 @@ describe('ModelsService', () => {
     }).compile();
 
     service = module.get<ModelsService>(ModelsService);
-    supabaseService = module.get<SupabaseService>(SupabaseService);
   });
 
   afterEach(() => {

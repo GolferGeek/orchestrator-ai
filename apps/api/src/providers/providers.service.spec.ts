@@ -107,7 +107,6 @@ describe('ProvidersService', () => {
     }).compile();
 
     service = module.get<ProvidersService>(ProvidersService);
-    supabaseService = module.get<SupabaseService>(SupabaseService);
   });
 
   afterEach(() => {

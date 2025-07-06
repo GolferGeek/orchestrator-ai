@@ -114,6 +114,8 @@ url: \${API_HOST}:\${API_PORT:4000}
     });
 
     it('should resolve relative file paths', async () => {
+      await service.parseYamlFile('/test/config.yaml');
+
       expect(mockFs.readFileSync).toHaveBeenCalledWith(
         '/test/config.yaml',
         'utf8',

@@ -11,12 +11,13 @@ import { AppModule } from '../src/app.module';
 describe('Authenticated Agent End-to-End Tests', () => {
   let app: INestApplication;
   let authToken: string;
-  const testUser = {
-    email: process.env.SUPABASE_TEST_USER || 'testuser@golfergeek.com',
-    password: process.env.SUPABASE_TEST_PASSWORD || 'testuser01!',
-  };
+  // const testUser = {
+  //   email: process.env.SUPABASE_TEST_USER || 'testuser@golfergeek.com',
+  //   password: process.env.SUPABASE_TEST_PASSWORD || 'testuser01!',
+  // };
 
-  // Helper function to refresh token if needed
+  // Helper function to refresh token if needed (currently unused but may be needed later)
+  /*
   const _ensureValidToken = async () => {
     try {
       // Test if current token is still valid
@@ -45,6 +46,7 @@ describe('Authenticated Agent End-to-End Tests', () => {
       console.log('Token refreshed after error');
     }
   };
+  */
 
   // Available specialist agents to test
   const specialistAgents = [

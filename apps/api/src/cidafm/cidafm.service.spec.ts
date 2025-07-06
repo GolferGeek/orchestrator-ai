@@ -69,7 +69,6 @@ describe('CIDAFMService', () => {
     }).compile();
 
     service = module.get<CIDAFMService>(CIDAFMService);
-    supabaseService = module.get<SupabaseService>(SupabaseService);
   });
 
   afterEach(() => {

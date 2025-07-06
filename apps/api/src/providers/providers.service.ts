@@ -6,17 +6,8 @@ import {
   ProviderResponseDto,
   ModelResponseDto,
 } from '../dto/llm-evaluation.dto';
-import {
-  Provider,
-  Model,
-  ProviderStatus,
-  ModelStatus,
-} from '../types/llm-evaluation';
-import {
-  mapProviderFromDb,
-  mapProviderToDb,
-  mapModelFromDb,
-} from '../utils/case-converter';
+import { ProviderStatus, ModelStatus } from '../types/llm-evaluation';
+import { mapProviderFromDb, mapModelFromDb } from '../utils/case-converter';
 
 @Injectable()
 export class ProvidersService {

@@ -15,7 +15,8 @@ export class ResponseGenerationService {
   constructor(private readonly llmService: LLMService) {}
 
   /**
-   * Generate a direct response from the orchestrator
+   * Generate a direct response from the orchestrator using system configuration
+   * Note: User LLM preferences are NOT used for orchestrator internal operations
    */
   async generateDirectResponse(
     userMessage: string,
@@ -26,22 +27,10 @@ export class ResponseGenerationService {
       metadata?: any;
     }>,
     userContext?: string,
-    llmPreferences?: any,
   ): Promise<any> {
     try {
-      // Use enhanced LLM if preferences provided
-      if (llmPreferences?.providerId || llmPreferences?.modelId) {
-        return await this.generateEnhancedResponse(
-          userMessage,
-          availableAgents,
-          conversationHistory,
-          userContext,
-          llmPreferences,
-        );
-      }
-
-      // Generate standard orchestrator response
-      return await this.generateStandardResponse(
+      // Always use system configuration for orchestrator operations
+      return await this.generateSystemResponse(
         userMessage,
         availableAgents,
         conversationHistory,
@@ -165,7 +154,7 @@ Would you like me to connect you with them?`;
     };
   }
 
-  private async generateEnhancedResponse(
+  private async generateSystemResponse(
     userMessage: string,
     availableAgents: AvailableAgent[],
     conversationHistory?: Array<{
@@ -174,7 +163,6 @@ Would you like me to connect you with them?`;
       metadata?: any;
     }>,
     userContext?: string,
-    llmPreferences?: any,
   ): Promise<any> {
     try {
       const systemPrompt = this.buildOrchestratorSystemPrompt(
@@ -182,35 +170,27 @@ Would you like me to connect you with them?`;
         userContext,
       );
 
-      const enhancedResponse = await this.llmService.generateEnhancedResponse(
-        'orchestrator',
+      // Use system configuration for orchestrator operations - specifically 'response_coordination'
+      const systemResponse = await this.llmService.generateSystemResponse(
+        'response_coordination',
         systemPrompt,
         userMessage,
-        {
-          providerId: llmPreferences.providerId,
-          modelId: llmPreferences.modelId,
-          cidafmOptions: llmPreferences.cidafmOptions,
-          temperature: 0.7,
-          maxTokens: 500,
-        },
       );
 
       return {
         success: true,
-        response: enhancedResponse.content,
+        response: systemResponse,
         metadata: {
           agentType: 'orchestrator',
           agentName: 'Orchestrator Agent',
           processedAt: new Date().toISOString(),
-          llmUsage: enhancedResponse.usage,
-          llmUsed: enhancedResponse.llmMetadata,
-          costCalculation: enhancedResponse.costCalculation,
-          enhanced: true,
+          systemOperation: 'response_coordination',
+          systemLLMUsed: true,
         },
       };
     } catch (error) {
       this.logger.warn(
-        'Enhanced response failed, falling back to standard:',
+        'System response failed, falling back to standard:',
         error,
       );
       return await this.generateStandardResponse(

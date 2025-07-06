@@ -1,21 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
-import { LLMService } from '@llm/llm.service';
-import { SessionsService } from './sessions/sessions.service';
-import { SupabaseService } from './supabase/supabase.service';
-import {
-  AgentRegistrationService,
-  AgentInfo,
-} from './agents/base/sub-services/agent-registration/agent-registration.service';
-import { AgentPoolService } from './agent-pool/agent-pool.service';
 import * as fs from 'fs';
-
-type ServiceClass = new (...args: any[]) => any;
-
-type AgentFunction = (...args: any[]) => any;
 
 export interface DiscoveredAgent {
   name: string;
@@ -47,7 +33,7 @@ export class AgentDiscoveryService {
     await this.traverseDirectory(agentsBasePath);
 
     // Discover agent functions after service discovery
-    await this.discoverAgentFunctions();
+    this.discoverAgentFunctions();
 
     this.logger.log(`✅ Discovered ${this.discoveredAgents.length} agents`);
     return this.discoveredAgents;
@@ -142,7 +128,7 @@ export class AgentDiscoveryService {
   /**
    * Discover agent functions (TypeScript and Python)
    */
-  private async discoverAgentFunctions(): Promise<void> {
+  private discoverAgentFunctions(): void {
     this.logger.debug('🔍 Discovering agent functions...');
 
     for (const agent of this.discoveredAgents) {

@@ -7,7 +7,7 @@ import {
   CostEstimateDto,
   CostEstimateResponseDto,
 } from '../dto/llm-evaluation.dto';
-import { Model, ModelStatus, CostCalculation } from '../types/llm-evaluation';
+import { ModelStatus, CostCalculation } from '../types/llm-evaluation';
 import { mapModelFromDb } from '../utils/case-converter';
 
 interface ModelFilters {

@@ -176,7 +176,7 @@ export class AuthService {
       const authenticatedClient =
         this.supabaseService.createAuthenticatedClient(token);
 
-      const { data: userData, error } = await authenticatedClient
+      const { data: userData } = await authenticatedClient
         .from('profiles')
         .select('id, email, display_name, created_at')
         .eq('id', currentAuthUser.id)

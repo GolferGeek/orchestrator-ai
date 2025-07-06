@@ -7,7 +7,6 @@ import { SessionsModule } from '../../../sessions/sessions.module';
 import { SupabaseModule } from '../../../supabase/supabase.module';
 
 // Import the new modular services
-import { AgentDiscoveryService } from './services/agent-discovery.service';
 import { ConversationContextService } from './services/conversation-context.service';
 import { DelegationService } from './services/delegation.service';
 import { ResponseGenerationService } from './services/response-generation.service';
@@ -17,7 +16,6 @@ import { ResponseGenerationService } from './services/response-generation.servic
   controllers: [OrchestratorController],
   providers: [
     OrchestratorService,
-    AgentDiscoveryService,
     ConversationContextService,
     DelegationService,
     ResponseGenerationService,

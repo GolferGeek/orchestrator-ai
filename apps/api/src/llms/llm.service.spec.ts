@@ -96,8 +96,6 @@ describe('LLMService', () => {
     }).compile();
 
     service = module.get<LLMService>(LLMService);
-    supabaseService = module.get<SupabaseService>(SupabaseService);
-    cidafmService = module.get<CIDAFMService>(CIDAFMService);
   });
 
   afterEach(() => {
