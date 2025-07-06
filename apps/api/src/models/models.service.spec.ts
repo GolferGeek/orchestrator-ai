@@ -2,16 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ModelsService } from './models.service';
 import { SupabaseService } from '../supabase/supabase.service';
-import {
-  CreateModelDto,
-  UpdateModelDto,
-  CostEstimateDto,
-  ModelResponseDto,
-} from '../dto/llm-evaluation.dto';
+import { CostEstimateDto, ModelResponseDto } from '../dto/llm-evaluation.dto';
 
 describe('ModelsService', () => {
   let service: ModelsService;
-  let supabaseService: SupabaseService;
 
   const mockModel: ModelResponseDto = {
     id: '456e7890-e89b-12d3-a456-426614174000',

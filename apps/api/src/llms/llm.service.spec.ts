@@ -7,8 +7,6 @@ import { Provider, Model } from '../types/llm-evaluation';
 
 describe('LLMService', () => {
   let service: LLMService;
-  let supabaseService: SupabaseService;
-  let cidafmService: CIDAFMService;
 
   const mockProvider: Provider = {
     id: '123e4567-e89b-12d3-a456-426614174000',

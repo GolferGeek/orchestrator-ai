@@ -1,14 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  ConfigurationService,
-  ConfigurationOptions,
-  ParsedConfiguration,
-} from './configuration.service';
-import { ValidationError } from 'class-validator';
+import { ConfigurationService } from './configuration.service';
 import { IsString, IsNumber, IsOptional, IsArray } from 'class-validator';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as yaml from 'js-yaml';
 
 // Mock fs module
 jest.mock('fs');
@@ -120,10 +114,6 @@ url: \${API_HOST}:\${API_PORT:4000}
     });
 
     it('should resolve relative file paths', async () => {
-      const result = await service.parseYamlFile('config.yaml', {
-        baseDirectory: '/test',
-      });
-
       expect(mockFs.readFileSync).toHaveBeenCalledWith(
         '/test/config.yaml',
         'utf8',

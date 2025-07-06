@@ -10,7 +10,6 @@ import { AuthType } from '../types/llm-evaluation';
 
 describe('ProvidersService', () => {
   let service: ProvidersService;
-  let supabaseService: SupabaseService;
 
   // Mock database data in snake_case (as stored in DB)
   const mockDbProvider = {

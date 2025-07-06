@@ -11,7 +11,6 @@ import {
 
 describe('ModelsController', () => {
   let controller: ModelsController;
-  let service: ModelsService;
 
   const mockModelResponse: ModelResponseDto = {
     id: '456e7890-e89b-12d3-a456-426614174000',

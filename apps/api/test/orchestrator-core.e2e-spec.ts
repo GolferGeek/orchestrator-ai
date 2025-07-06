@@ -1,5 +1,7 @@
-require('dotenv').config({
-  path: require('path').resolve(__dirname, '../../.env'),
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+dotenv.config({
+  path: path.resolve(__dirname, '../../.env'),
 });
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
@@ -37,7 +39,7 @@ describe('Orchestrator Core (e2e)', () => {
       if (loginResponse.status === 200) {
         authToken = loginResponse.body.accessToken;
       }
-    } catch (error) {
+    } catch (_error) {
       console.log(
         'Authentication failed, continuing without token for basic tests',
       );
