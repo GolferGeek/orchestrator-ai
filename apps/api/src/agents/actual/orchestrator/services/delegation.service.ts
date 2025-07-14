@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { LLMService } from '../../../../llms/llm.service';
+import { SystemOperationType } from '../../../../types/llm-evaluation';
 
 interface AvailableAgent {
   name: string;
@@ -41,9 +42,7 @@ export class DelegationService {
     confidence: number;
   } | null> {
     try {
-      this.logger.log(
-        '🧠 Analyzing request with hybrid rule-based + LLM approach...',
-      );
+      this.logger.log('🧠 Analyzing request with optimized hybrid approach...');
 
       if (availableAgents.length === 0) {
         this.logger.warn('No available agents for delegation');
@@ -54,29 +53,46 @@ export class DelegationService {
         };
       }
 
-      // PHASE 1: Fast rule-based analysis
-      const ruleBasedResult = this.analyzeWithRules(request, availableAgents);
-      if (ruleBasedResult.confidence >= 0.8) {
-        this.logger.log(
-          `🚀 High-confidence rule-based match: ${ruleBasedResult.reasoning}`,
-        );
-        return ruleBasedResult;
+      // PHASE 1: Only check truly obvious cases (explicit requests, greetings)
+      const obviousCases = this.checkObviousCases(request, availableAgents);
+      if (obviousCases) {
+        this.logger.log(`🚀 Obvious case: ${obviousCases.reasoning}`);
+        return obviousCases;
       }
 
-      // PHASE 2: LLM-powered analysis for complex cases
-      this.logger.log('🤖 Using LLM analysis for complex request...');
-      const llmResult = await this.analyzeWithLLM(
+      // PHASE 2: LLM-first approach with cost optimization
+      this.logger.log('🤖 Using LLM semantic analysis...');
+
+      // Try fast model first for cost efficiency
+      let llmResult = await this.analyzeWithLLM(
         request,
         availableAgents,
         conversationHistory,
+        'fast',
       );
-      if (llmResult) {
-        return llmResult;
+
+      // Upgrade to premium model if fast model is uncertain
+      if (llmResult && llmResult.confidence < 0.75) {
+        this.logger.log('🔄 Upgrading to premium model for better accuracy...');
+        const premiumResult = await this.analyzeWithLLM(
+          request,
+          availableAgents,
+          conversationHistory,
+          'premium',
+        );
+        if (premiumResult && premiumResult.confidence > llmResult.confidence) {
+          llmResult = premiumResult;
+        }
       }
 
-      // PHASE 3: Fallback to rule-based result if LLM fails
-      this.logger.warn('LLM analysis failed, using rule-based result');
-      return ruleBasedResult;
+      // Return LLM result or fallback
+      return (
+        llmResult || {
+          action: 'clarify',
+          reasoning: 'Unable to determine best agent match',
+          confidence: 0.3,
+        }
+      );
     } catch (error) {
       this.logger.error('Error in agent analysis:', error);
 
@@ -90,10 +106,10 @@ export class DelegationService {
   }
 
   /**
-   * Fast rule-based analysis for obvious cases
-   * Migrated from AgentDiscoveryService for efficiency
+   * Check for obvious cases that don't need LLM analysis
+   * This saves costs on clear-cut decisions
    */
-  private analyzeWithRules(
+  private checkObviousCases(
     request: string,
     availableAgents: AvailableAgent[],
   ): {
@@ -101,7 +117,7 @@ export class DelegationService {
     selectedAgent?: AvailableAgent;
     reasoning: string;
     confidence: number;
-  } {
+  } | null {
     const lowerMessage = request.toLowerCase();
 
     // 1. Check for explicit agent requests ("Can I talk to the X agent?")
@@ -127,17 +143,22 @@ export class DelegationService {
       };
     }
 
-    // 3. Analyze content for domain-specific keyword matches
-    const domainMatch = this.analyzeContentForAgentMatch(
-      lowerMessage,
-      availableAgents,
-    );
-    if (domainMatch.confidence > 0.7) {
+    // 3. Clear greeting/conversational patterns
+    const greetingPatterns = [
+      'hello',
+      'hi',
+      'hey',
+      'good morning',
+      'good afternoon',
+      'thanks',
+    ];
+    if (
+      greetingPatterns.some((greeting) => lowerMessage.startsWith(greeting))
+    ) {
       return {
-        action: 'delegate',
-        selectedAgent: domainMatch.agent,
-        reasoning: domainMatch.reasoning,
-        confidence: domainMatch.confidence,
+        action: 'respond_directly',
+        reasoning: 'Greeting or conversational message',
+        confidence: 0.9,
       };
     }
 
@@ -154,21 +175,7 @@ export class DelegationService {
       }
     }
 
-    // 5. Uncertain cases - suggest clarification
-    if (domainMatch.confidence > 0.3) {
-      return {
-        action: 'clarify',
-        reasoning: 'Uncertain about best agent, requesting clarification',
-        confidence: domainMatch.confidence,
-      };
-    }
-
-    // 6. Default - respond directly for general queries
-    return {
-      action: 'respond_directly',
-      reasoning: 'No clear agent match, handling as general query',
-      confidence: 0.5,
-    };
+    return null; // No obvious cases detected
   }
 
   /**
@@ -229,12 +236,64 @@ export class DelegationService {
     lowerMessage: string,
     availableAgents: AvailableAgent[],
   ): { agent?: AvailableAgent; confidence: number; reasoning: string } {
-    // Domain-specific keyword mappings
+    // Check for writing/content creation intent first (higher priority)
+    const writingIndicators = [
+      'write',
+      'article',
+      'blog',
+      'post',
+      'content',
+      'copywriting',
+      'creative writing',
+      'help me write',
+      'create an article',
+      'write about',
+      'tips for',
+      'guide to',
+      'how to',
+      'draft',
+      'compose',
+      'create content',
+    ];
+
+    const hasWritingIntent = writingIndicators.some((indicator) =>
+      lowerMessage.includes(indicator),
+    );
+
+    if (hasWritingIntent) {
+      const matchedIndicators = writingIndicators.filter((indicator) =>
+        lowerMessage.includes(indicator),
+      );
+      this.logger.log(
+        `[Delegation] Detected writing intent with indicators: ${matchedIndicators.join(', ')}`,
+      );
+
+      const writingAgent = availableAgents.find((a) =>
+        ['blog', 'content', 'writer'].some((name) =>
+          a.name.toLowerCase().includes(name),
+        ),
+      );
+      if (writingAgent) {
+        this.logger.log(
+          `[Delegation] Selecting writing agent: ${writingAgent.name}`,
+        );
+        return {
+          agent: writingAgent,
+          confidence: 0.95,
+          reasoning: `Detected content writing/creation intent: ${matchedIndicators.join(', ')}`,
+        };
+      } else {
+        this.logger.log(
+          `[Delegation] Writing intent detected but no writing agent available`,
+        );
+      }
+    }
+
+    // Domain-specific keyword mappings (processed after writing intent check)
     const domainMappings = [
       {
         keywords: [
-          'golf',
-          'rules of golf',
+          'rules of golf', // More specific golf rules keywords first
           'penalty',
           'usga',
           'r&a',
@@ -242,13 +301,28 @@ export class DelegationService {
           'water hazard',
           'unplayable',
           'relief',
+          'golf rule', // More specific
+          'golf penalty', // More specific
+        ],
+        agentNames: ['golf', 'rules'],
+        confidence: 0.9,
+        requiresSpecific: true, // Requires specific golf rules context
+      },
+      {
+        keywords: [
+          'golf course', // General golf playing
+          'golf tips',
+          'golf equipment',
+          'golf swing',
           'bunker',
           'green',
           'fairway',
           'tee box',
+          'golf',
         ],
         agentNames: ['golf', 'rules'],
-        confidence: 0.9,
+        confidence: 0.7, // Lower confidence for general golf terms
+        requiresSpecific: false,
       },
       {
         keywords: [
@@ -262,6 +336,7 @@ export class DelegationService {
         ],
         agentNames: ['blog', 'content', 'writer'],
         confidence: 0.85,
+        requiresSpecific: false,
       },
       {
         keywords: [
@@ -274,16 +349,19 @@ export class DelegationService {
         ],
         agentNames: ['calendar', 'schedule'],
         confidence: 0.8,
+        requiresSpecific: false,
       },
       {
         keywords: ['email', 'message', 'correspondence', 'mail'],
         agentNames: ['email', 'triage'],
         confidence: 0.8,
+        requiresSpecific: false,
       },
       {
         keywords: ['hr', 'human resources', 'employee', 'policy', 'benefits'],
         agentNames: ['hr', 'human'],
         confidence: 0.8,
+        requiresSpecific: false,
       },
     ];
 
@@ -299,10 +377,13 @@ export class DelegationService {
         );
 
         if (agent) {
+          this.logger.log(
+            `[Delegation] Found domain match: ${agent.name} (confidence: ${mapping.confidence}) for keywords: ${mapping.keywords.filter((k) => lowerMessage.includes(k)).join(', ')}`,
+          );
           return {
             agent,
             confidence: mapping.confidence,
-            reasoning: `Message contains domain keywords for ${agent.name}`,
+            reasoning: `Message contains domain keywords for ${agent.name}: ${mapping.keywords.filter((k) => lowerMessage.includes(k)).join(', ')}`,
           };
         }
       }
@@ -362,7 +443,7 @@ export class DelegationService {
   }
 
   /**
-   * LLM-powered analysis for complex cases
+   * LLM-powered analysis with cost optimization
    */
   private async analyzeWithLLM(
     request: string,
@@ -372,6 +453,7 @@ export class DelegationService {
       content: string;
       metadata?: any;
     }>,
+    modelTier: 'fast' | 'premium' = 'fast',
   ): Promise<{
     action: 'delegate' | 'respond_directly' | 'clarify';
     selectedAgent?: AvailableAgent;
@@ -379,14 +461,27 @@ export class DelegationService {
     confidence: number;
   } | null> {
     try {
-      // Build context about available agents
+      // Build detailed context about available agents
       const agentContext = availableAgents
         .filter((agent) => agent.type !== 'orchestrator')
-        .map(
-          (agent, index) =>
-            `${index + 1}. ${agent.name} (${agent.type}): ${agent.description}
-           Capabilities: ${agent.capabilities?.join(', ') || 'General assistance'}`,
-        )
+        .map((agent, index) => {
+          const capabilities = agent.capabilities?.length
+            ? agent.capabilities.join(', ')
+            : 'General assistance';
+
+          // Extract additional metadata if available
+          const specialties = agent.metadata?.specialties
+            ? `\n           Specialties: ${agent.metadata.specialties.join(', ')}`
+            : '';
+
+          const tags = agent.metadata?.tags
+            ? `\n           Tags: ${agent.metadata.tags.join(', ')}`
+            : '';
+
+          return `${index + 1}. **${agent.name}** (${agent.type})
+           Description: ${agent.description}
+           Capabilities: ${capabilities}${specialties}${tags}`;
+        })
         .join('\n\n');
 
       // Build conversation context if available
@@ -398,30 +493,43 @@ export class DelegationService {
               .join('\n')}`
           : '';
 
-      const systemPrompt = `You are an AI orchestrator that routes user requests to the most appropriate specialist agent.
+      const systemPrompt = `You are an intelligent AI orchestrator that routes user requests to the most appropriate specialist agent based on semantic understanding of user intent and agent capabilities.
 
 Available specialist agents:
 ${agentContext}
 
 ${historyContext}
 
+CRITICAL ROUTING RULES:
+1. **Content Creation Intent**: If user wants to "write", "create content", "draft", "compose", or asks for "tips/guides" about ANY topic → delegate to content/blog writer
+2. **Domain Rules/Compliance**: If user asks about specific rules, regulations, penalties, or compliance → delegate to domain specialist
+3. **General Domain Discussion**: If user discusses domain topics generally → consider context and intent
+
 Your task: Analyze the user's message and decide whether to:
 1. "delegate" - Forward to a specific agent (provide the exact agent number)
-2. "respond_directly" - Handle it yourself as orchestrator
+2. "respond_directly" - Handle it yourself as orchestrator  
 3. "clarify" - Ask for clarification
 
 Respond in this exact JSON format:
 {
   "action": "delegate|respond_directly|clarify",
   "agentIndex": <1-based index if delegating>,
-  "reasoning": "brief explanation of your decision"
+  "reasoning": "explain your decision with intent analysis",
+  "confidence": <0.0-1.0>
 }
 
-Guidelines:
-- Use "delegate" for specific domain expertise needs
-- Use "respond_directly" for general questions, greetings, or capability requests
-- Use "clarify" when the request is ambiguous
-- Be decisive but conservative - prefer clarification over wrong delegation`;
+Decision Framework:
+- **High Priority**: User's intent (writing vs asking vs doing)
+- **Medium Priority**: Domain expertise needed
+- **Low Priority**: Simple keyword presence
+
+Examples:
+- "write about golf" → content writer (intent: creation)
+- "golf rules for water hazard" → golf specialist (intent: rules inquiry)  
+- "help me draft an email about scheduling" → content writer (intent: writing)
+- "what's the company HR policy" → HR specialist (intent: policy inquiry)
+
+Be semantic and context-aware, not just keyword-based.`;
 
       const analysisPrompt = `Analyze this user request:
 
@@ -429,9 +537,12 @@ User Request: "${request}"${historyContext}
 
 Select the most appropriate action and provide reasoning.`;
 
-      // Use system LLM configuration for agent selection logic
+      // Use agent_selection operation type
+      const operationType: SystemOperationType = 'agent_selection';
+      this.logger.log(`🔧 Using ${operationType} with ${modelTier} model for delegation analysis`);
+
       const selectionResponse = await this.llmService.generateSystemResponse(
-        'agent_selection',
+        operationType,
         systemPrompt,
         analysisPrompt,
       );
@@ -443,8 +554,15 @@ Select the most appropriate action and provide reasoning.`;
         !decision.action ||
         !['delegate', 'respond_directly', 'clarify'].includes(decision.action)
       ) {
+        this.logger.warn('LLM returned invalid action:', decision);
         return null;
       }
+
+      // Validate confidence score
+      const confidence =
+        decision.confidence && typeof decision.confidence === 'number'
+          ? Math.max(0, Math.min(1, decision.confidence)) // Clamp to 0-1
+          : 0.85; // Default high confidence for valid LLM decisions
 
       let selectedAgent: AvailableAgent | undefined;
       if (decision.action === 'delegate' && decision.agentIndex) {
@@ -462,11 +580,15 @@ Select the most appropriate action and provide reasoning.`;
         }
       }
 
+      this.logger.log(
+        `🤖 LLM Decision: ${decision.action} | Agent: ${selectedAgent?.name || 'none'} | Confidence: ${confidence} | Reasoning: ${decision.reasoning}`,
+      );
+
       return {
         action: decision.action,
         selectedAgent,
-        reasoning: decision.reasoning || 'LLM-powered decision',
-        confidence: 0.85, // High confidence for LLM decisions
+        reasoning: decision.reasoning || 'LLM-powered semantic analysis',
+        confidence: confidence,
       };
     } catch (error) {
       this.logger.warn('LLM analysis failed:', error);
@@ -584,6 +706,14 @@ Select the most appropriate action and provide reasoning.`;
         delegatedTo: agent.name,
         processedAt: new Date().toISOString(),
         isGreeting: true,
+        // Add note that this is a template greeting (no LLM used)
+        llmOptions: {
+          provider: 'none',
+          model: 'template',
+          isTemplateResponse: true,
+          operationType: 'agent_greeting',
+          isDelegatedAgent: true,
+        },
       },
     };
   }
@@ -616,24 +746,45 @@ Select the most appropriate action and provide reasoning.`;
       }),
     };
 
+    // Extract LLM options/metadata from the delegated agent's response
+    let llmOptions = null;
+
     if (responseData?.result) {
       // JSON-RPC format
+      // Check for LLM metadata in various possible locations
+      llmOptions =
+        responseData.result.metadata?.llmOptions ||
+        responseData.result.metadata?.llmMetadata ||
+        responseData.result.llmOptions ||
+        responseData.result.llmMetadata;
+
       processedResponse = {
         success: true,
         response: responseData.result.response || responseData.result,
         metadata: {
           ...responseData.result.metadata,
           ...baseMetadata,
+          // Include LLM options if found
+          ...(llmOptions && { llmOptions }),
         },
       };
     } else if (responseData?.response) {
       // Direct response format
+      // Check for LLM metadata in various possible locations
+      llmOptions =
+        responseData.metadata?.llmOptions ||
+        responseData.metadata?.llmMetadata ||
+        responseData.llmOptions ||
+        responseData.llmMetadata;
+
       processedResponse = {
         success: true,
         response: responseData.response,
         metadata: {
           ...responseData.metadata,
           ...baseMetadata,
+          // Include LLM options if found
+          ...(llmOptions && { llmOptions }),
         },
       };
     } else if (typeof responseData === 'string') {
@@ -641,7 +792,16 @@ Select the most appropriate action and provide reasoning.`;
       processedResponse = {
         success: true,
         response: responseData,
-        metadata: baseMetadata,
+        metadata: {
+          ...baseMetadata,
+          // Note that no LLM metadata is available for string responses
+          llmOptions: {
+            provider: 'unknown',
+            model: 'unknown',
+            isDelegatedAgent: true,
+            responseFormat: 'string',
+          },
+        },
       };
     } else {
       // Fallback for unknown formats
@@ -651,8 +811,22 @@ Select the most appropriate action and provide reasoning.`;
         metadata: {
           ...baseMetadata,
           originalFormat: 'unknown',
+          // Note that no LLM metadata is available for unknown formats
+          llmOptions: {
+            provider: 'unknown',
+            model: 'unknown',
+            isDelegatedAgent: true,
+            responseFormat: 'unknown',
+          },
         },
       };
+    }
+
+    // Log if we found LLM options
+    if (llmOptions) {
+      this.logger.log(
+        `LLM options from ${agent.name}: provider=${llmOptions.provider || 'unknown'}, model=${llmOptions.model || 'unknown'}`,
+      );
     }
 
     this.logger.log(

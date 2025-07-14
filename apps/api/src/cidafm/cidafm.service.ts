@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import {
   CreateCIDAFMCommandDto,
@@ -14,6 +14,8 @@ interface CommandFilters {
 
 @Injectable()
 export class CIDAFMService {
+  private readonly logger = new Logger(CIDAFMService.name);
+
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async findAllCommands(
@@ -45,36 +47,42 @@ export class CIDAFMService {
 
     let allCommands = [...(builtinCommands || [])];
 
-    // Get user commands if requested
-    if (!filters.builtinOnly && filters.includeUserCommands !== false) {
-      let userQuery = client
-        .from('user_cidafm_commands')
-        .select('*')
-        .eq('user_id', userId)
-        .order('type')
-        .order('name');
+    // Get user commands if requested (skip if userId is 'system' or not a valid UUID)
+    if (!filters.builtinOnly && filters.includeUserCommands !== false && userId && userId !== 'system') {
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(userId)) {
+        this.logger.warn(`Skipping user commands for invalid user ID: ${userId}`);
+      } else {
+        let userQuery = client
+          .from('user_cidafm_commands')
+          .select('*')
+          .eq('user_id', userId)
+          .order('type')
+          .order('name');
 
-      if (filters.type) {
-        userQuery = userQuery.eq('type', filters.type);
+        if (filters.type) {
+          userQuery = userQuery.eq('type', filters.type);
+        }
+
+        const { data: userCommands, error: userError } = await userQuery;
+
+        if (userError) {
+          throw new HttpException(
+            `Failed to fetch user commands: ${userError.message}`,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+
+        // Transform user commands to match built-in command structure
+        const transformedUserCommands = (userCommands || []).map((cmd: any) => ({
+          ...cmd,
+          default_active: false,
+          is_builtin: false,
+        }));
+
+        allCommands = [...allCommands, ...transformedUserCommands];
       }
-
-      const { data: userCommands, error: userError } = await userQuery;
-
-      if (userError) {
-        throw new HttpException(
-          `Failed to fetch user commands: ${userError.message}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Transform user commands to match built-in command structure
-      const transformedUserCommands = (userCommands || []).map((cmd: any) => ({
-        ...cmd,
-        default_active: false,
-        is_builtin: false,
-      }));
-
-      allCommands = [...allCommands, ...transformedUserCommands];
     }
 
     return allCommands;

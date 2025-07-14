@@ -55,6 +55,19 @@ export class AgentDiscoveryService {
         const fullPath = join(dirPath, entry.name);
 
         if (entry.isDirectory()) {
+          // Check if we should skip external agents
+          const isExternalDir =
+            fullPath.includes('/external/') || fullPath.endsWith('/external');
+          const enableExternalAgents =
+            process.env.ENABLE_EXTERNAL_AGENTS !== 'false';
+
+          if (isExternalDir && !enableExternalAgents) {
+            this.logger.log(
+              `⏭️  Skipping external agents directory (ENABLE_EXTERNAL_AGENTS=false)`,
+            );
+            continue;
+          }
+
           // Recursively traverse subdirectories
           await this.traverseDirectory(fullPath);
         } else if (entry.isFile() && entry.name === 'agent-service.ts') {

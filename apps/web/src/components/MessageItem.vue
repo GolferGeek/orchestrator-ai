@@ -17,6 +17,15 @@
             <span v-if="showViewAgentCapabilitiesLink" class="agent-action-link">
               (<a href="#" @click.prevent="viewAgentCapabilities">View all that I can do for you</a>)
             </span>
+            <ion-button 
+              v-if="message.role === 'assistant' && message.metadata" 
+              fill="clear" 
+              size="small" 
+              @click="showMetadataModal = true"
+              class="metadata-button"
+            >
+              <ion-icon :icon="informationCircleOutline" slot="icon-only" />
+            </ion-button>
           </div>
           <div v-else-if="senderType === 'system' && agentName" class="message-agent-name">{{ agentName }}</div>
           <div class="message-text" v-if="message.content" v-html="renderedText" @click="handleMessageContentClick"></div>
@@ -36,6 +45,14 @@
           :agentSpecialization="getAgentSpecialization()"
         />
         
+        <!-- LLM Information Component -->
+        <LLMInfo
+          v-if="message.role === 'assistant' && message.metadata"
+          :llmUsed="message.metadata.llmOptions"
+          :usage="message.metadata.usage"
+          :costCalculation="message.metadata.costCalculation"
+        />
+        
         <!-- Message Rating Component -->
         <MessageRating
           :messageId="message.id"
@@ -51,17 +68,26 @@
         <ion-icon :icon="personCircleOutline" size="small"></ion-icon>
       </ion-avatar>
     </div>
+    
+    <!-- Response Metadata Modal -->
+    <ResponseMetadataModal 
+      :is-open="showMetadataModal" 
+      :metadata="message.metadata"
+      @close="showMetadataModal = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineProps, computed, defineEmits } from 'vue';
+import { defineProps, computed, defineEmits, ref } from 'vue';
 import type { Message } from '@/services/sessionService';
 import { marked } from 'marked';
-import { IonAvatar, IonIcon } from '@ionic/vue';
-import { personCircleOutline, cogOutline } from 'ionicons/icons';
+import { IonAvatar, IonIcon, IonButton } from '@ionic/vue';
+import { personCircleOutline, cogOutline, informationCircleOutline } from 'ionicons/icons';
 import MessageRating from './MessageRating.vue';
 import DelegationInfo from './DelegationInfo.vue';
+import LLMInfo from './LLMInfo.vue';
+import ResponseMetadataModal from './ResponseMetadataModal.vue';
 
 const props = defineProps<{
   message: Message;
@@ -73,6 +99,9 @@ const emit = defineEmits([
   'viewAgentCapabilitiesClicked',
   'agentCapabilityRequestedFor'
 ]);
+
+// Reactive variable for metadata modal
+const showMetadataModal = ref(false);
 
 const senderType = computed(() => {
   if (props.message.role === 'user') return 'user';
@@ -138,11 +167,25 @@ const formattedTimestamp = computed(() => {
 });
 
 const agentName = computed(() => {
-  if (props.message.metadata?.responding_agent_name) {
-    return props.message.metadata.responding_agent_name;
+  // Debug logging to see what metadata we have
+  if (props.message.role === 'assistant' && props.message.metadata) {
+    console.log('[MessageItem] Debug - message metadata:', JSON.stringify(props.message.metadata, null, 2));
+    console.log('[MessageItem] Debug - metadata keys:', Object.keys(props.message.metadata));
+    console.log('[MessageItem] Debug - checking for agent names:');
+    console.log('  respondingAgentName:', props.message.metadata.respondingAgentName);
+    console.log('  agentName:', props.message.metadata.agentName);
+    console.log('  delegatedTo:', props.message.metadata.delegatedTo);
+  }
+  
+  // Backend saves in camelCase, check for agent name in metadata fields
+  if (props.message.metadata?.respondingAgentName) {
+    return props.message.metadata.respondingAgentName;
   }
   if (props.message.metadata?.agentName) {
     return props.message.metadata.agentName;
+  }
+  if (props.message.metadata?.delegatedTo) {
+    return props.message.metadata.delegatedTo;
   }
   return senderType.value === 'agent' ? 'AI' : null;
 });
@@ -400,6 +443,17 @@ const getAgentSpecialization = (): string | undefined => {
 
 .message-text :deep(a.clickable-agent-name:hover) {
   color: var(--ion-color-primary-shade);
+}
+
+.metadata-button {
+  margin-left: 8px;
+  --padding-start: 4px;
+  --padding-end: 4px;
+  --color: var(--ion-color-medium);
+}
+
+.metadata-button:hover {
+  --color: var(--ion-color-primary);
 }
 
 .message-timestamp {

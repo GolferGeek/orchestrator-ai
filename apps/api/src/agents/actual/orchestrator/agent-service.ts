@@ -501,7 +501,7 @@ export class OrchestratorService extends A2AAgentBaseService {
         const isResponseFromOrchestrator = !response.metadata?.delegatedTo;
         const respondingAgentName = isResponseFromOrchestrator
           ? this.getAgentName()
-          : response.metadata?.responding_agent_name ||
+          : response.metadata?.agentName ||
             response.metadata?.delegatedTo ||
             'Unknown Agent';
         const respondingAgentType = isResponseFromOrchestrator
@@ -510,6 +510,11 @@ export class OrchestratorService extends A2AAgentBaseService {
         const respondingAgentId = isResponseFromOrchestrator
           ? `${this.getAgentType()}_${this.getAgentName().toLowerCase().replace(/\s+/g, '_')}`
           : `specialists_${(response.metadata?.delegatedTo || 'unknown').toLowerCase().replace(/\s+/g, '_')}`;
+
+        // Extract LLM options from response metadata
+        const llmOptions = response.metadata?.llmOptions || null;
+        const userRequestedLLM =
+          llmPreferences.providerId || llmPreferences.modelId;
 
         const assistantMessageRecord = await this.sessionsService.addMessage(
           sessionId,
@@ -544,6 +549,22 @@ export class OrchestratorService extends A2AAgentBaseService {
                 ? 'orchestrator_response'
                 : 'delegated_agent_response',
               isDelegated: !isResponseFromOrchestrator,
+              // LLM information - ensure it's always present
+              llmOptions: llmOptions || {
+                provider: 'unknown',
+                model: 'unknown',
+                note: 'LLM metadata not available from response',
+              },
+              // User's requested LLM preferences (if any)
+              ...(userRequestedLLM && {
+                userLLMPreferences: {
+                  providerId: llmPreferences.providerId,
+                  modelId: llmPreferences.modelId,
+                  temperature: llmPreferences.temperature,
+                  maxTokens: llmPreferences.maxTokens,
+                  hasCidafmOptions: !!llmPreferences.cidafmOptions,
+                },
+              }),
             },
           },
           currentUser,

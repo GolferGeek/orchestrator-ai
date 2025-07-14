@@ -10,6 +10,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
+    "start:dev:external": "nest start --watch -- --enable-external-agents",
     "start:dev:full": "./start-dev.sh",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
