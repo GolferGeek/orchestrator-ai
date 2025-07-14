@@ -69,6 +69,13 @@ What specific type of assistance are you looking for?`;
         processedAt: new Date().toISOString(),
         action: 'clarification',
         reasoning: reasoning || 'Request needed clarification',
+        // Add note that this is a template response (no LLM used)
+        llmOptions: {
+          provider: 'none',
+          model: 'template',
+          isTemplateResponse: true,
+          operationType: 'clarification',
+        },
       },
     };
   }
@@ -100,6 +107,13 @@ Just let me know what you need help with, and I'll connect you with the right sp
         agentName: 'Orchestrator Agent',
         contentType: 'agentListFromOrchestrator',
         processedAt: new Date().toISOString(),
+        // Add note that this is a template response (no LLM used)
+        llmOptions: {
+          provider: 'none',
+          model: 'template',
+          isTemplateResponse: true,
+          operationType: 'agent_list',
+        },
       },
     };
   }
@@ -125,6 +139,13 @@ Just let me know what you need help with, and I'll connect you with the right sp
           agentType: 'orchestrator',
           agentName: 'Orchestrator Agent',
           processedAt: new Date().toISOString(),
+          // Add note that this is a template response (no LLM used)
+          llmOptions: {
+            provider: 'none',
+            model: 'template',
+            isTemplateResponse: true,
+            operationType: 'agent_not_found',
+          },
         },
       };
     }
@@ -150,6 +171,13 @@ Would you like me to connect you with them?`;
         agentName: 'Orchestrator Agent',
         processedAt: new Date().toISOString(),
         targetAgent: agent.name,
+        // Add note that this is a template response (no LLM used)
+        llmOptions: {
+          provider: 'none',
+          model: 'template',
+          isTemplateResponse: true,
+          operationType: 'agent_capabilities',
+        },
       },
     };
   }
@@ -177,6 +205,15 @@ Would you like me to connect you with them?`;
         userMessage,
       );
 
+      // Get the system LLM configuration for transparency
+      const systemLLMConfig = this.llmService['systemLLMConfigs']
+        ?.response_coordination || {
+        provider: 'openai',
+        model: 'gpt-3.5-turbo',
+        temperature: 0.2,
+        maxTokens: 800,
+      };
+
       return {
         success: true,
         response: systemResponse,
@@ -186,6 +223,15 @@ Would you like me to connect you with them?`;
           processedAt: new Date().toISOString(),
           systemOperation: 'response_coordination',
           systemLLMUsed: true,
+          // Add LLM configuration metadata
+          llmOptions: {
+            provider: systemLLMConfig.provider,
+            model: systemLLMConfig.model,
+            temperature: systemLLMConfig.temperature,
+            maxTokens: systemLLMConfig.maxTokens,
+            isSystemLLM: true,
+            operationType: 'response_coordination',
+          },
         },
       };
     } catch (error) {
@@ -227,6 +273,14 @@ ${this.formatAgentList(availableAgents)}`;
         agentName: 'Orchestrator Agent',
         processedAt: new Date().toISOString(),
         fallback: true,
+        // Add LLM options for standard fallback responses
+        llmOptions: {
+          provider: 'none',
+          model: 'template',
+          isTemplateResponse: true,
+          operationType: 'standard_fallback',
+          reason: 'LLM unavailable',
+        },
       },
     };
   }
@@ -240,6 +294,14 @@ ${this.formatAgentList(availableAgents)}`;
         agentName: 'Orchestrator Agent',
         processedAt: new Date().toISOString(),
         error: true,
+        // Add LLM options for error fallback responses
+        llmOptions: {
+          provider: 'none',
+          model: 'template',
+          isTemplateResponse: true,
+          operationType: 'error_fallback',
+          reason: 'Technical error',
+        },
       },
     };
   }

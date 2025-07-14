@@ -6,6 +6,16 @@ import { AgentPoolService } from './agent-pool/agent-pool.service';
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
+  // Parse command line arguments for --enable-external-agents
+  const args = process.argv.slice(2);
+  const enableExternalIdx = args.findIndex(
+    (arg) => arg === '--enable-external-agents' || arg === '--enable-external',
+  );
+  if (enableExternalIdx !== -1) {
+    process.env.ENABLE_EXTERNAL_AGENTS = 'true';
+    logger.log('🔧 External agents enabled via command line argument');
+  }
+
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS

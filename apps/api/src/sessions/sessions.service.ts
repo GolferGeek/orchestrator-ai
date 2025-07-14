@@ -517,6 +517,9 @@ export class SessionsService {
           result?.response ||
           'I apologize, but I was unable to process your request.';
 
+        // Extract delegation metadata for frontend compatibility
+        const orchestratorMetadata = result?.metadata || {};
+        
         const assistantMessage = await this.addMessage(
           sessionId,
           {
@@ -525,8 +528,22 @@ export class SessionsService {
             metadata: {
               processedBy: 'orchestrator_via_sessions',
               llmPreferences: messageCreateDto.llmSelection,
-              orchestratorMetadata: result?.metadata,
+              orchestratorMetadata: orchestratorMetadata,
               processedAt: new Date().toISOString(),
+              // Extract agent delegation info to top level for frontend
+              respondingAgentName: orchestratorMetadata.respondingAgentName,
+              agentName: orchestratorMetadata.agentName,
+              delegatedTo: orchestratorMetadata.delegatedTo,
+              agentType: orchestratorMetadata.agentType,
+              isDelegated: orchestratorMetadata.isDelegated,
+              messageType: orchestratorMetadata.messageType,
+              // Include other delegation context if available
+              ...(orchestratorMetadata.stickyContext && {
+                stickyContext: orchestratorMetadata.stickyContext,
+                continuityReason: orchestratorMetadata.continuityReason,
+                confidence: orchestratorMetadata.confidence,
+                agentContext: orchestratorMetadata.agentContext,
+              }),
             },
           },
           currentUser,

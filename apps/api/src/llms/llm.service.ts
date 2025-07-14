@@ -52,7 +52,7 @@ if (langsmithEnabled && langsmithApiKey) {
 export class LLMService {
   private readonly logger = new Logger(LLMService.name);
   private readonly openai: OpenAI;
-  private readonly systemLLMConfigs: SystemLLMConfigs;
+  public readonly systemLLMConfigs: SystemLLMConfigs;
 
   constructor(
     private readonly supabaseService: SupabaseService,
@@ -172,6 +172,7 @@ export class LLMService {
       cidafmOptions?: CIDAFMOptions;
       authToken?: string;
       sessionId?: string;
+      currentUser?: any; // User object with id, email, etc.
     },
   ): Promise<string | any> {
     try {
@@ -181,8 +182,11 @@ export class LLMService {
           `🎯 Full LLM preferences detected, delegating to enhanced response method`,
         );
 
+        // Extract user ID from currentUser object or use 'system' as fallback
+        const userId = options.currentUser?.id || 'system';
+        
         const enhancedResult = await this.generateEnhancedResponse(
-          options.authToken || 'system',
+          userId,
           systemPrompt,
           userMessage,
           {

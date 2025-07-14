@@ -190,7 +190,11 @@ const uniqueAgents = computed(() => {
   const agents = new Set();
   sessionMessages.value.forEach(msg => {
     if (msg.role === 'assistant' && msg.metadata?.agentName) {
-      agents.add(msg.metadata!.agentName);
+      const agentName = msg.metadata!.agentName;
+      // Exclude orchestrator from agent count
+      if (agentName.toLowerCase() !== 'orchestrator' && agentName.toLowerCase() !== 'orchestrator agent') {
+        agents.add(agentName);
+      }
     }
   });
   return Array.from(agents);
@@ -198,7 +202,10 @@ const uniqueAgents = computed(() => {
 
 const delegationCount = computed(() => {
   return sessionMessages.value.filter(msg => 
-    msg.role === 'assistant' && msg.metadata?.delegatedTo
+    msg.role === 'assistant' && (
+      msg.metadata?.delegatedTo || 
+      (msg.metadata?.agentName && msg.metadata?.agentName.toLowerCase() !== 'orchestrator')
+    )
   ).length;
 });
 
@@ -218,13 +225,19 @@ const delegationFlow = computed(() => {
   
   sessionMessages.value.forEach(msg => {
     if (msg.role === 'assistant' && msg.metadata?.agentName) {
-      flow.push({
-        agentName: msg.metadata.agentName,
-        confidence: msg.metadata.confidence,
-        stickyContext: msg.metadata.stickyContext,
-        reason: msg.metadata.continuityReason || msg.metadata.delegationReason,
-        timestamp: msg.timestamp
-      });
+      const agentName = msg.metadata.agentName;
+      // Exclude orchestrator from delegation flow
+      if (agentName.toLowerCase() !== 'orchestrator' && agentName.toLowerCase() !== 'orchestrator agent') {
+        flow.push({
+          agentName: msg.metadata.agentName,
+          confidence: msg.metadata.confidence,
+          stickyContext: msg.metadata.stickyContext,
+          reason: msg.metadata.continuityReason || msg.metadata.delegationReason,
+          timestamp: msg.timestamp,
+          isDelegated: msg.metadata.delegatedTo ? true : false,
+          delegatedTo: msg.metadata.delegatedTo
+        });
+      }
     }
   });
   
