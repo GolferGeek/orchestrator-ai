@@ -586,4 +586,146 @@ export class EvaluationService {
 
     return [headers, ...rows].join('\n');
   }
+
+  // Task Evaluation Methods
+  async evaluateTask(
+    userId: string,
+    taskId: string,
+    evaluationDto: MessageEvaluationDto,
+  ): Promise<any> {
+    const client = this.supabaseService.getAnonClient();
+
+    // Verify task exists and belongs to user
+    const { data: task, error: taskError } = await client
+      .from('tasks')
+      .select('*')
+      .eq('id', taskId)
+      .eq('user_id', userId)
+      .single();
+
+    if (taskError || !task) {
+      return null;
+    }
+
+    // Update task with evaluation data
+    const evaluationData = {
+      user_rating: evaluationDto.userRating,
+      speed_rating: evaluationDto.speedRating,
+      accuracy_rating: evaluationDto.accuracyRating,
+      user_notes: evaluationDto.userNotes,
+      evaluation_details: evaluationDto.evaluationDetails,
+      evaluation_timestamp: new Date().toISOString(),
+    };
+
+    const { data: updatedTask, error: updateError } = await client
+      .from('tasks')
+      .update({
+        evaluation: evaluationData,
+      })
+      .eq('id', taskId)
+      .eq('user_id', userId)
+      .select('*')
+      .single();
+
+    if (updateError) {
+      throw new HttpException(
+        `Failed to save task evaluation: ${updateError.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return updatedTask;
+  }
+
+  async getTaskWithEvaluation(
+    userId: string,
+    taskId: string,
+  ): Promise<any> {
+    const client = this.supabaseService.getAnonClient();
+
+    const { data: task, error } = await client
+      .from('tasks')
+      .select('*')
+      .eq('id', taskId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Not found
+      }
+      throw new HttpException(
+        `Failed to fetch task: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return task;
+  }
+
+  async updateTaskEvaluation(
+    userId: string,
+    taskId: string,
+    evaluationDto: MessageEvaluationDto,
+  ): Promise<any> {
+    // Same as evaluateTask but for updates
+    return this.evaluateTask(userId, taskId, evaluationDto);
+  }
+
+  async getConversationTaskEvaluations(
+    userId: string,
+    conversationId: string,
+    filters: EvaluationFilters = {},
+  ): Promise<any[]> {
+    const client = this.supabaseService.getAnonClient();
+
+    let query = client
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('agent_conversation_id', conversationId)
+      .not('evaluation', 'is', null)
+      .order('created_at');
+
+    // Apply filters based on evaluation data
+    if (filters.minRating || filters.hasNotes) {
+      // For tasks, we need to filter on the evaluation JSON field
+      const { data: tasks, error } = await query;
+      
+      if (error) {
+        throw new HttpException(
+          `Failed to fetch conversation task evaluations: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      // Filter in memory since we're working with JSON fields
+      let filteredTasks = tasks || [];
+      
+      if (filters.minRating) {
+        filteredTasks = filteredTasks.filter(task => 
+          task.evaluation?.user_rating >= filters.minRating
+        );
+      }
+      
+      if (filters.hasNotes) {
+        filteredTasks = filteredTasks.filter(task => 
+          task.evaluation?.user_notes && task.evaluation.user_notes.trim().length > 0
+        );
+      }
+
+      return filteredTasks;
+    }
+
+    const { data: tasks, error } = await query;
+
+    if (error) {
+      throw new HttpException(
+        `Failed to fetch conversation task evaluations: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return tasks || [];
+  }
 }

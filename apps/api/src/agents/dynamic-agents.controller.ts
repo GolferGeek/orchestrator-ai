@@ -86,6 +86,7 @@ export class DynamicAgentsController {
         taskId: task.id,
         currentUser,
         authToken: token,
+        llmSelection: taskRequest.llmSelection, // Pass LLM selection to agent
       };
 
       this.logger.debug(
@@ -95,11 +96,39 @@ export class DynamicAgentsController {
       // Process the task using the agent's processTask method
       const result = await agentInstance.processTask(authenticatedTaskRequest);
 
-      // Update task with result
+      // Extract response and metadata from result
+      let responseData: string;
+      let responseMetadata: Record<string, any> | undefined;
+      let llmMetadata: Record<string, any> | undefined;
+
+      if (typeof result === 'object' && result !== null) {
+        responseData = JSON.stringify(result);
+        responseMetadata = result.metadata || {};
+        llmMetadata = result.llmMetadata || {};
+        
+        // If result has A2A protocol structure, extract the actual response
+        if (result.success && result.response) {
+          responseData = typeof result.response === 'string' ? result.response : JSON.stringify(result.response);
+          responseMetadata = { ...responseMetadata, ...result.metadata };
+        }
+      } else {
+        responseData = String(result);
+      }
+
+      // Store LLM selection in metadata if provided
+      if (taskRequest.llmSelection) {
+        llmMetadata = {
+          ...llmMetadata,
+          originalLLMSelection: taskRequest.llmSelection,
+        };
+      }
+
+      // Update task with result and metadata
       await this.tasksService.updateTask(task.id, currentUser.id, {
         status: 'completed',
-        response: typeof result === 'string' ? result : JSON.stringify(result),
-        responseMetadata: typeof result === 'object' ? result.metadata : undefined,
+        response: responseData,
+        responseMetadata,
+        llmMetadata,
         progress: 100,
       });
 
