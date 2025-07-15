@@ -300,10 +300,14 @@ const refreshData = async () => {
     await agentsStore.fetchAvailableAgents();
     const availableAgents = agentsStore.getAvailableAgents;
     
+    console.log(`[AgentTreeView] Loaded ${availableAgents.length} available agents:`, availableAgents);
+    
     // Load conversations for each agent
     const conversationsResponse = await agentConversationsService.listConversations({
       limit: 1000,
     });
+    
+    console.log(`[AgentTreeView] Loaded ${conversationsResponse.conversations.length} conversations:`, conversationsResponse.conversations);
     
     conversations.value = conversationsResponse.conversations.map(conv => ({
       ...conv,
@@ -343,6 +347,8 @@ const refreshData = async () => {
         totalConversations: agentConvs.length,
       };
     });
+    
+    console.log(`[AgentTreeView] Built ${agents.value.length} agent entries:`, agents.value);
 
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load data';
@@ -364,21 +370,18 @@ const selectConversation = (conversation: Conversation) => {
 const createNewConversation = async (agent: Agent) => {
   try {
     loading.value = true;
-    const newConversation = await agentConversationsService.createConversation({
-      agentName: agent.name,
-      agentType: agent.type as any,
-    });
     
-    // Refresh data to show new conversation
-    await refreshData();
+    // With lazy conversation creation, we don't create conversations upfront
+    // Instead, emit an event for the parent to handle (e.g., open chat interface)
+    // The conversation will be created when the first task is sent
     
-    // Select the new conversation
-    const createdConv = conversations.value.find(c => c.id === newConversation.id);
-    if (createdConv) {
-      selectConversation(createdConv);
-    }
+    // Emit event to parent with agent info
+    emit('agent-selected', agent);
+    
+    console.log(`[AgentTreeView] Starting new conversation with ${agent.name}`);
+    
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to create conversation';
+    error.value = err instanceof Error ? err.message : 'Failed to start conversation';
   } finally {
     loading.value = false;
   }
