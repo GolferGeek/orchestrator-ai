@@ -19,31 +19,40 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="ion-padding" ref="chatContentEl">
-      <div v-if="!auth.isAuthenticated" class="ion-text-center ion-padding">
-         <p>Please <router-link to="/login">login</router-link> to start chatting.</p>
+    <ion-content :fullscreen="true" :class="{ 'ion-padding': !agentChatStore.hasCurrentAgent }" ref="chatContentEl">
+      <!-- Agent Chat View -->
+      <AgentChatView 
+        v-if="agentChatStore.hasCurrentAgent" 
+        @close="handleCloseAgentChat"
+      />
+      
+      <!-- Regular Chat View -->
+      <div v-else>
+        <div v-if="!auth.isAuthenticated" class="ion-text-center ion-padding">
+           <p>Please <router-link to="/login">login</router-link> to start chatting.</p>
+        </div>
+        <div v-else-if="!sessionStore.currentSessionId && !sessionStore.isLoadingMessages" class="ion-text-center ion-padding">
+          <p>Select a session or start a new chat from the menu.</p>
+        </div>
+        <div v-else-if="sessionStore.isLoadingMessages" class="ion-text-center ion-padding">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Loading messages...</p>
+        </div>
+        <div v-else-if="sessionStore.messagesError" class="ion-text-center ion-padding">
+          <ion-text color="danger">Error loading messages: {{ sessionStore.messagesError }}</ion-text>
+        </div>
+        <MessageListComponent 
+          v-else 
+          :messages="sessionStore.currentSessionMessages" 
+          @messages-rendered="handleMessagesRenderedInChild" 
+          @returnToOrchestrator="handleReturnToOrchestrator"
+          @viewAllAgentsClicked="handleViewAllAgents"
+          @viewAgentCapabilitiesClicked="handleViewAgentCapabilities"
+          @agentCapabilityRequestedFor="handleAgentCapabilityRequestedFor" />
       </div>
-      <div v-else-if="!sessionStore.currentSessionId && !sessionStore.isLoadingMessages" class="ion-text-center ion-padding">
-        <p>Select a session or start a new chat from the menu.</p>
-      </div>
-      <div v-else-if="sessionStore.isLoadingMessages" class="ion-text-center ion-padding">
-        <ion-spinner name="crescent"></ion-spinner>
-        <p>Loading messages...</p>
-      </div>
-      <div v-else-if="sessionStore.messagesError" class="ion-text-center ion-padding">
-        <ion-text color="danger">Error loading messages: {{ sessionStore.messagesError }}</ion-text>
-      </div>
-      <MessageListComponent 
-        v-else 
-        :messages="sessionStore.currentSessionMessages" 
-        @messages-rendered="handleMessagesRenderedInChild" 
-        @returnToOrchestrator="handleReturnToOrchestrator"
-        @viewAllAgentsClicked="handleViewAllAgents"
-        @viewAgentCapabilitiesClicked="handleViewAgentCapabilities"
-        @agentCapabilityRequestedFor="handleAgentCapabilityRequestedFor" />
     </ion-content>
 
-    <ion-footer v-if="auth.isAuthenticated && sessionStore.currentSessionId">
+    <ion-footer v-if="auth.isAuthenticated && sessionStore.currentSessionId && !agentChatStore.hasCurrentAgent">
       <EnhancedChatInput @send-message="handleEnhancedSendMessage" :disabled="uiStore.getIsAppLoading" />
       <div v-if="uiStore.getIsAppLoading" class="loading-indicator ion-padding-start ion-padding-bottom">
         <ion-spinner name="dots" color="primary"></ion-spinner>
@@ -98,11 +107,14 @@ import ChatInputComponent from '../components/ChatInput.vue';
 import EnhancedChatInput from '../components/EnhancedChatInput.vue';
 import AgentCapabilitiesModal from '@/components/AgentCapabilitiesModal.vue';
 import DelegationDebugPanel from '@/components/DelegationDebugPanel.vue';
+import AgentChatView from '@/components/AgentChatView.vue';
+import { useAgentChatStore } from '@/stores/agentChatStore';
 
 const auth = useAuthStore();
 const sessionStore = useSessionStore();
 const uiStore = useUiStore();
 const messagesStore = useMessagesStore();
+const agentChatStore = useAgentChatStore();
 const router = useRouter();
 
 const { currentSessionId, currentSessionMessages } = storeToRefs(sessionStore);
@@ -131,6 +143,9 @@ const currentSessionName = computed(() => {
 });
 
 const pageTitle = computed(() => {
+  if (agentChatStore.hasCurrentAgent) {
+    return `Agent Chat - ${agentChatStore.currentAgent?.name}`;
+  }
   return currentSessionName.value || 'Orchestrator AI';
 });
 
@@ -522,6 +537,10 @@ const handleAgentSelected = (agent: { name: string; description: string }) => {
   console.log("[HomePage] Agent selected from modal:", agent);
   // Send a message to talk to the specific agent with the requested format
   handleSendMessage(`I would like to talk with the ${agent.name} agent.`);
+};
+
+const handleCloseAgentChat = () => {
+  agentChatStore.clearChat();
 };
 
 // Helper function to parse agent list from orchestrator response

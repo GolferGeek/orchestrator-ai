@@ -18,7 +18,7 @@
             <hr/>
             
             <!-- Session sidebar -->
-            <SessionSidebar />
+            <SessionSidebar @agent-chat-started="handleAgentChatStarted" />
           </div>
           <div v-else>
             <ion-list>
@@ -47,9 +47,11 @@ import { logInOutline, logOutOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'vue-router';
 import SessionSidebar from '@/components/SessionSidebar.vue';
+import { useAgentChatStore } from '@/stores/agentChatStore';
 
 const auth = useAuthStore();
 const router = useRouter();
+const agentChatStore = useAgentChatStore();
 
 // Dynamic titles based on current route
 const menuTitle = computed(() => {
@@ -59,6 +61,12 @@ const menuTitle = computed(() => {
 const handleLogout = async () => {
   await auth.logout();
   router.push('/login');
+};
+
+const handleAgentChatStarted = (agent: any) => {
+  console.log('[App] Agent chat started:', agent);
+  // Navigate to homepage where we'll show the agent chat
+  router.push('/');
 };
 </script>
 
