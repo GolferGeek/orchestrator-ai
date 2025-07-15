@@ -325,8 +325,10 @@ const refreshData = async () => {
     // Group conversations by agent
     const agentConversations = new Map<string, Conversation[]>();
     conversations.value.forEach(conv => {
-      const key = `${conv.agentType}-${conv.agentName}`;
-      console.log(`[AgentTreeView] Processing conversation for agent: ${key}`, conv);
+      // Normalize agent type to match available agents format
+      const normalizedAgentType = conv.agentType === 'specialist' ? 'specialists' : conv.agentType;
+      const key = `${normalizedAgentType}-${conv.agentName}`;
+      console.log(`[AgentTreeView] Processing conversation for agent: ${key} (original: ${conv.agentType}-${conv.agentName})`, conv);
       if (!agentConversations.has(key)) {
         agentConversations.set(key, []);
       }
