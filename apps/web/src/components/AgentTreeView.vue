@@ -303,11 +303,13 @@ const refreshData = async () => {
     console.log(`[AgentTreeView] Loaded ${availableAgents.length} available agents:`, availableAgents);
     
     // Load conversations for each agent
+    console.log('[AgentTreeView] About to call agentConversationsService.listConversations...');
     const conversationsResponse = await agentConversationsService.listConversations({
       limit: 1000,
     });
     
     console.log(`[AgentTreeView] Loaded ${conversationsResponse.conversations.length} conversations:`, conversationsResponse.conversations);
+    console.log('[AgentTreeView] Raw conversations response:', conversationsResponse);
     
     conversations.value = conversationsResponse.conversations.map(conv => ({
       ...conv,
@@ -351,6 +353,8 @@ const refreshData = async () => {
     console.log(`[AgentTreeView] Built ${agents.value.length} agent entries:`, agents.value);
 
   } catch (err) {
+    console.error('[AgentTreeView] Error loading data:', err);
+    console.error('[AgentTreeView] Error stack:', err.stack);
     error.value = err instanceof Error ? err.message : 'Failed to load data';
   } finally {
     loading.value = false;
