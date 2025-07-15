@@ -1,0 +1,162 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Logger,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { AgentConversationsService } from './agent-conversations.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
+import {
+  CreateAgentConversationDto,
+  AgentConversationQueryParams,
+} from '../common/types/agent-conversations.types';
+
+@Controller('agent-conversations')
+@UseGuards(JwtAuthGuard)
+export class AgentConversationsController {
+  private readonly logger = new Logger(AgentConversationsController.name);
+
+  constructor(
+    private readonly agentConversationsService: AgentConversationsService,
+  ) {}
+
+  /**
+   * List agent conversations for the current user
+   * GET /agent-conversations
+   */
+  @Get()
+  async listConversations(
+    @Query() query: AgentConversationQueryParams,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(
+      `Listing conversations for user ${currentUser.id}`,
+      query,
+    );
+
+    // Ensure user can only see their own conversations
+    const params = {
+      ...query,
+      userId: currentUser.id,
+    };
+
+    return this.agentConversationsService.listConversations(params);
+  }
+
+  /**
+   * Get a specific conversation by ID
+   * GET /agent-conversations/:id
+   */
+  @Get(':id')
+  async getConversation(
+    @Param('id') conversationId: string,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(
+      `Getting conversation ${conversationId} for user ${currentUser.id}`,
+    );
+
+    const conversation = await this.agentConversationsService.getConversationById(
+      conversationId,
+      currentUser.id,
+    );
+
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    return conversation;
+  }
+
+  /**
+   * Create a new agent conversation
+   * POST /agent-conversations
+   */
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async createConversation(
+    @Body() dto: CreateAgentConversationDto,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(
+      `Creating conversation for user ${currentUser.id}`,
+      dto,
+    );
+
+    return this.agentConversationsService.createConversation(
+      currentUser.id,
+      dto,
+    );
+  }
+
+  /**
+   * End a conversation
+   * PUT /agent-conversations/:id/end
+   */
+  @Put(':id/end')
+  @HttpCode(HttpStatus.OK)
+  async endConversation(
+    @Param('id') conversationId: string,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(
+      `Ending conversation ${conversationId} for user ${currentUser.id}`,
+    );
+
+    await this.agentConversationsService.endConversation(
+      conversationId,
+      currentUser.id,
+    );
+
+    return { success: true };
+  }
+
+  /**
+   * Update conversation metadata
+   * PUT /agent-conversations/:id/metadata
+   */
+  @Put(':id/metadata')
+  @HttpCode(HttpStatus.OK)
+  async updateMetadata(
+    @Param('id') conversationId: string,
+    @Body() metadata: Record<string, any>,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(
+      `Updating metadata for conversation ${conversationId} for user ${currentUser.id}`,
+    );
+
+    await this.agentConversationsService.updateConversationMetadata(
+      conversationId,
+      currentUser.id,
+      metadata,
+    );
+
+    return { success: true };
+  }
+
+  /**
+   * Get active conversations for the current user
+   * GET /agent-conversations/active
+   */
+  @Get('active')
+  async getActiveConversations(
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(`Getting active conversations for user ${currentUser.id}`);
+
+    return this.agentConversationsService.getActiveConversations(
+      currentUser.id,
+    );
+  }
+}

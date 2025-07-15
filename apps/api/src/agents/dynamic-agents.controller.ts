@@ -17,6 +17,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
 import { SessionsService } from '../sessions/sessions.service';
+import { TasksService } from '../tasks/tasks.service';
+import { CreateTaskDto } from '../common/types/agent-conversations.types';
 
 @Controller('agents')
 export class DynamicAgentsController {
@@ -26,6 +28,7 @@ export class DynamicAgentsController {
     private readonly agentDiscovery: AgentDiscoveryService,
     private readonly appService: AppService,
     private readonly sessionsService: SessionsService,
+    private readonly tasksService: TasksService,
   ) {}
 
   /**
@@ -38,7 +41,7 @@ export class DynamicAgentsController {
   async handleTasks(
     @Param('agentType') agentType: string,
     @Param('agentName') agentName: string,
-    @Body() taskRequest: any,
+    @Body() taskRequest: CreateTaskDto,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
     @Request() req: any,
   ) {
@@ -46,13 +49,14 @@ export class DynamicAgentsController {
       `Processing task for ${agentType}/${agentName} for user ${currentUser.id}`,
     );
 
+    // Validate required fields
+    if (!taskRequest.method || !taskRequest.prompt) {
+      throw new Error('Method and prompt are required');
+    }
+
     // Extract auth token from request
     const authHeader = req.headers.authorization;
     const token = authHeader?.replace('Bearer ', '');
-
-    this.logger.debug(
-      `Auth context: userId=${currentUser.id}, hasToken=${!!token}`,
-    );
 
     // Find the agent instance
     const agentInstance = this.findAgentInstance(agentType, agentName);
@@ -60,20 +64,63 @@ export class DynamicAgentsController {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
 
-    // Add user context to the task request
-    const authenticatedTaskRequest = {
-      ...taskRequest,
-      currentUser,
-      authToken: token,
-    };
-
-    this.logger.debug(
-      `Passing auth context to agent: currentUser=${!!authenticatedTaskRequest.currentUser}, authToken=${!!authenticatedTaskRequest.authToken}`,
+    // Create task with conversation tracking
+    const task = await this.tasksService.createTask(
+      currentUser.id,
+      agentName,
+      agentType as 'specialist' | 'orchestrator' | 'external' | 'api',
+      taskRequest,
     );
 
-    // Process the task using the agent's processTask method
-    const result = await agentInstance.processTask(authenticatedTaskRequest);
-    return result;
+    try {
+      // Update task to running status
+      await this.tasksService.updateTask(task.id, currentUser.id, {
+        status: 'running',
+      });
+
+      // Prepare request for agent with task context
+      const authenticatedTaskRequest = {
+        ...taskRequest.params,
+        method: taskRequest.method,
+        prompt: taskRequest.prompt,
+        taskId: task.id,
+        currentUser,
+        authToken: token,
+      };
+
+      this.logger.debug(
+        `Processing task ${task.id} with agent ${agentType}/${agentName}`,
+      );
+
+      // Process the task using the agent's processTask method
+      const result = await agentInstance.processTask(authenticatedTaskRequest);
+
+      // Update task with result
+      await this.tasksService.updateTask(task.id, currentUser.id, {
+        status: 'completed',
+        response: typeof result === 'string' ? result : JSON.stringify(result),
+        responseMetadata: typeof result === 'object' ? result.metadata : undefined,
+        progress: 100,
+      });
+
+      // Return task info along with result
+      return {
+        taskId: task.id,
+        conversationId: task.agentConversationId,
+        status: 'completed',
+        result,
+      };
+    } catch (error) {
+      // Update task with error
+      await this.tasksService.updateTask(task.id, currentUser.id, {
+        status: 'failed',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorData: { stack: error instanceof Error ? error.stack : undefined },
+      });
+
+      this.logger.error(`Task ${task.id} failed:`, error);
+      throw error;
+    }
   }
 
   /**
