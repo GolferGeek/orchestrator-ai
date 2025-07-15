@@ -1,0 +1,196 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Logger,
+  HttpCode,
+  HttpStatus,
+  Res,
+  Sse,
+} from '@nestjs/common';
+import { Response } from 'express';
+import { Observable } from 'rxjs';
+import { TasksService } from './tasks.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
+import {
+  CreateTaskDto,
+  UpdateTaskDto,
+  TaskQueryParams,
+} from '../common/types/agent-conversations.types';
+
+@Controller('tasks')
+@UseGuards(JwtAuthGuard)
+export class TasksController {
+  private readonly logger = new Logger(TasksController.name);
+
+  constructor(private readonly tasksService: TasksService) {}
+
+  /**
+   * List tasks for the current user
+   * GET /tasks
+   */
+  @Get()
+  async listTasks(
+    @Query() query: TaskQueryParams,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(`Listing tasks for user ${currentUser.id}`, query);
+
+    // Ensure user can only see their own tasks
+    const params = {
+      ...query,
+      userId: currentUser.id,
+    };
+
+    return this.tasksService.listTasks(params);
+  }
+
+  /**
+   * Get a specific task by ID
+   * GET /tasks/:id
+   */
+  @Get(':id')
+  async getTask(
+    @Param('id') taskId: string,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(`Getting task ${taskId} for user ${currentUser.id}`);
+
+    const task = await this.tasksService.getTaskById(taskId, currentUser.id);
+
+    if (!task) {
+      throw new Error('Task not found');
+    }
+
+    return task;
+  }
+
+  /**
+   * Update a task
+   * PUT /tasks/:id
+   */
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  async updateTask(
+    @Param('id') taskId: string,
+    @Body() updates: UpdateTaskDto,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(`Updating task ${taskId} for user ${currentUser.id}`);
+
+    return this.tasksService.updateTask(taskId, currentUser.id, updates);
+  }
+
+  /**
+   * Cancel a task
+   * DELETE /tasks/:id
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  async cancelTask(
+    @Param('id') taskId: string,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(`Cancelling task ${taskId} for user ${currentUser.id}`);
+
+    await this.tasksService.cancelTask(taskId, currentUser.id);
+    return { success: true, message: 'Task cancelled' };
+  }
+
+  /**
+   * Get active tasks for the current user
+   * GET /tasks/active
+   */
+  @Get('active')
+  async getActiveTasks(@CurrentUser() currentUser: SupabaseAuthUserDto) {
+    this.logger.debug(`Getting active tasks for user ${currentUser.id}`);
+
+    return this.tasksService.getActiveTasks(currentUser.id);
+  }
+
+  /**
+   * Stream task progress via Server-Sent Events
+   * GET /tasks/:id/progress
+   */
+  @Get(':id/progress')
+  async streamTaskProgress(
+    @Param('id') taskId: string,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+    @Res() response: Response,
+  ) {
+    this.logger.debug(
+      `Streaming progress for task ${taskId} for user ${currentUser.id}`,
+    );
+
+    // Set SSE headers
+    response.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers':
+        'Cache-Control, Content-Type, Authorization',
+    });
+
+    try {
+      // Stream progress updates
+      for await (const progressEvent of this.tasksService.streamTaskProgress(
+        taskId,
+        currentUser.id,
+      )) {
+        response.write(`data: ${JSON.stringify(progressEvent)}\n\n`);
+
+        // End stream if task is completed
+        if (
+          progressEvent.status === 'completed' ||
+          progressEvent.status === 'failed' ||
+          progressEvent.status === 'cancelled'
+        ) {
+          break;
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error streaming task progress:', error);
+      response.write(
+        `data: ${JSON.stringify({
+          error: 'Failed to stream progress',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        })}\n\n`,
+      );
+    } finally {
+      response.end();
+    }
+  }
+
+  /**
+   * Update task progress (for agents to call)
+   * PUT /tasks/:id/progress
+   */
+  @Put(':id/progress')
+  @HttpCode(HttpStatus.OK)
+  async updateTaskProgress(
+    @Param('id') taskId: string,
+    @Body() body: { progress: number; message?: string },
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(
+      `Updating progress for task ${taskId}: ${body.progress}%`,
+    );
+
+    await this.tasksService.updateTaskProgress(
+      taskId,
+      body.progress,
+      body.message,
+    );
+
+    return { success: true };
+  }
+}
