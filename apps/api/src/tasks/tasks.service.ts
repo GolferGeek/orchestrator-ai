@@ -49,18 +49,28 @@ export class TasksService {
       }
 
       // Create task in database
+      const taskData: any = {
+        agent_conversation_id: conversationId,
+        user_id: userId,
+        method: dto.method,
+        prompt: dto.prompt,
+        params: dto.params || {},
+        timeout_seconds: dto.timeoutSeconds || 300,
+        status: 'pending',
+      };
+
+      // Store LLM selection metadata if provided
+      if (dto.llmSelection) {
+        taskData.llm_metadata = {
+          originalLLMSelection: dto.llmSelection,
+          createdAt: new Date().toISOString(),
+        };
+      }
+
       const { data, error } = await this.supabaseService
         .getAnonClient()
         .from('tasks')
-        .insert({
-          agent_conversation_id: conversationId,
-          user_id: userId,
-          method: dto.method,
-          prompt: dto.prompt,
-          params: dto.params || {},
-          timeout_seconds: dto.timeoutSeconds || 300,
-          status: 'pending',
-        })
+        .insert(taskData)
         .select()
         .single();
 

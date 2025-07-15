@@ -25,12 +25,26 @@ interface Task {
   updatedAt: string;
 }
 
+interface LLMSelection {
+  providerId?: string;
+  modelId?: string;
+  cidafmOptions?: {
+    activeStateModifiers?: string[];
+    responseModifiers?: string[];
+    executedCommands?: string[];
+    customOptions?: Record<string, any>;
+  };
+  temperature?: number;
+  maxTokens?: number;
+}
+
 interface CreateTaskDto {
   method: string;
   prompt: string;
   params?: Record<string, any>;
   conversationId?: string;
   timeoutSeconds?: number;
+  llmSelection?: LLMSelection;
 }
 
 interface UpdateTaskDto {

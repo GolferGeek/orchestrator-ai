@@ -56,12 +56,26 @@ export interface CreateAgentConversationDto {
   metadata?: Record<string, any>;
 }
 
+export interface LLMSelection {
+  providerId?: string;
+  modelId?: string;
+  cidafmOptions?: {
+    activeStateModifiers?: string[];
+    responseModifiers?: string[];
+    executedCommands?: string[];
+    customOptions?: Record<string, any>;
+  };
+  temperature?: number;
+  maxTokens?: number;
+}
+
 export interface CreateTaskDto {
   method: string;
   prompt: string;
   params?: Record<string, any>;
   conversationId?: string; // Optional, creates new conversation if not provided
   timeoutSeconds?: number;
+  llmSelection?: LLMSelection; // LLM and CIDAFM configuration
 }
 
 export interface UpdateTaskDto {
