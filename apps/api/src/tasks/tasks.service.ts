@@ -188,6 +188,32 @@ export class TasksService {
         updateData.completed_at = new Date().toISOString();
       }
 
+      // Convert camelCase to snake_case for database columns
+      if (updateData.responseMetadata !== undefined) {
+        updateData.response_metadata = updateData.responseMetadata;
+        delete updateData.responseMetadata;
+      }
+      if (updateData.errorData !== undefined) {
+        updateData.error_data = updateData.errorData;
+        delete updateData.errorData;
+      }
+      if (updateData.progressMessage !== undefined) {
+        updateData.progress_message = updateData.progressMessage;
+        delete updateData.progressMessage;
+      }
+      if (updateData.errorCode !== undefined) {
+        updateData.error_code = updateData.errorCode;
+        delete updateData.errorCode;
+      }
+      if (updateData.errorMessage !== undefined) {
+        updateData.error_message = updateData.errorMessage;
+        delete updateData.errorMessage;
+      }
+      if (updateData.llmMetadata !== undefined) {
+        updateData.llm_metadata = updateData.llmMetadata;
+        delete updateData.llmMetadata;
+      }
+
       const { data, error } = await this.supabaseService
         .getAnonClient()
         .from('tasks')
@@ -381,7 +407,7 @@ export class TasksService {
       prompt: data.prompt,
       params: data.params,
       response: data.response,
-      responseMetadata: data.response_metadata,
+      responseMetadata: data.response_metadata || {},
       status: data.status,
       progress: data.progress,
       progressMessage: data.progress_message,
@@ -389,7 +415,7 @@ export class TasksService {
       llmMetadata: data.llm_metadata,
       errorCode: data.error_code,
       errorMessage: data.error_message,
-      errorData: data.error_data,
+      errorData: data.error_data || null,
       startedAt: data.started_at ? new Date(data.started_at) : undefined,
       completedAt: data.completed_at
         ? new Date(data.completed_at)
