@@ -1,6 +1,6 @@
 <template>
-  <div class="agent-message-item-wrapper" :class="[`message-sender--${senderType}`]">
-    <div class="agent-message-item" :class="[`message-item--${senderType}`]">
+  <div class="agent-task-item-wrapper" :class="[`task-sender--${senderType}`]">
+    <div class="agent-task-item" :class="[`task-item--${senderType}`]">
       <ion-avatar v-if="senderType === 'agent'" slot="start" class="message-avatar agent-avatar">
         <ion-icon :icon="cogOutline" size="small"></ion-icon>
       </ion-avatar>
@@ -107,32 +107,32 @@ const formatProcessedTime = (processedAt: string) => {
 </script>
 
 <style scoped>
-.agent-message-item-wrapper {
+.agent-task-item-wrapper {
   margin: 16px 0;
   display: flex;
   flex-direction: column;
 }
 
-.message-sender--user {
+.task-sender--user {
   align-items: flex-end;
 }
 
-.message-sender--agent {
+.task-sender--agent {
   align-items: flex-start;
 }
 
-.agent-message-item {
+.agent-task-item {
   display: flex;
   align-items: flex-start;
   max-width: 80%;
   gap: 8px;
 }
 
-.message-item--user {
+.task-item--user {
   flex-direction: row-reverse;
 }
 
-.message-item--agent {
+.task-item--agent {
   flex-direction: row;
 }
 
@@ -165,12 +165,12 @@ const formatProcessedTime = (processedAt: string) => {
   overflow-wrap: break-word;
 }
 
-.message-item--user .message-bubble {
+.task-item--user .message-bubble {
   background: var(--ion-color-primary);
   color: white;
 }
 
-.message-item--agent .message-bubble {
+.task-item--agent .message-bubble {
   background: var(--ion-color-light);
   color: var(--ion-color-dark);
 }
@@ -229,7 +229,7 @@ const formatProcessedTime = (processedAt: string) => {
   margin-top: 4px;
 }
 
-.message-item--user .message-timestamp {
+.task-item--user .message-timestamp {
   color: rgba(255, 255, 255, 0.7);
 }
 
@@ -259,7 +259,7 @@ const formatProcessedTime = (processedAt: string) => {
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .agent-message-item {
+  .agent-task-item {
     max-width: 90%;
   }
 }

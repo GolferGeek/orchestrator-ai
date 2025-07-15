@@ -34,7 +34,7 @@
 
     <!-- Messages -->
     <div class="messages-container" ref="messagesContainer">
-      <AgentMessageItem
+      <AgentTaskItem
         v-for="message in agentChatStore.messages"
         :key="message.id"
         :message="message"
@@ -91,7 +91,7 @@ import {
   codeSlashOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
-import AgentMessageItem from './AgentMessageItem.vue';
+import AgentTaskItem from './AgentTaskItem.vue';
 
 // Define emits
 const emit = defineEmits<{
