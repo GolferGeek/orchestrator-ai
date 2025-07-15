@@ -87,6 +87,9 @@ export const useAgentChatStore = defineStore('agentChat', {
         this.messages.push(userMessage);
 
         // Create task (this will create conversation if needed)
+        console.log('[AgentChatStore] tasksService:', tasksService);
+        console.log('[AgentChatStore] tasksService.createAgentTask:', tasksService.createAgentTask);
+        
         const task = await tasksService.createAgentTask(
           this.currentAgent.type,
           this.currentAgent.name,
