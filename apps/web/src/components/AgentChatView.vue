@@ -34,20 +34,15 @@
 
     <!-- Messages -->
     <div class="messages-container" ref="messagesContainer">
-      <div 
+      <MessageItem
         v-for="message in agentChatStore.messages"
         :key="message.id"
-        class="message-item"
-        :class="{ 'user-message': message.role === 'user', 'assistant-message': message.role === 'assistant' }"
-      >
-        <div class="message-content">
-          <div class="message-text">{{ message.content }}</div>
-          <div class="message-meta">
-            <span class="message-time">{{ formatTime(message.timestamp) }}</span>
-            <span v-if="message.taskId" class="task-id">Task: {{ message.taskId.slice(0, 8) }}</span>
-          </div>
-        </div>
-      </div>
+        :message="message"
+        :agentName="message.role === 'assistant' ? agentChatStore.currentAgent?.name : undefined"
+        :senderType="message.role === 'user' ? 'user' : 'agent'"
+        :showViewAllAgentsLink="false"
+        :showViewAgentCapabilitiesLink="false"
+      />
     </div>
 
     <!-- Input Area -->
@@ -100,6 +95,7 @@ import {
   codeSlashOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import MessageItem from './MessageItem.vue';
 
 // Define emits
 const emit = defineEmits<{
