@@ -1,0 +1,207 @@
+import { apiService } from './apiService';
+
+interface Task {
+  id: string;
+  agentConversationId: string;
+  userId: string;
+  method: string;
+  prompt: string;
+  params?: Record<string, any>;
+  response?: string;
+  responseMetadata?: Record<string, any>;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  progress: number;
+  progressMessage?: string;
+  evaluation?: Record<string, any>;
+  llmMetadata?: Record<string, any>;
+  errorCode?: string;
+  errorMessage?: string;
+  errorData?: Record<string, any>;
+  startedAt?: string;
+  completedAt?: string;
+  timeoutSeconds: number;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateTaskDto {
+  method: string;
+  prompt: string;
+  params?: Record<string, any>;
+  conversationId?: string;
+  timeoutSeconds?: number;
+}
+
+interface UpdateTaskDto {
+  status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  progress?: number;
+  progressMessage?: string;
+  response?: string;
+  responseMetadata?: Record<string, any>;
+  evaluation?: Record<string, any>;
+  llmMetadata?: Record<string, any>;
+  errorCode?: string;
+  errorMessage?: string;
+  errorData?: Record<string, any>;
+}
+
+interface TaskQueryParams {
+  conversationId?: string;
+  userId?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}
+
+interface ListTasksResponse {
+  tasks: Task[];
+  total: number;
+}
+
+interface TaskProgressEvent {
+  taskId: string;
+  progress: number;
+  message?: string;
+  status?: string;
+  metadata?: Record<string, any>;
+}
+
+class TasksService {
+  private readonly baseUrl = '/tasks';
+
+  /**
+   * List tasks
+   */
+  async listTasks(params?: TaskQueryParams): Promise<ListTasksResponse> {
+    const queryParams = new URLSearchParams();
+    
+    if (params?.conversationId) queryParams.append('conversationId', params.conversationId);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+
+    const url = queryParams.toString() 
+      ? `${this.baseUrl}?${queryParams.toString()}`
+      : this.baseUrl;
+
+    const response = await apiService.get(url);
+    return response;
+  }
+
+  /**
+   * Get task by ID
+   */
+  async getTask(taskId: string): Promise<Task> {
+    const response = await apiService.get(`${this.baseUrl}/${taskId}`);
+    return response;
+  }
+
+  /**
+   * Update task
+   */
+  async updateTask(taskId: string, updates: UpdateTaskDto): Promise<Task> {
+    const response = await apiService.put(`${this.baseUrl}/${taskId}`, updates);
+    return response;
+  }
+
+  /**
+   * Cancel task
+   */
+  async cancelTask(taskId: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiService.delete(`${this.baseUrl}/${taskId}`);
+    return response;
+  }
+
+  /**
+   * Get active tasks
+   */
+  async getActiveTasks(): Promise<Task[]> {
+    const response = await apiService.get(`${this.baseUrl}/active`);
+    return response;
+  }
+
+  /**
+   * Update task progress
+   */
+  async updateTaskProgress(taskId: string, progress: number, message?: string): Promise<{ success: boolean }> {
+    const response = await apiService.put(`${this.baseUrl}/${taskId}/progress`, {
+      progress,
+      message,
+    });
+    return response;
+  }
+
+  /**
+   * Stream task progress via SSE
+   */
+  async *streamTaskProgress(taskId: string): AsyncGenerator<TaskProgressEvent> {
+    const response = await fetch(`${apiService.getBaseUrl()}${this.baseUrl}/${taskId}/progress`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        'Accept': 'text/event-stream',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to stream task progress: ${response.statusText}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('Response body is not readable');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              yield data as TaskProgressEvent;
+              
+              // Stop if task is completed
+              if (data.status === 'completed' || data.status === 'failed' || data.status === 'cancelled') {
+                return;
+              }
+            } catch (error) {
+              console.error('Error parsing SSE data:', error);
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  /**
+   * Create task via direct agent call
+   */
+  async createAgentTask(
+    agentType: string,
+    agentName: string,
+    taskData: CreateTaskDto
+  ): Promise<{
+    taskId: string;
+    conversationId: string;
+    status: string;
+    result?: any;
+  }> {
+    const response = await apiService.post(`/agents/${agentType}/${agentName}/tasks`, taskData);
+    return response;
+  }
+}
+
+export const tasksService = new TasksService();
+export default tasksService;

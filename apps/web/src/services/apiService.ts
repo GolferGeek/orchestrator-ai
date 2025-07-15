@@ -477,6 +477,65 @@ class ApiService {
       throw error;
     }
   }
+
+  /**
+   * Generic GET method
+   */
+  async get(url: string): Promise<any> {
+    const authToken = localStorage.getItem('authToken');
+    const response = await this.axiosInstance.get(url, {
+      headers: {
+        'Authorization': authToken ? `Bearer ${authToken}` : undefined
+      }
+    });
+    return response.data;
+  }
+
+  /**
+   * Generic POST method
+   */
+  async post(url: string, data?: any): Promise<any> {
+    const authToken = localStorage.getItem('authToken');
+    const response = await this.axiosInstance.post(url, data, {
+      headers: {
+        'Authorization': authToken ? `Bearer ${authToken}` : undefined
+      }
+    });
+    return response.data;
+  }
+
+  /**
+   * Generic PUT method
+   */
+  async put(url: string, data?: any): Promise<any> {
+    const authToken = localStorage.getItem('authToken');
+    const response = await this.axiosInstance.put(url, data, {
+      headers: {
+        'Authorization': authToken ? `Bearer ${authToken}` : undefined
+      }
+    });
+    return response.data;
+  }
+
+  /**
+   * Generic DELETE method
+   */
+  async delete(url: string): Promise<any> {
+    const authToken = localStorage.getItem('authToken');
+    const response = await this.axiosInstance.delete(url, {
+      headers: {
+        'Authorization': authToken ? `Bearer ${authToken}` : undefined
+      }
+    });
+    return response.data;
+  }
+
+  /**
+   * Get base URL
+   */
+  getBaseUrl(): string {
+    return API_BASE_URL;
+  }
 }
 
 // Export singleton instance

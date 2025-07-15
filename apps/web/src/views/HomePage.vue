@@ -73,12 +73,13 @@
   </ion-page>
 </template>
 
+
 <script setup lang="ts">
 import { 
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonFooter, IonSpinner, IonText, 
   isPlatform, IonButtons, IonMenuButton, IonButton, IonIcon
 } from '@ionic/vue';
-import { bugOutline } from 'ionicons/icons';
+import { bugOutline, appsOutline } from 'ionicons/icons';
 import { onMounted, onUnmounted, computed, watch, nextTick, ref } from 'vue';
 import { Keyboard, KeyboardInfo } from '@capacitor/keyboard';
 import { Capacitor } from '@capacitor/core';
@@ -119,6 +120,7 @@ const currentAgentCapabilities = ref<any>(null);
 // Debug panel state
 const showDebugPanel = ref(false);
 
+
 const isIOS = computed(() => isPlatform('ios'));
 
 const currentSessionName = computed(() => {
@@ -129,7 +131,7 @@ const currentSessionName = computed(() => {
 });
 
 const pageTitle = computed(() => {
-      return currentSessionName.value || 'Orchestrator AI';
+  return currentSessionName.value || 'Orchestrator AI';
 });
 
 const handleMessagesRenderedInChild = () => {
@@ -424,7 +426,7 @@ const handleReturnToOrchestrator = () => {
 
 const handleViewAllAgents = () => {
   console.log("[HomePage] View all agents request received");
-  // TODO: Implement view all agents functionality
+  // This is now handled by the sidebar agent tree view
 };
 
 const handleViewAgentCapabilities = async (agentInfo: any) => {
@@ -503,6 +505,17 @@ const toggleDebugPanel = () => {
 
 const closeDebugPanel = () => {
   showDebugPanel.value = false;
+};
+
+// Agent tree view event handlers (now handled in SessionSidebar)
+const handleConversationSelected = (conversation: any) => {
+  console.log("[HomePage] Conversation selected from agent tree:", conversation);
+  // You could navigate to this conversation or load it in the chat view
+};
+
+const handleAgentSelectedFromTree = (agent: any) => {
+  console.log("[HomePage] Agent selected from agent tree:", agent);
+  // Could start a new conversation with this agent
 };
 
 const handleAgentSelected = (agent: { name: string; description: string }) => {
