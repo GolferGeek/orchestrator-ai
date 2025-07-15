@@ -338,7 +338,22 @@ const handleConversationSelected = (conversation: any) => {
 
 const handleAgentSelected = (agent: any) => {
   console.log('[SessionSidebar] Agent selected:', agent);
-  // TODO: Start new conversation with agent
+  
+  // For lazy conversation creation, we need to:
+  // 1. Store the selected agent info somewhere accessible
+  // 2. Switch to chat view
+  // 3. The first message sent will create the conversation
+  
+  // For now, let's create a temporary session to handle agent chat
+  // In a full implementation, this would be handled by a dedicated agent chat store
+  
+  // TODO: Implement proper agent chat handling
+  // This is a placeholder - in reality we need to:
+  // - Set up a chat interface specifically for this agent
+  // - Store the agent context for when the user sends the first message
+  // - The conversation will be created when the first task is sent
+  
+  alert(`Starting conversation with ${agent.name}. This needs to be implemented to switch to a chat interface.`);
 };
 
 const handleCreateNewSession = async () => {

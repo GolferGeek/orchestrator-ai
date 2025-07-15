@@ -375,10 +375,13 @@ const createNewConversation = async (agent: Agent) => {
     // Instead, emit an event for the parent to handle (e.g., open chat interface)
     // The conversation will be created when the first task is sent
     
+    console.log(`[AgentTreeView] Starting new conversation with ${agent.name}`);
+    
     // Emit event to parent with agent info
     emit('agent-selected', agent);
     
-    console.log(`[AgentTreeView] Starting new conversation with ${agent.name}`);
+    // Give user feedback that something is happening
+    // In a full implementation, this would transition to a chat interface
     
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to start conversation';
