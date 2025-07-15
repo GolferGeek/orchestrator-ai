@@ -114,14 +114,14 @@ export const useAgentChatStore = defineStore('agentChat', {
             // A2A protocol agents return JSON with { success, response, metadata }
             const parsedResult = typeof task.result === 'string' ? JSON.parse(task.result) : task.result;
             if (parsedResult.success && parsedResult.response) {
-              responseContent = parsedResult.response; // This is the markdown content
+              responseContent = String(parsedResult.response); // Ensure it's a string
               responseMetadata = parsedResult.metadata || {};
             } else {
-              responseContent = task.result;
+              responseContent = String(task.result);
             }
           } catch (error) {
             // If parsing fails, use the raw result
-            responseContent = task.result;
+            responseContent = String(task.result);
           }
         }
 
@@ -190,12 +190,12 @@ export const useAgentChatStore = defineStore('agentChat', {
               // A2A protocol agents return JSON with { success, response, metadata }
               const parsedResponse = typeof task.response === 'string' ? JSON.parse(task.response) : task.response;
               if (parsedResponse.success && parsedResponse.response) {
-                responseContent = parsedResponse.response; // This is the markdown content
+                responseContent = String(parsedResponse.response); // Ensure it's a string
                 responseMetadata = { ...responseMetadata, ...parsedResponse.metadata };
               }
             } catch (error) {
               // If parsing fails, use the raw response
-              responseContent = task.response;
+              responseContent = String(task.response);
             }
 
             this.messages.push({
