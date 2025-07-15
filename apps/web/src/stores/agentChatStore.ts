@@ -105,15 +105,35 @@ export const useAgentChatStore = defineStore('agentChat', {
           this.currentConversationId = task.conversationId;
         }
 
+        // Parse agent response to extract markdown content
+        let responseContent = 'Task submitted successfully.';
+        let responseMetadata = {};
+        
+        if (task.result) {
+          try {
+            // A2A protocol agents return JSON with { success, response, metadata }
+            const parsedResult = typeof task.result === 'string' ? JSON.parse(task.result) : task.result;
+            if (parsedResult.success && parsedResult.response) {
+              responseContent = parsedResult.response; // This is the markdown content
+              responseMetadata = parsedResult.metadata || {};
+            } else {
+              responseContent = task.result;
+            }
+          } catch (error) {
+            // If parsing fails, use the raw result
+            responseContent = task.result;
+          }
+        }
+
         // Add assistant message when task completes
         // For now, we'll add a placeholder. In reality, this would be handled by WebSocket updates
         const assistantMessage: AgentChatMessage = {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
-          content: task.result || 'Task submitted successfully.',
+          content: responseContent,
           timestamp: new Date(),
           taskId: task.taskId,
-          metadata: {},
+          metadata: responseMetadata,
         };
         this.messages.push(assistantMessage);
 
@@ -162,13 +182,29 @@ export const useAgentChatStore = defineStore('agentChat', {
 
           // Add assistant message if task has response
           if (task.response) {
+            // Parse agent response to extract markdown content
+            let responseContent = task.response;
+            let responseMetadata = task.responseMetadata || {};
+            
+            try {
+              // A2A protocol agents return JSON with { success, response, metadata }
+              const parsedResponse = typeof task.response === 'string' ? JSON.parse(task.response) : task.response;
+              if (parsedResponse.success && parsedResponse.response) {
+                responseContent = parsedResponse.response; // This is the markdown content
+                responseMetadata = { ...responseMetadata, ...parsedResponse.metadata };
+              }
+            } catch (error) {
+              // If parsing fails, use the raw response
+              responseContent = task.response;
+            }
+
             this.messages.push({
               id: `assistant-${task.id}`,
               role: 'assistant',
-              content: task.response,
+              content: responseContent,
               timestamp: new Date(task.completedAt || task.updatedAt),
               taskId: task.id,
-              metadata: task.responseMetadata,
+              metadata: responseMetadata,
             });
           }
         });
