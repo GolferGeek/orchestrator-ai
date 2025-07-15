@@ -303,13 +303,9 @@ const refreshData = async () => {
     console.log(`[AgentTreeView] Loaded ${availableAgents.length} available agents:`, availableAgents);
     
     // Load conversations for each agent
-    console.log('[AgentTreeView] About to call agentConversationsService.listConversations...');
     const conversationsResponse = await agentConversationsService.listConversations({
       limit: 1000,
     });
-    
-    console.log(`[AgentTreeView] Loaded ${conversationsResponse.conversations.length} conversations:`, conversationsResponse.conversations);
-    console.log('[AgentTreeView] Raw conversations response:', conversationsResponse);
     
     conversations.value = conversationsResponse.conversations.map(conv => ({
       ...conv,
@@ -328,23 +324,17 @@ const refreshData = async () => {
       // Normalize agent type to match available agents format
       const normalizedAgentType = conv.agentType === 'specialist' ? 'specialists' : conv.agentType;
       const key = `${normalizedAgentType}-${conv.agentName}`;
-      console.log(`[AgentTreeView] Processing conversation for agent: ${key} (original: ${conv.agentType}-${conv.agentName})`, conv);
       if (!agentConversations.has(key)) {
         agentConversations.set(key, []);
       }
       agentConversations.get(key)!.push(conv);
     });
-    
-    console.log('[AgentTreeView] Grouped conversations by agent:', agentConversations);
 
     // Build agent list with conversation data
     agents.value = availableAgents.map((agent: any) => {
       const key = `${agent.type}-${agent.name}`;
-      console.log(`[AgentTreeView] Looking for conversations for agent key: ${key}`);
       const agentConvs = agentConversations.get(key) || [];
       const activeConvs = agentConvs.filter(conv => !conv.endedAt);
-      
-      console.log(`[AgentTreeView] Agent ${key} has ${agentConvs.length} total conversations, ${activeConvs.length} active`);
       
       return {
         name: agent.name,
@@ -362,7 +352,6 @@ const refreshData = async () => {
 
   } catch (err) {
     console.error('[AgentTreeView] Error loading data:', err);
-    console.error('[AgentTreeView] Error stack:', err.stack);
     error.value = err instanceof Error ? err.message : 'Failed to load data';
   } finally {
     loading.value = false;
