@@ -10,6 +10,7 @@ import {
   TaskProgressEvent,
 } from '../common/types/agent-conversations.types';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { snakeToCamel } from '../utils/case-converter';
 
 @Injectable()
 export class TasksService {
@@ -399,31 +400,34 @@ export class TasksService {
    * Map database record to Task type
    */
   private mapToTask(data: any): Task {
+    // Use the case converter to handle snake_case to camelCase conversion
+    const converted = snakeToCamel(data);
+    
     return {
-      id: data.id,
-      agentConversationId: data.agent_conversation_id,
-      userId: data.user_id,
-      method: data.method,
-      prompt: data.prompt,
-      params: data.params,
-      response: data.response,
-      responseMetadata: data.response_metadata || {},
-      status: data.status,
-      progress: data.progress,
-      progressMessage: data.progress_message,
-      evaluation: data.evaluation,
-      llmMetadata: data.llm_metadata,
-      errorCode: data.error_code,
-      errorMessage: data.error_message,
-      errorData: data.error_data || null,
-      startedAt: data.started_at ? new Date(data.started_at) : undefined,
-      completedAt: data.completed_at
-        ? new Date(data.completed_at)
+      id: converted.id,
+      agentConversationId: converted.agentConversationId,
+      userId: converted.userId,
+      method: converted.method,
+      prompt: converted.prompt,
+      params: converted.params || {},
+      response: converted.response,
+      responseMetadata: converted.responseMetadata || {},
+      status: converted.status,
+      progress: converted.progress,
+      progressMessage: converted.progressMessage,
+      evaluation: converted.evaluation || {},
+      llmMetadata: converted.llmMetadata || {},
+      errorCode: converted.errorCode,
+      errorMessage: converted.errorMessage,
+      errorData: converted.errorData,
+      startedAt: converted.startedAt ? new Date(converted.startedAt) : undefined,
+      completedAt: converted.completedAt
+        ? new Date(converted.completedAt)
         : undefined,
-      timeoutSeconds: data.timeout_seconds,
-      metadata: data.metadata,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
+      timeoutSeconds: converted.timeoutSeconds,
+      metadata: converted.metadata || {},
+      createdAt: new Date(converted.createdAt),
+      updatedAt: new Date(converted.updatedAt),
     };
   }
 }
