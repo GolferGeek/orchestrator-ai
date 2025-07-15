@@ -53,4 +53,4 @@ dev-debug.log
 # OS specific
 # Task files
 tasks.json
-tasks/ 
+# tasks/ - Commented out to allow API tasks module 

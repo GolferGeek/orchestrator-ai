@@ -13,7 +13,7 @@ export interface AgentConversation {
 
 export interface Task {
   id: string;
-  agentConversationId: string;
+  agentConversationId: string | null; // Nullable to support lazy conversation creation
   userId: string;
   // Request fields
   method: string;
