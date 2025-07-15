@@ -34,14 +34,10 @@
 
     <!-- Messages -->
     <div class="messages-container" ref="messagesContainer">
-      <MessageItem
+      <AgentMessageItem
         v-for="message in agentChatStore.messages"
         :key="message.id"
         :message="message"
-        :agentName="message.role === 'assistant' ? agentChatStore.currentAgent?.name : undefined"
-        :senderType="message.role === 'user' ? 'user' : 'agent'"
-        :showViewAllAgentsLink="false"
-        :showViewAgentCapabilitiesLink="false"
       />
     </div>
 
@@ -95,7 +91,7 @@ import {
   codeSlashOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
-import MessageItem from './MessageItem.vue';
+import AgentMessageItem from './AgentMessageItem.vue';
 
 // Define emits
 const emit = defineEmits<{
