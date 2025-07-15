@@ -173,7 +173,7 @@ export class AgentConversationsService {
       }
 
       return {
-        conversations: data.map(this.mapToAgentConversationWithStats),
+        conversations: data.map(item => this.mapToAgentConversationWithStats(item)),
         total: count || 0,
       };
     } catch (error) {
@@ -263,7 +263,7 @@ export class AgentConversationsService {
         );
       }
 
-      return data.map(this.mapToAgentConversation);
+      return data.map(item => this.mapToAgentConversation(item));
     } catch (error) {
       this.logger.error('Error in getActiveConversations:', error);
       throw error;
