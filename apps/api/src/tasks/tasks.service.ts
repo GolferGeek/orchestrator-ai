@@ -153,7 +153,7 @@ export class TasksService {
       }
 
       return {
-        tasks: data.map(this.mapToTask),
+        tasks: data.map(item => this.mapToTask(item)),
         total: count || 0,
       };
     } catch (error) {
@@ -307,7 +307,7 @@ export class TasksService {
         throw new Error(`Failed to fetch active tasks: ${error.message}`);
       }
 
-      return data.map(this.mapToTask);
+      return data.map(item => this.mapToTask(item));
     } catch (error) {
       this.logger.error('Error in getActiveTasks:', error);
       throw error;
