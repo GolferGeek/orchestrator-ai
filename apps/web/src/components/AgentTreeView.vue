@@ -326,17 +326,23 @@ const refreshData = async () => {
     const agentConversations = new Map<string, Conversation[]>();
     conversations.value.forEach(conv => {
       const key = `${conv.agentType}-${conv.agentName}`;
+      console.log(`[AgentTreeView] Processing conversation for agent: ${key}`, conv);
       if (!agentConversations.has(key)) {
         agentConversations.set(key, []);
       }
       agentConversations.get(key)!.push(conv);
     });
+    
+    console.log('[AgentTreeView] Grouped conversations by agent:', agentConversations);
 
     // Build agent list with conversation data
     agents.value = availableAgents.map((agent: any) => {
       const key = `${agent.type}-${agent.name}`;
+      console.log(`[AgentTreeView] Looking for conversations for agent key: ${key}`);
       const agentConvs = agentConversations.get(key) || [];
       const activeConvs = agentConvs.filter(conv => !conv.endedAt);
+      
+      console.log(`[AgentTreeView] Agent ${key} has ${agentConvs.length} total conversations, ${activeConvs.length} active`);
       
       return {
         name: agent.name,
