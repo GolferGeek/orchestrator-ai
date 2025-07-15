@@ -21,6 +21,10 @@ import { CIDAFMModule } from './cidafm/cidafm.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
 import { UsageModule } from './usage/usage.module';
 import { OrchestratorModule } from './agents/actual/orchestrator/agent.module';
+import { AgentConversationsModule } from './agent-conversations/agent-conversations.module';
+import { TasksModule } from './tasks/tasks.module';
+import { WebSocketModule } from './websocket/websocket.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import supabaseConfig from './supabase/supabase.config';
 
 @Module({
@@ -53,6 +57,11 @@ import supabaseConfig from './supabase/supabase.config';
     UsageModule, // Usage analytics and cost tracking
     // Agent Modules
     OrchestratorModule, // Orchestrator agent with UI endpoints
+    // Direct Agent Access Modules
+    EventEmitterModule.forRoot(), // Event system for real-time updates
+    AgentConversationsModule, // Agent conversation tracking
+    TasksModule, // Task lifecycle management
+    WebSocketModule, // Real-time WebSocket updates
   ],
   controllers: [AppController, DynamicAgentsController],
   providers: [
