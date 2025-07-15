@@ -76,4 +76,15 @@ hr {
   border-top: 1px solid var(--ion-color-step-150, #e0e0e0);
   margin: 8px 0;
 }
+
+/* Increase sidebar width for better space utilization */
+ion-menu {
+  --width: 320px;
+}
+
+@media (max-width: 768px) {
+  ion-menu {
+    --width: 280px;
+  }
+}
 </style>

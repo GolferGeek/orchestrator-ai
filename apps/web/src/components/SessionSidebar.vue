@@ -131,6 +131,21 @@
       </ion-button>
     </div>
 
+    <!-- Agent Conversations -->
+    <div class="agents-section">
+      <div class="session-group-header collapsible" @click="toggleAgentsSection">
+        <ion-icon :icon="showAgentsSection ? chevronDownOutline : chevronForwardOutline" size="small"></ion-icon>
+        Agent Conversations
+      </div>
+      <div v-show="showAgentsSection">
+        <AgentTreeView 
+          @conversation-selected="handleConversationSelected"
+          @agent-selected="handleAgentSelected"
+          compact-mode
+        />
+      </div>
+    </div>
+
     <!-- Developer Tools -->
     <div class="tools-section">
       <div class="session-group-header">Developer Tools</div>
@@ -155,6 +170,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { storeToRefs } from 'pinia';
 import { apiService } from '../services/apiService';
+import AgentTreeView from '@/components/AgentTreeView.vue';
 
 const authStore = useAuthStore();
 const sessionStore = useSessionStore();
@@ -170,6 +186,7 @@ const editInput = ref<HTMLInputElement | null>(null);
 
 // UI state
 const showOlderSessions = ref(false);
+const showAgentsSection = ref(true);
 
 const { currentSessionId: selectedSessionId } = storeToRefs(sessionStore);
 
@@ -307,6 +324,21 @@ const cancelEditingSession = () => {
 // UI functions
 const toggleOlderSessions = () => {
   showOlderSessions.value = !showOlderSessions.value;
+};
+
+const toggleAgentsSection = () => {
+  showAgentsSection.value = !showAgentsSection.value;
+};
+
+// Agent event handlers
+const handleConversationSelected = (conversation: any) => {
+  console.log('[SessionSidebar] Conversation selected:', conversation);
+  // TODO: Switch to agent conversation view
+};
+
+const handleAgentSelected = (agent: any) => {
+  console.log('[SessionSidebar] Agent selected:', agent);
+  // TODO: Start new conversation with agent
 };
 
 const handleCreateNewSession = async () => {
@@ -694,6 +726,18 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 
 .session-item:hover .session-actions {
   opacity: 1;
+}
+
+/* Agent Conversations */
+.agents-section {
+  margin-top: 20px;
+  border-top: 1px solid var(--ion-color-light);
+  padding-top: 12px;
+}
+
+.agents-section :deep(.agent-tree-view) {
+  width: 100%;
+  min-width: 300px;
 }
 
 /* Developer Tools */

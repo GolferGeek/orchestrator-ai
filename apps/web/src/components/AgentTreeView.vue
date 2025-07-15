@@ -1,0 +1,714 @@
+<template>
+  <div class="agent-tree-view" :class="{ 'compact-mode': compactMode }">
+    <!-- Header with refresh and search -->
+    <div v-if="!compactMode" class="tree-header">
+      <h2>Agents & Conversations</h2>
+      <div class="header-actions">
+        <ion-searchbar
+          v-model="searchQuery"
+          placeholder="Search agents..."
+          :debounce="300"
+          @input="filterAgents"
+        />
+        <ion-button
+          fill="outline"
+          size="small"
+          @click="refreshData"
+          :disabled="loading"
+        >
+          <ion-icon :icon="refreshOutline" />
+        </ion-button>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    <div v-if="loading" class="loading-state">
+      <ion-spinner />
+      <p>Loading agents...</p>
+    </div>
+
+    <!-- Error state -->
+    <div v-if="error" class="error-state">
+      <ion-icon :icon="alertCircleOutline" color="danger" />
+      <p>{{ error }}</p>
+      <ion-button @click="refreshData">Retry</ion-button>
+    </div>
+
+    <!-- Tree view -->
+    <div v-if="!loading && !error" class="tree-content">
+      <ion-accordion-group :multiple="true" :value="expandedGroups">
+        <!-- Agent Type Groups -->
+        <ion-accordion
+          v-for="agentType in filteredAgentTypes"
+          :key="agentType.type"
+          :value="agentType.type"
+        >
+          <ion-item slot="header">
+            <ion-icon
+              :icon="getAgentTypeIcon(agentType.type)"
+              slot="start"
+              :color="getAgentTypeColor(agentType.type)"
+            />
+            <ion-label>
+              <h3>{{ formatAgentTypeName(agentType.type) }}</h3>
+              <p>{{ agentType.agents.length }} agents</p>
+            </ion-label>
+            <ion-badge slot="end" :color="getAgentTypeColor(agentType.type)">
+              {{ agentType.totalConversations }}
+            </ion-badge>
+          </ion-item>
+
+          <div slot="content" class="agent-type-content">
+            <!-- Individual Agents -->
+            <ion-accordion-group :multiple="true">
+              <ion-accordion
+                v-for="agent in agentType.agents"
+                :key="`${agent.type}-${agent.name}`"
+                :value="`${agent.type}-${agent.name}`"
+              >
+                <ion-item slot="header" class="agent-header">
+                  <!-- Clean agent name display without icons or descriptions -->
+                  <ion-label>
+                    <h3>{{ formatAgentName(agent.name) }}</h3>
+                  </ion-label>
+                  <div slot="end" class="agent-badges">
+                    <ion-badge
+                      v-if="agent.activeConversations > 0"
+                      color="success"
+                      class="compact-badge"
+                    >
+                      {{ agent.activeConversations }}
+                    </ion-badge>
+                    <ion-badge color="medium" class="compact-badge">
+                      {{ agent.totalConversations }}
+                    </ion-badge>
+                  </div>
+                </ion-item>
+
+                <div slot="content" class="conversations-content">
+                  <!-- Add new conversation button at the top -->
+                  <div class="new-conversation-button">
+                    <ion-button 
+                      fill="clear" 
+                      size="small"
+                      @click="createNewConversation(agent)"
+                      class="start-conversation-btn"
+                    >
+                      <ion-icon :icon="addOutline" slot="start" />
+                      Start {{ getConversationLabel(agent) }}
+                    </ion-button>
+                  </div>
+                  
+                  <!-- Conversations for this agent -->
+                  <div
+                    v-if="agent.conversations.length === 0"
+                    class="no-conversations"
+                  >
+                    <p>No {{ getConversationPluralLabel(agent).toLowerCase() }} yet</p>
+                  </div>
+
+                  <div
+                    v-for="conversation in agent.conversations"
+                    :key="conversation.id"
+                    class="conversation-item"
+                    :class="{ 'selected': selectedConversation?.id === conversation.id }"
+                    @click="selectConversation(conversation)"
+                  >
+                    <div class="conversation-header">
+                      <div class="conversation-info">
+                        <h4>
+                          {{ getConversationLabel(agent) }}
+                          <ion-badge
+                            v-if="conversation.activeTasks > 0"
+                            color="primary"
+                            class="task-badge"
+                          >
+                            {{ conversation.activeTasks }} running
+                          </ion-badge>
+                        </h4>
+                        <p class="conversation-time">
+                          {{ formatTime(conversation.lastActiveAt) }}
+                        </p>
+                      </div>
+                      <div class="conversation-actions">
+                        <ion-button
+                          fill="clear"
+                          size="small"
+                          @click.stop="viewConversationTasks(conversation)"
+                        >
+                          <ion-icon :icon="listOutline" />
+                        </ion-button>
+                        <ion-button
+                          fill="clear"
+                          size="small"
+                          color="danger"
+                          @click.stop="endConversation(conversation)"
+                        >
+                          <ion-icon :icon="closeOutline" />
+                        </ion-button>
+                      </div>
+                    </div>
+                    <div class="conversation-stats">
+                      <span class="stat">
+                        <ion-icon :icon="checkmarkOutline" />
+                        {{ conversation.completedTasks }}
+                      </span>
+                      <span class="stat">
+                        <ion-icon :icon="closeOutline" />
+                        {{ conversation.failedTasks }}
+                      </span>
+                      <span class="stat total">
+                        {{ conversation.taskCount }} total tasks
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </ion-accordion>
+            </ion-accordion-group>
+          </div>
+        </ion-accordion>
+      </ion-accordion-group>
+    </div>
+
+    <!-- Task Details Modal -->
+    <TaskDetailsModal
+      :is-open="showTaskModal"
+      :conversation="selectedConversation"
+      @close="showTaskModal = false"
+      @task-action="handleTaskAction"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue';
+import {
+  IonAccordion,
+  IonAccordionGroup,
+  IonItem,
+  IonLabel,
+  IonIcon,
+  IonBadge,
+  IonButton,
+  IonSearchbar,
+  IonSpinner,
+  IonAvatar,
+} from '@ionic/vue';
+import {
+  personOutline,
+  refreshOutline,
+  alertCircleOutline,
+  addOutline,
+  listOutline,
+  closeOutline,
+  checkmarkOutline,
+  serverOutline,
+  peopleOutline,
+  cloudOutline,
+  codeSlashOutline,
+} from 'ionicons/icons';
+import { agentConversationsService } from '@/services/agentConversationsService';
+import { useAgentsStore } from '@/stores/agentsStore';
+import { websocketService } from '@/services/websocketService';
+import TaskDetailsModal from './TaskDetailsModal.vue';
+
+interface Agent {
+  name: string;
+  type: string;
+  description?: string;
+  conversations: Conversation[];
+  activeConversations: number;
+  totalConversations: number;
+}
+
+interface Conversation {
+  id: string;
+  agentName: string;
+  agentType: string;
+  startedAt: Date;
+  lastActiveAt: Date;
+  endedAt?: Date;
+  taskCount: number;
+  completedTasks: number;
+  failedTasks: number;
+  activeTasks: number;
+  metadata?: Record<string, any>;
+}
+
+interface AgentType {
+  type: string;
+  agents: Agent[];
+  totalConversations: number;
+}
+
+// Props
+const props = defineProps<{
+  compactMode?: boolean;
+}>();
+
+// Reactive state
+const loading = ref(false);
+const error = ref<string | null>(null);
+const searchQuery = ref('');
+const expandedGroups = ref(['specialist', 'orchestrator']);
+const selectedConversation = ref<Conversation | null>(null);
+const showTaskModal = ref(false);
+
+// Data
+const agents = ref<Agent[]>([]);
+const conversations = ref<Conversation[]>([]);
+
+// Computed
+const filteredAgentTypes = computed(() => {
+  const types = new Map<string, AgentType>();
+  
+  const filteredAgents = agents.value.filter(agent => {
+    const matchesSearch = !searchQuery.value || 
+      agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      agent.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
+    return matchesSearch;
+  });
+
+  filteredAgents.forEach(agent => {
+    if (!types.has(agent.type)) {
+      types.set(agent.type, {
+        type: agent.type,
+        agents: [],
+        totalConversations: 0,
+      });
+    }
+    
+    const agentType = types.get(agent.type)!;
+    agentType.agents.push(agent);
+    agentType.totalConversations += agent.totalConversations;
+  });
+
+  return Array.from(types.values()).sort((a, b) => {
+    const order = ['orchestrator', 'specialist', 'external', 'api'];
+    return order.indexOf(a.type) - order.indexOf(b.type);
+  });
+});
+
+// Methods
+const refreshData = async () => {
+  loading.value = true;
+  error.value = null;
+  
+  try {
+    // Load agents from store
+    const agentsStore = useAgentsStore();
+    await agentsStore.fetchAvailableAgents();
+    const availableAgents = agentsStore.getAvailableAgents;
+    
+    // Load conversations for each agent
+    const conversationsResponse = await agentConversationsService.listConversations({
+      limit: 1000,
+    });
+    
+    conversations.value = conversationsResponse.conversations.map(conv => ({
+      ...conv,
+      startedAt: new Date(conv.startedAt),
+      lastActiveAt: new Date(conv.lastActiveAt),
+      endedAt: conv.endedAt ? new Date(conv.endedAt) : undefined,
+      taskCount: conv.taskCount || 0,
+      completedTasks: conv.completedTasks || 0,
+      failedTasks: conv.failedTasks || 0,
+      activeTasks: conv.activeTasks || 0,
+    }));
+
+    // Group conversations by agent
+    const agentConversations = new Map<string, Conversation[]>();
+    conversations.value.forEach(conv => {
+      const key = `${conv.agentType}-${conv.agentName}`;
+      if (!agentConversations.has(key)) {
+        agentConversations.set(key, []);
+      }
+      agentConversations.get(key)!.push(conv);
+    });
+
+    // Build agent list with conversation data
+    agents.value = availableAgents.map((agent: any) => {
+      const key = `${agent.type}-${agent.name}`;
+      const agentConvs = agentConversations.get(key) || [];
+      const activeConvs = agentConvs.filter(conv => !conv.endedAt);
+      
+      return {
+        name: agent.name,
+        type: agent.type,
+        description: agent.description,
+        conversations: agentConvs.sort((a, b) => 
+          new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime()
+        ),
+        activeConversations: activeConvs.length,
+        totalConversations: agentConvs.length,
+      };
+    });
+
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to load data';
+  } finally {
+    loading.value = false;
+  }
+};
+
+const filterAgents = () => {
+  // Filtering is handled in computed property
+};
+
+const selectConversation = (conversation: Conversation) => {
+  selectedConversation.value = conversation;
+  // Emit event for parent components
+  emit('conversation-selected', conversation);
+};
+
+const createNewConversation = async (agent: Agent) => {
+  try {
+    loading.value = true;
+    const newConversation = await agentConversationsService.createConversation({
+      agentName: agent.name,
+      agentType: agent.type as any,
+    });
+    
+    // Refresh data to show new conversation
+    await refreshData();
+    
+    // Select the new conversation
+    const createdConv = conversations.value.find(c => c.id === newConversation.id);
+    if (createdConv) {
+      selectConversation(createdConv);
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to create conversation';
+  } finally {
+    loading.value = false;
+  }
+};
+
+const viewConversationTasks = (conversation: Conversation) => {
+  selectedConversation.value = conversation;
+  showTaskModal.value = true;
+};
+
+const endConversation = async (conversation: Conversation) => {
+  try {
+    await agentConversationsService.endConversation(conversation.id);
+    await refreshData();
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to end conversation';
+  }
+};
+
+const handleTaskAction = (action: string, taskId: string) => {
+  // Handle task actions (cancel, retry, etc.)
+  console.log('Task action:', action, taskId);
+};
+
+// Utility functions
+const formatAgentName = (name: string) => {
+  return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
+const getConversationLabel = (agent: Agent) => {
+  return agent.type === 'orchestrator' ? 'Session' : 'Conversation';
+};
+
+const getConversationPluralLabel = (agent: Agent) => {
+  return agent.type === 'orchestrator' ? 'Sessions' : 'Conversations';
+};
+
+const formatAgentTypeName = (type: string) => {
+  const names = {
+    specialist: 'Specialists',
+    orchestrator: 'Orchestrator',
+    external: 'External Agents',
+    api: 'API Agents',
+  };
+  return names[type as keyof typeof names] || type;
+};
+
+const formatTime = (date: Date) => {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+};
+
+const getAgentTypeIcon = (type: string) => {
+  const icons = {
+    specialist: peopleOutline,
+    orchestrator: serverOutline,
+    external: cloudOutline,
+    api: codeSlashOutline,
+  };
+  return icons[type as keyof typeof icons] || personOutline;
+};
+
+const getAgentTypeColor = (type: string) => {
+  const colors = {
+    specialist: 'primary',
+    orchestrator: 'success',
+    external: 'warning',
+    api: 'tertiary',
+  };
+  return colors[type as keyof typeof colors] || 'medium';
+};
+
+// Events
+const emit = defineEmits<{
+  'conversation-selected': [conversation: Conversation];
+  'agent-selected': [agent: Agent];
+}>();
+
+// Lifecycle
+onMounted(() => {
+  refreshData();
+  
+  // Listen for task events to update conversation states
+  websocketService.onTaskEvent('created', (event) => {
+    refreshData(); // Refresh to get updated task counts
+  });
+  
+  websocketService.onTaskEvent('completed', (event) => {
+    refreshData();
+  });
+  
+  websocketService.onTaskEvent('failed', (event) => {
+    refreshData();
+  });
+});
+
+// Watch for WebSocket connection changes
+watch(() => websocketService.connected.value, (connected) => {
+  if (connected) {
+    // Subscribe to user's task events
+    // This will be handled automatically by the websocket service
+  }
+});
+</script>
+
+<style scoped>
+.agent-tree-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--ion-color-step-150);
+}
+
+.tree-header h2 {
+  margin: 0 0 12px 0;
+  color: var(--ion-color-primary);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.header-actions ion-searchbar {
+  flex: 1;
+}
+
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+}
+
+.error-state {
+  color: var(--ion-color-danger);
+}
+
+.tree-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.agent-type-content {
+  padding-left: 16px;
+}
+
+.agent-header {
+  --padding-start: 16px;
+}
+
+.agent-header ion-label h3 {
+  font-size: 0.95em;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
+  margin-bottom: 0;
+}
+
+.agent-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.agent-badges {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.conversations-content {
+  padding: 8px 16px;
+}
+
+.no-conversations {
+  text-align: center;
+  padding: 24px;
+  color: var(--ion-color-medium);
+}
+
+.conversation-item {
+  background: var(--ion-color-step-50);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.conversation-item:hover {
+  background: var(--ion-color-step-100);
+}
+
+.conversation-item.selected {
+  border-color: var(--ion-color-primary);
+  background: var(--ion-color-primary-tint);
+}
+
+.conversation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.conversation-info h4 {
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-badge {
+  font-size: 0.7em;
+}
+
+.conversation-time {
+  margin: 0;
+  font-size: 0.85em;
+  color: var(--ion-color-medium);
+}
+
+.conversation-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.conversation-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.85em;
+  color: var(--ion-color-medium);
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat.total {
+  margin-left: auto;
+  font-weight: 500;
+}
+
+/* Compact Mode Styles */
+.agent-tree-view.compact-mode {
+  padding: 0;
+}
+
+.agent-tree-view.compact-mode .tree-content {
+  padding: 0;
+}
+
+.agent-tree-view.compact-mode ion-item {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  font-size: 0.9em;
+}
+
+.agent-tree-view.compact-mode .conversation-item {
+  padding: 6px 16px;
+  font-size: 0.85em;
+}
+
+.agent-tree-view.compact-mode .conversation-meta {
+  font-size: 0.75em;
+}
+
+.agent-tree-view.compact-mode .conversation-stats {
+  font-size: 0.75em;
+}
+
+/* Compact mode styling for all agents */
+.agent-tree-view.compact-mode .agent-header {
+  --padding-start: 12px;
+  --padding-end: 8px;
+}
+
+.agent-tree-view.compact-mode .agent-header ion-label h3 {
+  font-size: 0.9em;
+}
+  
+  /* Compact badge styles */
+  .compact-badge {
+    min-width: 20px;
+    font-size: 0.8em;
+    font-weight: 600;
+    border-radius: 12px;
+    margin-left: 4px;
+  }
+  
+  .agent-tree-view.compact-mode .compact-badge {
+    font-size: 0.7em;
+    min-width: 18px;
+  }
+  
+  /* New conversation button */
+  .new-conversation-button {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--ion-color-light);
+  }
+  
+  .start-conversation-btn {
+    --color: var(--ion-color-primary);
+    font-size: 0.9em;
+    text-transform: none;
+    font-weight: 500;
+  }
+  
+  .agent-tree-view.compact-mode .start-conversation-btn {
+    font-size: 0.8em;
+  }
+</style>
