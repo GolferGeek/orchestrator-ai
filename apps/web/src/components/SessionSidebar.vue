@@ -171,9 +171,16 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { storeToRefs } from 'pinia';
 import { apiService } from '../services/apiService';
 import AgentTreeView from '@/components/AgentTreeView.vue';
+import { useAgentChatStore } from '@/stores/agentChatStore';
+
+// Define emits
+const emit = defineEmits<{
+  'agent-chat-started': [agent: any];
+}>();
 
 const authStore = useAuthStore();
 const sessionStore = useSessionStore();
+const agentChatStore = useAgentChatStore();
 
 const sessions = ref<Session[]>([]);
 const isLoading = ref(false);
@@ -339,21 +346,15 @@ const handleConversationSelected = (conversation: any) => {
 const handleAgentSelected = (agent: any) => {
   console.log('[SessionSidebar] Agent selected:', agent);
   
-  // For lazy conversation creation, we need to:
-  // 1. Store the selected agent info somewhere accessible
-  // 2. Switch to chat view
-  // 3. The first message sent will create the conversation
+  // Start a chat session with the selected agent
+  agentChatStore.startChatWithAgent({
+    name: agent.name,
+    type: agent.type,
+    description: agent.description,
+  });
   
-  // For now, let's create a temporary session to handle agent chat
-  // In a full implementation, this would be handled by a dedicated agent chat store
-  
-  // TODO: Implement proper agent chat handling
-  // This is a placeholder - in reality we need to:
-  // - Set up a chat interface specifically for this agent
-  // - Store the agent context for when the user sends the first message
-  // - The conversation will be created when the first task is sent
-  
-  alert(`Starting conversation with ${agent.name}. This needs to be implemented to switch to a chat interface.`);
+  // Emit event to parent (HomePage) to switch to agent chat view
+  emit('agent-chat-started', agent);
 };
 
 const handleCreateNewSession = async () => {
