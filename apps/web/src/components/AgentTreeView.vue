@@ -116,8 +116,11 @@
                   >
                     <div class="conversation-header">
                       <div class="conversation-info">
-                        <h4>
-                          {{ getConversationLabel(agent) }}
+                        <h4>{{ getConversationLabel(agent) }}</h4>
+                        <div class="conversation-meta">
+                          <span class="conversation-time">
+                            {{ formatTime(conversation.lastActiveAt) }}
+                          </span>
                           <ion-badge
                             v-if="conversation.activeTasks > 0"
                             color="primary"
@@ -125,10 +128,7 @@
                           >
                             {{ conversation.activeTasks }} running
                           </ion-badge>
-                        </h4>
-                        <p class="conversation-time">
-                          {{ formatTime(conversation.lastActiveAt) }}
-                        </p>
+                        </div>
                       </div>
                       <div class="conversation-actions">
                         <ion-button
@@ -347,9 +347,14 @@ const createNewConversation = async (agent: Agent) => {
 
 const endConversation = async (conversation: Conversation) => {
   try {
-    const result = await confirm(
-      `Are you sure you want to delete this conversation with ${conversation.agentName}? This will permanently delete all tasks and data associated with this conversation.`
-    );
+    let message = `Are you sure you want to delete this conversation with ${conversation.agentName}? This will permanently delete all tasks and data associated with this conversation.`;
+    
+    // Add warning if there are active tasks
+    if (conversation.activeTasks > 0) {
+      message += `\n\nWarning: This conversation has ${conversation.activeTasks} running task${conversation.activeTasks > 1 ? 's' : ''} that will be cancelled.`;
+    }
+    
+    const result = await confirm(message);
     
     if (!result) return;
 
@@ -615,28 +620,43 @@ watch(() => websocketService.connected.value, (connected) => {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 8px;
+  gap: 8px;
+}
+
+.conversation-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .conversation-info h4 {
   margin: 0 0 4px 0;
+  font-size: 1em;
+  font-weight: 500;
+}
+
+.conversation-meta {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .task-badge {
   font-size: 0.7em;
+  flex-shrink: 0;
 }
 
 .conversation-time {
   margin: 0;
   font-size: 0.85em;
   color: var(--ion-color-medium);
+  flex-shrink: 0;
 }
 
 .conversation-actions {
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .conversation-stats {
