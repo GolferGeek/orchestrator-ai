@@ -85,6 +85,14 @@ class AgentConversationsService {
   }
 
   /**
+   * Delete a conversation
+   */
+  async deleteConversation(conversationId: string): Promise<{ success: boolean }> {
+    const response = await apiService.delete(`${this.baseUrl}/${conversationId}`);
+    return response;
+  }
+
+  /**
    * Update conversation metadata
    */
   async updateConversationMetadata(

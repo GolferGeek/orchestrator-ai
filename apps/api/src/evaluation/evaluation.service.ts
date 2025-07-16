@@ -702,9 +702,9 @@ export class EvaluationService {
       // Filter in memory since we're working with JSON fields
       let filteredTasks = tasks || [];
       
-      if (filters.minRating) {
+      if (filters.minRating !== undefined) {
         filteredTasks = filteredTasks.filter(task => 
-          task.evaluation?.user_rating >= filters.minRating
+          task.evaluation?.user_rating && task.evaluation.user_rating >= filters.minRating!
         );
       }
       

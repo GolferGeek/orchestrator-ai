@@ -69,6 +69,12 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Creates conversation lazily on first message
      */
     async sendMessage(content: string) {
+      console.log('[AgentChatStore] sendMessage called with:', { 
+        content, 
+        currentAgent: this.currentAgent,
+        currentConversationId: this.currentConversationId 
+      });
+      
       if (!this.currentAgent) {
         throw new Error('No agent selected');
       }
@@ -90,8 +96,11 @@ export const useAgentChatStore = defineStore('agentChat', {
         console.log('[AgentChatStore] tasksService:', tasksService);
         console.log('[AgentChatStore] tasksService.createAgentTask:', tasksService.createAgentTask);
         
+        // Use agent type as-is - everything should use 'specialist' (singular)
+        const agentType = this.currentAgent.type;
+        
         const task = await tasksService.createAgentTask(
-          this.currentAgent.type,
+          agentType,
           this.currentAgent.name,
           {
             method: 'process',

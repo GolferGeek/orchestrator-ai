@@ -14,7 +14,7 @@
           fill="outline"
           size="small"
           @click="refreshData"
-          :disabled="loading"
+          :disabled="conversationsStore.isLoading"
         >
           <ion-icon :icon="refreshOutline" />
         </ion-button>
@@ -22,21 +22,21 @@
     </div>
 
     <!-- Loading state -->
-    <div v-if="loading" class="loading-state">
+    <div v-if="conversationsStore.isLoading" class="loading-state">
       <ion-spinner />
       <p>Loading agents...</p>
     </div>
 
     <!-- Error state -->
-    <div v-if="error" class="error-state">
+    <div v-if="conversationsStore.error" class="error-state">
       <ion-icon :icon="alertCircleOutline" color="danger" />
-      <p>{{ error }}</p>
+      <p>{{ conversationsStore.error }}</p>
       <ion-button @click="refreshData">Retry</ion-button>
     </div>
 
     <!-- Tree view -->
-    <div v-if="!loading && !error" class="tree-content">
-      <ion-accordion-group :multiple="true" :value="expandedGroups">
+    <div v-if="!conversationsStore.isLoading && !conversationsStore.error" class="tree-content">
+      <ion-accordion-group :multiple="true" :value="expandedGroups" @ionChange="handleAccordionChange">
         <!-- Agent Type Groups -->
         <ion-accordion
           v-for="agentType in filteredAgentTypes"
@@ -134,17 +134,10 @@
                         <ion-button
                           fill="clear"
                           size="small"
-                          @click.stop="viewConversationTasks(conversation)"
-                        >
-                          <ion-icon :icon="listOutline" />
-                        </ion-button>
-                        <ion-button
-                          fill="clear"
-                          size="small"
                           color="danger"
                           @click.stop="endConversation(conversation)"
                         >
-                          <ion-icon :icon="closeOutline" />
+                          <ion-icon :icon="trashOutline" />
                         </ion-button>
                       </div>
                     </div>
@@ -170,13 +163,7 @@
       </ion-accordion-group>
     </div>
 
-    <!-- Task Details Modal -->
-    <TaskDetailsModal
-      :is-open="showTaskModal"
-      :conversation="selectedConversation"
-      @close="showTaskModal = false"
-      @task-action="handleTaskAction"
-    />
+    <!-- Task Details Modal removed - conversations now load in main window -->
   </div>
 </template>
 
@@ -199,8 +186,8 @@ import {
   refreshOutline,
   alertCircleOutline,
   addOutline,
-  listOutline,
   closeOutline,
+  trashOutline,
   checkmarkOutline,
   serverOutline,
   peopleOutline,
@@ -209,8 +196,9 @@ import {
 } from 'ionicons/icons';
 import { agentConversationsService } from '@/services/agentConversationsService';
 import { useAgentsStore } from '@/stores/agentsStore';
+import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
 import { websocketService } from '@/services/websocketService';
-import TaskDetailsModal from './TaskDetailsModal.vue';
+// TaskDetailsModal import removed - conversations now load in main window
 
 interface Agent {
   name: string;
@@ -247,29 +235,32 @@ const props = defineProps<{
 }>();
 
 // Reactive state
-const loading = ref(false);
-const error = ref<string | null>(null);
 const searchQuery = ref('');
 const expandedGroups = ref(['specialist', 'orchestrator']);
 const selectedConversation = ref<Conversation | null>(null);
-const showTaskModal = ref(false);
+// showTaskModal removed - conversations now load in main window
 
-// Data
-const agents = ref<Agent[]>([]);
-const conversations = ref<Conversation[]>([]);
+// Data - removed local agents ref, using store instead
+
+// Stores
+const agentsStore = useAgentsStore();
+const conversationsStore = useAgentConversationsStore();
 
 // Computed
 const filteredAgentTypes = computed(() => {
   const types = new Map<string, AgentType>();
   
-  const filteredAgents = agents.value.filter(agent => {
+  // Get agents from store instead of local ref
+  const availableAgents = agentsStore.getAvailableAgents;
+  
+  const filteredAgents = availableAgents.filter((agent: any) => {
     const matchesSearch = !searchQuery.value || 
       agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       agent.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
     return matchesSearch;
   });
 
-  filteredAgents.forEach(agent => {
+  filteredAgents.forEach((agent: any) => {
     if (!types.has(agent.type)) {
       types.set(agent.type, {
         type: agent.type,
@@ -278,9 +269,20 @@ const filteredAgentTypes = computed(() => {
       });
     }
     
+    // Get conversations from store
+    const agentConversations = conversationsStore.getConversationsByAgent(agent.name, agent.type);
+    console.log(`[AgentTreeView] Agent ${agent.name} (${agent.type}): ${agentConversations.length} conversations`, agentConversations);
+    
     const agentType = types.get(agent.type)!;
-    agentType.agents.push(agent);
-    agentType.totalConversations += agent.totalConversations;
+    agentType.agents.push({
+      name: agent.name,
+      type: agent.type,
+      description: agent.description,
+      conversations: agentConversations,
+      activeConversations: agentConversations.filter(c => !c.endedAt).length,
+      totalConversations: agentConversations.length,
+    });
+    agentType.totalConversations += agentConversations.length;
   });
 
   return Array.from(types.values()).sort((a, b) => {
@@ -290,71 +292,25 @@ const filteredAgentTypes = computed(() => {
 });
 
 // Methods
+
 const refreshData = async () => {
-  loading.value = true;
-  error.value = null;
-  
   try {
-    // Load agents from store
-    const agentsStore = useAgentsStore();
+    // Force refresh both stores
     await agentsStore.fetchAvailableAgents();
-    const availableAgents = agentsStore.getAvailableAgents;
+    await conversationsStore.fetchConversations(true); // Force refresh
     
-    console.log(`[AgentTreeView] Loaded ${availableAgents.length} available agents:`, availableAgents);
+    console.log(`[AgentTreeView] Refreshed data - ${agentsStore.getAvailableAgents.length} agents, ${conversationsStore.conversations.length} conversations`);
+    console.log('[AgentTreeView] Available agents:', agentsStore.getAvailableAgents);
+    console.log('[AgentTreeView] Conversations:', conversationsStore.conversations);
     
-    // Load conversations for each agent
-    const conversationsResponse = await agentConversationsService.listConversations({
-      limit: 1000,
-    });
-    
-    conversations.value = conversationsResponse.conversations.map(conv => ({
-      ...conv,
-      startedAt: new Date(conv.startedAt),
-      lastActiveAt: new Date(conv.lastActiveAt),
-      endedAt: conv.endedAt ? new Date(conv.endedAt) : undefined,
-      taskCount: conv.taskCount || 0,
-      completedTasks: conv.completedTasks || 0,
-      failedTasks: conv.failedTasks || 0,
-      activeTasks: conv.activeTasks || 0,
-    }));
-
-    // Group conversations by agent
-    const agentConversations = new Map<string, Conversation[]>();
-    conversations.value.forEach(conv => {
-      // Normalize agent type to match available agents format
-      const normalizedAgentType = conv.agentType === 'specialist' ? 'specialists' : conv.agentType;
-      const key = `${normalizedAgentType}-${conv.agentName}`;
-      if (!agentConversations.has(key)) {
-        agentConversations.set(key, []);
-      }
-      agentConversations.get(key)!.push(conv);
-    });
-
-    // Build agent list with conversation data
-    agents.value = availableAgents.map((agent: any) => {
-      const key = `${agent.type}-${agent.name}`;
-      const agentConvs = agentConversations.get(key) || [];
-      const activeConvs = agentConvs.filter(conv => !conv.endedAt);
-      
-      return {
-        name: agent.name,
-        type: agent.type,
-        description: agent.description,
-        conversations: agentConvs.sort((a, b) => 
-          new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime()
-        ),
-        activeConversations: activeConvs.length,
-        totalConversations: agentConvs.length,
-      };
-    });
-    
-    console.log(`[AgentTreeView] Built ${agents.value.length} agent entries:`, agents.value);
-
+    // Debug: Show the actual conversation data with agentName and agentType
+    console.log('[AgentTreeView] Conversation details:', conversationsStore.conversations.map(c => ({
+      id: c.id,
+      agentName: c.agentName,
+      agentType: c.agentType
+    })));
   } catch (err) {
-    console.error('[AgentTreeView] Error loading data:', err);
-    error.value = err instanceof Error ? err.message : 'Failed to load data';
-  } finally {
-    loading.value = false;
+    console.error('[AgentTreeView] Error refreshing data:', err);
   }
 };
 
@@ -370,8 +326,6 @@ const selectConversation = (conversation: Conversation) => {
 
 const createNewConversation = async (agent: Agent) => {
   try {
-    loading.value = true;
-    
     // With lazy conversation creation, we don't create conversations upfront
     // Instead, emit an event for the parent to handle (e.g., open chat interface)
     // The conversation will be created when the first task is sent
@@ -385,29 +339,34 @@ const createNewConversation = async (agent: Agent) => {
     // In a full implementation, this would transition to a chat interface
     
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to start conversation';
-  } finally {
-    loading.value = false;
+    console.error('[AgentTreeView] Error starting conversation:', err);
   }
 };
 
-const viewConversationTasks = (conversation: Conversation) => {
-  selectedConversation.value = conversation;
-  showTaskModal.value = true;
-};
+// viewConversationTasks removed - clicking conversation directly loads it
 
 const endConversation = async (conversation: Conversation) => {
   try {
-    await agentConversationsService.endConversation(conversation.id);
-    await refreshData();
+    const result = await confirm(
+      `Are you sure you want to delete this conversation with ${conversation.agentName}? This will permanently delete all tasks and data associated with this conversation.`
+    );
+    
+    if (!result) return;
+
+    // Use store method - this will update the UI reactively
+    await conversationsStore.deleteConversation(conversation.id);
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to end conversation';
+    console.error('Failed to delete conversation:', err);
+    // Error is already handled in the store
   }
 };
 
-const handleTaskAction = (action: string, taskId: string) => {
-  // Handle task actions (cancel, retry, etc.)
-  console.log('Task action:', action, taskId);
+// handleTaskAction removed - no longer needed without modal
+
+const handleAccordionChange = (event: CustomEvent) => {
+  // Update expanded groups when user changes accordion state
+  expandedGroups.value = event.detail.value;
+  console.log('[AgentTreeView] Accordion state changed:', event.detail.value);
 };
 
 // Utility functions
@@ -471,6 +430,9 @@ const getAgentTypeColor = (type: string) => {
 const emit = defineEmits<{
   'conversation-selected': [conversation: Conversation];
   'agent-selected': [agent: Agent];
+  'task-completed': [event: { taskId: string; conversationId: string }];
+  'task-failed': [event: { taskId: string; conversationId: string }];
+  'task-updated': [event: { taskId: string; conversationId: string }];
 }>();
 
 // Lifecycle
@@ -479,15 +441,60 @@ onMounted(() => {
   
   // Listen for task events to update conversation states
   websocketService.onTaskEvent('created', (event) => {
-    refreshData(); // Refresh to get updated task counts
+    // Update task counts in store without full refresh - use reactive task count updates instead
+    if (event.conversationId) {
+      conversationsStore.updateConversationTaskCounts(event.conversationId, {
+        activeTasks: (conversationsStore.getConversationById(event.conversationId)?.activeTasks || 0) + 1,
+        taskCount: (conversationsStore.getConversationById(event.conversationId)?.taskCount || 0) + 1,
+      });
+    }
   });
   
   websocketService.onTaskEvent('completed', (event) => {
-    refreshData();
+    if (event.conversationId) {
+      const conversation = conversationsStore.getConversationById(event.conversationId);
+      if (conversation) {
+        conversationsStore.updateConversationTaskCounts(event.conversationId, {
+          activeTasks: Math.max(0, conversation.activeTasks - 1),
+          completedTasks: conversation.completedTasks + 1,
+        });
+        
+        // For long-running tasks, we need to trigger a refresh of the conversation data
+        // to get the latest task results. This is a partial refresh that won't reset UI state.
+        console.log(`[AgentTreeView] Task ${event.taskId} completed, refreshing conversation data`);
+        emit('task-completed', { taskId: event.taskId, conversationId: event.conversationId });
+      }
+    }
   });
   
   websocketService.onTaskEvent('failed', (event) => {
-    refreshData();
+    if (event.conversationId) {
+      const conversation = conversationsStore.getConversationById(event.conversationId);
+      if (conversation) {
+        conversationsStore.updateConversationTaskCounts(event.conversationId, {
+          activeTasks: Math.max(0, conversation.activeTasks - 1),
+          failedTasks: conversation.failedTasks + 1,
+        });
+        
+        // For failed tasks, also notify parent components
+        console.log(`[AgentTreeView] Task ${event.taskId} failed, refreshing conversation data`);
+        emit('task-failed', { taskId: event.taskId, conversationId: event.conversationId });
+      }
+    }
+  });
+  
+  websocketService.onTaskEvent('updated', (event) => {
+    if (event.conversationId) {
+      // For task updates (progress, intermediate results), update the lastActiveAt timestamp
+      // and notify parent components so they can refresh the task details
+      conversationsStore.updateConversationTaskCounts(event.conversationId, {
+        // Just update the timestamp to show activity
+      });
+      
+      // Notify parent components about the task update
+      console.log(`[AgentTreeView] Task ${event.taskId} updated, notifying parent components`);
+      emit('task-updated', { taskId: event.taskId, conversationId: event.conversationId });
+    }
   });
 });
 

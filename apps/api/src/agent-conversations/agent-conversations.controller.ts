@@ -146,6 +146,28 @@ export class AgentConversationsController {
   }
 
   /**
+   * Delete a conversation
+   * DELETE /agent-conversations/:id
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteConversation(
+    @Param('id') conversationId: string,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(
+      `Deleting conversation ${conversationId} for user ${currentUser.id}`,
+    );
+
+    await this.agentConversationsService.deleteConversation(
+      conversationId,
+      currentUser.id,
+    );
+
+    return { success: true };
+  }
+
+  /**
    * Get active conversations for the current user
    * GET /agent-conversations/active
    */

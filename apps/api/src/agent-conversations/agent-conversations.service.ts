@@ -14,14 +14,9 @@ export class AgentConversationsService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   /**
-   * Normalize agent type to match database constraints
+   * Validate agent type matches database constraints
    */
-  private normalizeAgentType(agentType: string): 'specialist' | 'orchestrator' | 'external' | 'api' {
-    // Map 'specialists' to 'specialist' to match database constraint
-    if (agentType === 'specialists') {
-      return 'specialist';
-    }
-    
+  private validateAgentType(agentType: string): 'specialist' | 'orchestrator' | 'external' | 'api' {
     // Ensure the type is one of the allowed values
     const validTypes = ['specialist', 'orchestrator', 'external', 'api'];
     if (validTypes.includes(agentType)) {
@@ -41,7 +36,7 @@ export class AgentConversationsService {
     dto: CreateAgentConversationDto,
   ): Promise<AgentConversation> {
     try {
-      const normalizedAgentType = this.normalizeAgentType(dto.agentType);
+      const validatedAgentType = this.validateAgentType(dto.agentType);
       
       const { data, error } = await this.supabaseService
         .getAnonClient()
@@ -49,7 +44,7 @@ export class AgentConversationsService {
         .insert({
           user_id: userId,
           agent_name: dto.agentName,
-          agent_type: normalizedAgentType,
+          agent_type: validatedAgentType,
           metadata: dto.metadata || {},
         })
         .select()
@@ -206,6 +201,53 @@ export class AgentConversationsService {
       }
     } catch (error) {
       this.logger.error('Error in endConversation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a conversation and all related tasks
+   */
+  async deleteConversation(
+    conversationId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      // First verify the conversation exists and belongs to the user
+      const conversation = await this.getConversationById(conversationId, userId);
+      if (!conversation) {
+        throw new Error('Conversation not found');
+      }
+
+      // Delete related tasks first (if any)
+      const { error: tasksError } = await this.supabaseService
+        .getAnonClient()
+        .from('tasks')
+        .delete()
+        .eq('agent_conversation_id', conversationId)
+        .eq('user_id', userId);
+
+      if (tasksError) {
+        this.logger.error('Error deleting conversation tasks:', tasksError);
+        throw new Error(`Failed to delete conversation tasks: ${tasksError.message}`);
+      }
+
+      // Delete the conversation
+      const { error } = await this.supabaseService
+        .getAnonClient()
+        .from('agent_conversations')
+        .delete()
+        .eq('id', conversationId)
+        .eq('user_id', userId);
+
+      if (error) {
+        this.logger.error('Error deleting conversation:', error);
+        throw new Error(`Failed to delete conversation: ${error.message}`);
+      }
+
+      this.logger.debug(`Successfully deleted conversation ${conversationId} for user ${userId}`);
+    } catch (error) {
+      this.logger.error('Error in deleteConversation:', error);
       throw error;
     }
   }

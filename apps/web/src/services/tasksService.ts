@@ -215,6 +215,56 @@ class TasksService {
     const response = await apiService.post(`/agents/${agentType}/${agentName}/tasks`, taskData);
     return response;
   }
+
+  /**
+   * Get task by ID (alias for getTask)
+   */
+  async getTaskById(taskId: string): Promise<Task> {
+    return this.getTask(taskId);
+  }
+
+  /**
+   * Evaluate task
+   */
+  async evaluateTask(taskId: string, evaluation: any): Promise<Task> {
+    const response = await apiService.post(`/evaluation/tasks/${taskId}`, evaluation);
+    return response;
+  }
+
+  /**
+   * Get task evaluation
+   */
+  async getTaskEvaluation(taskId: string): Promise<Task> {
+    const response = await apiService.get(`/evaluation/tasks/${taskId}`);
+    return response;
+  }
+
+  /**
+   * Update task evaluation
+   */
+  async updateTaskEvaluation(taskId: string, evaluation: any): Promise<Task> {
+    const response = await apiService.put(`/evaluation/tasks/${taskId}`, evaluation);
+    return response;
+  }
+
+  /**
+   * Get conversation task evaluations
+   */
+  async getConversationTaskEvaluations(
+    conversationId: string,
+    filters?: { minRating?: number; hasNotes?: boolean }
+  ): Promise<Task[]> {
+    const queryParams = new URLSearchParams();
+    if (filters?.minRating) queryParams.append('min_rating', filters.minRating.toString());
+    if (filters?.hasNotes) queryParams.append('has_notes', filters.hasNotes.toString());
+    
+    const url = queryParams.toString() 
+      ? `/evaluation/conversations/${conversationId}/tasks?${queryParams.toString()}`
+      : `/evaluation/conversations/${conversationId}/tasks`;
+    
+    const response = await apiService.get(url);
+    return response;
+  }
 }
 
 export const tasksService = new TasksService();
