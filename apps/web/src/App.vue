@@ -66,14 +66,12 @@ const handleLogout = async () => {
   router.push('/login');
 };
 
-const handleAgentChatStarted = (agent: any) => {
-  console.log('[App] Agent chat started:', agent);
+const handleAgentChatStarted = (_agent: any) => {
   // Navigate to homepage where we'll show the agent chat
   router.push('/');
 };
 
-const handleAgentConversationSelected = (conversation: any) => {
-  console.log('[App] Agent conversation selected:', conversation);
+const handleAgentConversationSelected = (_conversation: any) => {
   // Navigate to homepage where we'll show the agent conversation
   router.push('/');
   // The agentChatStore.loadConversation is already called in SessionSidebar

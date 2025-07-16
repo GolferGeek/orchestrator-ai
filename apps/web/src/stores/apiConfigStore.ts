@@ -116,9 +116,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       // Start periodic health monitoring
       startHealthMonitoring();
       
-      console.log('API configuration initialized');
     } catch (error) {
-      console.error('Failed to initialize API configuration:', error);
     }
   };
 
@@ -142,7 +140,6 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
         }
       }
     } catch (error) {
-      console.warn('Failed to load saved configuration:', error);
     }
   };
 
@@ -158,7 +155,6 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       
       localStorage.setItem('apiConfiguration', JSON.stringify(toSave));
     } catch (error) {
-      console.warn('Failed to save configuration:', error);
     }
   };
 
@@ -181,7 +177,6 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       
       saveConfiguration();
     } catch (error) {
-      console.error('Health check failed:', error);
     }
   };
 
@@ -206,7 +201,6 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       
       return isHealthy;
     } catch (error) {
-      console.error(`Health check failed for ${endpointName}:`, error);
       
       state.value.endpointHealthStatus[endpointName] = {
         isHealthy: false,
@@ -270,17 +264,14 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
           }
         } catch (error) {
           // Endpoint not available, skip
-          console.debug(`Discovery failed for ${baseUrl}:`, error);
         }
       }
       
       state.value.discoveredEndpoints = discovered;
       state.value.lastDiscoveryTime = new Date();
       
-      console.log(`Discovered ${discovered.length} endpoints`);
       
     } catch (error) {
-      console.error('Endpoint discovery failed:', error);
     } finally {
       state.value.discoveryInProgress = false;
       saveConfiguration();
@@ -300,7 +291,6 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       
       saveConfiguration();
     } catch (error) {
-      console.warn(`Failed to update feature availability for ${endpointName}:`, error);
       // Fall back to static features
       const endpoint = allEndpoints.value.find(ep => ep.name === endpointName);
       if (endpoint) {
@@ -320,14 +310,12 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       await performHealthChecks();
     }, interval);
     
-    console.log(`Started health monitoring with ${interval}ms interval`);
   };
 
   const stopHealthMonitoring = () => {
     if (healthMonitoringInterval) {
       clearInterval(healthMonitoringInterval);
       healthMonitoringInterval = null;
-      console.log('Stopped health monitoring');
     }
   };
 

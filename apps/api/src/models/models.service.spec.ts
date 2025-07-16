@@ -444,7 +444,6 @@ describe('ModelsService', () => {
           return n * factorial(n - 1);
         }
         
-        console.log(factorial(5));
       `.trim();
 
       const costEstimate: CostEstimateDto = {

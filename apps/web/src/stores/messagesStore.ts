@@ -87,14 +87,12 @@ export const useMessagesStore = defineStore('messages', {
         // Use enhanced messaging if LLM preferences are provided and we have a session
         if (llmSelection && currentSessionId) {
           try {
-            console.log('[MESSAGES_STORE] Using enhanced messaging with LLM preferences:', llmSelection);
             
             const enhancedResponse = await apiService.sendEnhancedMessage(currentSessionId, {
               content: text,
               llmSelection: llmSelection
             });
             
-            console.log('[MESSAGES_STORE] Enhanced message response:', enhancedResponse);
             
             // Enhanced messaging saves to database, so refresh session messages to get both user and assistant messages
             await sessionStore.fetchMessagesForCurrentSession();
@@ -102,7 +100,6 @@ export const useMessagesStore = defineStore('messages', {
             uiStore.setAppLoading(false);
             return;
           } catch (enhancedError) {
-            console.warn('[MESSAGES_STORE] Enhanced messaging failed, falling back to orchestrator:', enhancedError);
             // Fall through to legacy orchestrator method
           }
         }
@@ -117,10 +114,8 @@ export const useMessagesStore = defineStore('messages', {
             metadata: msg.metadata
           }));
         
-        console.log('[MESSAGES_STORE] Sending to orchestrator with conversation history:', conversationHistory.length, 'messages');
         
         const taskResponse: TaskResponse = await apiService.postTaskToOrchestrator(text, currentSessionId, conversationHistory);
-        console.log('[MESSAGES_STORE] Raw Task Response from orchestrator:', JSON.stringify(taskResponse, null, 2));
 
         if (taskResponse.session_id) {
           sessionStore.setCurrentSessionId(taskResponse.session_id);
@@ -194,10 +189,8 @@ export const useMessagesStore = defineStore('messages', {
           
           // Add to session store with full metadata
           sessionStore.addMessageToCurrentSession(agentMsg);
-          console.log('[MESSAGES_STORE] Added agent message to session store with metadata:', agentMetadata);
         }
       } catch (error) {
-        console.error("Error submitting task to orchestrator:", error);
         this.addSystemMessage(
           error instanceof Error ? error.message : "Sorry, an error occurred while processing your request.",
           'text'

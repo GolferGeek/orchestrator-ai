@@ -369,7 +369,6 @@ const selectEndpoint = async (endpoint: ApiEndpoint) => {
       await userPreferencesStore.setApiVersion(endpoint.version);
     }
   } catch (error) {
-    console.error('Failed to switch endpoint:', error);
     // Could show toast notification here
   }
 };
@@ -386,7 +385,6 @@ const performHealthCheck = async () => {
     await apiConfigStore.performHealthChecks();
     emit('healthCheckCompleted', apiConfigStore.state.endpointHealthStatus);
   } catch (error) {
-    console.error('Health check failed:', error);
   } finally {
     healthCheckInProgress.value = false;
   }
@@ -419,22 +417,13 @@ const formatTechnologyName = (technology: string) => {
 
 // Lifecycle
 onMounted(async () => {
-  console.log('ApiSelector: Starting initialization...');
-  console.log('Available endpoints:', availableEndpoints.value);
-  
   showAdvanced.value = preferences.value.showAdvancedOptions;
   
   // Initialize the API config store and perform health checks
-  console.log('ApiSelector: Initializing config store...');
   await apiConfigStore.initializeConfiguration();
   
   // Perform initial health check to detect running APIs
-  console.log('ApiSelector: Performing health checks...');
   await performHealthCheck();
-  
-  console.log('ApiSelector mounted. Available endpoints:', availableEndpoints.value);
-  console.log('Health status:', apiConfigStore.state.endpointHealthStatus);
-  console.log('Current endpoint:', currentEndpoint.value);
 });
 </script>
 

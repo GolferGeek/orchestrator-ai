@@ -142,9 +142,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       applyPreferences();
       setupAutoSave();
       
-      console.log('User preferences initialized');
     } catch (error) {
-      console.error('Failed to initialize preferences:', error);
     } finally {
       isLoading.value = false;
     }
@@ -171,7 +169,6 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
         saveUserProfile();
       }
     } catch (error) {
-      console.warn('Failed to load user profile:', error);
       // Create fallback profile
       currentUser.value = {
         id: 'fallback',
@@ -193,7 +190,6 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
         preferences.value = { ...DEFAULT_PREFERENCES, ...loadedPrefs };
       }
     } catch (error) {
-      console.warn('Failed to load preferences:', error);
       preferences.value = { ...DEFAULT_PREFERENCES };
     }
   };
@@ -210,7 +206,6 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
         saveUserProfile();
       }
     } catch (error) {
-      console.error('Failed to save preferences:', error);
     }
   };
 
@@ -220,7 +215,6 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
         localStorage.setItem('userProfile', JSON.stringify(currentUser.value));
       }
     } catch (error) {
-      console.error('Failed to save user profile:', error);
     }
   };
 
@@ -285,7 +279,6 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       try {
         // Simplified for unified API - no switching needed
       } catch (error) {
-        console.warn('Failed to apply API preferences:', error);
       }
     }
   };
@@ -312,13 +305,11 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     // Configure caching behavior
     if (preferences.value.enableCaching) {
       // Could set cache headers or configure service worker
-      console.log(`Caching enabled with ${preferences.value.cacheDuration}min duration`);
     }
     
     // Configure offline mode
     if (preferences.value.enableOfflineMode) {
       // Could register service worker for offline functionality
-      console.log('Offline mode enabled');
     }
   };
 
@@ -362,9 +353,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       savePreferences();
       applyPreferences();
       
-      console.log('Preferences imported successfully');
     } catch (error) {
-      console.error('Failed to import preferences:', error);
       throw error;
     }
   };

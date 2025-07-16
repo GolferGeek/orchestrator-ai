@@ -60,7 +60,6 @@ const handleSignup = async () => {
     //   error.value = result.message || 'Signup failed.';
     //   emit('signup-failed', error.value);
     // }
-    console.log('Attempting signup with:', email.value, displayName.value);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     // Simulate error for now

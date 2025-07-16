@@ -127,12 +127,10 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
   recognition.lang = 'en-US'; 
 
   recognition.onstart = () => {
-    console.log('Web Speech recognition started');
     isRecording.value = true;
   };
 
   recognition.onend = () => {
-    console.log('Web Speech recognition ended');
     if (isRecording.value) { 
         isRecording.value = false;
         emit('pttToggle', false);
@@ -157,7 +155,6 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
   };
 
   recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-    console.error('Web Speech recognition error:', event.error);
     let userMessage = 'Voice input error.';
     if (event.error === 'no-speech') {
       userMessage = 'No speech was detected. Please try again.';
@@ -219,7 +216,6 @@ const handleEnterKey = (event: KeyboardEvent) => {
 const togglePtt = async () => {
   if (Capacitor.isNativePlatform()) {
     // Native PTT logic (same as original)
-    console.log('PTT toggled on native platform');
     isRecording.value = !isRecording.value;
     const nativePttMessage = `Native PTT: Recording ${isRecording.value ? 'started' : 'stopped'}. (Plugin not yet implemented)`;
     presentToast(nativePttMessage, 2000, isRecording.value ? 'success' : 'medium');
@@ -233,7 +229,6 @@ const togglePtt = async () => {
         inputText.value = '';
         recognition.start();
       } catch (e) {
-        console.error("Error starting web speech recognition:", e);
         isRecording.value = false;
         emit('pttToggle', false);
         uiStore.setPttRecording(false);

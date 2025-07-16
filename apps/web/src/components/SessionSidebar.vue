@@ -288,7 +288,6 @@ const fetchSessions = async () => {
 };
 
 const selectSession = (sessionId: string) => {
-  console.log('Selected session:', sessionId);
   sessionStore.setCurrentSessionId(sessionId);
 };
 
@@ -316,7 +315,6 @@ const saveSessionName = async (session: Session) => {
         sessions.value[sessionIndex].name = editingSessionName.value.trim();
       }
     } catch (error) {
-      console.error('Failed to update session name:', error);
       // Could show error toast here
     }
   }
@@ -340,8 +338,6 @@ const toggleAgentsSection = () => {
 
 // Agent event handlers
 const handleConversationSelected = async (conversation: any) => {
-  console.log('[SessionSidebar] Conversation selected:', conversation);
-  
   try {
     // Load the conversation in the agent chat store and wait for it to complete
     await agentChatStore.loadConversation(conversation.id);
@@ -349,14 +345,11 @@ const handleConversationSelected = async (conversation: any) => {
     // Emit event to parent (HomePage) to switch to agent conversation view
     emit('agent-conversation-selected', conversation);
   } catch (error) {
-    console.error('[SessionSidebar] Error loading conversation:', error);
     // Could show an error toast here
   }
 };
 
 const handleAgentSelected = (agent: any) => {
-  console.log('[SessionSidebar] Agent selected:', agent);
-  
   // Start a chat session with the selected agent
   agentChatStore.startChatWithAgent({
     name: agent.name,
@@ -397,8 +390,6 @@ const handleCreateNewSession = async () => {
       }
     };
     
-    console.log('Setting welcome message for new session:', welcomeMessage);
-    
     // Set the session ID - this will trigger fetchMessagesForCurrentSession
     sessionStore.setCurrentSessionId(newSession.id);
     
@@ -406,19 +397,14 @@ const handleCreateNewSession = async () => {
     // We need to wait for the loading to finish first
     const checkAndAddWelcome = () => {
       if (!sessionStore.isLoadingMessages) {
-        console.log('Adding welcome message after fetch completed');
         sessionStore.addMessageToCurrentSession(welcomeMessage);
-        console.log('Welcome message added, current messages count:', sessionStore.currentSessionMessages.length);
       } else {
-        console.log('Still loading messages, waiting...');
         setTimeout(checkAndAddWelcome, 50);
       }
     };
     
     // Start checking immediately
     setTimeout(checkAndAddWelcome, 50);
-    
-    console.log('Session ID set, welcome message will be added after fetch completes');
   } catch (e: any) {
           error.value = e.message || 'Could not create new Orchestrator AI session.';
   } finally {

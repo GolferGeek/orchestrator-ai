@@ -150,12 +150,10 @@ const pageTitle = computed(() => {
 });
 
 const handleMessagesRenderedInChild = () => {
-  console.log("[HomePage] Received messages-rendered event from MessageList.");
   scrollToBottom();
 };
 
 const scrollToBottom = async () => {
-  console.log("[HomePage] scrollToBottom called (triggered by messages-rendered)");
   await new Promise(resolve => setTimeout(resolve, 100));
 
   const contentHostElement = chatContentEl.value?.$el as HTMLElement | undefined;
@@ -169,17 +167,13 @@ const scrollToBottom = async () => {
                       contentHostElement;
   
   if (scrollElement === contentHostElement && scrollElement.firstElementChild && scrollElement.firstElementChild.scrollHeight > scrollElement.scrollHeight) {
-    console.log("[HomePage] Host element $el might not be the scroller, trying its first child.");
     scrollElement = scrollElement.firstElementChild as HTMLElement;
   }
 
   if (scrollElement && typeof scrollElement.scrollTop !== 'undefined') {
-    console.log(`[HomePage] Attempting to scroll element: ${scrollElement.tagName}${scrollElement.className ? '.' + scrollElement.className : ''}. Current scrollHeight: ${scrollElement.scrollHeight}, clientHeight: ${scrollElement.clientHeight}, current scrollTop: ${scrollElement.scrollTop}`);
     if (scrollElement.scrollHeight > scrollElement.clientHeight) { 
         scrollElement.scrollTop = scrollElement.scrollHeight;
-        console.log("[HomePage] Manually set scrollTop. New scrollTop: " + scrollElement.scrollTop);
     } else {
-        console.log("[HomePage] Element is not scrollable (scrollHeight <= clientHeight).");
     }
   } else {
     console.error("[HomePage] Could not find a suitable scrollable element or its scrollTop property.");
@@ -187,14 +181,12 @@ const scrollToBottom = async () => {
 };
 
 watch(currentSessionId, (newId, oldId) => {
-  console.log("[HomePage] Watcher for currentSessionId triggered. New ID:", newId);
   if (newId && newId !== oldId) {
     if (!newId) currentSessionMessages.value = [];
   }
 });
 
 const handleEnhancedSendMessage = async (text: string, llmSelection?: any) => {
-  console.log("[HomePage] Enhanced send message called with LLM selection:", llmSelection);
   if (!currentSessionId.value) {
     console.error("No active session to send message to.");
     return;
@@ -224,7 +216,6 @@ const handleSendMessage = async (text: string) => {
     order: userMessageOrder
   };
   sessionStore.addMessageToCurrentSession(userMessage);
-  console.log("[HomePage] User message added to store:", JSON.parse(JSON.stringify(userMessage)));
 
   try {
     // Prepare conversation history for context (exclude the message we just added)
@@ -236,21 +227,14 @@ const handleSendMessage = async (text: string) => {
         metadata: msg.metadata
       }));
     
-    console.log("[HomePage] Sending conversation history with", conversationHistory.length, "messages");
     // Log last few messages to see if agent metadata is present
     if (conversationHistory.length > 0) {
       const recentMessages = conversationHistory.slice(-3);
       recentMessages.forEach((msg, index) => {
-        console.log(`[HomePage] History[${conversationHistory.length - 3 + index}]:`, {
-          role: msg.role,
-          contentLength: msg.content.length,
-          metadata: msg.metadata
-        });
       });
     }
 
     const taskResponse = await apiService.postTaskToOrchestrator(text, currentSessionId.value, conversationHistory);
-    console.log("[HomePage] Received taskResponse from orchestrator:", JSON.parse(JSON.stringify(taskResponse)));
     
     // Extract response text
     let agentText = 'No response text.';
@@ -262,7 +246,6 @@ const handleSendMessage = async (text: string) => {
       if (taskResponse.response_message?.metadata?.responding_agent_name) {
         agentMetadata.agentName = taskResponse.response_message.metadata.responding_agent_name;
       }
-      console.log("[HomePage] Extracted response from response_message.parts format");
     }
     // Additional fallback - check for direct result field
     else if (taskResponse.result) {
@@ -276,7 +259,6 @@ const handleSendMessage = async (text: string) => {
           agentMetadata = { ...(taskResponse.result as any).metadata };
         }
       }
-      console.log("[HomePage] Extracted response from direct result field, metadata:", agentMetadata);
     }
     
     // Also check taskResponse.metadata for agent information
@@ -292,7 +274,6 @@ const handleSendMessage = async (text: string) => {
                                   taskResponse.metadata.responding_agent_name ||
                                   taskResponse.metadata.respondingAgentName;
       }
-      console.log("[HomePage] Merged taskResponse.metadata, final agentMetadata:", agentMetadata);
     }
     else {
       console.warn("[HomePage] No response found in taskResponse:", JSON.parse(JSON.stringify(taskResponse)));
@@ -306,7 +287,6 @@ const handleSendMessage = async (text: string) => {
     const contentType = (taskResponse.result as any)?.metadata?.contentType || agentMetadata.contentType;
     
     if (contentType === 'agentListModal') {
-      console.log("[HomePage] Detected agent list modal response");
       
       // Extract agent list from structured metadata
       const agentListData = (taskResponse.result as any)?.metadata?.agentList || agentMetadata.agentList;
@@ -318,9 +298,7 @@ const handleSendMessage = async (text: string) => {
           description: agent.description
         }));
         showAgentModal.value = true;
-        console.log("[HomePage] Showing agent list modal with", agentListData.length, "agents:", agentListData);
       } else {
-        console.log("[HomePage] No agent list data found, adding message to chat as fallback");
         // Fallback to showing text message
         const agentMessage: Message = {
           id: taskResponse.id,
@@ -338,7 +316,6 @@ const handleSendMessage = async (text: string) => {
       // Reset the expectation flag
       expectingAgentList.value = false;
     } else if (contentType === 'agentCapabilitiesModal') {
-      console.log("[HomePage] Detected agent capabilities modal response");
       
       // Extract agent capabilities from structured metadata
       const agentCapabilitiesData = (taskResponse.result as any)?.metadata?.agentCapabilities || agentMetadata.agentCapabilities;
@@ -347,9 +324,7 @@ const handleSendMessage = async (text: string) => {
         // Show agent capabilities modal
         showAgentCapabilitiesModal.value = true;
         currentAgentCapabilities.value = agentCapabilitiesData;
-        console.log("[HomePage] Showing agent capabilities modal for:", agentCapabilitiesData.name);
       } else {
-        console.log("[HomePage] No agent capabilities data found, adding message to chat as fallback");
         // Fallback to showing text message
         const agentMessage: Message = {
           id: taskResponse.id,
@@ -365,7 +340,6 @@ const handleSendMessage = async (text: string) => {
       }
     } else if (contentType === 'agentListFromOrchestrator' && (expectingAgentList.value || agentText.includes('Agent Name:'))) {
       // Legacy text-based agent list response - still support parsing for backward compatibility
-      console.log("[HomePage] Detected legacy agent list response, showing modal instead of adding to chat");
       
       // Parse agents and show modal instead of adding message to chat
       const agents = parseAgentListFromResponse(agentText);
@@ -373,9 +347,7 @@ const handleSendMessage = async (text: string) => {
       if (agents.length > 0) {
         availableAgents.value = agents;
         showAgentModal.value = true;
-        console.log("[HomePage] Showing agent modal with", agents.length, "agents:", agents);
       } else {
-        console.log("[HomePage] No agents parsed from legacy response, adding message to chat as fallback");
         // Fallback to showing text message if parsing fails
         const agentMessage: Message = {
           id: taskResponse.id,
@@ -406,7 +378,6 @@ const handleSendMessage = async (text: string) => {
       };
 
       sessionStore.addMessageToCurrentSession(agentMessage);
-      console.log("[HomePage] Agent message added to store:", JSON.parse(JSON.stringify(agentMessage)));
     }
 
     // Message saving is handled automatically by sessionStore
@@ -427,35 +398,29 @@ const handleSendMessage = async (text: string) => {
     };
     
     sessionStore.addMessageToCurrentSession(errorMessage);
-    console.log("[HomePage] Error message added to store:", JSON.parse(JSON.stringify(errorMessage)));
   } finally {
     uiStore.setAppLoading(false);
   }
 };
 
 const handleReturnToOrchestrator = () => {
-  console.log("[HomePage] Return to orchestrator request received");
   // Send a message to clear the sticky agent and return to orchestrator mode
   handleSendMessage("Return to orchestrator");
 };
 
 const handleViewAllAgents = () => {
-  console.log("[HomePage] View all agents request received");
   // This is now handled by the sidebar agent tree view
 };
 
 const handleViewAgentCapabilities = async (agentInfo: any) => {
-  console.log("[HomePage] View agent capabilities request received for:", agentInfo);
   
   try {
     if (agentInfo && agentInfo.name) {
       // We're asking a specific agent about their capabilities via UI click
       const agentName = agentInfo.name;
-      console.log(`[HomePage] UI click: Asking ${agentName} about their capabilities`);
       
       if (agentName.toLowerCase() === 'orchestrator' || agentName.toLowerCase() === 'orchestrator agent') {
         // If it's the orchestrator, call REST endpoint for agent list modal
-        console.log("[HomePage] Calling REST endpoint for agent list");
         const response = await apiService.getAgentsList();
         
         if (response.metadata?.agentList) {
@@ -464,22 +429,18 @@ const handleViewAgentCapabilities = async (agentInfo: any) => {
             description: agent.description
           }));
           showAgentModal.value = true;
-          console.log("[HomePage] Showing agent list modal with", response.metadata.agentList.length, "agents");
         }
       } else {
         // For specific agents, call REST endpoint for capabilities modal
-        console.log(`[HomePage] Calling REST endpoint for ${agentName} capabilities`);
         const response = await apiService.getAgentCapabilities(agentName);
         
         if (response.metadata?.agentCapabilities) {
           currentAgentCapabilities.value = response.metadata.agentCapabilities;
           showAgentCapabilitiesModal.value = true;
-          console.log("[HomePage] Showing agent capabilities modal for:", agentName);
         }
       }
     } else {
       // Fallback to orchestrator agent list modal
-      console.log("[HomePage] No specific agent info, defaulting to orchestrator agent list modal");
       const response = await apiService.getAgentsList();
       
       if (response.metadata?.agentList) {
@@ -488,7 +449,6 @@ const handleViewAgentCapabilities = async (agentInfo: any) => {
           description: agent.description
         }));
         showAgentModal.value = true;
-        console.log("[HomePage] Showing agent list modal with", response.metadata.agentList.length, "agents");
       }
     }
   } catch (error) {
@@ -498,7 +458,6 @@ const handleViewAgentCapabilities = async (agentInfo: any) => {
 };
 
 const handleAgentCapabilityRequestedFor = (agentName: string) => {
-  console.log("[HomePage] Agent capability requested for:", agentName);
   // TODO: Implement agent capability request functionality
 };
 
@@ -524,17 +483,14 @@ const closeDebugPanel = () => {
 
 // Agent tree view event handlers (now handled in SessionSidebar)
 const handleConversationSelected = (conversation: any) => {
-  console.log("[HomePage] Conversation selected from agent tree:", conversation);
   // You could navigate to this conversation or load it in the chat view
 };
 
 const handleAgentSelectedFromTree = (agent: any) => {
-  console.log("[HomePage] Agent selected from agent tree:", agent);
   // Could start a new conversation with this agent
 };
 
 const handleAgentSelected = (agent: { name: string; description: string }) => {
-  console.log("[HomePage] Agent selected from modal:", agent);
   // Send a message to talk to the specific agent with the requested format
   handleSendMessage(`I would like to talk with the ${agent.name} agent.`);
 };
@@ -545,7 +501,6 @@ const handleCloseAgentChat = () => {
 
 // Helper function to parse agent list from orchestrator response
 const parseAgentListFromResponse = (responseText: string): Array<{ name: string; description: string }> => {
-  console.log("[HomePage] Parsing agent list from response:", responseText);
   const agents: Array<{ name: string; description: string }> = [];
   const lines = responseText.split('\n');
   
@@ -553,7 +508,6 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
     const line = lines[i].trim();
     if (!line) continue;
     
-    console.log(`[HomePage] Processing line ${i}: "${line}"`);
     
     // Handle multiple formats:
     // Format 1: "Agent Name: Blog Post Writer, Description: Blog Post Writer specialist agent"
@@ -561,7 +515,6 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
     if (match) {
       const name = match[1].trim();
       const description = match[2].trim();
-      console.log(`[HomePage] Found agent (Format 1): "${name}" - "${description}"`);
       agents.push({ name, description });
       continue;
     }
@@ -571,7 +524,6 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
     if (match) {
       const name = match[1].trim();
       const description = match[2].trim();
-      console.log(`[HomePage] Found agent (Format 2): "${name}" - "${description}"`);
       agents.push({ name, description });
       continue;
     }
@@ -581,7 +533,6 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
     if (match) {
       const name = match[1].trim();
       const description = match[2].trim();
-      console.log(`[HomePage] Found agent (Format 3): "${name}" - "${description}"`);
       agents.push({ name, description });
       continue;
     }
@@ -591,15 +542,12 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
     if (match) {
       const name = match[1].trim();
       const description = match[2].trim();
-      console.log(`[HomePage] Found agent (Format 4): "${name}" - "${description}"`);
       agents.push({ name, description });
       continue;
     }
     
-    console.log(`[HomePage] No match found for line: "${line}"`);
   }
   
-  console.log(`[HomePage] Parsed ${agents.length} agents:`, agents);
   return agents;
 };
 
@@ -609,12 +557,10 @@ const parseAgentListFromResponse = (responseText: string): Array<{ name: string;
 let keyboardHandler: (info: KeyboardInfo) => void;
 
 onMounted(() => {
-  console.log("[HomePage] Component mounted");
   
   if (Capacitor.isNativePlatform()) {
     keyboardHandler = (info: KeyboardInfo) => {
       const keyboardHeight = info.keyboardHeight;
-      console.log(`[HomePage] Keyboard event: keyboardHeight = ${keyboardHeight}`);
       
       nextTick(() => {
         scrollToBottom();
@@ -627,7 +573,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  console.log("[HomePage] Component unmounted");
   
   if (Capacitor.isNativePlatform() && typeof keyboardHandler === 'function') {
     Keyboard.removeAllListeners();
