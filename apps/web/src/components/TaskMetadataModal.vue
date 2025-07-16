@@ -80,29 +80,29 @@
         <div class="metadata-section" v-if="hasLLMInfo">
           <h3>LLM Information</h3>
           <div class="metadata-grid">
-            <div class="metadata-item" v-if="taskData.llmMetadata?.provider">
+            <div class="metadata-item" v-if="getLLMProviderName()">
               <span class="label">Provider:</span>
-              <span class="value">{{ taskData.llmMetadata.provider }}</span>
+              <span class="value">{{ getLLMProviderName() }}</span>
             </div>
-            <div class="metadata-item" v-if="taskData.llmMetadata?.model">
+            <div class="metadata-item" v-if="getLLMModelName()">
               <span class="label">Model:</span>
-              <span class="value">{{ taskData.llmMetadata.model }}</span>
+              <span class="value">{{ getLLMModelName() }}</span>
             </div>
-            <div class="metadata-item" v-if="taskData.llmMetadata?.temperature !== undefined">
+            <div class="metadata-item" v-if="getLLMMetadata()?.temperature !== undefined">
               <span class="label">Temperature:</span>
-              <span class="value">{{ taskData.llmMetadata.temperature }}</span>
+              <span class="value">{{ getLLMMetadata().temperature }}</span>
             </div>
-            <div class="metadata-item" v-if="taskData.llmMetadata?.maxTokens">
+            <div class="metadata-item" v-if="getLLMMetadata()?.maxTokens">
               <span class="label">Max Tokens:</span>
-              <span class="value">{{ taskData.llmMetadata.maxTokens }}</span>
+              <span class="value">{{ getLLMMetadata().maxTokens }}</span>
             </div>
-            <div class="metadata-item" v-if="taskData.llmMetadata?.responseTimeMs">
+            <div class="metadata-item" v-if="getLLMMetadata()?.responseTimeMs">
               <span class="label">Response Time:</span>
-              <span class="value">{{ taskData.llmMetadata.responseTimeMs }}ms</span>
+              <span class="value">{{ getLLMMetadata().responseTimeMs }}ms</span>
             </div>
-            <div class="metadata-item" v-if="taskData.llmMetadata?.operationType">
+            <div class="metadata-item" v-if="getLLMMetadata()?.operationType">
               <span class="label">Operation Type:</span>
-              <span class="value">{{ taskData.llmMetadata.operationType }}</span>
+              <span class="value">{{ getLLMMetadata().operationType }}</span>
             </div>
           </div>
         </div>
@@ -111,17 +111,17 @@
         <div class="metadata-section" v-if="hasCIDAFMInfo">
           <h3>CIDAFM (Behavior Modification)</h3>
           <div class="metadata-grid">
-            <div class="metadata-item" v-if="taskData.llmMetadata?.cidafmOptions?.activeStateModifiers?.length">
+            <div class="metadata-item" v-if="getLLMMetadata()?.cidafmOptions?.activeStateModifiers?.length">
               <span class="label">State Modifiers:</span>
-              <span class="value">{{ taskData.llmMetadata.cidafmOptions.activeStateModifiers.join(', ') }}</span>
+              <span class="value">{{ getLLMMetadata().cidafmOptions.activeStateModifiers.join(', ') }}</span>
             </div>
-            <div class="metadata-item" v-if="taskData.llmMetadata?.cidafmOptions?.responseModifiers?.length">
+            <div class="metadata-item" v-if="getLLMMetadata()?.cidafmOptions?.responseModifiers?.length">
               <span class="label">Response Modifiers:</span>
-              <span class="value">{{ taskData.llmMetadata.cidafmOptions.responseModifiers.join(', ') }}</span>
+              <span class="value">{{ getLLMMetadata().cidafmOptions.responseModifiers.join(', ') }}</span>
             </div>
-            <div class="metadata-item" v-if="taskData.llmMetadata?.cidafmOptions?.executedCommands?.length">
+            <div class="metadata-item" v-if="getLLMMetadata()?.cidafmOptions?.executedCommands?.length">
               <span class="label">Executed Commands:</span>
-              <span class="value">{{ taskData.llmMetadata.cidafmOptions.executedCommands.join(', ') }}</span>
+              <span class="value">{{ getLLMMetadata().cidafmOptions.executedCommands.join(', ') }}</span>
             </div>
           </div>
         </div>
@@ -172,25 +172,25 @@
         <div class="metadata-section" v-if="hasEvaluationInfo">
           <h3>Task Evaluation</h3>
           <div class="metadata-grid">
-            <div class="metadata-item" v-if="taskData.evaluation?.user_rating">
+            <div class="metadata-item" v-if="taskData.evaluation?.userRating">
               <span class="label">User Rating:</span>
-              <span class="value">{{ taskData.evaluation.user_rating }}/5</span>
+              <span class="value">{{ taskData.evaluation.userRating }}/5</span>
             </div>
-            <div class="metadata-item" v-if="taskData.evaluation?.speed_rating">
+            <div class="metadata-item" v-if="taskData.evaluation?.speedRating">
               <span class="label">Speed Rating:</span>
-              <span class="value">{{ taskData.evaluation.speed_rating }}/5</span>
+              <span class="value">{{ taskData.evaluation.speedRating }}/5</span>
             </div>
-            <div class="metadata-item" v-if="taskData.evaluation?.accuracy_rating">
+            <div class="metadata-item" v-if="taskData.evaluation?.accuracyRating">
               <span class="label">Accuracy Rating:</span>
-              <span class="value">{{ taskData.evaluation.accuracy_rating }}/5</span>
+              <span class="value">{{ taskData.evaluation.accuracyRating }}/5</span>
             </div>
-            <div class="metadata-item" v-if="taskData.evaluation?.evaluation_timestamp">
+            <div class="metadata-item" v-if="taskData.evaluation?.evaluationTimestamp">
               <span class="label">Evaluated At:</span>
-              <span class="value">{{ formatTimestamp(taskData.evaluation.evaluation_timestamp) }}</span>
+              <span class="value">{{ formatTimestamp(taskData.evaluation.evaluationTimestamp) }}</span>
             </div>
-            <div class="metadata-item" v-if="taskData.evaluation?.user_notes">
+            <div class="metadata-item" v-if="taskData.evaluation?.userNotes">
               <span class="label">User Notes:</span>
-              <span class="value">{{ taskData.evaluation.user_notes }}</span>
+              <span class="value">{{ taskData.evaluation.userNotes }}</span>
             </div>
           </div>
         </div>
@@ -265,7 +265,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import {
   IonModal,
   IonHeader,
@@ -279,6 +279,7 @@ import {
 } from '@ionic/vue';
 import { closeOutline } from 'ionicons/icons';
 import { tasksService } from '../services/tasksService';
+import { useLLMStore } from '../stores/llmStore';
 
 interface Props {
   isOpen: boolean;
@@ -293,17 +294,36 @@ const emit = defineEmits<{
 
 const taskData = ref<any>(null);
 const isLoading = ref(false);
+const llmStore = useLLMStore();
 
 const handleClose = () => {
   emit('close');
 };
+
+// Initialize LLM store when component mounts
+onMounted(async () => {
+  await llmStore.initialize();
+});
 
 const loadTaskData = async () => {
   if (!props.taskId) return;
   
   try {
     isLoading.value = true;
+    
+    // Ensure LLM store is initialized before loading task data
+    if (llmStore.providers.length === 0) {
+      await llmStore.initialize();
+    }
+    
     taskData.value = await tasksService.getTaskById(props.taskId);
+    
+    // Debug logging
+    console.log('[TaskMetadataModal] Loaded task data:', JSON.stringify(taskData.value, null, 2));
+    console.log('[TaskMetadataModal] LLM Metadata:', JSON.stringify(getLLMMetadata(), null, 2));
+    console.log('[TaskMetadataModal] Evaluation data:', JSON.stringify(taskData.value?.evaluation, null, 2));
+    console.log('[TaskMetadataModal] Store providers:', llmStore.providers.length);
+    console.log('[TaskMetadataModal] Store models:', llmStore.models.length);
   } catch (error) {
     console.error('Error loading task data:', error);
   } finally {
@@ -311,14 +331,7 @@ const loadTaskData = async () => {
   }
 };
 
-// Watch for task ID changes
-watch(() => props.taskId, () => {
-  if (props.isOpen && props.taskId) {
-    loadTaskData();
-  }
-}, { immediate: true });
-
-// Watch for modal opening
+// Watch for modal opening - only load data when modal is actually opened
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen && props.taskId) {
     loadTaskData();
@@ -335,11 +348,14 @@ const hasAgentInfo = computed(() => {
 });
 
 const hasLLMInfo = computed(() => {
-  return taskData.value?.llmMetadata;
+  const hasInfo = taskData.value?.llmMetadata?.originalLLMSelection || taskData.value?.metadata?.llmMetadata?.originalLLMSelection;
+  console.log('[TaskMetadataModal] hasLLMInfo check:', JSON.stringify(hasInfo, null, 2));
+  return hasInfo;
 });
 
 const hasCIDAFMInfo = computed(() => {
-  return taskData.value?.llmMetadata?.cidafmOptions;
+  const llmMeta = taskData.value?.llmMetadata?.originalLLMSelection || taskData.value?.metadata?.llmMetadata?.originalLLMSelection;
+  return llmMeta?.cidafmOptions;
 });
 
 const hasUsageInfo = computed(() => {
@@ -351,7 +367,9 @@ const hasCostInfo = computed(() => {
 });
 
 const hasEvaluationInfo = computed(() => {
-  return taskData.value?.evaluation;
+  const hasInfo = taskData.value?.evaluation;
+  console.log('[TaskMetadataModal] hasEvaluationInfo check:', JSON.stringify(hasInfo, null, 2));
+  return hasInfo;
 });
 
 const hasTimingInfo = computed(() => {
@@ -400,6 +418,66 @@ const calculateExecutionTime = (startTime: string, endTime: string): string => {
   } else {
     return `${(diff / 60000).toFixed(1)}min`;
   }
+};
+
+// Helper to get LLM metadata from the correct location
+const getLLMMetadata = () => {
+  // The LLM metadata is nested under originalLLMSelection
+  const llmMeta = taskData.value?.llmMetadata?.originalLLMSelection || taskData.value?.metadata?.llmMetadata?.originalLLMSelection;
+  console.log('[TaskMetadataModal] getLLMMetadata result:', JSON.stringify(llmMeta, null, 2));
+  return llmMeta;
+};
+
+const getLLMProviderName = (): string => {
+  const llmMetadata = getLLMMetadata();
+  if (!llmMetadata) return '';
+  
+  // First try direct name fields
+  if (llmMetadata.providerName) return llmMetadata.providerName;
+  if (llmMetadata.provider) return llmMetadata.provider;
+  
+  // Try to get provider by ID from store
+  if (llmMetadata.providerId) {
+    const provider = llmStore.getProviderById(llmMetadata.providerId);
+    if (provider) return provider.name;
+    
+    // Debug log if store lookup fails
+    console.log(`[TaskMetadataModal] Could not find provider name for ID: ${llmMetadata.providerId}`, {
+      availableProviders: llmStore.providers.length,
+      providerId: llmMetadata.providerId
+    });
+    
+    // If store lookup fails, show ID as fallback
+    return `Provider ID: ${llmMetadata.providerId}`;
+  }
+  
+  return '';
+};
+
+const getLLMModelName = (): string => {
+  const llmMetadata = getLLMMetadata();
+  if (!llmMetadata) return '';
+  
+  // First try direct name fields
+  if (llmMetadata.modelName) return llmMetadata.modelName;
+  if (llmMetadata.model) return llmMetadata.model;
+  
+  // Try to get model by ID from store
+  if (llmMetadata.modelId) {
+    const model = llmStore.getModelById(llmMetadata.modelId);
+    if (model) return model.name;
+    
+    // Debug log if store lookup fails
+    console.log(`[TaskMetadataModal] Could not find model name for ID: ${llmMetadata.modelId}`, {
+      availableModels: llmStore.models.length,
+      modelId: llmMetadata.modelId
+    });
+    
+    // If store lookup fails, show ID as fallback
+    return `Model ID: ${llmMetadata.modelId}`;
+  }
+  
+  return '';
 };
 </script>
 

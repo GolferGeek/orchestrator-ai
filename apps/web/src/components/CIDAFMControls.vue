@@ -1,7 +1,7 @@
 <template>
   <div class="cidafm-controls">
     <div class="cidafm-header">
-      <h3>Behavior Modifiers (CIDAFM)</h3>
+      <h3>Behavior Modifiers</h3>
       <button 
         @click="showHelp = !showHelp" 
         class="help-toggle"
@@ -14,48 +14,55 @@
     <!-- Help Text -->
     <div v-if="showHelp" class="help-section">
       <p>
-        <strong>CIDAFM (Context Import Document + AI Function Module)</strong> allows you to modify how the AI responds:
+        <strong>Behavior Modifiers</strong> allow you to customize how the AI responds to your prompts:
       </p>
       <ul>
-        <li><code>^</code> <strong>Response Modifiers:</strong> Change how the AI formats its output</li>
-        <li><code>&</code> <strong>State Modifiers:</strong> Adjust the AI's personality and tone</li>
-        <li><code>!</code> <strong>Execution Commands:</strong> Trigger specific behaviors</li>
+        <li>Choose modifiers that change the AI's tone, style, or approach</li>
+        <li>Each modifier applies to the current conversation</li>
+        <li>You can combine multiple modifiers for more specific results</li>
       </ul>
     </div>
 
     <!-- Built-in Commands by Type -->
     <div v-if="!llmStore.loadingCommands" class="command-sections">
       <div 
-        v-for="(commands, type) in llmStore.builtinCommandsByType" 
+        v-for="(commands, type) in filteredCommandsByType" 
         :key="type"
         class="command-section"
       >
         <h4 class="command-type-header">
-          {{ getCommandTypeLabel(type) }}
+          {{ getCommandTypeLabel(String(type)) }}
           <span class="command-symbol">{{ type }}</span>
         </h4>
         
-        <div class="command-grid">
-          <label 
+        <div class="command-table">
+          <div class="command-table-header">
+            <div class="header-select">Select</div>
+            <div class="header-name">Modifier</div>
+            <div class="header-description">Description</div>
+          </div>
+          <div 
             v-for="command in commands" 
             :key="command.id"
-            class="command-item"
+            class="command-row"
             :class="{ active: isCommandSelected(command.name) }"
           >
-            <input 
-              type="checkbox"
-              :checked="isCommandSelected(command.name)"
-              @change="toggleCommand(command.name)"
-              class="command-checkbox"
-            >
-            <div class="command-content">
-              <div class="command-name">{{ command.name }}</div>
-              <div class="command-description">{{ command.description }}</div>
+            <div class="command-select">
+              <input 
+                type="checkbox"
+                :checked="isCommandSelected(command.name)"
+                @change="toggleCommand(command.name)"
+                class="command-checkbox"
+              >
+            </div>
+            <div class="command-name">{{ command.name }}</div>
+            <div class="command-description">
+              {{ command.description }}
               <div v-if="command.example" class="command-example">
                 Example: {{ command.example }}
               </div>
             </div>
-          </label>
+          </div>
         </div>
       </div>
     </div>
@@ -70,77 +77,38 @@
       Error loading commands: {{ llmStore.commandError }}
     </div>
 
-    <!-- Custom Modifiers -->
-    <div class="custom-modifiers-section">
-      <h4>Custom Modifiers</h4>
-      <div class="custom-input-group">
-        <input 
-          v-model="newCustomModifier"
-          type="text" 
-          placeholder="Enter custom behavior modifier..."
-          class="custom-input"
-          @keyup.enter="addCustomModifier"
-        >
-        <button 
-          @click="addCustomModifier"
-          :disabled="!newCustomModifier.trim()"
-          class="add-button"
-        >
-          Add
-        </button>
-      </div>
+    <!-- Additional Modifiers -->
+    <div class="additional-modifiers-section">
+      <h4>Additional Modifiers</h4>
       
-      <!-- Custom Modifier Tags -->
-      <div v-if="llmStore.customModifiers.length > 0" class="custom-tags">
-        <span 
-          v-for="modifier in llmStore.customModifiers" 
-          :key="modifier"
-          class="custom-tag"
-        >
-          {{ modifier }}
-          <button 
-            @click="removeCustomModifier(modifier)"
-            class="remove-tag"
-          >
-            ×
-          </button>
-        </span>
+      <!-- Modifier Selector -->
+      <CIDAFMModifierSelector
+        :available-commands="availableCommands"
+        :loading-commands="llmStore.loadingCommands"
+        :command-error="llmStore.commandError"
+        @add-modifier="addSelectedModifier"
+      />
+      
+      <!-- Modifier Tags -->
+      <div class="modifier-tags-container">
+        <CIDAFMModifierTags
+          :modifiers="llmStore.customModifiers"
+          @remove-modifier="removeCustomModifier"
+        />
       </div>
     </div>
 
-    <!-- Selected Commands Summary -->
-    <div v-if="hasActiveModifiers" class="active-summary">
-      <h4>Active Modifiers</h4>
-      <div class="active-list">
-        <span 
-          v-for="command in activeCommands" 
-          :key="command"
-          class="active-tag"
-        >
-          {{ command }}
-        </span>
-        <span 
-          v-for="modifier in llmStore.customModifiers" 
-          :key="modifier"
-          class="active-tag custom"
-        >
-          {{ modifier }}
-        </span>
-      </div>
-      <button @click="clearAll" class="clear-button">
-        Clear All
-      </button>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useLLMStore } from '../stores/llmStore';
+import CIDAFMModifierSelector from './CIDAFMModifierSelector.vue';
+import CIDAFMModifierTags from './CIDAFMModifierTags.vue';
 
 const llmStore = useLLMStore();
 const showHelp = ref(false);
-const newCustomModifier = ref('');
 
 onMounted(async () => {
   if (llmStore.cidafmCommands.length === 0) {
@@ -149,18 +117,31 @@ onMounted(async () => {
 });
 
 // Computed properties
-const hasActiveModifiers = computed(() => 
-  llmStore.selectedCIDAFMCommands.length > 0 || llmStore.customModifiers.length > 0
-);
+const filteredCommandsByType = computed(() => {
+  // Only show ^ (caret) commands - per-prompt modifiers
+  const filtered: { [key: string]: any[] } = {};
+  
+  for (const [type, commands] of Object.entries(llmStore.builtinCommandsByType)) {
+    if (type === '^') {
+      filtered[type] = commands;
+    }
+  }
+  
+  return filtered;
+});
 
-const activeCommands = computed(() => 
-  llmStore.selectedCIDAFMCommands
+const availableCommands = computed(() => 
+  llmStore.cidafmCommands.filter(command => 
+    command.type === '^' && // Only show ^ commands
+    !llmStore.selectedCIDAFMCommands.includes(command.name) &&
+    !llmStore.customModifiers.includes(command.name)
+  )
 );
 
 // Helper functions
 const getCommandTypeLabel = (type: string): string => {
   switch (type) {
-    case '^': return 'Response Modifiers';
+    case '^': return 'Per-Prompt Modifiers';
     case '&': return 'State Modifiers';
     case '!': return 'Execution Commands';
     default: return 'Commands';
@@ -176,22 +157,13 @@ const toggleCommand = (commandName: string) => {
   llmStore.saveToLocalStorage();
 };
 
-const addCustomModifier = () => {
-  if (newCustomModifier.value.trim()) {
-    llmStore.addCustomModifier(newCustomModifier.value.trim());
-    newCustomModifier.value = '';
-    llmStore.saveToLocalStorage();
-  }
+const addSelectedModifier = (modifierName: string) => {
+  llmStore.addCustomModifier(modifierName);
+  llmStore.saveToLocalStorage();
 };
 
 const removeCustomModifier = (modifier: string) => {
   llmStore.removeCustomModifier(modifier);
-  llmStore.saveToLocalStorage();
-};
-
-const clearAll = () => {
-  llmStore.selectedCIDAFMCommands = [];
-  llmStore.customModifiers = [];
   llmStore.saveToLocalStorage();
 };
 </script>
@@ -203,6 +175,9 @@ const clearAll = () => {
   border-radius: 8px;
   background: #fafafa;
   margin-bottom: 1rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .cidafm-header {
@@ -283,168 +258,120 @@ const clearAll = () => {
   font-size: 0.9rem;
 }
 
-.command-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 0.75rem;
+.command-table {
+  display: flex !important;
+  flex-direction: column !important;
+  background: white !important;
+  border-radius: 8px !important;
+  border: 1px solid #e0e0e0 !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
-.command-item {
-  display: flex;
-  padding: 0.75rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.command-table-header {
+  display: grid !important;
+  grid-template-columns: 60px 1fr 2fr !important;
+  gap: 1rem !important;
+  padding: 0.75rem !important;
+  background: #f8f9fa !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  font-weight: 600 !important;
+  color: #2c3e50 !important;
+  font-size: 0.9rem !important;
 }
 
-.command-item:hover {
-  border-color: #3498db;
+.command-row {
+  display: grid !important;
+  grid-template-columns: 60px 1fr 2fr !important;
+  gap: 1rem !important;
+  padding: 0.75rem !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+.command-row:hover {
   background: #f8fbff;
 }
 
-.command-item.active {
-  border-color: #3498db;
+.command-row.active {
   background: #e8f4fd;
+  border-color: #3498db;
+}
+
+.command-row:last-child {
+  border-bottom: none;
+}
+
+.command-select {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.125rem;
 }
 
 .command-checkbox {
-  margin-right: 0.75rem;
-  margin-top: 0.125rem;
-}
-
-.command-content {
-  flex: 1;
+  margin: 0;
+  cursor: pointer;
 }
 
 .command-name {
   font-weight: 600;
   color: #2c3e50;
-  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+  align-self: flex-start;
+  padding-top: 0.125rem;
 }
 
 .command-description {
   font-size: 0.85rem;
   color: #666;
-  margin-bottom: 0.25rem;
+  line-height: 1.4;
 }
 
 .command-example {
   font-size: 0.8rem;
   color: #888;
   font-style: italic;
+  margin-top: 0.25rem;
 }
 
-.custom-modifiers-section {
-  background: white;
-  padding: 1rem;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .command-table-header {
+    grid-template-columns: 50px 1fr;
+    gap: 0.5rem;
+  }
+  
+  .command-row {
+    grid-template-columns: 50px 1fr;
+    gap: 0.5rem;
+  }
+  
+  .header-description,
+  .command-description {
+    grid-column: 1 / -1;
+    margin-top: 0.5rem;
+    padding-left: 0.5rem;
+  }
+  
+  .command-name {
+    font-size: 0.85rem;
+  }
+}
+
+.additional-modifiers-section {
   margin-top: 1rem;
 }
 
-.custom-modifiers-section h4 {
+.additional-modifiers-section h4 {
   margin: 0 0 1rem 0;
   color: #34495e;
 }
 
-.custom-input-group {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.custom-input {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.add-button {
-  background: #27ae60;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.add-button:disabled {
-  background: #bdc3c7;
-  cursor: not-allowed;
-}
-
-.custom-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.custom-tag {
-  background: #f39c12;
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.remove-tag {
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.active-summary {
-  background: white;
-  padding: 1rem;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
+.modifier-tags-container {
   margin-top: 1rem;
-}
-
-.active-summary h4 {
-  margin: 0 0 1rem 0;
-  color: #34495e;
-}
-
-.active-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.active-tag {
-  background: #3498db;
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-}
-
-.active-tag.custom {
-  background: #f39c12;
-}
-
-.clear-button {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.clear-button:hover {
-  background: #c0392b;
 }
 
 .loading-state, .error-state {

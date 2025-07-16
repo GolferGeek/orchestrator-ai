@@ -62,6 +62,11 @@
           </ion-button>
         </ion-item>
       </form>
+      
+      <!-- Compact LLM and CIDAFM Controls -->
+      <div class="llm-controls">
+        <CompactLLMControl />
+      </div>
     </div>
 
     <!-- Typing Indicator -->
@@ -92,6 +97,7 @@ import {
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import AgentTaskItem from './AgentTaskItem.vue';
+import CompactLLMControl from './CompactLLMControl.vue';
 
 // Define emits
 const emit = defineEmits<{
@@ -279,6 +285,10 @@ watch(() => agentChatStore.messages.length, () => {
 .input-area ion-item {
   --padding-start: 16px;
   --padding-end: 8px;
+}
+
+.llm-controls {
+  padding: 4px 8px;
 }
 
 .typing-indicator {

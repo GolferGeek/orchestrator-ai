@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { agentConversationsService } from '@/services/agentConversationsService';
 import { tasksService } from '@/services/tasksService';
+import { useLLMStore } from '@/stores/llmStore';
 
 export interface AgentChatState {
   // Current agent being chatted with
@@ -108,6 +109,10 @@ export const useAgentChatStore = defineStore('agentChat', {
           metadata: msg.metadata
         }));
         
+        // Get LLM preferences from store
+        const llmStore = useLLMStore();
+        const llmSelection = llmStore.currentLLMSelection;
+        
         const task = await tasksService.createAgentTask(
           agentType,
           this.currentAgent.name,
@@ -116,6 +121,7 @@ export const useAgentChatStore = defineStore('agentChat', {
             prompt: content,
             conversationId: this.currentConversationId || undefined, // null on first message
             conversationHistory, // Pass conversation history with each message
+            llmSelection, // Include LLM and CIDAFM preferences
           }
         );
 
