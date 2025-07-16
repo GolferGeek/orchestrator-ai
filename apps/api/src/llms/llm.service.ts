@@ -37,15 +37,6 @@ if (langsmithEnabled && langsmithApiKey) {
   if (process.env.LANGSMITH_ENDPOINT) {
     process.env.LANGCHAIN_ENDPOINT = process.env.LANGSMITH_ENDPOINT;
   }
-  console.log('🔧 LangSmith environment variables set for automatic tracing:');
-  console.log(`- LANGCHAIN_TRACING_V2: ${process.env.LANGCHAIN_TRACING_V2}`);
-  console.log(`- LANGCHAIN_PROJECT: ${process.env.LANGCHAIN_PROJECT}`);
-  console.log(
-    `- LANGCHAIN_API_KEY: ${process.env.LANGCHAIN_API_KEY ? 'SET' : 'NOT SET'}`,
-  );
-  console.log(
-    `- LANGCHAIN_ENDPOINT: ${process.env.LANGCHAIN_ENDPOINT || 'DEFAULT'}`,
-  );
 }
 
 @Injectable()

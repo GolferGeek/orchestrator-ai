@@ -52,10 +52,8 @@ const email = ref('');
 const password = ref('');
 
 const performLogin = async () => {
-  console.log('LoginPage: performLogin called'); // Log call
   const success = await auth.login({ email: email.value, password: password.value });
   if (success) {
-    console.log('LoginPage: Login reported as successful by authStore. Redirecting...');
     const redirectPath = route.query.redirect as string || '/';
     router.push(redirectPath);
   } else {

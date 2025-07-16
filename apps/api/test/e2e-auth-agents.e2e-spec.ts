@@ -11,42 +11,6 @@ import { AppModule } from '../src/app.module';
 describe('Authenticated Agent End-to-End Tests', () => {
   let app: INestApplication;
   let authToken: string;
-  // const testUser = {
-  //   email: process.env.SUPABASE_TEST_USER || 'testuser@golfergeek.com',
-  //   password: process.env.SUPABASE_TEST_PASSWORD || 'testuser01!',
-  // };
-
-  // Helper function to refresh token if needed (currently unused but may be needed later)
-  /*
-  const _ensureValidToken = async () => {
-    try {
-      // Test if current token is still valid
-      const testResponse = await request(app.getHttpServer())
-        .get('/agent-pool/agents')
-        .set('Authorization', `Bearer ${authToken}`);
-
-      if (testResponse.status === 401) {
-        console.log('Token expired, refreshing...');
-        const loginResponse = await request(app.getHttpServer())
-          .post('/auth/login')
-          .send(testUser)
-          .expect(200);
-
-        authToken = loginResponse.body.accessToken;
-        console.log('Token refreshed successfully');
-      }
-    } catch (error: any) {
-      console.log('Error checking token, refreshing...', error.message);
-      const loginResponse = await request(app.getHttpServer())
-        .post('/auth/login')
-        .send(testUser)
-        .expect(200);
-
-      authToken = loginResponse.body.accessToken;
-      console.log('Token refreshed after error');
-    }
-  };
-  */
 
   // Available specialist agents to test
   const specialistAgents = [
@@ -87,12 +51,10 @@ describe('Authenticated Agent End-to-End Tests', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
-    console.log('Waiting for server startup and agent discovery...');
 
     // Wait for agents to be discovered and auto-registered (like in production)
     await new Promise((resolve) => setTimeout(resolve, 5000));
 
-    console.log('Logging in test user...');
 
     // Authenticate as test user (same as frontend)
     const loginResponse = await request(app.getHttpServer())
@@ -105,7 +67,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
 
     authToken = loginResponse.body.accessToken;
     expect(authToken).toBeDefined();
-    console.log('Authentication successful, token obtained');
   }, 60000); // 60 second timeout for module setup and agent loading
 
   afterAll(async () => {
@@ -367,18 +328,9 @@ describe('Authenticated Agent End-to-End Tests', () => {
         // For Hiverarchy tests, verify we got substantial content (indicating external agent was used)
         if (testCase.agentName === 'hiverarchy') {
           expect(response.body.result.response.length).toBeGreaterThan(500);
-          console.log(
-            `✅ E2E Orchestrator delegation to ${testCase.agentName} - Length: ${response.body.result.response.length} chars - ${testCase.description || ''}`,
-          );
         } else {
-          console.log(
-            `✅ E2E Orchestrator delegation test for ${testCase.agentName} passed`,
-          );
         }
 
-        console.log(
-          `Response preview: ${response.body.result.response.substring(0, 150)}...`,
-        );
       }, 45000); // 45 second timeout for orchestrator + AI processing
     });
   });
@@ -395,7 +347,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         (agent: any) => agent.name === 'hiverarchy',
       );
       expect(hiverarchyAgent).toBeDefined();
-      console.log('✅ Hiverarchy agent found in pool:', hiverarchyAgent);
 
       // Test orchestrator delegation with a content creation request
       const taskRequest = {
@@ -436,10 +387,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
       expect(lowerResponse).toMatch(/renewable.{0,50}energy/);
       expect(lowerResponse).toMatch(/climate.{0,50}change/);
 
-      console.log(
-        `✅ Hiverarchy delegation test passed - Response length: ${responseText.length} characters`,
-      );
-      console.log(`Response preview: ${responseText.substring(0, 200)}...`);
     }, 60000); // Extended timeout for external agent processing
 
     it('should prefer Hiverarchy over local blog_post for content creation', async () => {
@@ -478,9 +425,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
       expect(lowerResponse).toMatch(/sustainable.{0,50}technology/);
       expect(lowerResponse).toMatch(/innovation/);
 
-      console.log(
-        `✅ Hiverarchy preference test passed - Response length: ${responseText.length} characters`,
-      );
     }, 60000);
   });
 
@@ -514,17 +458,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         expect(response.body).toBeDefined();
 
         // DEBUG: Check response structure for conversational tests
-        console.log('\n🔍 DEBUGGING CONVERSATIONAL RESPONSE STRUCTURE');
-        console.log(
-          'Full response.body:',
-          JSON.stringify(response.body, null, 2),
-        );
-        console.log('response.body.success:', response.body.success);
-        console.log('response.body.result:', response.body.result);
-        console.log(
-          'response.body.result?.success:',
-          response.body.result?.success,
-        );
 
         // All conversational agents use JSON-RPC format (result field)
         expect(response.body.result.success).toBe(true);
@@ -532,9 +465,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         expect(typeof response.body.result.response).toBe('string');
         expect(response.body.result.response.length).toBeGreaterThan(0);
 
-        console.log(
-          `✅ Conversational ${prompt} test passed - Response: ${response.body.result.response.substring(0, 100)}...`,
-        );
       }, 30000); // 30 second timeout for conversational AI processing
     });
   });
@@ -563,7 +493,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         expect(agentNames).toContain(agentName);
       });
 
-      console.log('✅ All expected agents discovered:', agentNames);
     });
 
     it('should have agents accessible via agent pool', async () => {
@@ -571,14 +500,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .get('/agent-pool/agents')
         .expect(200);
 
-      // DEBUG: Log agent pool response
-      console.log('\n🔍 DEBUGGING AGENT POOL RESPONSE:');
-      console.log('response.body:', JSON.stringify(response.body, null, 2));
-      console.log(
-        'Array.isArray(response.body):',
-        Array.isArray(response.body),
-      );
-      console.log('response.body.length:', response.body.length);
 
       expect(Array.isArray(response.body)).toBe(true);
       expect(response.body.length).toBeGreaterThanOrEqual(24);
@@ -620,10 +541,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         expect(found).toBe(true);
       });
 
-      console.log(
-        '✅ Agent pool contains all expected agents:',
-        poolAgentNames,
-      );
     });
   });
 
@@ -642,7 +559,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .send(taskRequest)
         .expect(401);
 
-      console.log('✅ Properly rejected unauthenticated request');
     });
 
     it('should reject requests with invalid token', async () => {
@@ -660,7 +576,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .send(taskRequest)
         .expect(401);
 
-      console.log('✅ Properly rejected request with invalid token');
     });
   });
 
@@ -680,7 +595,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .send(taskRequest)
         .expect(404);
 
-      console.log('✅ Properly handled non-existent agent request');
     });
   });
 });

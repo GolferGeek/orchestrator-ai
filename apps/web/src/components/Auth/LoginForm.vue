@@ -42,7 +42,6 @@ const handleLogin = async () => {
     //   error.value = result.message || 'Login failed.';
     //   emit('login-failed', error.value);
     // }
-    console.log('Attempting login with:', email.value, password.value);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     // Simulate error for now, or a success to test flow

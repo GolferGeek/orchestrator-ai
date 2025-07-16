@@ -42,15 +42,9 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
       const filtered = state.conversations.filter(conv => 
         conv.agentName === agentName && conv.agentType === agentType
       );
-      console.log(`[AgentConversationsStore] getConversationsByAgent(${agentName}, ${agentType}): ${filtered.length} matches out of ${state.conversations.length} total`);
       
       // Debug: Show actual conversation data for first few conversations
       if (state.conversations.length > 0 && filtered.length === 0) {
-        console.log(`[AgentConversationsStore] Sample conversations for debugging:`, state.conversations.slice(0, 3).map(c => ({
-          id: c.id,
-          agentName: c.agentName,
-          agentType: c.agentType
-        })));
       }
       
       return filtered;
@@ -99,7 +93,6 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
         this.lastUpdated = new Date();
       } catch (error) {
         this.error = error instanceof Error ? error.message : 'Failed to fetch conversations';
-        console.error('[AgentConversationsStore] Error fetching conversations:', error);
       } finally {
         this.isLoading = false;
       }
@@ -122,13 +115,11 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
         // Make API call
         await agentConversationsService.deleteConversation(conversationId);
 
-        console.log(`[AgentConversationsStore] Successfully deleted conversation ${conversationId}`);
       } catch (error) {
         // Rollback on error - add the conversation back
         this.fetchConversations(true); // Force refresh to get correct state
         
         this.error = error instanceof Error ? error.message : 'Failed to delete conversation';
-        console.error('[AgentConversationsStore] Error deleting conversation:', error);
         throw error;
       }
     },
@@ -159,7 +150,6 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
         return newConversation;
       } catch (error) {
         this.error = error instanceof Error ? error.message : 'Failed to create conversation';
-        console.error('[AgentConversationsStore] Error creating conversation:', error);
         throw error;
       }
     },
@@ -181,10 +171,8 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
           updatedAt: new Date(),
         };
 
-        console.log(`[AgentConversationsStore] Successfully ended conversation ${conversationId}`);
       } catch (error) {
         this.error = error instanceof Error ? error.message : 'Failed to end conversation';
-        console.error('[AgentConversationsStore] Error ending conversation:', error);
         throw error;
       }
     },
@@ -227,10 +215,8 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
             activeTasks: response.activeTasks || 0,
           };
           
-          console.log(`[AgentConversationsStore] Refreshed conversation ${conversationId}`);
         }
       } catch (error) {
-        console.error(`[AgentConversationsStore] Error refreshing conversation ${conversationId}:`, error);
       }
     },
   },

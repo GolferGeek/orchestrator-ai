@@ -56,7 +56,6 @@ export const sessionService = {
     } catch (error) {
       const axiosError = error as AxiosError<BackendErrorDetail>; 
       const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to list sessions';
-      console.error('Error listing sessions:', errorMessage);
       throw new Error(errorMessage);
     }
   },
@@ -68,7 +67,6 @@ export const sessionService = {
     } catch (error) {
       const axiosError = error as AxiosError<BackendErrorDetail>; 
       const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to create session';
-      console.error('Error creating session:', errorMessage);
       throw new Error(errorMessage);
     }
   },
@@ -93,7 +91,6 @@ export const sessionService = {
     } catch (error) {
       const axiosError = error as AxiosError<BackendErrorDetail>; 
       const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to get session messages';
-      console.error('Error getting session messages:', errorMessage);
       throw new Error(errorMessage);
     }
   },
@@ -114,11 +111,9 @@ export const sessionService = {
   async deleteSession(sessionId: string): Promise<void> {
     try {
       await apiService.deleteSession(sessionId);
-      console.log(`Session ${sessionId} deleted successfully`);
     } catch (error) {
       const axiosError = error as AxiosError<BackendErrorDetail>; 
       const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to delete session';
-      console.error('Error deleting session:', errorMessage);
       throw new Error(errorMessage);
     }
   },
@@ -127,13 +122,11 @@ export const sessionService = {
     try {
       // Note: This endpoint doesn't exist yet in the backend
       // For now, this is a placeholder - the frontend will handle local updates
-      console.log(`Would update session ${sessionId} name to: ${name}`);
       // TODO: Implement backend endpoint for session updates
       // await apiService.updateSession(sessionId, { name });
     } catch (error) {
       const axiosError = error as AxiosError<BackendErrorDetail>; 
       const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to update session name';
-      console.error('Error updating session name:', errorMessage);
       throw new Error(errorMessage);
     }
   },

@@ -271,7 +271,6 @@ const filteredAgentTypes = computed(() => {
     
     // Get conversations from store
     const agentConversations = conversationsStore.getConversationsByAgent(agent.name, agent.type);
-    console.log(`[AgentTreeView] Agent ${agent.name} (${agent.type}): ${agentConversations.length} conversations`, agentConversations);
     
     const agentType = types.get(agent.type)!;
     agentType.agents.push({
@@ -298,19 +297,7 @@ const refreshData = async () => {
     // Force refresh both stores
     await agentsStore.fetchAvailableAgents();
     await conversationsStore.fetchConversations(true); // Force refresh
-    
-    console.log(`[AgentTreeView] Refreshed data - ${agentsStore.getAvailableAgents.length} agents, ${conversationsStore.conversations.length} conversations`);
-    console.log('[AgentTreeView] Available agents:', agentsStore.getAvailableAgents);
-    console.log('[AgentTreeView] Conversations:', conversationsStore.conversations);
-    
-    // Debug: Show the actual conversation data with agentName and agentType
-    console.log('[AgentTreeView] Conversation details:', conversationsStore.conversations.map(c => ({
-      id: c.id,
-      agentName: c.agentName,
-      agentType: c.agentType
-    })));
   } catch (err) {
-    console.error('[AgentTreeView] Error refreshing data:', err);
   }
 };
 
@@ -330,8 +317,6 @@ const createNewConversation = async (agent: Agent) => {
     // Instead, emit an event for the parent to handle (e.g., open chat interface)
     // The conversation will be created when the first task is sent
     
-    console.log(`[AgentTreeView] Starting new conversation with ${agent.name}`);
-    
     // Emit event to parent with agent info
     emit('agent-selected', agent);
     
@@ -339,7 +324,6 @@ const createNewConversation = async (agent: Agent) => {
     // In a full implementation, this would transition to a chat interface
     
   } catch (err) {
-    console.error('[AgentTreeView] Error starting conversation:', err);
   }
 };
 
@@ -361,7 +345,6 @@ const endConversation = async (conversation: Conversation) => {
     // Use store method - this will update the UI reactively
     await conversationsStore.deleteConversation(conversation.id);
   } catch (err) {
-    console.error('Failed to delete conversation:', err);
     // Error is already handled in the store
   }
 };
@@ -371,7 +354,6 @@ const endConversation = async (conversation: Conversation) => {
 const handleAccordionChange = (event: CustomEvent) => {
   // Update expanded groups when user changes accordion state
   expandedGroups.value = event.detail.value;
-  console.log('[AgentTreeView] Accordion state changed:', event.detail.value);
 };
 
 // Utility functions
@@ -466,7 +448,6 @@ onMounted(() => {
         
         // For long-running tasks, we need to trigger a refresh of the conversation data
         // to get the latest task results. This is a partial refresh that won't reset UI state.
-        console.log(`[AgentTreeView] Task ${event.taskId} completed, refreshing conversation data`);
         emit('task-completed', { taskId: event.taskId, conversationId: event.conversationId });
       }
     }
@@ -482,7 +463,6 @@ onMounted(() => {
         });
         
         // For failed tasks, also notify parent components
-        console.log(`[AgentTreeView] Task ${event.taskId} failed, refreshing conversation data`);
         emit('task-failed', { taskId: event.taskId, conversationId: event.conversationId });
       }
     }
@@ -497,7 +477,6 @@ onMounted(() => {
       });
       
       // Notify parent components about the task update
-      console.log(`[AgentTreeView] Task ${event.taskId} updated, notifying parent components`);
       emit('task-updated', { taskId: event.taskId, conversationId: event.conversationId });
     }
   });

@@ -83,7 +83,6 @@ class WebSocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('WebSocket connected');
       this.connected.value = true;
       this.connecting.value = false;
       this.error.value = null;
@@ -91,13 +90,11 @@ class WebSocketService {
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('WebSocket disconnected:', reason);
       this.connected.value = false;
       this.connecting.value = false;
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error);
       this.error.value = error.message;
       this.connecting.value = false;
       
@@ -113,7 +110,6 @@ class WebSocketService {
 
     // Task progress events
     this.socket.on('task_progress', (event: TaskProgressEvent) => {
-      console.log('Task progress update:', event);
       this.taskProgress.set(event.taskId, event);
       
       // Call registered callbacks
@@ -123,41 +119,34 @@ class WebSocketService {
 
     // Task lifecycle events
     this.socket.on('task_created', (event: TaskEvent) => {
-      console.log('Task created:', event);
       this.emitTaskEvent('created', event);
     });
 
     this.socket.on('task_completed', (event: TaskEvent) => {
-      console.log('Task completed:', event);
       this.emitTaskEvent('completed', event);
       this.subscribedTasks.delete(event.taskId);
     });
 
     this.socket.on('task_failed', (event: TaskEvent) => {
-      console.log('Task failed:', event);
       this.emitTaskEvent('failed', event);
       this.subscribedTasks.delete(event.taskId);
     });
 
     this.socket.on('task_cancelled', (event: TaskEvent) => {
-      console.log('Task cancelled:', event);
       this.emitTaskEvent('cancelled', event);
       this.subscribedTasks.delete(event.taskId);
     });
 
     // Subscription confirmations
     this.socket.on('subscription_confirmed', (data: { taskId: string }) => {
-      console.log('Subscription confirmed for task:', data.taskId);
       this.subscribedTasks.add(data.taskId);
     });
 
     this.socket.on('subscription_error', (data: { taskId: string; message: string }) => {
-      console.error('Subscription error for task:', data.taskId, data.message);
       this.subscribedTasks.delete(data.taskId);
     });
 
     this.socket.on('error', (error: { message: string }) => {
-      console.error('WebSocket error:', error.message);
       this.error.value = error.message;
     });
   }
@@ -167,7 +156,6 @@ class WebSocketService {
    */
   public subscribeToTask(taskId: string, callback?: (event: TaskProgressEvent) => void): void {
     if (!this.socket?.connected) {
-      console.warn('WebSocket not connected, queuing subscription');
       // Queue subscription for when connection is ready
       this.socket?.on('connect', () => this.subscribeToTask(taskId, callback));
       return;

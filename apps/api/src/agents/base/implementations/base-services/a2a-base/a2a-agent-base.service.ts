@@ -406,9 +406,6 @@ export abstract class A2AAgentBaseService
     const agentType = this.getAgentType();
     const agentName = this.getAgentName().toLowerCase().replace(/\s+/g, '_');
     const url = `${baseUrl}/agents/${agentType}s/${agentName}/tasks`;
-    console.log(
-      `[DEBUG] buildAgentUrl: baseUrl=${baseUrl}, agentType=${agentType}, agentName=${agentName}, final URL=${url}`,
-    );
     return url;
   }
 }

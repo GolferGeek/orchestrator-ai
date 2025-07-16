@@ -318,14 +318,7 @@ const loadTaskData = async () => {
     
     taskData.value = await tasksService.getTaskById(props.taskId);
     
-    // Debug logging
-    console.log('[TaskMetadataModal] Loaded task data:', JSON.stringify(taskData.value, null, 2));
-    console.log('[TaskMetadataModal] LLM Metadata:', JSON.stringify(getLLMMetadata(), null, 2));
-    console.log('[TaskMetadataModal] Evaluation data:', JSON.stringify(taskData.value?.evaluation, null, 2));
-    console.log('[TaskMetadataModal] Store providers:', llmStore.providers.length);
-    console.log('[TaskMetadataModal] Store models:', llmStore.models.length);
   } catch (error) {
-    console.error('Error loading task data:', error);
   } finally {
     isLoading.value = false;
   }
@@ -349,7 +342,6 @@ const hasAgentInfo = computed(() => {
 
 const hasLLMInfo = computed(() => {
   const hasInfo = taskData.value?.llmMetadata?.originalLLMSelection || taskData.value?.metadata?.llmMetadata?.originalLLMSelection;
-  console.log('[TaskMetadataModal] hasLLMInfo check:', JSON.stringify(hasInfo, null, 2));
   return hasInfo;
 });
 
@@ -368,7 +360,6 @@ const hasCostInfo = computed(() => {
 
 const hasEvaluationInfo = computed(() => {
   const hasInfo = taskData.value?.evaluation;
-  console.log('[TaskMetadataModal] hasEvaluationInfo check:', JSON.stringify(hasInfo, null, 2));
   return hasInfo;
 });
 
@@ -424,7 +415,6 @@ const calculateExecutionTime = (startTime: string, endTime: string): string => {
 const getLLMMetadata = () => {
   // The LLM metadata is nested under originalLLMSelection
   const llmMeta = taskData.value?.llmMetadata?.originalLLMSelection || taskData.value?.metadata?.llmMetadata?.originalLLMSelection;
-  console.log('[TaskMetadataModal] getLLMMetadata result:', JSON.stringify(llmMeta, null, 2));
   return llmMeta;
 };
 
@@ -441,11 +431,6 @@ const getLLMProviderName = (): string => {
     const provider = llmStore.getProviderById(llmMetadata.providerId);
     if (provider) return provider.name;
     
-    // Debug log if store lookup fails
-    console.log(`[TaskMetadataModal] Could not find provider name for ID: ${llmMetadata.providerId}`, {
-      availableProviders: llmStore.providers.length,
-      providerId: llmMetadata.providerId
-    });
     
     // If store lookup fails, show ID as fallback
     return `Provider ID: ${llmMetadata.providerId}`;
@@ -467,11 +452,6 @@ const getLLMModelName = (): string => {
     const model = llmStore.getModelById(llmMetadata.modelId);
     if (model) return model.name;
     
-    // Debug log if store lookup fails
-    console.log(`[TaskMetadataModal] Could not find model name for ID: ${llmMetadata.modelId}`, {
-      availableModels: llmStore.models.length,
-      modelId: llmMetadata.modelId
-    });
     
     // If store lookup fails, show ID as fallback
     return `Model ID: ${llmMetadata.modelId}`;

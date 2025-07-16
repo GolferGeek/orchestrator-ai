@@ -44,7 +44,6 @@ const emit = defineEmits([
 const scrollTarget = ref<HTMLElement | null>(null);
 
 const handleReturnToOrchestratorPassthrough = () => {
-  console.log('[MessageList.vue] handleReturnToOrchestratorPassthrough method called');
   emit('returnToOrchestrator');
 };
 
@@ -62,25 +61,19 @@ const handleAgentCapabilityRequestedForPassthrough = (agentName: string) => {
 
 // Watch for new messages from the prop and scroll to the bottom
 watch(() => props.messages.length, async (newLength, oldLength) => {
-  console.log("[MessageList] Watcher for props.messages.LENGTH triggered.");
-  console.log("[MessageList] newLength:", newLength, "oldLength:", oldLength);
 
   // We are primarily interested when new messages are added, causing length to increase.
   // Also handles the initial case where oldLength might be undefined.
   if (typeof oldLength === 'undefined' || newLength > oldLength) { 
-    console.log("[MessageList] props.messages.length has changed (or initial run with messages). newLength:", newLength);
     await nextTick(); 
-    console.log("[MessageList] DOM updated after props.messages.length change. Emitting messages-rendered.");
     emit('messages-rendered');
   } else {
-    console.log("[MessageList] props.messages.length watcher triggered, but length did not increase meaningfully.");
   }
 }/*, No deep: true needed for .length */);
 
 // Emit on mount if messages are already present
 onMounted(async () => {
   if (props.messages && props.messages.length > 0) {
-    console.log("[MessageList] onMounted: Messages present. Waiting for nextTick and emitting messages-rendered.");
     await nextTick();
     emit('messages-rendered');
   }

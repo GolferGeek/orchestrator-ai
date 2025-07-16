@@ -173,7 +173,6 @@ export function useFeatureDetection() {
       if (endpoint.version === 'v2') {
         try {
           // Since we're using a single API service now, skip dynamic feature detection
-          console.log('Dynamic feature detection skipped for unified API');
         } catch (error) {
           console.warn('Dynamic feature detection failed:', error);
         }

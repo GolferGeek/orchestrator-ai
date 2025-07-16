@@ -31,7 +31,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   // This function is primarily for internal state update after successful token acquisition
   function setTokenData(tokenData: TokenData) {
-    console.log("authStore: Setting token data", tokenData);
     token.value = tokenData.accessToken;
     localStorage.setItem('authToken', tokenData.accessToken);
     if (tokenData.refreshToken) {
@@ -46,7 +45,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function clearAuthData() {
-    console.log("authStore: Clearing auth data");
     token.value = null;
     refreshToken.value = null;
     user.value = null;
@@ -58,19 +56,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(credentials: { email: string; password: string }) {
-    console.log("authStore: login action called with", credentials.email);
     isLoading.value = true;
     error.value = null;
     try {
       const tokenData = await authService.login(credentials);
-      console.log("authStore: login service call successful, tokenData:", tokenData);
       setTokenData(tokenData);
       await fetchCurrentUser();
-      console.log("authStore: fetchCurrentUser completed, user:", user.value);
       isLoading.value = false;
       return true;
     } catch (e: any) {
-      console.error("authStore: login action failed:", e.message);
       error.value = e.message || 'Login failed in store.';
       clearAuthData();
       isLoading.value = false;
@@ -79,19 +73,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function signupAndLogin(signupData: any) {
-    console.log("authStore: signupAndLogin action called");
     isLoading.value = true;
     error.value = null;
     try {
       const tokenData = await authService.signup(signupData);
-      console.log("authStore: signup service call successful, tokenData:", tokenData);
       setTokenData(tokenData);
       await fetchCurrentUser();
-      console.log("authStore: fetchCurrentUser completed after signup, user:", user.value);
       isLoading.value = false;
       return { success: true };
     } catch (e: any) {
-      console.error("authStore: signupAndLogin action failed:", e.message);
       error.value = e.message || 'Signup failed in store.';
       if (e.message && e.message.includes("confirm your account")) {
         isLoading.value = false;
@@ -104,23 +94,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
-    console.log("authStore: logout action called");
     // isLoading.value = true; // Logout is usually quick, maybe not needed
     try {
       await authService.logout(); 
-      console.log("authStore: authService.logout() completed");
     } catch (e: any) {
-      console.error("authStore: Error during backend logout (if called from authService):", e.message);
     }
     clearAuthData(); 
     // isLoading.value = false;
   }
 
   async function fetchCurrentUser() {
-    console.log("authStore: fetchCurrentUser called. Token:", token.value ? token.value.substring(0,10)+"..." : null);
     if (!token.value) {
       user.value = null;
-      console.log("authStore: No token, user set to null.");
       return;
     }
     // isLoading.value = true; // This can be a separate loading state if desired, or rely on component
@@ -128,12 +113,9 @@ export const useAuthStore = defineStore('auth', () => {
       const userData = await apiService.getCurrentUser(); 
       user.value = userData;
       error.value = null; // Clear previous errors if user fetch is successful
-      console.log("authStore: User fetched successfully:", user.value);
     } catch (e: any) {
-      console.error("authStore: Failed to fetch current user:", e.message);
       error.value = "Could not fetch user details.";
       if ((e as any).response && (e as any).response.status === 401) {
-        console.log("authStore: Unauthorized (401) fetching user, clearing auth data.");
         clearAuthData(); 
       }
     }
@@ -143,7 +125,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
   
   if (token.value) {
-    console.log("authStore: Initializing with existing token.");
     authService.initializeAuthHeader();
     
     // Initialize auth token on NestJS API service

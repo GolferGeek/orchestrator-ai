@@ -167,15 +167,6 @@ const formattedTimestamp = computed(() => {
 });
 
 const agentName = computed(() => {
-  // Debug logging to see what metadata we have
-  if (props.message.role === 'assistant' && props.message.metadata) {
-    console.log('[MessageItem] Debug - message metadata:', JSON.stringify(props.message.metadata, null, 2));
-    console.log('[MessageItem] Debug - metadata keys:', Object.keys(props.message.metadata));
-    console.log('[MessageItem] Debug - checking for agent names:');
-    console.log('  respondingAgentName:', props.message.metadata.respondingAgentName);
-    console.log('  agentName:', props.message.metadata.agentName);
-    console.log('  delegatedTo:', props.message.metadata.delegatedTo);
-  }
   
   // Backend saves in camelCase, check for agent name in metadata fields
   if (props.message.metadata?.respondingAgentName) {
@@ -214,17 +205,14 @@ const showViewAgentCapabilitiesLink = computed(() => {
 });
 
 const returnToOrchestrator = () => {
-  console.log('[MessageItem.vue] returnToOrchestrator method called');
   emit('returnToOrchestrator');
 };
 
 const viewAllAgents = () => {
-  console.log('[MessageItem.vue] viewAllAgents method called');
   emit('viewAllAgentsClicked');
 };
 
 const viewAgentCapabilities = () => {
-  console.log('[MessageItem.vue] viewAgentCapabilities method called for agent:', agentName.value);
   // Pass the agent information so the parent knows which agent to ask about capabilities
   const agentInfo = {
     name: agentName.value,
@@ -239,7 +227,6 @@ const handleMessageContentClick = (event: MouseEvent) => {
     event.preventDefault();
     const agentToQuery = target.dataset.agentName;
     if (agentToQuery) {
-      console.log(`[MessageItem.vue] Clickable agent name clicked: ${agentToQuery}`);
       emit('agentCapabilityRequestedFor', agentToQuery);
     }
   }

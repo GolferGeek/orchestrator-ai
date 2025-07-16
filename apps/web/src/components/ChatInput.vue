@@ -52,12 +52,10 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
   recognition.lang = 'en-US'; 
 
   recognition.onstart = () => {
-    console.log('Web Speech recognition started');
     isRecording.value = true;
   };
 
   recognition.onend = () => {
-    console.log('Web Speech recognition ended');
     if (isRecording.value) { 
         isRecording.value = false;
         emit('pttToggle', false);
@@ -128,7 +126,6 @@ const handleEnterKey = (event: KeyboardEvent) => {
 const togglePtt = async () => {
   if (Capacitor.isNativePlatform()) {
     // --- Native PTT (Capacitor Plugin) Logic Placeholder ---
-    console.log('PTT toggled on native platform');
     // TODO: Implement native speech recognition using a Capacitor plugin
     // e.g., @capacitor-community/speech-recognition
     // 1. Check permissions using plugin: SpeechRecognition.checkPermissions() / requestPermissions()
