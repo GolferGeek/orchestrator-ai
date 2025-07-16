@@ -81,11 +81,35 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
 
       // Process with LLM using context
       const systemPrompt = this.buildSystemPrompt(agentName, agentType);
-      const llmResult = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        params, // Pass all params including LLM preferences
-      );
+      
+      // Check if conversation history is provided
+      const conversationHistory = params.conversationHistory || [];
+      let llmResult;
+      
+      if (conversationHistory.length > 0) {
+        // Use conversation-aware LLM processing
+        const formattedHistory = conversationHistory.map((msg: any) => ({
+          role: msg.role === 'assistant' ? 'assistant' : 'user',
+          content: msg.content
+        }));
+        
+        this.contextLogger.debug(
+          `Processing with ${conversationHistory.length} conversation history messages`
+        );
+        
+        llmResult = await this.llmService.generateResponseWithHistory(
+          systemPrompt,
+          formattedHistory,
+          userMessage
+        );
+      } else {
+        // Use standard LLM processing for first message
+        llmResult = await this.llmService.generateResponse(
+          systemPrompt,
+          userMessage,
+          params, // Pass all params including LLM preferences
+        );
+      }
 
       // Extract response content and metadata
       const responseContent =

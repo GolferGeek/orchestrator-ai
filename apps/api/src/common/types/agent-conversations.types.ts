@@ -76,6 +76,13 @@ export interface CreateTaskDto {
   conversationId?: string; // Optional, creates new conversation if not provided
   timeoutSeconds?: number;
   llmSelection?: LLMSelection; // LLM and CIDAFM configuration
+  conversationHistory?: Array<{
+    role: string;
+    content: string;
+    timestamp: string;
+    taskId?: string;
+    metadata?: Record<string, any>;
+  }>; // Conversation history array passed from frontend
 }
 
 export interface UpdateTaskDto {
