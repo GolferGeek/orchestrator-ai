@@ -99,6 +99,15 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Use agent type as-is - everything should use 'specialist' (singular)
         const agentType = this.currentAgent.type;
         
+        // Build conversation history array from current messages
+        const conversationHistory = this.messages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp.toISOString(),
+          taskId: msg.taskId,
+          metadata: msg.metadata
+        }));
+        
         const task = await tasksService.createAgentTask(
           agentType,
           this.currentAgent.name,
@@ -106,6 +115,7 @@ export const useAgentChatStore = defineStore('agentChat', {
             method: 'process',
             prompt: content,
             conversationId: this.currentConversationId || undefined, // null on first message
+            conversationHistory, // Pass conversation history with each message
           }
         );
 

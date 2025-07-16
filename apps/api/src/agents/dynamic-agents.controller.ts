@@ -87,6 +87,7 @@ export class DynamicAgentsController {
         currentUser,
         authToken: token,
         llmSelection: taskRequest.llmSelection, // Pass LLM selection to agent
+        conversationHistory: taskRequest.conversationHistory || [], // Pass conversation history to agent
       };
 
       this.logger.debug(

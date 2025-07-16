@@ -45,6 +45,13 @@ interface CreateTaskDto {
   conversationId?: string;
   timeoutSeconds?: number;
   llmSelection?: LLMSelection;
+  conversationHistory?: Array<{
+    role: string;
+    content: string;
+    timestamp: string;
+    taskId?: string;
+    metadata?: Record<string, any>;
+  }>;
 }
 
 interface UpdateTaskDto {
