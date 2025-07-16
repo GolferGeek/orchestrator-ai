@@ -176,6 +176,7 @@ import { useAgentChatStore } from '@/stores/agentChatStore';
 // Define emits
 const emit = defineEmits<{
   'agent-chat-started': [agent: any];
+  'agent-conversation-selected': [conversation: any];
 }>();
 
 const authStore = useAuthStore();
@@ -338,9 +339,19 @@ const toggleAgentsSection = () => {
 };
 
 // Agent event handlers
-const handleConversationSelected = (conversation: any) => {
+const handleConversationSelected = async (conversation: any) => {
   console.log('[SessionSidebar] Conversation selected:', conversation);
-  // TODO: Switch to agent conversation view
+  
+  try {
+    // Load the conversation in the agent chat store and wait for it to complete
+    await agentChatStore.loadConversation(conversation.id);
+    
+    // Emit event to parent (HomePage) to switch to agent conversation view
+    emit('agent-conversation-selected', conversation);
+  } catch (error) {
+    console.error('[SessionSidebar] Error loading conversation:', error);
+    // Could show an error toast here
+  }
 };
 
 const handleAgentSelected = (agent: any) => {

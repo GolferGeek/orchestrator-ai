@@ -33,6 +33,14 @@
         
         <!-- Task timestamp -->
         <div class="task-timestamp">{{ formattedTimestamp }}</div>
+        
+        <!-- LLM Information for assistant messages -->
+        <LLMInfo
+          v-if="message.role === 'assistant' && llmUsed"
+          :llmUsed="llmUsed"
+          :usage="usage || undefined"
+          :costCalculation="costCalculation || undefined"
+        />
       </div>
       
       <!-- Agent avatar for assistant messages -->
@@ -67,6 +75,7 @@ import { IonAvatar, IonIcon, IonButton } from '@ionic/vue';
 import { personCircleOutline, cogOutline, informationCircleOutline } from 'ionicons/icons';
 import TaskRating from './TaskRating.vue';
 import TaskMetadataModal from './TaskMetadataModal.vue';
+import LLMInfo from './LLMInfo.vue';
 
 export interface AgentTaskMessage {
   id: string;
@@ -104,6 +113,48 @@ const formattedTimestamp = computed(() => {
     hour: '2-digit', 
     minute: '2-digit' 
   });
+});
+
+// LLM Information computed properties
+const llmUsed = computed(() => {
+  const metadata = props.message.metadata;
+  if (!metadata?.llmMetadata) return null;
+  
+  return {
+    providerId: metadata.llmMetadata.providerId,
+    providerName: metadata.llmMetadata.provider || metadata.llmMetadata.providerName,
+    modelId: metadata.llmMetadata.modelId,
+    modelName: metadata.llmMetadata.model || metadata.llmMetadata.modelName,
+    temperature: metadata.llmMetadata.temperature,
+    maxTokens: metadata.llmMetadata.maxTokens,
+    responseTimeMs: metadata.llmMetadata.responseTimeMs
+  };
+});
+
+const usage = computed(() => {
+  const metadata = props.message.metadata;
+  if (!metadata?.usage) return null;
+  
+  return {
+    inputTokens: metadata.usage.inputTokens || 0,
+    outputTokens: metadata.usage.outputTokens || 0,
+    totalCost: metadata.usage.totalCost || 0,
+    responseTimeMs: metadata.usage.responseTimeMs || 0
+  };
+});
+
+const costCalculation = computed(() => {
+  const metadata = props.message.metadata;
+  if (!metadata?.costCalculation) return null;
+  
+  return {
+    inputTokens: metadata.costCalculation.inputTokens || 0,
+    outputTokens: metadata.costCalculation.outputTokens || 0,
+    inputCost: metadata.costCalculation.inputCost || 0,
+    outputCost: metadata.costCalculation.outputCost || 0,
+    totalCost: metadata.costCalculation.totalCost || 0,
+    currency: metadata.costCalculation.currency || 'USD'
+  };
 });
 </script>
 

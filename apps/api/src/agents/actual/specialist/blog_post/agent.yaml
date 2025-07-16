@@ -1,7 +1,7 @@
 # Blog Post Writer Agent Configuration
 metadata:
   name: "Blog Post Writer"
-  type: "specialists"
+  type: "specialist"
   category: "content_creation"
   version: "1.0.0"
   description: "A professional content creation specialist that generates high-quality, SEO-optimized blog posts for various topics, audiences, and purposes."

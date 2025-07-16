@@ -358,4 +358,186 @@ export class EvaluationController {
       endDate,
     });
   }
+
+  // Task Evaluation Endpoints
+  @Post('tasks/:taskId')
+  @ApiOperation({ summary: 'Submit evaluation for a task' })
+  @ApiParam({ name: 'taskId', description: 'Task UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Task evaluation submitted successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        evaluation: {
+          type: 'object',
+          properties: {
+            user_rating: { type: 'number' },
+            speed_rating: { type: 'number' },
+            accuracy_rating: { type: 'number' },
+            user_notes: { type: 'string' },
+            evaluation_timestamp: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  @ApiResponse({
+    status: 403,
+    description: 'Not authorized to evaluate this task',
+  })
+  async evaluateTask(
+    @CurrentUser() user: any,
+    @Param('taskId') taskId: string,
+    @Body() evaluationDto: MessageEvaluationDto,
+  ): Promise<any> {
+    const result = await this.evaluationService.evaluateTask(
+      user.id,
+      taskId,
+      evaluationDto,
+    );
+    if (!result) {
+      throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
+    }
+    return result;
+  }
+
+  @Get('tasks/:taskId')
+  @ApiOperation({ summary: 'Get evaluation for a specific task' })
+  @ApiParam({ name: 'taskId', description: 'Task UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Task evaluation details',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        evaluation: {
+          type: 'object',
+          properties: {
+            user_rating: { type: 'number' },
+            speed_rating: { type: 'number' },
+            accuracy_rating: { type: 'number' },
+            user_notes: { type: 'string' },
+            evaluation_timestamp: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  async getTaskEvaluation(
+    @CurrentUser() user: any,
+    @Param('taskId') taskId: string,
+  ): Promise<any> {
+    const task = await this.evaluationService.getTaskWithEvaluation(
+      user.id,
+      taskId,
+    );
+    if (!task) {
+      throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
+    }
+    return task;
+  }
+
+  @Put('tasks/:taskId')
+  @ApiOperation({ summary: 'Update evaluation for a task' })
+  @ApiParam({ name: 'taskId', description: 'Task UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Task evaluation updated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        evaluation: {
+          type: 'object',
+          properties: {
+            user_rating: { type: 'number' },
+            speed_rating: { type: 'number' },
+            accuracy_rating: { type: 'number' },
+            user_notes: { type: 'string' },
+            evaluation_timestamp: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  @ApiResponse({
+    status: 403,
+    description: 'Not authorized to update this task evaluation',
+  })
+  async updateTaskEvaluation(
+    @CurrentUser() user: any,
+    @Param('taskId') taskId: string,
+    @Body() evaluationDto: MessageEvaluationDto,
+  ): Promise<any> {
+    const result = await this.evaluationService.updateTaskEvaluation(
+      user.id,
+      taskId,
+      evaluationDto,
+    );
+    if (!result) {
+      throw new HttpException('Task not found', HttpStatus.NOT_FOUND);
+    }
+    return result;
+  }
+
+  @Get('conversations/:conversationId/tasks')
+  @ApiOperation({ summary: 'Get all evaluated tasks in a conversation' })
+  @ApiParam({ name: 'conversationId', description: 'Conversation UUID' })
+  @ApiQuery({
+    name: 'min_rating',
+    required: false,
+    type: Number,
+    description: 'Filter by minimum user rating (1-5)',
+  })
+  @ApiQuery({
+    name: 'has_notes',
+    required: false,
+    type: Boolean,
+    description: 'Filter tasks with user notes',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of evaluated tasks in conversation',
+    type: 'array',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          evaluation: {
+            type: 'object',
+            properties: {
+              user_rating: { type: 'number' },
+              speed_rating: { type: 'number' },
+              accuracy_rating: { type: 'number' },
+              user_notes: { type: 'string' },
+              evaluation_timestamp: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getConversationTaskEvaluations(
+    @CurrentUser() user: any,
+    @Param('conversationId') conversationId: string,
+    @Query('min_rating') minRating?: number,
+    @Query('has_notes') hasNotes?: boolean,
+  ): Promise<any[]> {
+    return this.evaluationService.getConversationTaskEvaluations(
+      user.id,
+      conversationId,
+      {
+        minRating,
+        hasNotes,
+      },
+    );
+  }
 }

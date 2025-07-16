@@ -91,7 +91,7 @@ import {
   codeSlashOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
-import AgentTaskItem from './agentTaskItem.vue';
+import AgentTaskItem from './AgentTaskItem.vue';
 
 // Define emits
 const emit = defineEmits<{

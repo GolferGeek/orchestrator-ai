@@ -18,7 +18,10 @@
             <hr/>
             
             <!-- Session sidebar -->
-            <SessionSidebar @agent-chat-started="handleAgentChatStarted" />
+            <SessionSidebar 
+              @agent-chat-started="handleAgentChatStarted" 
+              @agent-conversation-selected="handleAgentConversationSelected"
+            />
           </div>
           <div v-else>
             <ion-list>
@@ -67,6 +70,13 @@ const handleAgentChatStarted = (agent: any) => {
   console.log('[App] Agent chat started:', agent);
   // Navigate to homepage where we'll show the agent chat
   router.push('/');
+};
+
+const handleAgentConversationSelected = (conversation: any) => {
+  console.log('[App] Agent conversation selected:', conversation);
+  // Navigate to homepage where we'll show the agent conversation
+  router.push('/');
+  // The agentChatStore.loadConversation is already called in SessionSidebar
 };
 </script>
 

@@ -66,6 +66,18 @@
                 <ion-label>Advanced Options</ion-label>
               </ion-item>
               <div slot="content" class="advanced-options">
+                <!-- LLM Selection -->
+                <div class="llm-section">
+                  <h4>LLM Configuration</h4>
+                  <LLMSelector :disabled="creating" />
+                </div>
+
+                <!-- CIDAFM Controls -->
+                <div class="cidafm-section">
+                  <h4>Behavior Modification (CIDAFM)</h4>
+                  <CIDAFMControls :disabled="creating" />
+                </div>
+
                 <!-- Timeout -->
                 <ion-item>
                   <ion-input
@@ -165,6 +177,9 @@ import {
 } from '@ionic/vue';
 import { closeOutline, alertCircleOutline } from 'ionicons/icons';
 import { tasksService } from '@/services/tasksService';
+import LLMSelector from './LLMSelector.vue';
+import CIDAFMControls from './CIDAFMControls.vue';
+import { useLLMStore } from '@/stores/llmStore';
 
 interface Conversation {
   id: string;
@@ -201,6 +216,9 @@ const creating = ref(false);
 const error = ref<string | null>(null);
 const customMethod = ref('');
 const parametersJson = ref('');
+
+// Store
+const llmStore = useLLMStore();
 
 const taskData = ref<TaskData>({
   method: 'process',
@@ -268,6 +286,7 @@ const createTask = async () => {
       params,
       conversationId: props.conversation.id,
       timeoutSeconds: taskData.value.timeoutSeconds,
+      llmSelection: llmStore.currentLLMSelection,
     };
 
     // Create task via direct agent call
@@ -337,10 +356,21 @@ watch(() => props.isOpen, (isOpen) => {
   margin-top: 16px;
 }
 
-.parameter-helper h4 {
+.parameter-helper h4,
+.llm-section h4,
+.cidafm-section h4 {
   margin: 0 0 8px 0;
   color: var(--ion-color-step-600);
   font-size: 0.9em;
+}
+
+.llm-section,
+.cidafm-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--ion-color-light-shade);
+  border-radius: 8px;
+  border: 1px solid var(--ion-color-step-150);
 }
 
 .parameter-helper ion-chip {
