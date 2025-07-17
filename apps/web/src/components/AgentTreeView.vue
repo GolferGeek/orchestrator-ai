@@ -60,7 +60,7 @@
 
           <div slot="content" class="agent-type-content">
             <!-- Individual Agents -->
-            <ion-accordion-group :multiple="true">
+            <ion-accordion-group :key="`agents-${agentType.type}`" :multiple="true">
               <ion-accordion
                 v-for="agent in agentType.agents"
                 :key="`${agent.type}-${agent.name}`"
