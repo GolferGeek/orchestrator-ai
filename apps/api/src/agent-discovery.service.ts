@@ -218,16 +218,35 @@ export class AgentDiscoveryService {
    */
   determineAgentType(
     agentPath: string,
-  ): 'orchestrator' | 'specialist' | 'manager' | 'external' {
+  ): 'orchestrator' | 'specialist' | 'marketing' | 'finance' | 'hr' | 'operations' | 'sales' | 'legal' | 'engineering' | 'product' | 'research' {
+    // Check for orchestrator first (special case)
     if (agentPath.includes('orchestrator')) {
       return 'orchestrator';
-    } else if (agentPath.includes('specialists')) {
-      return 'specialist';
-    } else if (agentPath.includes('api')) {
-      return 'specialist'; // API agents are treated as specialists for routing
-    } else if (agentPath.includes('external')) {
-      return 'external';
     }
+    
+    // Check for organizational folders in file structure
+    if (agentPath.includes('/marketing/')) return 'marketing';
+    if (agentPath.includes('/finance/')) return 'finance';
+    if (agentPath.includes('/hr/')) return 'hr';
+    if (agentPath.includes('/operations/')) return 'operations';
+    if (agentPath.includes('/sales/')) return 'sales';
+    if (agentPath.includes('/legal/')) return 'legal';
+    if (agentPath.includes('/engineering/')) return 'engineering';
+    if (agentPath.includes('/product/')) return 'product';
+    if (agentPath.includes('/research/')) return 'research';
+    
+    // Legacy structure fallbacks
+    if (agentPath.includes('/specialists/') || agentPath.includes('/specialist/')) {
+      return 'specialist';
+    }
+    if (agentPath.includes('/api/')) {
+      return 'engineering'; // API agents belong to engineering
+    }
+    if (agentPath.includes('/external/')) {
+      return 'marketing'; // Default external agents to marketing for now
+    }
+    
+    // Default fallback
     return 'specialist';
   }
 }

@@ -185,6 +185,65 @@ export class TaskProgressGateway
   }
 
   /**
+   * Handle task message events
+   */
+  @OnEvent('task.message')
+  handleTaskMessage(event: { taskId: string; userId: string; message: any }) {
+    this.logger.debug(`Broadcasting task message for task ${event.taskId}: ${event.message.messageType}`);
+    
+    // Broadcast to task room and user room
+    this.server.to(`task:${event.taskId}`).emit('task_message', event);
+    this.server.to(`user:${event.userId}`).emit('task_message', event);
+  }
+
+  /**
+   * Handle human input required events
+   */
+  @OnEvent('human_input.required')
+  handleHumanInputRequired(event: { taskId: string; userId: string; inputId: string; prompt: string; options?: any }) {
+    this.logger.debug(`Broadcasting human input required for task ${event.taskId}`);
+    
+    // Only broadcast to the specific user (not all task subscribers)
+    this.server.to(`user:${event.userId}`).emit('human_input_required', event);
+  }
+
+  /**
+   * Handle human input response events
+   */
+  @OnEvent('human_input.response')
+  handleHumanInputResponse(event: { taskId: string; userId: string; inputId: string; response: any }) {
+    this.logger.debug(`Broadcasting human input response for task ${event.taskId}`);
+    
+    // Broadcast to task room and user room
+    this.server.to(`task:${event.taskId}`).emit('human_input_response', event);
+    this.server.to(`user:${event.userId}`).emit('human_input_response', event);
+  }
+
+  /**
+   * Handle human input timeout events
+   */
+  @OnEvent('human_input.timeout')
+  handleHumanInputTimeout(event: { taskId: string; userId: string; inputId: string }) {
+    this.logger.debug(`Broadcasting human input timeout for task ${event.taskId}`);
+    
+    // Broadcast to task room and user room
+    this.server.to(`task:${event.taskId}`).emit('human_input_timeout', event);
+    this.server.to(`user:${event.userId}`).emit('human_input_timeout', event);
+  }
+
+  /**
+   * Handle task resumed events (after human input)
+   */
+  @OnEvent('task.resumed')
+  handleTaskResumed(event: { taskId: string; userId: string }) {
+    this.logger.debug(`Broadcasting task resumed: ${event.taskId}`);
+    
+    // Broadcast to task room and user room
+    this.server.to(`task:${event.taskId}`).emit('task_resumed', event);
+    this.server.to(`user:${event.userId}`).emit('task_resumed', event);
+  }
+
+  /**
    * Send direct message to specific user
    */
   sendToUser(userId: string, event: string, data: any) {
