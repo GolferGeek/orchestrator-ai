@@ -18,7 +18,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
 import { SessionsService } from '../sessions/sessions.service';
 import { TasksService } from '../tasks/tasks.service';
-import { CreateTaskDto } from '../common/types/agent-conversations.types';
+import { CreateTaskDto, AgentType } from '../common/types/agent-conversations.types';
 
 @Controller('agents')
 export class DynamicAgentsController {
@@ -68,7 +68,7 @@ export class DynamicAgentsController {
     const task = await this.tasksService.createTask(
       currentUser.id,
       agentName,
-      agentType as 'specialist' | 'orchestrator' | 'external' | 'api',
+      agentType as AgentType,
       taskRequest,
     );
 

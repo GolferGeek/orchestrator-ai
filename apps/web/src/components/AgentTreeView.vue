@@ -193,6 +193,15 @@ import {
   peopleOutline,
   cloudOutline,
   codeSlashOutline,
+  megaphoneOutline,
+  callOutline,
+  businessOutline,
+  settingsOutline,
+  cardOutline,
+  constructOutline,
+  searchOutline,
+  cubeOutline,
+  scaleOutline,
 } from 'ionicons/icons';
 import { agentConversationsService } from '@/services/agentConversationsService';
 import { useAgentsStore } from '@/stores/agentsStore';
@@ -236,7 +245,7 @@ const props = defineProps<{
 
 // Reactive state
 const searchQuery = ref('');
-const expandedGroups = ref(['specialist', 'orchestrator']);
+const expandedGroups = ref(['orchestrator', 'marketing', 'sales', 'operations']);
 const selectedConversation = ref<Conversation | null>(null);
 // showTaskModal removed - conversations now load in main window
 
@@ -285,7 +294,7 @@ const filteredAgentTypes = computed(() => {
   });
 
   return Array.from(types.values()).sort((a, b) => {
-    const order = ['orchestrator', 'specialist', 'external', 'api'];
+    const order = ['orchestrator', 'marketing', 'sales', 'operations', 'engineering', 'research', 'finance', 'hr', 'specialist', 'product', 'legal'];
     return order.indexOf(a.type) - order.indexOf(b.type);
   });
 });
@@ -371,12 +380,19 @@ const getConversationPluralLabel = (agent: Agent) => {
 
 const formatAgentTypeName = (type: string) => {
   const names = {
-    specialist: 'Specialists',
     orchestrator: 'Orchestrator',
-    external: 'External Agents',
-    api: 'API Agents',
+    specialist: 'Cross-Functional',
+    marketing: 'Marketing',
+    sales: 'Sales',
+    hr: 'Human Resources',
+    operations: 'Operations',
+    finance: 'Finance',
+    engineering: 'Engineering',
+    research: 'Research',
+    product: 'Product',
+    legal: 'Legal',
   };
-  return names[type as keyof typeof names] || type;
+  return names[type as keyof typeof names] || type.charAt(0).toUpperCase() + type.slice(1);
 };
 
 const formatTime = (date: Date) => {
@@ -395,20 +411,34 @@ const formatTime = (date: Date) => {
 
 const getAgentTypeIcon = (type: string) => {
   const icons = {
-    specialist: peopleOutline,
     orchestrator: serverOutline,
-    external: cloudOutline,
-    api: codeSlashOutline,
+    specialist: peopleOutline,
+    marketing: megaphoneOutline,
+    sales: callOutline,
+    hr: businessOutline,
+    operations: settingsOutline,
+    finance: cardOutline,
+    engineering: constructOutline,
+    research: searchOutline,
+    product: cubeOutline,
+    legal: scaleOutline,
   };
   return icons[type as keyof typeof icons] || personOutline;
 };
 
 const getAgentTypeColor = (type: string) => {
   const colors = {
-    specialist: 'primary',
     orchestrator: 'success',
-    external: 'warning',
-    api: 'tertiary',
+    specialist: 'primary',
+    marketing: 'secondary',
+    sales: 'tertiary',
+    hr: 'warning',
+    operations: 'dark',
+    finance: 'success',
+    engineering: 'danger',
+    research: 'medium',
+    product: 'light',
+    legal: 'primary',
   };
   return colors[type as keyof typeof colors] || 'medium';
 };

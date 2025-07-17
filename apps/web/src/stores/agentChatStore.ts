@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { agentConversationsService } from '@/services/agentConversationsService';
+import { agentConversationsService, type AgentType } from '@/services/agentConversationsService';
 import { tasksService } from '@/services/tasksService';
 import { useLLMStore } from '@/stores/llmStore';
 
@@ -7,7 +7,7 @@ export interface AgentChatState {
   // Current agent being chatted with
   currentAgent: {
     name: string;
-    type: 'specialist' | 'orchestrator' | 'external' | 'api';
+    type: AgentType;
     description?: string;
   } | null;
   

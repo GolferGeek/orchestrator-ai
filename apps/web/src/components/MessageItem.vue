@@ -270,7 +270,7 @@ const getAgentSpecialization = (): string | undefined => {
     }
   }
   
-  return `${agentName.value} Specialist`;
+  return `${agentName.value} Agent`;
 };
 
 </script>

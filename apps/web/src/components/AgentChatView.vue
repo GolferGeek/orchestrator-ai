@@ -94,6 +94,15 @@ import {
   serverOutline,
   cloudOutline,
   codeSlashOutline,
+  megaphoneOutline,
+  callOutline,
+  businessOutline,
+  settingsOutline,
+  cardOutline,
+  constructOutline,
+  searchOutline,
+  cubeOutline,
+  scaleOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import AgentTaskItem from './AgentTaskItem.vue';
@@ -145,10 +154,17 @@ const formatTime = (timestamp: Date) => {
 const getAgentIcon = () => {
   const type = agentChatStore.currentAgent?.type;
   const icons = {
-    specialist: personOutline,
     orchestrator: serverOutline,
-    external: cloudOutline,
-    api: codeSlashOutline,
+    specialist: personOutline,
+    marketing: megaphoneOutline,
+    sales: callOutline,
+    hr: businessOutline,
+    operations: settingsOutline,
+    finance: cardOutline,
+    engineering: constructOutline,
+    research: searchOutline,
+    product: cubeOutline,
+    legal: scaleOutline,
   };
   return icons[type!] || personOutline;
 };
@@ -156,10 +172,17 @@ const getAgentIcon = () => {
 const getAgentColor = () => {
   const type = agentChatStore.currentAgent?.type;
   const colors = {
-    specialist: 'primary',
     orchestrator: 'success',
-    external: 'warning',
-    api: 'tertiary',
+    specialist: 'primary',
+    marketing: 'secondary',
+    sales: 'tertiary',
+    hr: 'warning',
+    operations: 'dark',
+    finance: 'success',
+    engineering: 'danger',
+    research: 'medium',
+    product: 'light',
+    legal: 'primary',
   };
   return colors[type!] || 'medium';
 };
