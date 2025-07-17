@@ -427,7 +427,7 @@ export class ExternalA2AAgentBaseService
       const agentInfo: AgentInfo = {
         id: this.getAgentId(),
         name: this.getAgentName(),
-        type: 'external',
+        type: 'marketing', // External agents are now part of marketing organization
         path: this.agentPath!,
         url: this.buildAgentUrl(),
         description:

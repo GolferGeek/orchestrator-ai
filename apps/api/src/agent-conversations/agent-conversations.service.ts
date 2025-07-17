@@ -5,6 +5,7 @@ import {
   AgentConversationWithStats,
   CreateAgentConversationDto,
   AgentConversationQueryParams,
+  AgentType,
 } from '../common/types/agent-conversations.types';
 
 @Injectable()
@@ -16,11 +17,14 @@ export class AgentConversationsService {
   /**
    * Validate agent type matches database constraints
    */
-  private validateAgentType(agentType: string): 'specialist' | 'orchestrator' | 'external' | 'api' {
+  private validateAgentType(agentType: string): AgentType {
     // Ensure the type is one of the allowed values
-    const validTypes = ['specialist', 'orchestrator', 'external', 'api'];
-    if (validTypes.includes(agentType)) {
-      return agentType as 'specialist' | 'orchestrator' | 'external' | 'api';
+    const validTypes: AgentType[] = [
+      'orchestrator', 'specialist', 'marketing', 'finance', 'hr', 
+      'operations', 'sales', 'legal', 'engineering', 'product', 'research'
+    ];
+    if (validTypes.includes(agentType as AgentType)) {
+      return agentType as AgentType;
     }
     
     // Default to 'specialist' if type is not recognized
@@ -97,7 +101,7 @@ export class AgentConversationsService {
   async getOrCreateConversation(
     userId: string,
     agentName: string,
-    agentType: 'specialist' | 'orchestrator' | 'external' | 'api',
+    agentType: AgentType,
   ): Promise<AgentConversation> {
     try {
       // First try to find an active conversation

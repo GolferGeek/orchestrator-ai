@@ -205,9 +205,9 @@ export class AgentDiscoveryService {
     const agentType = this.determineAgentType(agentPath);
     const name = agentName.toLowerCase().replace(/\s+/g, '_');
 
-    // Handle plural forms for agent types - keep singular for external and orchestrator
+    // Handle plural forms for agent types - keep singular for orchestrator
     const agentTypePlural =
-      agentType === 'external' || agentType === 'orchestrator'
+      agentType === 'orchestrator'
         ? agentType
         : `${agentType}s`;
     return `${baseUrl}/agents/${agentTypePlural}/${name}/tasks`;
