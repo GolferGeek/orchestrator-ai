@@ -6,6 +6,7 @@ import {
   AgentMetrics,
   AgentSkill,
 } from '@agent-pool/interfaces';
+import { AgentType } from '../../../../common/types/agent-conversations.types';
 
 export interface RegistrationConfig {
   /**
@@ -51,7 +52,7 @@ export interface RegistrationConfig {
 export interface AgentInfo {
   id: string;
   name: string;
-  type: 'orchestrator' | 'specialist' | 'manager' | 'external';
+  type: AgentType;
   path: string;
   url: string;
   description: string;

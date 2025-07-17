@@ -14,7 +14,7 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
     return 'requirements_writer';
   }
 
-  getAgentType(): 'specialist' | 'orchestrator' | 'manager' | 'external' {
-    return 'specialist';
+  getAgentType(): 'engineering' {
+    return 'engineering';
   }
 }

@@ -9,10 +9,13 @@ export interface AgentSkill {
   outputModes: string[];
 }
 
+// Import AgentType from the central types
+import { AgentType } from '../common/types/agent-conversations.types';
+
 export interface AgentRegistration {
   id: string;
   name: string;
-  type: 'orchestrator' | 'specialist' | 'manager' | 'external';
+  type: AgentType;
   path: string; // e.g., "specialist/blog_post"
   url: string;
   description: string;
@@ -50,8 +53,15 @@ export interface AgentCapabilitiesDocument {
   agentsByType: {
     orchestrator: number;
     specialist: number;
-    manager: number;
-    external: number;
+    marketing: number;
+    sales: number;
+    hr: number;
+    operations: number;
+    finance: number;
+    engineering: number;
+    research: number;
+    product: number;
+    legal: number;
   };
   agents: AgentInfo[];
 }
@@ -59,7 +69,7 @@ export interface AgentCapabilitiesDocument {
 export interface AgentInfo {
   id: string;
   name: string;
-  type: string;
+  type: AgentType;
   path: string;
   url: string;
   description: string;
@@ -79,7 +89,14 @@ export interface PoolStats {
   byType: {
     orchestrator: number;
     specialist: number;
-    manager: number;
-    external: number;
+    marketing: number;
+    sales: number;
+    hr: number;
+    operations: number;
+    finance: number;
+    engineering: number;
+    research: number;
+    product: number;
+    legal: number;
   };
 }

@@ -10,6 +10,7 @@ import {
   AgentRegistrationService,
   AgentInfo,
 } from '@agents/base/sub-services/agent-registration/agent-registration.service';
+import { AgentType } from '../../../../../common/types/agent-conversations.types';
 import {
   JsonRpcProtocolService,
   JsonRpcRequest,
@@ -314,15 +315,32 @@ export abstract class A2AAgentBaseService
       .trim();
   }
 
-  getAgentType(): 'orchestrator' | 'specialist' | 'manager' | 'external' {
-    // Determine type from agent path or default to 'specialist'
+  getAgentType(): AgentType {
+    // Check for orchestrator first (special case)
     if (this.agentPath?.includes('orchestrator')) {
       return 'orchestrator';
-    } else if (this.agentPath?.includes('specialists')) {
-      return 'specialist';
-    } else if (this.agentPath?.includes('external')) {
-      return 'external';
     }
+    
+    // Check for organizational folders in file structure
+    if (this.agentPath?.includes('/marketing/')) return 'marketing';
+    if (this.agentPath?.includes('/finance/')) return 'finance';
+    if (this.agentPath?.includes('/hr/')) return 'hr';
+    if (this.agentPath?.includes('/operations/')) return 'operations';
+    if (this.agentPath?.includes('/sales/')) return 'sales';
+    if (this.agentPath?.includes('/legal/')) return 'legal';
+    if (this.agentPath?.includes('/engineering/')) return 'engineering';
+    if (this.agentPath?.includes('/product/')) return 'product';
+    if (this.agentPath?.includes('/research/')) return 'research';
+    
+    // Legacy structure fallbacks
+    if (this.agentPath?.includes('/specialists/') || this.agentPath?.includes('/specialist/')) {
+      return 'specialist';
+    }
+    if (this.agentPath?.includes('/external/')) {
+      return 'marketing'; // Default external agents to marketing for now
+    }
+    
+    // Default fallback
     return 'specialist';
   }
 
