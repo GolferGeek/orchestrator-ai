@@ -1,0 +1,393 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { SupabaseService } from '../supabase/supabase.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { snakeToCamel } from '../utils/case-converter';
+
+export interface HumanInput {
+  id: string;
+  taskId: string;
+  userId: string;
+  requestType: 'confirmation' | 'choice' | 'input' | 'approval';
+  prompt: string;
+  options?: any[];
+  userResponse?: string;
+  responseMetadata?: Record<string, any>;
+  status: 'pending' | 'completed' | 'timeout' | 'cancelled';
+  timeoutAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateHumanInputDto {
+  taskId: string;
+  userId: string;
+  requestType: 'confirmation' | 'choice' | 'input' | 'approval';
+  prompt: string;
+  options?: any[];
+  timeoutSeconds?: number;
+}
+
+export interface HumanInputResponse {
+  response: string;
+  metadata?: Record<string, any>;
+}
+
+@Injectable()
+export class HumanLoopService {
+  private readonly logger = new Logger(HumanLoopService.name);
+
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
+
+  /**
+   * Request human input during task execution
+   * This pauses the task and waits for user response
+   */
+  async requestHumanInput(
+    taskId: string,
+    userId: string,
+    prompt: string,
+    requestType: 'confirmation' | 'choice' | 'input' | 'approval' = 'input',
+    options?: any[],
+    timeoutSeconds: number = 300, // 5 minutes default
+  ): Promise<HumanInput> {
+    try {
+      const timeoutAt = new Date(Date.now() + timeoutSeconds * 1000);
+      
+      const humanInputData = {
+        task_id: taskId,
+        user_id: userId,
+        request_type: requestType,
+        prompt,
+        options: options ? JSON.stringify(options) : null,
+        timeout_at: timeoutAt.toISOString(),
+        status: 'pending',
+      };
+
+      const { data, error } = await this.supabaseService
+        .getAnonClient()
+        .from('human_inputs')
+        .insert(humanInputData)
+        .select()
+        .single();
+
+      if (error) {
+        this.logger.error('Error creating human input:', error);
+        throw new Error(`Failed to create human input: ${error.message}`);
+      }
+
+      const humanInput = this.mapToHumanInput(data);
+
+      // Emit event for real-time notification
+      this.eventEmitter.emit('human_input.required', {
+        taskId,
+        userId,
+        inputId: humanInput.id,
+        prompt,
+        requestType,
+        options,
+        timeoutAt,
+      });
+
+      this.logger.debug(`Human input requested for task ${taskId}: ${humanInput.id}`);
+      return humanInput;
+    } catch (error) {
+      this.logger.error('Error in requestHumanInput:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit a response to a human input request
+   */
+  async submitHumanResponse(
+    inputId: string,
+    userId: string,
+    response: HumanInputResponse,
+  ): Promise<HumanInput> {
+    try {
+      const updateData = {
+        user_response: response.response,
+        response_metadata: response.metadata || {},
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await this.supabaseService
+        .getAnonClient()
+        .from('human_inputs')
+        .update(updateData)
+        .eq('id', inputId)
+        .eq('user_id', userId)
+        .eq('status', 'pending') // Only update if still pending
+        .select()
+        .single();
+
+      if (error) {
+        this.logger.error('Error updating human input:', error);
+        throw new Error(`Failed to update human input: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('Human input not found or already completed');
+      }
+
+      const humanInput = this.mapToHumanInput(data);
+
+      // Emit event for real-time notification
+      this.eventEmitter.emit('human_input.response', {
+        taskId: humanInput.taskId,
+        userId,
+        inputId,
+        response: response.response,
+        metadata: response.metadata,
+      });
+
+      // Emit task resumed event
+      this.eventEmitter.emit('task.resumed', {
+        taskId: humanInput.taskId,
+        userId,
+      });
+
+      this.logger.debug(`Human input completed for task ${humanInput.taskId}: ${inputId}`);
+      return humanInput;
+    } catch (error) {
+      this.logger.error('Error in submitHumanResponse:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Wait for human response with timeout
+   * This is used by agents to pause execution until user responds
+   */
+  async waitForHumanResponse(
+    inputId: string,
+    timeoutMs?: number,
+  ): Promise<HumanInput> {
+    return new Promise((resolve, reject) => {
+      let timeoutHandle: NodeJS.Timeout;
+      let checkInterval: NodeJS.Timeout;
+
+      // Set up timeout
+      if (timeoutMs) {
+        timeoutHandle = setTimeout(() => {
+          clearInterval(checkInterval);
+          this.handleHumanInputTimeout(inputId)
+            .then(resolve)
+            .catch(reject);
+        }, timeoutMs);
+      }
+
+      // Poll for completion
+      checkInterval = setInterval(async () => {
+        try {
+          const humanInput = await this.getHumanInputById(inputId);
+          if (humanInput && humanInput.status !== 'pending') {
+            clearTimeout(timeoutHandle);
+            clearInterval(checkInterval);
+            resolve(humanInput);
+          }
+        } catch (error) {
+          clearTimeout(timeoutHandle);
+          clearInterval(checkInterval);
+          reject(error);
+        }
+      }, 1000); // Check every second
+    });
+  }
+
+  /**
+   * Get human input by ID
+   */
+  async getHumanInputById(inputId: string): Promise<HumanInput | null> {
+    try {
+      const { data, error } = await this.supabaseService
+        .getAnonClient()
+        .from('human_inputs')
+        .select()
+        .eq('id', inputId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        this.logger.error('Error fetching human input:', error);
+        throw new Error(`Failed to fetch human input: ${error.message}`);
+      }
+
+      return data ? this.mapToHumanInput(data) : null;
+    } catch (error) {
+      this.logger.error('Error in getHumanInputById:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get pending human inputs for a task
+   */
+  async getPendingInputsForTask(taskId: string, userId: string): Promise<HumanInput[]> {
+    try {
+      const { data, error } = await this.supabaseService
+        .getAnonClient()
+        .from('human_inputs')
+        .select()
+        .eq('task_id', taskId)
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        this.logger.error('Error fetching pending inputs:', error);
+        throw new Error(`Failed to fetch pending inputs: ${error.message}`);
+      }
+
+      return data.map(item => this.mapToHumanInput(item));
+    } catch (error) {
+      this.logger.error('Error in getPendingInputsForTask:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel a pending human input
+   */
+  async cancelHumanInput(inputId: string, userId: string): Promise<void> {
+    try {
+      const { error } = await this.supabaseService
+        .getAnonClient()
+        .from('human_inputs')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', inputId)
+        .eq('user_id', userId)
+        .eq('status', 'pending');
+
+      if (error) {
+        this.logger.error('Error cancelling human input:', error);
+        throw new Error(`Failed to cancel human input: ${error.message}`);
+      }
+
+      this.logger.debug(`Human input cancelled: ${inputId}`);
+    } catch (error) {
+      this.logger.error('Error in cancelHumanInput:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle timeout for human input
+   */
+  async handleHumanInputTimeout(inputId: string): Promise<HumanInput> {
+    try {
+      const { data, error } = await this.supabaseService
+        .getAnonClient()
+        .from('human_inputs')
+        .update({
+          status: 'timeout',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', inputId)
+        .eq('status', 'pending')
+        .select()
+        .single();
+
+      if (error) {
+        this.logger.error('Error handling timeout:', error);
+        throw new Error(`Failed to handle timeout: ${error.message}`);
+      }
+
+      const humanInput = this.mapToHumanInput(data);
+
+      // Emit timeout event
+      this.eventEmitter.emit('human_input.timeout', {
+        taskId: humanInput.taskId,
+        userId: humanInput.userId,
+        inputId,
+      });
+
+      // Emit task resumed event (task continues with default/timeout behavior)
+      this.eventEmitter.emit('task.resumed', {
+        taskId: humanInput.taskId,
+        userId: humanInput.userId,
+      });
+
+      this.logger.debug(`Human input timed out: ${inputId}`);
+      return humanInput;
+    } catch (error) {
+      this.logger.error('Error in handleHumanInputTimeout:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clean up expired human inputs (for scheduled cleanup)
+   */
+  async cleanupExpiredInputs(): Promise<number> {
+    try {
+      const { data, error } = await this.supabaseService
+        .getAnonClient()
+        .from('human_inputs')
+        .update({
+          status: 'timeout',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('status', 'pending')
+        .lt('timeout_at', new Date().toISOString())
+        .select('id, task_id, user_id');
+
+      if (error) {
+        this.logger.error('Error cleaning up expired inputs:', error);
+        throw new Error(`Failed to cleanup expired inputs: ${error.message}`);
+      }
+
+      // Emit timeout events for each expired input
+      for (const input of data || []) {
+        this.eventEmitter.emit('human_input.timeout', {
+          taskId: input.task_id,
+          userId: input.user_id,
+          inputId: input.id,
+        });
+
+        this.eventEmitter.emit('task.resumed', {
+          taskId: input.task_id,
+          userId: input.user_id,
+        });
+      }
+
+      const count = data?.length || 0;
+      if (count > 0) {
+        this.logger.log(`Cleaned up ${count} expired human inputs`);
+      }
+
+      return count;
+    } catch (error) {
+      this.logger.error('Error in cleanupExpiredInputs:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Map database record to HumanInput type
+   */
+  private mapToHumanInput(data: any): HumanInput {
+    const converted = snakeToCamel(data);
+    
+    return {
+      id: converted.id,
+      taskId: converted.taskId,
+      userId: converted.userId,
+      requestType: converted.requestType,
+      prompt: converted.prompt,
+      options: converted.options ? JSON.parse(converted.options) : undefined,
+      userResponse: converted.userResponse,
+      responseMetadata: converted.responseMetadata || {},
+      status: converted.status,
+      timeoutAt: converted.timeoutAt ? new Date(converted.timeoutAt) : undefined,
+      createdAt: new Date(converted.createdAt),
+      updatedAt: new Date(converted.updatedAt),
+    };
+  }
+}

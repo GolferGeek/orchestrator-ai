@@ -8,9 +8,12 @@ import {
   UpdateTaskDto,
   TaskQueryParams,
   TaskProgressEvent,
+  AgentType,
 } from '../common/types/agent-conversations.types';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { snakeToCamel } from '../utils/case-converter';
+import { TaskMessageService } from './task-message.service';
+import { MessageEmitter, TaskMessageEmitter } from './message-emitter.interface';
 
 @Injectable()
 export class TasksService {
@@ -21,6 +24,7 @@ export class TasksService {
     private readonly taskLifecycleService: TaskLifecycleService,
     private readonly agentConversationsService: AgentConversationsService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly taskMessageService: TaskMessageService,
   ) {}
 
   /**
@@ -30,7 +34,7 @@ export class TasksService {
   async createTask(
     userId: string,
     agentName: string,
-    agentType: 'specialist' | 'orchestrator' | 'external' | 'api',
+    agentType: AgentType,
     dto: CreateTaskDto,
   ): Promise<Task> {
     try {
@@ -404,6 +408,44 @@ export class TasksService {
       // Clean up listener
       this.eventEmitter.off('task.progress', progressListener);
     }
+  }
+
+  /**
+   * Create a MessageEmitter for a task
+   * This allows agents to emit messages during task execution
+   */
+  createMessageEmitter(taskId: string, userId: string): MessageEmitter {
+    return new TaskMessageEmitter(taskId, userId, this.taskMessageService);
+  }
+
+  /**
+   * Emit a message for a task
+   * Convenience method for direct message emission
+   */
+  async emitTaskMessage(
+    taskId: string,
+    userId: string,
+    content: string,
+    type: 'progress' | 'status' | 'info' | 'warning' | 'error' = 'info',
+    progressPercentage?: number,
+    metadata?: Record<string, any>,
+  ): Promise<void> {
+    await this.taskMessageService.createTaskMessage({
+      taskId,
+      userId,
+      content,
+      messageType: type,
+      progressPercentage,
+      metadata,
+    });
+  }
+
+  /**
+   * Get messages for a task
+   */
+  async getTaskMessages(taskId: string, userId: string): Promise<any[]> {
+    const { messages } = await this.taskMessageService.getTaskMessages(taskId, userId);
+    return messages;
   }
 
   /**

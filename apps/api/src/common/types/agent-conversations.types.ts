@@ -1,8 +1,22 @@
+// Agent organizational categories - supports both file structure and explicit configuration
+export type AgentType = 
+  | 'orchestrator'    // Special type for delegation and management
+  | 'specialist'      // Cross-organizational specialists
+  | 'marketing'       // Marketing department agents
+  | 'finance'         // Finance department agents  
+  | 'hr'              // Human resources agents
+  | 'operations'      // Operations and logistics agents
+  | 'sales'           // Sales and customer-facing agents
+  | 'legal'           // Legal and compliance agents
+  | 'engineering'     // Engineering and technical agents
+  | 'product'         // Product management agents
+  | 'research';       // Research and analytics agents
+
 export interface AgentConversation {
   id: string;
   userId: string;
   agentName: string;
-  agentType: 'specialist' | 'orchestrator' | 'external' | 'api';
+  agentType: AgentType;
   startedAt: Date;
   endedAt?: Date;
   lastActiveAt: Date;
@@ -52,7 +66,7 @@ export interface AgentConversationWithStats extends AgentConversation {
 
 export interface CreateAgentConversationDto {
   agentName: string;
-  agentType: 'specialist' | 'orchestrator' | 'external' | 'api';
+  agentType: AgentType;
   metadata?: Record<string, any>;
 }
 
