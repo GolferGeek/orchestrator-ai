@@ -36,7 +36,7 @@
 
     <!-- Tree view -->
     <div v-if="!conversationsStore.isLoading && !conversationsStore.error" class="tree-content">
-      <ion-accordion-group :multiple="true" :value="expandedGroups" @ionChange="handleAccordionChange">
+      <ion-accordion-group :multiple="true" v-model="expandedGroups">
         <!-- Agent Type Groups -->
         <ion-accordion
           v-for="agentType in filteredAgentTypes"
@@ -359,11 +359,6 @@ const endConversation = async (conversation: Conversation) => {
 };
 
 // handleTaskAction removed - no longer needed without modal
-
-const handleAccordionChange = (event: CustomEvent) => {
-  // Update expanded groups when user changes accordion state
-  expandedGroups.value = event.detail.value;
-};
 
 // Utility functions
 const formatAgentName = (name: string) => {
