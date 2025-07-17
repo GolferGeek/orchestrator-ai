@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia';
-import { agentConversationsService } from '@/services/agentConversationsService';
+import { agentConversationsService, type AgentType } from '@/services/agentConversationsService';
 
 interface AgentConversation {
   id: string;
   userId: string;
   agentName: string;
-  agentType: 'specialist' | 'orchestrator' | 'external' | 'api';
+  agentType: AgentType;
   startedAt: Date;
   endedAt?: Date;
   lastActiveAt: Date;
