@@ -71,14 +71,22 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       // Call parent initialization first
       await super.onModuleInit();
 
-      this.logger.log('✅ Hiverarchy AI Orchestrator Agent proxy ready');
+      this.logger.log('✅ External agent proxy ready');
 
-      // Test authentication on startup
-      await this.ensureAuthenticated();
-      this.logger.log('🔐 Hiverarchy authentication verified on startup');
+      // Test authentication on startup (non-blocking)
+      try {
+        await this.ensureAuthenticated();
+        this.logger.log('🔐 External agent authentication verified on startup');
+      } catch (authError) {
+        this.logger.warn(
+          '⚠️ External agent authentication failed during startup - will retry on first request:',
+          authError,
+        );
+        // Don't throw - allow the agent to initialize but mark as unauthenticated
+      }
     } catch (error) {
       this.logger.error(
-        '❌ Failed to initialize Hiverarchy AI Orchestrator Agent:',
+        '❌ Failed to initialize external agent:',
         error,
       );
       throw error;

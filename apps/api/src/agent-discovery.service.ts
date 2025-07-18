@@ -207,9 +207,7 @@ export class AgentDiscoveryService {
 
     // Handle plural forms for agent types - keep singular for orchestrator
     const agentTypePlural =
-      agentType === 'orchestrator'
-        ? agentType
-        : `${agentType}s`;
+      agentType === 'orchestrator' ? agentType : `${agentType}s`;
     return `${baseUrl}/agents/${agentTypePlural}/${name}/tasks`;
   }
 
@@ -218,12 +216,23 @@ export class AgentDiscoveryService {
    */
   determineAgentType(
     agentPath: string,
-  ): 'orchestrator' | 'specialist' | 'marketing' | 'finance' | 'hr' | 'operations' | 'sales' | 'legal' | 'engineering' | 'product' | 'research' {
+  ):
+    | 'orchestrator'
+    | 'specialist'
+    | 'marketing'
+    | 'finance'
+    | 'hr'
+    | 'operations'
+    | 'sales'
+    | 'legal'
+    | 'engineering'
+    | 'product'
+    | 'research' {
     // Check for orchestrator first (special case)
     if (agentPath.includes('orchestrator')) {
       return 'orchestrator';
     }
-    
+
     // Check for organizational folders in file structure
     if (agentPath.includes('/marketing/')) return 'marketing';
     if (agentPath.includes('/finance/')) return 'finance';
@@ -234,9 +243,12 @@ export class AgentDiscoveryService {
     if (agentPath.includes('/engineering/')) return 'engineering';
     if (agentPath.includes('/product/')) return 'product';
     if (agentPath.includes('/research/')) return 'research';
-    
+
     // Legacy structure fallbacks
-    if (agentPath.includes('/specialists/') || agentPath.includes('/specialist/')) {
+    if (
+      agentPath.includes('/specialists/') ||
+      agentPath.includes('/specialist/')
+    ) {
       return 'specialist';
     }
     if (agentPath.includes('/api/')) {
@@ -245,7 +257,7 @@ export class AgentDiscoveryService {
     if (agentPath.includes('/external/')) {
       return 'marketing'; // Default external agents to marketing for now
     }
-    
+
     // Default fallback
     return 'specialist';
   }

@@ -55,7 +55,7 @@ export class HumanLoopService {
   ): Promise<HumanInput> {
     try {
       const timeoutAt = new Date(Date.now() + timeoutSeconds * 1000);
-      
+
       const humanInputData = {
         task_id: taskId,
         user_id: userId,
@@ -91,7 +91,9 @@ export class HumanLoopService {
         timeoutAt,
       });
 
-      this.logger.debug(`Human input requested for task ${taskId}: ${humanInput.id}`);
+      this.logger.debug(
+        `Human input requested for task ${taskId}: ${humanInput.id}`,
+      );
       return humanInput;
     } catch (error) {
       this.logger.error('Error in requestHumanInput:', error);
@@ -151,7 +153,9 @@ export class HumanLoopService {
         userId,
       });
 
-      this.logger.debug(`Human input completed for task ${humanInput.taskId}: ${inputId}`);
+      this.logger.debug(
+        `Human input completed for task ${humanInput.taskId}: ${inputId}`,
+      );
       return humanInput;
     } catch (error) {
       this.logger.error('Error in submitHumanResponse:', error);
@@ -175,9 +179,7 @@ export class HumanLoopService {
       if (timeoutMs) {
         timeoutHandle = setTimeout(() => {
           clearInterval(checkInterval);
-          this.handleHumanInputTimeout(inputId)
-            .then(resolve)
-            .catch(reject);
+          this.handleHumanInputTimeout(inputId).then(resolve).catch(reject);
         }, timeoutMs);
       }
 
@@ -226,7 +228,10 @@ export class HumanLoopService {
   /**
    * Get pending human inputs for a task
    */
-  async getPendingInputsForTask(taskId: string, userId: string): Promise<HumanInput[]> {
+  async getPendingInputsForTask(
+    taskId: string,
+    userId: string,
+  ): Promise<HumanInput[]> {
     try {
       const { data, error } = await this.supabaseService
         .getAnonClient()
@@ -242,7 +247,7 @@ export class HumanLoopService {
         throw new Error(`Failed to fetch pending inputs: ${error.message}`);
       }
 
-      return data.map(item => this.mapToHumanInput(item));
+      return data.map((item) => this.mapToHumanInput(item));
     } catch (error) {
       this.logger.error('Error in getPendingInputsForTask:', error);
       throw error;
@@ -374,7 +379,7 @@ export class HumanLoopService {
    */
   private mapToHumanInput(data: any): HumanInput {
     const converted = snakeToCamel(data);
-    
+
     return {
       id: converted.id,
       taskId: converted.taskId,
@@ -385,7 +390,9 @@ export class HumanLoopService {
       userResponse: converted.userResponse,
       responseMetadata: converted.responseMetadata || {},
       status: converted.status,
-      timeoutAt: converted.timeoutAt ? new Date(converted.timeoutAt) : undefined,
+      timeoutAt: converted.timeoutAt
+        ? new Date(converted.timeoutAt)
+        : undefined,
       createdAt: new Date(converted.createdAt),
       updatedAt: new Date(converted.updatedAt),
     };

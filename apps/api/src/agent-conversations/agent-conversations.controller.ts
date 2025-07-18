@@ -66,10 +66,11 @@ export class AgentConversationsController {
       `Getting conversation ${conversationId} for user ${currentUser.id}`,
     );
 
-    const conversation = await this.agentConversationsService.getConversationById(
-      conversationId,
-      currentUser.id,
-    );
+    const conversation =
+      await this.agentConversationsService.getConversationById(
+        conversationId,
+        currentUser.id,
+      );
 
     if (!conversation) {
       throw new Error('Conversation not found');
@@ -88,10 +89,7 @@ export class AgentConversationsController {
     @Body() dto: CreateAgentConversationDto,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(
-      `Creating conversation for user ${currentUser.id}`,
-      dto,
-    );
+    this.logger.debug(`Creating conversation for user ${currentUser.id}`, dto);
 
     return this.agentConversationsService.createConversation(
       currentUser.id,
@@ -175,7 +173,9 @@ export class AgentConversationsController {
   async getActiveConversations(
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(`Getting active conversations for user ${currentUser.id}`);
+    this.logger.debug(
+      `Getting active conversations for user ${currentUser.id}`,
+    );
 
     return this.agentConversationsService.getActiveConversations(
       currentUser.id,

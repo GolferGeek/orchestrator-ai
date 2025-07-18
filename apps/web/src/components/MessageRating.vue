@@ -170,8 +170,13 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Only show rating for assistant messages
-const showForMessage = computed(() => props.messageRole === 'assistant');
+// Only show rating for completed assistant messages (not placeholders)
+const showForMessage = computed(() => 
+  props.messageRole === 'assistant' && 
+  props.messageId && 
+  props.messageId !== 'pending' &&
+  !props.messageId.startsWith('workflow-')
+);
 
 // State
 const currentRating = ref<EvaluationResponse | null>(null);

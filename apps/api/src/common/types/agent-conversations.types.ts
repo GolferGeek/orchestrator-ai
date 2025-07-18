@@ -1,16 +1,16 @@
 // Agent organizational categories - supports both file structure and explicit configuration
-export type AgentType = 
-  | 'orchestrator'    // Special type for delegation and management
-  | 'specialist'      // Cross-organizational specialists
-  | 'marketing'       // Marketing department agents
-  | 'finance'         // Finance department agents  
-  | 'hr'              // Human resources agents
-  | 'operations'      // Operations and logistics agents
-  | 'sales'           // Sales and customer-facing agents
-  | 'legal'           // Legal and compliance agents
-  | 'engineering'     // Engineering and technical agents
-  | 'product'         // Product management agents
-  | 'research';       // Research and analytics agents
+export type AgentType =
+  | 'orchestrator' // Special type for delegation and management
+  | 'specialist' // Cross-organizational specialists
+  | 'marketing' // Marketing department agents
+  | 'finance' // Finance department agents
+  | 'hr' // Human resources agents
+  | 'operations' // Operations and logistics agents
+  | 'sales' // Sales and customer-facing agents
+  | 'legal' // Legal and compliance agents
+  | 'engineering' // Engineering and technical agents
+  | 'product' // Product management agents
+  | 'research'; // Research and analytics agents
 
 export interface AgentConversation {
   id: string;
@@ -88,6 +88,7 @@ export interface CreateTaskDto {
   prompt: string;
   params?: Record<string, any>;
   conversationId?: string; // Optional, creates new conversation if not provided
+  taskId?: string; // Optional, pre-generated task ID from frontend to enable early WebSocket subscription
   timeoutSeconds?: number;
   llmSelection?: LLMSelection; // LLM and CIDAFM configuration
   conversationHistory?: Array<{
@@ -118,6 +119,15 @@ export interface TaskProgressEvent {
   message?: string;
   status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   metadata?: Record<string, any>;
+}
+
+export interface WorkflowStepProgressEvent {
+  taskId: string;
+  stepName: string;
+  stepIndex: number;
+  totalSteps: number;
+  status: string;
+  message?: string;
 }
 
 export interface AgentConversationQueryParams {

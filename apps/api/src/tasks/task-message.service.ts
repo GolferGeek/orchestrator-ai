@@ -76,7 +76,10 @@ export class TaskMessageService {
       });
 
       // Also emit progress event if this is a progress message
-      if (dto.messageType === 'progress' && dto.progressPercentage !== undefined) {
+      if (
+        dto.messageType === 'progress' &&
+        dto.progressPercentage !== undefined
+      ) {
         this.eventEmitter.emit('task.progress', {
           taskId: dto.taskId,
           progress: dto.progressPercentage,
@@ -127,7 +130,7 @@ export class TaskMessageService {
       }
 
       return {
-        messages: data.map(item => this.mapToTaskMessage(item)),
+        messages: data.map((item) => this.mapToTaskMessage(item)),
         total: count || 0,
       };
     } catch (error) {
@@ -170,7 +173,7 @@ export class TaskMessageService {
       }
 
       return {
-        messages: data.map(item => this.mapToTaskMessage(item)),
+        messages: data.map((item) => this.mapToTaskMessage(item)),
         total: count || 0,
       };
     } catch (error) {
@@ -206,7 +209,10 @@ export class TaskMessageService {
   /**
    * Get message statistics for a task
    */
-  async getTaskMessageStats(taskId: string, userId: string): Promise<{
+  async getTaskMessageStats(
+    taskId: string,
+    userId: string,
+  ): Promise<{
     total: number;
     byType: Record<string, number>;
     progressMessages: number;
@@ -227,12 +233,12 @@ export class TaskMessageService {
         throw new Error(`Failed to fetch task message stats: ${error.message}`);
       }
 
-      const messages = data.map(item => this.mapToTaskMessage(item));
+      const messages = data.map((item) => this.mapToTaskMessage(item));
       const byType: Record<string, number> = {};
       let progressMessages = 0;
       let errorMessages = 0;
 
-      messages.forEach(message => {
+      messages.forEach((message) => {
         byType[message.messageType] = (byType[message.messageType] || 0) + 1;
         if (message.messageType === 'progress') progressMessages++;
         if (message.messageType === 'error') errorMessages++;
@@ -256,7 +262,7 @@ export class TaskMessageService {
    */
   async *streamTaskMessages(taskId: string, userId: string) {
     // Verify task access (could add task verification here)
-    
+
     let lastMessageTime: Date | null = null;
 
     // Create event listener for new messages
@@ -281,14 +287,18 @@ export class TaskMessageService {
       // Keep connection alive and yield new messages
       while (true) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        
-        // Check for new messages since last known message
-        const { messages: newMessages } = await this.getTaskMessages(taskId, userId, {
-          limit: 10, // Just check for recent messages
-        });
 
-        const unseenMessages = lastMessageTime 
-          ? newMessages.filter(msg => msg.createdAt > lastMessageTime!)
+        // Check for new messages since last known message
+        const { messages: newMessages } = await this.getTaskMessages(
+          taskId,
+          userId,
+          {
+            limit: 10, // Just check for recent messages
+          },
+        );
+
+        const unseenMessages = lastMessageTime
+          ? newMessages.filter((msg) => msg.createdAt > lastMessageTime!)
           : newMessages;
 
         for (const message of unseenMessages) {
@@ -307,7 +317,7 @@ export class TaskMessageService {
    */
   private mapToTaskMessage(data: any): TaskMessage {
     const converted = snakeToCamel(data);
-    
+
     return {
       id: converted.id,
       taskId: converted.taskId,

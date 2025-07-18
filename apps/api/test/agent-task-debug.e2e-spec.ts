@@ -36,7 +36,6 @@ describe('Agent Task Debug (e2e)', () => {
   });
 
   it('should create and execute a blog post task', async () => {
-    
     // Step 1: Create a task for the blog_post agent
     const taskData = {
       method: 'process',
@@ -44,22 +43,20 @@ describe('Agent Task Debug (e2e)', () => {
       timeoutSeconds: 300,
     };
 
-    
     const createResponse = await request(app.getHttpServer())
       .post('/agents/specialists/blog_post/tasks')
       .set('Authorization', `Bearer ${authToken}`)
       .send(taskData)
       .expect(200);
 
-    
     const { taskId, conversationId } = createResponse.body;
-    
+
     // Step 2: Check task status
     const checkStatus = async () => {
       const statusResponse = await request(app.getHttpServer())
         .get(`/tasks/${taskId}`)
         .set('Authorization', `Bearer ${authToken}`);
-      
+
       return statusResponse.body;
     };
 
@@ -67,21 +64,23 @@ describe('Agent Task Debug (e2e)', () => {
     let attempts = 0;
     const maxAttempts = 30; // 30 seconds
     let task = await checkStatus();
-    
-    while (task.status !== 'completed' && task.status !== 'failed' && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+
+    while (
+      task.status !== 'completed' &&
+      task.status !== 'failed' &&
+      attempts < maxAttempts
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
       task = await checkStatus();
       attempts++;
     }
 
     // Step 4: Verify final result
     if (task.status === 'completed') {
-      
       expect(task.response).toBeDefined();
       expect(task.response).toContain('golf');
       expect(task.agentConversationId).toBe(conversationId);
     } else if (task.status === 'failed') {
-      
       // Log the failure but don't fail the test - we want to see what's happening
       console.warn('Task failed but test continues for debugging');
     } else {
@@ -91,13 +90,11 @@ describe('Agent Task Debug (e2e)', () => {
     const conversationResponse = await request(app.getHttpServer())
       .get(`/agent-conversations/${conversationId}`)
       .set('Authorization', `Bearer ${authToken}`);
-    
-    
+
     // Step 6: List all tasks for this conversation
     const tasksResponse = await request(app.getHttpServer())
       .get(`/tasks?conversationId=${conversationId}`)
       .set('Authorization', `Bearer ${authToken}`);
-    
   }, 60000); // 60 second timeout
 
   afterEach(async () => {
