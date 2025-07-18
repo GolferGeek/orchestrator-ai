@@ -3,6 +3,8 @@ import {
   Logger,
   OnModuleInit,
   OnModuleDestroy,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 
@@ -24,6 +26,7 @@ import {
 } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
+import { TaskStatusService } from '../../../../../tasks/task-status.service';
 
 /**
  * Minimal A2A Agent Base Service
@@ -48,6 +51,7 @@ export abstract class A2AAgentBaseService
   protected loggingService: LoggingService;
   protected authService: AuthService;
   protected configurationService: ConfigurationService;
+  protected taskStatusService?: TaskStatusService;
 
   constructor(
     protected readonly httpService: HttpService,
@@ -56,6 +60,8 @@ export abstract class A2AAgentBaseService
     loggingService?: LoggingService,
     authService?: AuthService,
     configurationService?: ConfigurationService,
+    @Inject(forwardRef(() => TaskStatusService))
+    taskStatusService?: TaskStatusService,
   ) {
     // Use provided services or create fallback instances
     this.agentRegistrationService =
@@ -66,6 +72,7 @@ export abstract class A2AAgentBaseService
     this.authService = authService || new AuthService();
     this.configurationService =
       configurationService || new ConfigurationService();
+    this.taskStatusService = taskStatusService;
   }
 
   // ============================================================================
@@ -274,7 +281,7 @@ export abstract class A2AAgentBaseService
   // ============================================================================
 
   async getAgentCard(): Promise<any> {
-    return {
+    const card: any = {
       name: this.getAgentName(),
       type: this.getAgentType(),
       path: this.agentPath,
@@ -287,6 +294,37 @@ export abstract class A2AAgentBaseService
         className: this.constructor.name,
       },
     };
+
+    // Add task type and status schema if defined
+    const taskType = this.getTaskType();
+    if (taskType && taskType !== 'ephemeral') {
+      card.taskType = taskType;
+    }
+
+    const statusSchema = this.getStatusSchema();
+    if (statusSchema && Object.keys(statusSchema).length > 0) {
+      card.statusSchema = statusSchema;
+    }
+
+    return card;
+  }
+
+  /**
+   * Get the task type for this agent
+   * Override in subclasses to specify 'long_running' or 'swarm'
+   * Default is 'ephemeral'
+   */
+  protected getTaskType(): 'ephemeral' | 'long_running' | 'swarm' {
+    return 'ephemeral';
+  }
+
+  /**
+   * Get the status schema for this agent's custom status updates
+   * Override in subclasses to define agent-specific status fields
+   * Returns empty object by default (no custom fields)
+   */
+  protected getStatusSchema(): Record<string, any> {
+    return {};
   }
 
   // ============================================================================
@@ -390,6 +428,127 @@ export abstract class A2AAgentBaseService
     // Fallback to agent name if path is not available
     const agentName = this.getAgentName().toLowerCase().replace(/\s+/g, '_');
     return agentName;
+  }
+
+  // ============================================================================
+  // TASK STATUS MANAGEMENT (single source of truth)
+  // ============================================================================
+
+  /**
+   * Create a task with initial status
+   * This should be called at the start of task execution
+   */
+  protected async createTaskStatus(
+    taskId: string,
+    userId: string,
+    taskType: 'ephemeral' | 'long_running' | 'swarm' = 'ephemeral',
+  ): Promise<void> {
+    if (!this.taskStatusService) {
+      this.logger.warn('TaskStatusService not available - task status will not be tracked');
+      return;
+    }
+
+    // Determine task type from agent card if not specified
+    if (taskType === 'ephemeral') {
+      const agentCard = await this.getAgentCard();
+      taskType = agentCard.taskType || 'ephemeral';
+    }
+
+    await this.taskStatusService.createTask(taskId, userId, taskType, {
+      agentName: this.getAgentName(),
+      agentType: this.getAgentType(),
+    });
+
+    this.logger.debug(`Task ${taskId} created with type: ${taskType}`);
+  }
+
+  /**
+   * Update task progress
+   * Use this to emit progress updates during task execution
+   */
+  protected async updateTaskProgress(
+    taskId: string,
+    userId: string,
+    progress: number,
+    message?: string,
+    additionalData?: Record<string, any>,
+  ): Promise<void> {
+    if (!this.taskStatusService) {
+      this.logger.warn('TaskStatusService not available - progress update ignored');
+      return;
+    }
+
+    await this.taskStatusService.updateTaskStatus(taskId, userId, {
+      status: 'running',
+      progress,
+      progressMessage: message,
+      ...additionalData,
+    });
+  }
+
+  /**
+   * Mark task as completed
+   * This is the ONLY way tasks should be marked as completed
+   */
+  protected async completeTask(
+    taskId: string,
+    userId: string,
+    result: any,
+    additionalData?: Record<string, any>,
+  ): Promise<void> {
+    if (!this.taskStatusService) {
+      this.logger.warn('TaskStatusService not available - task completion not tracked');
+      return;
+    }
+
+    await this.taskStatusService.completeTask(taskId, userId, result);
+    
+    if (additionalData) {
+      await this.taskStatusService.updateTaskStatus(taskId, userId, additionalData);
+    }
+
+    this.logger.debug(`Task ${taskId} marked as completed`);
+  }
+
+  /**
+   * Mark task as failed
+   * This is the ONLY way tasks should be marked as failed
+   */
+  protected async failTask(
+    taskId: string,
+    userId: string,
+    error: string,
+    additionalData?: Record<string, any>,
+  ): Promise<void> {
+    if (!this.taskStatusService) {
+      this.logger.warn('TaskStatusService not available - task failure not tracked');
+      return;
+    }
+
+    await this.taskStatusService.failTask(taskId, userId, error);
+    
+    if (additionalData) {
+      await this.taskStatusService.updateTaskStatus(taskId, userId, additionalData);
+    }
+
+    this.logger.debug(`Task ${taskId} marked as failed: ${error}`);
+  }
+
+  /**
+   * Update task with custom JSON data
+   * Use this for agent-specific status updates (swarms, workflows, etc.)
+   */
+  protected async updateTaskStatus(
+    taskId: string,
+    userId: string,
+    statusUpdate: Record<string, any>,
+  ): Promise<void> {
+    if (!this.taskStatusService) {
+      this.logger.warn('TaskStatusService not available - status update ignored');
+      return;
+    }
+
+    await this.taskStatusService.updateTaskStatus(taskId, userId, statusUpdate);
   }
 
   private discoverAgentPath(): string {

@@ -18,6 +18,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
 import { SessionsService } from '../sessions/sessions.service';
 import { TasksService } from '../tasks/tasks.service';
+import { TaskStatusService } from '../tasks/task-status.service';
 import {
   CreateTaskDto,
   AgentType,
@@ -32,6 +33,7 @@ export class DynamicAgentsController {
     private readonly appService: AppService,
     private readonly sessionsService: SessionsService,
     private readonly tasksService: TasksService,
+    private readonly taskStatusService: TaskStatusService,
   ) {}
 
   /**
@@ -76,36 +78,14 @@ export class DynamicAgentsController {
     );
 
     try {
-      // For workflow agents with pre-generated task IDs, process asynchronously
-      const isWorkflowAgent = agentName === 'requirements_writer';
-      const hasPreGeneratedTaskId = taskRequest.taskId; // Frontend provided task ID
-      
-      if (isWorkflowAgent && hasPreGeneratedTaskId) {
-        this.logger.debug(
-          `Workflow agent detected with pre-generated task ID: ${task.id}. Processing asynchronously.`,
-        );
-        
-        // Return immediately for workflow agents
-        const taskResponse = {
-          taskId: task.id,
-          conversationId: task.agentConversationId,
-          status: 'pending',
-          result: null,
-        };
-        
-        // Process the task asynchronously (don't await)
-        this.processTaskAsync(task, taskRequest, currentUser, token, agentInstance, agentType, agentName);
-        
-        return taskResponse;
-      }
+      // Initialize task status in TaskStatusService (single source of truth)
+      await this.taskStatusService.createTask(
+        task.id,
+        currentUser.id,
+        'ephemeral', // Agent can override via getTaskType() in agent card
+      );
 
-      // For non-workflow agents, use synchronous processing (existing behavior)
-      // Update task to running status
-      await this.tasksService.updateTask(task.id, currentUser.id, {
-        status: 'running',
-      });
-
-      // Prepare request for agent with task context
+      // Prepare request for agent with task context  
       const authenticatedTaskRequest = {
         ...taskRequest.params,
         method: taskRequest.method,
@@ -113,57 +93,39 @@ export class DynamicAgentsController {
         taskId: task.id,
         currentUser,
         authToken: token,
-        llmSelection: taskRequest.llmSelection, // Pass LLM selection to agent
-        conversationHistory: taskRequest.conversationHistory || [], // Pass conversation history to agent
+        llmSelection: taskRequest.llmSelection,
+        conversationHistory: taskRequest.conversationHistory || [],
       };
 
       this.logger.debug(
         `Processing task ${task.id} with agent ${agentType}/${agentName}`,
       );
 
-      // Process the task using the agent's processTask method
-      const result = await agentInstance.processTask(authenticatedTaskRequest);
-
-      // Extract response and metadata from result
-      let responseData: string;
-      let responseMetadata: Record<string, any> | undefined;
-      let llmMetadata: Record<string, any> | undefined;
-
-      if (typeof result === 'object' && result !== null) {
-        responseData = JSON.stringify(result);
-        responseMetadata = result.metadata || {};
-        llmMetadata = result.llmMetadata || {};
-
-        // If result has A2A protocol structure, extract the actual response
-        if (result.success && result.response) {
-          responseData =
-            typeof result.response === 'string'
-              ? result.response
-              : JSON.stringify(result.response);
-          responseMetadata = { ...responseMetadata, ...result.metadata };
-        }
-      } else {
-        responseData = String(result);
-      }
-
-      // Store LLM selection in metadata if provided
-      if (taskRequest.llmSelection) {
-        llmMetadata = {
-          ...llmMetadata,
-          originalLLMSelection: taskRequest.llmSelection,
+      // For agents with pre-generated task IDs (frontend early subscription), process asynchronously
+      const hasPreGeneratedTaskId = taskRequest.taskId;
+      
+      if (hasPreGeneratedTaskId) {
+        this.logger.debug(
+          `Pre-generated task ID detected: ${task.id}. Processing asynchronously for real-time updates.`,
+        );
+        
+        // Process asynchronously (don't await) - agent will handle completion via TaskStatusService
+        this.processTaskAsync(task, authenticatedTaskRequest, agentInstance);
+        
+        // Return immediately so frontend can listen for WebSocket updates
+        return {
+          taskId: task.id,
+          conversationId: task.agentConversationId,
+          status: 'pending',
+          result: null,
         };
       }
 
-      // Update task with result and metadata
-      await this.tasksService.updateTask(task.id, currentUser.id, {
-        status: 'completed',
-        response: responseData,
-        responseMetadata,
-        llmMetadata,
-        progress: 100,
-      });
+      // For synchronous processing, await the result
+      const result = await agentInstance.processTask(authenticatedTaskRequest);
 
-      // Return task info along with result
+      // Agent should have completed the task via TaskStatusService
+      // Just return the result 
       return {
         taskId: task.id,
         conversationId: task.agentConversationId,
@@ -171,12 +133,12 @@ export class DynamicAgentsController {
         result,
       };
     } catch (error) {
-      // Update task with error
-      await this.tasksService.updateTask(task.id, currentUser.id, {
-        status: 'failed',
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorData: { stack: error instanceof Error ? error.stack : undefined },
-      });
+      // Mark task as failed via TaskStatusService (single source of truth)
+      await this.taskStatusService.failTask(
+        task.id,
+        currentUser.id,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
 
       this.logger.error(`Task ${task.id} failed:`, error);
       throw error;
@@ -263,112 +225,37 @@ export class DynamicAgentsController {
 
 
   /**
-   * Process task asynchronously for workflow agents with pre-generated task IDs
+   * Process task asynchronously - simplified version using TaskStatusService
    */
   private async processTaskAsync(
     task: any,
-    taskRequest: any,
-    currentUser: any,
-    token: string,
+    authenticatedTaskRequest: any,
     agentInstance: any,
-    agentType: string,
-    agentName: string,
   ): Promise<void> {
     try {
-      // Update task to running status
-      await this.tasksService.updateTask(task.id, currentUser.id, {
-        status: 'running',
-      });
-
-      // Prepare request for agent with task context
-      const authenticatedTaskRequest = {
-        ...taskRequest.params,
-        method: taskRequest.method,
-        prompt: taskRequest.prompt,
-        taskId: task.id,
-        currentUser,
-        authToken: token,
-        llmSelection: taskRequest.llmSelection, // Pass LLM selection to agent
-        conversationHistory: taskRequest.conversationHistory || [], // Pass conversation history to agent
-      };
-
       this.logger.debug(
-        `Processing task ${task.id} asynchronously with agent ${agentType}/${agentName}`,
+        `Processing task ${task.id} asynchronously - agent will handle completion via TaskStatusService`,
       );
 
-      // Process the task using the agent's processTask method
-      const result = await agentInstance.processTask(authenticatedTaskRequest);
-
-      // Extract response and metadata from result
-      let responseData: string;
-      let responseMetadata: Record<string, any> | undefined;
-      let llmMetadata: Record<string, any> | undefined;
-
-      if (typeof result === 'object' && result !== null) {
-        responseData = JSON.stringify(result);
-        responseMetadata = result.metadata || {};
-        llmMetadata = result.llmMetadata || {};
-
-        // If result has A2A protocol structure, extract the actual response
-        if (result.success && result.response) {
-          responseData =
-            typeof result.response === 'string'
-              ? result.response
-              : JSON.stringify(result.response);
-          responseMetadata = { ...responseMetadata, ...result.metadata };
-        }
-      } else {
-        responseData = String(result);
-      }
-
-      // Store LLM selection in metadata if provided
-      if (taskRequest.llmSelection) {
-        llmMetadata = {
-          ...llmMetadata,
-          originalLLMSelection: taskRequest.llmSelection,
-        };
-      }
-
-      // For workflow agents, store the result but don't mark as completed yet
-      // The Python script will emit a final completion event when the workflow is truly done
-      if (agentName === 'requirements_writer') {
-        this.logger.debug(
-          `Workflow agent ${agentName} completed processing. Storing result but not marking as completed yet.`,
-        );
-        
-        // Store the result and metadata, but keep status as 'running'
-        await this.tasksService.updateTask(task.id, currentUser.id, {
-          response: responseData,
-          responseMetadata,
-          llmMetadata,
-          progress: 90, // Near completion but not 100% until Python script confirms
-        });
-        
-        this.logger.debug(
-          `Task ${task.id} result stored, waiting for Python script completion confirmation.`,
-        );
-        return;
-      }
-      
-      // For non-workflow agents, update task with result and metadata as usual
-      await this.tasksService.updateTask(task.id, currentUser.id, {
-        status: 'completed',
-        response: responseData,
-        responseMetadata,
-        llmMetadata,
-        progress: 100,
-      });
+      // Let the agent handle the task and all status updates
+      // Agent will use TaskStatusService methods to update progress and completion
+      await agentInstance.processTask(authenticatedTaskRequest);
 
       this.logger.debug(
-        `Task ${task.id} completed asynchronously for agent ${agentType}/${agentName}`,
+        `Async task ${task.id} processing completed - agent handled status updates`,
       );
     } catch (error) {
-      // Update task with error
-      await this.tasksService.updateTask(task.id, currentUser.id, {
-        status: 'failed',
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorData: { stack: error instanceof Error ? error.stack : undefined },
-      });
+      // Agent should have handled error via TaskStatusService failTask() method
+      // But as a fallback, ensure task is marked as failed
+      try {
+        await this.taskStatusService.failTask(
+          task.id,
+          authenticatedTaskRequest.currentUser.id,
+          error instanceof Error ? error.message : 'Unknown error',
+        );
+      } catch (statusError) {
+        this.logger.error(`Failed to update task status for error:`, statusError);
+      }
 
       this.logger.error(`Async task ${task.id} failed:`, error);
     }
