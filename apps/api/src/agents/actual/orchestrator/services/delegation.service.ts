@@ -539,7 +539,9 @@ Select the most appropriate action and provide reasoning.`;
 
       // Use agent_selection operation type
       const operationType: SystemOperationType = 'agent_selection';
-      this.logger.log(`🔧 Using ${operationType} with ${modelTier} model for delegation analysis`);
+      this.logger.log(
+        `🔧 Using ${operationType} with ${modelTier} model for delegation analysis`,
+      );
 
       const selectionResponse = await this.llmService.generateSystemResponse(
         operationType,

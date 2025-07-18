@@ -26,6 +26,10 @@
             >
               <ion-icon :icon="informationCircleOutline" slot="icon-only" />
             </ion-button>
+            <span v-if="isWorkflowMessage" class="workflow-indicator">
+              <ion-icon :icon="gitNetworkOutline" />
+              Multi-step Workflow
+            </span>
           </div>
           <div v-else-if="senderType === 'system' && agentName" class="message-agent-name">{{ agentName }}</div>
           <div class="message-text" v-if="message.content" v-html="renderedText" @click="handleMessageContentClick"></div>
@@ -53,6 +57,16 @@
           :costCalculation="message.metadata.costCalculation"
         />
         
+        <!-- Workflow Progress Component -->
+        <WorkflowProgressView
+          v-if="isWorkflowMessage && workflowSteps.length > 0"
+          :workflowTitle="workflowTitle"
+          :steps="workflowSteps"
+          :deliverables="workflowDeliverables"
+          @viewDeliverable="viewDeliverable"
+          @downloadDeliverable="downloadDeliverable"
+        />
+        
         <!-- Message Rating Component -->
         <MessageRating
           :messageId="message.id"
@@ -75,6 +89,14 @@
       :metadata="message.metadata"
       @close="showMetadataModal = false"
     />
+    
+    <!-- Deliverable Modal -->
+    <DeliverableModal
+      :is-open="showDeliverableModal"
+      :deliverable="selectedDeliverable"
+      @close="showDeliverableModal = false"
+      @download="onDeliverableDownload"
+    />
   </div>
 </template>
 
@@ -83,11 +105,14 @@ import { defineProps, computed, defineEmits, ref } from 'vue';
 import type { Message } from '@/services/sessionService';
 import { marked } from 'marked';
 import { IonAvatar, IonIcon, IonButton } from '@ionic/vue';
-import { personCircleOutline, cogOutline, informationCircleOutline } from 'ionicons/icons';
+import { personCircleOutline, cogOutline, informationCircleOutline, gitNetworkOutline } from 'ionicons/icons';
 import MessageRating from './MessageRating.vue';
 import DelegationInfo from './DelegationInfo.vue';
 import LLMInfo from './LLMInfo.vue';
 import ResponseMetadataModal from './ResponseMetadataModal.vue';
+import WorkflowProgressView from './WorkflowProgressView.vue';
+import DeliverableModal from './DeliverableModal.vue';
+import { websocketService } from '@/services/websocketService';
 
 const props = defineProps<{
   message: Message;
@@ -100,8 +125,10 @@ const emit = defineEmits([
   'agentCapabilityRequestedFor'
 ]);
 
-// Reactive variable for metadata modal
+// Reactive variables for modals
 const showMetadataModal = ref(false);
+const showDeliverableModal = ref(false);
+const selectedDeliverable = ref<any>(null);
 
 const senderType = computed(() => {
   if (props.message.role === 'user') return 'user';
@@ -179,6 +206,158 @@ const agentName = computed(() => {
     return props.message.metadata.delegatedTo;
   }
   return senderType.value === 'agent' ? 'AI' : null;
+});
+
+// Workflow-related computed properties
+const isWorkflowMessage = computed(() => {
+  // Check for direct workflow metadata
+  if (props.message.metadata?.processing_type === 'langgraph-multi-step-workflow' ||
+      props.message.metadata?.workflow_steps_completed ||
+      props.message.metadata?.workflow_steps_realtime ||
+      props.message.metadata?.tools_used?.includes('langgraph')) {
+    return true;
+  }
+  
+  // Check for Requirements Writer specific patterns
+  if (agentName.value === 'requirements_writer' && props.message.content) {
+    const content = props.message.content;
+    // Look for the specific workflow signature or placeholder content
+    if (content.includes('Generated using LangGraph workflow') ||
+        content.includes('Performance Optimization') ||
+        content.includes('Security Considerations') ||
+        content.includes('Processing your request using multi-step workflow') ||
+        (content.includes('Requirements Document') && content.includes('Implementation Recommendations'))) {
+      return true;
+    }
+  }
+  
+  return false;
+});
+
+const workflowTitle = computed(() => {
+  if (props.message.metadata?.document_type) {
+    return `${props.message.metadata.document_type.toUpperCase()} Generation Workflow`;
+  }
+  
+  // Fallback for Requirements Writer
+  if (agentName.value === 'requirements_writer') {
+    return 'Requirements Document Generation Workflow';
+  }
+  
+  return 'Multi-Step Workflow';
+});
+
+const workflowSteps = computed(() => {
+  if (!isWorkflowMessage.value) return [];
+  
+  // First, check for real-time workflow steps
+  const realtimeSteps = props.message.metadata?.workflow_steps_realtime || [];
+  if (realtimeSteps.length > 0) {
+    return realtimeSteps.map((step: any) => ({
+      stepName: step.stepName,
+      stepIndex: step.stepIndex,
+      totalSteps: step.totalSteps,
+      status: step.status,
+      message: step.message || `Step ${step.stepIndex + 1} of ${step.totalSteps}: ${step.stepName.replace(/_/g, ' ')}`,
+      metadata: step.metadata || {},
+      timestamp: new Date(step.timestamp || props.message.timestamp)
+    }));
+  }
+  
+  // Then check for completed workflow steps
+  const stepsCompleted = props.message.metadata?.workflow_steps_completed || [];
+  const currentStep = props.message.metadata?.workflow_step || 'completed';
+  
+  // If we have explicit workflow steps, use them
+  if (stepsCompleted.length > 0) {
+    return stepsCompleted.map((stepName: string, index: number) => ({
+      stepName,
+      stepIndex: index,
+      totalSteps: stepsCompleted.length,
+      status: index < stepsCompleted.length - 1 ? 'completed' : 
+              currentStep === 'completed' ? 'completed' : 'in_progress',
+      message: `Step ${index + 1} of ${stepsCompleted.length}`,
+      metadata: props.message.metadata || {},
+      timestamp: new Date(props.message.timestamp)
+    }));
+  }
+  
+  // For Requirements Writer, show placeholder workflow if processing
+  if (agentName.value === 'requirements_writer' && props.message.content) {
+    const content = props.message.content;
+    
+    // Show placeholder workflow steps if it's a processing message
+    if (content.includes('Processing your request using multi-step workflow')) {
+      const defaultSteps = [
+        'analyze_request',
+        'determine_document_type',
+        'extract_features',
+        'assess_complexity',
+        'validate_requirements',
+        'generate_document',
+        'review_document',
+        'optimize_content',
+        'finalize_response'
+      ];
+      
+      return defaultSteps.map((stepName: string, index: number) => ({
+        stepName,
+        stepIndex: index,
+        totalSteps: defaultSteps.length,
+        status: 'pending' as const,
+        message: `Step ${index + 1} of ${defaultSteps.length}: ${stepName.replace(/_/g, ' ')}`,
+        metadata: props.message.metadata || {},
+        timestamp: new Date(props.message.timestamp)
+      }));
+    }
+    
+    // Show completed workflow steps for finished documents
+    if (content.includes('Generated using LangGraph workflow') ||
+        content.includes('Performance Optimization') ||
+        content.includes('Security Considerations') ||
+        (content.includes('Requirements Document') && content.includes('Implementation Recommendations'))) {
+      const defaultSteps = [
+        'analyze_request',
+        'determine_document_type',
+        'extract_features',
+        'assess_complexity',
+        'validate_requirements',
+        'generate_document',
+        'review_document',
+        'optimize_content',
+        'finalize_response'
+      ];
+      
+      return defaultSteps.map((stepName: string, index: number) => ({
+        stepName,
+        stepIndex: index,
+        totalSteps: defaultSteps.length,
+        status: 'completed' as const,
+        message: `Step ${index + 1} of ${defaultSteps.length}: ${stepName.replace(/_/g, ' ')}`,
+        metadata: props.message.metadata || {},
+        timestamp: new Date(props.message.timestamp)
+      }));
+    }
+  }
+  
+  return [];
+});
+
+const workflowDeliverables = computed(() => {
+  if (!isWorkflowMessage.value || !props.message.content) return [];
+  
+  // Create deliverable from the message content
+  const deliverableType = props.message.metadata?.document_type || 'document';
+  
+  return [{
+    title: `${deliverableType.toUpperCase()} - ${agentName.value}`,
+    content: props.message.content,
+    deliverableType: deliverableType as any,
+    format: 'markdown' as const,
+    metadata: props.message.metadata || {},
+    downloadable: true,
+    timestamp: new Date(props.message.timestamp)
+  }];
 });
 
 const showReturnToOrchestratorLink = computed(() => {
@@ -271,6 +450,21 @@ const getAgentSpecialization = (): string | undefined => {
   }
   
   return `${agentName.value} Agent`;
+};
+
+// Workflow event handlers
+const viewDeliverable = (deliverable: any) => {
+  selectedDeliverable.value = deliverable;
+  showDeliverableModal.value = true;
+};
+
+const downloadDeliverable = (deliverable: any) => {
+  // Download logic is handled in the modal
+  console.log('Downloading deliverable:', deliverable.title);
+};
+
+const onDeliverableDownload = (deliverable: any) => {
+  console.log('Deliverable downloaded:', deliverable.title);
 };
 
 </script>
@@ -481,5 +675,22 @@ const getAgentSpecialization = (): string | undefined => {
 
 .agent-action-link a:hover {
   text-decoration: underline;
+}
+
+.workflow-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7em;
+  color: var(--ion-color-tertiary);
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: var(--ion-color-tertiary-tint);
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.workflow-indicator ion-icon {
+  font-size: 1.2em;
 }
 </style> 

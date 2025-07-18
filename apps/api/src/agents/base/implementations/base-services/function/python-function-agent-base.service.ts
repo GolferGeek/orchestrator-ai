@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from '../a2a-base/a2a-agent-base.service';
 import { LLMService } from '@/llms/llm.service';
@@ -11,6 +11,8 @@ import { LoggingService } from '@agents/base/sub-services/logging/logging.servic
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { AgentFunctionParams } from '../a2a-base/interfaces';
+import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
+import { TasksService } from '@/tasks/tasks.service';
 
 export interface AgentFunctionResponse {
   response: string;
@@ -27,11 +29,17 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
     PythonFunctionAgentBaseService.name,
   );
   private pythonScriptPath: string | null = null;
-  private pythonExecutable: string = 'python3'; // Default, can be configured
+  private pythonExecutable: string = 'pdm'; // Use PDM by default for dependency management
+  private pythonArgs: string[] = ['run', 'python']; // PDM run python args
+  private currentUserId: string | null = null; // Store current user ID for task completion
 
   constructor(
     protected readonly httpService: HttpService,
     protected readonly llmService: LLMService,
+    @Inject(forwardRef(() => TaskProgressGateway))
+    protected readonly taskProgressGateway: TaskProgressGateway | undefined,
+    @Inject(forwardRef(() => TasksService))
+    protected readonly tasksService: TasksService | undefined,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -59,12 +67,18 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
   }
 
   /**
-   * Set the Python executable to use (python3, python, specific path, etc.)
+   * Set the Python executable to use (python3, python, pdm, specific path, etc.)
    */
   setPythonExecutable(executable: string): void {
-    this.pythonExecutable = executable;
+    if (executable === 'pdm') {
+      this.pythonExecutable = 'pdm';
+      this.pythonArgs = ['run', 'python'];
+    } else {
+      this.pythonExecutable = executable;
+      this.pythonArgs = [];
+    }
     this.pythonLogger.debug(
-      `Python executable set for ${this.getAgentName()}: ${executable}`,
+      `Python executable set for ${this.getAgentName()}: ${executable} (args: ${this.pythonArgs.join(' ')})`,
     );
   }
 
@@ -73,6 +87,11 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
    */
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
+    
+    // Store current user ID for task completion handling
+    if (params.currentUser?.id) {
+      this.currentUserId = params.currentUser.id;
+    }
 
     try {
       // If no Python script path, fall back to context processing
@@ -97,6 +116,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           originalParams: params,
           agentName: agentName,
           timestamp: new Date().toISOString(),
+          taskId: params.taskId, // Pass task ID for progress tracking
           // Pass LLM preferences to Python script via metadata
           llmPreferences: {
             providerId: params.providerId,
@@ -163,15 +183,12 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       // Prepare input data for Python script
       const inputData = JSON.stringify(params);
 
-      // Spawn Python process
-      const pythonProcess: ChildProcess = spawn(
-        this.pythonExecutable,
-        [this.pythonScriptPath],
-        {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          cwd: path.dirname(this.pythonScriptPath),
-        },
-      );
+      // Spawn Python process using PDM
+      const args = [...this.pythonArgs, this.pythonScriptPath];
+      const pythonProcess: ChildProcess = spawn(this.pythonExecutable, args, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        cwd: path.dirname(this.pythonScriptPath),
+      });
 
       let stdout = '';
       let stderr = '';
@@ -182,7 +199,92 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       });
 
       pythonProcess.stderr?.on('data', (data) => {
-        stderr += data.toString();
+        const stderrData = data.toString();
+        stderr += stderrData;
+
+        // Parse progress events from stderr
+        const lines = stderrData.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('PROGRESS_EVENT:')) {
+            try {
+              const progressJson = line
+                .substring('PROGRESS_EVENT:'.length)
+                .trim();
+              const progressEvent = JSON.parse(progressJson);
+
+              // Broadcast workflow step progress via WebSocket
+              if (this.taskProgressGateway) {
+                this.taskProgressGateway.broadcastWorkflowStepProgress(
+                  progressEvent.taskId,
+                  progressEvent.stepName,
+                  progressEvent.stepIndex,
+                  progressEvent.totalSteps,
+                  progressEvent.status,
+                  progressEvent.message,
+                );
+              } else {
+                this.pythonLogger.error('TaskProgressGateway is not available for broadcasting progress events');
+              }
+
+              this.pythonLogger.debug(
+                `Broadcast workflow step progress: ${progressEvent.stepName} (${progressEvent.status})`,
+              );
+            } catch (error) {
+              this.pythonLogger.warn(
+                `Failed to parse progress event: ${line}`,
+                error,
+              );
+            }
+          } else if (line.startsWith('COMPLETION_EVENT:')) {
+            try {
+              const completionJson = line
+                .substring('COMPLETION_EVENT:'.length)
+                .trim();
+              const completionEvent = JSON.parse(completionJson);
+
+              // Update task status in database and broadcast completion via WebSocket
+              if (this.taskProgressGateway) {
+                this.taskProgressGateway.broadcastTaskCompletion(
+                  completionEvent.taskId,
+                  completionEvent.status,
+                  completionEvent.message,
+                );
+              } else {
+                this.pythonLogger.error('TaskProgressGateway is not available for broadcasting completion events');
+              }
+
+              // Update task status to completed in database (fire and forget)
+              if (this.tasksService && this.currentUserId) {
+                this.tasksService.updateTask(completionEvent.taskId, this.currentUserId, {
+                  status: 'completed',
+                  progress: 100,
+                }).then(() => {
+                  this.pythonLogger.debug(
+                    `✅ Task ${completionEvent.taskId} marked as completed in database`,
+                  );
+                }).catch((error) => {
+                  this.pythonLogger.error(
+                    `❌ Failed to update task ${completionEvent.taskId} status:`,
+                    error,
+                  );
+                });
+              } else {
+                this.pythonLogger.warn(
+                  `Cannot update task status - missing TasksService (${!!this.tasksService}) or userId (${!!this.currentUserId})`,
+                );
+              }
+
+              this.pythonLogger.debug(
+                `Python script confirmed task completion: ${completionEvent.taskId} (${completionEvent.status})`,
+              );
+            } catch (error) {
+              this.pythonLogger.warn(
+                `Failed to parse completion event: ${line}`,
+                error,
+              );
+            }
+          }
+        }
       });
 
       // Handle process completion

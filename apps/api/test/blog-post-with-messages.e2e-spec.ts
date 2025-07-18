@@ -20,7 +20,7 @@ describe('Blog Post with Messages E2E Test', () => {
   let taskMessageService: TaskMessageService;
   let supabaseService: SupabaseService;
   let jwtService: JwtService;
-  
+
   // Test user data - will be populated after authentication
   let testUserId: string;
   let authToken: string;
@@ -36,7 +36,8 @@ describe('Blog Post with Messages E2E Test', () => {
     await app.init();
 
     tasksService = moduleFixture.get<TasksService>(TasksService);
-    taskMessageService = moduleFixture.get<TaskMessageService>(TaskMessageService);
+    taskMessageService =
+      moduleFixture.get<TaskMessageService>(TaskMessageService);
     supabaseService = moduleFixture.get<SupabaseService>(SupabaseService);
     jwtService = moduleFixture.get<JwtService>(JwtService);
 
@@ -53,10 +54,10 @@ describe('Blog Post with Messages E2E Test', () => {
     expect(authToken).toBeDefined();
 
     // Decode JWT to get user ID
-    const decoded = jwtService.decode(authToken) as any;
+    const decoded = jwtService.decode(authToken);
     testUserId = decoded.sub;
     expect(testUserId).toBeDefined();
-    
+
     console.log(`🔐 Authenticated as user: ${testUserId}`);
   }, 30000);
 
@@ -71,7 +72,7 @@ describe('Blog Post with Messages E2E Test', () => {
       .from('tasks')
       .delete()
       .eq('user_id', testUserId);
-    
+
     if (error) {
       console.warn('Error cleaning up test data:', error);
     }
@@ -80,11 +81,12 @@ describe('Blog Post with Messages E2E Test', () => {
   describe('Test Suite 1: Simple Agent (Blog Post Writer)', () => {
     it('Test 1.1: Basic Blog Post Generation with Progress Messages', async () => {
       console.log('🧪 Starting Test 1.1: Basic Blog Post Generation');
-      
+
       // Create a task for blog post generation
       const createTaskDto = {
         method: 'blog_post_creation',
-        prompt: 'Write a 500-word blog post about sustainable gardening tips for beginners',
+        prompt:
+          'Write a 500-word blog post about sustainable gardening tips for beginners',
         params: {
           outputFormat: 'markdown',
           contentLength: 'medium',
@@ -118,8 +120,14 @@ describe('Blog Post with Messages E2E Test', () => {
       // Simulate task execution with progress messages
       await messageEmitter.status('Analyzing blog post requirements...');
       await messageEmitter.progress('Generating content structure...', 25);
-      await messageEmitter.progress('Creating introduction and main points...', 50);
-      await messageEmitter.progress('Optimizing for SEO and readability...', 75);
+      await messageEmitter.progress(
+        'Creating introduction and main points...',
+        50,
+      );
+      await messageEmitter.progress(
+        'Optimizing for SEO and readability...',
+        75,
+      );
       await messageEmitter.progress('Finalizing blog post content...', 90);
 
       console.log('💬 Progress messages emitted');
@@ -166,25 +174,32 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
       expect(updatedTask.response).toBe(mockBlogPost);
 
       // Emit final completion message
-      await messageEmitter.status('Blog post generation completed successfully!');
+      await messageEmitter.status(
+        'Blog post generation completed successfully!',
+      );
 
       // Verify messages were created
-      const { messages } = await taskMessageService.getTaskMessages(task.id, testUserId);
+      const { messages } = await taskMessageService.getTaskMessages(
+        task.id,
+        testUserId,
+      );
       console.log(`📊 Total messages created: ${messages.length}`);
-      
+
       expect(messages.length).toBeGreaterThan(0);
-      
+
       // Verify message types
-      const progressMessages = messages.filter(m => m.messageType === 'progress');
-      const statusMessages = messages.filter(m => m.messageType === 'status');
-      
+      const progressMessages = messages.filter(
+        (m) => m.messageType === 'progress',
+      );
+      const statusMessages = messages.filter((m) => m.messageType === 'status');
+
       expect(progressMessages.length).toBe(4); // 25%, 50%, 75%, 90%
       expect(statusMessages.length).toBe(2); // Initial analysis + completion
-      
+
       // Verify progress percentages
       const progressPercentages = progressMessages
-        .map(m => m.progressPercentage)
-        .filter(p => p !== undefined)
+        .map((m) => m.progressPercentage)
+        .filter((p) => p !== undefined)
         .sort((a, b) => (a || 0) - (b || 0));
       expect(progressPercentages).toEqual([25, 50, 75, 90]);
 
@@ -192,13 +207,13 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
       expect(updatedTask.responseMetadata).toBeDefined();
       expect(updatedTask.responseMetadata?.deliverableType).toBe('blog_post');
       expect(updatedTask.responseMetadata?.wordCount).toBeGreaterThan(0);
-      
+
       console.log('🎉 Test 1.1 completed successfully!');
     });
 
     it('Test 1.2: Blog Post with Validation Error', async () => {
       console.log('🧪 Starting Test 1.2: Blog Post with Validation Error');
-      
+
       // Create a task with invalid prompt
       const createTaskDto = {
         method: 'blog_post_creation',
@@ -214,11 +229,16 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
         createTaskDto,
       );
 
-      const messageEmitter = tasksService.createMessageEmitter(task.id, testUserId);
+      const messageEmitter = tasksService.createMessageEmitter(
+        task.id,
+        testUserId,
+      );
 
       // Simulate validation error
-      await messageEmitter.error('Validation error: Blog post prompt cannot be empty');
-      
+      await messageEmitter.error(
+        'Validation error: Blog post prompt cannot be empty',
+      );
+
       await tasksService.updateTask(task.id, testUserId, {
         status: 'failed',
         errorMessage: 'Validation error: Blog post prompt cannot be empty',
@@ -230,17 +250,20 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
       expect(updatedTask).toBeDefined();
       expect(updatedTask!.status).toBe('failed');
       expect(updatedTask!.errorMessage).toContain('Validation error');
-      
-      const { messages } = await taskMessageService.getTaskMessages(task.id, testUserId);
-      const errorMessages = messages.filter(m => m.messageType === 'error');
+
+      const { messages } = await taskMessageService.getTaskMessages(
+        task.id,
+        testUserId,
+      );
+      const errorMessages = messages.filter((m) => m.messageType === 'error');
       expect(errorMessages.length).toBe(1);
-      
+
       console.log('✅ Test 1.2 completed successfully!');
     });
 
     it('Test 1.3: Message Statistics and Retrieval', async () => {
       console.log('🧪 Starting Test 1.3: Message Statistics and Retrieval');
-      
+
       const createTaskDto = {
         method: 'blog_post_creation',
         prompt: 'Write a short blog post about artificial intelligence',
@@ -255,7 +278,10 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
         createTaskDto,
       );
 
-      const messageEmitter = tasksService.createMessageEmitter(task.id, testUserId);
+      const messageEmitter = tasksService.createMessageEmitter(
+        task.id,
+        testUserId,
+      );
 
       // Create various message types
       await messageEmitter.info('Starting AI blog post generation...');
@@ -266,8 +292,11 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
       await messageEmitter.status('Blog post completed successfully');
 
       // Get message statistics
-      const stats = await taskMessageService.getTaskMessageStats(task.id, testUserId);
-      
+      const stats = await taskMessageService.getTaskMessageStats(
+        task.id,
+        testUserId,
+      );
+
       expect(stats.total).toBe(6);
       expect(stats.progressMessages).toBe(3);
       expect(stats.byType.info).toBe(1);
@@ -276,7 +305,7 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
       expect(stats.byType.status).toBe(1);
       expect(stats.lastMessage).toBeDefined();
       expect(stats.lastMessage!.messageType).toBe('status');
-      
+
       console.log('📊 Message statistics:', stats);
       console.log('✅ Test 1.3 completed successfully!');
     });
@@ -285,7 +314,7 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
   describe('Database Integration Tests', () => {
     it('Should maintain data integrity across tasks and messages', async () => {
       console.log('🧪 Testing database integrity');
-      
+
       const task = await tasksService.createTask(
         testUserId,
         testAgentName,
@@ -297,11 +326,17 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
         },
       );
 
-      const messageEmitter = tasksService.createMessageEmitter(task.id, testUserId);
+      const messageEmitter = tasksService.createMessageEmitter(
+        task.id,
+        testUserId,
+      );
       await messageEmitter.info('Test message');
 
       // Verify foreign key relationships
-      const { messages } = await taskMessageService.getTaskMessages(task.id, testUserId);
+      const { messages } = await taskMessageService.getTaskMessages(
+        task.id,
+        testUserId,
+      );
       expect(messages.length).toBe(1);
       expect(messages[0]!.taskId).toBe(task.id);
       expect(messages[0]!.userId).toBe(testUserId);
@@ -313,9 +348,10 @@ Starting a sustainable garden doesn't have to be overwhelming. Begin with these 
         .delete()
         .eq('id', task.id);
 
-      const { messages: messagesAfterDelete } = await taskMessageService.getTaskMessages(task.id, testUserId);
+      const { messages: messagesAfterDelete } =
+        await taskMessageService.getTaskMessages(task.id, testUserId);
       expect(messagesAfterDelete.length).toBe(0);
-      
+
       console.log('✅ Database integrity test passed!');
     });
   });

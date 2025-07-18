@@ -637,10 +637,7 @@ export class EvaluationService {
     return updatedTask;
   }
 
-  async getTaskWithEvaluation(
-    userId: string,
-    taskId: string,
-  ): Promise<any> {
+  async getTaskWithEvaluation(userId: string, taskId: string): Promise<any> {
     const client = this.supabaseService.getAnonClient();
 
     const { data: task, error } = await client
@@ -679,7 +676,7 @@ export class EvaluationService {
   ): Promise<any[]> {
     const client = this.supabaseService.getAnonClient();
 
-    let query = client
+    const query = client
       .from('tasks')
       .select('*')
       .eq('user_id', userId)
@@ -691,7 +688,7 @@ export class EvaluationService {
     if (filters.minRating || filters.hasNotes) {
       // For tasks, we need to filter on the evaluation JSON field
       const { data: tasks, error } = await query;
-      
+
       if (error) {
         throw new HttpException(
           `Failed to fetch conversation task evaluations: ${error.message}`,
@@ -701,16 +698,20 @@ export class EvaluationService {
 
       // Filter in memory since we're working with JSON fields
       let filteredTasks = tasks || [];
-      
+
       if (filters.minRating !== undefined) {
-        filteredTasks = filteredTasks.filter(task => 
-          task.evaluation?.user_rating && task.evaluation.user_rating >= filters.minRating!
+        filteredTasks = filteredTasks.filter(
+          (task) =>
+            task.evaluation?.user_rating &&
+            task.evaluation.user_rating >= filters.minRating!,
         );
       }
-      
+
       if (filters.hasNotes) {
-        filteredTasks = filteredTasks.filter(task => 
-          task.evaluation?.user_notes && task.evaluation.user_notes.trim().length > 0
+        filteredTasks = filteredTasks.filter(
+          (task) =>
+            task.evaluation?.user_notes &&
+            task.evaluation.user_notes.trim().length > 0,
         );
       }
 

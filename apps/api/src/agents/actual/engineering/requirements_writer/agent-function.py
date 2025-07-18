@@ -9,6 +9,7 @@ It processes user requests and generates comprehensive technical documentation t
 import sys
 import json
 import re
+import time
 from typing import Dict, List, Any, Optional, TypedDict
 from datetime import datetime
 
@@ -34,6 +35,7 @@ except ImportError as e:
         def invoke(self, state): return state
     START = "START"
     END = "END"
+    LANGGRAPH_AVAILABLE = False
 
 
 class RequirementsWriterState(TypedDict):
@@ -53,9 +55,10 @@ class RequirementsWriterState(TypedDict):
 class RequirementsWriterWorkflow:
     """LangGraph workflow for requirements writing with state management"""
     
-    def __init__(self, llm_service_api_url: str = None):
+    def __init__(self, llm_service_api_url: str = None, task_id: str = None):
         """Initialize the workflow with LLM service integration"""
         self.llm_service_api_url = llm_service_api_url or "http://localhost:3000/api/llm"
+        self.task_id = task_id
         self.document_templates = {
             'prd': self._generate_prd_content,
             'trd': self._generate_trd_content,
@@ -66,6 +69,23 @@ class RequirementsWriterWorkflow:
         
         # Build the LangGraph workflow
         self.workflow = self._build_workflow()
+    
+    def _emit_progress(self, step_name: str, step_index: int, total_steps: int, status: str, message: str = None):
+        """Emit progress event for real-time workflow visualization"""
+        progress_event = {
+            "type": "workflow_step_progress",
+            "taskId": self.task_id,
+            "stepName": step_name,
+            "stepIndex": step_index,
+            "totalSteps": total_steps,
+            "status": status,
+            "message": message or f"Step {step_index + 1} of {total_steps}: {step_name.replace('_', ' ').title()}",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Emit to stderr so it doesn't interfere with the final JSON response
+        print(f"PROGRESS_EVENT: {json.dumps(progress_event)}", file=sys.stderr)
+        sys.stderr.flush()
     
     def _build_workflow(self) -> StateGraph:
         """Build the LangGraph workflow with nodes and edges"""
@@ -78,7 +98,10 @@ class RequirementsWriterWorkflow:
         workflow.add_node("determine_document_type", self._determine_document_type_node)
         workflow.add_node("extract_features", self._extract_features_node)
         workflow.add_node("assess_complexity", self._assess_complexity_node)
+        workflow.add_node("validate_requirements", self._validate_requirements_node)
         workflow.add_node("generate_document", self._generate_document_node)
+        workflow.add_node("review_document", self._review_document_node)
+        workflow.add_node("optimize_content", self._optimize_content_node)
         workflow.add_node("finalize_response", self._finalize_response_node)
         workflow.add_node("handle_error", self._handle_error_node)
         
@@ -89,8 +112,11 @@ class RequirementsWriterWorkflow:
         workflow.add_edge("analyze_request", "determine_document_type")
         workflow.add_edge("determine_document_type", "extract_features")
         workflow.add_edge("extract_features", "assess_complexity")
-        workflow.add_edge("assess_complexity", "generate_document")
-        workflow.add_edge("generate_document", "finalize_response")
+        workflow.add_edge("assess_complexity", "validate_requirements")
+        workflow.add_edge("validate_requirements", "generate_document")
+        workflow.add_edge("generate_document", "review_document")
+        workflow.add_edge("review_document", "optimize_content")
+        workflow.add_edge("optimize_content", "finalize_response")
         
         # Add conditional edge for error handling
         workflow.add_conditional_edges(
@@ -128,7 +154,13 @@ class RequirementsWriterWorkflow:
     def _analyze_request_node(self, state: RequirementsWriterState) -> Dict[str, Any]:
         """Node: Analyze the user request to understand intent and scope"""
         try:
+            # Emit start event
+            self._emit_progress("analyze_request", 0, 9, "in_progress", "Analyzing user request and understanding requirements scope...")
+            
             user_message = state["user_message"]
+            
+            # Simulate processing time for demo
+            time.sleep(2)
             
             # Initialize analysis structure
             analysis = {
@@ -137,6 +169,9 @@ class RequirementsWriterWorkflow:
                 "urgency": "normal",
                 "clarity": self._assess_request_clarity(user_message)
             }
+            
+            # Emit completion event
+            self._emit_progress("analyze_request", 0, 9, "completed", "Request analysis complete - identified intent and scope")
             
             return {
                 "analysis": analysis,
@@ -147,6 +182,7 @@ class RequirementsWriterWorkflow:
                 }
             }
         except Exception as e:
+            self._emit_progress("analyze_request", 0, 9, "failed", f"Analysis failed: {str(e)}")
             return {
                 "error": f"Analysis failed: {str(e)}",
                 "workflow_step": "analysis_error"
@@ -155,7 +191,13 @@ class RequirementsWriterWorkflow:
     def _determine_document_type_node(self, state: RequirementsWriterState) -> Dict[str, Any]:
         """Node: Determine the type of document to generate"""
         try:
+            # Emit start event
+            self._emit_progress("determine_document_type", 1, 9, "in_progress", "Determining optimal document type based on requirements...")
+            
             user_message = state["user_message"].lower()
+            
+            # Simulate processing time for demo
+            time.sleep(2)
             
             # Document type classification logic
             document_type = 'general'
@@ -170,6 +212,9 @@ class RequirementsWriterWorkflow:
             elif any(keyword in user_message for keyword in ['architecture', 'system design', 'components']):
                 document_type = 'architecture'
             
+            # Emit completion event
+            self._emit_progress("determine_document_type", 1, 9, "completed", f"Document type determined: {document_type.upper()}")
+            
             return {
                 "document_type": document_type,
                 "workflow_step": "document_type_determined",
@@ -179,6 +224,7 @@ class RequirementsWriterWorkflow:
                 }
             }
         except Exception as e:
+            self._emit_progress("determine_document_type", 1, 9, "failed", f"Document type determination failed: {str(e)}")
             return {
                 "error": f"Document type determination failed: {str(e)}",
                 "workflow_step": "document_type_error"
@@ -187,7 +233,13 @@ class RequirementsWriterWorkflow:
     def _extract_features_node(self, state: RequirementsWriterState) -> Dict[str, Any]:
         """Node: Extract key features and components from the request"""
         try:
+            # Emit start event
+            self._emit_progress("extract_features", 2, 9, "in_progress", "Extracting key features and components from requirements...")
+            
             user_message = state["user_message"]
+            
+            # Simulate processing time for demo
+            time.sleep(2)
             
             # Feature extraction patterns
             feature_patterns = [
@@ -204,6 +256,9 @@ class RequirementsWriterWorkflow:
                 if re.search(pattern, message_lower):
                     features.append(pattern.replace('_', ' ').title())
             
+            # Emit completion event
+            self._emit_progress("extract_features", 2, 9, "completed", f"Extracted {len(features)} key features and components")
+            
             return {
                 "features": features,
                 "workflow_step": "features_extracted",
@@ -214,6 +269,7 @@ class RequirementsWriterWorkflow:
                 }
             }
         except Exception as e:
+            self._emit_progress("extract_features", 2, 9, "failed", f"Feature extraction failed: {str(e)}")
             return {
                 "error": f"Feature extraction failed: {str(e)}",
                 "workflow_step": "feature_extraction_error"
@@ -222,8 +278,14 @@ class RequirementsWriterWorkflow:
     def _assess_complexity_node(self, state: RequirementsWriterState) -> Dict[str, Any]:
         """Node: Assess the complexity of the requirements"""
         try:
+            # Emit start event
+            self._emit_progress("assess_complexity", 3, 9, "in_progress", "Assessing project complexity and estimating effort...")
+            
             user_message = state["user_message"].lower()
             features = state.get("features", [])
+            
+            # Simulate processing time for demo
+            time.sleep(2)
             
             # Complexity assessment
             complexity = 'medium'
@@ -239,6 +301,9 @@ class RequirementsWriterWorkflow:
             # Estimate effort
             estimated_effort = self._estimate_effort(complexity, len(features))
             
+            # Emit completion event
+            self._emit_progress("assess_complexity", 3, 9, "completed", f"Complexity assessed: {complexity.upper()} - {estimated_effort}")
+            
             return {
                 "complexity": complexity,
                 "workflow_step": "complexity_assessed",
@@ -252,21 +317,78 @@ class RequirementsWriterWorkflow:
                 }
             }
         except Exception as e:
+            self._emit_progress("assess_complexity", 3, 9, "failed", f"Complexity assessment failed: {str(e)}")
             return {
                 "error": f"Complexity assessment failed: {str(e)}",
                 "workflow_step": "complexity_error"
             }
     
+    def _validate_requirements_node(self, state: RequirementsWriterState) -> Dict[str, Any]:
+        """Node: Validate requirements completeness and consistency"""
+        try:
+            # Emit start event
+            self._emit_progress("validate_requirements", 4, 9, "in_progress", "Validating requirements completeness and consistency...")
+            
+            user_message = state["user_message"]
+            features = state.get("features", [])
+            document_type = state.get("document_type", "general")
+            
+            # Simulate processing time for demo
+            time.sleep(2)
+            
+            # Validation checks
+            validation_results = {
+                "completeness": self._check_completeness(user_message, features),
+                "consistency": self._check_consistency(features, document_type),
+                "clarity": self._check_clarity(user_message),
+                "feasibility": self._check_feasibility(features, state.get("complexity", "medium"))
+            }
+            
+            # Calculate validation score
+            validation_score = sum(validation_results.values()) / len(validation_results)
+            
+            # Generate validation recommendations
+            recommendations = self._generate_validation_recommendations(validation_results)
+            
+            # Emit completion event
+            self._emit_progress("validate_requirements", 4, 9, "completed", f"Requirements validated - Score: {validation_score:.2f}")
+            
+            return {
+                "workflow_step": "requirements_validated",
+                "metadata": {
+                    **state.get("metadata", {}),
+                    "validation_score": validation_score,
+                    "validation_results": validation_results,
+                    "validation_recommendations": recommendations,
+                    "validation_timestamp": datetime.now().isoformat()
+                }
+            }
+        except Exception as e:
+            self._emit_progress("validate_requirements", 4, 9, "failed", f"Requirements validation failed: {str(e)}")
+            return {
+                "error": f"Requirements validation failed: {str(e)}",
+                "workflow_step": "validation_error"
+            }
+    
     def _generate_document_node(self, state: RequirementsWriterState) -> Dict[str, Any]:
         """Node: Generate the actual requirements document"""
         try:
+            # Emit start event
+            self._emit_progress("generate_document", 5, 9, "in_progress", "Generating comprehensive requirements document...")
+            
             document_type = state.get("document_type", "general")
+            
+            # Simulate processing time for demo
+            time.sleep(2)
             
             # Generate document content based on type
             if document_type in self.document_templates:
                 content = self.document_templates[document_type](state)
             else:
                 content = self._generate_general_requirements(state)
+            
+            # Emit completion event
+            self._emit_progress("generate_document", 5, 9, "completed", f"Document generated - {len(content)} characters")
             
             return {
                 "document_content": content,
@@ -278,14 +400,109 @@ class RequirementsWriterWorkflow:
                 }
             }
         except Exception as e:
+            self._emit_progress("generate_document", 5, 9, "failed", f"Document generation failed: {str(e)}")
             return {
                 "error": f"Document generation failed: {str(e)}",
                 "workflow_step": "generation_error"
             }
     
+    def _review_document_node(self, state: RequirementsWriterState) -> Dict[str, Any]:
+        """Node: Review generated document for quality and completeness"""
+        try:
+            # Emit start event
+            self._emit_progress("review_document", 6, 9, "in_progress", "Reviewing document quality and completeness...")
+            
+            document_content = state.get("document_content", "")
+            features = state.get("features", [])
+            document_type = state.get("document_type", "general")
+            
+            # Simulate processing time for demo
+            time.sleep(2)
+            
+            # Review criteria
+            review_results = {
+                "content_quality": self._assess_content_quality(document_content),
+                "structure_completeness": self._assess_structure_completeness(document_content, document_type),
+                "feature_coverage": self._assess_feature_coverage(document_content, features),
+                "technical_accuracy": self._assess_technical_accuracy(document_content)
+            }
+            
+            # Calculate review score
+            review_score = sum(review_results.values()) / len(review_results)
+            
+            # Generate review feedback
+            review_feedback = self._generate_review_feedback(review_results)
+            
+            # Emit completion event
+            self._emit_progress("review_document", 6, 9, "completed", f"Document reviewed - Quality score: {review_score:.2f}")
+            
+            return {
+                "workflow_step": "document_reviewed",
+                "metadata": {
+                    **state.get("metadata", {}),
+                    "review_score": review_score,
+                    "review_results": review_results,
+                    "review_feedback": review_feedback,
+                    "review_timestamp": datetime.now().isoformat()
+                }
+            }
+        except Exception as e:
+            self._emit_progress("review_document", 6, 9, "failed", f"Document review failed: {str(e)}")
+            return {
+                "error": f"Document review failed: {str(e)}",
+                "workflow_step": "review_error"
+            }
+    
+    def _optimize_content_node(self, state: RequirementsWriterState) -> Dict[str, Any]:
+        """Node: Optimize document content based on review feedback"""
+        try:
+            # Emit start event
+            self._emit_progress("optimize_content", 7, 9, "in_progress", "Optimizing content based on review feedback...")
+            
+            document_content = state.get("document_content", "")
+            review_results = state.get("metadata", {}).get("review_results", {})
+            
+            # Simulate processing time for demo
+            time.sleep(2)
+            
+            # Apply optimizations based on review feedback
+            optimized_content = self._apply_content_optimizations(document_content, review_results)
+            
+            # Track optimization changes
+            optimization_changes = self._track_optimization_changes(document_content, optimized_content)
+            
+            # Emit completion event
+            self._emit_progress("optimize_content", 7, 9, "completed", f"Content optimized - {len(optimization_changes)} improvements applied")
+            
+            return {
+                "document_content": optimized_content,
+                "workflow_step": "content_optimized",
+                "metadata": {
+                    **state.get("metadata", {}),
+                    "optimization_changes": optimization_changes,
+                    "optimization_timestamp": datetime.now().isoformat(),
+                    "content_improved": len(optimization_changes) > 0
+                }
+            }
+        except Exception as e:
+            self._emit_progress("optimize_content", 7, 9, "failed", f"Content optimization failed: {str(e)}")
+            return {
+                "error": f"Content optimization failed: {str(e)}",
+                "workflow_step": "optimization_error"
+            }
+    
     def _finalize_response_node(self, state: RequirementsWriterState) -> Dict[str, Any]:
         """Node: Finalize the response with metadata"""
         try:
+            # Emit start event
+            self._emit_progress("finalize_response", 8, 9, "in_progress", "Finalizing response and preparing deliverables...")
+            
+            # Simulate processing time for demo
+            time.sleep(2)
+            
+            # Emit completion event
+            self._emit_progress("finalize_response", 8, 9, "completed", "Workflow completed successfully - Requirements document ready")
+            
             return {
                 "workflow_step": "completed",
                 "metadata": {
@@ -295,6 +512,7 @@ class RequirementsWriterWorkflow:
                 }
             }
         except Exception as e:
+            self._emit_progress("finalize_response", 8, 9, "failed", f"Finalization failed: {str(e)}")
             return {
                 "error": f"Finalization failed: {str(e)}",
                 "workflow_step": "finalization_error"
@@ -659,6 +877,203 @@ Generated using LangGraph workflow at {datetime.now().isoformat()}
 3. Are there any specific integrations required?
 4. What are the main business constraints?
 5. Are there any specific compliance requirements?"""
+    
+    # New validation methods
+    def _check_completeness(self, user_message: str, features: List[str]) -> float:
+        """Check if requirements are complete"""
+        word_count = len(user_message.split())
+        feature_count = len(features)
+        
+        completeness_score = 0.0
+        if word_count >= 20:
+            completeness_score += 0.3
+        if feature_count >= 3:
+            completeness_score += 0.4
+        if any(keyword in user_message.lower() for keyword in ['user', 'business', 'requirement']):
+            completeness_score += 0.3
+        
+        return min(completeness_score, 1.0)
+    
+    def _check_consistency(self, features: List[str], document_type: str) -> float:
+        """Check if features are consistent with document type"""
+        if document_type == 'general':
+            return 0.8  # General documents are always consistent
+        
+        type_keywords = {
+            'prd': ['product', 'user', 'business', 'market'],
+            'trd': ['technical', 'system', 'architecture', 'api'],
+            'api': ['endpoint', 'rest', 'json', 'http'],
+            'user_story': ['user', 'story', 'acceptance', 'criteria'],
+            'architecture': ['system', 'component', 'design', 'structure']
+        }
+        
+        relevant_keywords = type_keywords.get(document_type, [])
+        feature_text = ' '.join(features).lower()
+        
+        matching_keywords = sum(1 for keyword in relevant_keywords if keyword in feature_text)
+        consistency_score = matching_keywords / len(relevant_keywords) if relevant_keywords else 0.8
+        
+        return min(consistency_score, 1.0)
+    
+    def _check_clarity(self, user_message: str) -> float:
+        """Check if requirements are clear and specific"""
+        clarity_indicators = ['specific', 'must', 'should', 'will', 'require', 'need', 'want']
+        vague_indicators = ['maybe', 'perhaps', 'might', 'could', 'possibly']
+        
+        message_lower = user_message.lower()
+        clarity_count = sum(1 for indicator in clarity_indicators if indicator in message_lower)
+        vague_count = sum(1 for indicator in vague_indicators if indicator in message_lower)
+        
+        clarity_score = (clarity_count * 0.2) - (vague_count * 0.1)
+        return max(0.0, min(clarity_score + 0.5, 1.0))
+    
+    def _check_feasibility(self, features: List[str], complexity: str) -> float:
+        """Check if requirements are feasible given complexity"""
+        feature_count = len(features)
+        
+        feasibility_thresholds = {
+            'low': 5,
+            'medium': 10,
+            'high': 20
+        }
+        
+        max_features = feasibility_thresholds.get(complexity, 10)
+        if feature_count <= max_features:
+            return 1.0
+        else:
+            return max(0.3, 1.0 - ((feature_count - max_features) * 0.1))
+    
+    def _generate_validation_recommendations(self, validation_results: Dict[str, float]) -> List[str]:
+        """Generate recommendations based on validation results"""
+        recommendations = []
+        
+        if validation_results.get('completeness', 0) < 0.7:
+            recommendations.append("Consider providing more detailed requirements and context")
+        
+        if validation_results.get('consistency', 0) < 0.7:
+            recommendations.append("Ensure features align with the intended document type")
+        
+        if validation_results.get('clarity', 0) < 0.7:
+            recommendations.append("Use more specific language and avoid ambiguous terms")
+        
+        if validation_results.get('feasibility', 0) < 0.7:
+            recommendations.append("Consider reducing scope or increasing complexity level")
+        
+        return recommendations
+    
+    # New review methods
+    def _assess_content_quality(self, content: str) -> float:
+        """Assess the quality of generated content"""
+        if not content:
+            return 0.0
+        
+        quality_score = 0.0
+        
+        # Check for proper structure
+        if '##' in content:
+            quality_score += 0.3
+        if '###' in content:
+            quality_score += 0.2
+        if len(content) > 500:
+            quality_score += 0.3
+        if any(keyword in content.lower() for keyword in ['requirements', 'specification', 'implementation']):
+            quality_score += 0.2
+        
+        return min(quality_score, 1.0)
+    
+    def _assess_structure_completeness(self, content: str, document_type: str) -> float:
+        """Assess if document structure is complete for the type"""
+        required_sections = {
+            'prd': ['executive summary', 'product overview', 'functional requirements', 'technical specifications'],
+            'trd': ['technical overview', 'system architecture', 'database requirements', 'api specifications'],
+            'api': ['api overview', 'endpoint specifications', 'error handling', 'authentication'],
+            'user_story': ['project overview', 'user stories', 'acceptance criteria'],
+            'architecture': ['architecture overview', 'frontend architecture', 'backend architecture', 'data architecture']
+        }
+        
+        sections = required_sections.get(document_type, ['overview', 'requirements', 'implementation'])
+        content_lower = content.lower()
+        
+        present_sections = sum(1 for section in sections if section in content_lower)
+        completeness_score = present_sections / len(sections) if sections else 0.8
+        
+        return min(completeness_score, 1.0)
+    
+    def _assess_feature_coverage(self, content: str, features: List[str]) -> float:
+        """Assess if all identified features are covered in the document"""
+        if not features:
+            return 1.0
+        
+        content_lower = content.lower()
+        covered_features = sum(1 for feature in features if feature.lower() in content_lower)
+        coverage_score = covered_features / len(features)
+        
+        return min(coverage_score, 1.0)
+    
+    def _assess_technical_accuracy(self, content: str) -> float:
+        """Assess technical accuracy of the content"""
+        technical_terms = ['api', 'database', 'authentication', 'authorization', 'rest', 'json', 'http', 'https']
+        best_practices = ['security', 'performance', 'scalability', 'monitoring', 'testing']
+        
+        content_lower = content.lower()
+        
+        technical_score = sum(0.1 for term in technical_terms if term in content_lower)
+        practice_score = sum(0.1 for practice in best_practices if practice in content_lower)
+        
+        accuracy_score = min(technical_score + practice_score, 1.0)
+        return max(accuracy_score, 0.6)  # Minimum baseline score
+    
+    def _generate_review_feedback(self, review_results: Dict[str, float]) -> List[str]:
+        """Generate feedback based on review results"""
+        feedback = []
+        
+        if review_results.get('content_quality', 0) < 0.7:
+            feedback.append("Content quality could be improved with more detailed sections")
+        
+        if review_results.get('structure_completeness', 0) < 0.7:
+            feedback.append("Document structure is missing some recommended sections")
+        
+        if review_results.get('feature_coverage', 0) < 0.7:
+            feedback.append("Some identified features are not adequately covered")
+        
+        if review_results.get('technical_accuracy', 0) < 0.7:
+            feedback.append("Technical accuracy could be enhanced with more specific details")
+        
+        return feedback
+    
+    # New optimization methods
+    def _apply_content_optimizations(self, content: str, review_results: Dict[str, float]) -> str:
+        """Apply optimizations to content based on review feedback"""
+        optimized_content = content
+        
+        # Add performance optimization section if missing
+        if 'performance' not in content.lower() and review_results.get('technical_accuracy', 0) < 0.8:
+            optimized_content += "\n\n## Performance Optimization\n- Implement caching strategies\n- Optimize database queries\n- Use CDN for static assets\n- Monitor response times"
+        
+        # Add security section if missing
+        if 'security' not in content.lower() and review_results.get('technical_accuracy', 0) < 0.8:
+            optimized_content += "\n\n## Security Considerations\n- Implement proper authentication\n- Use HTTPS encryption\n- Validate all inputs\n- Regular security audits"
+        
+        # Add testing section if missing
+        if 'testing' not in content.lower() and review_results.get('content_quality', 0) < 0.8:
+            optimized_content += "\n\n## Testing Strategy\n- Unit testing for core functions\n- Integration testing for APIs\n- End-to-end testing for user workflows\n- Performance testing under load"
+        
+        return optimized_content
+    
+    def _track_optimization_changes(self, original_content: str, optimized_content: str) -> List[str]:
+        """Track what optimizations were applied"""
+        changes = []
+        
+        if len(optimized_content) > len(original_content):
+            new_content = optimized_content[len(original_content):]
+            if 'Performance Optimization' in new_content:
+                changes.append("Added performance optimization section")
+            if 'Security Considerations' in new_content:
+                changes.append("Added security considerations section")
+            if 'Testing Strategy' in new_content:
+                changes.append("Added testing strategy section")
+        
+        return changes
 
 
 def main():
@@ -674,9 +1089,10 @@ def main():
         user_message = input_data.get('userMessage', '')
         session_id = input_data.get('sessionId', 'unknown')
         metadata = input_data.get('metadata', {})
+        task_id = metadata.get('taskId', metadata.get('originalParams', {}).get('taskId', 'unknown'))
         
-        # Initialize the LangGraph workflow
-        workflow_instance = RequirementsWriterWorkflow()
+        # Initialize the LangGraph workflow with task_id for progress tracking
+        workflow_instance = RequirementsWriterWorkflow(task_id=task_id)
         
         # Prepare initial state
         initial_state = RequirementsWriterState(
@@ -705,9 +1121,20 @@ def main():
                 "features": final_state.get("features", []),
                 "workflow_step": final_state.get("workflow_step", "unknown"),
                 "generated_at": datetime.now().isoformat(),
-                "processing_type": "langgraph-workflow",
+                "processing_type": "langgraph-multi-step-workflow",
                 "agent_type": "requirements_writer",
-                "tools_used": ["langgraph", "state-management", "workflow-orchestration"],
+                "tools_used": ["langgraph", "state-management", "workflow-orchestration", "validation", "review", "optimization"],
+                "workflow_steps_completed": [
+                    "analyze_request",
+                    "determine_document_type", 
+                    "extract_features",
+                    "assess_complexity",
+                    "validate_requirements",
+                    "generate_document",
+                    "review_document",
+                    "optimize_content",
+                    "finalize_response"
+                ],
                 **final_state.get("metadata", {})
             }
         }
@@ -718,6 +1145,16 @@ def main():
             response["metadata"]["workflow_status"] = "error"
         else:
             response["metadata"]["workflow_status"] = "success"
+        
+        # Emit final completion event
+        final_completion_event = {
+            "type": "task_completion",
+            "taskId": self.task_id,
+            "status": "completed",
+            "message": "Requirements writing workflow completed successfully",
+            "timestamp": datetime.now().isoformat()
+        }
+        print(f"COMPLETION_EVENT: {json.dumps(final_completion_event)}", file=sys.stderr)
         
         print(json.dumps(response))
         

@@ -51,10 +51,8 @@ describe('Authenticated Agent End-to-End Tests', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
-
     // Wait for agents to be discovered and auto-registered (like in production)
     await new Promise((resolve) => setTimeout(resolve, 5000));
-
 
     // Authenticate as test user (same as frontend)
     const loginResponse = await request(app.getHttpServer())
@@ -330,7 +328,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
           expect(response.body.result.response.length).toBeGreaterThan(500);
         } else {
         }
-
       }, 45000); // 45 second timeout for orchestrator + AI processing
     });
   });
@@ -386,7 +383,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
       const lowerResponse = responseText.toLowerCase();
       expect(lowerResponse).toMatch(/renewable.{0,50}energy/);
       expect(lowerResponse).toMatch(/climate.{0,50}change/);
-
     }, 60000); // Extended timeout for external agent processing
 
     it('should prefer Hiverarchy over local blog_post for content creation', async () => {
@@ -424,7 +420,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
       const lowerResponse = responseText.toLowerCase();
       expect(lowerResponse).toMatch(/sustainable.{0,50}technology/);
       expect(lowerResponse).toMatch(/innovation/);
-
     }, 60000);
   });
 
@@ -464,7 +459,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         expect(response.body.result.response).toBeDefined();
         expect(typeof response.body.result.response).toBe('string');
         expect(response.body.result.response.length).toBeGreaterThan(0);
-
       }, 30000); // 30 second timeout for conversational AI processing
     });
   });
@@ -492,14 +486,12 @@ describe('Authenticated Agent End-to-End Tests', () => {
       externalAgents.forEach((agentName) => {
         expect(agentNames).toContain(agentName);
       });
-
     });
 
     it('should have agents accessible via agent pool', async () => {
       const response = await request(app.getHttpServer())
         .get('/agent-pool/agents')
         .expect(200);
-
 
       expect(Array.isArray(response.body)).toBe(true);
       expect(response.body.length).toBeGreaterThanOrEqual(24);
@@ -540,7 +532,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         );
         expect(found).toBe(true);
       });
-
     });
   });
 
@@ -558,7 +549,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .post('/agents/specialists/blog_post/tasks')
         .send(taskRequest)
         .expect(401);
-
     });
 
     it('should reject requests with invalid token', async () => {
@@ -575,7 +565,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .set('Authorization', 'Bearer invalid-token-12345')
         .send(taskRequest)
         .expect(401);
-
     });
   });
 
@@ -594,7 +583,6 @@ describe('Authenticated Agent End-to-End Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send(taskRequest)
         .expect(404);
-
     });
   });
 });

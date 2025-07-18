@@ -175,7 +175,7 @@ export class LLMService {
 
         // Extract user ID from currentUser object or use 'system' as fallback
         const userId = options.currentUser?.id || 'system';
-        
+
         const enhancedResult = await this.generateEnhancedResponse(
           userId,
           systemPrompt,

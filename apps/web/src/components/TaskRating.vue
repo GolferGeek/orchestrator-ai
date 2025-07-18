@@ -203,6 +203,14 @@ const hasRatingData = computed(() => {
 
 // Methods
 const loadExistingRating = async () => {
+  // Don't load for invalid or placeholder task IDs
+  if (!props.taskId || 
+      props.taskId === 'pending' || 
+      props.taskId.startsWith('workflow-') || 
+      props.taskId.includes('placeholder')) {
+    return;
+  }
+  
   try {
     isLoading.value = true;
     const task = await tasksService.getTaskById(props.taskId);

@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
-import { TaskLifecycleService, TaskStatus } from '../agents/base/sub-services/task-lifecycle/task-lifecycle.service';
+import {
+  TaskLifecycleService,
+  TaskStatus,
+} from '../agents/base/sub-services/task-lifecycle/task-lifecycle.service';
 import { AgentConversationsService } from '../agent-conversations/agent-conversations.service';
 import {
   Task,
@@ -13,7 +16,10 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { snakeToCamel } from '../utils/case-converter';
 import { TaskMessageService } from './task-message.service';
-import { MessageEmitter, TaskMessageEmitter } from './message-emitter.interface';
+import {
+  MessageEmitter,
+  TaskMessageEmitter,
+} from './message-emitter.interface';
 
 @Injectable()
 export class TasksService {
@@ -40,16 +46,19 @@ export class TasksService {
     try {
       // Handle conversation - create only if needed
       let conversationId: string | null = dto.conversationId || null;
-      
+
       // Only create conversation if this is the first task (no conversationId provided)
       if (!conversationId) {
-        const conversation = await this.agentConversationsService.getOrCreateConversation(
-          userId,
-          agentName,
-          agentType,
-        );
+        const conversation =
+          await this.agentConversationsService.getOrCreateConversation(
+            userId,
+            agentName,
+            agentType,
+          );
         conversationId = conversation.id;
-        this.logger.debug(`Created new conversation ${conversationId} for first task`);
+        this.logger.debug(
+          `Created new conversation ${conversationId} for first task`,
+        );
       }
 
       // Create task in database
@@ -62,6 +71,11 @@ export class TasksService {
         timeout_seconds: dto.timeoutSeconds || 300,
         status: 'pending',
       };
+
+      // Use provided task ID if available (for early WebSocket subscription)
+      if (dto.taskId) {
+        taskData.id = dto.taskId;
+      }
 
       // Store LLM selection metadata if provided
       if (dto.llmSelection) {
@@ -168,7 +182,7 @@ export class TasksService {
       }
 
       return {
-        tasks: data.map(item => this.mapToTask(item)),
+        tasks: data.map((item) => this.mapToTask(item)),
         total: count || 0,
       };
     } catch (error) {
@@ -348,7 +362,7 @@ export class TasksService {
         throw new Error(`Failed to fetch active tasks: ${error.message}`);
       }
 
-      return data.map(item => this.mapToTask(item));
+      return data.map((item) => this.mapToTask(item));
     } catch (error) {
       this.logger.error('Error in getActiveTasks:', error);
       throw error;
@@ -388,7 +402,7 @@ export class TasksService {
       // Keep connection alive and yield updates
       while (task.status === 'pending' || task.status === 'running') {
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        
+
         // Check for updates
         const updatedTask = await this.getTaskById(taskId, userId);
         if (updatedTask && updatedTask.status !== task.status) {
@@ -398,8 +412,11 @@ export class TasksService {
             message: updatedTask.progressMessage,
             status: updatedTask.status,
           };
-          
-          if (updatedTask.status !== 'pending' && updatedTask.status !== 'running') {
+
+          if (
+            updatedTask.status !== 'pending' &&
+            updatedTask.status !== 'running'
+          ) {
             break;
           }
         }
@@ -444,7 +461,10 @@ export class TasksService {
    * Get messages for a task
    */
   async getTaskMessages(taskId: string, userId: string): Promise<any[]> {
-    const { messages } = await this.taskMessageService.getTaskMessages(taskId, userId);
+    const { messages } = await this.taskMessageService.getTaskMessages(
+      taskId,
+      userId,
+    );
     return messages;
   }
 
@@ -454,7 +474,7 @@ export class TasksService {
   private mapToTask(data: any): Task {
     // Use the case converter to handle snake_case to camelCase conversion
     const converted = snakeToCamel(data);
-    
+
     return {
       id: converted.id,
       agentConversationId: converted.agentConversationId,
@@ -472,7 +492,9 @@ export class TasksService {
       errorCode: converted.errorCode,
       errorMessage: converted.errorMessage,
       errorData: converted.errorData,
-      startedAt: converted.startedAt ? new Date(converted.startedAt) : undefined,
+      startedAt: converted.startedAt
+        ? new Date(converted.startedAt)
+        : undefined,
       completedAt: converted.completedAt
         ? new Date(converted.completedAt)
         : undefined,

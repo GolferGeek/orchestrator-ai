@@ -20,15 +20,26 @@ export class AgentConversationsService {
   private validateAgentType(agentType: string): AgentType {
     // Ensure the type is one of the allowed values
     const validTypes: AgentType[] = [
-      'orchestrator', 'specialist', 'marketing', 'finance', 'hr', 
-      'operations', 'sales', 'legal', 'engineering', 'product', 'research'
+      'orchestrator',
+      'specialist',
+      'marketing',
+      'finance',
+      'hr',
+      'operations',
+      'sales',
+      'legal',
+      'engineering',
+      'product',
+      'research',
     ];
     if (validTypes.includes(agentType as AgentType)) {
       return agentType as AgentType;
     }
-    
+
     // Default to 'specialist' if type is not recognized
-    this.logger.warn(`Unknown agent type "${agentType}", defaulting to "specialist"`);
+    this.logger.warn(
+      `Unknown agent type "${agentType}", defaulting to "specialist"`,
+    );
     return 'specialist';
   }
 
@@ -41,7 +52,7 @@ export class AgentConversationsService {
   ): Promise<AgentConversation> {
     try {
       const validatedAgentType = this.validateAgentType(dto.agentType);
-      
+
       const { data, error } = await this.supabaseService
         .getAnonClient()
         .from('agent_conversations')
@@ -172,7 +183,9 @@ export class AgentConversationsService {
       }
 
       return {
-        conversations: data.map(item => this.mapToAgentConversationWithStats(item)),
+        conversations: data.map((item) =>
+          this.mapToAgentConversationWithStats(item),
+        ),
         total: count || 0,
       };
     } catch (error) {
@@ -184,10 +197,7 @@ export class AgentConversationsService {
   /**
    * End a conversation
    */
-  async endConversation(
-    conversationId: string,
-    userId: string,
-  ): Promise<void> {
+  async endConversation(conversationId: string, userId: string): Promise<void> {
     try {
       const { error } = await this.supabaseService
         .getAnonClient()
@@ -218,7 +228,10 @@ export class AgentConversationsService {
   ): Promise<void> {
     try {
       // First verify the conversation exists and belongs to the user
-      const conversation = await this.getConversationById(conversationId, userId);
+      const conversation = await this.getConversationById(
+        conversationId,
+        userId,
+      );
       if (!conversation) {
         throw new Error('Conversation not found');
       }
@@ -233,7 +246,9 @@ export class AgentConversationsService {
 
       if (tasksError) {
         this.logger.error('Error deleting conversation tasks:', tasksError);
-        throw new Error(`Failed to delete conversation tasks: ${tasksError.message}`);
+        throw new Error(
+          `Failed to delete conversation tasks: ${tasksError.message}`,
+        );
       }
 
       // Delete the conversation
@@ -249,7 +264,9 @@ export class AgentConversationsService {
         throw new Error(`Failed to delete conversation: ${error.message}`);
       }
 
-      this.logger.debug(`Successfully deleted conversation ${conversationId} for user ${userId}`);
+      this.logger.debug(
+        `Successfully deleted conversation ${conversationId} for user ${userId}`,
+      );
     } catch (error) {
       this.logger.error('Error in deleteConversation:', error);
       throw error;
@@ -290,9 +307,7 @@ export class AgentConversationsService {
   /**
    * Get active conversations for a user
    */
-  async getActiveConversations(
-    userId: string,
-  ): Promise<AgentConversation[]> {
+  async getActiveConversations(userId: string): Promise<AgentConversation[]> {
     try {
       const { data, error } = await this.supabaseService
         .getAnonClient()
@@ -309,7 +324,7 @@ export class AgentConversationsService {
         );
       }
 
-      return data.map(item => this.mapToAgentConversation(item));
+      return data.map((item) => this.mapToAgentConversation(item));
     } catch (error) {
       this.logger.error('Error in getActiveConversations:', error);
       throw error;

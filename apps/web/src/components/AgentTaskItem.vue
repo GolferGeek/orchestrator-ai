@@ -50,7 +50,10 @@
     </div>
     
     <!-- Task evaluation interface for assistant messages -->
-    <div v-if="message.role === 'assistant' && message.taskId" class="task-evaluation">
+    <div v-if="message.role === 'assistant' && message.taskId && 
+                message.taskId !== 'pending' && 
+                !message.taskId.startsWith('workflow-') && 
+                !message.metadata?.isPlaceholder" class="task-evaluation">
       <TaskRating
         :taskId="message.taskId"
         :agentName="agentName"
@@ -60,7 +63,10 @@
     
     <!-- Task Metadata Modal -->
     <TaskMetadataModal 
-      v-if="message.taskId"
+      v-if="message.taskId && 
+             message.taskId !== 'pending' && 
+             !message.taskId.startsWith('workflow-') && 
+             !message.metadata?.isPlaceholder"
       :is-open="showMetadataModal" 
       :task-id="message.taskId"
       @close="showMetadataModal = false"

@@ -43,6 +43,7 @@ interface CreateTaskDto {
   prompt: string;
   params?: Record<string, any>;
   conversationId?: string;
+  taskId?: string; // Optional, pre-generated task ID from frontend
   timeoutSeconds?: number;
   llmSelection?: LLMSelection;
   conversationHistory?: Array<{

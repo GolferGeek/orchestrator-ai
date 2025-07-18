@@ -320,7 +320,7 @@ export abstract class A2AAgentBaseService
     if (this.agentPath?.includes('orchestrator')) {
       return 'orchestrator';
     }
-    
+
     // Check for organizational folders in file structure
     if (this.agentPath?.includes('/marketing/')) return 'marketing';
     if (this.agentPath?.includes('/finance/')) return 'finance';
@@ -331,15 +331,18 @@ export abstract class A2AAgentBaseService
     if (this.agentPath?.includes('/engineering/')) return 'engineering';
     if (this.agentPath?.includes('/product/')) return 'product';
     if (this.agentPath?.includes('/research/')) return 'research';
-    
+
     // Legacy structure fallbacks
-    if (this.agentPath?.includes('/specialists/') || this.agentPath?.includes('/specialist/')) {
+    if (
+      this.agentPath?.includes('/specialists/') ||
+      this.agentPath?.includes('/specialist/')
+    ) {
       return 'specialist';
     }
     if (this.agentPath?.includes('/external/')) {
       return 'marketing'; // Default external agents to marketing for now
     }
-    
+
     // Default fallback
     return 'specialist';
   }

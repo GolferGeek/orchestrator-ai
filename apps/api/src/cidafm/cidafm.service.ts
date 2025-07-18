@@ -48,11 +48,19 @@ export class CIDAFMService {
     let allCommands = [...(builtinCommands || [])];
 
     // Get user commands if requested (skip if userId is 'system' or not a valid UUID)
-    if (!filters.builtinOnly && filters.includeUserCommands !== false && userId && userId !== 'system') {
+    if (
+      !filters.builtinOnly &&
+      filters.includeUserCommands !== false &&
+      userId &&
+      userId !== 'system'
+    ) {
       // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(userId)) {
-        this.logger.warn(`Skipping user commands for invalid user ID: ${userId}`);
+        this.logger.warn(
+          `Skipping user commands for invalid user ID: ${userId}`,
+        );
       } else {
         let userQuery = client
           .from('user_cidafm_commands')
@@ -75,11 +83,13 @@ export class CIDAFMService {
         }
 
         // Transform user commands to match built-in command structure
-        const transformedUserCommands = (userCommands || []).map((cmd: any) => ({
-          ...cmd,
-          default_active: false,
-          is_builtin: false,
-        }));
+        const transformedUserCommands = (userCommands || []).map(
+          (cmd: any) => ({
+            ...cmd,
+            default_active: false,
+            is_builtin: false,
+          }),
+        );
 
         allCommands = [...allCommands, ...transformedUserCommands];
       }

@@ -519,7 +519,7 @@ export class SessionsService {
 
         // Extract delegation metadata for frontend compatibility
         const orchestratorMetadata = result?.metadata || {};
-        
+
         const assistantMessage = await this.addMessage(
           sessionId,
           {

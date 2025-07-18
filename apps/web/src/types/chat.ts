@@ -1,6 +1,6 @@
 export type MessageSender = 'user' | 'agent' | 'system';
 
-export type MessageDisplayType = 'text' | 'agentList';
+export type MessageDisplayType = 'text' | 'agentList' | 'workflow_progress' | 'deliverable';
 
 export interface ChatMessage {
   id: string;
@@ -10,7 +10,46 @@ export interface ChatMessage {
   timestamp: Date;
   messageType?: MessageDisplayType;
   data?: any;
+  // Workflow-specific fields
+  workflowStep?: string;
+  stepIndex?: number;
+  totalSteps?: number;
+  deliverableType?: 'document' | 'analysis' | 'report' | 'plan' | 'requirements';
   // Potentially add more fields later, e.g., message status (sending, sent, error)
+}
+
+// Interface for workflow progress messages
+export interface WorkflowProgressMessage {
+  stepName: string;
+  stepIndex: number;
+  totalSteps: number;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  message?: string;
+  metadata?: Record<string, any>;
+  timestamp: Date;
+}
+
+// Interface for deliverable messages
+export interface DeliverableMessage {
+  title: string;
+  content: string;
+  deliverableType: 'document' | 'analysis' | 'report' | 'plan' | 'requirements';
+  format: 'markdown' | 'text' | 'json' | 'html';
+  metadata?: Record<string, any>;
+  downloadable?: boolean;
+  timestamp: Date;
+}
+
+// Interface for workflow state
+export interface WorkflowState {
+  workflowId: string;
+  currentStep: string;
+  stepIndex: number;
+  totalSteps: number;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  steps: WorkflowProgressMessage[];
+  deliverables: DeliverableMessage[];
+  metadata?: Record<string, any>;
 }
 
 // Interface for an agent (relevant for agent store later, but good to think about types together)

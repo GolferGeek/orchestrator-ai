@@ -115,14 +115,16 @@ export class AgentPoolService implements OnModuleDestroy {
       generatedAt: new Date(),
       totalAgents: onlineAgents.length,
       agentsByType: {
-        orchestrator: onlineAgents.filter((a) => a.type === 'orchestrator').length,
+        orchestrator: onlineAgents.filter((a) => a.type === 'orchestrator')
+          .length,
         specialist: onlineAgents.filter((a) => a.type === 'specialist').length,
         marketing: onlineAgents.filter((a) => a.type === 'marketing').length,
         sales: onlineAgents.filter((a) => a.type === 'sales').length,
         hr: onlineAgents.filter((a) => a.type === 'hr').length,
         operations: onlineAgents.filter((a) => a.type === 'operations').length,
         finance: onlineAgents.filter((a) => a.type === 'finance').length,
-        engineering: onlineAgents.filter((a) => a.type === 'engineering').length,
+        engineering: onlineAgents.filter((a) => a.type === 'engineering')
+          .length,
         research: onlineAgents.filter((a) => a.type === 'research').length,
         product: onlineAgents.filter((a) => a.type === 'product').length,
         legal: onlineAgents.filter((a) => a.type === 'legal').length,
