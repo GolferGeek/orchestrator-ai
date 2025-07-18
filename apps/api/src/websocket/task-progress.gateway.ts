@@ -278,6 +278,27 @@ export class TaskProgressGateway
   }
 
   /**
+   * Handle flexible task status changes with JSON data (from TaskStatusService)
+   */
+  @OnEvent('task.status_changed')
+  handleTaskStatusChanged(event: {
+    taskId: string;
+    userId: string;
+    status: string;
+    progress: number;
+    message?: string;
+    data: any; // Full JSON status object with agent-specific data
+  }) {
+    this.logger.debug(
+      `Broadcasting status change for task ${event.taskId}: ${event.status} (${event.progress}%)`,
+    );
+    
+    // Broadcast to task room and user room with full JSON data
+    this.server.to(`task:${event.taskId}`).emit('task_status_changed', event);
+    this.server.to(`user:${event.userId}`).emit('task_status_changed', event);
+  }
+
+  /**
    * Handle task completion events
    */
   @OnEvent('task.completed')

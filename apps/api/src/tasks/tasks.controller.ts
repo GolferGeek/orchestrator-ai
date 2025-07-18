@@ -17,6 +17,7 @@ import {
 import { Response } from 'express';
 import { Observable } from 'rxjs';
 import { TasksService } from './tasks.service';
+import { TaskStatusService } from './task-status.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
@@ -31,7 +32,10 @@ import {
 export class TasksController {
   private readonly logger = new Logger(TasksController.name);
 
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly tasksService: TasksService,
+    private readonly taskStatusService: TaskStatusService,
+  ) {}
 
   /**
    * List tasks for the current user
@@ -114,6 +118,26 @@ export class TasksController {
     this.logger.debug(`Getting active tasks for user ${currentUser.id}`);
 
     return this.tasksService.getActiveTasks(currentUser.id);
+  }
+
+  /**
+   * Get real-time task status (for polling)
+   * GET /tasks/:id/status
+   */
+  @Get(':id/status')
+  async getTaskStatus(
+    @Param('id') taskId: string,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(`Getting status for task ${taskId} for user ${currentUser.id}`);
+
+    const status = this.taskStatusService.getTaskStatus(taskId, currentUser.id);
+    
+    if (!status) {
+      throw new Error('Task not found or not accessible');
+    }
+
+    return status;
   }
 
   /**
