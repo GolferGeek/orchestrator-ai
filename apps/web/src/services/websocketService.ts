@@ -70,9 +70,11 @@ class WebSocketService {
    */
   private async initializeConnection() {
     if (this.socket?.connected) {
+      console.log('🔌 WebSocket already connected, skipping initialization');
       return;
     }
 
+    console.log('🔌 Initializing WebSocket connection...');
     this.connecting.value = true;
     this.error.value = null;
 
@@ -92,14 +94,17 @@ class WebSocketService {
       }
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-      const wsUrl = apiUrl.replace(/^http/, 'ws');
+      
+      console.log('🔌 Connecting to WebSocket at:', `${apiUrl}/task-progress`);
 
-      this.socket = io(`${wsUrl}/task-progress`, {
+      this.socket = io(`${apiUrl}/task-progress`, {
         auth: token ? { token } : undefined,
-        transports: ['websocket'],
+        transports: ['polling', 'websocket'], // Allow polling first, then upgrade
         reconnection: true,
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: this.reconnectInterval,
+        forceNew: true, // Force new connection to avoid socket.io caching issues
+        timeout: 20000, // Increase timeout for initial connection
       });
 
       this.setupEventListeners();
@@ -117,6 +122,8 @@ class WebSocketService {
 
     this.socket.on('connect', () => {
       console.log('🔗 WebSocket connected successfully!');
+      console.log('🔗 Socket ID:', this.socket?.id);
+      console.log('🔗 Socket connected:', this.socket?.connected);
       this.connected.value = true;
       this.connecting.value = false;
       this.error.value = null;
@@ -130,7 +137,8 @@ class WebSocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      console.log('🚫 WebSocket connection error:', error);
+      console.error('🚫 WebSocket connection error:', error);
+      console.error('🚫 Error details:', error.message, error.type, error.description);
       this.error.value = error.message;
       this.connecting.value = false;
       
@@ -215,6 +223,12 @@ class WebSocketService {
       this.subscribedTasks.delete(event.taskId);
     });
 
+    // TaskStatusService events - new simplified architecture
+    this.socket.on('task_status_changed', (event: any) => {
+      console.log('📊 Task status changed:', event);
+      this.emitTaskStatusChange(event);
+    });
+
     // Subscription confirmations
     this.socket.on('subscription_confirmed', (data: { taskId: string }) => {
       console.log('✅ Subscription confirmed for task:', data.taskId);
@@ -244,14 +258,22 @@ class WebSocketService {
   /**
    * Subscribe to task progress updates
    */
-  public subscribeToTask(taskId: string, callback?: (event: TaskProgressEvent) => void): void {
+  public async subscribeToTask(taskId: string, callback?: (event: TaskProgressEvent) => void): Promise<void> {
+    console.log('🔌 Starting subscription process for task:', taskId);
+    
     // Ensure connection is established first
-    this.ensureConnection();
+    await this.ensureConnection();
+    
+    // Wait a bit for connection to be fully established
+    let retries = 0;
+    while (!this.socket?.connected && retries < 10) {
+      console.log(`⏳ Waiting for WebSocket connection... (${retries + 1}/10)`);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      retries++;
+    }
     
     if (!this.socket?.connected) {
-      console.log('⚠️ WebSocket not connected, queuing subscription for:', taskId);
-      // Queue subscription for when connection is ready
-      this.socket?.on('connect', () => this.subscribeToTask(taskId, callback));
+      console.error('❌ WebSocket failed to connect after retries for task:', taskId);
       return;
     }
 
@@ -267,6 +289,8 @@ class WebSocketService {
       }
       this.progressCallbacks.get(taskId)!.push(callback);
     }
+    
+    console.log('✅ Subscription completed for task:', taskId);
   }
 
   /**
@@ -302,6 +326,40 @@ class WebSocketService {
     
     // Call global callbacks
     this.globalTaskEventCallbacks.forEach(callback => callback(data));
+  }
+
+  /**
+   * Handle flexible task status changes with JSON data (from TaskStatusService)
+   */
+  private emitTaskStatusChange(event: any): void {
+    console.log('🔄 Processing task status change:', event);
+    
+    // Update reactive state
+    this.taskProgress.set(event.taskId, {
+      taskId: event.taskId,
+      progress: event.progress || 0,
+      message: event.message,
+      status: event.status,
+      metadata: event.data
+    });
+    
+    // Call registered callbacks for specific task
+    const callbacks = this.progressCallbacks.get(event.taskId) || [];
+    callbacks.forEach(callback => callback({
+      taskId: event.taskId,
+      progress: event.progress || 0,
+      message: event.message,
+      status: event.status,
+      metadata: event.data
+    }));
+    
+    // Call global callbacks
+    this.globalTaskEventCallbacks.forEach(callback => callback({
+      taskId: event.taskId,
+      conversationId: event.conversationId,
+      userId: event.userId,
+      agentName: event.agentName
+    }));
   }
 
   /**

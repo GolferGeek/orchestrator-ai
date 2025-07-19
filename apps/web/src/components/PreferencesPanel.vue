@@ -40,6 +40,10 @@
         <ion-icon :icon="chatbubbles" />
         <ion-label>Chat</ion-label>
       </ion-segment-button>
+      <ion-segment-button value="execution">
+        <ion-icon :icon="playCircle" />
+        <ion-label>Task Execution</ion-label>
+      </ion-segment-button>
       <ion-segment-button value="performance">
         <ion-icon :icon="speedometer" />
         <ion-label>Performance</ion-label>
@@ -229,6 +233,111 @@
           pin
           color="primary"
         />
+      </div>
+    </div>
+
+    <!-- Task Execution Preferences -->
+    <div v-if="activeCategory === 'execution'" class="preference-section">
+      <h3>Task Execution Settings</h3>
+      
+      <div class="preference-item">
+        <ion-label>
+          <h4>Default Execution Mode</h4>
+          <p>How tasks should be executed by default</p>
+        </ion-label>
+        <ion-select 
+          v-model="preferences.defaultExecutionMode"
+          @ionChange="updatePreference('defaultExecutionMode', $event.detail.value)"
+          interface="popover"
+        >
+          <ion-select-option value="immediate">Immediate (Wait for completion)</ion-select-option>
+          <ion-select-option value="polling">Polling (Check status periodically)</ion-select-option>
+          <ion-select-option value="websocket">WebSocket (Real-time updates)</ion-select-option>
+        </ion-select>
+      </div>
+
+      <div class="preference-item">
+        <ion-checkbox 
+          v-model="preferences.autoSwitchToWebSocketForWorkflows"
+          @ionChange="updatePreference('autoSwitchToWebSocketForWorkflows', $event.detail.checked)"
+        />
+        <ion-label>
+          <h4>Auto-switch to WebSocket for workflows</h4>
+          <p>Automatically use real-time updates for multi-step tasks</p>
+        </ion-label>
+      </div>
+
+      <div class="preference-item">
+        <ion-checkbox 
+          v-model="preferences.enableProgressIndicators"
+          @ionChange="updatePreference('enableProgressIndicators', $event.detail.checked)"
+        />
+        <ion-label>
+          <h4>Show progress indicators</h4>
+          <p>Display progress bars and step indicators</p>
+        </ion-label>
+      </div>
+
+      <div class="preference-item">
+        <ion-checkbox 
+          v-model="preferences.showExecutionModeIndicator"
+          @ionChange="updatePreference('showExecutionModeIndicator', $event.detail.checked)"
+        />
+        <ion-label>
+          <h4>Show execution mode indicator</h4>
+          <p>Display current execution mode in chat interface</p>
+        </ion-label>
+      </div>
+
+      <div class="preference-item">
+        <ion-checkbox 
+          v-model="preferences.enableQuickModeToggle"
+          @ionChange="updatePreference('enableQuickModeToggle', $event.detail.checked)"
+        />
+        <ion-label>
+          <h4>Enable quick mode toggle</h4>
+          <p>Show quick toggle buttons in chat header</p>
+        </ion-label>
+      </div>
+
+      <div class="preference-item">
+        <ion-label>
+          <h4>Polling Interval</h4>
+          <p>How often to check for updates (1-60 seconds)</p>
+        </ion-label>
+        <ion-range
+          v-model="preferences.pollingInterval"
+          @ionChange="updatePreference('pollingInterval', $event.detail.value)"
+          :min="1"
+          :max="60"
+          :pin="true"
+          :snaps="true"
+          :ticks="true"
+          color="primary"
+        >
+          <ion-label slot="start">1s</ion-label>
+          <ion-label slot="end">60s</ion-label>
+        </ion-range>
+      </div>
+
+      <div class="preference-item">
+        <ion-label>
+          <h4>Immediate Mode Timeout</h4>
+          <p>Maximum wait time for immediate responses (5-300 seconds)</p>
+        </ion-label>
+        <ion-range
+          v-model="preferences.immediateTimeoutDuration"
+          @ionChange="updatePreference('immediateTimeoutDuration', $event.detail.value)"
+          :min="5"
+          :max="300"
+          :pin="true"
+          :snaps="true"
+          :step="5"
+          color="primary"
+        >
+          <ion-label slot="start">5s</ion-label>
+          <ion-label slot="end">5min</ion-label>
+        </ion-range>
       </div>
     </div>
 
@@ -434,7 +543,8 @@ import {
   code,
   sunny,
   moon,
-  contrast
+  contrast,
+  playCircle
 } from 'ionicons/icons';
 
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';

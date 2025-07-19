@@ -482,12 +482,8 @@ class ApiService {
    * Generic GET method
    */
   async get(url: string): Promise<any> {
-    const authToken = localStorage.getItem('authToken');
-    const response = await this.axiosInstance.get(url, {
-      headers: {
-        'Authorization': authToken ? `Bearer ${authToken}` : undefined
-      }
-    });
+    // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
+    const response = await this.axiosInstance.get(url);
     return response.data;
   }
 
@@ -495,25 +491,27 @@ class ApiService {
    * Generic POST method
    */
   async post(url: string, data?: any): Promise<any> {
-    const authToken = localStorage.getItem('authToken');
-    const response = await this.axiosInstance.post(url, data, {
-      headers: {
-        'Authorization': authToken ? `Bearer ${authToken}` : undefined
-      }
-    });
-    return response.data;
+    console.log('🔥 ApiService: POST request starting');
+    console.log('🔥 ApiService: URL:', `${this.axiosInstance.defaults.baseURL}${url}`);
+    console.log('🔥 ApiService: Data:', data);
+    
+    try {
+      // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
+      const response = await this.axiosInstance.post(url, data);
+      console.log('✅ ApiService: POST response received:', response.status, response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ ApiService: POST request failed:', error);
+      throw error;
+    }
   }
 
   /**
    * Generic PUT method
    */
   async put(url: string, data?: any): Promise<any> {
-    const authToken = localStorage.getItem('authToken');
-    const response = await this.axiosInstance.put(url, data, {
-      headers: {
-        'Authorization': authToken ? `Bearer ${authToken}` : undefined
-      }
-    });
+    // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
+    const response = await this.axiosInstance.put(url, data);
     return response.data;
   }
 
@@ -521,12 +519,8 @@ class ApiService {
    * Generic DELETE method
    */
   async delete(url: string): Promise<any> {
-    const authToken = localStorage.getItem('authToken');
-    const response = await this.axiosInstance.delete(url, {
-      headers: {
-        'Authorization': authToken ? `Bearer ${authToken}` : undefined
-      }
-    });
+    // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
+    const response = await this.axiosInstance.delete(url);
     return response.data;
   }
 

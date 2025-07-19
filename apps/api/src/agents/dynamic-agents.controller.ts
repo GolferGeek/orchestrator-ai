@@ -69,12 +69,21 @@ export class DynamicAgentsController {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
 
-    // Create task with conversation tracking
+    // Get agent configuration for timeout and other settings
+    const agentCard = await agentInstance.getAgentCard();
+    const agentTimeout = agentCard.timeout || 300; // Default to 5 minutes if not specified
+    
+    // Create task with agent-specific timeout
+    const taskRequestWithTimeout = {
+      ...taskRequest,
+      timeoutSeconds: agentTimeout,
+    };
+    
     const task = await this.tasksService.createTask(
       currentUser.id,
       agentName,
       agentType as AgentType,
-      taskRequest,
+      taskRequestWithTimeout,
     );
 
     try {
@@ -101,18 +110,20 @@ export class DynamicAgentsController {
         `Processing task ${task.id} with agent ${agentType}/${agentName}`,
       );
 
-      // For agents with pre-generated task IDs (frontend early subscription), process asynchronously
+      // Determine processing mode based on execution mode and pre-generated task ID
+      const executionMode = taskRequest.executionMode;
       const hasPreGeneratedTaskId = taskRequest.taskId;
+      const shouldProcessAsync = executionMode === 'websocket' || executionMode === 'polling';
       
-      if (hasPreGeneratedTaskId) {
+      if (shouldProcessAsync) {
         this.logger.debug(
-          `Pre-generated task ID detected: ${task.id}. Processing asynchronously for real-time updates.`,
+          `${executionMode} mode detected for task ${task.id}${hasPreGeneratedTaskId ? ' (pre-generated for early WebSocket subscription)' : ''}. Processing asynchronously for real-time updates.`,
         );
         
         // Process asynchronously (don't await) - agent will handle completion via TaskStatusService
         this.processTaskAsync(task, authenticatedTaskRequest, agentInstance);
         
-        // Return immediately so frontend can listen for WebSocket updates
+        // Return immediately so frontend can listen for WebSocket updates or poll
         return {
           taskId: task.id,
           conversationId: task.agentConversationId,

@@ -1149,7 +1149,7 @@ def main():
         # Emit final completion event
         final_completion_event = {
             "type": "task_completion",
-            "taskId": self.task_id,
+            "taskId": task_id,
             "status": "completed",
             "message": "Requirements writing workflow completed successfully",
             "timestamp": datetime.now().isoformat()

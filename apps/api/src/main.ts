@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AgentPoolService } from './agent-pool/agent-pool.service';
+import * as express from 'express';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -16,7 +17,13 @@ async function bootstrap() {
     logger.log('🔧 External agents enabled via command line argument');
   }
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false, // Disable default body parser to configure custom limits
+  });
+
+  // Configure body parser with larger limits for conversation histories
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   // Enable CORS
   app.enableCors({

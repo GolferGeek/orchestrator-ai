@@ -24,10 +24,24 @@ interface AuthenticatedSocket extends Socket {
 
 @WebSocketGateway({
   cors: {
-    origin: ['http://localhost:3000', 'http://localhost:5173'], // Add your frontend URLs
+    origin: [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'https://localhost:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'https://localhost:3000',
+      'http://localhost:3100',
+      'http://127.0.0.1:3100',
+      'http://localhost:3101',
+      'http://127.0.0.1:3101',
+    ],
     credentials: true,
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   },
   namespace: '/task-progress',
+  transports: ['polling', 'websocket'],
 })
 export class TaskProgressGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -135,6 +149,21 @@ export class TaskProgressGateway
         `🏠 Client ${client.id} joined room: task:${data.taskId}`,
       );
 
+      // Check room immediately after joining
+      setTimeout(() => {
+        const roomClients = this.server?.sockets?.adapter?.rooms?.get(`task:${data.taskId}`);
+        const clientCount = roomClients ? roomClients.size : 0;
+        this.logger.log(`📊 Room task:${data.taskId} now has ${clientCount} clients`);
+        
+        if (clientCount === 0) {
+          this.logger.warn(`⚠️ Room count still 0 after join - checking all rooms...`);
+          const allRooms = Array.from(this.server?.sockets?.adapter?.rooms?.keys() || []);
+          this.logger.debug(`🏠 All rooms: ${allRooms.join(', ')}`);
+          const clientRooms = Array.from(client.rooms || []);
+          this.logger.debug(`👤 Client ${client.id} is in rooms: ${clientRooms.join(', ')}`);
+        }
+      }, 100); // Small delay to let room join complete
+      
       client.emit('subscription_confirmed', { taskId: data.taskId });
     } catch (error) {
       this.logger.error(`❌ Error subscribing client ${client.id} to task ${data.taskId}:`, error);
@@ -196,22 +225,30 @@ export class TaskProgressGateway
       message,
     };
 
-    this.logger.debug(
-      `Broadcasting workflow step progress for task ${taskId}: ${stepName} (${stepIndex}/${totalSteps}) - ${status}`,
+    this.logger.log(
+      `🔥 Broadcasting workflow step progress for task ${taskId}: ${stepName} (${stepIndex}/${totalSteps}) - ${status}`,
     );
 
     // Check how many clients are in the room (with null safety)
     let clientCount = 0;
+    let roomClients;
     try {
-      const roomClients = this.server?.sockets?.adapter?.rooms?.get(`task:${taskId}`);
+      roomClients = this.server?.sockets?.adapter?.rooms?.get(`task:${taskId}`);
       clientCount = roomClients ? roomClients.size : 0;
     } catch (error) {
       this.logger.warn(`Failed to check room clients: ${error instanceof Error ? error.message : String(error)}`);
     }
     
-    this.logger.debug(
+    this.logger.log(
       `📢 Broadcasting workflow_step_progress to ${clientCount} clients in room: task:${taskId}`,
     );
+    
+    if (clientCount === 0) {
+      this.logger.warn(`⚠️ NO CLIENTS IN ROOM task:${taskId} - Event will be lost!`);
+      // Log all current rooms to debug
+      const allRooms = Array.from(this.server?.sockets?.adapter?.rooms?.keys() || []);
+      this.logger.debug(`🏠 All current rooms: ${allRooms.join(', ')}`);
+    }
 
     // Broadcast to all clients subscribed to this task
     this.server.to(`task:${taskId}`).emit('workflow_step_progress', event);

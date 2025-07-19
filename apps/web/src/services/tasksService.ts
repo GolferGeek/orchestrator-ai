@@ -46,6 +46,7 @@ interface CreateTaskDto {
   taskId?: string; // Optional, pre-generated task ID from frontend
   timeoutSeconds?: number;
   llmSelection?: LLMSelection;
+  executionMode?: 'immediate' | 'polling' | 'websocket'; // Execution mode for backend processing
   conversationHistory?: Array<{
     role: string;
     content: string;
@@ -220,8 +221,18 @@ class TasksService {
     status: string;
     result?: any;
   }> {
-    const response = await apiService.post(`/agents/${agentType}/${agentName}/tasks`, taskData);
-    return response;
+    const url = `/agents/${agentType}/${agentName}/tasks`;
+    console.log('🔥 TasksService: About to POST to:', url);
+    console.log('🔥 TasksService: Request payload:', taskData);
+    
+    try {
+      const response = await apiService.post(url, taskData);
+      console.log('✅ TasksService: Response received:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ TasksService: Request failed:', error);
+      throw error;
+    }
   }
 
   /**
