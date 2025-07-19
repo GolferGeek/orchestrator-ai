@@ -22,6 +22,15 @@ interface UserPreferences {
   enableSoundNotifications: boolean;
   messageHistory: number; // Number of messages to keep in history
   
+  // Task Execution Preferences
+  defaultExecutionMode: 'immediate' | 'polling' | 'websocket';
+  pollingInterval: number; // seconds
+  enableProgressIndicators: boolean;
+  autoSwitchToWebSocketForWorkflows: boolean;
+  immediateTimeoutDuration: number; // seconds
+  showExecutionModeIndicator: boolean;
+  enableQuickModeToggle: boolean;
+  
   // Performance Preferences
   enableCaching: boolean;
   cacheDuration: number; // In minutes
@@ -71,6 +80,15 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   showTimestamps: true,
   enableSoundNotifications: false,
   messageHistory: 100,
+  
+  // Task Execution Preferences
+  defaultExecutionMode: 'websocket',
+  pollingInterval: 2,
+  enableProgressIndicators: true,
+  autoSwitchToWebSocketForWorkflows: true,
+  immediateTimeoutDuration: 30,
+  showExecutionModeIndicator: true,
+  enableQuickModeToggle: true,
   
   // Performance Preferences
   enableCaching: true,
@@ -378,6 +396,27 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     updatePreference('enableDebugMode', !preferences.value.enableDebugMode);
   };
 
+  // Task execution convenience methods
+  const setExecutionMode = (mode: 'immediate' | 'polling' | 'websocket') => {
+    updatePreference('defaultExecutionMode', mode);
+  };
+
+  const toggleProgressIndicators = () => {
+    updatePreference('enableProgressIndicators', !preferences.value.enableProgressIndicators);
+  };
+
+  const toggleQuickModeToggle = () => {
+    updatePreference('enableQuickModeToggle', !preferences.value.enableQuickModeToggle);
+  };
+
+  const setPollingInterval = (seconds: number) => {
+    updatePreference('pollingInterval', Math.max(1, Math.min(60, seconds)));
+  };
+
+  const setImmediateTimeout = (seconds: number) => {
+    updatePreference('immediateTimeoutDuration', Math.max(5, Math.min(300, seconds)));
+  };
+
   // Listen for system theme changes
   if (typeof window !== 'undefined') {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
@@ -417,5 +456,12 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     setTheme,
     toggleAdvancedMode,
     toggleDebugMode,
+    
+    // Task execution quick access
+    setExecutionMode,
+    toggleProgressIndicators,
+    toggleQuickModeToggle,
+    setPollingInterval,
+    setImmediateTimeout,
   };
 }); 

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { agentConversationsService, type AgentType } from '@/services/agentConversationsService';
 import { tasksService } from '@/services/tasksService';
 import { useLLMStore } from '@/stores/llmStore';
+import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import { websocketService } from '@/services/websocketService';
 
 // Simple UUID v4 generator
@@ -31,6 +32,10 @@ export interface AgentChatState {
   isLoading: boolean;
   isSendingMessage: boolean;
   error: string | null;
+  
+  // Task execution mode state
+  currentExecutionMode: 'immediate' | 'polling' | 'websocket' | null;
+  isExecutionModeOverride: boolean; // true when user manually selected mode for this session
 }
 
 export interface AgentChatMessage {
@@ -50,6 +55,8 @@ export const useAgentChatStore = defineStore('agentChat', {
     isLoading: false,
     isSendingMessage: false,
     error: null,
+    currentExecutionMode: null,
+    isExecutionModeOverride: false,
   }),
 
   actions: {
@@ -72,6 +79,53 @@ export const useAgentChatStore = defineStore('agentChat', {
         timestamp: new Date(),
         metadata: { isWelcome: true }
       });
+
+      // Initialize execution mode based on preferences
+      this.initializeExecutionMode();
+    },
+
+    /**
+     * Initialize execution mode based on user preferences and agent type
+     */
+    initializeExecutionMode() {
+      const preferencesStore = useUserPreferencesStore();
+      const prefs = preferencesStore.preferences;
+      
+      // If user hasn't manually overridden, use preferences logic
+      if (!this.isExecutionModeOverride) {
+        let mode = prefs.defaultExecutionMode;
+        
+        // Auto-switch to WebSocket for workflow agents if enabled
+        if (prefs.autoSwitchToWebSocketForWorkflows && 
+            this.currentAgent?.name === 'requirements_writer') {
+          mode = 'websocket';
+        }
+        
+        this.currentExecutionMode = mode;
+      }
+    },
+
+    /**
+     * Manually set execution mode (user override)
+     */
+    setExecutionMode(mode: 'immediate' | 'polling' | 'websocket') {
+      this.currentExecutionMode = mode;
+      this.isExecutionModeOverride = true;
+    },
+
+    /**
+     * Reset execution mode to preferences default
+     */
+    resetExecutionMode() {
+      this.isExecutionModeOverride = false;
+      this.initializeExecutionMode();
+    },
+
+    /**
+     * Get effective execution mode for display
+     */
+    getEffectiveExecutionMode(): 'immediate' | 'polling' | 'websocket' {
+      return this.currentExecutionMode || 'websocket'; // fallback to websocket
     },
 
     /**
@@ -79,7 +133,6 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Creates conversation lazily on first message
      */
     async sendMessage(content: string) {
-      
       if (!this.currentAgent) {
         throw new Error('No agent selected');
       }
@@ -97,160 +150,321 @@ export const useAgentChatStore = defineStore('agentChat', {
         };
         this.messages.push(userMessage);
 
-        // Generate task ID upfront for workflow agents to enable early WebSocket subscription
-        let preGeneratedTaskId: string | null = null;
-        let placeholderMessage: AgentChatMessage | null = null;
+        // Check execution mode preference
+        const effectiveMode = this.getEffectiveExecutionMode();
         
-        if (this.currentAgent.name === 'requirements_writer') {
-          // Generate task ID immediately
+        // For WebSocket mode, generate task ID early and subscribe before sending request
+        let preGeneratedTaskId: string | undefined;
+        if (effectiveMode === 'websocket') {
           preGeneratedTaskId = generateUUID();
-          console.log('🆔 Generated task ID upfront:', preGeneratedTaskId);
-          
-          // Create placeholder message with the pre-generated task ID
-          placeholderMessage = {
-            id: `workflow-${preGeneratedTaskId}`,
-            role: 'assistant',
-            content: 'Processing your request using multi-step workflow...',
-            timestamp: new Date(),
-            taskId: preGeneratedTaskId, // Set task ID immediately
-            metadata: {
-              processing_type: 'langgraph-multi-step-workflow',
-              isPlaceholder: true,
-              agentName: this.currentAgent.name
-            }
-          };
-          
-          console.log('📝 Creating placeholder message with pre-generated task ID:', placeholderMessage);
-          this.messages.push(placeholderMessage);
+          // Subscribe to WebSocket immediately to catch all events
+          await this.subscribeToTask(preGeneratedTaskId);
         }
-
-        // For workflow agents, establish WebSocket connection and subscribe immediately with pre-generated task ID
-        if (this.currentAgent.name === 'requirements_writer' && preGeneratedTaskId) {
-          console.log('🔗 Ensuring WebSocket connection before creating task...');
-          await websocketService.ensureConnection();
-          console.log('✅ WebSocket connection established');
-          
-          // Subscribe to WebSocket events BEFORE making the API call
-          console.log('📡 Subscribing to WebSocket events BEFORE API call for task:', preGeneratedTaskId);
-          websocketService.subscribeToTask(preGeneratedTaskId);
-          console.log('✅ Early WebSocket subscription completed for task:', preGeneratedTaskId);
-        }
-
-        // Create task (this will create conversation if needed)
         
-        // Use agent type as-is - everything should use 'specialist' (singular)
-        const agentType = this.currentAgent.type;
-        
-        // Build conversation history array from current messages (excluding placeholder)
-        const conversationHistory = this.messages
+        // Create task request with trimmed conversation history to prevent payload too large errors
+        const relevantMessages = this.messages
           .filter(msg => !msg.metadata?.isPlaceholder)
-          .map(msg => ({
-            role: msg.role,
-            content: msg.content,
-            timestamp: msg.timestamp.toISOString(),
-            taskId: msg.taskId,
-            metadata: msg.metadata
-          }));
+          .slice(-20); // Keep only last 20 messages to prevent payload size issues
         
-        // Get LLM preferences from store
+        const conversationHistory = relevantMessages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp.toISOString(),
+          taskId: msg.taskId,
+          metadata: msg.metadata
+        }));
+
+        // Get LLM preferences
         const llmStore = useLLMStore();
         const llmSelection = llmStore.currentLLMSelection;
-        
-        // Pre-setup WebSocket event handlers for workflow agents
-        let workflowStepHandler: ((stepEvent: any) => void) | null = null;
-        let taskCompletionHandler: ((event: any) => void) | null = null;
-        
-        if (this.currentAgent.name === 'requirements_writer') {
-          console.log('🔗 Pre-registering WebSocket handlers for workflow agent...');
-          
-          // Pre-register workflow step handler (will be called with actual task ID)
-          workflowStepHandler = (stepEvent: any) => {
-            console.log('🔧 Workflow step event received in agentChatStore:', stepEvent);
-            console.log('🔧 Workflow step details:', {
-              taskId: stepEvent.taskId,
-              stepName: stepEvent.stepName,
-              stepIndex: stepEvent.stepIndex,
-              status: stepEvent.status,
-              message: stepEvent.message
-            });
-            this.handleWorkflowStepUpdate(stepEvent.taskId, stepEvent);
-          };
-          
-          // Pre-register task completion handler
-          taskCompletionHandler = (event: any) => {
-            console.log('🎉 Task completed event received:', event);
-            this.handleTaskCompletion(event.taskId);
-          };
-          
-          // Set up global listeners that will catch events for any task
-          websocketService.onAllWorkflowSteps(workflowStepHandler);
-          websocketService.onAllTaskEvents(taskCompletionHandler);
-        }
 
+        // Get agent type from current agent
+        const agentType = this.currentAgent.type;
+        
+        // Simplified task creation - let backend handle complexity
+        console.log('🚀 Sending task creation request with execution mode:', effectiveMode);
+        console.log('🚀 Pre-generated task ID:', preGeneratedTaskId);
+        console.log('🚀 Agent type:', agentType);
+        console.log('🚀 Agent name:', this.currentAgent.name);
+        console.log('🚀 Request payload:', {
+          method: 'process',
+          prompt: content,
+          conversationId: this.currentConversationId || undefined,
+          conversationHistory,
+          llmSelection,
+          executionMode: effectiveMode,
+          taskId: preGeneratedTaskId,
+        });
+        
+        console.log('🔥 About to call tasksService.createAgentTask...');
+        
         const task = await tasksService.createAgentTask(
           agentType,
           this.currentAgent.name,
           {
             method: 'process',
             prompt: content,
-            conversationId: this.currentConversationId || undefined, // null on first message
-            taskId: preGeneratedTaskId || undefined, // Include pre-generated task ID for workflow agents
-            conversationHistory, // Pass conversation history with each message
-            llmSelection, // Include LLM and CIDAFM preferences
+            conversationId: this.currentConversationId || undefined,
+            conversationHistory,
+            llmSelection,
+            executionMode: effectiveMode, // Pass execution mode to backend
+            taskId: preGeneratedTaskId, // Pass pre-generated task ID for early WebSocket subscription
           }
         );
+        
+        console.log('✅ Task creation response:', task);
 
-        // Store conversation ID from response
+        // Store conversation ID
         if (task.conversationId) {
           this.currentConversationId = task.conversationId;
         }
 
-        // Verify task ID matches pre-generated ID for workflow agents
-        if (this.currentAgent.name === 'requirements_writer' && preGeneratedTaskId) {
-          if (task.taskId !== preGeneratedTaskId) {
-            console.warn('⚠️ Task ID mismatch! Expected:', preGeneratedTaskId, 'Got:', task.taskId);
-          } else {
-            console.log('✅ Task ID matches pre-generated ID:', task.taskId);
-          }
-          
-          // For workflow agents, the task is processed asynchronously
-          // We already subscribed to WebSocket events with the pre-generated task ID
-          if (task.status === 'pending') {
-            console.log('🔄 Task is pending, will receive updates via pre-subscribed WebSocket');
-            return; // Don't create assistant message yet - wait for WebSocket completion
-          }
-        }
-
-        // Parse agent response to extract markdown content
-        let responseContent = 'Task submitted successfully.';
-        let responseMetadata = {};
-        
-        if (task.result) {
-          try {
-            // A2A protocol agents return JSON with { success, response, metadata }
-            const parsedResult = typeof task.result === 'string' ? JSON.parse(task.result) : task.result;
-            if (parsedResult.success && parsedResult.response) {
-              responseContent = String(parsedResult.response); // Ensure it's a string
-              responseMetadata = parsedResult.metadata || {};
-            } else {
-              responseContent = String(task.result);
-            }
-          } catch (error) {
-            // If parsing fails, use the raw result
-            responseContent = String(task.result);
-          }
-        }
-
-        // WebSocket subscription is now handled above for workflow agents
-        // For non-workflow agents, still subscribe to task completion
-        if (!placeholderMessage) {
-          this.subscribeToTaskCompletion(task.taskId);
+        // Handle response based on execution mode and task status
+        if (task.status === 'pending' && effectiveMode === 'websocket') {
+          // Task is async - create placeholder (already subscribed to WebSocket)
+          this.createPlaceholderMessage(task.taskId);
+        } else if (task.status === 'pending' && effectiveMode === 'polling') {
+          // Task is async - create placeholder and start polling
+          this.createPlaceholderMessage(task.taskId);
+          this.startPollingTask(task.taskId);
+        } else {
+          // Task completed immediately or immediate mode - create response message
+          this.createResponseMessage(task);
         }
 
       } catch (error) {
+        console.error('❌ Error in sendMessage:', error);
         this.error = error instanceof Error ? error.message : 'Failed to send message';
       } finally {
         this.isSendingMessage = false;
+      }
+    },
+
+    /**
+     * Create placeholder message for async tasks
+     */
+    createPlaceholderMessage(taskId: string) {
+      const placeholderMessage: AgentChatMessage = {
+        id: `task-${taskId}`,
+        role: 'assistant',
+        content: 'Processing your request...',
+        timestamp: new Date(),
+        taskId,
+        metadata: {
+          isPlaceholder: true,
+          agentName: this.currentAgent?.name
+        }
+      };
+      this.messages.push(placeholderMessage);
+    },
+
+    /**
+     * Create response message from completed task
+     */
+    createResponseMessage(task: any) {
+      let responseContent = 'Task completed successfully.';
+      let responseMetadata = {};
+      
+      if (task.result) {
+        try {
+          const parsedResult = typeof task.result === 'string' ? JSON.parse(task.result) : task.result;
+          if (parsedResult.success && parsedResult.response) {
+            responseContent = String(parsedResult.response);
+            responseMetadata = parsedResult.metadata || {};
+          } else {
+            responseContent = String(task.result);
+          }
+        } catch (error) {
+          responseContent = String(task.result);
+        }
+      }
+
+      const responseMessage: AgentChatMessage = {
+        id: `assistant-${task.taskId}`,
+        role: 'assistant',
+        content: responseContent,
+        timestamp: new Date(),
+        taskId: task.taskId,
+        metadata: responseMetadata
+      };
+      this.messages.push(responseMessage);
+    },
+
+    /**
+     * Simplified WebSocket subscription for a task
+     */
+    async subscribeToTask(taskId: string) {
+      console.log('🚀 AgentChatStore: Starting WebSocket subscription for task:', taskId);
+      
+      // Subscribe to task with status change callback for new TaskStatusService events
+      await websocketService.subscribeToTask(taskId, (statusEvent) => {
+        console.log('📊 Received status event for task:', taskId, statusEvent);
+        this.handleTaskStatusUpdate(taskId, {
+          status: statusEvent.status,
+          progress: statusEvent.progress,
+          progressMessage: statusEvent.message,
+          data: statusEvent.metadata
+        });
+      });
+
+      // Set up completion/failure event handlers
+      websocketService.onTaskEvent('completed', (event) => {
+        console.log('🎉 WebSocket task completion event received:', event);
+        if (event.taskId === taskId) {
+          console.log('🎯 Task ID matches, calling handleTaskCompletion for:', taskId);
+          this.handleTaskCompletion(taskId);
+        } else {
+          console.log('⚠️ Task ID mismatch - expected:', taskId, 'received:', event.taskId);
+        }
+      });
+
+      websocketService.onTaskEvent('failed', (event) => {
+        if (event.taskId === taskId) {
+          this.handleTaskCompletion(taskId);
+        }
+      });
+
+      // Legacy workflow step handlers (for backward compatibility)
+      websocketService.onWorkflowStep(taskId, (stepEvent) => {
+        this.handleWorkflowStepUpdate(taskId, stepEvent);
+      });
+    },
+
+    /**
+     * Start polling for task updates
+     */
+    async startPollingTask(taskId: string) {
+      const userPreferences = useUserPreferencesStore();
+      const interval = userPreferences.preferences.pollingInterval * 1000;
+      
+      const pollInterval = setInterval(async () => {
+        try {
+          // Use getTask to check status since we have full task data
+          const task = await tasksService.getTask(taskId);
+          
+          if (task.status === 'completed' || task.status === 'failed') {
+            clearInterval(pollInterval);
+            this.handleTaskCompletion(taskId);
+          } else {
+            // Handle progress updates
+            this.handleTaskStatusUpdate(taskId, {
+              status: task.status,
+              progress: task.progress,
+              progressMessage: task.progressMessage,
+              data: task.metadata
+            });
+          }
+        } catch (error) {
+          console.error('Polling error:', error);
+          clearInterval(pollInterval);
+        }
+      }, interval);
+    },
+
+    /**
+     * Handle task status updates from WebSocket or polling
+     */
+    handleTaskStatusUpdate(taskId: string, statusUpdate: any) {
+      const messageIndex = this.messages.findIndex(msg => 
+        msg.taskId === taskId && msg.role === 'assistant'
+      );
+      
+      if (messageIndex >= 0) {
+        const message = this.messages[messageIndex];
+        
+        // Update placeholder message with progress
+        if (message.metadata?.isPlaceholder) {
+          let progressContent = 'Processing your request...';
+          
+          if (statusUpdate.progressMessage) {
+            progressContent = statusUpdate.progressMessage;
+          } else if (statusUpdate.progress !== undefined) {
+            progressContent = `Processing... ${statusUpdate.progress}%`;
+          }
+          
+          // Handle workflow steps from TaskStatusService JSON data
+          if (statusUpdate.data?.workflowSteps) {
+            const workflowSteps = statusUpdate.data.workflowSteps;
+            const currentStep = statusUpdate.data.currentStep;
+            const stepIndex = statusUpdate.data.stepIndex;
+            const totalSteps = statusUpdate.data.totalSteps;
+            
+            console.log(`📊 Processing step update: ${currentStep} (${stepIndex + 1}/${totalSteps})`);
+            console.log(`📊 Status update progressMessage:`, statusUpdate.progressMessage);
+            
+            // Initialize or get completed steps tracker
+            if (!message.metadata.completedSteps) {
+              message.metadata.completedSteps = [];
+            }
+            
+            if (currentStep && stepIndex !== undefined && totalSteps) {
+              // Use the progressMessage if available, otherwise fall back to step name
+              const displayMessage = statusUpdate.progressMessage || currentStep;
+              
+              // Add this completed step to our tracker if not already there
+              const stepData = {
+                name: currentStep,
+                message: displayMessage,
+                index: stepIndex,
+                total: totalSteps
+              };
+              
+              const existingStepIndex = message.metadata.completedSteps.findIndex(
+                step => step.index === stepIndex
+              );
+              
+              if (existingStepIndex === -1) {
+                message.metadata.completedSteps.push(stepData);
+                console.log(`✅ Added new step: ${currentStep} with message: ${displayMessage}`);
+              }
+              
+              // Sort steps by index to ensure correct order
+              message.metadata.completedSteps.sort((a, b) => a.index - b.index);
+              
+              // Rebuild content from all completed steps
+              let accumulatedContent = '';
+              
+              // Add all completed steps using their messages
+              message.metadata.completedSteps.forEach(step => {
+                const stepMessage = `✅ ${step.message} (${step.index + 1}/${step.total})`;
+                if (accumulatedContent === '') {
+                  accumulatedContent = stepMessage;
+                } else {
+                  accumulatedContent += `\n${stepMessage}`;
+                }
+              });
+              
+              // If not the last step, show next step starting
+              if (stepIndex < totalSteps - 1) {
+                const nextStepMessage = `🔄 Step ${stepIndex + 2}/${totalSteps} starting...`;
+                accumulatedContent += `\n${nextStepMessage}`;
+              } else {
+                // Last step completed, show final processing
+                const finalProcessingMessage = `🔄 Processing final response...`;
+                accumulatedContent += `\n${finalProcessingMessage}`;
+              }
+              
+              progressContent = accumulatedContent;
+              console.log(`📝 Updated content:`, progressContent);
+              console.log(`📊 Current completedSteps array:`, message.metadata.completedSteps);
+              console.log(`📊 Total steps stored: ${message.metadata.completedSteps.length}/${totalSteps}`);
+            }
+            
+            // Update workflow steps in metadata
+            message.metadata.workflow_steps_realtime = workflowSteps;
+            message.metadata.processing_type = 'langgraph-multi-step-workflow';
+          }
+          
+          message.content = progressContent;
+          message.metadata = { 
+            ...message.metadata, 
+            ...statusUpdate.data,
+            lastUpdated: new Date().toISOString()
+          };
+          
+          // Trigger reactivity
+          this.messages[messageIndex] = { ...message };
+        }
       }
     },
 
@@ -345,114 +559,134 @@ export const useAgentChatStore = defineStore('agentChat', {
       this.error = error;
     },
 
-    /**
-     * Subscribe to task completion via WebSocket
-     */
-    async subscribeToTaskCompletion(taskId: string) {
-      console.log('🔔 Subscribing to task completion:', taskId);
-      
-      // Ensure WebSocket connection is established
-      await websocketService.ensureConnection();
-      console.log('🔗 WebSocket connection status:', websocketService.getStatus());
-      
-      // Subscribe to task completion events
-      websocketService.onTaskEvent('completed', (event) => {
-        console.log('🎉 Task completed event received:', event);
-        
-        if (event.taskId === taskId) {
-          console.log('✅ Task completion matches our task:', taskId);
-          
-          // Fetch the completed task to get the full response
-          this.handleTaskCompletion(taskId);
-        }
-      });
-      
-      // Subscribe to workflow step events for real-time progress
-      websocketService.onWorkflowStep(taskId, (stepEvent) => {
-        console.log('🔧 Workflow step event received in agentChatStore:', stepEvent);
-        this.handleWorkflowStepUpdate(taskId, stepEvent);
-      });
-      
-      // Subscribe to task updates via WebSocket
-      websocketService.subscribeToTask(taskId);
-      console.log('📡 Subscribed to WebSocket events for task:', taskId);
-    },
 
     /**
-     * Handle task completion by fetching the full task result
+     * Handle task completion - simplified version
      */
     async handleTaskCompletion(taskId: string) {
+      console.log('🚀 handleTaskCompletion called for task:', taskId);
       try {
-        console.log('📥 Fetching completed task:', taskId);
-        
         // Get the completed task with full response
+        console.log('📡 Fetching task data from backend...');
         const completedTask = await tasksService.getTask(taskId);
-        console.log('📋 Completed task data:', completedTask);
+        console.log('📦 Received task data:', completedTask);
         
-        // Parse the response
-        let responseContent = 'Task completed successfully.';
-        let responseMetadata = {};
-        
-        if (completedTask.result) {
-          try {
-            // A2A protocol agents return JSON with { success, response, metadata }
-            const parsedResult = typeof completedTask.result === 'string' 
-              ? JSON.parse(completedTask.result) 
-              : completedTask.result;
-            
-            if (parsedResult.success && parsedResult.response) {
-              responseContent = String(parsedResult.response);
-              responseMetadata = parsedResult.metadata || {};
-            } else {
-              responseContent = String(completedTask.result);
-            }
-          } catch (error) {
-            // If parsing fails, use the raw result
-            responseContent = String(completedTask.result);
-          }
+        // Skip processing if task is not actually completed or has no response yet
+        if (completedTask.status !== 'completed') {
+          console.log('⏳ Task not yet completed, skipping processing. Status:', completedTask.status);
+          return;
         }
-
-        // Find and replace placeholder message, or add new message
+        
+        if (!completedTask.response || completedTask.response === 'null' || completedTask.response.trim() === '') {
+          console.log('⏳ Task completed but no response data yet, skipping processing. Response:', completedTask.response);
+          return;
+        }
+        
+        // Find and replace placeholder message
         const placeholderIndex = this.messages.findIndex(msg => 
           msg.taskId === taskId && msg.metadata?.isPlaceholder
         );
         
-        const assistantMessage: AgentChatMessage = {
-          id: `assistant-${taskId}`,
-          role: 'assistant',
-          content: responseContent,
-          timestamp: new Date(completedTask.completedAt || completedTask.updatedAt),
-          taskId: taskId,
-          metadata: responseMetadata,
-        };
-        
         if (placeholderIndex >= 0) {
-          console.log('🔄 Replacing placeholder message with final result');
-          this.messages[placeholderIndex] = assistantMessage;
+          // Update the existing placeholder message with final result instead of replacing
+          const placeholderMessage = this.messages[placeholderIndex];
+          
+          // Debug final state of accumulated steps
+          console.log('📊 FINAL STATE - Completed steps in message metadata:');
+          console.log('📊 completedSteps array:', placeholderMessage.metadata?.completedSteps);
+          console.log('📊 Current message content:', placeholderMessage.content);
+          
+          // Extract the final deliverable - the actual requirements document
+          console.log('🔍 Task completion - full task object:', completedTask);
+          console.log('🔍 Task completion - raw result:', completedTask.result);
+          console.log('🔍 Task completion - response field:', completedTask.response);
+          
+          let finalContent = '';
+          
+          // Try multiple fields where the content might be stored
+          if (completedTask.response && completedTask.response !== 'null' && completedTask.response.trim() !== '') {
+            // First try the response field directly - this might be the parsed Python JSON response
+            try {
+              const parsedResponse = typeof completedTask.response === 'string' ? JSON.parse(completedTask.response) : completedTask.response;
+              console.log('🔍 Parsed response object:', parsedResponse);
+              
+              if (parsedResponse.response) {
+                // This is the actual requirements document content from Python script
+                finalContent = String(parsedResponse.response);
+                console.log('🔍 Found document content in response.response:', finalContent.substring(0, 200) + '...');
+              } else {
+                finalContent = String(completedTask.response);
+                console.log('🔍 Using raw response field:', finalContent);
+              }
+            } catch (error) {
+              // If response isn't JSON, use it directly
+              finalContent = String(completedTask.response);
+              console.log('🔍 Using response field as-is (not JSON):', finalContent);
+            }
+          } else if (completedTask.result) {
+            try {
+              const parsedResult = typeof completedTask.result === 'string' ? JSON.parse(completedTask.result) : completedTask.result;
+              console.log('🔍 Parsed result:', parsedResult);
+              
+              if (parsedResult.success && parsedResult.response) {
+                finalContent = String(parsedResult.response);
+              } else if (parsedResult.response) {
+                finalContent = String(parsedResult.response);
+              } else if (parsedResult.result) {
+                finalContent = String(parsedResult.result);
+              } else {
+                finalContent = String(completedTask.result);
+              }
+            } catch (error) {
+              console.log('🔍 Failed to parse result, using raw:', error);
+              finalContent = String(completedTask.result);
+            }
+          }
+          
+          console.log('🔍 Final content to display:', finalContent);
+          
+          if (!finalContent || finalContent.trim() === '') {
+            finalContent = 'No requirements document was generated. Please check the logs for more details.';
+            console.warn('⚠️ No final content found in task result');
+          }
+          
+          // Clean up the existing content and append final deliverable
+          let existingContent = placeholderMessage.content;
+          
+          // Remove any "Processing final response..." indicator
+          existingContent = existingContent.replace(/🔄 Processing final response\.\.\./g, '').trim();
+          
+          // Append the actual requirements document
+          placeholderMessage.content = existingContent + `\n\n---\n\n**📋 Requirements Document:**\n\n${finalContent}`;
+          placeholderMessage.metadata = {
+            ...placeholderMessage.metadata,
+            isPlaceholder: false, // No longer a placeholder
+            isCompleted: true,
+            completedAt: new Date().toISOString()
+          };
+          
+          // Trigger reactivity
+          this.messages[placeholderIndex] = { ...placeholderMessage };
         } else {
-          console.log('💬 Adding assistant message:', assistantMessage);
-          this.messages.push(assistantMessage);
+          // Add new message if no placeholder found
+          this.createResponseMessage(completedTask);
         }
         
-        // Unsubscribe from task updates (but not for workflow agents that need real-time progress)
-        const isWorkflowAgent = this.currentAgent?.name === 'requirements_writer';
-        if (!isWorkflowAgent) {
-          websocketService.unsubscribeFromTask(taskId);
-        }
+        // Cleanup subscriptions
+        websocketService.unsubscribeFromTask(taskId);
         
       } catch (error) {
-        console.error('❌ Error handling task completion:', error);
+        console.error('Error handling task completion:', error);
         this.error = error instanceof Error ? error.message : 'Failed to load task result';
       }
     },
 
     /**
-     * Handle workflow step updates in real-time
+     * Handle workflow step updates - accumulating version
      */
     handleWorkflowStepUpdate(taskId: string, stepEvent: any) {
-      console.log('🔧 Handling workflow step update:', stepEvent);
+      console.log(`🔧 Workflow step event received:`, stepEvent);
       
-      // Find the placeholder message for this task
       const messageIndex = this.messages.findIndex(msg => 
         msg.taskId === taskId && msg.role === 'assistant'
       );
@@ -460,46 +694,91 @@ export const useAgentChatStore = defineStore('agentChat', {
       if (messageIndex >= 0) {
         const message = this.messages[messageIndex];
         
-        // Initialize workflow steps if not present
+        // Initialize completed steps tracker
         if (!message.metadata) {
           message.metadata = {};
         }
+        if (!message.metadata.completedSteps) {
+          message.metadata.completedSteps = [];
+        }
         
+        // Only process completed steps (not in_progress)
+        if (stepEvent.status === 'completed') {
+          const displayMessage = stepEvent.message || stepEvent.stepName;
+          
+          // Add this completed step to our tracker if not already there
+          const stepData = {
+            name: stepEvent.stepName,
+            message: displayMessage,
+            index: stepEvent.stepIndex,
+            total: stepEvent.totalSteps
+          };
+          
+          const existingStepIndex = message.metadata.completedSteps.findIndex(
+            step => step.index === stepEvent.stepIndex
+          );
+          
+          if (existingStepIndex === -1) {
+            message.metadata.completedSteps.push(stepData);
+            console.log(`✅ Added completed step: ${stepEvent.stepName} with message: ${displayMessage}`);
+          }
+          
+          // Sort steps by index to ensure correct order
+          message.metadata.completedSteps.sort((a, b) => a.index - b.index);
+          
+          // Rebuild content from all completed steps
+          let accumulatedContent = '';
+          
+          // Add all completed steps using their messages
+          message.metadata.completedSteps.forEach(step => {
+            const stepMessage = `✅ ${step.message} (${step.index + 1}/${step.total})`;
+            if (accumulatedContent === '') {
+              accumulatedContent = stepMessage;
+            } else {
+              accumulatedContent += `\n${stepMessage}`;
+            }
+          });
+          
+          // If not the last step, show next step starting
+          if (stepEvent.stepIndex < stepEvent.totalSteps - 1) {
+            const nextStepMessage = `🔄 Step ${stepEvent.stepIndex + 2}/${stepEvent.totalSteps} starting...`;
+            accumulatedContent += `\n${nextStepMessage}`;
+          } else {
+            // Last step completed, show final processing
+            const finalProcessingMessage = `🔄 Processing final response...`;
+            accumulatedContent += `\n${finalProcessingMessage}`;
+          }
+          
+          message.content = accumulatedContent;
+          console.log(`📝 Updated workflow content:`, accumulatedContent);
+          console.log(`📊 Current completedSteps: ${message.metadata.completedSteps.length}/${stepEvent.totalSteps}`);
+        }
+        
+        // Keep the old workflow_steps_realtime for compatibility
         if (!message.metadata.workflow_steps_realtime) {
           message.metadata.workflow_steps_realtime = [];
         }
         
-        // Update or add the step
         const existingStepIndex = message.metadata.workflow_steps_realtime.findIndex(
           (step: any) => step.stepName === stepEvent.stepName
         );
         
+        const stepData = {
+          ...stepEvent,
+          timestamp: new Date().toISOString()
+        };
+        
         if (existingStepIndex >= 0) {
-          // Update existing step
-          message.metadata.workflow_steps_realtime[existingStepIndex] = {
-            ...stepEvent,
-            timestamp: new Date(stepEvent.timestamp || new Date())
-          };
+          message.metadata.workflow_steps_realtime[existingStepIndex] = stepData;
         } else {
-          // Add new step
-          message.metadata.workflow_steps_realtime.push({
-            ...stepEvent,
-            timestamp: new Date(stepEvent.timestamp || new Date())
-          });
+          message.metadata.workflow_steps_realtime.push(stepData);
         }
         
-        // Sort steps by index
         message.metadata.workflow_steps_realtime.sort((a: any, b: any) => a.stepIndex - b.stepIndex);
-        
-        // Mark as workflow message
         message.metadata.processing_type = 'langgraph-multi-step-workflow';
         
         // Trigger reactivity
         this.messages[messageIndex] = { ...message };
-        
-        console.log('✅ Updated placeholder message with workflow step:', message.metadata.workflow_steps_realtime);
-      } else {
-        console.log('⚠️ No placeholder message found for workflow step update');
       }
     },
   },

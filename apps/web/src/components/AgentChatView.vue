@@ -13,6 +13,7 @@
         </div>
       </div>
       <div class="header-actions">
+        <TaskExecutionControls />
         <ion-button fill="clear" @click="$emit('close')">
           <ion-icon :icon="closeOutline" />
         </ion-button>
@@ -107,6 +108,7 @@ import {
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
+import TaskExecutionControls from './TaskExecutionControls.vue';
 
 // Define emits
 const emit = defineEmits<{

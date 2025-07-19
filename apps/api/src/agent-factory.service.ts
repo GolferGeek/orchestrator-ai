@@ -10,6 +10,7 @@ import { SupabaseService } from './supabase/supabase.service';
 import { ConfigurationService } from './agents/base/sub-services/configuration/configuration.service';
 import { AgentRegistrationService } from './agents/base/sub-services/agent-registration/agent-registration.service';
 import { TaskProgressGateway } from './websocket/task-progress.gateway';
+import { TasksService } from './tasks/tasks.service';
 
 export interface DiscoveredAgent {
   name: string;
@@ -61,6 +62,7 @@ export class AgentFactoryService {
     private readonly configurationService: ConfigurationService,
     private readonly agentRegistrationService: AgentRegistrationService,
     private readonly taskProgressGateway: TaskProgressGateway,
+    private readonly tasksService: TasksService,
   ) {
     this.logger.log('🏭 AgentFactoryService initialized');
   }
@@ -228,7 +230,7 @@ export class AgentFactoryService {
 
         case 'python-function': {
           this.logger.debug(`🐍 Creating Python function agent`);
-          return new ServiceClass(this.httpService, this.llmService, this.taskProgressGateway);
+          return new ServiceClass(this.httpService, this.llmService, this.taskProgressGateway, this.tasksService);
         }
 
         case 'context': {

@@ -306,6 +306,12 @@ export abstract class A2AAgentBaseService
       card.statusSchema = statusSchema;
     }
 
+    // Add timeout configuration
+    const timeout = this.getTaskTimeout();
+    if (timeout && timeout !== 300) { // Only include if different from default
+      card.timeout = timeout;
+    }
+
     return card;
   }
 
@@ -325,6 +331,34 @@ export abstract class A2AAgentBaseService
    */
   protected getStatusSchema(): Record<string, any> {
     return {};
+  }
+
+  /**
+   * Get the timeout in seconds for this agent's tasks
+   * Long-running workflows need much longer timeouts than simple tasks
+   * Override in subclasses for custom timeout logic
+   */
+  protected getTaskTimeout(): number {
+    const taskType = this.getTaskType();
+    switch (taskType) {
+      case 'long_running':
+        return 3600; // 1 hour for long-running tasks
+      case 'swarm':
+        return 7200; // 2 hours for swarm tasks
+      case 'ephemeral':
+      default:
+        // For workflow agents (like requirements_writer), use longer timeout even if ephemeral
+        return this.isWorkflowAgent() ? 1800 : 300; // 30 minutes for workflows, 5 minutes for simple tasks
+    }
+  }
+
+  /**
+   * Determine if this agent uses workflow steps (override in subclass if needed)
+   */
+  protected isWorkflowAgent(): boolean {
+    // Default check: if agent has workflow steps in status schema, it's a workflow agent
+    const schema = this.getStatusSchema();
+    return !!(schema.workflowSteps || schema.currentStep || schema.stepIndex);
   }
 
   // ============================================================================

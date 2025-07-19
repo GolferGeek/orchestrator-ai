@@ -253,26 +253,8 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                 this.pythonLogger.error('TaskProgressGateway is not available for broadcasting completion events');
               }
 
-              // Update task status to completed in database (fire and forget)
-              if (this.tasksService && this.currentUserId) {
-                this.tasksService.updateTask(completionEvent.taskId, this.currentUserId, {
-                  status: 'completed',
-                  progress: 100,
-                }).then(() => {
-                  this.pythonLogger.debug(
-                    `✅ Task ${completionEvent.taskId} marked as completed in database`,
-                  );
-                }).catch((error) => {
-                  this.pythonLogger.error(
-                    `❌ Failed to update task ${completionEvent.taskId} status:`,
-                    error,
-                  );
-                });
-              } else {
-                this.pythonLogger.warn(
-                  `Cannot update task status - missing TasksService (${!!this.tasksService}) or userId (${!!this.currentUserId})`,
-                );
-              }
+              // Note: Task completion with result is now handled in process completion
+              // This event is just for broadcasting completion to WebSocket clients
 
               this.pythonLogger.debug(
                 `Python script confirmed task completion: ${completionEvent.taskId} (${completionEvent.status})`,
@@ -288,8 +270,14 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       });
 
       // Handle process completion
-      pythonProcess.on('close', (code) => {
+      pythonProcess.on('close', async (code) => {
+        this.pythonLogger.debug(`🔍 Python process closed with code: ${code}`);
+        this.pythonLogger.debug(`🔍 Python stdout length: ${stdout.length}`);
+        this.pythonLogger.debug(`🔍 Python stderr length: ${stderr.length}`);
+        this.pythonLogger.debug(`🔍 Python stdout content: ${stdout.substring(0, 500)}...`);
+        
         if (code !== 0) {
+          this.pythonLogger.error(`❌ Python script failed with code ${code}. Error: ${stderr}`);
           reject(
             new Error(
               `Python script exited with code ${code}. Error: ${stderr}`,
@@ -300,11 +288,93 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
         try {
           // Try to parse JSON response from Python script
+          this.pythonLogger.debug(`🔍 Attempting to parse Python script output as JSON...`);
           const result = JSON.parse(stdout.trim());
+          this.pythonLogger.debug(`🔍 Successfully parsed JSON result:`, result);
+          
+          // Save the result to the task in database for async tasks
+          this.pythonLogger.debug(`🔍 Checking if we can save result to database:`);
+          this.pythonLogger.debug(`  - tasksService available: ${!!this.tasksService}`);
+          this.pythonLogger.debug(`  - currentUserId available: ${!!this.currentUserId}`);
+          this.pythonLogger.debug(`  - params.metadata.taskId: ${params.metadata?.taskId}`);
+          this.pythonLogger.debug(`  - result to save: ${JSON.stringify(result).substring(0, 300)}...`);
+          
+          this.pythonLogger.debug(`🔍 About to attempt database save...`);
+          
+          const taskId = params.metadata?.taskId;
+          if (this.tasksService && this.currentUserId && taskId) {
+            try {
+              const updateData = {
+                status: 'completed' as const,
+                progress: 100,
+                response: JSON.stringify(result), // Save the full result
+                responseMetadata: result.metadata || {},
+              };
+              
+              this.pythonLogger.debug(`🔍 Calling updateTask with:`, {
+                taskId: taskId,
+                userId: this.currentUserId,
+                updateData: updateData
+              });
+              
+              const updateResult = await this.tasksService.updateTask(taskId, this.currentUserId, updateData);
+              
+              this.pythonLogger.debug(
+                `✅ Task ${taskId} result saved to database successfully. Update result:`, updateResult
+              );
+            } catch (error) {
+              this.pythonLogger.error(
+                `❌ Failed to save task ${taskId} result:`,
+                error
+              );
+              this.pythonLogger.error(
+                `❌ Error details:`, {
+                  message: error instanceof Error ? error.message : String(error),
+                  stack: error instanceof Error ? error.stack : undefined
+                }
+              );
+            }
+          } else {
+            this.pythonLogger.warn(
+              `❌ Cannot save result - missing requirements:`,
+              {
+                tasksService: !!this.tasksService,
+                currentUserId: this.currentUserId,
+                taskId: taskId,
+                hasTasksService: !!this.tasksService,
+                hasCurrentUserId: !!this.currentUserId,
+                hasTaskId: !!taskId
+              }
+            );
+          }
+          
           resolve(result);
         } catch {
           // If not JSON, return raw output
-          resolve({ response: stdout.trim() });
+          const rawResult = { response: stdout.trim() };
+          
+          // Save raw result to database for async tasks
+          const taskId = params.metadata?.taskId;
+          if (this.tasksService && this.currentUserId && taskId) {
+            try {
+              await this.tasksService.updateTask(taskId, this.currentUserId, {
+                status: 'completed' as const,
+                progress: 100,
+                response: stdout.trim(),
+              });
+              
+              this.pythonLogger.debug(
+                `✅ Task ${taskId} raw result saved to database`,
+              );
+            } catch (error) {
+              this.pythonLogger.error(
+                `❌ Failed to save task ${taskId} raw result:`,
+                error,
+              );
+            }
+          }
+          
+          resolve(rawResult);
         }
       });
 
