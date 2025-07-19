@@ -165,6 +165,49 @@ export class AuthService {
     }
   }
 
+  async refreshToken(refreshToken: string): Promise<TokenResponseDto> {
+    this.logger.log('Token refresh attempt');
+
+    try {
+      const supabaseClient = this.supabaseService.getAnonClient();
+
+      // Use Supabase's session refresh functionality
+      const { data: authResponse, error } = await supabaseClient.auth.refreshSession({
+        refresh_token: refreshToken,
+      });
+
+      if (error) {
+        this.logger.error(`Token refresh error: ${error.message}`);
+        throw new UnauthorizedException(
+          error.message || 'Invalid or expired refresh token',
+        );
+      }
+
+      if (!authResponse.session) {
+        this.logger.error('Token refresh failed: No session returned');
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      this.logger.log('Token refresh successful');
+      return {
+        accessToken: authResponse.session.access_token,
+        refreshToken: authResponse.session.refresh_token || undefined,
+        tokenType: 'bearer',
+        expiresIn: authResponse.session.expires_in || undefined,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      this.logger.error(`Unexpected error during token refresh: ${error}`);
+      throw new HttpException(
+        'An unexpected error occurred during token refresh.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async getCurrentUser(
     currentAuthUser: SupabaseAuthUserDto,
     token: string,

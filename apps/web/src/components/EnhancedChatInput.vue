@@ -174,7 +174,7 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
     }
   };
 } else if (!SpeechRecognition && !Capacitor.isNativePlatform()) {
-  console.warn('Web Speech API is not supported in this browser.');
+  // Web Speech API is not supported in this browser
 }
 
 const emit = defineEmits<{

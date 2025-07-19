@@ -100,12 +100,45 @@ export const authService = {
     apiService.clearAuth();
     
     // Optional: Call backend /auth/logout endpoint. If so, make this async.
-    // apiService.post('/auth/logout').catch(err => console.error("authService: Backend logout call failed", err));
+    // apiService.post('/auth/logout').catch(err => /* Backend logout call failed */);
   },
 
   getToken(): string | null {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     return token;
+  },
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  },
+
+  async refreshToken(): Promise<AuthResponse> {
+    try {
+      const refreshToken = this.getRefreshToken();
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const responseData = await apiService.refreshToken(refreshToken);
+      
+      if (responseData.accessToken) {
+        localStorage.setItem(AUTH_TOKEN_KEY, responseData.accessToken);
+        if (responseData.refreshToken) {
+          localStorage.setItem(REFRESH_TOKEN_KEY, responseData.refreshToken);
+        }
+        
+        // Set auth token on API service
+        apiService.setAuthToken(responseData.accessToken);
+        
+        return responseData;
+      } else {
+        throw new Error('Token refresh completed but no new token was provided by the server.');
+      }
+    } catch (error) {
+      // If refresh fails, clear auth data and force re-login
+      this.logout();
+      throw error;
+    }
   },
 
   initializeAuthHeader(): void {

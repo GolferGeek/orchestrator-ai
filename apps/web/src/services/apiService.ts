@@ -28,11 +28,53 @@ class ApiService {
       timeout: 30000,
     });
 
-    // Add response interceptor for error handling
+    // Add response interceptor for error handling and automatic token refresh
     this.axiosInstance.interceptors.response.use(
       (response) => response,
-      (error) => {
-        console.error('[API] Request failed:', error.response?.data || error.message);
+      async (error) => {
+        const originalRequest = error.config;
+        
+        // If error is 401 and we haven't already tried to refresh
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          
+          try {
+            // Try to refresh the token
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (refreshToken) {
+              
+              // Use a fresh axios instance to avoid interceptor loops
+              const refreshResponse = await axios.post(`${this.axiosInstance.defaults.baseURL}/auth/refresh`, {
+                refreshToken: refreshToken
+              });
+              
+              const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data;
+              
+              // Update stored tokens
+              localStorage.setItem('authToken', accessToken);
+              if (newRefreshToken) {
+                localStorage.setItem('refreshToken', newRefreshToken);
+              }
+              
+              // Update default headers
+              this.setAuthToken(accessToken);
+              
+              // Retry the original request with the new token
+              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+              
+              return this.axiosInstance(originalRequest);
+            }
+          } catch (refreshError) {
+            // Clear auth data and redirect to login would happen here
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
+            this.clearAuth();
+            
+            // You might want to emit an event or call a global auth handler here
+            // For now, we'll just let the error propagate
+          }
+        }
+        
         return Promise.reject(error);
       }
     );
@@ -67,7 +109,6 @@ class ApiService {
       // API now returns camelCase directly
       return response.data;
     } catch (error) {
-      console.error('Error sending enhanced message:', error);
       throw error;
     }
   }
@@ -97,7 +138,6 @@ class ApiService {
           });
           currentUser = userResponse.data;
         } catch (error) {
-          console.warn('Failed to fetch current user for orchestrator:', error);
         }
       }
       
@@ -177,7 +217,6 @@ class ApiService {
 
       throw new Error('No result in JSON-RPC response');
     } catch (error) {
-      console.error('Error posting task to NestJS orchestrator:', error);
       throw error;
     }
   }
@@ -190,7 +229,6 @@ class ApiService {
       const response = await this.axiosInstance.get<{ agents: AgentInfo[] }>('/agents');
       return response.data.agents || [];
     } catch (error) {
-      console.error('Error fetching NestJS available agents:', error);
       throw error;
     }
   }
@@ -203,7 +241,6 @@ class ApiService {
       const response = await this.axiosInstance.get('/health');
       return response.status === 200;
     } catch (error) {
-      console.error('NestJS health check failed:', error);
       return false;
     }
   }
@@ -216,7 +253,6 @@ class ApiService {
       const response = await this.axiosInstance.get('/agent-pool/stats');
       return response.data;
     } catch (error) {
-      console.error('Error fetching NestJS agent pool stats:', error);
       throw error;
     }
   }
@@ -229,7 +265,6 @@ class ApiService {
       const response = await this.axiosInstance.get('/agent-pool/agents');
       return response.data;
     } catch (error) {
-      console.error('Error fetching NestJS registered agents:', error);
       throw error;
     }
   }
@@ -242,7 +277,6 @@ class ApiService {
       const response = await this.axiosInstance.get<AgentInfo>(`/agents/${agentId}`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching NestJS agent details for ${agentId}:`, error);
       throw error;
     }
   }
@@ -297,7 +331,6 @@ class ApiService {
       
       return response.data;
     } catch (error) {
-      console.error('Error creating session:', error);
       throw error;
     }
   }
@@ -334,7 +367,6 @@ class ApiService {
       
       return response.data;
     } catch (error) {
-      console.error('Error fetching session messages:', error);
       throw error;
     }
   }
@@ -357,7 +389,6 @@ class ApiService {
       
       return response.data;
     } catch (error) {
-      console.error('Error fetching user sessions:', error);
       throw error;
     }
   }
@@ -375,7 +406,6 @@ class ApiService {
         }
       });
     } catch (error) {
-      console.error('Error deleting session:', error);
       throw error;
     }
   }
@@ -394,7 +424,6 @@ class ApiService {
       
       return response.data;
     } catch (error) {
-      console.error('Error fetching agents list for modal:', error);
       throw error;
     }
   }
@@ -413,7 +442,6 @@ class ApiService {
       
       return response.data;
     } catch (error) {
-      console.error(`Error fetching capabilities for ${agentName}:`, error);
       throw error;
     }
   }
@@ -432,7 +460,6 @@ class ApiService {
       
       return response.data;
     } catch (error) {
-      console.error('Error fetching current user:', error);
       throw error;
     }
   }
@@ -445,7 +472,6 @@ class ApiService {
       const response = await this.axiosInstance.post('/auth/login', credentials);
       return response.data;
     } catch (error) {
-      console.error('Error during login:', error);
       throw error;
     }
   }
@@ -458,7 +484,6 @@ class ApiService {
       const response = await this.axiosInstance.post('/auth/signup', credentials);
       return response.data;
     } catch (error) {
-      console.error('Error during signup:', error);
       throw error;
     }
   }
@@ -473,7 +498,6 @@ class ApiService {
       });
       return response.data;
     } catch (error) {
-      console.error('Error refreshing token:', error);
       throw error;
     }
   }
@@ -491,17 +515,12 @@ class ApiService {
    * Generic POST method
    */
   async post(url: string, data?: any): Promise<any> {
-    console.log('🔥 ApiService: POST request starting');
-    console.log('🔥 ApiService: URL:', `${this.axiosInstance.defaults.baseURL}${url}`);
-    console.log('🔥 ApiService: Data:', data);
     
     try {
       // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
       const response = await this.axiosInstance.post(url, data);
-      console.log('✅ ApiService: POST response received:', response.status, response.data);
       return response.data;
     } catch (error) {
-      console.error('❌ ApiService: POST request failed:', error);
       throw error;
     }
   }
@@ -523,6 +542,7 @@ class ApiService {
     const response = await this.axiosInstance.delete(url);
     return response.data;
   }
+
 
   /**
    * Get base URL

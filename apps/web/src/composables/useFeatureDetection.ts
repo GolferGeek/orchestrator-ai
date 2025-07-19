@@ -174,7 +174,6 @@ export function useFeatureDetection() {
         try {
           // Since we're using a single API service now, skip dynamic feature detection
         } catch (error) {
-          console.warn('Dynamic feature detection failed:', error);
         }
       }
 
@@ -193,7 +192,6 @@ export function useFeatureDetection() {
       await apiConfigStore.updateFeatureAvailability(endpoint.name);
 
     } catch (error) {
-      console.error('Feature detection failed:', error);
       detectionError.value = error instanceof Error ? error.message : 'Unknown error';
     } finally {
       detectionInProgress.value = false;
@@ -258,17 +256,13 @@ export function useFeatureDetection() {
       try {
         return await primaryAction();
       } catch (error) {
-        console.warn(`Primary action failed for feature ${feature}:`, error);
-        
         if (fallbackAction) {
-          console.log(`Falling back for feature ${feature}`);
           return await fallbackAction();
         }
         throw error;
       }
     } else {
       if (fallbackAction) {
-        console.log(`Feature ${feature} not supported, using fallback`);
         return await fallbackAction();
       }
       

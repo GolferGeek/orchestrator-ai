@@ -56,8 +56,6 @@ const performLogin = async () => {
   if (success) {
     const redirectPath = route.query.redirect as string || '/';
     router.push(redirectPath);
-  } else {
-    console.error('LoginPage: Login reported as failed by authStore. Error:', auth.error);
   }
 };
 

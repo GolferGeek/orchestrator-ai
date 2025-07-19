@@ -37,7 +37,6 @@ export const useAgentsStore = defineStore('agents', {
         const errorMessage = e instanceof Error ? e.message : 'Failed to fetch agents';
         this.setError(errorMessage);
         this.setAgents([]); // Clear agents on error
-        console.error("Error in fetchAvailableAgents action:", e);
       } finally {
         this.setLoading(false);
       }

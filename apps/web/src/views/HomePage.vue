@@ -158,7 +158,6 @@ const scrollToBottom = async () => {
 
   const contentHostElement = chatContentEl.value?.$el as HTMLElement | undefined;
   if (!contentHostElement) {
-    console.warn("[HomePage] IonContent $el not found.");
     return;
   }
 
@@ -175,8 +174,6 @@ const scrollToBottom = async () => {
         scrollElement.scrollTop = scrollElement.scrollHeight;
     } else {
     }
-  } else {
-    console.error("[HomePage] Could not find a suitable scrollable element or its scrollTop property.");
   }
 };
 
@@ -188,7 +185,6 @@ watch(currentSessionId, (newId, oldId) => {
 
 const handleEnhancedSendMessage = async (text: string, llmSelection?: any) => {
   if (!currentSessionId.value) {
-    console.error("No active session to send message to.");
     return;
   }
   
@@ -198,7 +194,6 @@ const handleEnhancedSendMessage = async (text: string, llmSelection?: any) => {
 
 const handleSendMessage = async (text: string) => {
   if (!currentSessionId.value) {
-    console.error("No active session to send message to.");
     return;
   }
 
@@ -227,12 +222,6 @@ const handleSendMessage = async (text: string) => {
         metadata: msg.metadata
       }));
     
-    // Log last few messages to see if agent metadata is present
-    if (conversationHistory.length > 0) {
-      const recentMessages = conversationHistory.slice(-3);
-      recentMessages.forEach((msg, index) => {
-      });
-    }
 
     const taskResponse = await apiService.postTaskToOrchestrator(text, currentSessionId.value, conversationHistory);
     
@@ -275,8 +264,6 @@ const handleSendMessage = async (text: string) => {
                                   taskResponse.metadata.respondingAgentName;
       }
     }
-    else {
-      console.warn("[HomePage] No response found in taskResponse:", JSON.parse(JSON.stringify(taskResponse)));
     }
 
     const agentMessageOrder = (currentSessionMessages.value.length > 0 
@@ -383,7 +370,6 @@ const handleSendMessage = async (text: string) => {
     // Message saving is handled automatically by sessionStore
 
   } catch (error) {
-    console.error("[HomePage] Error sending message:", error);
     
     const errorMessage: Message = {
       id: `error-${Date.now()}`,
@@ -452,7 +438,6 @@ const handleViewAgentCapabilities = async (agentInfo: any) => {
       }
     }
   } catch (error) {
-    console.error("[HomePage] Error fetching agent capabilities:", error);
     // Could show an error toast here
   }
 };

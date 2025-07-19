@@ -75,7 +75,6 @@ export abstract class BaseApiClient implements ApiClient {
       const response = await this.axiosInstance.get('/health');
       return response.status === 200;
     } catch (error) {
-      console.warn(`Health check failed for ${this.endpoint.name}:`, error);
       return false;
     }
   }
@@ -87,15 +86,6 @@ export abstract class BaseApiClient implements ApiClient {
       endpoint: this.endpoint.name,
     };
 
-    console.error('API Error Details:', {
-      endpoint: this.endpoint.name,
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      data: error.response?.data,
-      hasRequest: !!error.request,
-      message: error.message
-    });
 
     if (error.response) {
       // Server responded with error status
@@ -105,12 +95,10 @@ export abstract class BaseApiClient implements ApiClient {
       
       // Special handling for authentication errors
       if (error.response.status === 401) {
-        console.warn('Authentication failed - token may be invalid or expired');
         apiError.message = 'Authentication failed. Please try logging in again.';
       }
     } else if (error.request) {
       // Request was made but no response received
-      console.error('No response received:', error.request);
       apiError.message = 'No response received from the server';
       apiError.code = 'NETWORK_ERROR';
     } else {

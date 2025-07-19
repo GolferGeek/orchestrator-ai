@@ -460,11 +460,10 @@ const viewDeliverable = (deliverable: any) => {
 
 const downloadDeliverable = (deliverable: any) => {
   // Download logic is handled in the modal
-  console.log('Downloading deliverable:', deliverable.title);
 };
 
 const onDeliverableDownload = (deliverable: any) => {
-  console.log('Deliverable downloaded:', deliverable.title);
+  // Deliverable downloaded
 };
 
 </script>

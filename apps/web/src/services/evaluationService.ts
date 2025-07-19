@@ -23,7 +23,6 @@ class EvaluationService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error rating message:', error);
       throw error;
     }
   }
@@ -53,7 +52,6 @@ class EvaluationService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error getting message rating:', error);
       throw error;
     }
   }
@@ -80,7 +78,6 @@ class EvaluationService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error updating rating:', error);
       throw error;
     }
   }
@@ -118,7 +115,6 @@ class EvaluationService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error getting evaluation analytics:', error);
       throw error;
     }
   }

@@ -120,7 +120,6 @@ export const useLLMStore = defineStore('llm', {
 
         this.providers = await response.json();
       } catch (error) {
-        console.error('Error fetching providers:', error);
         this.providerError = error instanceof Error ? error.message : 'Failed to fetch providers';
       } finally {
         this.loadingProviders = false;
@@ -150,7 +149,6 @@ export const useLLMStore = defineStore('llm', {
 
         this.models = await response.json();
       } catch (error) {
-        console.error('Error fetching models:', error);
         this.modelError = error instanceof Error ? error.message : 'Failed to fetch models';
       } finally {
         this.loadingModels = false;
@@ -180,7 +178,6 @@ export const useLLMStore = defineStore('llm', {
 
         this.cidafmCommands = await response.json();
       } catch (error) {
-        console.error('Error fetching CIDAFM commands:', error);
         this.commandError = error instanceof Error ? error.message : 'Failed to fetch CIDAFM commands';
       } finally {
         this.loadingCommands = false;
@@ -311,7 +308,7 @@ export const useLLMStore = defineStore('llm', {
           this.maxTokens = preferences.maxTokens;
         }
       } catch (error) {
-        console.warn('Failed to load LLM preferences from localStorage:', error);
+        // Failed to load LLM preferences from localStorage
       }
     },
 
@@ -329,7 +326,7 @@ export const useLLMStore = defineStore('llm', {
         
         localStorage.setItem('llm-preferences', JSON.stringify(preferences));
       } catch (error) {
-        console.warn('Failed to save LLM preferences to localStorage:', error);
+        // Failed to save LLM preferences to localStorage
       }
     },
   },

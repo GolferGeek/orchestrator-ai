@@ -138,7 +138,7 @@ const sendMessage = async () => {
     await agentChatStore.sendMessage(text);
     scrollToBottom();
   } catch (error) {
-    console.error('Failed to send message:', error);
+    // Failed to send message
   }
 };
 

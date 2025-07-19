@@ -80,7 +80,6 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
   };
 
   recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-    console.error('Web Speech recognition error:', event.error);
     let userMessage = 'Voice input error.';
     if (event.error === 'no-speech') {
       userMessage = 'No speech was detected. Please try again.';
@@ -100,7 +99,7 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
     }
   };
 } else if (!SpeechRecognition && !Capacitor.isNativePlatform()) {
-  console.warn('Web Speech API is not supported in this browser.');
+  // Web Speech API is not supported in this browser
 }
 // --- End Web Speech API ---
 
@@ -162,7 +161,6 @@ const togglePtt = async () => {
         recognition.start();
         // onstart will set isRecording.value = true and emit
       } catch (e) {
-        console.error("Error starting web speech recognition:", e);
         isRecording.value = false; // Ensure consistent state
         emit('pttToggle', false);
         uiStore.setPttRecording(false);
