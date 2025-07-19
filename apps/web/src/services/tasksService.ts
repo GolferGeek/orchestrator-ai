@@ -198,7 +198,7 @@ class TasksService {
                 return;
               }
             } catch (error) {
-              console.error('Error parsing SSE data:', error);
+              // Error parsing SSE data - skip this line
             }
           }
         }
@@ -222,15 +222,11 @@ class TasksService {
     result?: any;
   }> {
     const url = `/agents/${agentType}/${agentName}/tasks`;
-    console.log('🔥 TasksService: About to POST to:', url);
-    console.log('🔥 TasksService: Request payload:', taskData);
     
     try {
       const response = await apiService.post(url, taskData);
-      console.log('✅ TasksService: Response received:', response);
       return response;
     } catch (error) {
-      console.error('❌ TasksService: Request failed:', error);
       throw error;
     }
   }

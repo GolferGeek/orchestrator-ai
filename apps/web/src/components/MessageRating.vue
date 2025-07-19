@@ -218,7 +218,7 @@ const loadExistingRating = async () => {
       };
     }
   } catch (error) {
-    console.error('Error loading rating:', error);
+    // Error loading rating
   } finally {
     isLoading.value = false;
   }
@@ -247,7 +247,7 @@ const quickRate = async (type: 'positive' | 'negative') => {
     // Update draft
     draftRating.value.userRating = rating;
   } catch (error) {
-    console.error('Error saving quick rating:', error);
+    // Error saving quick rating
   } finally {
     isLoading.value = false;
   }
@@ -280,7 +280,7 @@ const saveRating = async () => {
     showDetailedRating.value = false;
     showFeedbackInput.value = false;
   } catch (error) {
-    console.error('Error saving detailed rating:', error);
+    // Error saving detailed rating
   } finally {
     isLoading.value = false;
   }

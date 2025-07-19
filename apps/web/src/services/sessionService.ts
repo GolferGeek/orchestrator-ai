@@ -103,7 +103,6 @@ export const sessionService = {
   //   } catch (error) {
   //     const axiosError = error as AxiosError<BackendErrorDetail>; 
   //     const errorMessage = axiosError.response?.data?.detail || axiosError.message || 'Failed to get session details';
-  //     console.error('Error getting session details:', errorMessage);
   //     throw new Error(errorMessage);
   //   }
   // },

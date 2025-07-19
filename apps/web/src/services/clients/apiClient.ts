@@ -39,7 +39,7 @@ export class ApiClient extends BaseApiClient {
           });
           currentUser = userResponse.data.user;
         } catch (error) {
-          console.warn('Failed to fetch current user for orchestrator:', error);
+          // Failed to fetch current user for orchestrator
         }
       }
       
@@ -114,7 +114,6 @@ export class ApiClient extends BaseApiClient {
       
       throw new Error('No result received from orchestrator');
     } catch (error) {
-      console.error(`Error posting task to orchestrator:`, error);
       throw error; // Re-throw as it's already processed by the interceptor
     }
   }
@@ -124,7 +123,6 @@ export class ApiClient extends BaseApiClient {
       const response = await this.axiosInstance.get<{ agents: AgentInfo[] }>('/agents');
       return response.data.agents || [];
     } catch (error) {
-      console.error(`Error fetching available agents (${this.endpoint.technology}):`, error);
       throw error; // Re-throw as it's already processed by the interceptor
     }
   }
@@ -135,7 +133,6 @@ export class ApiClient extends BaseApiClient {
       const response = await this.axiosInstance.get<AgentInfo>(`/agents/${agentId}`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching agent details for ${agentId} (${this.endpoint.technology}):`, error);
       throw error;
     }
   }
@@ -145,7 +142,6 @@ export class ApiClient extends BaseApiClient {
       const response = await this.axiosInstance.get<TaskResponse[]>(`/sessions/${sessionId}/tasks`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching task history for session ${sessionId} (${this.endpoint.technology}):`, error);
       throw error;
     }
   }

@@ -109,7 +109,6 @@ const renderedContent = computed(() => {
   try {
     return marked.parse(props.message.content, { breaks: true, gfm: true });
   } catch (error) {
-    console.error('Error parsing markdown:', error);
     return String(props.message.content);
   }
 });

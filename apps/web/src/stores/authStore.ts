@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { authService } from '@/services/authService'; // Removed AuthResponse import from here
 import { apiService } from '@/services/apiService';
+import { tokenManager } from '@/services/tokenManager';
 
 // Interface for the token data expected from authService login/signup
 interface TokenData {
@@ -62,6 +63,10 @@ export const useAuthStore = defineStore('auth', () => {
       const tokenData = await authService.login(credentials);
       setTokenData(tokenData);
       await fetchCurrentUser();
+      
+      // Start token monitoring after successful login
+      tokenManager.startMonitoring();
+      
       isLoading.value = false;
       return true;
     } catch (e: any) {
@@ -79,6 +84,10 @@ export const useAuthStore = defineStore('auth', () => {
       const tokenData = await authService.signup(signupData);
       setTokenData(tokenData);
       await fetchCurrentUser();
+      
+      // Start token monitoring after successful signup
+      tokenManager.startMonitoring();
+      
       isLoading.value = false;
       return { success: true };
     } catch (e: any) {
@@ -99,8 +108,33 @@ export const useAuthStore = defineStore('auth', () => {
       await authService.logout(); 
     } catch (e: any) {
     }
+    
+    // Stop token monitoring before clearing auth data
+    tokenManager.stopMonitoring();
+    
     clearAuthData(); 
     // isLoading.value = false;
+  }
+
+  async function refreshAuthToken(): Promise<boolean> {
+    try {
+      isLoading.value = true;
+      error.value = null;
+      
+      const tokenData = await authService.refreshToken();
+      setTokenData(tokenData);
+      
+      // Fetch updated user data
+      await fetchCurrentUser();
+      
+      return true;
+    } catch (e: any) {
+      error.value = "Could not refresh authentication token.";
+      clearAuthData();
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   async function fetchCurrentUser() {
@@ -130,12 +164,15 @@ export const useAuthStore = defineStore('auth', () => {
     // Initialize auth token on NestJS API service
     apiService.setAuthToken(token.value);
     
+    // Start token monitoring for existing sessions
+    tokenManager.startMonitoring();
+    
     fetchCurrentUser();
   }
 
   return {
     token,
-    refreshToken,
+    refreshToken, // Store value
     user,
     isLoading,
     error,
@@ -144,6 +181,7 @@ export const useAuthStore = defineStore('auth', () => {
     signupAndLogin,
     logout,
     fetchCurrentUser,
+    refreshAuthToken, // The function defined above
     clearAuthData
   };
 }); 

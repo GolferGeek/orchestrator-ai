@@ -70,11 +70,9 @@ class WebSocketService {
    */
   private async initializeConnection() {
     if (this.socket?.connected) {
-      console.log('🔌 WebSocket already connected, skipping initialization');
       return;
     }
 
-    console.log('🔌 Initializing WebSocket connection...');
     this.connecting.value = true;
     this.error.value = null;
 
@@ -84,18 +82,13 @@ class WebSocketService {
       try {
         const authStore = useAuthStore();
         token = authStore.token;
-        if (token) {
-          console.log('🔑 Using authenticated WebSocket connection');
-        } else {
-          console.log('🔓 Using anonymous WebSocket connection');
-        }
+        // Use authenticated WebSocket connection if token available
       } catch (error) {
-        console.log('🔓 Auth store not available, using anonymous WebSocket connection');
+        // Auth store not available, using anonymous WebSocket connection
       }
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       
-      console.log('🔌 Connecting to WebSocket at:', `${apiUrl}/task-progress`);
 
       this.socket = io(`${apiUrl}/task-progress`, {
         auth: token ? { token } : undefined,
@@ -121,9 +114,6 @@ class WebSocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('🔗 WebSocket connected successfully!');
-      console.log('🔗 Socket ID:', this.socket?.id);
-      console.log('🔗 Socket connected:', this.socket?.connected);
       this.connected.value = true;
       this.connecting.value = false;
       this.error.value = null;
@@ -131,21 +121,17 @@ class WebSocketService {
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('❌ WebSocket disconnected:', reason);
       this.connected.value = false;
       this.connecting.value = false;
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('🚫 WebSocket connection error:', error);
-      console.error('🚫 Error details:', error.message, error.type, error.description);
       this.error.value = error.message;
       this.connecting.value = false;
       
       // Exponential backoff for reconnection
       this.reconnectAttempts++;
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
-        console.log(`🔄 Retrying WebSocket connection (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
         setTimeout(() => {
           this.reconnectInterval *= 2;
           this.initializeConnection();
@@ -155,7 +141,6 @@ class WebSocketService {
 
     // Task progress events
     this.socket.on('task_progress', (event: TaskProgressEvent) => {
-      console.log('📊 Task progress event:', event);
       this.taskProgress.set(event.taskId, event);
       
       // Call registered callbacks
@@ -165,29 +150,25 @@ class WebSocketService {
 
     // Workflow step events
     this.socket.on('workflow_step_started', (event: WorkflowStepEvent) => {
-      console.log('🎬 Workflow step started:', event);
       this.handleWorkflowStepEvent(event);
     });
 
     this.socket.on('workflow_step_completed', (event: WorkflowStepEvent) => {
-      console.log('✅ Workflow step completed:', event);
       this.handleWorkflowStepEvent(event);
     });
 
     this.socket.on('workflow_step_failed', (event: WorkflowStepEvent) => {
-      console.log('❌ Workflow step failed:', event);
       this.handleWorkflowStepEvent(event);
     });
 
     // Workflow step progress events (for real-time step updates)
     this.socket.on('workflow_step_progress', (event: WorkflowStepEvent) => {
-      console.log('🔧 Workflow step progress:', event);
       this.handleWorkflowStepEvent(event);
     });
 
     // Subscription confirmation events
     this.socket.on('subscription_confirmed', (data) => {
-      console.log('✅ Subscription confirmed for task:', data.taskId);
+      // Subscription confirmed
     });
 
     // Deliverable events
@@ -201,42 +182,35 @@ class WebSocketService {
 
     // Task lifecycle events
     this.socket.on('task_created', (event: TaskEvent) => {
-      console.log('🆕 Task created:', event);
       this.emitTaskEvent('created', event);
     });
 
     this.socket.on('task_completed', (event: TaskEvent) => {
-      console.log('🎉 Task completed:', event);
       this.emitTaskEvent('completed', event);
       this.subscribedTasks.delete(event.taskId);
     });
 
     this.socket.on('task_failed', (event: TaskEvent) => {
-      console.log('💥 Task failed:', event);
       this.emitTaskEvent('failed', event);
       this.subscribedTasks.delete(event.taskId);
     });
 
     this.socket.on('task_cancelled', (event: TaskEvent) => {
-      console.log('🚫 Task cancelled:', event);
       this.emitTaskEvent('cancelled', event);
       this.subscribedTasks.delete(event.taskId);
     });
 
     // TaskStatusService events - new simplified architecture
     this.socket.on('task_status_changed', (event: any) => {
-      console.log('📊 Task status changed:', event);
       this.emitTaskStatusChange(event);
     });
 
     // Subscription confirmations
     this.socket.on('subscription_confirmed', (data: { taskId: string }) => {
-      console.log('✅ Subscription confirmed for task:', data.taskId);
       this.subscribedTasks.add(data.taskId);
     });
 
     this.socket.on('subscription_error', (data: { taskId: string; message: string }) => {
-      console.log('❌ Subscription error for task:', data.taskId, data.message);
       this.subscribedTasks.delete(data.taskId);
     });
 
@@ -250,7 +224,6 @@ class WebSocketService {
    */
   public async ensureConnection(): Promise<void> {
     if (!this.socket?.connected && !this.connecting.value) {
-      console.log('🔌 User action requires WebSocket - initializing connection...');
       await this.initializeConnection();
     }
   }
@@ -259,28 +232,20 @@ class WebSocketService {
    * Subscribe to task progress updates
    */
   public async subscribeToTask(taskId: string, callback?: (event: TaskProgressEvent) => void): Promise<void> {
-    console.log('🔌 Starting subscription process for task:', taskId);
-    
     // Ensure connection is established first
     await this.ensureConnection();
     
     // Wait a bit for connection to be fully established
     let retries = 0;
     while (!this.socket?.connected && retries < 10) {
-      console.log(`⏳ Waiting for WebSocket connection... (${retries + 1}/10)`);
       await new Promise(resolve => setTimeout(resolve, 100));
       retries++;
     }
     
     if (!this.socket?.connected) {
-      console.error('❌ WebSocket failed to connect after retries for task:', taskId);
       return;
     }
 
-    console.log('📡 Emitting subscribe_task for:', taskId);
-    console.log('📡 WebSocket connected status:', this.socket.connected);
-    console.log('📡 WebSocket ID:', this.socket.id);
-    
     this.socket.emit('subscribe_task', { taskId });
 
     if (callback) {
@@ -289,8 +254,6 @@ class WebSocketService {
       }
       this.progressCallbacks.get(taskId)!.push(callback);
     }
-    
-    console.log('✅ Subscription completed for task:', taskId);
   }
 
   /**
@@ -332,8 +295,6 @@ class WebSocketService {
    * Handle flexible task status changes with JSON data (from TaskStatusService)
    */
   private emitTaskStatusChange(event: any): void {
-    console.log('🔄 Processing task status change:', event);
-    
     // Update reactive state
     this.taskProgress.set(event.taskId, {
       taskId: event.taskId,

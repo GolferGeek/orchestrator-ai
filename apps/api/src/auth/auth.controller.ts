@@ -100,6 +100,39 @@ export class AuthController {
     return this.authService.logout(token);
   }
 
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Token refreshed successfully',
+    type: TokenResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or expired refresh token',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        refreshToken: {
+          type: 'string',
+          description: 'Refresh token to exchange for new access token',
+        },
+      },
+      required: ['refreshToken'],
+    },
+  })
+  @HttpCode(HttpStatus.OK)
+  async refreshToken(
+    @Body('refreshToken') refreshToken: string,
+  ): Promise<TokenResponseDto> {
+    if (!refreshToken) {
+      throw new Error('Refresh token is required');
+    }
+    return this.authService.refreshToken(refreshToken);
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

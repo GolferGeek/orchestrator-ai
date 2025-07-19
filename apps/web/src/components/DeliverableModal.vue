@@ -235,7 +235,6 @@ const copyToClipboard = async () => {
     });
     await toast.present();
   } catch (error) {
-    console.error('Failed to copy to clipboard:', error);
     const toast = await toastController.create({
       message: 'Failed to copy content',
       duration: 2000,

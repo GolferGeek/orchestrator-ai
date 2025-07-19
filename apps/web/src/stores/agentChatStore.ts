@@ -182,21 +182,6 @@ export const useAgentChatStore = defineStore('agentChat', {
         const agentType = this.currentAgent.type;
         
         // Simplified task creation - let backend handle complexity
-        console.log('🚀 Sending task creation request with execution mode:', effectiveMode);
-        console.log('🚀 Pre-generated task ID:', preGeneratedTaskId);
-        console.log('🚀 Agent type:', agentType);
-        console.log('🚀 Agent name:', this.currentAgent.name);
-        console.log('🚀 Request payload:', {
-          method: 'process',
-          prompt: content,
-          conversationId: this.currentConversationId || undefined,
-          conversationHistory,
-          llmSelection,
-          executionMode: effectiveMode,
-          taskId: preGeneratedTaskId,
-        });
-        
-        console.log('🔥 About to call tasksService.createAgentTask...');
         
         const task = await tasksService.createAgentTask(
           agentType,
@@ -211,8 +196,6 @@ export const useAgentChatStore = defineStore('agentChat', {
             taskId: preGeneratedTaskId, // Pass pre-generated task ID for early WebSocket subscription
           }
         );
-        
-        console.log('✅ Task creation response:', task);
 
         // Store conversation ID
         if (task.conversationId) {
@@ -233,7 +216,6 @@ export const useAgentChatStore = defineStore('agentChat', {
         }
 
       } catch (error) {
-        console.error('❌ Error in sendMessage:', error);
         this.error = error instanceof Error ? error.message : 'Failed to send message';
       } finally {
         this.isSendingMessage = false;
@@ -294,11 +276,9 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Simplified WebSocket subscription for a task
      */
     async subscribeToTask(taskId: string) {
-      console.log('🚀 AgentChatStore: Starting WebSocket subscription for task:', taskId);
       
       // Subscribe to task with status change callback for new TaskStatusService events
       await websocketService.subscribeToTask(taskId, (statusEvent) => {
-        console.log('📊 Received status event for task:', taskId, statusEvent);
         this.handleTaskStatusUpdate(taskId, {
           status: statusEvent.status,
           progress: statusEvent.progress,
@@ -309,12 +289,8 @@ export const useAgentChatStore = defineStore('agentChat', {
 
       // Set up completion/failure event handlers
       websocketService.onTaskEvent('completed', (event) => {
-        console.log('🎉 WebSocket task completion event received:', event);
         if (event.taskId === taskId) {
-          console.log('🎯 Task ID matches, calling handleTaskCompletion for:', taskId);
           this.handleTaskCompletion(taskId);
-        } else {
-          console.log('⚠️ Task ID mismatch - expected:', taskId, 'received:', event.taskId);
         }
       });
 
@@ -355,7 +331,6 @@ export const useAgentChatStore = defineStore('agentChat', {
             });
           }
         } catch (error) {
-          console.error('Polling error:', error);
           clearInterval(pollInterval);
         }
       }, interval);
@@ -389,9 +364,6 @@ export const useAgentChatStore = defineStore('agentChat', {
             const stepIndex = statusUpdate.data.stepIndex;
             const totalSteps = statusUpdate.data.totalSteps;
             
-            console.log(`📊 Processing step update: ${currentStep} (${stepIndex + 1}/${totalSteps})`);
-            console.log(`📊 Status update progressMessage:`, statusUpdate.progressMessage);
-            
             // Initialize or get completed steps tracker
             if (!message.metadata.completedSteps) {
               message.metadata.completedSteps = [];
@@ -415,7 +387,6 @@ export const useAgentChatStore = defineStore('agentChat', {
               
               if (existingStepIndex === -1) {
                 message.metadata.completedSteps.push(stepData);
-                console.log(`✅ Added new step: ${currentStep} with message: ${displayMessage}`);
               }
               
               // Sort steps by index to ensure correct order
@@ -445,9 +416,6 @@ export const useAgentChatStore = defineStore('agentChat', {
               }
               
               progressContent = accumulatedContent;
-              console.log(`📝 Updated content:`, progressContent);
-              console.log(`📊 Current completedSteps array:`, message.metadata.completedSteps);
-              console.log(`📊 Total steps stored: ${message.metadata.completedSteps.length}/${totalSteps}`);
             }
             
             // Update workflow steps in metadata
@@ -564,21 +532,16 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Handle task completion - simplified version
      */
     async handleTaskCompletion(taskId: string) {
-      console.log('🚀 handleTaskCompletion called for task:', taskId);
       try {
         // Get the completed task with full response
-        console.log('📡 Fetching task data from backend...');
         const completedTask = await tasksService.getTask(taskId);
-        console.log('📦 Received task data:', completedTask);
         
         // Skip processing if task is not actually completed or has no response yet
         if (completedTask.status !== 'completed') {
-          console.log('⏳ Task not yet completed, skipping processing. Status:', completedTask.status);
           return;
         }
         
         if (!completedTask.response || completedTask.response === 'null' || completedTask.response.trim() === '') {
-          console.log('⏳ Task completed but no response data yet, skipping processing. Response:', completedTask.response);
           return;
         }
         
@@ -591,15 +554,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           // Update the existing placeholder message with final result instead of replacing
           const placeholderMessage = this.messages[placeholderIndex];
           
-          // Debug final state of accumulated steps
-          console.log('📊 FINAL STATE - Completed steps in message metadata:');
-          console.log('📊 completedSteps array:', placeholderMessage.metadata?.completedSteps);
-          console.log('📊 Current message content:', placeholderMessage.content);
-          
           // Extract the final deliverable - the actual requirements document
-          console.log('🔍 Task completion - full task object:', completedTask);
-          console.log('🔍 Task completion - raw result:', completedTask.result);
-          console.log('🔍 Task completion - response field:', completedTask.response);
           
           let finalContent = '';
           
@@ -608,25 +563,20 @@ export const useAgentChatStore = defineStore('agentChat', {
             // First try the response field directly - this might be the parsed Python JSON response
             try {
               const parsedResponse = typeof completedTask.response === 'string' ? JSON.parse(completedTask.response) : completedTask.response;
-              console.log('🔍 Parsed response object:', parsedResponse);
               
               if (parsedResponse.response) {
                 // This is the actual requirements document content from Python script
                 finalContent = String(parsedResponse.response);
-                console.log('🔍 Found document content in response.response:', finalContent.substring(0, 200) + '...');
               } else {
                 finalContent = String(completedTask.response);
-                console.log('🔍 Using raw response field:', finalContent);
               }
             } catch (error) {
               // If response isn't JSON, use it directly
               finalContent = String(completedTask.response);
-              console.log('🔍 Using response field as-is (not JSON):', finalContent);
             }
           } else if (completedTask.result) {
             try {
               const parsedResult = typeof completedTask.result === 'string' ? JSON.parse(completedTask.result) : completedTask.result;
-              console.log('🔍 Parsed result:', parsedResult);
               
               if (parsedResult.success && parsedResult.response) {
                 finalContent = String(parsedResult.response);
@@ -638,16 +588,12 @@ export const useAgentChatStore = defineStore('agentChat', {
                 finalContent = String(completedTask.result);
               }
             } catch (error) {
-              console.log('🔍 Failed to parse result, using raw:', error);
               finalContent = String(completedTask.result);
             }
           }
           
-          console.log('🔍 Final content to display:', finalContent);
-          
           if (!finalContent || finalContent.trim() === '') {
             finalContent = 'No requirements document was generated. Please check the logs for more details.';
-            console.warn('⚠️ No final content found in task result');
           }
           
           // Clean up the existing content and append final deliverable
@@ -676,7 +622,6 @@ export const useAgentChatStore = defineStore('agentChat', {
         websocketService.unsubscribeFromTask(taskId);
         
       } catch (error) {
-        console.error('Error handling task completion:', error);
         this.error = error instanceof Error ? error.message : 'Failed to load task result';
       }
     },
@@ -685,7 +630,6 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Handle workflow step updates - accumulating version
      */
     handleWorkflowStepUpdate(taskId: string, stepEvent: any) {
-      console.log(`🔧 Workflow step event received:`, stepEvent);
       
       const messageIndex = this.messages.findIndex(msg => 
         msg.taskId === taskId && msg.role === 'assistant'
@@ -720,7 +664,6 @@ export const useAgentChatStore = defineStore('agentChat', {
           
           if (existingStepIndex === -1) {
             message.metadata.completedSteps.push(stepData);
-            console.log(`✅ Added completed step: ${stepEvent.stepName} with message: ${displayMessage}`);
           }
           
           // Sort steps by index to ensure correct order
@@ -750,8 +693,6 @@ export const useAgentChatStore = defineStore('agentChat', {
           }
           
           message.content = accumulatedContent;
-          console.log(`📝 Updated workflow content:`, accumulatedContent);
-          console.log(`📊 Current completedSteps: ${message.metadata.completedSteps.length}/${stepEvent.totalSteps}`);
         }
         
         // Keep the old workflow_steps_realtime for compatibility
