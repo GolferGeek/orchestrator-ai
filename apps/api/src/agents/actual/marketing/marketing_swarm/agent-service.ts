@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { FunctionAgentBaseService } from '@agents/base/implementations/base-services/function/function-agent-base.service';
+import { FunctionAgentBaseService } from '@agents/base/implementations/base-services/function';
 import { LLMService } from '@/llms/llm.service';
 
 @Injectable()
