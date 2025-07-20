@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { A2AAgentBaseService } from '../a2a-base/a2a-agent-base.service';
+import { A2AAgentBaseService } from '../../a2a-base/a2a-agent-base.service';
 import { LLMService } from '@/llms/llm.service';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
@@ -10,7 +10,7 @@ import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-proto
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
-import { AgentFunctionParams } from '../a2a-base/interfaces';
+import { AgentFunctionParams } from '../../a2a-base/interfaces';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 

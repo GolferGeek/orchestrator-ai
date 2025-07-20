@@ -1,6 +1,6 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { PythonFunctionAgentBaseService } from '@agents/base/implementations/base-services/function/python-function-agent-base.service';
+import { PythonFunctionAgentBaseService } from '@agents/base/implementations/base-services/function';
 import { LLMService } from '../../../../llms/llm.service';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
