@@ -11,6 +11,7 @@ import { JsonRpcProtocolService } from '../../../sub-services/json-rpc-protocol/
 import { LoggingService } from '../../../sub-services/logging/logging.service';
 import { AuthService } from '../../../sub-services/auth/auth.service';
 import { ConfigurationService } from '../../../sub-services/configuration/configuration.service';
+import { AgentType } from '@/common/types/agent-conversations.types';
 
 // Mock implementation of ApiAgentBaseService for testing
 class TestApiAgentBaseService extends ApiAgentBaseService {
@@ -18,7 +19,7 @@ class TestApiAgentBaseService extends ApiAgentBaseService {
     return 'test-api-agent';
   }
 
-  getAgentType(): 'orchestrator' | 'specialist' | 'manager' | 'external' {
+  getAgentType(): AgentType {
     return 'specialist';
   }
 }
