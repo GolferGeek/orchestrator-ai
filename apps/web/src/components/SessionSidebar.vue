@@ -339,8 +339,8 @@ const toggleAgentsSection = () => {
 // Agent event handlers
 const handleConversationSelected = async (conversation: any) => {
   try {
-    // Load the conversation in the agent chat store and wait for it to complete
-    await agentChatStore.loadConversation(conversation.id);
+    // Open the existing conversation in a new tab
+    await agentChatStore.openExistingConversation(conversation.id);
     
     // Emit event to parent (HomePage) to switch to agent conversation view
     emit('agent-conversation-selected', conversation);
