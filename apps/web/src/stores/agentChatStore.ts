@@ -76,7 +76,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       this.messages.push({
         id: `welcome-${Date.now()}`,
         role: 'assistant',
-        content: `Hello! I'm ${formatAgentName(agent.name)}. How can I help you today?`,
+        content: `Hello! I'm the ${formatAgentName(agent.name)}. How can I help you today?`,
         timestamp: new Date(),
         metadata: { isWelcome: true }
       });
