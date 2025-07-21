@@ -5,7 +5,7 @@
       <div class="agent-info">
         <ion-icon :icon="getAgentIcon()" :color="getAgentColor()" />
         <div class="agent-details">
-          <h3>{{ agentChatStore.currentAgent?.name }}</h3>
+          <h3>{{ formatAgentName(agentChatStore.currentAgent?.name || '') }}</h3>
           <p v-if="agentChatStore.currentAgent?.description">
             {{ agentChatStore.currentAgent.description }}
           </p>
@@ -73,7 +73,7 @@
     <!-- Typing Indicator -->
     <div v-if="agentChatStore.isSendingMessage" class="typing-indicator">
       <ion-spinner size="small" />
-      <span>{{ agentChatStore.currentAgent?.name }} is thinking...</span>
+      <span>{{ formatAgentName(agentChatStore.currentAgent?.name || '') }} is thinking...</span>
     </div>
   </div>
 </template>
@@ -106,6 +106,7 @@ import {
   scaleOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import { formatAgentName } from '@/utils/caseConverter';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';

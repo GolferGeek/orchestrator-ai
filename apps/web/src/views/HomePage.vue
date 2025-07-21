@@ -96,6 +96,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useMessagesStore } from '@/stores/messagesStore';
+import { formatAgentName } from '@/utils/caseConverter';
 import { useRouter } from 'vue-router';
 // Removed obsolete import
 import { storeToRefs } from 'pinia';
@@ -144,7 +145,7 @@ const currentSessionName = computed(() => {
 
 const pageTitle = computed(() => {
   if (agentChatStore.hasCurrentAgent) {
-    return `Agent Chat - ${agentChatStore.currentAgent?.name}`;
+    return `Agent Chat - ${formatAgentName(agentChatStore.currentAgent?.name || '')}`;
   }
   return currentSessionName.value || 'Orchestrator AI';
 });

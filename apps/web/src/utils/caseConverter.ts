@@ -32,3 +32,8 @@ export function convertAPIResponseToFrontend(response: any): any {
   // API now returns camelCase, so return as-is
   return response;
 }
+
+// Format agent names from snake_case to Title Case for display
+export function formatAgentName(name: string): string {
+  return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}

@@ -10,7 +10,7 @@
       <ion-list v-else lines="inset">
         <ion-item v-for="agent in agents" :key="agent.id" class="agent-item">
           <ion-label>
-            <h2>{{ agent.name }}</h2>
+            <h2>{{ formatAgentName(agent.name) }}</h2>
             <p>{{ agent.description }}</p>
           </ion-label>
           <!-- Could add buttons here for more info or direct interaction later -->
@@ -23,6 +23,7 @@
 <script setup lang="ts">
 import { defineProps, PropType } from 'vue';
 import { AgentInfo } from '../types/chat';
+import { formatAgentName } from '@/utils/caseConverter';
 import { IonList, IonItem, IonLabel, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/vue';
 
 defineProps({

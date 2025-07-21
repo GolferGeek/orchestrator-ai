@@ -15,7 +15,9 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "format": "turbo run format",
-    "kill:4100": "lsof -ti:4100 | xargs kill -9 2>/dev/null || echo 'No process found on port 4100'"
+    "kill:4000": "lsof -ti:4000 | xargs kill -9 2>/dev/null || echo 'No process found on port 4000'",
+    "kill:4100": "lsof -ti:4100 | xargs kill -9 2>/dev/null || echo 'No process found on port 4100'",
+    "kill:api": "npm run kill:4000"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

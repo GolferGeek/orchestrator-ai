@@ -43,17 +43,18 @@
           :key="agentType.type"
           :value="agentType.type"
         >
-          <ion-item slot="header">
+          <ion-item slot="header" class="organization-header">
             <ion-icon
               :icon="getAgentTypeIcon(agentType.type)"
               slot="start"
               :color="getAgentTypeColor(agentType.type)"
+              class="organization-icon"
             />
             <ion-label>
-              <h3>{{ formatAgentTypeName(agentType.type) }}</h3>
-              <p>{{ agentType.agents.length }} agents</p>
+              <h3 class="organization-title">{{ formatAgentTypeName(agentType.type) }}</h3>
+              <p class="organization-subtitle">{{ agentType.agents.length }} specialist{{ agentType.agents.length !== 1 ? 's' : '' }}</p>
             </ion-label>
-            <ion-badge slot="end" :color="getAgentTypeColor(agentType.type)">
+            <ion-badge slot="end" :color="getAgentTypeColor(agentType.type)" class="conversation-count">
               {{ agentType.totalConversations }}
             </ion-badge>
           </ion-item>
@@ -67,19 +68,27 @@
                 :value="`${agent.type}-${agent.name}`"
               >
                 <ion-item slot="header" class="agent-header">
-                  <!-- Clean agent name display without icons or descriptions -->
+                  <!-- Agent icon to indicate it's a functional specialist -->
+                  <ion-icon 
+                    :icon="personOutline" 
+                    slot="start" 
+                    class="agent-specialist-icon"
+                    color="medium"
+                  />
                   <ion-label>
-                    <h3>{{ formatAgentName(agent.name) }}</h3>
+                    <h3 class="agent-name">{{ formatAgentName(agent.name) }}</h3>
+                    <p class="agent-subtitle">AI Specialist</p>
                   </ion-label>
                   <div slot="end" class="agent-badges">
                     <ion-badge
                       v-if="agent.activeConversations > 0"
                       color="success"
-                      class="compact-badge"
+                      class="compact-badge active-badge"
+                      title="Active conversations"
                     >
                       {{ agent.activeConversations }}
                     </ion-badge>
-                    <ion-badge color="medium" class="compact-badge">
+                    <ion-badge color="medium" class="compact-badge total-badge" title="Total conversations">
                       {{ agent.totalConversations }}
                     </ion-badge>
                   </div>
@@ -91,11 +100,11 @@
                     <ion-button 
                       fill="clear" 
                       size="small"
-                      @click="createNewConversation(agent)"
+                      @click.stop="createNewConversation(agent)"
                       class="start-conversation-btn"
                     >
                       <ion-icon :icon="addOutline" slot="start" />
-                      Start {{ getConversationLabel(agent) }}
+                      New {{ getConversationLabel(agent) }}
                     </ion-button>
                   </div>
                   
@@ -112,7 +121,7 @@
                     :key="conversation.id"
                     class="conversation-item"
                     :class="{ 'selected': selectedConversation?.id === conversation.id }"
-                    @click="selectConversation(conversation)"
+                    @click.stop="selectConversation(conversation)"
                   >
                     <div class="conversation-header">
                       <div class="conversation-info">
@@ -204,6 +213,7 @@ import {
   scaleOutline,
 } from 'ionicons/icons';
 import { agentConversationsService } from '@/services/agentConversationsService';
+import { formatAgentName } from '@/utils/caseConverter';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
 import { websocketService } from '@/services/websocketService';
@@ -245,7 +255,7 @@ const props = defineProps<{
 
 // Reactive state
 const searchQuery = ref('');
-const expandedGroups = ref(['orchestrator', 'marketing', 'sales', 'operations']);
+const expandedGroups = ref<string[]>([]); // Start with all accordions closed
 const selectedConversation = ref<Conversation | null>(null);
 // showTaskModal removed - conversations now load in main window
 
@@ -322,6 +332,8 @@ const selectConversation = (conversation: Conversation) => {
 
 const createNewConversation = async (agent: Agent) => {
   try {
+    // No automatic accordion manipulation - let user control accordions manually
+    
     // With lazy conversation creation, we don't create conversations upfront
     // Instead, emit an event for the parent to handle (e.g., open chat interface)
     // The conversation will be created when the first task is sent
@@ -361,9 +373,6 @@ const endConversation = async (conversation: Conversation) => {
 // handleTaskAction removed - no longer needed without modal
 
 // Utility functions
-const formatAgentName = (name: string) => {
-  return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-};
 
 const getConversationLabel = (agent: Agent) => {
   return agent.type === 'orchestrator' ? 'Session' : 'Conversation';
@@ -521,6 +530,66 @@ watch(() => websocketService.connected.value, (connected) => {
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+/* Organization Level Styling */
+.organization-header {
+  --background: var(--ion-color-step-25);
+  border-bottom: 1px solid var(--ion-color-step-100);
+}
+
+.organization-icon {
+  font-size: 1.2em;
+  margin-right: 4px;
+}
+
+.organization-title {
+  font-weight: 600;
+  font-size: 1.1em;
+  margin-bottom: 2px;
+}
+
+.organization-subtitle {
+  font-size: 0.85em;
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.conversation-count {
+  font-weight: 600;
+}
+
+/* Agent/Specialist Level Styling */
+.agent-header {
+  --background: var(--ion-color-step-50);
+  --padding-start: 20px;
+}
+
+.agent-specialist-icon {
+  font-size: 1em;
+  margin-right: 8px;
+}
+
+.agent-name {
+  font-weight: 500;
+  font-size: 1em;
+  margin-bottom: 2px;
+}
+
+.agent-subtitle {
+  font-size: 0.8em;
+  color: var(--ion-color-medium);
+  margin: 0;
+  font-style: italic;
+}
+
+.active-badge {
+  background: var(--ion-color-success);
+  margin-right: 4px;
+}
+
+.total-badge {
+  background: var(--ion-color-medium);
 }
 
 .tree-header {
