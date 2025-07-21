@@ -18,7 +18,7 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
   ) {
-    super(httpService, llmService, taskProgressGateway, tasksService, taskStatusService);
+    super(httpService, llmService, taskProgressGateway, tasksService, taskStatusService, undefined, undefined, undefined, undefined, undefined);
     // Python script path will be set by AgentDiscoveryService during discovery
   }
 
