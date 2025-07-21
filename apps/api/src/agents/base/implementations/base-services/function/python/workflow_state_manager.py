@@ -92,12 +92,12 @@ class RequirementsWriterState(WorkflowState):
     def __init__(self, initial_data: Dict[str, Any]):
         super().__init__(initial_data)
         
-        # Requirements-specific state
-        self.analysis: Dict[str, Any] = {}
-        self.document_type: str = ''
-        self.features: List[str] = []
-        self.complexity: str = 'medium'
-        self.document_content: str = ''
+        # Requirements-specific state - load from initial_data if available
+        self.analysis: Dict[str, Any] = initial_data.get('analysis', {})
+        self.document_type: str = initial_data.get('document_type', '')
+        self.features: List[str] = initial_data.get('features', [])
+        self.complexity: str = initial_data.get('complexity', 'medium')
+        self.document_content: str = initial_data.get('document_content', '')
         
         # Progress tracking
         self.total_steps = 6  # Updated for streamlined workflow

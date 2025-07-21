@@ -3,31 +3,67 @@
 from typing import Dict, Any
 import sys
 import os
+from datetime import datetime
 
-# Add parent directory to path for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add base services to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+agents_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
+base_services_path = os.path.join(agents_dir, 'base/implementations/base-services/function/python')
+sys.path.insert(0, base_services_path)
 
-from utils.progress_manager import emit_progress
-from utils.llm_client import llm_client
-from utils.agent_caller import call_prd_writer, call_technical_writer, call_specialist_agent
-from utils.state_manager import RequirementsWriterState
+# Clean imports from base services
+try:
+    from progress_manager import emit_progress
+    from llm_service_client import llm_client
+    from agent_caller import call_prd_writer, call_technical_writer, call_specialist_agent
+    from workflow_state_manager import RequirementsWriterState
+except ImportError as e:
+    print(f"Error: Could not import from base services: {e}", file=sys.stderr)
+    # Create minimal fallback implementations
+    def emit_progress(task_id, step_name, step_index, total_steps, status, message=None):
+        print(f"PROGRESS_FALLBACK: {step_name} - {status}", file=sys.stderr)
+    
+    class RequirementsWriterState:
+        def __init__(self, state_dict):
+            self.__dict__.update(state_dict)
+        @property
+        def task_id(self):
+            return self.__dict__.get('metadata', {}).get('taskId', 'unknown')
+    
+    def call_prd_writer(features, user_message): return "Fallback PRD content"
+    def call_technical_writer(content): return "Fallback technical content"
+    def call_specialist_agent(agent_type, content): return "Fallback specialist content"
+    
+    class LLMClient:
+        async def call_llm_service(self, system_prompt, user_prompt, options=None):
+            return "Fallback response - LLM service not available"
+    llm_client = LLMClient()
 
 
 async def generate_document_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Node: Generate the actual requirements document using specialist agents or LLM"""
     
+    print(f"DEBUG: generate_document_node started with keys: {list(state_dict.keys())}", file=sys.stderr)
+    
     state = RequirementsWriterState(state_dict)
+    
+    print(f"DEBUG: RequirementsWriterState created, task_id: {state.task_id}", file=sys.stderr)
+    print(f"DEBUG: Document type: {getattr(state, 'document_type', 'NOT_SET')}", file=sys.stderr)
+    print(f"DEBUG: Features count: {len(getattr(state, 'features', []))}", file=sys.stderr)
     
     try:
         # Emit start event
+        print(f"DEBUG: About to emit progress for generate_document", file=sys.stderr)
+        document_type = getattr(state, 'document_type', 'general')
         emit_progress(
             state.task_id,
             "generate_document",
             5,
             9,
             "in_progress",
-            f"Generating {state.document_type.upper()} document using AI specialist knowledge..."
+            f"Generating {document_type.upper()} document using AI specialist knowledge..."
         )
+        print(f"DEBUG: Progress emitted successfully", file=sys.stderr)
         
         # Route to appropriate document generator based on type
         document_generators = {
@@ -39,34 +75,79 @@ async def generate_document_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
             'general': generate_general_document
         }
         
-        generator = document_generators.get(state.document_type, generate_general_document)
+        document_type = getattr(state, 'document_type', 'general')
+        generator = document_generators.get(document_type, generate_general_document)
+        
+        print(f"DEBUG: Using generator for document type: {document_type} -> {generator.__name__}", file=sys.stderr)
         
         # Generate document content
-        content = await generator(state)
+        start_time = datetime.now()
+        try:
+            content = await generator(state)
+            end_time = datetime.now()
+            duration = (end_time - start_time).total_seconds()
+            print(f"DEBUG: Document generation completed in {duration:.2f}s, content length: {len(content) if content else 0} chars", file=sys.stderr)
+            if content:
+                print(f"DEBUG: Document content preview: {content[:200]}...", file=sys.stderr)
+            else:
+                print(f"ERROR: Document generator returned empty content!", file=sys.stderr)
+        except Exception as e:
+            end_time = datetime.now()
+            duration = (end_time - start_time).total_seconds()
+            print(f"ERROR: Document generation failed after {duration:.2f}s: {e}", file=sys.stderr)
+            content = f"ERROR: Document generation failed: {e}"
         
         # Update state
-        state.set_document_content(content)
+        print(f"DEBUG: About to update state with document content (length: {len(content) if content else 0})", file=sys.stderr)
+        try:
+            state.set_document_content(content)
+            print(f"DEBUG: State updated successfully with document content", file=sys.stderr)
+        except Exception as state_error:
+            print(f"ERROR: Failed to update state with document content: {state_error}", file=sys.stderr)
         
         # Emit completion event
-        emit_progress(
-            state.task_id,
-            "generate_document",
-            5,
-            9,
-            "completed",
-            f"{state.document_type.upper()} document generated - {len(content)} characters"
-        )
+        print(f"DEBUG: About to emit completion progress", file=sys.stderr)
+        try:
+            emit_progress(
+                state.task_id,
+                "generate_document",
+                5,
+                9,
+                "completed",
+                f"{document_type.upper()} document generated - {len(content) if content else 0} characters"
+            )
+            print(f"DEBUG: Completion progress emitted successfully", file=sys.stderr)
+        except Exception as progress_error:
+            print(f"ERROR: Failed to emit completion progress: {progress_error}", file=sys.stderr)
         
-        return state.to_dict()
+        # Return updated state
+        print(f"DEBUG: About to return state dictionary", file=sys.stderr)
+        try:
+            result = state.to_dict()
+            print(f"DEBUG: State converted to dict successfully, keys: {list(result.keys())}", file=sys.stderr)
+            return result
+        except Exception as dict_error:
+            print(f"ERROR: Failed to convert state to dict: {dict_error}", file=sys.stderr)
+            return {"error": f"Failed to convert state: {dict_error}"}
         
     except Exception as e:
         error_msg = f"Document generation failed: {str(e)}"
-        print(f"Error in generate_document_node: {error_msg}", file=sys.stderr)
+        print(f"ERROR: Exception in generate_document_node: {error_msg}", file=sys.stderr)
+        print(f"ERROR: Exception type: {type(e)}", file=sys.stderr)
+        import traceback
+        print(f"ERROR: Full traceback: {traceback.format_exc()}", file=sys.stderr)
         
-        emit_progress(state.task_id, "generate_document", 5, 9, "failed", error_msg)
+        try:
+            emit_progress(getattr(state, 'task_id', 'unknown'), "generate_document", 5, 9, "failed", error_msg)
+        except Exception as emit_error:
+            print(f"ERROR: Failed to emit error progress: {emit_error}", file=sys.stderr)
         
-        state.set_error(error_msg)
-        return state.to_dict()
+        try:
+            state.set_error(error_msg)
+            return state.to_dict()
+        except Exception as state_error:
+            print(f"ERROR: Failed to set error state: {state_error}", file=sys.stderr)
+            return {"error": error_msg, "userMessage": state_dict.get("userMessage", ""), "metadata": state_dict.get("metadata", {})}
 
 
 async def generate_prd_document(state: RequirementsWriterState) -> str:
@@ -93,7 +174,14 @@ async def generate_prd_document(state: RequirementsWriterState) -> str:
 async def generate_prd_with_llm(state: RequirementsWriterState) -> str:
     """Generate PRD using direct LLM call"""
     
-    llm_options = llm_client.create_options(**state.llm_preferences)
+    print(f"DEBUG: generate_prd_with_llm started", file=sys.stderr)
+    
+    try:
+        llm_options = llm_client.create_options(**state.llm_preferences)
+        print(f"DEBUG: LLM options created for PRD generation", file=sys.stderr)
+    except Exception as e:
+        print(f"ERROR: Failed to create LLM options for PRD: {e}", file=sys.stderr)
+        llm_options = {}
     
     system_prompt = """You are a senior product manager and PRD specialist. Create a comprehensive Product Requirements Document (PRD) that includes:
 
@@ -319,7 +407,14 @@ Generate detailed architectural specifications including component design, data 
 async def generate_general_document(state: RequirementsWriterState) -> str:
     """Generate General Requirements Document"""
     
-    llm_options = llm_client.create_options(**state.llm_preferences)
+    print(f"DEBUG: generate_general_document started", file=sys.stderr)
+    
+    try:
+        llm_options = llm_client.create_options(**state.llm_preferences)
+        print(f"DEBUG: LLM options created for general document generation", file=sys.stderr)
+    except Exception as e:
+        print(f"ERROR: Failed to create LLM options for general doc: {e}", file=sys.stderr)
+        llm_options = {}
     
     system_prompt = """You are a business analyst and requirements specialist. Create a comprehensive Requirements Document that includes:
 

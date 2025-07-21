@@ -264,7 +264,6 @@ const handleSendMessage = async (text: string) => {
                                   taskResponse.metadata.respondingAgentName;
       }
     }
-    }
 
     const agentMessageOrder = (currentSessionMessages.value.length > 0 
           ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1 

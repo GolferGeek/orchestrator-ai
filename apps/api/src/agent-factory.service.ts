@@ -75,22 +75,30 @@ export class AgentFactoryService {
 
     try {
       // Load agent configuration from YAML
+      this.logger.debug(`📋 Step 1: Loading config for ${discoveredAgent.name}`);
       const config = await this.loadAgentConfig(discoveredAgent);
+      this.logger.debug(`📋 Config loaded - type: ${config.type}, name: ${config.name}`);
 
       // Import the service class
+      this.logger.debug(`📦 Step 2: Importing service class for ${discoveredAgent.name}`);
       const ServiceClass = await this.importServiceClass(discoveredAgent);
       if (!ServiceClass) {
         throw new Error(`No service class found for ${discoveredAgent.name}`);
       }
+      this.logger.debug(`📦 Service class imported: ${ServiceClass.name}`);
 
       // Store the service class on the discovered agent
       discoveredAgent.serviceClass = ServiceClass;
 
       // Create instance based on agent type
+      this.logger.debug(`🏗️ Step 3: Instantiating agent ${discoveredAgent.name} as type: ${config.type}`);
       const serviceInstance = await this.instantiateAgent(ServiceClass, config);
+      this.logger.debug(`🏗️ Agent instance created successfully`);
 
       // Set discovered path and initialize
+      this.logger.debug(`🔧 Step 4: Initializing agent ${discoveredAgent.name}`);
       await this.initializeAgent(serviceInstance, discoveredAgent, config);
+      this.logger.debug(`🔧 Agent initialization completed`);
 
       // Store the instance
       discoveredAgent.serviceInstance = serviceInstance;
@@ -323,6 +331,11 @@ export class AgentFactoryService {
     config: AgentConfig,
   ): Promise<void> {
     const agentDirectory = path.dirname(discoveredAgent.servicePath);
+    
+    this.logger.debug(`🔧 Setting up functions for ${config.name}:`);
+    this.logger.debug(`   - Config type: ${config.type}`);
+    this.logger.debug(`   - Agent directory: ${agentDirectory}`);
+    this.logger.debug(`   - Service instance type: ${serviceInstance.constructor.name}`);
 
     if (config.type === 'function') {
       // Set up TypeScript function agent
@@ -367,6 +380,11 @@ export class AgentFactoryService {
     if (config.type === 'python-function') {
       // Set up Python function agent
       const pythonFunctionPath = path.join(agentDirectory, 'agent-function.py');
+      
+      this.logger.debug(`🔍 Checking Python function for ${config.name}:`);
+      this.logger.debug(`   - Expected path: ${pythonFunctionPath}`);
+      this.logger.debug(`   - File exists: ${fs.existsSync(pythonFunctionPath)}`);
+      this.logger.debug(`   - Agent directory: ${agentDirectory}`);
 
       if (fs.existsSync(pythonFunctionPath)) {
         serviceInstance.setPythonScriptPath(pythonFunctionPath);
