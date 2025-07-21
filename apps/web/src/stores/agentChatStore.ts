@@ -532,10 +532,31 @@ export const useAgentChatStore = defineStore('agentChat', {
               if (parsedResponse.success && parsedResponse.response) {
                 responseContent = String(parsedResponse.response); // Ensure it's a string
                 responseMetadata = { ...responseMetadata, ...parsedResponse.metadata };
+                console.log('📄 Parsed response content:', responseContent.substring(0, 200) + '...');
+                
+                // Check if this is a completed workflow response with embedded progress steps
+                // If so, extract just the final deliverable content
+                if (responseContent.includes('**📋 Requirements Document:**')) {
+                  const docSectionMatch = responseContent.match(/\*\*📋 Requirements Document:\*\*\n\n([\s\S]*)/);
+                  if (docSectionMatch && docSectionMatch[1]) {
+                    responseContent = docSectionMatch[1].trim();
+                    console.log('📋 Extracted requirements document content:', responseContent.substring(0, 200) + '...');
+                  }
+                }
               }
             } catch (error) {
               // If parsing fails, use the raw response
               responseContent = String(task.response);
+              console.log('📄 Raw response content:', responseContent.substring(0, 200) + '...');
+              
+              // Also check raw content for embedded document
+              if (responseContent.includes('**📋 Requirements Document:**')) {
+                const docSectionMatch = responseContent.match(/\*\*📋 Requirements Document:\*\*\n\n([\s\S]*)/);
+                if (docSectionMatch && docSectionMatch[1]) {
+                  responseContent = docSectionMatch[1].trim();
+                  console.log('📋 Extracted requirements document from raw content:', responseContent.substring(0, 200) + '...');
+                }
+              }
             }
 
             this.messages.push({
