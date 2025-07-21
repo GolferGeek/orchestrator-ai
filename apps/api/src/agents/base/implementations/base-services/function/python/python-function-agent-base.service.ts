@@ -61,9 +61,13 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
    */
   setPythonScriptPath(scriptPath: string): void {
     this.pythonScriptPath = scriptPath;
+    const exists = fs.existsSync(scriptPath);
     this.pythonLogger.debug(
-      `Python script path set for ${this.getAgentName()}: ${scriptPath}`,
+      `🐍 Python script path set for ${this.getAgentName()}: ${scriptPath} (exists: ${exists})`,
     );
+    if (!exists) {
+      this.pythonLogger.error(`❌ Python script file does not exist: ${scriptPath}`);
+    }
   }
 
   /**
@@ -94,13 +98,20 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
     }
 
     try {
+      this.pythonLogger.debug(`🔍 executeTask called for ${agentName}:`);
+      this.pythonLogger.debug(`   - pythonScriptPath: ${this.pythonScriptPath}`);
+      this.pythonLogger.debug(`   - file exists: ${this.pythonScriptPath ? fs.existsSync(this.pythonScriptPath) : 'N/A'}`);
+      
       // If no Python script path, fall back to context processing
       if (!this.pythonScriptPath || !fs.existsSync(this.pythonScriptPath)) {
         this.pythonLogger.debug(
-          `No Python script for ${agentName}, using context fallback`,
+          `❌ No Python script for ${agentName}, using context fallback`,
         );
         return this.processWithContext(method, params);
       }
+      
+      this.pythonLogger.debug(`✅ Python script found, proceeding with execution`);
+      
 
       // Prepare standardized parameters for the Python script
       // Note: Python scripts use API calls, so we pass user preferences in metadata

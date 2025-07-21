@@ -3,14 +3,44 @@
 import requests
 import json
 import sys
+import os
 from typing import Dict, Any, Optional
+
+# Load environment variables from .env file
+def load_env_file():
+    """Load environment variables from .env file"""
+    try:
+        # Try to find .env file starting from current directory up to root
+        current_dir = os.getcwd()
+        for i in range(5):  # Search up to 5 levels up
+            env_path = os.path.join(current_dir, '.env')
+            if os.path.exists(env_path):
+                with open(env_path, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            os.environ.setdefault(key, value)
+                break
+            current_dir = os.path.dirname(current_dir)
+    except Exception as e:
+        print(f"Warning: Could not load .env file: {e}", file=sys.stderr)
+
+# Load environment on import
+load_env_file()
 
 
 class LLMServiceClient:
     """Client for making HTTP calls to the NestJS LLM service"""
     
-    def __init__(self, api_url: str = "http://localhost:3000/api/llm"):
-        self.api_url = api_url
+    def __init__(self, api_url: str = None):
+        if api_url is None:
+            # Read from environment variables
+            base_url = os.getenv('AGENT_BASE_URL', 'http://localhost')
+            api_port = os.getenv('API_PORT', '4000')
+            self.api_url = f"{base_url}:{api_port}/llm"
+        else:
+            self.api_url = api_url
     
     async def call_llm_service(
         self, 

@@ -40,11 +40,22 @@ export class AppService implements OnModuleInit {
 
       // Step 2: Create agent instances using factory
       this.logger.log('🏭 Step 2: Creating agent instances...');
+      this.logger.debug(`📋 Discovered agents list:`);
+      this.discoveredAgents.forEach((agent, index) => {
+        this.logger.debug(`   ${index + 1}. ${agent.name} (type: ${agent.type}, path: ${agent.path})`);
+      });
+      
       this.agentInstances = [];
 
       for (const discoveredAgent of this.discoveredAgents) {
         try {
-          this.logger.debug(`🔧 Creating agent: ${discoveredAgent.name}`);
+          this.logger.debug(`🔧 Processing discovered agent: ${discoveredAgent.name}`);
+          this.logger.debug(`   - Agent type: ${discoveredAgent.type}`);
+          this.logger.debug(`   - Agent path: ${discoveredAgent.path}`);
+          this.logger.debug(`   - Service path: ${discoveredAgent.servicePath}`);
+          this.logger.debug(`   - Python function path: ${discoveredAgent.pythonFunctionPath || 'None'}`);
+          
+          this.logger.debug(`🔧 About to call createAgent for: ${discoveredAgent.name}`);
           const serviceInstance =
             await this.agentFactory.createAgent(discoveredAgent);
 
