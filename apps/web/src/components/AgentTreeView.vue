@@ -132,7 +132,7 @@
                 >
                   <div class="conversation-header">
                     <div class="conversation-info">
-                      <h4>{{ getConversationLabel(agent) }}</h4>
+                      <h4>{{ getConversationDisplayName(conversation) }}</h4>
                       <div class="conversation-meta">
                         <span class="conversation-time">
                           {{ formatTime(conversation.lastActiveAt) }}
@@ -402,6 +402,47 @@ const endConversation = async (conversation: Conversation) => {
 // handleTaskAction removed - no longer needed without modal
 
 // Utility functions
+
+const getConversationDisplayName = (conversation: Conversation) => {
+  const date = new Date(conversation.startedAt);
+  const now = new Date();
+  
+  // If it's today, show time only
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  }
+  
+  // If it's this week, show day and time
+  const daysDiff = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysDiff === 1) {
+    return `Yesterday ${date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    })}`;
+  }
+  
+  if (daysDiff < 7) {
+    return `${date.toLocaleDateString([], { weekday: 'short' })} ${date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    })}`;
+  }
+  
+  // For older conversations, show date and time
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+};
 
 const getConversationLabel = (agent: Agent) => {
   return agent.type === 'orchestrator' ? 'Session' : 'Conversation';
