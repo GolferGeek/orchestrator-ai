@@ -130,7 +130,7 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Get effective execution mode for display
      */
     getEffectiveExecutionMode(): 'immediate' | 'polling' | 'websocket' {
-      return this.currentExecutionMode || 'websocket'; // fallback to websocket
+      return this.currentExecutionMode || 'polling'; // fallback to polling
     },
 
     /**
@@ -329,6 +329,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           const taskStatus = await tasksService.getTaskStatus(taskId);
           
           if (taskStatus.status === 'completed' || taskStatus.status === 'failed') {
+            console.log(`🏁 Task ${taskId} completed with status: ${taskStatus.status}, stopping polling`);
             clearInterval(pollInterval);
             this.handleTaskCompletion(taskId);
             return;
@@ -336,6 +337,7 @@ export const useAgentChatStore = defineStore('agentChat', {
 
           // Get accumulated messages for progress updates
           const messages = await tasksService.getTaskMessages(taskId);
+          console.log(`📊 Polling task ${taskId}: ${messages.length} total messages (${lastMessageCount} seen before)`);
           
           // Process new messages since last poll
           if (messages.length > lastMessageCount) {
