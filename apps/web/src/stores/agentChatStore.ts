@@ -529,19 +529,33 @@ export const useAgentChatStore = defineStore('agentChat', {
             try {
               // A2A protocol agents return JSON with { success, response, metadata }
               const parsedResponse = typeof task.response === 'string' ? JSON.parse(task.response) : task.response;
+              
+              // Handle different JSON response formats
               if (parsedResponse.success && parsedResponse.response) {
-                responseContent = String(parsedResponse.response); // Ensure it's a string
+                // Format: {success: true, response: "content", metadata: {}}
+                responseContent = String(parsedResponse.response);
                 responseMetadata = { ...responseMetadata, ...parsedResponse.metadata };
-                console.log('📄 Parsed response content:', responseContent.substring(0, 200) + '...');
-                
-                // Check if this is a completed workflow response with embedded progress steps
-                // If so, extract just the final deliverable content
-                if (responseContent.includes('**📋 Requirements Document:**')) {
-                  const docSectionMatch = responseContent.match(/\*\*📋 Requirements Document:\*\*\n\n([\s\S]*)/);
-                  if (docSectionMatch && docSectionMatch[1]) {
-                    responseContent = docSectionMatch[1].trim();
-                    console.log('📋 Extracted requirements document content:', responseContent.substring(0, 200) + '...');
-                  }
+              } else if (parsedResponse.response && typeof parsedResponse.response === 'string') {
+                // Format: {response: "content"} - This is what we're seeing in the screenshot
+                // Extract the markdown content directly from the response field
+                responseContent = parsedResponse.response;
+                responseMetadata = { ...responseMetadata };
+              } else if (typeof parsedResponse === 'string') {
+                // If the parsed response is itself a string, use it directly
+                responseContent = parsedResponse;
+              } else {
+                // Fallback to the stringified parsed response
+                responseContent = JSON.stringify(parsedResponse, null, 2);
+              }
+              
+              console.log('📄 Parsed response content:', responseContent.substring(0, 200) + '...');
+              
+              // Check if this is a completed workflow response with embedded progress steps
+              if (responseContent.includes('**📋 Requirements Document:**')) {
+                const docSectionMatch = responseContent.match(/\*\*📋 Requirements Document:\*\*\n\n([\s\S]*)/);
+                if (docSectionMatch && docSectionMatch[1]) {
+                  responseContent = docSectionMatch[1].trim();
+                  console.log('📋 Extracted requirements document content:', responseContent.substring(0, 200) + '...');
                 }
               }
             } catch (error) {
@@ -555,6 +569,33 @@ export const useAgentChatStore = defineStore('agentChat', {
                 if (docSectionMatch && docSectionMatch[1]) {
                   responseContent = docSectionMatch[1].trim();
                   console.log('📋 Extracted requirements document from raw content:', responseContent.substring(0, 200) + '...');
+                }
+              }
+              
+              // Also check if raw content has JSON data with the document
+              if (responseContent.includes('"response":') && (responseContent.includes('# Technical Requirements Document') || responseContent.includes('# '))) {
+                try {
+                  // Try to extract the response field from JSON string
+                  const jsonMatch = responseContent.match(/\{"response":"([^"]*(?:\\.[^"]*)*?)"\}/);
+                  if (jsonMatch && jsonMatch[1]) {
+                    let extractedContent = jsonMatch[1];
+                    // Unescape JSON string
+                    extractedContent = extractedContent
+                      .replace(/\\n/g, '\n')
+                      .replace(/\\"/g, '"')
+                      .replace(/\\\\/g, '\\');
+                    responseContent = extractedContent.trim();
+                    console.log('🔧 Extracted content from raw JSON response:', responseContent.substring(0, 200) + '...');
+                  } else {
+                    // Fallback: try to find markdown content directly
+                    const markdownMatch = responseContent.match(/(# [^\n]*[\s\S]*?)(?="|\}|$)/);
+                    if (markdownMatch && markdownMatch[1]) {
+                      responseContent = markdownMatch[1].trim();
+                      console.log('🔧 Extracted markdown from raw response:', responseContent.substring(0, 200) + '...');
+                    }
+                  }
+                } catch (error) {
+                  console.warn('Failed to extract content from raw JSON response:', error);
                 }
               }
             }
