@@ -4,6 +4,7 @@ import { PythonFunctionAgentBaseService } from '@agents/base/implementations/bas
 import { LLMService } from '../../../../llms/llm.service';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
+import { TaskStatusService } from '@/tasks/task-status.service';
 
 @Injectable()
 export class RequirementsWriterService extends PythonFunctionAgentBaseService {
@@ -14,8 +15,10 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
     taskProgressGateway: TaskProgressGateway | undefined,
     @Inject(forwardRef(() => TasksService))
     tasksService: TasksService | undefined,
+    @Inject(forwardRef(() => TaskStatusService))
+    taskStatusService: TaskStatusService | undefined,
   ) {
-    super(httpService, llmService, taskProgressGateway, tasksService);
+    super(httpService, llmService, taskProgressGateway, tasksService, taskStatusService);
     // Python script path will be set by AgentDiscoveryService during discovery
   }
 

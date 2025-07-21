@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import {
   TaskLifecycleService,
@@ -16,6 +16,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { snakeToCamel } from '../utils/case-converter';
 import { TaskMessageService } from './task-message.service';
+import { TaskStatusService } from './task-status.service';
 import {
   MessageEmitter,
   TaskMessageEmitter,
@@ -31,6 +32,8 @@ export class TasksService {
     private readonly agentConversationsService: AgentConversationsService,
     private readonly eventEmitter: EventEmitter2,
     private readonly taskMessageService: TaskMessageService,
+    @Inject(forwardRef(() => TaskStatusService))
+    private readonly taskStatusService: TaskStatusService,
   ) {}
 
   /**
@@ -103,6 +106,20 @@ export class TasksService {
         params: { ...dto.params, taskId: data.id },
         timeout: (dto.timeoutSeconds || 300) * 1000, // Convert to milliseconds
       });
+
+      // Register task with TaskStatusService for live tracking
+      await this.taskStatusService.createTask(
+        data.id,
+        userId,
+        'long_running', // Default to long_running for async tasks
+        {
+          status: 'pending',
+          progress: 0,
+          progressMessage: 'Task created, waiting for execution...',
+        }
+      );
+
+      this.logger.debug(`Task ${data.id} registered with TaskStatusService`);
 
       // Emit task created event
       this.eventEmitter.emit('task.created', {
@@ -257,6 +274,17 @@ export class TasksService {
         throw new Error(`Failed to update task: ${error.message}`);
       }
 
+      // Sync with TaskStatusService for live tracking
+      await this.taskStatusService.updateTaskStatus(taskId, userId, {
+        status: updates.status as any,
+        progress: updates.progress,
+        progressMessage: updates.progressMessage,
+        result: updates.response ? (typeof updates.response === 'string' ? updates.response : JSON.stringify(updates.response)) : undefined,
+        error: updates.errorMessage,
+      });
+
+      this.logger.debug(`Task ${taskId} synced with TaskStatusService: ${updates.status}`);
+
       // Emit progress event
       if (updates.progress !== undefined || updates.progressMessage) {
         const progressEvent: TaskProgressEvent = {
@@ -310,6 +338,9 @@ export class TasksService {
         this.logger.error('Error updating task progress:', error);
         throw new Error(`Failed to update task progress: ${error.message}`);
       }
+
+      // We don't know the userId in this method, so we can't sync with TaskStatusService here
+      // Progress updates should go through the main updateTask method instead
 
       // Emit progress event
       const progressEvent: TaskProgressEvent = {

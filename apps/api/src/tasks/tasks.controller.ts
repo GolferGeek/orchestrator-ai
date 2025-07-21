@@ -205,6 +205,15 @@ export class TasksController {
   ) {
     this.logger.debug(`Getting messages for task ${taskId} for user ${currentUser.id}`);
 
+    // Use TaskStatusService for live messages first
+    const liveMessages = this.taskStatusService.getTaskMessages(taskId, currentUser.id);
+    if (liveMessages.length > 0) {
+      this.logger.debug(`Returning ${liveMessages.length} live messages for task ${taskId}`);
+      return liveMessages;
+    }
+    
+    // Fallback to database (for task recovery/hydration)
+    this.logger.debug(`No live messages found, checking database for task ${taskId}`);
     return this.tasksService.getTaskMessages(taskId, currentUser.id);
   }
 
