@@ -65,7 +65,6 @@
               :key="`agents-${agentType.type}`" 
               :multiple="true"
               class="nested-accordion-group"
-              v-model="getExpandedAgentsForType(agentType.type)"
             >
               <ion-accordion
                 v-for="agent in agentType.agents"
@@ -261,7 +260,6 @@ const props = defineProps<{
 // Reactive state
 const searchQuery = ref('');
 const expandedGroups = ref<string[]>([]); // Start with all accordions closed
-const expandedAgents = ref<Record<string, string[]>>({}); // Track expanded agents per organization
 const selectedConversation = ref<Conversation | null>(null);
 // showTaskModal removed - conversations now load in main window
 
@@ -336,13 +334,6 @@ const selectConversation = (conversation: Conversation) => {
   emit('conversation-selected', conversation);
 };
 
-// Helper method to get/create expanded agents array for a specific organization
-const getExpandedAgentsForType = (agentType: string) => {
-  if (!expandedAgents.value[agentType]) {
-    expandedAgents.value[agentType] = [];
-  }
-  return expandedAgents.value[agentType];
-};
 
 const createNewConversation = async (agent: Agent) => {
   try {
