@@ -11,6 +11,7 @@ import { ConfigurationService } from './agents/base/sub-services/configuration/c
 import { AgentRegistrationService } from './agents/base/sub-services/agent-registration/agent-registration.service';
 import { TaskProgressGateway } from './websocket/task-progress.gateway';
 import { TasksService } from './tasks/tasks.service';
+import { TaskStatusService } from './tasks/task-status.service';
 
 export interface DiscoveredAgent {
   name: string;
@@ -63,6 +64,7 @@ export class AgentFactoryService {
     private readonly agentRegistrationService: AgentRegistrationService,
     private readonly taskProgressGateway: TaskProgressGateway,
     private readonly tasksService: TasksService,
+    private readonly taskStatusService: TaskStatusService,
   ) {
     this.logger.log('🏭 AgentFactoryService initialized');
   }
@@ -238,7 +240,7 @@ export class AgentFactoryService {
 
         case 'python-function': {
           this.logger.debug(`🐍 Creating Python function agent`);
-          return new ServiceClass(this.httpService, this.llmService, this.taskProgressGateway, this.tasksService);
+          return new ServiceClass(this.httpService, this.llmService, this.taskProgressGateway, this.tasksService, this.taskStatusService);
         }
 
         case 'context': {

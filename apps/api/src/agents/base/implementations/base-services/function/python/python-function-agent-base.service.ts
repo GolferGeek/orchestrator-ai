@@ -231,6 +231,9 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
               const progressEvent = JSON.parse(progressJson);
 
               // Store message in live cache for polling clients
+              this.pythonLogger.debug(
+                `TaskStatusService debug: service=${!!this.taskStatusService}, taskId=${progressEvent.taskId}`,
+              );
               if (this.taskStatusService && progressEvent.taskId) {
                 const messageContent = JSON.stringify({
                   stepName: progressEvent.stepName,
