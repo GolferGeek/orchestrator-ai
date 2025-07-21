@@ -19,10 +19,10 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" :class="{ 'ion-padding': !agentChatStore.hasCurrentAgent }" ref="chatContentEl">
-      <!-- Agent Chat View -->
-      <AgentChatView 
-        v-if="agentChatStore.hasCurrentAgent" 
+    <ion-content :fullscreen="true" :class="{ 'ion-padding': !hasAgentConversations }" ref="chatContentEl">
+      <!-- Conversation Tabs View -->
+      <ConversationTabs 
+        v-if="hasAgentConversations" 
         @close="handleCloseAgentChat"
       />
       
@@ -109,6 +109,7 @@ import EnhancedChatInput from '../components/EnhancedChatInput.vue';
 import AgentCapabilitiesModal from '@/components/AgentCapabilitiesModal.vue';
 import DelegationDebugPanel from '@/components/DelegationDebugPanel.vue';
 import AgentChatView from '@/components/AgentChatView.vue';
+import ConversationTabs from '@/components/ConversationTabs.vue';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 
 const auth = useAuthStore();
@@ -143,9 +144,14 @@ const currentSessionName = computed(() => {
       return 'Orchestrator AI';
 });
 
+const hasAgentConversations = computed(() => {
+  return agentChatStore.conversations.length > 0;
+});
+
 const pageTitle = computed(() => {
-  if (agentChatStore.hasCurrentAgent) {
-    return `Agent Chat - ${formatAgentName(agentChatStore.currentAgent?.name || '')}`;
+  const activeConversation = agentChatStore.getActiveConversation();
+  if (activeConversation) {
+    return activeConversation.title;
   }
   return currentSessionName.value || 'Orchestrator AI';
 });
@@ -481,7 +487,11 @@ const handleAgentSelected = (agent: { name: string; description: string }) => {
 };
 
 const handleCloseAgentChat = () => {
-  agentChatStore.clearChat();
+  // Close the active conversation if there is one
+  const activeConversation = agentChatStore.getActiveConversation();
+  if (activeConversation) {
+    agentChatStore.closeConversation(activeConversation.id);
+  }
 };
 
 // Helper function to parse agent list from orchestrator response

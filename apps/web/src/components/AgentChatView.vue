@@ -5,9 +5,9 @@
       <div class="agent-info">
         <ion-icon :icon="getAgentIcon()" :color="getAgentColor()" />
         <div class="agent-details">
-          <h3>{{ formatAgentName(agentChatStore.currentAgent?.name || '') }}</h3>
-          <p v-if="agentChatStore.currentAgent?.description">
-            {{ agentChatStore.currentAgent.description }}
+          <h3>{{ formatAgentName(currentAgent?.name || '') }}</h3>
+          <p v-if="currentAgent?.description">
+            {{ currentAgent.description }}
           </p>
           <p v-else>{{ getAgentTypeLabel() }}</p>
         </div>
@@ -21,22 +21,22 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="agentChatStore.isLoading" class="loading-state">
+    <div v-if="isLoading" class="loading-state">
       <ion-spinner />
       <p>Loading conversation...</p>
     </div>
 
     <!-- Error State -->
-    <div v-if="agentChatStore.error" class="error-state">
+    <div v-if="error" class="error-state">
       <ion-icon :icon="alertCircleOutline" color="danger" />
-      <p>{{ agentChatStore.error }}</p>
-      <ion-button @click="agentChatStore.setError(null)">Dismiss</ion-button>
+      <p>{{ error }}</p>
+      <ion-button @click="clearError">Dismiss</ion-button>
     </div>
 
     <!-- Messages -->
     <div class="messages-container" ref="messagesContainer">
       <AgentTaskItem
-        v-for="message in agentChatStore.messages"
+        v-for="message in messages"
         :key="message.id"
         :message="message"
       />
@@ -50,7 +50,7 @@
             v-model="messageText"
             placeholder="Type your message..."
             :rows="2"
-            :disabled="!agentChatStore.canSendMessage"
+            :disabled="!canSend"
             @keydown.enter.prevent="sendMessage"
           />
           <ion-button
@@ -71,9 +71,9 @@
     </div>
 
     <!-- Typing Indicator -->
-    <div v-if="agentChatStore.isSendingMessage" class="typing-indicator">
+    <div v-if="isSendingMessage" class="typing-indicator">
       <ion-spinner size="small" />
-      <span>{{ formatAgentName(agentChatStore.currentAgent?.name || '') }} is thinking...</span>
+      <span>{{ formatAgentName(currentAgent?.name || '') }} is thinking...</span>
     </div>
   </div>
 </template>
@@ -112,8 +112,15 @@ import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 
 // Define emits
+interface Props {
+  conversation?: any; // The conversation object from the store
+}
+
+const props = defineProps<Props>();
+
 const emit = defineEmits<{
   'close': [];
+  'send-message': [content: string];
 }>();
 
 // Store
@@ -123,9 +130,29 @@ const agentChatStore = useAgentChatStore();
 const messageText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 
-// Computed
+// Computed - use conversation data from props when available
+const currentAgent = computed(() => 
+  props.conversation?.agent || agentChatStore.getActiveConversation()?.agent
+);
+
+const messages = computed(() => 
+  props.conversation?.messages || agentChatStore.getActiveConversation()?.messages || []
+);
+
+const isLoading = computed(() => 
+  props.conversation?.isLoading || agentChatStore.getActiveConversation()?.isLoading || false
+);
+
+const error = computed(() => 
+  props.conversation?.error || agentChatStore.getActiveConversation()?.error || null
+);
+
+const isSendingMessage = computed(() => 
+  props.conversation?.isSendingMessage || agentChatStore.getActiveConversation()?.isSendingMessage || false
+);
+
 const canSend = computed(() => 
-  messageText.value.trim().length > 0 && agentChatStore.canSendMessage
+  messageText.value.trim().length > 0 && currentAgent.value && !isSendingMessage.value
 );
 
 // Methods
@@ -135,11 +162,16 @@ const sendMessage = async () => {
   const text = messageText.value.trim();
   messageText.value = '';
 
-  try {
-    await agentChatStore.sendMessage(text);
-    scrollToBottom();
-  } catch (error) {
-    // Failed to send message
+  // Emit the message to parent component to handle
+  emit('send-message', text);
+  scrollToBottom();
+};
+
+const clearError = () => {
+  // Clear error on the active conversation
+  const activeConversation = agentChatStore.getActiveConversation();
+  if (activeConversation) {
+    activeConversation.error = null;
   }
 };
 
@@ -155,8 +187,8 @@ const formatTime = (timestamp: Date) => {
 };
 
 const getAgentIcon = () => {
-  const type = agentChatStore.currentAgent?.type;
-  const icons = {
+  const type = currentAgent.value?.type;
+  const icons: Record<string, any> = {
     orchestrator: serverOutline,
     specialist: personOutline,
     marketing: megaphoneOutline,
@@ -173,8 +205,8 @@ const getAgentIcon = () => {
 };
 
 const getAgentColor = () => {
-  const type = agentChatStore.currentAgent?.type;
-  const colors = {
+  const type = currentAgent.value?.type;
+  const colors: Record<string, string> = {
     orchestrator: 'success',
     specialist: 'primary',
     marketing: 'secondary',
@@ -191,18 +223,25 @@ const getAgentColor = () => {
 };
 
 const getAgentTypeLabel = () => {
-  const type = agentChatStore.currentAgent?.type;
-  const labels = {
+  const type = currentAgent.value?.type;
+  const labels: Record<string, string> = {
     specialist: 'Specialist Agent',
     orchestrator: 'Orchestrator Agent',
-    external: 'External Agent',
-    api: 'API Agent',
+    marketing: 'Marketing Agent',
+    sales: 'Sales Agent',
+    hr: 'HR Agent',
+    operations: 'Operations Agent',
+    finance: 'Finance Agent',
+    engineering: 'Engineering Agent',
+    research: 'Research Agent',
+    product: 'Product Agent',
+    legal: 'Legal Agent',
   };
   return labels[type!] || 'Agent';
 };
 
 // Watch for new messages to auto-scroll
-watch(() => agentChatStore.messages.length, () => {
+watch(() => messages.value.length, () => {
   scrollToBottom();
 });
 </script>

@@ -36,7 +36,7 @@
       
       <!-- Reset button if overridden -->
       <ion-button 
-        v-if="agentChatStore.isExecutionModeOverride"
+        v-if="isExecutionModeOverride"
         fill="clear" 
         size="small" 
         @click="resetToDefault"
@@ -79,8 +79,11 @@ const showModeSelector = ref(false);
 const userPreferences = computed(() => userPreferencesStore.preferences);
 const currentMode = computed(() => agentChatStore.getEffectiveExecutionMode());
 
+const activeConversation = computed(() => agentChatStore.getActiveConversation());
+const isExecutionModeOverride = computed(() => activeConversation.value?.isExecutionModeOverride || false);
+
 const showControls = computed(() => {
-  return agentChatStore.currentAgent && 
+  return activeConversation.value?.agent && 
          (userPreferences.value.showExecutionModeIndicator || 
           userPreferences.value.enableQuickModeToggle);
 });

@@ -124,7 +124,7 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
       }
     },
 
-    async createConversation(agentName: string, agentType: 'specialist' | 'orchestrator' | 'external' | 'api') {
+    async createConversation(agentName: string, agentType: AgentType) {
       try {
         const response = await agentConversationsService.createConversation({
           agentName,
