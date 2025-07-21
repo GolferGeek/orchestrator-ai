@@ -4,6 +4,7 @@ import { tasksService } from '@/services/tasksService';
 import { useLLMStore } from '@/stores/llmStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import { websocketService } from '@/services/websocketService';
+import { formatAgentName } from '@/utils/caseConverter';
 
 // Simple UUID v4 generator
 function generateUUID(): string {
@@ -75,7 +76,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       this.messages.push({
         id: `welcome-${Date.now()}`,
         role: 'assistant',
-        content: `Hello! I'm ${agent.name}. How can I help you today?`,
+        content: `Hello! I'm ${formatAgentName(agent.name)}. How can I help you today?`,
         timestamp: new Date(),
         metadata: { isWelcome: true }
       });
