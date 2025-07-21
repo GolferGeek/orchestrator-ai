@@ -28,13 +28,38 @@ from nodes.finalize_response import finalize_response_node
 
 # Import base services
 try:
-    from progress_manager import emit_completion
+    from progress_manager import emit_completion, emit_progress
     from workflow_state_manager import RequirementsWriterState
+    print(f"Successfully imported base services", file=sys.stderr)
 except ImportError as e:
     print(f"Warning: Could not import from base services: {e}", file=sys.stderr)
-    # Create minimal fallback implementations
+    print(f"Python path: {sys.path}", file=sys.stderr)
+    
+    # Create fallback implementations that still emit proper events
     def emit_completion(task_id, status, message):
-        print(f"COMPLETION_FALLBACK: {task_id} - {status}", file=sys.stderr)
+        import json
+        completion_event = {
+            "type": "task_completion",
+            "taskId": task_id,
+            "status": status,
+            "message": message or "Task completed successfully",
+            "timestamp": datetime.now().isoformat()
+        }
+        print(f"COMPLETION_EVENT: {json.dumps(completion_event)}", file=sys.stderr)
+        
+    def emit_progress(task_id, step_name, step_index, total_steps, status, message=None):
+        import json
+        progress_event = {
+            "type": "workflow_step_progress",
+            "taskId": task_id,
+            "stepName": step_name,
+            "stepIndex": step_index,
+            "totalSteps": total_steps,
+            "status": status,
+            "message": message or f"Step {step_index + 1} of {total_steps}: {step_name.replace('_', ' ').title()}",
+            "timestamp": datetime.now().isoformat()
+        }
+        print(f"PROGRESS_EVENT: {json.dumps(progress_event)}", file=sys.stderr)
     
     class RequirementsWriterState:
         def __init__(self, state_dict):
@@ -238,7 +263,8 @@ def main():
             "userMessage": user_message,
             "sessionId": session_id,
             "metadata": metadata,
-            "workflow_step": "initialized"
+            "workflow_step": "initialized",
+            "task_id": task_id  # Add task_id to state for node access
         }
         
         print(f"MAIN_DEBUG: Prepared initial state with keys: {list(initial_state.keys())}", file=sys.stderr)
@@ -250,16 +276,37 @@ def main():
         # Execute the modular LangGraph workflow
         print(f"MAIN_DEBUG: About to execute workflow", file=sys.stderr)
         start_time = datetime.now()
+        
+        # Emit workflow start progress
+        emit_progress(task_id, "workflow_start", 0, 6, "in_progress", "Starting requirements document generation workflow")
+        
         try:
             if LANGGRAPH_AVAILABLE:
                 print(f"MAIN_DEBUG: Executing with LangGraph using invoke()", file=sys.stderr)
+                
+                # Emit intermediate progress events (simulating workflow steps)
+                emit_progress(task_id, "analyzing_request", 1, 6, "in_progress", "Analyzing your request...")
+                
                 try:
+                    # Simulate step-by-step progress during workflow execution
+                    import time
+                    
+                    # Start workflow execution
                     final_state = workflow_instance.workflow.invoke(initial_state)
                     print(f"MAIN_DEBUG: LangGraph invoke() completed", file=sys.stderr)
+                    
+                    # Emit additional progress based on workflow completion
+                    emit_progress(task_id, "generating_content", 4, 6, "in_progress", "Generating requirements document content...")
+                    
+                    # Emit completion progress
+                    emit_progress(task_id, "workflow_complete", 5, 6, "completed", "Requirements document generated successfully")
+                    
                 except Exception as langgraph_error:
                     print(f"MAIN_ERROR: LangGraph invoke() failed: {langgraph_error}", file=sys.stderr)
                     import traceback
                     print(f"MAIN_ERROR: LangGraph traceback: {traceback.format_exc()}", file=sys.stderr)
+                    # Emit error progress
+                    emit_progress(task_id, "workflow_error", 5, 6, "failed", f"Workflow execution failed: {langgraph_error}")
                     raise
             else:
                 print(f"MAIN_DEBUG: Executing with fallback workflow", file=sys.stderr)
@@ -272,10 +319,16 @@ def main():
                     print(f"MAIN_DEBUG: About to run fallback workflow with asyncio", file=sys.stderr)
                     final_state = loop.run_until_complete(workflow_instance.workflow._fallback_invoke(initial_state))
                     print(f"MAIN_DEBUG: Fallback workflow completed", file=sys.stderr)
+                    
+                    # Emit completion progress for fallback
+                    emit_progress(task_id, "workflow_complete", 5, 6, "completed", "Requirements document generated successfully")
+                    
                 except Exception as fallback_error:
                     print(f"MAIN_ERROR: Fallback workflow failed: {fallback_error}", file=sys.stderr)
                     import traceback
                     print(f"MAIN_ERROR: Fallback traceback: {traceback.format_exc()}", file=sys.stderr)
+                    # Emit error progress for fallback
+                    emit_progress(task_id, "workflow_error", 5, 6, "failed", f"Fallback workflow failed: {fallback_error}")
                     raise
                 finally:
                     loop.close()

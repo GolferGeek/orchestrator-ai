@@ -13,6 +13,7 @@ import { ConfigurationService } from '@agents/base/sub-services/configuration/co
 import { AgentFunctionParams } from '../../a2a-base/interfaces';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
+import { TaskStatusService } from '@/tasks/task-status.service';
 
 export interface AgentFunctionResponse {
   response: string;
@@ -40,6 +41,8 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
     protected readonly taskProgressGateway: TaskProgressGateway | undefined,
     @Inject(forwardRef(() => TasksService))
     protected readonly tasksService: TasksService | undefined,
+    @Inject(forwardRef(() => TaskStatusService))
+    protected readonly taskStatusService: TaskStatusService | undefined,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -215,13 +218,47 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
         // Parse progress events from stderr
         const lines = stderrData.split('\n');
+        this.pythonLogger.debug(`Processing ${lines.length} stderr lines from Python script`);
         for (const line of lines) {
+          if (line.trim()) {
+            this.pythonLogger.debug(`Python stderr line: ${line}`);
+          }
           if (line.startsWith('PROGRESS_EVENT:')) {
             try {
               const progressJson = line
                 .substring('PROGRESS_EVENT:'.length)
                 .trim();
               const progressEvent = JSON.parse(progressJson);
+
+              // Store message in live cache for polling clients
+              if (this.taskStatusService && progressEvent.taskId) {
+                const messageContent = JSON.stringify({
+                  stepName: progressEvent.stepName,
+                  stepIndex: progressEvent.stepIndex,
+                  totalSteps: progressEvent.totalSteps,
+                  status: progressEvent.status,
+                  message: progressEvent.message
+                });
+                
+                this.taskStatusService.addTaskMessage(
+                  progressEvent.taskId,
+                  messageContent,
+                  'progress',
+                  {
+                    progress: progressEvent.stepIndex && progressEvent.totalSteps 
+                      ? Math.round(((progressEvent.stepIndex + 1) / progressEvent.totalSteps) * 100) 
+                      : undefined,
+                    stepName: progressEvent.stepName,
+                    stepIndex: progressEvent.stepIndex,
+                    totalSteps: progressEvent.totalSteps,
+                    stepStatus: progressEvent.status
+                  }
+                );
+                
+                this.pythonLogger.debug(
+                  `Stored progress message in live cache for task ${progressEvent.taskId}`,
+                );
+              }
 
               // Broadcast workflow step progress via WebSocket
               if (this.taskProgressGateway) {

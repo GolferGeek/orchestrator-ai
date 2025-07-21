@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { TasksService } from './tasks.service';
+import { SupabaseService } from '../supabase/supabase.service';
 
 export interface TaskStatus {
   taskId: string;
@@ -37,12 +37,23 @@ export class TaskStatusService {
   // Hot cache for all active tasks (both ephemeral and persistent)
   private activeTaskStatuses = new Map<string, TaskStatus>();
   
+  // Live message cache for active tasks (for polling clients)
+  private activeTaskMessages = new Map<string, Array<{
+    id: string;
+    taskId: string;
+    content: string;
+    messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
+    progressPercentage?: number;
+    metadata?: Record<string, any>;
+    createdAt: string;
+  }>>();
+  
   // Cleanup timers for completed tasks
   private cleanupTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly eventEmitter: EventEmitter2,
-    private readonly tasksService: TasksService,
+    private readonly supabaseService: SupabaseService,
   ) {
     this.logger.debug('TaskStatusService initialized');
   }
@@ -73,12 +84,23 @@ export class TaskStatusService {
     // Persist to database for long-running and swarm tasks
     if (taskType === 'long_running' || taskType === 'swarm') {
       try {
-        await this.tasksService.updateTask(taskId, userId, {
-          status: taskStatus.status,
-          progress: taskStatus.progress,
-          progressMessage: taskStatus.progressMessage,
-        });
-        this.logger.debug(`Task ${taskId} persisted to database (${taskType})`);
+        const { error } = await this.supabaseService
+          .getAnonClient()
+          .from('tasks')
+          .update({
+            status: taskStatus.status,
+            progress: taskStatus.progress,
+            progress_message: taskStatus.progressMessage,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', taskId)
+          .eq('user_id', userId);
+          
+        if (error) {
+          this.logger.warn(`Failed to persist task ${taskId} to database:`, error);
+        } else {
+          this.logger.debug(`Task ${taskId} persisted to database (${taskType})`);
+        }
       } catch (error) {
         this.logger.warn(`Failed to persist task ${taskId}:`, error);
       }
@@ -122,13 +144,31 @@ export class TaskStatusService {
     // Persist to database for non-ephemeral tasks
     if (currentStatus.taskType === 'long_running' || currentStatus.taskType === 'swarm') {
       try {
-        await this.tasksService.updateTask(taskId, userId, {
+        const updateData: any = {
           status: newStatus.status,
           progress: newStatus.progress,
-          progressMessage: newStatus.progressMessage,
-          response: newStatus.result ? JSON.stringify(newStatus.result) : undefined,
-          errorMessage: newStatus.error,
-        });
+          progress_message: newStatus.progressMessage,
+          updated_at: new Date().toISOString(),
+        };
+        
+        if (newStatus.result) {
+          updateData.response = typeof newStatus.result === 'string' ? newStatus.result : JSON.stringify(newStatus.result);
+        }
+        
+        if (newStatus.error) {
+          updateData.error_message = newStatus.error;
+        }
+        
+        const { error } = await this.supabaseService
+          .getAnonClient()
+          .from('tasks')
+          .update(updateData)
+          .eq('id', taskId)
+          .eq('user_id', userId);
+          
+        if (error) {
+          this.logger.warn(`Failed to persist task ${taskId} update:`, error);
+        }
       } catch (error) {
         this.logger.warn(`Failed to persist task ${taskId} update:`, error);
       }
@@ -159,6 +199,54 @@ export class TaskStatusService {
       return null;
     }
     return { ...status }; // Return copy to prevent mutations
+  }
+
+  /**
+   * Add a progress message to the live cache (for polling clients)
+   */
+  addTaskMessage(taskId: string, messageContent: string, messageType: 'progress' | 'status' | 'info' | 'warning' | 'error' = 'progress', metadata?: Record<string, any>): void {
+    if (!this.activeTaskMessages.has(taskId)) {
+      this.activeTaskMessages.set(taskId, []);
+    }
+    
+    const messages = this.activeTaskMessages.get(taskId)!;
+    const newMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      taskId,
+      content: messageContent,
+      messageType,
+      progressPercentage: metadata?.progress,
+      metadata,
+      createdAt: new Date().toISOString(),
+    };
+    
+    messages.push(newMessage);
+    this.logger.debug(`Added message to task ${taskId}: ${messageContent} (total: ${messages.length})`);
+  }
+  
+  /**
+   * Get accumulated messages for a task (live cache first, for polling)
+   */
+  getTaskMessages(taskId: string, userId: string): Array<{
+    id: string;
+    taskId: string;
+    content: string;
+    messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
+    progressPercentage?: number;
+    metadata?: Record<string, any>;
+    createdAt: string;
+  }> {
+    // Check if user owns this task
+    const taskStatus = this.getTaskStatus(taskId, userId);
+    if (!taskStatus) {
+      this.logger.debug(`Task ${taskId} not found or user ${userId} doesn't own it`);
+      return [];
+    }
+    
+    // Return live messages from cache
+    const messages = this.activeTaskMessages.get(taskId) || [];
+    this.logger.debug(`Retrieved ${messages.length} live messages for task ${taskId}`);
+    return [...messages]; // Return copy to prevent mutations
   }
 
   /**
@@ -248,6 +336,7 @@ export class TaskStatusService {
    */
   private cleanupTask(taskId: string): void {
     this.activeTaskStatuses.delete(taskId);
+    this.activeTaskMessages.delete(taskId); // Clean up live messages too
     this.cleanupTimers.delete(taskId);
     this.logger.debug(`Task ${taskId} cleaned up from active cache`);
   }
