@@ -195,6 +195,20 @@ export class TasksController {
   }
 
   /**
+   * Get accumulated task messages (for polling clients)
+   * GET /tasks/:id/messages
+   */
+  @Get(':id/messages')
+  async getTaskMessages(
+    @Param('id') taskId: string,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+  ) {
+    this.logger.debug(`Getting messages for task ${taskId} for user ${currentUser.id}`);
+
+    return this.tasksService.getTaskMessages(taskId, currentUser.id);
+  }
+
+  /**
    * Update task progress (for agents to call)
    * PUT /tasks/:id/progress
    */

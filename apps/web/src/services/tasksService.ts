@@ -145,6 +145,36 @@ class TasksService {
   }
 
   /**
+   * Get real-time task status (optimized for polling)
+   */
+  async getTaskStatus(taskId: string): Promise<{
+    taskId: string;
+    status: string;
+    progress: number;
+    progressMessage?: string;
+    data?: any;
+  }> {
+    const response = await apiService.get(`${this.baseUrl}/${taskId}/status`);
+    return response;
+  }
+
+  /**
+   * Get accumulated task messages (for polling clients)
+   */
+  async getTaskMessages(taskId: string): Promise<Array<{
+    id: string;
+    taskId: string;
+    content: string;
+    messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
+    progressPercentage?: number;
+    metadata?: Record<string, any>;
+    createdAt: string;
+  }>> {
+    const response = await apiService.get(`${this.baseUrl}/${taskId}/messages`);
+    return response;
+  }
+
+  /**
    * Update task progress
    */
   async updateTaskProgress(taskId: string, progress: number, message?: string): Promise<{ success: boolean }> {
