@@ -94,14 +94,19 @@ export const useAgentChatStore = defineStore('agentChat', {
       // If user hasn't manually overridden, use preferences logic
       if (!this.isExecutionModeOverride) {
         let mode = prefs.defaultExecutionMode;
+        console.log(`⚙️ Default execution mode from preferences: ${mode}`);
         
         // Auto-switch to WebSocket for workflow agents if enabled
         if (prefs.autoSwitchToWebSocketForWorkflows && 
             this.currentAgent?.name === 'requirements_writer') {
           mode = 'websocket';
+          console.log(`🔧 Auto-switched to WebSocket for workflow agent: ${this.currentAgent?.name}`);
         }
         
         this.currentExecutionMode = mode;
+        console.log(`✅ Final execution mode set to: ${mode}`);
+      } else {
+        console.log(`👤 User has overridden execution mode to: ${this.currentExecutionMode}`);
       }
     },
 
@@ -152,6 +157,7 @@ export const useAgentChatStore = defineStore('agentChat', {
 
         // Check execution mode preference
         const effectiveMode = this.getEffectiveExecutionMode();
+        console.log(`🎯 Using execution mode: ${effectiveMode}`);
         
         // For WebSocket mode, generate task ID early and subscribe before sending request
         let preGeneratedTaskId: string | undefined;
@@ -208,6 +214,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           this.createPlaceholderMessage(task.taskId);
         } else if (task.status === 'pending' && effectiveMode === 'polling') {
           // Task is async - create placeholder and start polling
+          console.log(`📊 Task ${task.taskId} is pending, starting polling mode`);
           this.createPlaceholderMessage(task.taskId);
           this.startPollingTask(task.taskId);
         } else {
@@ -307,30 +314,69 @@ export const useAgentChatStore = defineStore('agentChat', {
     },
 
     /**
-     * Start polling for task updates
+     * Start polling for task updates using accumulated messages
      */
     async startPollingTask(taskId: string) {
+      console.log(`🔄 Starting polling for task ${taskId}`);
       const userPreferences = useUserPreferencesStore();
       const interval = userPreferences.preferences.pollingInterval * 1000;
+      console.log(`🔄 Polling interval: ${interval}ms`);
+      let lastMessageCount = 0;
       
       const pollInterval = setInterval(async () => {
         try {
-          // Use getTask to check status since we have full task data
-          const task = await tasksService.getTask(taskId);
+          // Get task status for completion check
+          const taskStatus = await tasksService.getTaskStatus(taskId);
           
-          if (task.status === 'completed' || task.status === 'failed') {
+          if (taskStatus.status === 'completed' || taskStatus.status === 'failed') {
             clearInterval(pollInterval);
             this.handleTaskCompletion(taskId);
-          } else {
-            // Handle progress updates
-            this.handleTaskStatusUpdate(taskId, {
-              status: task.status,
-              progress: task.progress,
-              progressMessage: task.progressMessage,
-              data: task.metadata
-            });
+            return;
           }
+
+          // Get accumulated messages for progress updates
+          const messages = await tasksService.getTaskMessages(taskId);
+          
+          // Process new messages since last poll
+          if (messages.length > lastMessageCount) {
+            const newMessages = messages.slice(lastMessageCount);
+            console.log(`📨 Found ${newMessages.length} new messages for task ${taskId}`);
+            
+            // Build accumulated progress content from all progress messages
+            const progressMessages = messages.filter(msg => msg.messageType === 'progress');
+            let progressContent = 'Processing your request...\n\n';
+            
+            progressMessages.forEach(msg => {
+              // Parse message content to extract step information
+              try {
+                const messageData = JSON.parse(msg.content);
+                if (messageData.stepName && messageData.message) {
+                  const stepEmoji = messageData.status === 'completed' ? '✅' : '🔄';
+                  progressContent += `${stepEmoji} ${messageData.message}\n`;
+                }
+              } catch {
+                // If not JSON, treat as plain text
+                progressContent += `🔄 ${msg.content}\n`;
+              }
+            });
+            
+            // Update the assistant message with accumulated progress
+            this.handleTaskStatusUpdate(taskId, {
+              status: taskStatus.status,
+              progress: taskStatus.progress,
+              progressMessage: progressContent.trim(),
+              data: { 
+                messageCount: messages.length,
+                lastUpdated: new Date().toISOString(),
+                allMessages: messages 
+              }
+            });
+            
+            lastMessageCount = messages.length;
+          }
+          
         } catch (error) {
+          console.error('Polling error:', error);
           clearInterval(pollInterval);
         }
       }, interval);

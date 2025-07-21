@@ -82,10 +82,10 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   messageHistory: 100,
   
   // Task Execution Preferences
-  defaultExecutionMode: 'websocket',
+  defaultExecutionMode: 'polling',
   pollingInterval: 2,
   enableProgressIndicators: true,
-  autoSwitchToWebSocketForWorkflows: true,
+  autoSwitchToWebSocketForWorkflows: false,
   immediateTimeoutDuration: 30,
   showExecutionModeIndicator: true,
   enableQuickModeToggle: true,
