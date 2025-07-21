@@ -95,12 +95,12 @@ hr {
 
 /* Increase sidebar width for better space utilization */
 ion-menu {
-  --width: 320px;
+  --width: 356px; /* Increased by ~36px (half inch) */
 }
 
 @media (max-width: 768px) {
   ion-menu {
-    --width: 280px;
+    --width: 300px; /* Also increased mobile width proportionally */
   }
 }
 </style>
