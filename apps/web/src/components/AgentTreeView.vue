@@ -60,117 +60,119 @@
           </ion-item>
 
           <div slot="content" class="agent-type-content">
-            <!-- Individual Agents -->
-            <ion-accordion-group 
-              :key="`agents-${agentType.type}`" 
-              :multiple="true"
-              class="nested-accordion-group"
+            <!-- Individual Agents - Custom expandable structure -->
+            <div
+              v-for="agent in agentType.agents"
+              :key="`${agent.type}-${agent.name}`"
+              class="agent-section"
             >
-              <ion-accordion
-                v-for="agent in agentType.agents"
-                :key="`${agent.type}-${agent.name}`"
-                :value="`${agent.type}-${agent.name}`"
+              <!-- Agent Header - Clickable to expand/collapse -->
+              <div 
+                class="agent-header-button" 
+                @click.stop="toggleAgent(agent)"
               >
-                <ion-item slot="header" class="agent-header">
-                  <!-- Agent icon to indicate it's a functional specialist -->
-                  <ion-icon 
-                    :icon="personOutline" 
-                    slot="start" 
-                    class="agent-specialist-icon"
-                    color="medium"
-                  />
-                  <ion-label>
-                    <h3 class="agent-name">{{ formatAgentName(agent.name) }}</h3>
-                    <p class="agent-subtitle">AI Specialist</p>
-                  </ion-label>
-                  <div slot="end" class="agent-badges">
-                    <ion-badge
-                      v-if="agent.activeConversations > 0"
-                      color="success"
-                      class="compact-badge active-badge"
-                      title="Active conversations"
-                    >
-                      {{ agent.activeConversations }}
-                    </ion-badge>
-                    <ion-badge color="medium" class="compact-badge total-badge" title="Total conversations">
-                      {{ agent.totalConversations }}
-                    </ion-badge>
-                  </div>
-                </ion-item>
-
-                <div slot="content" class="conversations-content">
-                  <!-- Add new conversation button at the top -->
-                  <div class="new-conversation-button">
-                    <ion-button 
-                      fill="clear" 
-                      size="small"
-                      @click.stop="createNewConversation(agent)"
-                      class="start-conversation-btn"
-                    >
-                      <ion-icon :icon="addOutline" slot="start" />
-                      New {{ getConversationLabel(agent) }}
-                    </ion-button>
-                  </div>
-                  
-                  <!-- Conversations for this agent -->
-                  <div
-                    v-if="agent.conversations.length === 0"
-                    class="no-conversations"
+                <ion-icon 
+                  :icon="personOutline" 
+                  class="agent-specialist-icon"
+                  color="medium"
+                />
+                <div class="agent-info">
+                  <h3 class="agent-name">{{ formatAgentName(agent.name) }}</h3>
+                  <p class="agent-subtitle">AI Specialist</p>
+                </div>
+                <div class="agent-badges">
+                  <ion-badge
+                    v-if="agent.activeConversations > 0"
+                    color="success"
+                    class="compact-badge active-badge"
+                    title="Active conversations"
                   >
-                    <p>No {{ getConversationPluralLabel(agent).toLowerCase() }} yet</p>
-                  </div>
+                    {{ agent.activeConversations }}
+                  </ion-badge>
+                  <ion-badge color="medium" class="compact-badge total-badge" title="Total conversations">
+                    {{ agent.totalConversations }}
+                  </ion-badge>
+                </div>
+                <ion-icon 
+                  :icon="isAgentExpanded(agent) ? chevronDownOutline : chevronForwardOutline" 
+                  class="expand-icon"
+                  color="medium"
+                />
+              </div>
 
-                  <div
-                    v-for="conversation in agent.conversations"
-                    :key="conversation.id"
-                    class="conversation-item"
-                    :class="{ 'selected': selectedConversation?.id === conversation.id }"
-                    @click.stop="selectConversation(conversation)"
+              <!-- Agent Content - Only show if expanded -->
+              <div v-if="isAgentExpanded(agent)" class="conversations-content">
+                <!-- Add new conversation button at the top -->
+                <div class="new-conversation-button">
+                  <ion-button 
+                    fill="clear" 
+                    size="small"
+                    @click.stop="createNewConversation(agent)"
+                    class="start-conversation-btn"
                   >
-                    <div class="conversation-header">
-                      <div class="conversation-info">
-                        <h4>{{ getConversationLabel(agent) }}</h4>
-                        <div class="conversation-meta">
-                          <span class="conversation-time">
-                            {{ formatTime(conversation.lastActiveAt) }}
-                          </span>
-                          <ion-badge
-                            v-if="conversation.activeTasks > 0"
-                            color="primary"
-                            class="task-badge"
-                          >
-                            {{ conversation.activeTasks }} running
-                          </ion-badge>
-                        </div>
-                      </div>
-                      <div class="conversation-actions">
-                        <ion-button
-                          fill="clear"
-                          size="small"
-                          color="danger"
-                          @click.stop="endConversation(conversation)"
+                    <ion-icon :icon="addOutline" slot="start" />
+                    New {{ getConversationLabel(agent) }}
+                  </ion-button>
+                </div>
+                
+                <!-- Conversations for this agent -->
+                <div
+                  v-if="agent.conversations.length === 0"
+                  class="no-conversations"
+                >
+                  <p>No {{ getConversationPluralLabel(agent).toLowerCase() }} yet</p>
+                </div>
+
+                <div
+                  v-for="conversation in agent.conversations"
+                  :key="conversation.id"
+                  class="conversation-item"
+                  :class="{ 'selected': selectedConversation?.id === conversation.id }"
+                  @click.stop="selectConversation(conversation)"
+                >
+                  <div class="conversation-header">
+                    <div class="conversation-info">
+                      <h4>{{ getConversationLabel(agent) }}</h4>
+                      <div class="conversation-meta">
+                        <span class="conversation-time">
+                          {{ formatTime(conversation.lastActiveAt) }}
+                        </span>
+                        <ion-badge
+                          v-if="conversation.activeTasks > 0"
+                          color="primary"
+                          class="task-badge"
                         >
-                          <ion-icon :icon="trashOutline" />
-                        </ion-button>
+                          {{ conversation.activeTasks }} running
+                        </ion-badge>
                       </div>
                     </div>
-                    <div class="conversation-stats">
-                      <span class="stat">
-                        <ion-icon :icon="checkmarkOutline" />
-                        {{ conversation.completedTasks }}
-                      </span>
-                      <span class="stat">
-                        <ion-icon :icon="closeOutline" />
-                        {{ conversation.failedTasks }}
-                      </span>
-                      <span class="stat total">
-                        {{ conversation.taskCount }} total tasks
-                      </span>
+                    <div class="conversation-actions">
+                      <ion-button
+                        fill="clear"
+                        size="small"
+                        color="danger"
+                        @click.stop="endConversation(conversation)"
+                      >
+                        <ion-icon :icon="trashOutline" />
+                      </ion-button>
                     </div>
+                  </div>
+                  <div class="conversation-stats">
+                    <span class="stat">
+                      <ion-icon :icon="checkmarkOutline" />
+                      {{ conversation.completedTasks }}
+                    </span>
+                    <span class="stat">
+                      <ion-icon :icon="closeOutline" />
+                      {{ conversation.failedTasks }}
+                    </span>
+                    <span class="stat total">
+                      {{ conversation.taskCount }} total tasks
+                    </span>
                   </div>
                 </div>
-              </ion-accordion>
-            </ion-accordion-group>
+              </div>
+            </div>
           </div>
         </ion-accordion>
       </ion-accordion-group>
@@ -215,6 +217,8 @@ import {
   searchOutline,
   cubeOutline,
   scaleOutline,
+  chevronDownOutline,
+  chevronForwardOutline,
 } from 'ionicons/icons';
 import { agentConversationsService } from '@/services/agentConversationsService';
 import { formatAgentName } from '@/utils/caseConverter';
@@ -260,6 +264,7 @@ const props = defineProps<{
 // Reactive state
 const searchQuery = ref('');
 const expandedGroups = ref<string[]>([]); // Start with all accordions closed
+const expandedAgents = ref<string[]>([]); // Track manually expanded agents
 const selectedConversation = ref<Conversation | null>(null);
 // showTaskModal removed - conversations now load in main window
 
@@ -334,6 +339,25 @@ const selectConversation = (conversation: Conversation) => {
   emit('conversation-selected', conversation);
 };
 
+
+// Custom agent expand/collapse methods
+const toggleAgent = (agent: Agent) => {
+  const agentKey = `${agent.type}-${agent.name}`;
+  const index = expandedAgents.value.indexOf(agentKey);
+  
+  if (index === -1) {
+    // Agent not expanded, add it
+    expandedAgents.value.push(agentKey);
+  } else {
+    // Agent is expanded, remove it
+    expandedAgents.value.splice(index, 1);
+  }
+};
+
+const isAgentExpanded = (agent: Agent): boolean => {
+  const agentKey = `${agent.type}-${agent.name}`;
+  return expandedAgents.value.includes(agentKey);
+};
 
 const createNewConversation = async (agent: Agent) => {
   try {
@@ -565,20 +589,39 @@ watch(() => websocketService.connected.value, (connected) => {
 }
 
 /* Agent/Specialist Level Styling */
-.agent-header {
-  --background: var(--ion-color-step-50);
-  --padding-start: 20px;
+.agent-section {
+  margin-bottom: 8px;
+}
+
+.agent-header-button {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  background: var(--ion-color-step-50);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  gap: 12px;
+}
+
+.agent-header-button:hover {
+  background: var(--ion-color-step-100);
 }
 
 .agent-specialist-icon {
   font-size: 1em;
-  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.agent-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .agent-name {
   font-weight: 500;
   font-size: 1em;
-  margin-bottom: 2px;
+  margin: 0 0 2px 0;
 }
 
 .agent-subtitle {
@@ -588,13 +631,23 @@ watch(() => websocketService.connected.value, (connected) => {
   font-style: italic;
 }
 
+.agent-badges {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .active-badge {
   background: var(--ion-color-success);
-  margin-right: 4px;
 }
 
 .total-badge {
   background: var(--ion-color-medium);
+}
+
+.expand-icon {
+  font-size: 1.2em;
+  flex-shrink: 0;
 }
 
 .tree-header {
