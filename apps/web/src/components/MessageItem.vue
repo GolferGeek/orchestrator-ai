@@ -482,13 +482,12 @@ const onDeliverableDownload = (deliverable: any) => {
 .message-item {
   display: flex;
   align-items: flex-end;
-  margin-bottom: 12px;
-  max-width: 85%;
+  margin: 16px 16px 12px 16px;
+  width: calc(100% - 32px);
 }
 
 .message-item--user {
   justify-content: flex-end;
-  margin-left: auto;
 }
 
 .message-item--agent,

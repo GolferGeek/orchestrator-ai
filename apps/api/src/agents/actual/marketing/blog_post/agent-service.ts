@@ -5,7 +5,10 @@ import { ContextAgentBaseService } from '@agents/base/implementations/base-servi
 
 @Injectable()
 export class BlogPostService extends ContextAgentBaseService {
-  constructor(httpService: HttpService, llmService: LLMService) {
+  constructor(
+    httpService: HttpService, 
+    llmService: LLMService,
+  ) {
     super(httpService, llmService);
   }
 }

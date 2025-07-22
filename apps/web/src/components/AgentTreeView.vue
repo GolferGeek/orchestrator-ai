@@ -231,6 +231,7 @@ interface Agent {
   name: string;
   type: string;
   description?: string;
+  execution_modes?: string[];
   conversations: Conversation[];
   activeConversations: number;
   totalConversations: number;
@@ -305,6 +306,7 @@ const filteredAgentTypes = computed(() => {
       name: agent.name,
       type: agent.type,
       description: agent.description,
+      execution_modes: agent.execution_modes,
       conversations: agentConversations,
       activeConversations: agentConversations.filter(c => !c.endedAt).length,
       totalConversations: agentConversations.length,

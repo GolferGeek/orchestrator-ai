@@ -51,6 +51,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
   ) {
     super(
       httpService,
+      undefined, // TaskStatusService will be injected automatically
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,

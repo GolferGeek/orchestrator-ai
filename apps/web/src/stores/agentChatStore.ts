@@ -28,6 +28,7 @@ export interface Conversation {
   error: string | null;
   executionMode: 'immediate' | 'polling' | 'websocket' | null;
   isExecutionModeOverride: boolean;
+  supportedExecutionModes: ('immediate' | 'polling' | 'websocket')[]; // Available modes for this agent
   createdAt: Date;
   lastActiveAt: Date;
   title: string; // Display name for the tab
@@ -128,9 +129,18 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Start a new conversation with an agent
      * Creates conversation immediately with generated UUID
      */
-    startChatWithAgent(agent: { name: string; type: AgentType; description?: string }) {
+    startChatWithAgent(agent: { name: string; type: AgentType; description?: string; execution_modes?: string[] }) {
       const now = new Date();
       const conversationId = generateUUID(); // Generate conversation ID immediately
+      
+      // Determine supported execution modes from agent data or default to immediate
+      let supportedModes: ('immediate' | 'polling' | 'websocket')[] = ['immediate'];
+      if (agent.execution_modes && agent.execution_modes.length > 0) {
+        // Map execution modes from agent data (handles 'real-time' -> 'websocket')
+        supportedModes = agent.execution_modes.map(mode => 
+          mode === 'real-time' ? 'websocket' : mode as ('immediate' | 'polling' | 'websocket')
+        ).filter(mode => ['immediate', 'polling', 'websocket'].includes(mode));
+      }
       
       // Create new conversation
       const newConversation: Conversation = {
@@ -142,6 +152,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         error: null,
         executionMode: null,
         isExecutionModeOverride: false,
+        supportedExecutionModes: supportedModes,
         createdAt: now,
         lastActiveAt: now,
         title: this.createConversationTitle(agent, now)
@@ -236,6 +247,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           error: null,
           executionMode: null,
           isExecutionModeOverride: false,
+          supportedExecutionModes: ['immediate'], // Default to immediate, will be updated after fetching agent card
           createdAt: conversationCreatedAt,
           lastActiveAt: now,
           title: this.createConversationTitle(agent, conversationCreatedAt)
@@ -452,15 +464,59 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Send a message to the active conversation
      */
     async sendMessage(content: string) {
+      console.log('🚀 sendMessage called with content:', content);
+      
       const activeConversation = this.getActiveConversation();
       if (!activeConversation) {
+        console.error('❌ No active conversation found');
         throw new Error('No active conversation');
       }
 
+      console.log('✅ Active conversation found:', activeConversation.id);
       activeConversation.isSendingMessage = true;
       activeConversation.error = null;
 
       try {
+        // Ensure conversation exists in database before creating tasks
+        let conversationId = activeConversation.id;
+        
+        // Check if this is a new conversation (never been persisted)
+        // If the conversation was loaded from backend, it will have tasks/messages
+        // If it's brand new, it will only have the welcome message
+        const hasOnlyWelcomeMessage = activeConversation.messages.length === 1 && 
+          activeConversation.messages[0].metadata?.isWelcome;
+        
+        console.log('🔍 Conversation check:', {
+          conversationId,
+          messagesCount: activeConversation.messages.length,
+          hasWelcomeMessage: activeConversation.messages[0]?.metadata?.isWelcome,
+          hasOnlyWelcomeMessage,
+          agentName: activeConversation.agent.name,
+          agentType: activeConversation.agent.type
+        });
+        
+        if (hasOnlyWelcomeMessage) {
+          console.log('🔄 Creating new conversation in database...');
+          // Create the conversation in the database first
+          const backendConversation = await agentConversationsService.createConversation({
+            agentName: activeConversation.agent.name,
+            agentType: activeConversation.agent.type,
+          });
+          
+          console.log('✅ Backend conversation created:', backendConversation.id);
+          
+          // Update the conversation ID to use the backend-generated one
+          conversationId = backendConversation.id;
+          activeConversation.id = conversationId;
+          
+          // Update the activeConversationId in the store
+          this.activeConversationId = conversationId;
+        } else {
+          console.log('ℹ️ Using existing conversation ID:', conversationId);
+        }
+
+        console.log('💬 Adding user message to conversation:', conversationId);
+        
         // Add user message immediately
         const userMessage: AgentChatMessage = {
           id: `user-${Date.now()}`,
@@ -479,7 +535,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         if (effectiveMode === 'websocket') {
           preGeneratedTaskId = generateUUID();
           // Subscribe to WebSocket immediately to catch all events
-          await this.subscribeToTaskForConversation(activeConversation.id, preGeneratedTaskId);
+          await this.subscribeToTaskForConversation(conversationId, preGeneratedTaskId);
         }
         
         // Create task request with trimmed conversation history to prevent payload too large errors
@@ -502,6 +558,8 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Get agent type from active conversation
         const agentType = activeConversation.agent.type;
         
+        console.log('🎯 Creating task with conversation ID:', conversationId);
+        
         // Create agent task
         const task = await tasksService.createAgentTask(
           agentType,
@@ -509,7 +567,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           {
             method: 'process',
             prompt: content,
-            conversationId: activeConversation.id,
+            conversationId: conversationId, // Use the potentially updated conversationId
             conversationHistory,
             llmSelection,
             executionMode: effectiveMode,
@@ -517,18 +575,83 @@ export const useAgentChatStore = defineStore('agentChat', {
           }
         );
 
+        console.log('📋 Task created:', {
+          taskId: task.taskId,
+          status: task.status,
+          conversationId: task.conversationId,
+          effectiveMode
+        });
+
         // Handle response based on execution mode and task status
         if (task.status === 'pending' && effectiveMode === 'websocket') {
           // Task is async - create placeholder (already subscribed to WebSocket)
-          this.createPlaceholderMessageForConversation(activeConversation.id, task.taskId);
+          this.createPlaceholderMessageForConversation(conversationId, task.taskId);
         } else if (task.status === 'pending' && effectiveMode === 'polling') {
           // Task is async - create placeholder and start polling
           console.log(`📊 Task ${task.taskId} is pending, starting polling mode`);
-          this.createPlaceholderMessageForConversation(activeConversation.id, task.taskId);
-          this.startPollingTaskForConversation(activeConversation.id, task.taskId);
+          this.createPlaceholderMessageForConversation(conversationId, task.taskId);
+          this.startPollingTaskForConversation(conversationId, task.taskId);
+        } else if (task.status === 'pending' && effectiveMode === 'immediate') {
+          // Immediate mode - wait for task completion by polling once
+          console.log(`⚡ Task ${task.taskId} is pending in immediate mode, waiting for completion`);
+          this.createPlaceholderMessageForConversation(conversationId, task.taskId);
+          
+          // Poll until completion for immediate mode
+          const waitForCompletion = async () => {
+            let attempts = 0;
+            const maxAttempts = 30; // 30 seconds max wait
+            
+            while (attempts < maxAttempts) {
+              try {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+                const updatedTask = await tasksService.getTask(task.taskId);
+                
+                if (updatedTask.status === 'completed' || updatedTask.status === 'failed') {
+                  console.log(`⚡ Task ${task.taskId} completed in immediate mode`);
+                  this.handleTaskCompletionForConversation(conversationId, task.taskId);
+                  return;
+                }
+                attempts++;
+              } catch (error) {
+                console.error(`⚡ Error waiting for task ${task.taskId}:`, error);
+                break;
+              }
+            }
+            
+            // Fallback to polling if immediate wait times out
+            console.log(`⚡ Task ${task.taskId} immediate mode timed out, falling back to polling`);
+            this.startPollingTaskForConversation(conversationId, task.taskId);
+          };
+          
+          waitForCompletion();
         } else {
-          // Task completed immediately or immediate mode - create response message
-          this.createResponseMessageForConversation(activeConversation.id, task);
+          // Task completed immediately - fetch full task object with response
+          console.log(`✅ Task ${task.taskId} completed immediately, fetching full response`);
+          console.log(`✅ Task creation returned minimal object:`, {
+            taskId: task.taskId,
+            status: task.status,
+            hasResponse: !!(task as any).response,
+            taskKeys: Object.keys(task)
+          });
+          
+          try {
+            // Fetch the full task object with response content
+            const fullTask = await tasksService.getTask(task.taskId);
+            console.log(`✅ Full task object fetched:`, {
+              taskId: fullTask.id,
+              status: fullTask.status,
+              hasResponse: !!fullTask.response,
+              responseType: typeof fullTask.response,
+              responseLength: fullTask.response?.length || 0,
+              responsePreview: fullTask.response ? fullTask.response.substring(0, 200) : 'null'
+            });
+            
+            this.createResponseMessageForConversation(conversationId, fullTask);
+          } catch (error) {
+            console.error(`✅ Error fetching full task ${task.taskId}:`, error);
+            // Fallback to original task object
+            this.createResponseMessageForConversation(conversationId, task);
+          }
         }
 
       } catch (error) {
@@ -553,7 +676,12 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     createPlaceholderMessageForConversation(conversationId: string, taskId: string) {
       const conversation = this.getConversationById(conversationId);
-      if (!conversation) return;
+      if (!conversation) {
+        console.error('❌ Cannot create placeholder - conversation not found:', conversationId);
+        return;
+      }
+      
+      console.log('📝 Creating placeholder message for task:', taskId);
       
       const placeholderMessage: AgentChatMessage = {
         id: `task-${taskId}`,
@@ -586,21 +714,75 @@ export const useAgentChatStore = defineStore('agentChat', {
       const conversation = this.getConversationById(conversationId);
       if (!conversation) return;
       
+      console.log(`📝 Creating response message for task ${task.taskId}:`, {
+        hasResponse: !!task.response,
+        responseType: typeof task.response,
+        responseLength: task.response?.length || 0,
+        responsePreview: typeof task.response === 'string' ? task.response.substring(0, 200) : task.response ? JSON.stringify(task.response).substring(0, 200) : 'undefined'
+      });
+      
       let responseContent = 'Task completed successfully.';
       let responseMetadata = {};
       
       if (task.response) {
         try {
-          const parsedResult = typeof task.response === 'string' ? JSON.parse(task.response) : task.response;
-          if (parsedResult.success && parsedResult.response) {
-            responseContent = String(parsedResult.response);
-            responseMetadata = parsedResult.metadata || {};
+          // Try to parse JSON if it's a string
+          let parsedResult;
+          if (typeof task.response === 'string') {
+            try {
+              parsedResult = JSON.parse(task.response);
+              console.log('📄 Parsed JSON response structure:', {
+                type: typeof parsedResult,
+                hasSuccess: 'success' in parsedResult,
+                hasResponse: 'response' in parsedResult,
+                keys: Object.keys(parsedResult)
+              });
+            } catch {
+              // Not JSON, use as plain text
+              console.log('📄 Response is plain text, using directly');
+              responseContent = task.response;
+              parsedResult = null;
+            }
           } else {
-            responseContent = String(task.response);
+            parsedResult = task.response;
+            console.log('📄 Response is object:', Object.keys(parsedResult));
+          }
+          
+          // Extract content from various possible formats
+          if (parsedResult) {
+            if (parsedResult.success && parsedResult.response) {
+              // Format: { success: true, response: "content", metadata: {...} }
+              responseContent = String(parsedResult.response);
+              responseMetadata = parsedResult.metadata || {};
+              console.log('📄 Using success.response format');
+            } else if (parsedResult.response) {
+              // Format: { response: "content" }
+              responseContent = String(parsedResult.response);
+              console.log('📄 Using response field');
+            } else if (parsedResult.content) {
+              // Format: { content: "content" }
+              responseContent = String(parsedResult.content);
+              console.log('📄 Using content field');
+            } else if (parsedResult.result) {
+              // Format: { result: "content" }
+              responseContent = String(parsedResult.result);
+              console.log('📄 Using result field');
+            } else if (typeof parsedResult === 'string') {
+              // Format: "content"
+              responseContent = parsedResult;
+              console.log('📄 Using direct string');
+            } else {
+              // Fallback: stringify the whole object
+              responseContent = JSON.stringify(parsedResult, null, 2);
+              console.log('📄 Using stringified object as fallback');
+            }
           }
         } catch (error) {
+          console.error('📄 Error parsing response:', error);
           responseContent = String(task.response);
         }
+      } else {
+        console.warn('📄 Task has no response content');
       }
 
       const responseMessage: AgentChatMessage = {
@@ -679,15 +861,24 @@ export const useAgentChatStore = defineStore('agentChat', {
       
       const pollInterval = setInterval(async () => {
         try {
-          // Get task status for completion check
-          const taskStatus = await tasksService.getTaskStatus(taskId);
+          // Get full task for completion check (using same API as completion handler)
+          const fullTask = await tasksService.getTask(taskId);
+          console.log(`🔍 Task ${taskId} status check:`, {
+            status: fullTask.status,
+            hasResponse: !!fullTask.response,
+            responseLength: fullTask.response?.length || 0,
+            timestamp: new Date().toISOString()
+          });
           
-          if (taskStatus.status === 'completed' || taskStatus.status === 'failed') {
-            console.log(`🏁 Task ${taskId} completed with status: ${taskStatus.status}, stopping polling`);
+          if (fullTask.status === 'completed' || fullTask.status === 'failed') {
+            console.log(`🏁 Task ${taskId} completed with status: ${fullTask.status}, stopping polling`);
             clearInterval(pollInterval);
             this.handleTaskCompletionForConversation(conversationId, taskId);
             return;
           }
+          
+          // Also get task status for progress info (backwards compatibility)
+          const taskStatus = await tasksService.getTaskStatus(taskId);
 
           // Get accumulated messages for progress updates
           const messages = await tasksService.getTaskMessages(taskId);
@@ -902,15 +1093,27 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     async handleTaskCompletionForConversation(conversationId: string, taskId: string) {
       try {
+        console.log(`🎯 Handling completion for task ${taskId} in conversation ${conversationId}`);
+        
         // Get the completed task with full response
         const completedTask = await tasksService.getTask(taskId);
+        console.log(`📋 Task ${taskId} full details:`, {
+          id: completedTask.id,
+          status: completedTask.status,
+          hasResponse: !!completedTask.response,
+          responseLength: completedTask.response?.length || 0,
+          responsePreview: completedTask.response?.substring(0, 100),
+          timestamp: new Date().toISOString()
+        });
         
         // Skip processing if task is not actually completed or has no response yet
         if (completedTask.status !== 'completed') {
+          console.log(`⚠️ Task ${taskId} is not completed (status: ${completedTask.status}), skipping completion handler`);
           return;
         }
         
         if (!completedTask.response || completedTask.response === 'null' || completedTask.response.trim() === '') {
+          console.log(`⚠️ Task ${taskId} has no response content, skipping completion handler`);
           return;
         }
         
@@ -926,30 +1129,78 @@ export const useAgentChatStore = defineStore('agentChat', {
           // Update the existing placeholder message with final result instead of replacing
           const placeholderMessage = conversation.messages[placeholderIndex];
           
-          // Extract the final deliverable - the actual requirements document
+          // Extract the final deliverable using the same logic as createResponseMessageForConversation
+          
+          console.log(`🔄 Parsing completion response for task ${taskId}:`, {
+            hasResponse: !!completedTask.response,
+            responseType: typeof completedTask.response,
+            responseLength: completedTask.response?.length || 0,
+            responsePreview: typeof completedTask.response === 'string' ? completedTask.response.substring(0, 200) : completedTask.response ? JSON.stringify(completedTask.response).substring(0, 200) : 'undefined'
+          });
           
           let finalContent = '';
           
-          // Try multiple fields where the content might be stored
-          if (completedTask.response && completedTask.response !== 'null' && completedTask.response.trim() !== '') {
-            // First try the response field directly - this might be the parsed Python JSON response
+          if (completedTask.response) {
             try {
-              const parsedResponse = typeof completedTask.response === 'string' ? JSON.parse(completedTask.response) : completedTask.response;
-              
-              if (parsedResponse.response) {
-                // This is the actual requirements document content from Python script
-                finalContent = String(parsedResponse.response);
+              // Try to parse JSON if it's a string
+              let parsedResult;
+              if (typeof completedTask.response === 'string') {
+                try {
+                  parsedResult = JSON.parse(completedTask.response);
+                  console.log('🔄 Parsed JSON completion response structure:', {
+                    type: typeof parsedResult,
+                    hasSuccess: 'success' in parsedResult,
+                    hasResponse: 'response' in parsedResult,
+                    keys: Object.keys(parsedResult)
+                  });
+                } catch {
+                  // Not JSON, use as plain text
+                  console.log('🔄 Completion response is plain text, using directly');
+                  finalContent = completedTask.response;
+                  parsedResult = null;
+                }
               } else {
-                finalContent = String(completedTask.response);
+                parsedResult = completedTask.response;
+                console.log('🔄 Completion response is object:', Object.keys(parsedResult));
+              }
+              
+              // Extract content from various possible formats
+              if (parsedResult) {
+                if (parsedResult.success && parsedResult.response) {
+                  // Format: { success: true, response: "content", metadata: {...} }
+                  finalContent = String(parsedResult.response);
+                  console.log('🔄 Using success.response format for completion');
+                } else if (parsedResult.response) {
+                  // Format: { response: "content" }
+                  finalContent = String(parsedResult.response);
+                  console.log('🔄 Using response field for completion');
+                } else if (parsedResult.content) {
+                  // Format: { content: "content" }
+                  finalContent = String(parsedResult.content);
+                  console.log('🔄 Using content field for completion');
+                } else if (parsedResult.result) {
+                  // Format: { result: "content" }
+                  finalContent = String(parsedResult.result);
+                  console.log('🔄 Using result field for completion');
+                } else if (typeof parsedResult === 'string') {
+                  // Format: "content"
+                  finalContent = parsedResult;
+                  console.log('🔄 Using direct string for completion');
+                } else {
+                  // Fallback: stringify the whole object
+                  finalContent = JSON.stringify(parsedResult, null, 2);
+                  console.log('🔄 Using stringified object as fallback for completion');
+                }
               }
             } catch (error) {
-              // If response isn't JSON, use it directly
+              console.error('🔄 Error parsing completion response:', error);
               finalContent = String(completedTask.response);
             }
           }
           
           if (!finalContent || finalContent.trim() === '') {
-            finalContent = 'No requirements document was generated. Please check the logs for more details.';
+            console.warn('🔄 No final content extracted from completion response');
+            finalContent = 'No content was generated. Please check the logs for more details.';
           }
           
           // Clean up the existing content and append final deliverable

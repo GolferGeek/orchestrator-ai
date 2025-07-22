@@ -8,6 +8,7 @@ import { LoggingService } from '@agents/base/sub-services/logging/logging.servic
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { AgentContextService } from '../a2a-base/agent-context.service';
+import { TaskStatusService } from '@/tasks/task-status.service';
 
 /**
  * Context Agent Base Service that processes context-based requests using LLM
@@ -30,6 +31,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   ) {
     super(
       httpService,
+      undefined, // TaskStatusService will be injected automatically
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,
@@ -117,7 +119,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       const llmMetadata =
         typeof llmResult === 'object' ? llmResult.llmMetadata : undefined;
 
-      return {
+      const result = {
         success: true,
         response: responseContent,
         metadata: {
@@ -137,10 +139,23 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           }),
         },
       };
+
+      // Report task completion to TaskStatusService for async execution modes
+      if (params.taskId && params.currentUser?.id) {
+        try {
+          this.contextLogger.debug(`Reporting task completion for ${params.taskId}`);
+          await this.completeTask(params.taskId, params.currentUser.id, result);
+        } catch (error) {
+          this.contextLogger.error(`Error reporting task completion for ${params.taskId}:`, error);
+          // Don't fail the task if reporting fails
+        }
+      }
+
+      return result;
     } catch (error) {
       this.contextLogger.error(`Error in executeTask for ${agentName}:`, error);
 
-      return {
+      const errorResult = {
         success: false,
         error: error instanceof Error ? error.message : String(error),
         response:
@@ -152,6 +167,23 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           processedAt: new Date().toISOString(),
         },
       };
+
+      // Report task failure to TaskStatusService for async execution modes
+      if (params.taskId && params.currentUser?.id) {
+        try {
+          this.contextLogger.debug(`Reporting task failure for ${params.taskId}`);
+          await this.failTask(
+            params.taskId,
+            params.currentUser.id,
+            error instanceof Error ? error.message : String(error)
+          );
+        } catch (reportError) {
+          this.contextLogger.error(`Error reporting task failure for ${params.taskId}:`, reportError);
+          // Don't fail the task if reporting fails
+        }
+      }
+
+      return errorResult;
     }
   }
 

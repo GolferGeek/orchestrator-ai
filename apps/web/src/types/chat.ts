@@ -57,6 +57,8 @@ export interface AgentInfo {
   id: string;
   name: string;
   description: string;
+  type?: string;
+  execution_modes?: ('immediate' | 'polling' | 'real-time')[];
   // capabilities?: string[]; // Example
 }
 

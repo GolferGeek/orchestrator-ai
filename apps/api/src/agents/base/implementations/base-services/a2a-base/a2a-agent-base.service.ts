@@ -4,7 +4,7 @@ import {
   OnModuleInit,
   OnModuleDestroy,
   Inject,
-  forwardRef,
+  Optional,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 
@@ -52,16 +52,15 @@ export abstract class A2AAgentBaseService
   protected authService: AuthService;
   protected configurationService: ConfigurationService;
   protected taskStatusService?: TaskStatusService;
-
+  
   constructor(
     protected readonly httpService: HttpService,
+    @Optional() @Inject(TaskStatusService) taskStatusService?: TaskStatusService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
     authService?: AuthService,
     configurationService?: ConfigurationService,
-    @Inject(forwardRef(() => TaskStatusService))
-    taskStatusService?: TaskStatusService,
   ) {
     // Use provided services or create fallback instances
     this.agentRegistrationService =

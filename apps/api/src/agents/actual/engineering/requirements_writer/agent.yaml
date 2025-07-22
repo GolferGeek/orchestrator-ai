@@ -77,6 +77,7 @@ configuration:
   complexity_assessment: true
   feature_extraction: true
   template_based_generation: true
+  execution_modes: ["immediate", "polling", "real-time"]
   document_types:
     - "prd"
     - "trd"

@@ -50,7 +50,7 @@
             v-model="messageText"
             placeholder="Type your message..."
             :rows="2"
-            :disabled="!canSend"
+            :disabled="!currentAgent"
             @keydown.enter.prevent="sendMessage"
           />
           <ion-button

@@ -15,7 +15,7 @@ describe('Orchestrator Core (e2e)', () => {
   beforeAll(async () => {
     // Set environment to use real Hiverarchy endpoint for testing
     process.env.HIVERARCHY_EXTERNAL_ENDPOINT =
-      'http://localhost:4100/agents/orchestrator/orchestrator/tasks';
+      'http://localhost:4000/agents/orchestrator/orchestrator/tasks';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],

@@ -66,6 +66,7 @@ output_modes:
 configuration:
   default_output_format: "markdown"
   seo_features_enabled: true
+  execution_modes: ["immediate"]
   content_length_options:
     short: "300-600 words"
     medium: "600-1200 words"

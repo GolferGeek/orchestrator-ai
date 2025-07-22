@@ -26,7 +26,10 @@
         <!-- Task text content -->
         <div class="task-text" v-if="message.content">
           <!-- Render markdown for assistant messages -->
-          <div v-if="message.role === 'assistant'" v-html="renderedContent"></div>
+          <div v-if="message.role === 'assistant'" class="rendered-content">
+            <div v-if="renderedContent" v-html="renderedContent"></div>
+            <div v-else class="fallback-content">{{ message.content }}</div>
+          </div>
           <!-- Plain text for user messages -->
           <div v-else>{{ message.content }}</div>
         </div>
@@ -107,9 +110,50 @@ const renderedContent = computed(() => {
   }
   
   try {
-    return marked.parse(props.message.content, { breaks: true, gfm: true });
+    // Debug: Log the original content
+    console.log('🎭 Processing message content for rendering:', {
+      messageId: props.message.id,
+      contentLength: props.message.content.length,
+      contentPreview: props.message.content.substring(0, 100),
+      hasTaskId: !!props.message.taskId
+    });
+    
+    // Parse markdown to HTML - use synchronous parsing
+    let html: string;
+    try {
+      // Force synchronous parsing by using marked with older API style
+      html = marked(props.message.content, { 
+        breaks: true, 
+        gfm: true
+      }) as string;
+    } catch (error) {
+      console.warn('Failed to parse markdown, using plain text:', error);
+      html = `<p>${props.message.content}</p>`;
+    }
+    
+    // Debug: Log the parsed HTML
+    console.log('🎭 Parsed HTML:', {
+      messageId: props.message.id,
+      htmlLength: html.length,
+      htmlPreview: html.substring(0, 200)
+    });
+    
+    // Basic validation to ensure it's valid HTML
+    if (typeof html !== 'string' || html.trim() === '') {
+      console.warn('🎭 Markdown parsing returned empty or invalid content');
+      return null; // This will trigger the fallback
+    }
+    
+    // Check for problematic patterns that might cause DOM issues
+    if (html.includes('<html') || html.includes('<body') || html.includes('<head')) {
+      console.warn('🎭 Markdown content contains document-level HTML tags, using fallback');
+      return null; // This will trigger the fallback
+    }
+    
+    return html;
   } catch (error) {
-    return String(props.message.content);
+    console.error('🎭 Error parsing markdown content:', error);
+    return null; // This will trigger the fallback
   }
 });
 
@@ -175,16 +219,18 @@ const costCalculation = computed(() => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  max-width: 85%;
+  width: calc(100% - 32px);
+  margin: 16px 16px;
+  padding: 0;
 }
 
 .task-role--user .task-message {
-  margin-left: auto;
+  justify-content: flex-end;
   flex-direction: row-reverse;
 }
 
 .task-role--assistant .task-message {
-  margin-right: auto;
+  justify-content: flex-start;
 }
 
 .task-avatar {
@@ -296,6 +342,18 @@ const costCalculation = computed(() => {
 .task-text :deep(pre code) {
   background-color: transparent;
   padding: 0;
+}
+
+.rendered-content {
+  /* Ensure content is properly contained */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.fallback-content {
+  /* Style for fallback plain text content */
+  white-space: pre-wrap;
+  font-family: inherit;
 }
 
 .task-timestamp {
