@@ -196,6 +196,16 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     }
 
     if (params && typeof params === 'object') {
+      // Handle message.parts[0].text format (from frontend)
+      if (params.message?.parts?.[0]?.text) {
+        return params.message.parts[0].text;
+      }
+
+      // Handle direct message.text format
+      if (params.message?.text) {
+        return params.message.text;
+      }
+
       const messageProps = [
         'userMessage',
         'message',
