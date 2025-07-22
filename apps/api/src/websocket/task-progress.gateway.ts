@@ -273,8 +273,8 @@ export class TaskProgressGateway
       timestamp: new Date().toISOString(),
     };
 
-    this.logger.debug(
-      `Broadcasting task completion for task ${taskId}: ${status}`,
+    this.logger.log(
+      `🎯 broadcastTaskCompletion called for task ${taskId}: ${status} - ${message}`,
     );
 
     // Check how many clients are in the room (with null safety)
@@ -337,14 +337,14 @@ export class TaskProgressGateway
 
   /**
    * Handle task completion events
+   * Note: WebSocket broadcasting is handled by broadcastTaskCompletion() method to avoid duplicates
    */
   @OnEvent('task.completed')
   handleTaskCompleted(event: { taskId: string; userId: string }) {
-    this.logger.debug(`Broadcasting task completed: ${event.taskId}`);
-
-    // Broadcast to task room and user room
-    this.server.to(`task:${event.taskId}`).emit('task_completed', event);
-    this.server.to(`user:${event.userId}`).emit('task_completed', event);
+    this.logger.debug(`Task completion event received: ${event.taskId} (WebSocket broadcasting disabled to prevent duplicates - handled by broadcastTaskCompletion)`);
+    
+    // Don't emit WebSocket events here - broadcastTaskCompletion() already handles this
+    // to prevent duplicate task_completed events that cause multiple frontend completion handlers
   }
 
   /**

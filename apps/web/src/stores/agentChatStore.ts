@@ -179,11 +179,14 @@ export const useAgentChatStore = defineStore('agentChat', {
     /**
      * Switch to a different conversation
      */
-    switchToConversation(conversationId: string) {
+    async switchToConversation(conversationId: string) {
       const conversation = this.getConversationById(conversationId);
       if (conversation) {
         this.activeConversationId = conversationId;
         conversation.lastActiveAt = new Date();
+        
+        // Update supported execution modes if needed
+        await this.updateConversationExecutionModes(conversationId);
       }
     },
 
@@ -259,6 +262,9 @@ export const useAgentChatStore = defineStore('agentChat', {
         
         // Load conversation messages
         await this.loadConversationMessages(backendConversationId);
+        
+        // Update execution modes for this conversation
+        await this.updateConversationExecutionModes(backendConversationId);
         
       } catch (error) {
         this.globalError = error instanceof Error ? error.message : 'Failed to load conversation';
@@ -416,15 +422,23 @@ export const useAgentChatStore = defineStore('agentChat', {
         let mode = prefs.defaultExecutionMode;
         console.log(`⚙️ Default execution mode from preferences: ${mode}`);
         
-        // Auto-switch to WebSocket for workflow agents if enabled
+        // Check if agent supports the preferred mode, fall back to first supported mode if not
+        const supportedModes = activeConversation.supportedExecutionModes;
+        if (!supportedModes.includes(mode)) {
+          mode = supportedModes[0]; // Use first supported mode as fallback
+          console.log(`🔄 Agent doesn't support ${prefs.defaultExecutionMode}, falling back to: ${mode}`);
+        }
+        
+        // Auto-switch to WebSocket for workflow agents if enabled and supported
         if (prefs.autoSwitchToWebSocketForWorkflows && 
-            activeConversation.agent?.name === 'requirements_writer') {
+            activeConversation.agent?.name === 'requirements_writer' &&
+            supportedModes.includes('websocket')) {
           mode = 'websocket';
           console.log(`🔧 Auto-switched to WebSocket for workflow agent: ${activeConversation.agent?.name}`);
         }
         
         activeConversation.executionMode = mode;
-        console.log(`✅ Final execution mode set to: ${mode}`);
+        console.log(`✅ Final execution mode set to: ${mode} (supported: ${supportedModes.join(', ')})`);
       } else {
         console.log(`👤 User has overridden execution mode to: ${activeConversation.executionMode}`);
       }
@@ -436,8 +450,15 @@ export const useAgentChatStore = defineStore('agentChat', {
     setExecutionMode(mode: 'immediate' | 'polling' | 'websocket') {
       const activeConversation = this.getActiveConversation();
       if (activeConversation) {
+        // Check if the agent supports this mode
+        if (!activeConversation.supportedExecutionModes.includes(mode)) {
+          console.warn(`⚠️ Agent ${activeConversation.agent?.name} doesn't support ${mode} mode. Supported: ${activeConversation.supportedExecutionModes.join(', ')}`);
+          return;
+        }
+        
         activeConversation.executionMode = mode;
         activeConversation.isExecutionModeOverride = true;
+        console.log(`👤 User manually set execution mode to: ${mode}`);
       }
     },
 
@@ -449,6 +470,35 @@ export const useAgentChatStore = defineStore('agentChat', {
       if (activeConversation) {
         activeConversation.isExecutionModeOverride = false;
         this.initializeExecutionMode();
+      }
+    },
+
+    /**
+     * Update execution modes for a conversation based on agent capabilities
+     */
+    async updateConversationExecutionModes(conversationId: string) {
+      const conversation = this.getConversationById(conversationId);
+      if (!conversation?.agent) return;
+
+      try {
+        // Fetch current agents data to get execution modes
+        const response = await fetch('/agents');
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const agentInfo = data.agents?.find((agent: any) => agent.name === conversation.agent?.name);
+        
+        if (agentInfo?.execution_modes && Array.isArray(agentInfo.execution_modes)) {
+          // Map execution modes from agent data (handles 'real-time' -> 'websocket')
+          const supportedModes = agentInfo.execution_modes.map((mode: string) => 
+            mode === 'real-time' ? 'websocket' : mode as ('immediate' | 'polling' | 'websocket')
+          ).filter((mode: string) => ['immediate', 'polling', 'websocket'].includes(mode));
+          
+          conversation.supportedExecutionModes = supportedModes;
+          console.log(`🔄 Updated execution modes for ${conversation.agent.name}:`, supportedModes);
+        }
+      } catch (error) {
+        console.warn('Failed to update execution modes for conversation:', error);
       }
     },
 
@@ -625,33 +675,28 @@ export const useAgentChatStore = defineStore('agentChat', {
           
           waitForCompletion();
         } else {
-          // Task completed immediately - fetch full task object with response
-          console.log(`✅ Task ${task.taskId} completed immediately, fetching full response`);
-          console.log(`✅ Task creation returned minimal object:`, {
+          // Task completed immediately - use result from task creation response
+          console.log(`✅ Task ${task.taskId} completed immediately, processing result`);
+          console.log(`✅ Task creation response structure:`, {
             taskId: task.taskId,
             status: task.status,
+            hasResult: !!task.result,
             hasResponse: !!(task as any).response,
             taskKeys: Object.keys(task)
           });
           
-          try {
-            // Fetch the full task object with response content
-            const fullTask = await tasksService.getTask(task.taskId);
-            console.log(`✅ Full task object fetched:`, {
-              taskId: fullTask.id,
-              status: fullTask.status,
-              hasResponse: !!fullTask.response,
-              responseType: typeof fullTask.response,
-              responseLength: fullTask.response?.length || 0,
-              responsePreview: fullTask.response ? fullTask.response.substring(0, 200) : 'null'
-            });
-            
-            this.createResponseMessageForConversation(conversationId, fullTask);
-          } catch (error) {
-            console.error(`✅ Error fetching full task ${task.taskId}:`, error);
-            // Fallback to original task object
-            this.createResponseMessageForConversation(conversationId, task);
+          // For immediate mode, the response is in the result field
+          // Convert the result to the format expected by createResponseMessageForConversation
+          let taskForProcessing: any = task;
+          if (task.result && task.result.response && !(task as any).response) {
+            console.log(`🔄 Converting result.response to response format for immediate mode`);
+            taskForProcessing = {
+              ...task,
+              response: JSON.stringify(task.result)
+            };
           }
+          
+          this.createResponseMessageForConversation(conversationId, taskForProcessing);
         }
 
       } catch (error) {
@@ -713,6 +758,16 @@ export const useAgentChatStore = defineStore('agentChat', {
     createResponseMessageForConversation(conversationId: string, task: any) {
       const conversation = this.getConversationById(conversationId);
       if (!conversation) return;
+      
+      // Check if response message already exists for this task to prevent duplicates
+      const existingResponseMessage = conversation.messages.find(msg => 
+        msg.taskId === task.taskId && msg.role === 'assistant' && !msg.metadata?.isPlaceholder
+      );
+      
+      if (existingResponseMessage) {
+        console.log(`⚠️ Response message already exists for task ${task.taskId}, skipping createResponseMessage`);
+        return;
+      }
       
       console.log(`📝 Creating response message for task ${task.taskId}:`, {
         hasResponse: !!task.response,
@@ -822,8 +877,12 @@ export const useAgentChatStore = defineStore('agentChat', {
 
       // Set up completion/failure event handlers
       websocketService.onTaskEvent('completed', (event) => {
+        console.log(`🎯 WebSocket completion event received for task ${event.taskId}`, event);
         if (event.taskId === taskId) {
+          console.log(`🎯 WebSocket completion event matches subscribed task ${taskId}, calling completion handler`);
           this.handleTaskCompletionForConversation(conversationId, taskId);
+        } else {
+          console.log(`🎯 WebSocket completion event for different task ${event.taskId}, subscribed to ${taskId}`);
         }
       });
 
@@ -1095,6 +1154,35 @@ export const useAgentChatStore = defineStore('agentChat', {
       try {
         console.log(`🎯 Handling completion for task ${taskId} in conversation ${conversationId}`);
         
+        const conversation = this.getConversationById(conversationId);
+        if (!conversation) {
+          console.log(`❌ Conversation ${conversationId} not found, aborting completion handler`);
+          return;
+        }
+        
+        // Check if task completion is already being processed or completed
+        const existingMessage = conversation.messages.find(msg => 
+          msg.taskId === taskId && msg.role === 'assistant'
+        );
+        
+        if (existingMessage?.metadata?.isCompleted) {
+          console.log(`⚠️ Task ${taskId} completion already processed, ignoring duplicate call`);
+          return;
+        }
+        
+        if (existingMessage?.metadata?.processingCompletion) {
+          console.log(`⚠️ Task ${taskId} completion already in progress, ignoring duplicate call`);
+          return;
+        }
+        
+        // Mark as processing to prevent concurrent completions
+        if (existingMessage) {
+          existingMessage.metadata = { 
+            ...existingMessage.metadata, 
+            processingCompletion: true 
+          };
+        }
+        
         // Get the completed task with full response
         const completedTask = await tasksService.getTask(taskId);
         console.log(`📋 Task ${taskId} full details:`, {
@@ -1109,16 +1197,21 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Skip processing if task is not actually completed or has no response yet
         if (completedTask.status !== 'completed') {
           console.log(`⚠️ Task ${taskId} is not completed (status: ${completedTask.status}), skipping completion handler`);
+          // Clear processing flag
+          if (existingMessage?.metadata) {
+            existingMessage.metadata.processingCompletion = false;
+          }
           return;
         }
         
         if (!completedTask.response || completedTask.response === 'null' || completedTask.response.trim() === '') {
           console.log(`⚠️ Task ${taskId} has no response content, skipping completion handler`);
+          // Clear processing flag
+          if (existingMessage?.metadata) {
+            existingMessage.metadata.processingCompletion = false;
+          }
           return;
         }
-        
-        const conversation = this.getConversationById(conversationId);
-        if (!conversation) return;
         
         // Find and replace placeholder message
         const placeholderIndex = conversation.messages.findIndex(msg => 
@@ -1209,14 +1302,31 @@ export const useAgentChatStore = defineStore('agentChat', {
           // Remove any "Processing final response..." indicator
           existingContent = existingContent.replace(/🔄 Processing final response\.\.\./g, '').trim();
           
-          // Append the actual requirements document
-          placeholderMessage.content = existingContent + `\n\n---\n\n**📋 Requirements Document:**\n\n${finalContent}`;
-          placeholderMessage.metadata = {
-            ...placeholderMessage.metadata,
-            isPlaceholder: false, // No longer a placeholder
-            isCompleted: true,
-            completedAt: new Date().toISOString()
-          };
+          // Check if deliverable has already been added (prevent duplicate deliverables)
+          const deliverableAlreadyAdded = existingContent.includes('**📋 Requirements Document:**') ||
+                                        placeholderMessage.metadata?.isCompleted;
+          
+          if (!deliverableAlreadyAdded) {
+            // Append the actual requirements document
+            placeholderMessage.content = existingContent + `\n\n---\n\n**📋 Requirements Document:**\n\n${finalContent}`;
+            placeholderMessage.metadata = {
+              ...placeholderMessage.metadata,
+              isPlaceholder: false, // No longer a placeholder
+              isCompleted: true,
+              completedAt: new Date().toISOString(),
+              processingCompletion: false // Clear processing flag
+            };
+            console.log(`✅ Deliverable added to task ${taskId} for the first time`);
+          } else {
+            console.log(`⚠️ Deliverable already exists for task ${taskId}, skipping duplicate`);
+            // Just update the metadata to ensure it's marked as completed
+            placeholderMessage.metadata = {
+              ...placeholderMessage.metadata,
+              isPlaceholder: false,
+              isCompleted: true,
+              processingCompletion: false // Clear processing flag
+            };
+          }
           
           // Trigger reactivity
           conversation.messages[placeholderIndex] = { ...placeholderMessage };
@@ -1232,6 +1342,14 @@ export const useAgentChatStore = defineStore('agentChat', {
         const conversation = this.getConversationById(conversationId);
         if (conversation) {
           conversation.error = error instanceof Error ? error.message : 'Failed to load task result';
+          
+          // Clear processing flag on error
+          const existingMessage = conversation.messages.find(msg => 
+            msg.taskId === taskId && msg.role === 'assistant'
+          );
+          if (existingMessage?.metadata) {
+            existingMessage.metadata.processingCompletion = false;
+          }
         }
       }
     },
