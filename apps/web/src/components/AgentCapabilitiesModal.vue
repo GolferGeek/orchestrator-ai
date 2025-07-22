@@ -17,7 +17,7 @@
           <ion-icon :icon="cogOutline" color="primary" class="agent-icon"></ion-icon>
           <div>
             <h2 class="agent-name">{{ singleAgent.name }}</h2>
-            <p class="agent-description">{{ singleAgent.description }}</p>
+            <p class="agent-description">{{ formatAgentDescription(singleAgent.description) }}</p>
           </div>
         </div>
         
@@ -58,7 +58,7 @@
               <ion-icon :icon="cogOutline" slot="start" color="primary"></ion-icon>
               <ion-label>
                 <h2 class="agent-name-link">{{ cleanAgentName(agent.name) }}</h2>
-                <p class="agent-description">{{ agent.description }}</p>
+                <p class="agent-description">{{ formatAgentDescription(agent.description) }}</p>
               </ion-label>
               <ion-icon :icon="chevronForwardOutline" slot="end" color="medium"></ion-icon>
             </ion-item>
@@ -71,6 +71,7 @@
 
 <script setup lang="ts">
 import { defineProps, defineEmits, computed, withDefaults } from 'vue';
+import { formatAgentDescription } from '@/utils/caseConverter';
 import {
   IonModal,
   IonHeader,

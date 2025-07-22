@@ -11,7 +11,7 @@
         <ion-item v-for="agent in agents" :key="agent.id" class="agent-item">
           <ion-label>
             <h2>{{ formatAgentName(agent.name) }}</h2>
-            <p>{{ agent.description }}</p>
+            <p>{{ formatAgentDescription(agent.description) }}</p>
           </ion-label>
           <!-- Could add buttons here for more info or direct interaction later -->
         </ion-item>
@@ -23,7 +23,7 @@
 <script setup lang="ts">
 import { defineProps, PropType } from 'vue';
 import { AgentInfo } from '../types/chat';
-import { formatAgentName } from '@/utils/caseConverter';
+import { formatAgentName, formatAgentDescription } from '@/utils/caseConverter';
 import { IonList, IonItem, IonLabel, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/vue';
 
 defineProps({

@@ -195,6 +195,7 @@ import {
   IonSearchbar,
   IonSpinner,
   IonAvatar,
+  alertController,
 } from '@ionic/vue';
 import {
   personOutline,
@@ -383,20 +384,57 @@ const createNewConversation = async (agent: Agent) => {
 
 const endConversation = async (conversation: Conversation) => {
   try {
-    let message = `Are you sure you want to delete this conversation with ${conversation.agentName}? This will permanently delete all tasks and data associated with this conversation.`;
+    console.log('🗑️ Attempting to delete conversation:', conversation.id, conversation.agentName);
+    
+    let message = `Are you sure you want to permanently delete this conversation with ${conversation.agentName}?`;
+    let subHeader = 'This action cannot be undone and will delete all tasks and data.';
     
     // Add warning if there are active tasks
     if (conversation.activeTasks > 0) {
-      message += `\n\nWarning: This conversation has ${conversation.activeTasks} running task${conversation.activeTasks > 1 ? 's' : ''} that will be cancelled.`;
+      subHeader += ` This conversation has ${conversation.activeTasks} running task${conversation.activeTasks > 1 ? 's' : ''} that will be cancelled.`;
     }
     
-    const result = await confirm(message);
+    console.log('🗑️ Showing Ionic alert dialog');
     
-    if (!result) return;
+    const alert = await alertController.create({
+      header: 'Delete Conversation',
+      subHeader: subHeader,
+      message: message,
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          handler: () => {
+            console.log('🗑️ User cancelled deletion via Ionic alert');
+            return false;
+          }
+        },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          cssClass: 'danger',
+          handler: () => {
+            console.log('🗑️ User confirmed deletion via Ionic alert');
+            return true;
+          }
+        }
+      ]
+    });
 
+    await alert.present();
+    const { role } = await alert.onDidDismiss();
+    
+    if (role === 'cancel') {
+      console.log('🗑️ User cancelled deletion');
+      return;
+    }
+
+    console.log('🗑️ Calling conversationsStore.deleteConversation...');
     // Use store method - this will update the UI reactively
     await conversationsStore.deleteConversation(conversation.id);
+    console.log('🗑️ Delete conversation completed successfully');
   } catch (err) {
+    console.error('🗑️ Error in endConversation:', err);
     // Error is already handled in the store
   }
 };

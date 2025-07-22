@@ -171,7 +171,7 @@ const clearError = () => {
   // Clear error on the active conversation
   const activeConversation = agentChatStore.getActiveConversation();
   if (activeConversation) {
-    activeConversation.error = null;
+    activeConversation.error = undefined;
   }
 };
 
