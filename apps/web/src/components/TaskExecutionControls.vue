@@ -20,15 +20,27 @@
         @ionChange="handleModeChange"
         size="small"
       >
-        <ion-segment-button value="immediate">
+        <ion-segment-button 
+          value="immediate" 
+          v-if="supportedModes.includes('immediate')"
+          :disabled="isSingleModeAgent"
+        >
           <ion-icon :icon="flash" />
           <ion-label>Immediate</ion-label>
         </ion-segment-button>
-        <ion-segment-button value="polling">
+        <ion-segment-button 
+          value="polling" 
+          v-if="supportedModes.includes('polling')"
+          :disabled="isSingleModeAgent"
+        >
           <ion-icon :icon="refresh" />
           <ion-label>Polling</ion-label>
         </ion-segment-button>
-        <ion-segment-button value="websocket">
+        <ion-segment-button 
+          value="websocket" 
+          v-if="supportedModes.includes('websocket')"
+          :disabled="isSingleModeAgent"
+        >
           <ion-icon :icon="wifi" />
           <ion-label>Real-time</ion-label>
         </ion-segment-button>
@@ -81,6 +93,15 @@ const currentMode = computed(() => agentChatStore.getEffectiveExecutionMode());
 
 const activeConversation = computed(() => agentChatStore.getActiveConversation());
 const isExecutionModeOverride = computed(() => activeConversation.value?.isExecutionModeOverride || false);
+
+const supportedModes = computed(() => {
+  return activeConversation.value?.supportedExecutionModes || ['immediate'];
+});
+
+const isSingleModeAgent = computed(() => {
+  const modes = supportedModes.value;
+  return modes.length === 1 && modes[0] === 'immediate';
+});
 
 const showControls = computed(() => {
   return activeConversation.value?.agent && 

@@ -7,6 +7,9 @@ import {
   Optional,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
 
 import {
   AgentRegistrationService,
@@ -293,6 +296,18 @@ export abstract class A2AAgentBaseService
         className: this.constructor.name,
       },
     };
+
+    // Try to load YAML configuration if agent path is available
+    if (this.agentPath) {
+      try {
+        const yamlConfig = await this.loadAgentYamlConfig();
+        if (yamlConfig?.configuration) {
+          card.configuration = yamlConfig.configuration;
+        }
+      } catch (error) {
+        this.logger.debug(`Could not load YAML configuration for ${this.getAgentName()}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
 
     // Add task type and status schema if defined
     const taskType = this.getTaskType();
@@ -620,5 +635,32 @@ export abstract class A2AAgentBaseService
     const agentName = this.getAgentName().toLowerCase().replace(/\s+/g, '_');
     const url = `${baseUrl}/agents/${agentType}s/${agentName}/tasks`;
     return url;
+  }
+
+  /**
+   * Load agent YAML configuration
+   */
+  private async loadAgentYamlConfig(): Promise<any | null> {
+    if (!this.agentPath || this.agentPath === 'unknown') {
+      return null;
+    }
+
+    // Construct the full path to agent.yaml
+    const agentsBasePath = path.join(process.cwd(), 'src', 'agents', 'actual');
+    const yamlPath = path.join(agentsBasePath, this.agentPath, 'agent.yaml');
+
+    if (!fs.existsSync(yamlPath)) {
+      this.logger.debug(`No agent.yaml found at: ${yamlPath}`);
+      return null;
+    }
+
+    try {
+      const yamlContent = fs.readFileSync(yamlPath, 'utf8');
+      const parsed = yaml.load(yamlContent) as any;
+      return parsed;
+    } catch (error) {
+      this.logger.warn(`Failed to parse agent.yaml at ${yamlPath}:`, error);
+      return null;
+    }
   }
 }
