@@ -355,6 +355,7 @@ const handleAgentSelected = (agent: any) => {
     name: agent.name,
     type: agent.type,
     description: agent.description,
+    execution_modes: agent.execution_modes,
   });
   
   // Emit event to parent (HomePage) to switch to agent chat view

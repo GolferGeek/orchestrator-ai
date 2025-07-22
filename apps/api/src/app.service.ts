@@ -176,17 +176,43 @@ export class AppService implements OnModuleInit {
     return 'NestJS A2A Agent Framework - Ready!';
   }
 
-  getAgentStatus(): any {
+  async getAgentStatus(): Promise<any> {
+    // Get agent cards with execution modes information
+    const agentsWithDetails = await Promise.all(
+      this.discoveredAgents.map(async (agent) => {
+        let agentCard = null;
+        let executionModes = ['immediate']; // Default execution mode
+        
+        try {
+          if (agent.serviceInstance && typeof agent.serviceInstance.getAgentCard === 'function') {
+            agentCard = await agent.serviceInstance.getAgentCard();
+            
+            // Extract execution modes from agent card configuration
+            if (agentCard?.configuration?.execution_modes) {
+              executionModes = agentCard.configuration.execution_modes;
+            }
+          }
+        } catch (error) {
+          this.logger.warn(`Failed to get agent card for ${agent.name}:`, error);
+        }
+
+        return {
+          id: this.agentDiscovery.generateAgentId(agent.name, agent.path),
+          name: agent.name,
+          type: agent.type,
+          description: agentCard?.description || `${agent.name} - A specialized agent for handling specific tasks`,
+          serviceClass: agent.serviceClass?.name,
+          hasInstance: !!agent.serviceInstance,
+          execution_modes: executionModes,
+        };
+      })
+    );
+
     return {
       status: 'running',
       discoveredAgents: this.discoveredAgents.length,
       runningInstances: this.agentInstances.length,
-      agents: this.discoveredAgents.map((agent) => ({
-        name: agent.name,
-        type: agent.type,
-        serviceClass: agent.serviceClass?.name,
-        hasInstance: !!agent.serviceInstance,
-      })),
+      agents: agentsWithDetails,
     };
   }
 

@@ -77,6 +77,7 @@ export class ApiAgentBaseService
   ) {
     super(
       httpService,
+      undefined, // TaskStatusService will be injected automatically
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,
