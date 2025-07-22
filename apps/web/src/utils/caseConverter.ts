@@ -37,3 +37,9 @@ export function convertAPIResponseToFrontend(response: any): any {
 export function formatAgentName(name: string): string {
   return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
+
+// Format agent descriptions for display
+export function formatAgentDescription(description: string): string {
+  if (!description) return '';
+  return description.trim();
+}

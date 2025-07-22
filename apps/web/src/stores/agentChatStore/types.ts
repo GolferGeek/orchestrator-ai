@@ -1,4 +1,10 @@
-import type { Agent } from '@/types/api';
+// Agent interface based on the original implementation
+export interface Agent {
+  name: string;
+  type: string;
+  description?: string;
+  execution_modes?: string[];
+}
 
 export interface AgentChatMessage {
   id: string;
@@ -43,6 +49,10 @@ export interface AgentConversation {
   supportedExecutionModes: ('immediate' | 'polling' | 'websocket')[];
   isExecutionModeOverride?: boolean;
   error?: string;
+  // Additional properties from original interface
+  title: string;
+  isLoading: boolean;
+  isSendingMessage: boolean;
 }
 
 export type ExecutionMode = 'immediate' | 'polling' | 'websocket';
@@ -54,6 +64,8 @@ export interface TaskExecutionOptions {
   conversationHistory: any[];
   llmSelection: any;
   executionMode: ExecutionMode;
+  agentType: string;
+  agentName: string;
   taskId?: string;
 }
 

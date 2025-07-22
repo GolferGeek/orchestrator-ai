@@ -86,7 +86,7 @@ export class MessageFormattingService {
             console.log('📋 Extracted requirements document content:', responseContent.substring(0, 200) + '...');
           }
         }
-      } catch (error) {
+      } catch {
         // If parsing fails, use the raw response
         responseContent = String(task.response);
         console.log('📄 Raw response content:', responseContent.substring(0, 200) + '...');

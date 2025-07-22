@@ -100,22 +100,32 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
 
     async deleteConversation(conversationId: string) {
       try {
+        console.log('🗑️ Store: deleteConversation called for ID:', conversationId);
+        
         // Optimistically remove from store first
         const conversationIndex = this.conversations.findIndex(conv => conv.id === conversationId);
+        console.log('🗑️ Store: Found conversation at index:', conversationIndex);
+        
         if (conversationIndex === -1) {
+          console.error('🗑️ Store: Conversation not found in store');
           throw new Error('Conversation not found');
         }
 
         // Store the conversation in case we need to rollback
         const deletedConversation = this.conversations[conversationIndex];
+        console.log('🗑️ Store: Removing conversation from store:', deletedConversation.agentName);
         
         // Remove from store immediately for instant UI update
         this.conversations.splice(conversationIndex, 1);
+        console.log('🗑️ Store: Conversation removed from store, making API call...');
 
         // Make API call
         await agentConversationsService.deleteConversation(conversationId);
+        console.log('🗑️ Store: API call completed successfully');
 
       } catch (error) {
+        console.error('🗑️ Store: Error in deleteConversation:', error);
+        
         // Rollback on error - add the conversation back
         this.fetchConversations(true); // Force refresh to get correct state
         
