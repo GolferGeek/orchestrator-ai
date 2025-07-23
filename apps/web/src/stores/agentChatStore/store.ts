@@ -112,32 +112,18 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Close conversation
      */
     closeConversation(conversationId: string) {
-      console.log('🗙 STORE DEBUG: closeConversation called with ID:', conversationId);
-      console.log('🗙 STORE DEBUG: Current conversations count:', this.conversations.length);
-      
       const conv = this.getConversationById(conversationId);
-      console.log('🗙 STORE DEBUG: Found conversation to close:', conv?.id);
-      
       if (conv) {
         // Cleanup conversation resources
-        console.log('🗙 STORE DEBUG: Cleaning up conversation resources');
         conversation.cleanupConversation(conv);
         
         // Remove from list
-        const beforeCount = this.conversations.length;
         this.conversations = this.conversations.filter(c => c.id !== conversationId);
-        console.log('🗙 STORE DEBUG: Conversations count before/after:', beforeCount, this.conversations.length);
         
         // Update active conversation
         if (this.activeConversationId === conversationId) {
-          const newActiveId = this.conversations.length > 0 ? this.conversations[0].id : null;
-          console.log('🗙 STORE DEBUG: Updating active conversation from', this.activeConversationId, 'to', newActiveId);
-          this.activeConversationId = newActiveId;
+          this.activeConversationId = this.conversations.length > 0 ? this.conversations[0].id : null;
         }
-        
-        console.log('🗙 STORE DEBUG: Conversation closed successfully');
-      } else {
-        console.log('🗙 STORE DEBUG: No conversation found with ID:', conversationId);
       }
     },
 

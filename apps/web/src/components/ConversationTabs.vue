@@ -64,27 +64,17 @@ const switchToConversation = (conversationId: string) => {
 };
 
 const closeConversation = (conversationId: string) => {
-  console.log('🗙 DEBUG: Close button clicked for conversation:', conversationId);
-  
   // Show confirmation for conversations with messages (excluding welcome message)
   const conversation = agentChatStore.getConversationById(conversationId);
-  console.log('🗙 DEBUG: Found conversation:', conversation);
-  
   if (conversation && conversation.messages.length > 1) {
     const userMessages = conversation.messages.filter(msg => msg.role === 'user');
     if (userMessages.length > 0) {
-      console.log('🗙 DEBUG: Showing confirmation dialog');
       const confirmed = confirm(`Close conversation with ${conversation.agent.name}? This will remove it from your tabs but won't delete the conversation.`);
-      if (!confirmed) {
-        console.log('🗙 DEBUG: User cancelled close');
-        return;
-      }
+      if (!confirmed) return;
     }
   }
   
-  console.log('🗙 DEBUG: Calling agentChatStore.closeConversation');
   agentChatStore.closeConversation(conversationId);
-  console.log('🗙 DEBUG: Close conversation completed');
 };
 
 const handleSendMessage = async (content: string) => {
