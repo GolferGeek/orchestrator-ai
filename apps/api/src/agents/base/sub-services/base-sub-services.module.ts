@@ -9,6 +9,7 @@ import { EvaluationWrapperService } from './evaluation-wrapper/evaluation-wrappe
 import { HealthService } from './health/health.service';
 import { LoggingService } from './logging/logging.service';
 import { AuthService } from './auth/auth.service';
+import { MCPModule } from '@/mcp/mcp.module';
 
 /**
  * Module that provides all base sub-services for agent implementations.
@@ -16,7 +17,7 @@ import { AuthService } from './auth/auth.service';
  * agent registration, and other utility operations.
  */
 @Module({
-  imports: [HttpModule],
+  imports: [HttpModule, MCPModule],
   providers: [
     ConfigurationService,
     AgentRegistrationService,
