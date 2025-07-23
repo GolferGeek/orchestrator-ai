@@ -18,7 +18,6 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
     tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
-    @Inject(forwardRef(() => MCPClientService))
     mcpClientService: MCPClientService | undefined,
   ) {
     super(

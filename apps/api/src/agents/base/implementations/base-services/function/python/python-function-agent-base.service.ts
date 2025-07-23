@@ -44,7 +44,6 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
     protected readonly tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     protected readonly taskStatusService: TaskStatusService | undefined,
-    @Inject(forwardRef(() => MCPClientService))
     protected readonly mcpClientService: MCPClientService | undefined,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
