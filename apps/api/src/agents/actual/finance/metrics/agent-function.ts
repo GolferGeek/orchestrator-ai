@@ -95,8 +95,11 @@ Respond with a JSON object containing:
     });
     
     if (metricsResult.success) {
-      const metricsCount = metricsResult.data?.length || 0;
+      // MCP response structure: result.data contains the parsed JSON from content[0].text
+      const metricsData = Array.isArray(metricsResult.data) ? metricsResult.data : [];
+      const metricsCount = metricsData.length;
       progressCallback?.('Metrics definitions', 2, 'completed', `Retrieved ${metricsCount} metric definitions from database`);
+      progressCallback?.('Debug metrics data', 2, 'in_progress', `Metrics structure: ${JSON.stringify(metricsResult.data)?.substring(0, 200)}...`);
     } else {
       progressCallback?.('Metrics definitions', 2, 'failed', `Failed to retrieve metrics: ${metricsResult.error}`);
     }
@@ -118,8 +121,18 @@ Respond with a JSON object containing:
     });
     
     if (kpiDataResult.success) {
-      const dataCount = kpiDataResult.data?.length || kpiDataResult.formatted_data?.length || 0;
+      // Handle different response structures from queryAndFormat vs readData
+      let kpiData = [];
+      if (Array.isArray(kpiDataResult.data)) {
+        kpiData = kpiDataResult.data;
+      } else if (kpiDataResult.data?.results && Array.isArray(kpiDataResult.data.results)) {
+        kpiData = kpiDataResult.data.results;
+      } else if (kpiDataResult.formatted_data && Array.isArray(kpiDataResult.formatted_data)) {
+        kpiData = kpiDataResult.formatted_data;
+      }
+      const dataCount = kpiData.length;
       progressCallback?.('KPI data', 3, 'completed', `Retrieved ${dataCount} recent KPI data points via SQL query`);
+      progressCallback?.('Debug KPI data', 3, 'in_progress', `KPI structure: ${JSON.stringify(kpiDataResult.data)?.substring(0, 200)}...`);
     } else {
       progressCallback?.('KPI data', 3, 'failed', `Query execution failed: ${kpiDataResult.error}`);
     }
@@ -134,8 +147,10 @@ Respond with a JSON object containing:
     });
     
     if (goalsResult.success) {
-      const goalsCount = goalsResult.data?.length || 0;
+      const goalsData = Array.isArray(goalsResult.data) ? goalsResult.data : [];
+      const goalsCount = goalsData.length;
       progressCallback?.('Goals data', 4, 'completed', `Retrieved ${goalsCount} KPI goals and targets`);
+      progressCallback?.('Debug goals data', 4, 'in_progress', `Goals structure: ${JSON.stringify(goalsResult.data)?.substring(0, 200)}...`);
     } else {
       progressCallback?.('Goals data', 4, 'failed', `Failed to retrieve goals: ${goalsResult.error}`);
     }
@@ -143,10 +158,26 @@ Respond with a JSON object containing:
     // Step 4: Generate comprehensive metrics analysis
     progressCallback?.('Analysis generation', 5, 'in_progress', 'Generating insights from live database data...');
 
+    // Extract actual data arrays from MCP responses
+    const metricsDefinitions = metricsResult.success && Array.isArray(metricsResult.data) ? metricsResult.data : [];
+    
+    let currentKpiData = [];
+    if (kpiDataResult.success) {
+      if (Array.isArray(kpiDataResult.data)) {
+        currentKpiData = kpiDataResult.data;
+      } else if (kpiDataResult.data?.results && Array.isArray(kpiDataResult.data.results)) {
+        currentKpiData = kpiDataResult.data.results;
+      } else if (kpiDataResult.formatted_data && Array.isArray(kpiDataResult.formatted_data)) {
+        currentKpiData = kpiDataResult.formatted_data;
+      }
+    }
+    
+    const goalsData = goalsResult.success && Array.isArray(goalsResult.data) ? goalsResult.data : [];
+
     const metricsData = {
-      metrics_definitions: metricsResult.success ? metricsResult.data : [],
-      current_kpi_data: kpiDataResult.success ? kpiDataResult.data : [],
-      goals: goalsResult.success ? goalsResult.data : [],
+      metrics_definitions: metricsDefinitions,
+      current_kpi_data: currentKpiData,
+      goals: goalsData,
       analysis_intent: analysis.intent,
       analysis_type: analysis.analysis_type
     };
@@ -189,9 +220,9 @@ If the data shows no records, explain that this is a new system and provide fram
       { temperature: 0.3 }
     );
 
-    // Final completion message
-    const totalDataPoints = (metricsData.current_kpi_data?.length || 0) + (metricsData.goals?.length || 0) + (metricsData.metrics_definitions?.length || 0);
-    progressCallback?.('Analysis complete', 6, 'completed', `Generated comprehensive metrics analysis from ${totalDataPoints} live data points`);
+    // Final completion message with actual data counts
+    const totalDataPoints = metricsDefinitions.length + currentKpiData.length + goalsData.length;
+    progressCallback?.('Analysis complete', 6, 'completed', `Generated comprehensive metrics analysis from ${totalDataPoints} live data points (${metricsDefinitions.length} definitions, ${currentKpiData.length} KPI records, ${goalsData.length} goals)`);
 
     return {
       success: true,
@@ -203,7 +234,7 @@ If the data shows no records, explain that this is a new system and provide fram
         responseType: analysis.analysis_type || 'metrics_analysis',
         metricsAnalyzed: analysis.metrics_needed?.length || 0,
         tablesQueried: analysis.tables_to_query?.length || 0,
-        dataPoints: (metricsData.current_kpi_data?.length || 0) + (metricsData.goals?.length || 0),
+        dataPoints: totalDataPoints,
         mcpEnabled: true
       }
     };
