@@ -153,9 +153,14 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
 
       // Create MCP service wrapper for agent functions
       const mcpService = this.mcpClientService ? {
+        isAvailable: () => this.mcpClientService?.isAvailable() || false,
+        
         // Database operations
         getSchema: async (options?: { table_name?: string; refresh_cache?: boolean }) => {
-          return await this.mcpClientService!.callTool('supabase', { 
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
+          }
+          return await this.mcpClientService.callTool('supabase', { 
             name: 'get-schema', 
             arguments: options || {} 
           });
@@ -170,7 +175,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           order_by?: { column: string; ascending?: boolean };
           format?: 'json' | 'table' | 'csv';
         }) => {
-          return await this.mcpClientService!.callTool('supabase', { 
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
+          }
+          return await this.mcpClientService.callTool('supabase', { 
             name: 'read-data', 
             arguments: params 
           });
@@ -183,7 +191,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           max_rows?: number; 
           format?: 'detailed' | 'compact' | 'csv' | 'json';
         }) => {
-          return await this.mcpClientService!.callTool('supabase', { 
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
+          }
+          return await this.mcpClientService.callTool('supabase', { 
             name: 'execute-sql', 
             arguments: params 
           });
@@ -197,7 +208,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           max_rows?: number;
           schema_tables?: string[];
         }) => {
-          return await this.mcpClientService!.callTool('supabase', { 
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
+          }
+          return await this.mcpClientService.callTool('supabase', { 
             name: 'generate-sql', 
             arguments: params 
           });
@@ -212,18 +226,21 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           include_schema_context?: boolean;
           suggested_tables?: string[];
         }) => {
-          return await this.mcpClientService!.callTool('supabase', { 
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
+          }
+          return await this.mcpClientService.callTool('supabase', { 
             name: 'query-and-format', 
             arguments: params 
           });
         },
         
-        // Utility method to check if MCP is available
-        isAvailable: () => !!this.mcpClientService,
-        
         // Generic tool call method for extensibility
         callTool: async (server: string, toolName: string, params: any) => {
-          return await this.mcpClientService!.callTool(server, { 
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
+          }
+          return await this.mcpClientService.callTool(server, { 
             name: toolName, 
             arguments: params 
           });
