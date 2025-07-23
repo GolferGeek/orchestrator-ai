@@ -66,11 +66,29 @@ export class ConversationService {
         
         // Create assistant message based on task status
         if (task.status === 'completed' && task.response) {
-          // Completed task - create assistant message with response
+          // Parse the JSON response to extract the actual content
+          let responseContent = task.response;
+          try {
+            // The response is stored as a JSON string, need to parse it
+            const parsedResponse = JSON.parse(task.response);
+            // Extract the actual response content from the parsed JSON
+            responseContent = parsedResponse.response || parsedResponse.content || parsedResponse;
+            
+            // If it's still an object, stringify it nicely
+            if (typeof responseContent === 'object') {
+              responseContent = JSON.stringify(responseContent, null, 2);
+            }
+          } catch (e) {
+            // If parsing fails, use the raw response
+            console.log(`📋 Using raw response for task ${task.id} (JSON parse failed):`, e);
+            responseContent = task.response;
+          }
+          
+          // Completed task - create assistant message with parsed response
           const assistantMessage: AgentChatMessage = {
             id: `assistant-${task.id}`,
             role: 'assistant',
-            content: task.response,
+            content: responseContent,
             timestamp: new Date(task.completedAt || task.updatedAt),
             taskId: task.id,
             metadata: {
