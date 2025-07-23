@@ -11,4 +11,11 @@ export class BlogPostService extends ContextAgentBaseService {
   ) {
     super(httpService, llmService);
   }
+
+  /**
+   * Override the default name generation to return the correct agent name
+   */
+  getAgentName(): string {
+    return 'Blog Post Writer';
+  }
 }

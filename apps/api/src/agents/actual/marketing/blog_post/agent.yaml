@@ -4,7 +4,7 @@ metadata:
   type: "specialist"
   category: "content_creation"
   version: "1.0.0"
-  description: "A professional content creation specialist that generates high-quality, SEO-optimized blog posts for various topics, audiences, and purposes."
+  description: "Create compelling blog content that drives traffic and engagement! I specialize in writing SEO-optimized blog posts, articles, and web content for any industry or audience. From technical tutorials to lifestyle articles, I deliver publication-ready content with compelling headlines, structured formatting, and strategic keyword optimization."
 
 # Agent type - determines loading strategy
 type: "context"
