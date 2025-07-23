@@ -94,8 +94,8 @@ export class SupabaseMCPServer
 
       // Initialize services
       this.simpleSchemaService = new SimpleSchemaService();
-      // Note: SQLGeneratorService requires LLMService dependency - will need proper DI setup
-      // this.sqlGeneratorService = new SQLGeneratorService();
+      // Create a mock SQL generator for testing - TODO: integrate proper LLM service
+      this.sqlGeneratorService = this.createMockSQLGenerator();
       this.queryExecutorService = new QueryExecutorService();
 
       // Test connection with a simple query
@@ -691,6 +691,40 @@ Use the database schema information and query execution tools to validate sugges
         realTimeProgress: true,
         caching: true,
       },
+    };
+  }
+
+  /**
+   * Create a mock SQL generator for testing - TODO: replace with proper LLM integration
+   */
+  private createMockSQLGenerator(): any {
+    return {
+      generateSQL: async (request: any) => {
+        // Simple mock implementation for testing
+        const { naturalLanguageQuery, schemaContext } = request;
+        
+        // Mock SQL generation based on common patterns
+        let sql = '';
+        if (naturalLanguageQuery.toLowerCase().includes('kpi') || 
+            naturalLanguageQuery.toLowerCase().includes('metric')) {
+          sql = 'SELECT * FROM kpi_metrics LIMIT 10';
+        } else if (naturalLanguageQuery.toLowerCase().includes('user')) {
+          sql = 'SELECT * FROM users LIMIT 10';
+        } else {
+          sql = 'SELECT COUNT(*) as total FROM information_schema.tables WHERE table_schema = \'public\'';
+        }
+
+        return {
+          sql,
+          explanation: `Mock-generated SQL for: "${naturalLanguageQuery}"`,
+          safetyScore: 0.9,
+          estimatedComplexity: 'low',
+          warnings: ['This is a mock SQL generator for testing'],
+          suggestedTables: ['kpi_metrics'],
+          modelUsed: 'mock-generator',
+          generationTime: 50
+        };
+      }
     };
   }
 }
