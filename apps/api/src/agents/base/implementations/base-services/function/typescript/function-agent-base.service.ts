@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from '../../a2a-base/a2a-agent-base.service';
 import { LLMService } from '@/llms/llm.service';
@@ -8,6 +8,9 @@ import { LoggingService } from '@agents/base/sub-services/logging/logging.servic
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { AgentFunctionParams } from '../../a2a-base/interfaces';
+import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
+import { TasksService } from '@/tasks/tasks.service';
+import { TaskStatusService } from '@/tasks/task-status.service';
 
 export interface AgentFunctionResponse {
   response: string;
@@ -22,10 +25,19 @@ export interface AgentFunctionResponse {
 export class FunctionAgentBaseService extends A2AAgentBaseService {
   protected readonly functionLogger = new Logger(FunctionAgentBaseService.name);
   private agentFunction: any = null;
+  private currentUserId: string | null = null; // Store current user ID for task completion
+  protected currentTaskId: string | null = null; // Store current task ID for progress tracking
+  protected totalSteps: number = 1; // Default to 1 step, can be overridden by agents
 
   constructor(
     protected readonly httpService: HttpService,
     protected readonly llmService: LLMService,
+    @Inject(forwardRef(() => TaskProgressGateway))
+    protected readonly taskProgressGateway: TaskProgressGateway | undefined,
+    @Inject(forwardRef(() => TasksService))
+    protected readonly tasksService: TasksService | undefined,
+    @Inject(forwardRef(() => TaskStatusService))
+    protected readonly taskStatusService: TaskStatusService | undefined,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -54,10 +66,18 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   }
 
   /**
-   * Simple task execution using pre-loaded agent function
+   * Enhanced task execution with progress tracking and state management
    */
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
+    
+    // Store current user ID and task ID for progress tracking and completion handling
+    if (params.currentUser?.id) {
+      this.currentUserId = params.currentUser.id;
+    }
+    if (params.taskId) {
+      this.currentTaskId = params.taskId;
+    }
 
     try {
       // If no pre-loaded function, fall back to context processing
@@ -118,6 +138,11 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         },
       };
 
+      // Create progress callback that agent functions can use
+      const progressCallback = (stepName: string, stepIndex: number, status: string, message?: string) => {
+        this.emitProgress(stepName, stepIndex, status as any, message);
+      };
+
       // Prepare standardized parameters for the agent function
       const functionParams: AgentFunctionParams = {
         userMessage: this.extractUserMessage(params),
@@ -126,16 +151,28 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         currentUser: params.currentUser,
         authToken: params.authToken,
         llmService: wrappedLLMService,
+        progressCallback,
         metadata: {
           method,
           originalParams: params,
           agentName: agentName,
           timestamp: new Date().toISOString(),
+          taskId: this.currentTaskId,
+          // Pass LLM preferences to agent function
+          llmPreferences: {
+            providerId: params.providerId,
+            modelId: params.modelId,
+            temperature: params.temperature,
+            maxTokens: params.maxTokens,
+            cidafmOptions: params.cidafmOptions,
+          },
         },
       };
 
-      // Execute the pre-loaded agent function
+      // Execute the pre-loaded agent function with progress tracking
+      this.emitProgress('Starting task execution', 0, 'in_progress');
       const result = await this.agentFunction(functionParams);
+      this.emitProgress('Task execution completed', this.totalSteps - 1, 'completed');
 
       this.functionLogger.debug(
         `Function executed successfully for ${agentName}`,
@@ -152,6 +189,12 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
               allCalls: llmMetadataTracker.calls,
             }
           : undefined;
+
+      // Save the result to the task in database for async tasks
+      await this.saveTaskResult(result);
+      
+      // Broadcast task completion
+      this.broadcastTaskCompletion('completed', 'Task completed successfully');
 
       // Return structured response format to match ContextAgentBaseService
       return {
@@ -186,6 +229,9 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         `Function execution error for ${agentName}:`,
         error,
       );
+      
+      // Broadcast error status
+      this.broadcastTaskCompletion('failed', error instanceof Error ? error.message : String(error));
 
       // Return structured error response
       return {
@@ -201,6 +247,183 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         },
       };
     }
+  }
+
+  /**
+   * Emit progress event for step tracking (matching Python pattern)
+   */
+  protected emitProgress(
+    stepName: string,
+    stepIndex: number,
+    status: 'in_progress' | 'completed' | 'failed',
+    message?: string,
+  ): void {
+    if (!this.currentTaskId) {
+      this.functionLogger.debug('No current task ID, skipping progress emission');
+      return;
+    }
+
+    // Store message in live cache for polling clients
+    if (this.taskStatusService) {
+      const messageContent = JSON.stringify({
+        stepName,
+        stepIndex,
+        totalSteps: this.totalSteps,
+        status,
+        message,
+      });
+
+      this.taskStatusService.addTaskMessage(
+        this.currentTaskId,
+        messageContent,
+        'progress',
+        {
+          progress: Math.round(((stepIndex + 1) / this.totalSteps) * 100),
+          stepName,
+          stepIndex,
+          totalSteps: this.totalSteps,
+          stepStatus: status,
+        },
+      );
+
+      this.functionLogger.debug(
+        `Stored progress message in live cache for task ${this.currentTaskId}`,
+      );
+    }
+
+    // Broadcast workflow step progress via WebSocket
+    if (this.taskProgressGateway) {
+      this.taskProgressGateway.broadcastWorkflowStepProgress(
+        this.currentTaskId,
+        stepName,
+        stepIndex,
+        this.totalSteps,
+        status,
+        message,
+      );
+      this.functionLogger.debug(
+        `Broadcast workflow step progress: ${stepName} (${status})`,
+      );
+    } else {
+      this.functionLogger.error(
+        'TaskProgressGateway is not available for broadcasting progress events',
+      );
+    }
+  }
+
+  /**
+   * Broadcast task completion event (matching Python pattern)
+   */
+  protected broadcastTaskCompletion(status: 'completed' | 'failed', message: string): void {
+    if (!this.currentTaskId) {
+      this.functionLogger.debug('No current task ID, skipping completion broadcast');
+      return;
+    }
+
+    if (this.taskProgressGateway) {
+      this.taskProgressGateway.broadcastTaskCompletion(
+        this.currentTaskId,
+        status,
+        message,
+      );
+      this.functionLogger.debug(
+        `Broadcast task completion: ${this.currentTaskId} (${status})`,
+      );
+    } else {
+      this.functionLogger.error(
+        'TaskProgressGateway is not available for broadcasting completion events',
+      );
+    }
+  }
+
+  /**
+   * Save task result to database (matching Python pattern)
+   */
+  protected async saveTaskResult(result: any): Promise<void> {
+    if (!this.tasksService || !this.currentUserId || !this.currentTaskId) {
+      this.functionLogger.debug(
+        `Cannot save result - missing requirements:`,
+        {
+          tasksService: !!this.tasksService,
+          currentUserId: this.currentUserId,
+          taskId: this.currentTaskId,
+        },
+      );
+      return;
+    }
+
+    try {
+      const updateData = {
+        status: 'completed' as const,
+        progress: 100,
+        response: JSON.stringify(result),
+        responseMetadata: result.metadata || {},
+      };
+
+      this.functionLogger.debug(`Saving task result to database:`, {
+        taskId: this.currentTaskId,
+        userId: this.currentUserId,
+      });
+
+      await this.tasksService.updateTask(
+        this.currentTaskId,
+        this.currentUserId,
+        updateData,
+      );
+
+      this.functionLogger.debug(
+        `✅ Task ${this.currentTaskId} result saved to database successfully`,
+      );
+    } catch (error) {
+      this.functionLogger.error(
+        `❌ Failed to save task ${this.currentTaskId} result:`,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Set the total number of steps for progress tracking
+   */
+  protected setTotalSteps(totalSteps: number): void {
+    this.totalSteps = totalSteps;
+    this.functionLogger.debug(`Total steps set to ${totalSteps} for ${this.getAgentName()}`);
+  }
+
+  /**
+   * Execute workflow with automatic progress tracking
+   */
+  protected async executeWorkflowWithProgress<T>(
+    steps: Array<{
+      name: string;
+      execute: () => Promise<T>;
+    }>,
+  ): Promise<T[]> {
+    this.setTotalSteps(steps.length);
+    const results: T[] = [];
+
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+      if (!step) continue;
+      
+      this.emitProgress(step.name, i, 'in_progress');
+
+      try {
+        const result = await step.execute();
+        results.push(result);
+        this.emitProgress(step.name, i, 'completed');
+      } catch (error) {
+        this.emitProgress(
+          step.name,
+          i,
+          'failed',
+          error instanceof Error ? error.message : String(error),
+        );
+        throw error;
+      }
+    }
+
+    return results;
   }
 
   /**

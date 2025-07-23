@@ -7,7 +7,7 @@ metadata:
   description: "A sophisticated marketing orchestrator that coordinates multiple specialist agents to create, evaluate, and refine high-quality marketing content through collaborative workflows."
 
 # Agent type - determines loading strategy
-type: "context"
+type: "function"
 
 capabilities:
   - content_orchestration
@@ -72,6 +72,8 @@ configuration:
   min_agents_per_task: 2
   max_agents_per_task: 5
   quality_threshold: 85
+  execution_modes: ["immediate", "polling", "real-time"]
+  workflow_engine: "langgraph"
   specialist_agents:
     content_creation:
       - "blog_post_writer"

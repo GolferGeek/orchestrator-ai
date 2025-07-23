@@ -235,7 +235,18 @@ export class AgentFactoryService {
 
         case 'function': {
           this.logger.debug(`⚙️ Creating TypeScript function agent`);
-          return new ServiceClass(this.httpService, this.llmService);
+          return new ServiceClass(
+            this.httpService,
+            this.llmService,
+            this.taskProgressGateway,
+            this.tasksService,
+            this.taskStatusService,
+            this.agentRegistrationService,
+            undefined, // jsonRpcProtocolService
+            undefined, // loggingService  
+            undefined, // authService
+            this.configurationService
+          );
         }
 
         case 'python-function': {

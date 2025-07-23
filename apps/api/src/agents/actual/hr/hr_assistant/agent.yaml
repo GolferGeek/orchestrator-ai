@@ -4,52 +4,59 @@ metadata:
   type: "specialists"
   category: "human_resources"
   version: "1.0.0"
-  description: "A professional HR assistant that provides general HR information, answers common questions, and routes users to specialized HR resources and agents."
+  description: "Your dedicated HR assistant providing comprehensive HR support, benefits guidance, policy information, and employee assistance. I'm here to help with all your HR needs directly."
 
 # Agent Type: Function-based agent with LangGraph workflow
 type: "function"
 
 capabilities:
-  - hr_support
-  - general_guidance
-  - agent_routing
-  - benefits_overview
-  - leave_information
-  - policy_guidance
+  - comprehensive_hr_support
+  - benefits_administration
+  - leave_management
+  - policy_interpretation
   - employee_relations
+  - performance_management
+  - payroll_assistance
+  - compliance_guidance
+  - workplace_policies
+  - employee_onboarding
 
 skills:
-  - id: "general_hr_assistance"
-    name: "General HR Assistance"
-    description: "Provide general information about HR topics including benefits, leave types, performance management, and payroll basics"
-    tags: ["hr", "benefits", "leave", "performance", "payroll"]
+  - id: "comprehensive_hr_assistance"
+    name: "Comprehensive HR Support"
+    description: "Provide detailed, actionable HR information and guidance on benefits, policies, procedures, and employee relations matters"
+    tags: ["hr", "benefits", "leave", "performance", "payroll", "policies", "procedures"]
     examples:
-      - "What types of health benefits do we offer?"
-      - "How do I request time off?"
-      - "When is the next performance review cycle?"
-      - "What is the company's bereavement leave policy?"
+      - "What health insurance options are available and how do I enroll?"
+      - "How much vacation time do I have and how do I request it?"
+      - "What should I expect during my performance review?"
+      - "What's our company policy on remote work?"
+      - "How does the 401k matching work?"
+      - "What do I do if I'm having workplace conflict?"
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/plain", "text/markdown", "application/json"]
 
-  - id: "agent_routing"
-    name: "HR Agent Routing"
-    description: "Direct users to specialized HR agents for specific needs and complex queries"
-    tags: ["routing", "specialization", "onboarding", "policy"]
+  - id: "benefits_and_compensation"
+    name: "Benefits & Compensation Guidance"
+    description: "Provide detailed information about employee benefits, compensation structure, and enrollment processes"
+    tags: ["benefits", "compensation", "insurance", "retirement", "enrollment"]
     examples:
-      - "Route new employee questions to WelcomeWiz"
-      - "Direct policy questions to PolicyPal"
-      - "Guide users to appropriate HR resources"
+      - "Explain our health insurance options and costs"
+      - "How does our bonus structure work?"
+      - "What retirement benefits do we offer?"
+      - "When is open enrollment and what can I change?"
     input_modes: ["text/plain", "application/json"]
-    output_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "text/markdown", "application/json"]
 
-  - id: "hr_guidance"
-    name: "HR Process Guidance"
-    description: "Explain HR processes and help users understand where to find information or submit requests"
-    tags: ["processes", "guidance", "hris", "forms", "procedures"]
+  - id: "policy_and_procedures"
+    name: "Policy & Procedures Support"
+    description: "Explain company policies, procedures, and help employees understand their rights and responsibilities"
+    tags: ["policies", "procedures", "compliance", "employee-rights", "workplace-standards"]
     examples:
-      - "Explain the benefits enrollment process"
-      - "Guide through leave request procedures"
-      - "Provide information about HR system navigation"
+      - "What's our policy on flexible work arrangements?"
+      - "How does the disciplinary process work?"
+      - "What are my rights regarding workplace accommodations?"
+      - "What's the process for reporting workplace issues?"
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/plain", "text/markdown", "application/json"]
 
@@ -64,10 +71,11 @@ output_modes:
 
 configuration:
   default_output_format: "plain"
-  routing_enabled: true
-  specialized_agents:
-    onboarding: "WelcomeWiz"
-    policy_rag: "PolicyPal"
-  response_style: "professional_empathetic"
+  direct_assistance: true
+  execution_modes: ["immediate", "polling", "real-time"]
+  workflow_engine: "langgraph"
+  response_style: "helpful_authoritative"
   privacy_protection: true
-  legal_advice_prohibition: true 
+  legal_disclaimer: true
+  knowledge_base: "general_hr_practices"
+  escalation_available: true 
