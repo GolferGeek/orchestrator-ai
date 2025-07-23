@@ -40,7 +40,7 @@ export class HRAssistantService extends FunctionAgentBaseService {
       authService,
       configurationService,
     );
-    
+
     // Set total steps for HR Assistant workflow
     this.setTotalSteps(2);
   }

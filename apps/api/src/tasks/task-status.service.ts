@@ -33,21 +33,24 @@ export interface TaskStatusUpdate {
 @Injectable()
 export class TaskStatusService {
   private readonly logger = new Logger(TaskStatusService.name);
-  
+
   // Hot cache for all active tasks (both ephemeral and persistent)
   private activeTaskStatuses = new Map<string, TaskStatus>();
-  
+
   // Live message cache for active tasks (for polling clients)
-  private activeTaskMessages = new Map<string, Array<{
-    id: string;
-    taskId: string;
-    content: string;
-    messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
-    progressPercentage?: number;
-    metadata?: Record<string, any>;
-    createdAt: string;
-  }>>();
-  
+  private activeTaskMessages = new Map<
+    string,
+    Array<{
+      id: string;
+      taskId: string;
+      content: string;
+      messageType: 'progress' | 'status' | 'info' | 'warning' | 'error';
+      progressPercentage?: number;
+      metadata?: Record<string, any>;
+      createdAt: string;
+    }>
+  >();
+
   // Cleanup timers for completed tasks
   private cleanupTimers = new Map<string, NodeJS.Timeout>();
 
@@ -65,7 +68,7 @@ export class TaskStatusService {
     taskId: string,
     userId: string,
     taskType: 'ephemeral' | 'long_running' | 'swarm' = 'ephemeral',
-    initialData: Partial<TaskStatus> = {}
+    initialData: Partial<TaskStatus> = {},
   ): Promise<void> {
     const taskStatus: TaskStatus = {
       taskId,
@@ -95,11 +98,16 @@ export class TaskStatusService {
           })
           .eq('id', taskId)
           .eq('user_id', userId);
-          
+
         if (error) {
-          this.logger.warn(`Failed to persist task ${taskId} to database:`, error);
+          this.logger.warn(
+            `Failed to persist task ${taskId} to database:`,
+            error,
+          );
         } else {
-          this.logger.debug(`Task ${taskId} persisted to database (${taskType})`);
+          this.logger.debug(
+            `Task ${taskId} persisted to database (${taskType})`,
+          );
         }
       } catch (error) {
         this.logger.warn(`Failed to persist task ${taskId}:`, error);
@@ -117,7 +125,7 @@ export class TaskStatusService {
   async updateTaskStatus(
     taskId: string,
     userId: string,
-    update: TaskStatusUpdate
+    update: TaskStatusUpdate,
   ): Promise<void> {
     const currentStatus = this.activeTaskStatuses.get(taskId);
     if (!currentStatus) {
@@ -127,7 +135,9 @@ export class TaskStatusService {
 
     // Verify user ownership
     if (currentStatus.userId !== userId) {
-      this.logger.warn(`User ${userId} attempted to update task ${taskId} owned by ${currentStatus.userId}`);
+      this.logger.warn(
+        `User ${userId} attempted to update task ${taskId} owned by ${currentStatus.userId}`,
+      );
       return;
     }
 
@@ -142,7 +152,10 @@ export class TaskStatusService {
     this.activeTaskStatuses.set(taskId, newStatus);
 
     // Persist to database for non-ephemeral tasks
-    if (currentStatus.taskType === 'long_running' || currentStatus.taskType === 'swarm') {
+    if (
+      currentStatus.taskType === 'long_running' ||
+      currentStatus.taskType === 'swarm'
+    ) {
       try {
         const updateData: any = {
           status: newStatus.status,
@@ -150,22 +163,25 @@ export class TaskStatusService {
           progress_message: newStatus.progressMessage,
           updated_at: new Date().toISOString(),
         };
-        
+
         if (newStatus.result) {
-          updateData.response = typeof newStatus.result === 'string' ? newStatus.result : JSON.stringify(newStatus.result);
+          updateData.response =
+            typeof newStatus.result === 'string'
+              ? newStatus.result
+              : JSON.stringify(newStatus.result);
         }
-        
+
         if (newStatus.error) {
           updateData.error_message = newStatus.error;
         }
-        
+
         const { error } = await this.supabaseService
           .getAnonClient()
           .from('tasks')
           .update(updateData)
           .eq('id', taskId)
           .eq('user_id', userId);
-          
+
         if (error) {
           this.logger.warn(`Failed to persist task ${taskId} update:`, error);
         }
@@ -184,7 +200,11 @@ export class TaskStatusService {
     this.emitStatusChange(taskId, newStatus);
 
     // Handle task completion
-    if (newStatus.status === 'completed' || newStatus.status === 'failed' || newStatus.status === 'cancelled') {
+    if (
+      newStatus.status === 'completed' ||
+      newStatus.status === 'failed' ||
+      newStatus.status === 'cancelled'
+    ) {
       this.handleTaskCompletion(taskId, newStatus);
     }
   }
@@ -204,11 +224,21 @@ export class TaskStatusService {
   /**
    * Add a progress message to the live cache (for polling clients)
    */
-  addTaskMessage(taskId: string, messageContent: string, messageType: 'progress' | 'status' | 'info' | 'warning' | 'error' = 'progress', metadata?: Record<string, any>): void {
+  addTaskMessage(
+    taskId: string,
+    messageContent: string,
+    messageType:
+      | 'progress'
+      | 'status'
+      | 'info'
+      | 'warning'
+      | 'error' = 'progress',
+    metadata?: Record<string, any>,
+  ): void {
     if (!this.activeTaskMessages.has(taskId)) {
       this.activeTaskMessages.set(taskId, []);
     }
-    
+
     const messages = this.activeTaskMessages.get(taskId)!;
     const newMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -219,15 +249,20 @@ export class TaskStatusService {
       metadata,
       createdAt: new Date().toISOString(),
     };
-    
+
     messages.push(newMessage);
-    this.logger.debug(`Added message to task ${taskId}: ${messageContent} (total: ${messages.length})`);
+    this.logger.debug(
+      `Added message to task ${taskId}: ${messageContent} (total: ${messages.length})`,
+    );
   }
-  
+
   /**
    * Get accumulated messages for a task (live cache first, for polling)
    */
-  getTaskMessages(taskId: string, userId: string): Array<{
+  getTaskMessages(
+    taskId: string,
+    userId: string,
+  ): Array<{
     id: string;
     taskId: string;
     content: string;
@@ -239,13 +274,17 @@ export class TaskStatusService {
     // Check if user owns this task
     const taskStatus = this.getTaskStatus(taskId, userId);
     if (!taskStatus) {
-      this.logger.debug(`Task ${taskId} not found or user ${userId} doesn't own it`);
+      this.logger.debug(
+        `Task ${taskId} not found or user ${userId} doesn't own it`,
+      );
       return [];
     }
-    
+
     // Return live messages from cache
     const messages = this.activeTaskMessages.get(taskId) || [];
-    this.logger.debug(`Retrieved ${messages.length} live messages for task ${taskId}`);
+    this.logger.debug(
+      `Retrieved ${messages.length} live messages for task ${taskId}`,
+    );
     return [...messages]; // Return copy to prevent mutations
   }
 
@@ -255,7 +294,12 @@ export class TaskStatusService {
   getUserActiveTasks(userId: string): TaskStatus[] {
     const userTasks: TaskStatus[] = [];
     for (const status of this.activeTaskStatuses.values()) {
-      if (status.userId === userId && status.status !== 'completed' && status.status !== 'failed' && status.status !== 'cancelled') {
+      if (
+        status.userId === userId &&
+        status.status !== 'completed' &&
+        status.status !== 'failed' &&
+        status.status !== 'cancelled'
+      ) {
         userTasks.push({ ...status });
       }
     }
@@ -265,7 +309,11 @@ export class TaskStatusService {
   /**
    * Mark task as completed (single authority)
    */
-  async completeTask(taskId: string, userId: string, result: any): Promise<void> {
+  async completeTask(
+    taskId: string,
+    userId: string,
+    result: any,
+  ): Promise<void> {
     await this.updateTaskStatus(taskId, userId, {
       status: 'completed',
       progress: 100,
@@ -286,7 +334,12 @@ export class TaskStatusService {
   /**
    * Update task progress (convenience method)
    */
-  async updateProgress(taskId: string, userId: string, progress: number, message?: string): Promise<void> {
+  async updateProgress(
+    taskId: string,
+    userId: string,
+    progress: number,
+    message?: string,
+  ): Promise<void> {
     await this.updateTaskStatus(taskId, userId, {
       status: 'running',
       progress,
@@ -306,7 +359,7 @@ export class TaskStatusService {
 
     // Set cleanup based on task type
     let cleanupDelayMs: number;
-    
+
     switch (taskStatus.taskType) {
       case 'ephemeral':
         cleanupDelayMs = 60 * 1000; // 1 minute
@@ -327,8 +380,10 @@ export class TaskStatusService {
     }, cleanupDelayMs);
 
     this.cleanupTimers.set(taskId, cleanupTimer);
-    
-    this.logger.debug(`Task ${taskId} scheduled for cleanup in ${cleanupDelayMs / 1000} seconds`);
+
+    this.logger.debug(
+      `Task ${taskId} scheduled for cleanup in ${cleanupDelayMs / 1000} seconds`,
+    );
   }
 
   /**
@@ -358,16 +413,30 @@ export class TaskStatusService {
     // Emit specific lifecycle events
     switch (taskStatus.status) {
       case 'running':
-        this.eventEmitter.emit('task.started', { taskId, userId: taskStatus.userId });
+        this.eventEmitter.emit('task.started', {
+          taskId,
+          userId: taskStatus.userId,
+        });
         break;
       case 'completed':
-        this.eventEmitter.emit('task.completed', { taskId, userId: taskStatus.userId, result: taskStatus.result });
+        this.eventEmitter.emit('task.completed', {
+          taskId,
+          userId: taskStatus.userId,
+          result: taskStatus.result,
+        });
         break;
       case 'failed':
-        this.eventEmitter.emit('task.failed', { taskId, userId: taskStatus.userId, error: taskStatus.error });
+        this.eventEmitter.emit('task.failed', {
+          taskId,
+          userId: taskStatus.userId,
+          error: taskStatus.error,
+        });
         break;
       case 'cancelled':
-        this.eventEmitter.emit('task.cancelled', { taskId, userId: taskStatus.userId });
+        this.eventEmitter.emit('task.cancelled', {
+          taskId,
+          userId: taskStatus.userId,
+        });
         break;
     }
   }
@@ -375,9 +444,12 @@ export class TaskStatusService {
   /**
    * Get service statistics
    */
-  getStats(): { activeTaskCount: number; userTaskCounts: Record<string, number> } {
+  getStats(): {
+    activeTaskCount: number;
+    userTaskCounts: Record<string, number>;
+  } {
     const userTaskCounts: Record<string, number> = {};
-    
+
     for (const status of this.activeTaskStatuses.values()) {
       userTaskCounts[status.userId] = (userTaskCounts[status.userId] || 0) + 1;
     }

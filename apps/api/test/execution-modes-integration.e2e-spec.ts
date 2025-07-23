@@ -44,7 +44,7 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
   describe('Agent Execution Modes from /agents endpoint', () => {
     it('should return execution_modes for all agents', async () => {
       console.log('🧪 Testing /agents endpoint for execution modes...');
-      
+
       const response = await request(app.getHttpServer())
         .get('/agents')
         .set('Authorization', `Bearer ${authToken}`)
@@ -57,27 +57,37 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
 
       // Check that agents have execution_modes
       response.body.agents.forEach((agent: any) => {
-        console.log(`🤖 Agent: ${agent.name}, Type: ${agent.type}, Execution Modes: ${JSON.stringify(agent.execution_modes)}`);
-        
+        console.log(
+          `🤖 Agent: ${agent.name}, Type: ${agent.type}, Execution Modes: ${JSON.stringify(agent.execution_modes)}`,
+        );
+
         expect(agent.execution_modes).toBeDefined();
         expect(Array.isArray(agent.execution_modes)).toBe(true);
         expect(agent.execution_modes.length).toBeGreaterThan(0);
-        
+
         // All agents should at least have immediate mode
         expect(agent.execution_modes).toContain('immediate');
       });
 
       // Find specific agents to verify their execution modes
-      const blogPostAgent = response.body.agents.find((a: any) => a.name === 'Blog Post Writer');
-      const requirementsAgent = response.body.agents.find((a: any) => a.name === 'Requirements Writer');
+      const blogPostAgent = response.body.agents.find(
+        (a: any) => a.name === 'Blog Post Writer',
+      );
+      const requirementsAgent = response.body.agents.find(
+        (a: any) => a.name === 'Requirements Writer',
+      );
 
       if (blogPostAgent) {
-        console.log(`📝 Blog Post Writer execution modes: ${JSON.stringify(blogPostAgent.execution_modes)}`);
+        console.log(
+          `📝 Blog Post Writer execution modes: ${JSON.stringify(blogPostAgent.execution_modes)}`,
+        );
         expect(blogPostAgent.execution_modes).toEqual(['immediate']);
       }
 
       if (requirementsAgent) {
-        console.log(`📋 Requirements Writer execution modes: ${JSON.stringify(requirementsAgent.execution_modes)}`);
+        console.log(
+          `📋 Requirements Writer execution modes: ${JSON.stringify(requirementsAgent.execution_modes)}`,
+        );
         expect(requirementsAgent.execution_modes).toContain('immediate');
         expect(requirementsAgent.execution_modes).toContain('polling');
         expect(requirementsAgent.execution_modes).toContain('real-time');
@@ -92,10 +102,12 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
       const taskPayload = {
         message: {
           role: 'user',
-          parts: [{
-            text: 'Write a short blog post about the benefits of TypeScript for web development. Keep it under 300 words.'
-          }]
-        }
+          parts: [
+            {
+              text: 'Write a short blog post about the benefits of TypeScript for web development. Keep it under 300 words.',
+            },
+          ],
+        },
       };
 
       const startTime = Date.now();
@@ -115,7 +127,7 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
       // Verify immediate completion
       expect(response.body.id).toBeDefined();
       expect(response.body.status?.state).toBe('completed');
-      
+
       // Should have response content
       expect(response.body.response_message).toBeDefined();
       expect(response.body.response_message.parts).toBeDefined();
@@ -124,17 +136,20 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
       const content = response.body.response_message.parts[0].text;
       console.log(`📄 Content length: ${content.length} characters`);
       console.log(`📝 Content preview: ${content.substring(0, 100)}...`);
-      
+
       // Verify content contains expected keywords
-      expect(content.toLowerCase()).toMatch(/typescript|javascript|web development|benefits/);
-      
+      expect(content.toLowerCase()).toMatch(
+        /typescript|javascript|web development|benefits/,
+      );
+
       // Should be completed immediately (under 30 seconds for context agent)
       expect(duration).toBeLessThan(30000);
     });
   });
 
   describe('Requirements Writer (Function Agent) - Multiple Execution Modes', () => {
-    const testPrompt = 'Generate requirements for a simple task management mobile app with user authentication, task creation, and basic CRUD operations.';
+    const testPrompt =
+      'Generate requirements for a simple task management mobile app with user authentication, task creation, and basic CRUD operations.';
 
     it('should complete requirements task in immediate mode', async () => {
       console.log('📋 Testing Requirements Writer with immediate execution...');
@@ -142,8 +157,8 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
       const taskPayload = {
         message: {
           role: 'user',
-          parts: [{ text: testPrompt }]
-        }
+          parts: [{ text: testPrompt }],
+        },
       };
 
       const startTime = Date.now();
@@ -166,9 +181,11 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
 
       const content = response.body.response_message.parts[0].text;
       console.log(`📄 Content length: ${content.length} characters`);
-      
+
       // Should contain requirements-specific content
-      expect(content.toLowerCase()).toMatch(/requirements|functional|non-functional|user story|acceptance criteria/);
+      expect(content.toLowerCase()).toMatch(
+        /requirements|functional|non-functional|user story|acceptance criteria/,
+      );
     });
 
     it('should handle requirements task with polling mode', async () => {
@@ -178,8 +195,8 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
       const taskPayload = {
         message: {
           role: 'user',
-          parts: [{ text: testPrompt }]
-        }
+          parts: [{ text: testPrompt }],
+        },
       };
 
       const createResponse = await request(app.getHttpServer())
@@ -202,20 +219,24 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
       let finalResponse;
 
       while (!completed && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
+
         const pollResponse = await request(app.getHttpServer())
           .get(`/tasks/${taskId}`)
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
-        console.log(`🔄 Poll attempt ${attempts + 1}: Status = ${pollResponse.body.status?.state}`);
+        console.log(
+          `🔄 Poll attempt ${attempts + 1}: Status = ${pollResponse.body.status?.state}`,
+        );
 
         if (pollResponse.body.status?.state === 'completed') {
           completed = true;
           finalResponse = pollResponse.body;
         } else if (pollResponse.body.status?.state === 'failed') {
-          throw new Error(`Task failed: ${pollResponse.body.error_details?.message}`);
+          throw new Error(
+            `Task failed: ${pollResponse.body.error_details?.message}`,
+          );
         }
 
         attempts++;
@@ -227,9 +248,11 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
 
       const content = finalResponse.response_message.parts[0].text;
       console.log(`📄 Final content length: ${content.length} characters`);
-      
+
       // Verify requirements content
-      expect(content.toLowerCase()).toMatch(/requirements|functional|non-functional|user story|acceptance criteria/);
+      expect(content.toLowerCase()).toMatch(
+        /requirements|functional|non-functional|user story|acceptance criteria/,
+      );
     });
 
     it('should handle task status service integration', async () => {
@@ -238,8 +261,12 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
       const taskPayload = {
         message: {
           role: 'user',
-          parts: [{ text: 'Generate a simple requirements document for user registration.' }]
-        }
+          parts: [
+            {
+              text: 'Generate a simple requirements document for user registration.',
+            },
+          ],
+        },
       };
 
       const response = await request(app.getHttpServer())
@@ -261,7 +288,9 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
 
       expect(statusResponse.body.taskId).toBe(taskId);
       expect(statusResponse.body.status).toBeDefined();
-      expect(['pending', 'running', 'completed', 'failed']).toContain(statusResponse.body.status);
+      expect(['pending', 'running', 'completed', 'failed']).toContain(
+        statusResponse.body.status,
+      );
     });
   });
 
@@ -273,8 +302,8 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
       const taskPayload = {
         message: {
           role: 'user',
-          parts: [{ text: 'Simple test task' }]
-        }
+          parts: [{ text: 'Simple test task' }],
+        },
       };
 
       // Test with a context agent (Blog Post)
@@ -295,10 +324,14 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
         .expect(200);
 
       expect(reqResponse.body.id).toBeDefined();
-      console.log(`✅ Requirements Writer task created: ${reqResponse.body.id}`);
+      console.log(
+        `✅ Requirements Writer task created: ${reqResponse.body.id}`,
+      );
 
       // Both should succeed, proving TaskStatusService is properly injected
-      console.log('✅ TaskStatusService dependency injection working correctly');
+      console.log(
+        '✅ TaskStatusService dependency injection working correctly',
+      );
     });
   });
 
@@ -311,8 +344,8 @@ describe('Execution Modes and TaskStatusService Integration Tests', () => {
       const taskPayload = {
         message: {
           role: 'user',
-          parts: [{ text: 'Generate requirements with real-time updates.' }]
-        }
+          parts: [{ text: 'Generate requirements with real-time updates.' }],
+        },
       };
 
       const response = await request(app.getHttpServer())

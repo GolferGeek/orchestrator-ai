@@ -116,7 +116,7 @@ export class TasksService {
           status: 'pending',
           progress: 0,
           progressMessage: 'Task created, waiting for execution...',
-        }
+        },
       );
 
       this.logger.debug(`Task ${data.id} registered with TaskStatusService`);
@@ -279,11 +279,17 @@ export class TasksService {
         status: updates.status as any,
         progress: updates.progress,
         progressMessage: updates.progressMessage,
-        result: updates.response ? (typeof updates.response === 'string' ? updates.response : JSON.stringify(updates.response)) : undefined,
+        result: updates.response
+          ? typeof updates.response === 'string'
+            ? updates.response
+            : JSON.stringify(updates.response)
+          : undefined,
         error: updates.errorMessage,
       });
 
-      this.logger.debug(`Task ${taskId} synced with TaskStatusService: ${updates.status}`);
+      this.logger.debug(
+        `Task ${taskId} synced with TaskStatusService: ${updates.status}`,
+      );
 
       // Emit progress event
       if (updates.progress !== undefined || updates.progressMessage) {

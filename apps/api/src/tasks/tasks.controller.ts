@@ -129,10 +129,12 @@ export class TasksController {
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(`Getting status for task ${taskId} for user ${currentUser.id}`);
+    this.logger.debug(
+      `Getting status for task ${taskId} for user ${currentUser.id}`,
+    );
 
     const status = this.taskStatusService.getTaskStatus(taskId, currentUser.id);
-    
+
     if (!status) {
       throw new Error('Task not found or not accessible');
     }
@@ -203,17 +205,26 @@ export class TasksController {
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(`Getting messages for task ${taskId} for user ${currentUser.id}`);
+    this.logger.debug(
+      `Getting messages for task ${taskId} for user ${currentUser.id}`,
+    );
 
     // Use TaskStatusService for live messages first
-    const liveMessages = this.taskStatusService.getTaskMessages(taskId, currentUser.id);
+    const liveMessages = this.taskStatusService.getTaskMessages(
+      taskId,
+      currentUser.id,
+    );
     if (liveMessages.length > 0) {
-      this.logger.debug(`Returning ${liveMessages.length} live messages for task ${taskId}`);
+      this.logger.debug(
+        `Returning ${liveMessages.length} live messages for task ${taskId}`,
+      );
       return liveMessages;
     }
-    
+
     // Fallback to database (for task recovery/hydration)
-    this.logger.debug(`No live messages found, checking database for task ${taskId}`);
+    this.logger.debug(
+      `No live messages found, checking database for task ${taskId}`,
+    );
     return this.tasksService.getTaskMessages(taskId, currentUser.id);
   }
 

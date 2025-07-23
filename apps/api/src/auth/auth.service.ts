@@ -172,9 +172,10 @@ export class AuthService {
       const supabaseClient = this.supabaseService.getAnonClient();
 
       // Use Supabase's session refresh functionality
-      const { data: authResponse, error } = await supabaseClient.auth.refreshSession({
-        refresh_token: refreshToken,
-      });
+      const { data: authResponse, error } =
+        await supabaseClient.auth.refreshSession({
+          refresh_token: refreshToken,
+        });
 
       if (error) {
         this.logger.error(`Token refresh error: ${error.message}`);

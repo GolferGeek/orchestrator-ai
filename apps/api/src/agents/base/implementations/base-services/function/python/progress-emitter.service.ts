@@ -26,7 +26,6 @@ export interface CompletionEvent {
  */
 @Injectable()
 export class ProgressEmitterService {
-  
   /**
    * Create a progress event object with standardized format
    */
@@ -36,7 +35,7 @@ export class ProgressEmitterService {
     stepIndex: number,
     totalSteps: number,
     status: 'in_progress' | 'completed' | 'failed',
-    message?: string
+    message?: string,
   ): ProgressEvent {
     return {
       type: 'workflow_step_progress',
@@ -45,8 +44,10 @@ export class ProgressEmitterService {
       stepIndex,
       totalSteps,
       status,
-      message: message || `Step ${stepIndex + 1} of ${totalSteps}: ${stepName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
-      timestamp: new Date().toISOString()
+      message:
+        message ||
+        `Step ${stepIndex + 1} of ${totalSteps}: ${stepName.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}`,
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -56,14 +57,14 @@ export class ProgressEmitterService {
   createCompletionEvent(
     taskId: string,
     status: 'completed' | 'failed' = 'completed',
-    message?: string
+    message?: string,
   ): CompletionEvent {
     return {
       type: 'task_completion',
       taskId,
       status,
       message: message || 'Task completed successfully',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -71,7 +72,10 @@ export class ProgressEmitterService {
    * Format progress event for stderr emission (used by Python scripts)
    */
   formatForStderr(event: ProgressEvent | CompletionEvent): string {
-    const eventType = event.type === 'workflow_step_progress' ? 'PROGRESS_EVENT' : 'COMPLETION_EVENT';
+    const eventType =
+      event.type === 'workflow_step_progress'
+        ? 'PROGRESS_EVENT'
+        : 'COMPLETION_EVENT';
     return `${eventType}: ${JSON.stringify(event)}`;
   }
 
@@ -103,9 +107,16 @@ export class ProgressEmitterService {
     stepIndex: number,
     totalSteps: number,
     status: string,
-    message?: string
+    message?: string,
   ): string {
-    const event = this.createProgressEvent(taskId, stepName, stepIndex, totalSteps, status as any, message);
+    const event = this.createProgressEvent(
+      taskId,
+      stepName,
+      stepIndex,
+      totalSteps,
+      status as any,
+      message,
+    );
     return `
 import sys
 import json

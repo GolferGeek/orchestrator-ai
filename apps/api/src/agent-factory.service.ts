@@ -77,12 +77,18 @@ export class AgentFactoryService {
 
     try {
       // Load agent configuration from YAML
-      this.logger.debug(`📋 Step 1: Loading config for ${discoveredAgent.name}`);
+      this.logger.debug(
+        `📋 Step 1: Loading config for ${discoveredAgent.name}`,
+      );
       const config = await this.loadAgentConfig(discoveredAgent);
-      this.logger.debug(`📋 Config loaded - type: ${config.type}, name: ${config.name}`);
+      this.logger.debug(
+        `📋 Config loaded - type: ${config.type}, name: ${config.name}`,
+      );
 
       // Import the service class
-      this.logger.debug(`📦 Step 2: Importing service class for ${discoveredAgent.name}`);
+      this.logger.debug(
+        `📦 Step 2: Importing service class for ${discoveredAgent.name}`,
+      );
       const ServiceClass = await this.importServiceClass(discoveredAgent);
       if (!ServiceClass) {
         throw new Error(`No service class found for ${discoveredAgent.name}`);
@@ -93,12 +99,16 @@ export class AgentFactoryService {
       discoveredAgent.serviceClass = ServiceClass;
 
       // Create instance based on agent type
-      this.logger.debug(`🏗️ Step 3: Instantiating agent ${discoveredAgent.name} as type: ${config.type}`);
+      this.logger.debug(
+        `🏗️ Step 3: Instantiating agent ${discoveredAgent.name} as type: ${config.type}`,
+      );
       const serviceInstance = await this.instantiateAgent(ServiceClass, config);
       this.logger.debug(`🏗️ Agent instance created successfully`);
 
       // Set discovered path and initialize
-      this.logger.debug(`🔧 Step 4: Initializing agent ${discoveredAgent.name}`);
+      this.logger.debug(
+        `🔧 Step 4: Initializing agent ${discoveredAgent.name}`,
+      );
       await this.initializeAgent(serviceInstance, discoveredAgent, config);
       this.logger.debug(`🔧 Agent initialization completed`);
 
@@ -243,15 +253,21 @@ export class AgentFactoryService {
             this.taskStatusService,
             this.agentRegistrationService,
             undefined, // jsonRpcProtocolService
-            undefined, // loggingService  
+            undefined, // loggingService
             undefined, // authService
-            this.configurationService
+            this.configurationService,
           );
         }
 
         case 'python-function': {
           this.logger.debug(`🐍 Creating Python function agent`);
-          return new ServiceClass(this.httpService, this.llmService, this.taskProgressGateway, this.tasksService, this.taskStatusService);
+          return new ServiceClass(
+            this.httpService,
+            this.llmService,
+            this.taskProgressGateway,
+            this.tasksService,
+            this.taskStatusService,
+          );
         }
 
         case 'context': {
@@ -344,11 +360,13 @@ export class AgentFactoryService {
     config: AgentConfig,
   ): Promise<void> {
     const agentDirectory = path.dirname(discoveredAgent.servicePath);
-    
+
     this.logger.debug(`🔧 Setting up functions for ${config.name}:`);
     this.logger.debug(`   - Config type: ${config.type}`);
     this.logger.debug(`   - Agent directory: ${agentDirectory}`);
-    this.logger.debug(`   - Service instance type: ${serviceInstance.constructor.name}`);
+    this.logger.debug(
+      `   - Service instance type: ${serviceInstance.constructor.name}`,
+    );
 
     if (config.type === 'function') {
       // Set up TypeScript function agent
@@ -393,10 +411,12 @@ export class AgentFactoryService {
     if (config.type === 'python-function') {
       // Set up Python function agent
       const pythonFunctionPath = path.join(agentDirectory, 'agent-function.py');
-      
+
       this.logger.debug(`🔍 Checking Python function for ${config.name}:`);
       this.logger.debug(`   - Expected path: ${pythonFunctionPath}`);
-      this.logger.debug(`   - File exists: ${fs.existsSync(pythonFunctionPath)}`);
+      this.logger.debug(
+        `   - File exists: ${fs.existsSync(pythonFunctionPath)}`,
+      );
       this.logger.debug(`   - Agent directory: ${agentDirectory}`);
 
       if (fs.existsSync(pythonFunctionPath)) {

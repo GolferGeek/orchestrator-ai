@@ -47,17 +47,16 @@ export interface OrchestrationPlan {
  */
 @Injectable()
 export class FunctionOrchestratorService {
-
   /**
    * Execute an orchestration plan
    */
   async executeOrchestration(
     plan: OrchestrationPlan,
-    initialContext: Record<string, any> = {}
+    initialContext: Record<string, any> = {},
   ): Promise<OrchestrationExecution> {
     const executionId = this.generateExecutionId();
     const startTime = new Date().toISOString();
-    
+
     const execution: OrchestrationExecution = {
       executionId,
       status: 'running',
@@ -68,27 +67,28 @@ export class FunctionOrchestratorService {
         planName: plan.name,
         totalSteps: plan.steps.length,
         globalTimeout: plan.globalTimeout,
-        defaultRetries: plan.defaultRetries
-      }
+        defaultRetries: plan.defaultRetries,
+      },
     };
 
     try {
       const executionOrder = this.resolveExecutionOrder(plan.steps);
-      
+
       for (const stepName of executionOrder) {
-        const step = plan.steps.find(s => s.name === stepName)!;
+        const step = plan.steps.find((s) => s.name === stepName)!;
         const stepResult = await this.executeStep(
           step,
           execution.context,
           plan.defaultRetries || 0,
-          plan.defaultFailureStrategy || 'abort'
+          plan.defaultFailureStrategy || 'abort',
         );
 
         execution.steps.push(stepResult);
 
         if (!stepResult.success) {
-          const strategy = step.failureStrategy || plan.defaultFailureStrategy || 'abort';
-          
+          const strategy =
+            step.failureStrategy || plan.defaultFailureStrategy || 'abort';
+
           if (strategy === 'abort') {
             execution.status = 'failed';
             break;
@@ -103,14 +103,16 @@ export class FunctionOrchestratorService {
       if (execution.status === 'running') {
         execution.status = 'completed';
       }
-
     } catch (error) {
       execution.status = 'failed';
-      execution.metadata.globalError = error instanceof Error ? error.message : String(error);
+      execution.metadata.globalError =
+        error instanceof Error ? error.message : String(error);
     }
 
     execution.endTime = new Date().toISOString();
-    execution.totalDuration = new Date(execution.endTime).getTime() - new Date(execution.startTime).getTime();
+    execution.totalDuration =
+      new Date(execution.endTime).getTime() -
+      new Date(execution.startTime).getTime();
 
     return execution;
   }
@@ -122,7 +124,7 @@ export class FunctionOrchestratorService {
     step: OrchestrationStep,
     context: Record<string, any>,
     defaultRetries: number,
-    defaultFailureStrategy: string
+    defaultFailureStrategy: string,
   ): Promise<OrchestrationResult> {
     const startTime = Date.now();
     const maxRetries = step.retries ?? defaultRetries;
@@ -133,7 +135,7 @@ export class FunctionOrchestratorService {
       try {
         const result = await this.executeWithTimeout(
           () => step.function(context),
-          step.timeout || 30000 // 30 second default timeout
+          step.timeout || 30000, // 30 second default timeout
         );
 
         return {
@@ -142,13 +144,12 @@ export class FunctionOrchestratorService {
           result,
           duration: Date.now() - startTime,
           retryCount,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
-
       } catch (error) {
         lastError = error;
         retryCount++;
-        
+
         if (retryCount <= maxRetries) {
           // Wait before retry (exponential backoff)
           await this.delay(Math.pow(2, retryCount - 1) * 1000);
@@ -162,7 +163,7 @@ export class FunctionOrchestratorService {
       error: lastError instanceof Error ? lastError.message : String(lastError),
       duration: Date.now() - startTime,
       retryCount: retryCount - 1,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -171,13 +172,16 @@ export class FunctionOrchestratorService {
    */
   private async executeWithTimeout<T>(
     fn: () => Promise<T>,
-    timeoutMs: number
+    timeoutMs: number,
   ): Promise<T> {
     return Promise.race([
       fn(),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Function timeout after ${timeoutMs}ms`)), timeoutMs)
-      )
+        setTimeout(
+          () => reject(new Error(`Function timeout after ${timeoutMs}ms`)),
+          timeoutMs,
+        ),
+      ),
     ]);
   }
 
@@ -187,11 +191,12 @@ export class FunctionOrchestratorService {
   private resolveExecutionOrder(steps: OrchestrationStep[]): string[] {
     const resolved: string[] = [];
     const remaining = [...steps];
-    
+
     while (remaining.length > 0) {
-      const canExecute = remaining.filter(step => 
-        !step.dependencies || 
-        step.dependencies.every(dep => resolved.includes(dep))
+      const canExecute = remaining.filter(
+        (step) =>
+          !step.dependencies ||
+          step.dependencies.every((dep) => resolved.includes(dep)),
       );
 
       if (canExecute.length === 0) {
@@ -203,10 +208,10 @@ export class FunctionOrchestratorService {
       if (!nextStep) {
         throw new Error('No executable steps found but remaining steps exist');
       }
-      
+
       resolved.push(nextStep.name);
-      
-      const index = remaining.findIndex(step => step.name === nextStep.name);
+
+      const index = remaining.findIndex((step) => step.name === nextStep.name);
       remaining.splice(index, 1);
     }
 
@@ -229,20 +234,20 @@ export class FunctionOrchestratorService {
       globalTimeout?: number;
       defaultRetries?: number;
       defaultFailureStrategy?: 'abort' | 'continue' | 'retry';
-    }
+    },
   ): OrchestrationPlan {
     return {
       name,
       description: options?.description,
-      steps: steps.map(step => ({
+      steps: steps.map((step) => ({
         name: step.name,
         function: step.function,
         dependencies: step.dependencies,
-        ...step.options
+        ...step.options,
       })),
       globalTimeout: options?.globalTimeout,
       defaultRetries: options?.defaultRetries || 0,
-      defaultFailureStrategy: options?.defaultFailureStrategy || 'abort'
+      defaultFailureStrategy: options?.defaultFailureStrategy || 'abort',
     };
   }
 
@@ -261,15 +266,16 @@ export class FunctionOrchestratorService {
       globalTimeout?: number;
       defaultRetries?: number;
       defaultFailureStrategy?: 'abort' | 'continue' | 'retry';
-    }
+    },
   ): OrchestrationPlan {
     const steps = functions.map((fn, index) => {
       const prevFunction = functions[index - 1];
       return {
         name: fn.name,
         function: fn.function,
-        dependencies: index > 0 && prevFunction ? [prevFunction.name] : undefined,
-        ...fn.options
+        dependencies:
+          index > 0 && prevFunction ? [prevFunction.name] : undefined,
+        ...fn.options,
       };
     });
 
@@ -291,13 +297,13 @@ export class FunctionOrchestratorService {
       globalTimeout?: number;
       defaultRetries?: number;
       defaultFailureStrategy?: 'abort' | 'continue' | 'retry';
-    }
+    },
   ): OrchestrationPlan {
-    const steps = functions.map(fn => ({
+    const steps = functions.map((fn) => ({
       name: fn.name,
       function: fn.function,
       dependencies: [], // No dependencies for parallel execution
-      ...fn.options
+      ...fn.options,
     }));
 
     return this.createPlan(name, steps, options);
@@ -317,23 +323,31 @@ export class FunctionOrchestratorService {
     totalRetries: number;
     errors: string[];
   } {
-    const successfulSteps = execution.steps.filter(step => step.success).length;
-    const failedSteps = execution.steps.filter(step => !step.success).length;
-    const totalRetries = execution.steps.reduce((sum, step) => sum + step.retryCount, 0);
+    const successfulSteps = execution.steps.filter(
+      (step) => step.success,
+    ).length;
+    const failedSteps = execution.steps.filter((step) => !step.success).length;
+    const totalRetries = execution.steps.reduce(
+      (sum, step) => sum + step.retryCount,
+      0,
+    );
     const errors = execution.steps
-      .filter(step => step.error)
-      .map(step => `${step.stepName}: ${step.error}`);
+      .filter((step) => step.error)
+      .map((step) => `${step.stepName}: ${step.error}`);
 
     return {
       executionId: execution.executionId,
       status: execution.status,
       duration: execution.totalDuration || 0,
-      successRate: execution.steps.length > 0 ? successfulSteps / execution.steps.length : 0,
+      successRate:
+        execution.steps.length > 0
+          ? successfulSteps / execution.steps.length
+          : 0,
       totalSteps: execution.steps.length,
       successfulSteps,
       failedSteps,
       totalRetries,
-      errors
+      errors,
     };
   }
 
@@ -344,18 +358,22 @@ export class FunctionOrchestratorService {
     const errors: string[] = [];
 
     // Check for duplicate step names
-    const stepNames = plan.steps.map(step => step.name);
-    const duplicates = stepNames.filter((name, index) => stepNames.indexOf(name) !== index);
+    const stepNames = plan.steps.map((step) => step.name);
+    const duplicates = stepNames.filter(
+      (name, index) => stepNames.indexOf(name) !== index,
+    );
     if (duplicates.length > 0) {
       errors.push(`Duplicate step names found: ${duplicates.join(', ')}`);
     }
 
     // Check for invalid dependencies
-    plan.steps.forEach(step => {
+    plan.steps.forEach((step) => {
       if (step.dependencies) {
-        step.dependencies.forEach(dep => {
+        step.dependencies.forEach((dep) => {
           if (!stepNames.includes(dep)) {
-            errors.push(`Step '${step.name}' depends on non-existent step '${dep}'`);
+            errors.push(
+              `Step '${step.name}' depends on non-existent step '${dep}'`,
+            );
           }
         });
       }
@@ -370,7 +388,7 @@ export class FunctionOrchestratorService {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -382,6 +400,6 @@ export class FunctionOrchestratorService {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

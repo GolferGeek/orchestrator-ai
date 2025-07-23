@@ -42,28 +42,27 @@ export interface AgentParams {
  */
 @Injectable()
 export class PreferenceMergerService {
-
   /**
    * Merge user preferences with base options, giving priority to user preferences
    */
   mergeLLMOptions(
     baseOptions: LLMOptions = {},
-    userPreferences: UserPreferences = {}
+    userPreferences: UserPreferences = {},
   ): LLMOptions {
     const merged: LLMOptions = { ...baseOptions };
 
     // User preferences take priority over base options
     const preferenceKeys: (keyof UserPreferences)[] = [
       'providerId',
-      'modelId', 
+      'modelId',
       'temperature',
       'maxTokens',
       'cidafmOptions',
       'authToken',
-      'sessionId'
+      'sessionId',
     ];
 
-    preferenceKeys.forEach(key => {
+    preferenceKeys.forEach((key) => {
       if (userPreferences[key] !== undefined && userPreferences[key] !== null) {
         merged[key] = userPreferences[key];
       }
@@ -83,7 +82,7 @@ export class PreferenceMergerService {
       maxTokens: params.maxTokens,
       cidafmOptions: params.cidafmOptions,
       authToken: params.authToken,
-      sessionId: params.sessionId
+      sessionId: params.sessionId,
     };
   }
 
@@ -92,7 +91,7 @@ export class PreferenceMergerService {
    */
   createMergedOptions(
     baseOptions: LLMOptions,
-    params: AgentParams
+    params: AgentParams,
   ): LLMOptions {
     const userPreferences = this.extractUserPreferences(params);
     return this.mergeLLMOptions(baseOptions, userPreferences);
@@ -103,15 +102,18 @@ export class PreferenceMergerService {
    */
   validateAndApplyDefaults(
     options: LLMOptions,
-    defaults?: Partial<LLMOptions>
+    defaults?: Partial<LLMOptions>,
   ): { valid: boolean; options: LLMOptions; errors: string[] } {
     const errors: string[] = [];
     const validatedOptions: LLMOptions = { ...options };
 
     // Apply defaults if not provided
     if (defaults) {
-      Object.keys(defaults).forEach(key => {
-        if (validatedOptions[key] === undefined || validatedOptions[key] === null) {
+      Object.keys(defaults).forEach((key) => {
+        if (
+          validatedOptions[key] === undefined ||
+          validatedOptions[key] === null
+        ) {
           validatedOptions[key] = defaults[key];
         }
       });
@@ -121,7 +123,10 @@ export class PreferenceMergerService {
     if (validatedOptions.temperature !== undefined) {
       if (typeof validatedOptions.temperature !== 'number') {
         errors.push('Temperature must be a number');
-      } else if (validatedOptions.temperature < 0 || validatedOptions.temperature > 2) {
+      } else if (
+        validatedOptions.temperature < 0 ||
+        validatedOptions.temperature > 2
+      ) {
         errors.push('Temperature must be between 0 and 2');
       }
     }
@@ -130,21 +135,30 @@ export class PreferenceMergerService {
     if (validatedOptions.maxTokens !== undefined) {
       if (typeof validatedOptions.maxTokens !== 'number') {
         errors.push('MaxTokens must be a number');
-      } else if (validatedOptions.maxTokens < 1 || validatedOptions.maxTokens > 100000) {
+      } else if (
+        validatedOptions.maxTokens < 1 ||
+        validatedOptions.maxTokens > 100000
+      ) {
         errors.push('MaxTokens must be between 1 and 100,000');
       }
     }
 
     // Validate providerId
     if (validatedOptions.providerId !== undefined) {
-      if (typeof validatedOptions.providerId !== 'string' || validatedOptions.providerId.trim().length === 0) {
+      if (
+        typeof validatedOptions.providerId !== 'string' ||
+        validatedOptions.providerId.trim().length === 0
+      ) {
         errors.push('ProviderId must be a non-empty string');
       }
     }
 
     // Validate modelId
     if (validatedOptions.modelId !== undefined) {
-      if (typeof validatedOptions.modelId !== 'string' || validatedOptions.modelId.trim().length === 0) {
+      if (
+        typeof validatedOptions.modelId !== 'string' ||
+        validatedOptions.modelId.trim().length === 0
+      ) {
         errors.push('ModelId must be a non-empty string');
       }
     }
@@ -152,7 +166,7 @@ export class PreferenceMergerService {
     return {
       valid: errors.length === 0,
       options: validatedOptions,
-      errors
+      errors,
     };
   }
 
@@ -165,9 +179,9 @@ export class PreferenceMergerService {
     const result: LLMOptions = {};
 
     // Apply options in order, with later sources taking priority
-    optionSources.forEach(source => {
+    optionSources.forEach((source) => {
       if (source) {
-        Object.keys(source).forEach(key => {
+        Object.keys(source).forEach((key) => {
           if (source[key] !== undefined && source[key] !== null) {
             result[key] = source[key];
           }
@@ -188,16 +202,17 @@ export class PreferenceMergerService {
     return {
       order: [
         'system_defaults',
-        'agent_defaults', 
+        'agent_defaults',
         'user_session_preferences',
-        'request_parameters'
+        'request_parameters',
       ],
       description: {
         system_defaults: 'Global system default values',
         agent_defaults: 'Agent-specific default configurations',
-        user_session_preferences: 'User\'s saved preferences for the session',
-        request_parameters: 'Parameters provided with the specific request (highest priority)'
-      }
+        user_session_preferences: "User's saved preferences for the session",
+        request_parameters:
+          'Parameters provided with the specific request (highest priority)',
+      },
     };
   }
 
@@ -211,7 +226,7 @@ export class PreferenceMergerService {
       agentDefaults?: LLMOptions;
       userPreferences?: UserPreferences;
       requestParams?: AgentParams;
-    }
+    },
   ): {
     finalOptions: LLMOptions;
     sourceMap: Record<string, string>;
@@ -232,29 +247,42 @@ export class PreferenceMergerService {
       { name: 'systemDefaults', options: sources.systemDefaults },
       { name: 'agentDefaults', options: sources.agentDefaults },
       { name: 'userPreferences', options: sources.userPreferences },
-      { name: 'requestParams', options: this.extractUserPreferences(sources.requestParams || {}) }
+      {
+        name: 'requestParams',
+        options: this.extractUserPreferences(sources.requestParams || {}),
+      },
     ];
 
     // Track where each final value came from
-    Object.keys(finalOptions).forEach(key => {
+    Object.keys(finalOptions).forEach((key) => {
       const sourcesWithValue = allSources
-        .filter(source => source.options && source.options[key] !== undefined && source.options[key] !== null)
-        .map(source => ({ source: source.name, value: source.options![key] }));
+        .filter(
+          (source) =>
+            source.options &&
+            source.options[key] !== undefined &&
+            source.options[key] !== null,
+        )
+        .map((source) => ({
+          source: source.name,
+          value: source.options![key],
+        }));
 
       if (sourcesWithValue.length > 0) {
         const lastSource = sourcesWithValue[sourcesWithValue.length - 1];
         if (lastSource) {
           sourceMap[key] = lastSource.source; // Last source wins
         }
-        
+
         // Record conflicts if multiple sources had different values
         if (sourcesWithValue.length > 1) {
-          const uniqueValues = new Set(sourcesWithValue.map(s => JSON.stringify(s.value)));
+          const uniqueValues = new Set(
+            sourcesWithValue.map((s) => JSON.stringify(s.value)),
+          );
           if (uniqueValues.size > 1) {
             conflicts.push({
               key,
               values: sourcesWithValue,
-              resolved: finalOptions[key]
+              resolved: finalOptions[key],
             });
           }
         }
@@ -264,7 +292,7 @@ export class PreferenceMergerService {
     return {
       finalOptions,
       sourceMap,
-      conflicts
+      conflicts,
     };
   }
 
@@ -273,14 +301,14 @@ export class PreferenceMergerService {
    */
   createValidator(
     requiredFields?: (keyof LLMOptions)[],
-    customValidators?: Record<string, (value: any) => string | null>
+    customValidators?: Record<string, (value: any) => string | null>,
   ) {
     return (options: LLMOptions): { valid: boolean; errors: string[] } => {
       const errors: string[] = [];
 
       // Check required fields
       if (requiredFields) {
-        requiredFields.forEach(field => {
+        requiredFields.forEach((field) => {
           if (options[field] === undefined || options[field] === null) {
             errors.push(`${field} is required`);
           }
@@ -289,7 +317,7 @@ export class PreferenceMergerService {
 
       // Run custom validators
       if (customValidators) {
-        Object.keys(customValidators).forEach(field => {
+        Object.keys(customValidators).forEach((field) => {
           if (options[field] !== undefined && options[field] !== null) {
             const validator = customValidators[field];
             if (validator) {
@@ -304,7 +332,7 @@ export class PreferenceMergerService {
 
       return {
         valid: errors.length === 0,
-        errors
+        errors,
       };
     };
   }
@@ -314,8 +342,8 @@ export class PreferenceMergerService {
    */
   sanitizeOptions(options: LLMOptions): LLMOptions {
     const sanitized: LLMOptions = {};
-    
-    Object.keys(options).forEach(key => {
+
+    Object.keys(options).forEach((key) => {
       if (options[key] !== undefined && options[key] !== null) {
         sanitized[key] = options[key];
       }

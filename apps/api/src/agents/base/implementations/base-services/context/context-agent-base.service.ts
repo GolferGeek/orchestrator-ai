@@ -143,10 +143,15 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       // Report task completion to TaskStatusService for async execution modes
       if (params.taskId && params.currentUser?.id) {
         try {
-          this.contextLogger.debug(`Reporting task completion for ${params.taskId}`);
+          this.contextLogger.debug(
+            `Reporting task completion for ${params.taskId}`,
+          );
           await this.completeTask(params.taskId, params.currentUser.id, result);
         } catch (error) {
-          this.contextLogger.error(`Error reporting task completion for ${params.taskId}:`, error);
+          this.contextLogger.error(
+            `Error reporting task completion for ${params.taskId}:`,
+            error,
+          );
           // Don't fail the task if reporting fails
         }
       }
@@ -171,14 +176,19 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       // Report task failure to TaskStatusService for async execution modes
       if (params.taskId && params.currentUser?.id) {
         try {
-          this.contextLogger.debug(`Reporting task failure for ${params.taskId}`);
+          this.contextLogger.debug(
+            `Reporting task failure for ${params.taskId}`,
+          );
           await this.failTask(
             params.taskId,
             params.currentUser.id,
-            error instanceof Error ? error.message : String(error)
+            error instanceof Error ? error.message : String(error),
           );
         } catch (reportError) {
-          this.contextLogger.error(`Error reporting task failure for ${params.taskId}:`, reportError);
+          this.contextLogger.error(
+            `Error reporting task failure for ${params.taskId}:`,
+            reportError,
+          );
           // Don't fail the task if reporting fails
         }
       }
