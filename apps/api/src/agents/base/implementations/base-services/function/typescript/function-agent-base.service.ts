@@ -56,6 +56,12 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       authService,
       configurationService,
     );
+    
+    // Debug MCP client service injection
+    this.functionLogger.debug(`MCP Client Service initialized: ${!!this.mcpClientService}`);
+    if (this.mcpClientService) {
+      this.functionLogger.debug(`MCP Client Service has isAvailable method: ${typeof this.mcpClientService.isAvailable === 'function'}`);
+    }
   }
 
   /**
@@ -152,8 +158,22 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       };
 
       // Create MCP service wrapper for agent functions
+      this.functionLogger.debug(`Creating MCP service wrapper. Client available: ${!!this.mcpClientService}`);
+      
       const mcpService = this.mcpClientService ? {
-        isAvailable: () => this.mcpClientService?.isAvailable() || false,
+        isAvailable: () => {
+          try {
+            if (!this.mcpClientService) return false;
+            if (typeof this.mcpClientService.isAvailable !== 'function') {
+              this.functionLogger.warn('MCP Client Service missing isAvailable method');
+              return false;
+            }
+            return this.mcpClientService.isAvailable();
+          } catch (error) {
+            this.functionLogger.warn('MCP isAvailable check failed:', error);
+            return false;
+          }
+        },
         
         // Database operations
         getSchema: async (options?: { table_name?: string; refresh_cache?: boolean }) => {
@@ -245,7 +265,16 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
             arguments: params 
           });
         }
-      } : null;
+      } : {
+        // Fallback when MCP client service is not available
+        isAvailable: () => false,
+        getSchema: async () => ({ success: false, error: 'MCP Client Service not available' }),
+        readData: async () => ({ success: false, error: 'MCP Client Service not available' }),
+        executeSQL: async () => ({ success: false, error: 'MCP Client Service not available' }),
+        generateSQL: async () => ({ success: false, error: 'MCP Client Service not available' }),
+        queryAndFormat: async () => ({ success: false, error: 'MCP Client Service not available' }),
+        callTool: async () => ({ success: false, error: 'MCP Client Service not available' })
+      };
 
       // Prepare standardized parameters for the agent function
       const functionParams: AgentFunctionParams = {
