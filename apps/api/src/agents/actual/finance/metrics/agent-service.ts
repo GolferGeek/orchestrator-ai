@@ -23,7 +23,6 @@ export class MetricsAgentService extends FunctionAgentBaseService {
     tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
-    @Inject(forwardRef(() => MCPClientService))
     mcpClientService: MCPClientService | undefined,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,

@@ -28,7 +28,11 @@ export class MCPClientService implements IMCPClient {
   private readonly HEALTH_CHECK_INTERVAL = 30000; // 30 seconds
   private readonly MAX_RETRIES = 3;
 
+  private readonly instanceId = `mcp-${Date.now()}-${Math.random().toString(36).substr(2, 8)}`;
+
   constructor() {
+    this.logger.log(`🚀 MCPClientService constructor called - Instance ID: ${this.instanceId}`);
+    this.logger.log(`📊 isAvailable method exists: ${typeof this.isAvailable === 'function'}`);
     this.startHealthCheckLoop();
   }
 
@@ -559,14 +563,19 @@ export class MCPClientService implements IMCPClient {
    * Check if MCP service is available and has connected servers
    */
   isAvailable(): boolean {
+    const hasServers = this.servers.size > 0;
+    const connectedServers = Array.from(this.servers.values()).filter(
+      connection => connection.state === 'connected'
+    );
+    
+    this.logger.debug(`isAvailable check [${this.instanceId}]: hasServers=${hasServers}, connectedCount=${connectedServers.length}`);
+    
     if (this.servers.size === 0) {
       return false;
     }
 
     // Check if any server is connected
-    return Array.from(this.servers.values()).some(
-      connection => connection.state === 'connected'
-    );
+    return connectedServers.length > 0;
   }
 
   /**

@@ -16,7 +16,11 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
   const { userMessage, llmService, progressCallback, mcpService, metadata } = params;
 
   // MCP is required for this agent - no fallback to simulated data
+  // Use the progressCallback to log MCP service state since it's visible in logs
+  progressCallback?.('MCP Service Debug', 0, 'in_progress', `MCPService exists: ${!!mcpService}, isAvailable: ${mcpService?.isAvailable()}, methods: ${mcpService ? Object.keys(mcpService).join(',') : 'none'}`);
+
   if (!mcpService?.isAvailable()) {
+    progressCallback?.('MCP Service Debug', 0, 'failed', `MCP service unavailable - this indicates separate MCPClientService instances`);
     throw new Error('MCP service is required for Metrics Agent. Database connection not available.');
   }
 

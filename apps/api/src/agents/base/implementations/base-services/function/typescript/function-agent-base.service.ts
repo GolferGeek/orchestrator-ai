@@ -12,6 +12,7 @@ import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
 import { MCPClientService } from '@/mcp/client/mcp-client.service';
+import { MCPRegistryService } from '@/mcp/mcp-registry.service';
 
 export interface AgentFunctionResponse {
   response: string;
@@ -39,7 +40,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     protected readonly tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     protected readonly taskStatusService: TaskStatusService | undefined,
-    @Inject(forwardRef(() => MCPClientService))
     protected readonly mcpClientService: MCPClientService | undefined,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
@@ -157,18 +157,35 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         this.emitProgress(stepName, stepIndex, status as any, message);
       };
 
-      // Create MCP service wrapper for agent functions
-      this.functionLogger.debug(`Creating MCP service wrapper. Client available: ${!!this.mcpClientService}`);
+      // Create MCP service wrapper for agent functions - use registry to get the singleton instance
+      const registryMCPClient = MCPRegistryService.getMCPClient();
+      const actualMCPClient = registryMCPClient || this.mcpClientService;
       
-      const mcpService = this.mcpClientService ? {
+      this.functionLogger.debug(`Creating MCP service wrapper. Registry client: ${!!registryMCPClient}, Injected client: ${!!this.mcpClientService}, Using: ${actualMCPClient ? 'registry' : 'none'}`);
+      
+      const mcpService = actualMCPClient ? {
         isAvailable: () => {
           try {
-            if (!this.mcpClientService) return false;
-            if (typeof this.mcpClientService.isAvailable !== 'function') {
+            if (!actualMCPClient) {
+              this.functionLogger.warn('MCP Client Service not available');
+              return false;
+            }
+            if (typeof actualMCPClient.isAvailable !== 'function') {
               this.functionLogger.warn('MCP Client Service missing isAvailable method');
               return false;
             }
-            return this.mcpClientService.isAvailable();
+            
+            const available = actualMCPClient.isAvailable();
+            const serverCount = actualMCPClient.getAvailableServers?.()?.length || 0;
+            const instanceId = (actualMCPClient as any).instanceId || 'unknown';
+            
+            this.functionLogger.debug(`MCP Service status: available=${available}, servers=${serverCount}, instanceId=${instanceId}, source=${registryMCPClient ? 'registry' : 'injection'}`);
+            
+            if (!available) {
+              this.functionLogger.warn('MCP service reports as unavailable - no connected servers');
+            }
+            
+            return available;
           } catch (error) {
             this.functionLogger.warn('MCP isAvailable check failed:', error);
             return false;
@@ -177,10 +194,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         
         // Database operations
         getSchema: async (options?: { table_name?: string; refresh_cache?: boolean }) => {
-          if (!this.mcpClientService) {
+          if (!actualMCPClient) {
             throw new Error('MCP Client Service not available');
           }
-          return await this.mcpClientService.callTool('supabase', { 
+          return await actualMCPClient.callTool('supabase', { 
             name: 'get-schema', 
             arguments: options || {} 
           });
@@ -195,10 +212,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           order_by?: { column: string; ascending?: boolean };
           format?: 'json' | 'table' | 'csv';
         }) => {
-          if (!this.mcpClientService) {
+          if (!actualMCPClient) {
             throw new Error('MCP Client Service not available');
           }
-          return await this.mcpClientService.callTool('supabase', { 
+          return await actualMCPClient.callTool('supabase', { 
             name: 'read-data', 
             arguments: params 
           });
@@ -211,10 +228,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           max_rows?: number; 
           format?: 'detailed' | 'compact' | 'csv' | 'json';
         }) => {
-          if (!this.mcpClientService) {
+          if (!actualMCPClient) {
             throw new Error('MCP Client Service not available');
           }
-          return await this.mcpClientService.callTool('supabase', { 
+          return await actualMCPClient.callTool('supabase', { 
             name: 'execute-sql', 
             arguments: params 
           });
@@ -228,10 +245,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           max_rows?: number;
           schema_tables?: string[];
         }) => {
-          if (!this.mcpClientService) {
+          if (!actualMCPClient) {
             throw new Error('MCP Client Service not available');
           }
-          return await this.mcpClientService.callTool('supabase', { 
+          return await actualMCPClient.callTool('supabase', { 
             name: 'generate-sql', 
             arguments: params 
           });
@@ -246,10 +263,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           include_schema_context?: boolean;
           suggested_tables?: string[];
         }) => {
-          if (!this.mcpClientService) {
+          if (!actualMCPClient) {
             throw new Error('MCP Client Service not available');
           }
-          return await this.mcpClientService.callTool('supabase', { 
+          return await actualMCPClient.callTool('supabase', { 
             name: 'query-and-format', 
             arguments: params 
           });
@@ -257,10 +274,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         
         // Generic tool call method for extensibility
         callTool: async (server: string, toolName: string, params: any) => {
-          if (!this.mcpClientService) {
+          if (!actualMCPClient) {
             throw new Error('MCP Client Service not available');
           }
-          return await this.mcpClientService.callTool(server, { 
+          return await actualMCPClient.callTool(server, { 
             name: toolName, 
             arguments: params 
           });
@@ -638,14 +655,59 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   }
 
   /**
+   * Test MCP service availability (debugging method)
+   */
+  testMCPService(): any {
+    const registryClient = MCPRegistryService.getMCPClient();
+    const injectedClient = this.mcpClientService;
+    const actualClient = registryClient || injectedClient;
+    
+    if (!actualClient) {
+      return {
+        hasRegistryService: !!registryClient,
+        hasInjectedService: !!injectedClient,
+        error: 'No MCPClientService available'
+      };
+    }
+    
+    try {
+      const available = actualClient.isAvailable();
+      const serverCount = actualClient.getAvailableServers?.()?.length || 0;
+      const availableServers = actualClient.getAvailableServers?.() || [];
+      const instanceId = (actualClient as any)?.instanceId || 'unknown';
+      
+      return {
+        hasRegistryService: !!registryClient,
+        hasInjectedService: !!injectedClient,
+        usingRegistry: !!registryClient,
+        instanceId,
+        available,
+        serverCount,
+        availableServers,
+        hasIsAvailableMethod: typeof actualClient.isAvailable === 'function',
+        hasGetAvailableServersMethod: typeof actualClient.getAvailableServers === 'function'
+      };
+    } catch (error) {
+      return {
+        hasRegistryService: !!registryClient,
+        hasInjectedService: !!injectedClient,
+        instanceId: (actualClient as any)?.instanceId || 'unknown',
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  /**
    * Get agent card with function status
    */
   async getAgentCard(): Promise<any> {
     const baseCard = await super.getAgentCard();
+    const mcpStatus = this.testMCPService();
     return {
       ...baseCard,
       functionStatus: this.agentFunction ? 'loaded' : 'not_loaded',
       loadedAt: this.agentFunction ? new Date().toISOString() : null,
+      mcpStatus
     };
   }
 }

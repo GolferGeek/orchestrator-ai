@@ -324,12 +324,21 @@ export class MCPController implements OnModuleInit {
   async getMCPStatus() {
     try {
       const servers = await this.mcpClientService.listServers();
+      const instanceId = (this.mcpClientService as any).instanceId || 'unknown';
+      const isAvailable = this.mcpClientService.isAvailable();
+      const availableServers = this.mcpClientService.getAvailableServers?.() || [];
 
       return {
         mcp_system: {
           status: 'active',
           servers_registered: servers.length,
           timestamp: new Date().toISOString(),
+        },
+        debug_info: {
+          controller_instance_id: instanceId,
+          is_available: isAvailable,
+          available_servers_count: availableServers.length,
+          available_server_names: availableServers
         },
         servers: servers,
         available_endpoints: {
