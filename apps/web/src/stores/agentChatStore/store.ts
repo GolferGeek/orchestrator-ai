@@ -159,6 +159,9 @@ export const useAgentChatStore = defineStore('agentChat', {
         this.conversations.push(newConversation);
         this.activeConversationId = backendConversationId;
         
+        // Restore WebSocket subscriptions for active tasks
+        await this.restoreActiveTaskSubscriptions(newConversation);
+        
         console.log(`✅ Existing conversation loaded: ${backendConversationId}`);
         
       } catch (error) {
@@ -495,6 +498,53 @@ export const useAgentChatStore = defineStore('agentChat', {
       if (activeConversation) {
         activeConversation.isExecutionModeOverride = false;
         console.log(`🔄 Reset execution mode override for agent: ${activeConversation.agent?.name}`);
+      }
+    },
+
+    /**
+     * Restore WebSocket subscriptions for active tasks in a conversation
+     */
+    async restoreActiveTaskSubscriptions(conv: AgentConversation) {
+      try {
+        console.log(`🔄 Restoring active task subscriptions for conversation: ${conv.id}`);
+        
+        // Get active tasks for this conversation
+        const activeTasks = await conversation.getActiveTasksForConversation(conv.id);
+        
+        if (activeTasks.length === 0) {
+          console.log(`ℹ️ No active tasks to restore for conversation ${conv.id}`);
+          return;
+        }
+        
+        console.log(`🔄 Restoring ${activeTasks.length} active task subscriptions:`, activeTasks.map(t => t.taskId));
+        
+        // Restore WebSocket subscriptions for each active task
+        for (const task of activeTasks) {
+          try {
+            // Check if we have websocket mode enabled for this conversation
+            if (conv.supportedExecutionModes.includes('websocket')) {
+              console.log(`🔌 Restoring WebSocket subscription for task: ${task.taskId}`);
+              
+              // Use the websocket handler to subscribe to this task
+              await websocketHandler.subscribeToTaskEvents(conv.id, task.taskId, {
+                onTaskStatus: (update) => this.handleTaskStatusUpdate(conv.id, task.taskId, update),
+                onCompletion: (taskId) => this.handleTaskCompletion(conv.id, taskId, { taskId, status: 'completed' }),
+                onWorkflowStep: (stepUpdate) => this.handleWorkflowStepProgress(conv.id, task.taskId, stepUpdate)
+              });
+              
+              console.log(`✅ WebSocket subscription restored for task: ${task.taskId}`);
+            } else {
+              console.log(`⚠️ Conversation doesn't support WebSocket mode, skipping task: ${task.taskId}`);
+            }
+          } catch (error) {
+            console.error(`❌ Failed to restore WebSocket subscription for task ${task.taskId}:`, error);
+          }
+        }
+        
+        console.log(`✅ Active task subscription restoration complete for conversation: ${conv.id}`);
+        
+      } catch (error) {
+        console.error(`❌ Failed to restore active task subscriptions for conversation ${conv.id}:`, error);
       }
     }
   }

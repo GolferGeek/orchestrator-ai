@@ -1,5 +1,6 @@
 import agentConversationsService, { type AgentType } from '@/services/agentConversationsService';
 import { useAgentsStore } from '@/stores/agentsStore';
+import { tasksService } from '@/services/tasksService';
 import type { AgentConversation, AgentChatMessage, ExecutionMode } from './types';
 import type { Agent } from './types';
 import { formatAgentName } from '@/utils/caseConverter';
@@ -25,29 +26,162 @@ export class ConversationService {
   }
 
   /**
-   * Load conversation messages from backend
+   * Load conversation messages from backend by reconstructing from tasks
    */
   async loadConversationMessages(conversationId: string): Promise<AgentChatMessage[]> {
     console.log(`📚 Loading conversation messages for: ${conversationId}`);
     
     try {
-      // Note: Backend conversation doesn't store individual messages yet
-      // This would need to be implemented on the backend to load actual message history
-      const messages: AgentChatMessage[] = [];
-      console.log(`✅ Loaded ${messages.length} messages for conversation ${conversationId}`);
+      // Load all tasks for this conversation
+      const tasksResponse = await tasksService.listTasks({ 
+        conversationId: conversationId,
+        limit: 100 // Load up to 100 tasks for this conversation
+      });
       
-      // Transform backend messages to frontend format
-      return messages.map((msg: any) => ({
-        id: msg.id || `msg-${Date.now()}`,
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content || '',
-        timestamp: new Date(msg.createdAt || Date.now()),
-        taskId: msg.taskId,
-        metadata: msg.metadata || {}
-      }));
+      const tasks = tasksResponse.tasks || [];
+      console.log(`📋 Found ${tasks.length} tasks for conversation ${conversationId}`);
+      
+      const messages: AgentChatMessage[] = [];
+      
+      // Convert each task to a pair of messages (user prompt + assistant response)
+      for (const task of tasks) {
+        // Create user message from task prompt
+        if (task.prompt) {
+          const userMessage: AgentChatMessage = {
+            id: `user-${task.id}`,
+            role: 'user',
+            content: task.prompt,
+            timestamp: new Date(task.createdAt),
+            taskId: task.id,
+            metadata: {
+              originalTaskData: {
+                method: task.method,
+                params: task.params,
+                status: task.status
+              }
+            }
+          };
+          messages.push(userMessage);
+        }
+        
+        // Create assistant message based on task status
+        if (task.status === 'completed' && task.response) {
+          // Completed task - create assistant message with response
+          const assistantMessage: AgentChatMessage = {
+            id: `assistant-${task.id}`,
+            role: 'assistant',
+            content: task.response,
+            timestamp: new Date(task.completedAt || task.updatedAt),
+            taskId: task.id,
+            metadata: {
+              isCompleted: true,
+              completedAt: task.completedAt,
+              responseMetadata: task.responseMetadata,
+              llmMetadata: task.llmMetadata,
+              originalTaskData: {
+                method: task.method,
+                status: task.status,
+                progress: task.progress
+              }
+            }
+          };
+          messages.push(assistantMessage);
+          
+        } else if (['pending', 'running'].includes(task.status)) {
+          // Active task - create placeholder message
+          const placeholderMessage: AgentChatMessage = {
+            id: `placeholder-${task.id}`,
+            role: 'assistant',
+            content: task.progressMessage || 'Processing your request...',
+            timestamp: new Date(task.startedAt || task.createdAt),
+            taskId: task.id,
+            metadata: {
+              isPlaceholder: true,
+              processing_type: 'active_task',
+              originalTaskData: {
+                method: task.method,
+                status: task.status,
+                progress: task.progress,
+                progressMessage: task.progressMessage
+              },
+              lastUpdated: task.updatedAt
+            }
+          };
+          messages.push(placeholderMessage);
+          
+        } else if (task.status === 'failed') {
+          // Failed task - create error message
+          const errorMessage: AgentChatMessage = {
+            id: `error-${task.id}`,
+            role: 'assistant',
+            content: `❌ Task failed: ${task.errorMessage || 'Unknown error occurred'}`,
+            timestamp: new Date(task.completedAt || task.updatedAt),
+            taskId: task.id,
+            metadata: {
+              isCompleted: true,
+              isError: true,
+              errorCode: task.errorCode,
+              errorMessage: task.errorMessage,
+              errorData: task.errorData,
+              originalTaskData: {
+                method: task.method,
+                status: task.status,
+                progress: task.progress
+              }
+            }
+          };
+          messages.push(errorMessage);
+        }
+      }
+      
+      // Sort messages by timestamp
+      messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      
+      console.log(`✅ Reconstructed ${messages.length} messages from ${tasks.length} tasks for conversation ${conversationId}`);
+      
+      // Log active tasks for restoration
+      const activeTasks = tasks.filter(t => ['pending', 'running'].includes(t.status));
+      if (activeTasks.length > 0) {
+        console.log(`🔄 Found ${activeTasks.length} active tasks that will need WebSocket restoration:`, activeTasks.map(t => t.id));
+      }
+      
+      return messages;
       
     } catch (error) {
       console.error(`❌ Failed to load messages for conversation ${conversationId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get active tasks for a conversation that need WebSocket restoration
+   */
+  async getActiveTasksForConversation(conversationId: string): Promise<Array<{
+    taskId: string;
+    status: string;
+    progress: number;
+    progressMessage?: string;
+  }>> {
+    try {
+      const tasksResponse = await tasksService.listTasks({ 
+        conversationId: conversationId,
+        status: 'pending,running' // Filter for active tasks only
+      });
+      
+      const activeTasks = (tasksResponse.tasks || [])
+        .filter(task => ['pending', 'running'].includes(task.status))
+        .map(task => ({
+          taskId: task.id,
+          status: task.status,
+          progress: task.progress,
+          progressMessage: task.progressMessage
+        }));
+      
+      console.log(`🔄 Found ${activeTasks.length} active tasks for conversation ${conversationId}:`, activeTasks);
+      return activeTasks;
+      
+    } catch (error) {
+      console.error(`❌ Failed to get active tasks for conversation ${conversationId}:`, error);
       return [];
     }
   }
