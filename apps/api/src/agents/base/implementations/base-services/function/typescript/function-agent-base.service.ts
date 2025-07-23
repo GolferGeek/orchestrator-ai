@@ -11,6 +11,7 @@ import { AgentFunctionParams } from '../../a2a-base/interfaces';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
+import { MCPClientService } from '@/mcp/client/mcp-client.service';
 
 export interface AgentFunctionResponse {
   response: string;
@@ -38,6 +39,8 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     protected readonly tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     protected readonly taskStatusService: TaskStatusService | undefined,
+    @Inject(forwardRef(() => MCPClientService))
+    protected readonly mcpClientService: MCPClientService | undefined,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -148,6 +151,85 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         this.emitProgress(stepName, stepIndex, status as any, message);
       };
 
+      // Create MCP service wrapper for agent functions
+      const mcpService = this.mcpClientService ? {
+        // Database operations
+        getSchema: async (options?: { table_name?: string; refresh_cache?: boolean }) => {
+          return await this.mcpClientService!.callTool('supabase', { 
+            name: 'get-schema', 
+            arguments: options || {} 
+          });
+        },
+        
+        readData: async (params: { 
+          table_name: string; 
+          columns?: string[]; 
+          filters?: Record<string, any>; 
+          limit?: number; 
+          offset?: number;
+          order_by?: { column: string; ascending?: boolean };
+          format?: 'json' | 'table' | 'csv';
+        }) => {
+          return await this.mcpClientService!.callTool('supabase', { 
+            name: 'read-data', 
+            arguments: params 
+          });
+        },
+        
+        executeSQL: async (params: { 
+          sql_query: string; 
+          parameters?: any[]; 
+          dry_run?: boolean; 
+          max_rows?: number; 
+          format?: 'detailed' | 'compact' | 'csv' | 'json';
+        }) => {
+          return await this.mcpClientService!.callTool('supabase', { 
+            name: 'execute-sql', 
+            arguments: params 
+          });
+        },
+        
+        generateSQL: async (params: { 
+          natural_language_query: string; 
+          query_type?: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'auto-detect';
+          model_override?: string;
+          include_explanation?: boolean;
+          max_rows?: number;
+          schema_tables?: string[];
+        }) => {
+          return await this.mcpClientService!.callTool('supabase', { 
+            name: 'generate-sql', 
+            arguments: params 
+          });
+        },
+        
+        queryAndFormat: async (params: { 
+          user_prompt: string; 
+          output_format?: 'table' | 'json' | 'summary' | 'chart-data' | 'report';
+          include_explanation?: boolean;
+          model_override?: string;
+          max_rows?: number;
+          include_schema_context?: boolean;
+          suggested_tables?: string[];
+        }) => {
+          return await this.mcpClientService!.callTool('supabase', { 
+            name: 'query-and-format', 
+            arguments: params 
+          });
+        },
+        
+        // Utility method to check if MCP is available
+        isAvailable: () => !!this.mcpClientService,
+        
+        // Generic tool call method for extensibility
+        callTool: async (server: string, toolName: string, params: any) => {
+          return await this.mcpClientService!.callTool(server, { 
+            name: toolName, 
+            arguments: params 
+          });
+        }
+      } : null;
+
       // Prepare standardized parameters for the agent function
       const functionParams: AgentFunctionParams = {
         userMessage: this.extractUserMessage(params),
@@ -157,6 +239,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         authToken: params.authToken,
         llmService: wrappedLLMService,
         progressCallback,
+        mcpService, // Add MCP service for database operations
         metadata: {
           method,
           originalParams: params,

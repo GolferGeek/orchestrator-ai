@@ -5,6 +5,7 @@ import { LLMService } from '@/llms/llm.service';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
+import { MCPClientService } from '@/mcp/client/mcp-client.service';
 import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
@@ -22,6 +23,8 @@ export class MarketingSwarmService extends FunctionAgentBaseService {
     tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
+    @Inject(forwardRef(() => MCPClientService))
+    mcpClientService: MCPClientService | undefined,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -34,6 +37,7 @@ export class MarketingSwarmService extends FunctionAgentBaseService {
       taskProgressGateway,
       tasksService,
       taskStatusService,
+      mcpClientService,
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,

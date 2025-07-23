@@ -293,10 +293,10 @@ export class QueryExecutorService {
 
       try {
         // Use Supabase RPC to execute raw SQL
-        // Note: This requires a custom function in Supabase or alternative approach
+        // Note: This uses our custom execute_sql function created in the migration
         const { data, error } = await supabaseClient.rpc('execute_sql', {
           query: sql,
-          params: parameters || [],
+          params: JSON.stringify(parameters || []),
         });
 
         clearTimeout(timeoutId);

@@ -36,6 +36,37 @@ EXCEPTION
 END;
 $$;
 
+-- Function 2b: Execute SQL queries with parameters (needed by MCP execute-sql tool)
+CREATE OR REPLACE FUNCTION execute_sql(query text, params json DEFAULT '[]'::json)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result json;
+  row_result record;
+  json_array json[];
+BEGIN
+  -- Security: Only allow SELECT statements for schema discovery
+  IF query ~* '^\s*(SELECT|WITH)\s+' THEN
+    -- Execute the query and collect results
+    json_array := ARRAY[]::json[];
+    
+    FOR row_result IN EXECUTE query LOOP
+      json_array := json_array || row_to_json(row_result);
+    END LOOP;
+    
+    -- Return results as JSON array
+    RETURN array_to_json(json_array);
+  ELSE
+    RAISE EXCEPTION 'Only SELECT queries are allowed';
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE EXCEPTION 'Query execution failed: %', SQLERRM;
+END;
+$$;
+
 -- Function 3: Get detailed table information
 CREATE OR REPLACE FUNCTION get_table_info(table_name_param text DEFAULT NULL)
 RETURNS TABLE(
@@ -63,9 +94,11 @@ $$;
 -- Grant execute permissions to authenticated users
 GRANT EXECUTE ON FUNCTION get_table_names() TO authenticated;
 GRANT EXECUTE ON FUNCTION exec_sql(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION execute_sql(text, json) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_table_info(text) TO authenticated;
 
 -- Also grant to anon for broader compatibility (you can remove this if not needed)
 GRANT EXECUTE ON FUNCTION get_table_names() TO anon;
 GRANT EXECUTE ON FUNCTION exec_sql(text) TO anon;
+GRANT EXECUTE ON FUNCTION execute_sql(text, json) TO anon;
 GRANT EXECUTE ON FUNCTION get_table_info(text) TO anon;

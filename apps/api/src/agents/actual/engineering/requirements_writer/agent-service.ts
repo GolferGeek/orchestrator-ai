@@ -5,6 +5,7 @@ import { LLMService } from '../../../../llms/llm.service';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
+import { MCPClientService } from '@/mcp/client/mcp-client.service';
 
 @Injectable()
 export class RequirementsWriterService extends PythonFunctionAgentBaseService {
@@ -17,6 +18,8 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
     tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
+    @Inject(forwardRef(() => MCPClientService))
+    mcpClientService: MCPClientService | undefined,
   ) {
     super(
       httpService,
@@ -24,6 +27,7 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
       taskProgressGateway,
       tasksService,
       taskStatusService,
+      mcpClientService,
       undefined,
       undefined,
       undefined,
