@@ -4,7 +4,7 @@ metadata:
   type: "specialists"
   category: "human_resources"
   version: "1.0.0"
-  description: "Your dedicated HR assistant providing comprehensive HR support, benefits guidance, policy information, and employee assistance. I'm here to help with all your HR needs directly."
+  description: "Your personal HR expert at your fingertips! I provide comprehensive support for benefits enrollment, leave policies, performance reviews, payroll questions, and workplace guidance. No more waiting for HR callbacks - get immediate, professional answers to all your employee questions and concerns."
 
 # Agent Type: Function-based agent with LangGraph workflow
 type: "function"

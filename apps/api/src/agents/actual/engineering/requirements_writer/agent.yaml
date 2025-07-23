@@ -4,7 +4,7 @@ metadata:
   type: "specialists"
   category: "development"
   version: "1.0.0"
-  description: "A specialized agent that transforms vague ideas and business needs into comprehensive, well-structured technical requirements documents using Python-based LangGraph workflows."
+  description: "Transform your ideas into professional requirements documents! I create comprehensive PRDs, technical specs, user stories, and API documentation using advanced AI workflows. Perfect for product managers, developers, and business analysts who need clear, actionable requirements."
 
 # Agent Type: Python function-based agent with LangGraph workflow
 type: "python-function"

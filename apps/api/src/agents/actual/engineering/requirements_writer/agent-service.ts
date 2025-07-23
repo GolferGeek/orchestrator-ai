@@ -23,7 +23,7 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
   }
 
   getAgentName(): string {
-    return 'requirements_writer';
+    return 'Requirements Writer';
   }
 
   getAgentType(): 'engineering' {
