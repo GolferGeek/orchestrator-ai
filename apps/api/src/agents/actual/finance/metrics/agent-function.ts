@@ -22,12 +22,18 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
 
   try {
     // Step 1: Get database schema to understand available metrics
-    progressCallback?.('Discovering available metrics', 0, 'in_progress', 'Analyzing database schema...');
+    progressCallback?.('Database connection', 0, 'in_progress', 'Connecting to metrics database...');
     
     const schemaResult = await mcpService.getSchema();
     if (!schemaResult.success) {
+      progressCallback?.('Database connection', 0, 'failed', `Failed to connect to database: ${schemaResult.error}`);
       throw new Error(`Failed to get database schema: ${schemaResult.error}`);
     }
+    
+    // Extract schema info for progress reporting
+    const schemaInfo = schemaResult.data || {};
+    const tablesFound = schemaInfo.database_summary?.total_tables || 'multiple';
+    progressCallback?.('Database schema', 0, 'completed', `Connected successfully - discovered ${tablesFound} tables including KPI infrastructure`);
 
     // Step 2: Analyze user request and identify relevant metrics
     progressCallback?.('Analyzing request', 1, 'in_progress', 'Understanding metrics requirements...');
@@ -63,6 +69,7 @@ Respond with a JSON object containing:
     let analysis;
     try {
       analysis = JSON.parse(analysisResponse.response || analysisResponse);
+      progressCallback?.('Request analysis', 1, 'completed', `Identified ${analysis.analysis_type} analysis: ${analysis.intent}`);
     } catch (e) {
       analysis = {
         intent: "Provide general metrics overview",
@@ -70,10 +77,11 @@ Respond with a JSON object containing:
         tables_to_query: ["kpi_data", "kpi_goals", "kpi_metrics"],
         analysis_type: "dashboard"
       };
+      progressCallback?.('Request analysis', 1, 'completed', 'Using fallback analysis: general metrics dashboard');
     }
 
     // Step 3: Query the database for actual metrics data
-    progressCallback?.('Retrieving metrics data', 2, 'in_progress', 'Querying database for current KPIs...');
+    progressCallback?.('Data retrieval', 2, 'in_progress', 'Retrieving KPI metrics definitions...');
 
     // Get KPI metrics definitions
     const metricsResult = await mcpService.readData({
@@ -81,8 +89,17 @@ Respond with a JSON object containing:
       format: 'json',
       limit: 50
     });
+    
+    if (metricsResult.success) {
+      const metricsCount = metricsResult.data?.length || 0;
+      progressCallback?.('Metrics definitions', 2, 'completed', `Retrieved ${metricsCount} metric definitions from database`);
+    } else {
+      progressCallback?.('Metrics definitions', 2, 'failed', `Failed to retrieve metrics: ${metricsResult.error}`);
+    }
 
-    // Get recent KPI data
+    // Get recent KPI data using intelligent query
+    progressCallback?.('KPI data query', 3, 'in_progress', 'Executing intelligent query for recent KPI data...');
+    
     const kpiDataResult = await mcpService.queryAndFormat({
       user_prompt: `Get the most recent KPI data values with their metric names and departments. 
       Join kpi_data with kpi_metrics and departments to show:
@@ -95,16 +112,32 @@ Respond with a JSON object containing:
       max_rows: 20,
       include_explanation: false
     });
+    
+    if (kpiDataResult.success) {
+      const dataCount = kpiDataResult.data?.length || kpiDataResult.formatted_data?.length || 0;
+      progressCallback?.('KPI data', 3, 'completed', `Retrieved ${dataCount} recent KPI data points via SQL query`);
+    } else {
+      progressCallback?.('KPI data', 3, 'failed', `Query execution failed: ${kpiDataResult.error}`);
+    }
 
     // Get KPI goals for comparison
+    progressCallback?.('Goals retrieval', 4, 'in_progress', 'Retrieving KPI goals and targets...');
+    
     const goalsResult = await mcpService.readData({
       table_name: 'kpi_goals',
       format: 'json',
       limit: 20
     });
+    
+    if (goalsResult.success) {
+      const goalsCount = goalsResult.data?.length || 0;
+      progressCallback?.('Goals data', 4, 'completed', `Retrieved ${goalsCount} KPI goals and targets`);
+    } else {
+      progressCallback?.('Goals data', 4, 'failed', `Failed to retrieve goals: ${goalsResult.error}`);
+    }
 
     // Step 4: Generate comprehensive metrics analysis
-    progressCallback?.('Generating insights', 3, 'in_progress', 'Creating metrics analysis and recommendations...');
+    progressCallback?.('Analysis generation', 5, 'in_progress', 'Generating insights from live database data...');
 
     const metricsData = {
       metrics_definitions: metricsResult.success ? metricsResult.data : [],
@@ -152,6 +185,10 @@ If the data shows no records, explain that this is a new system and provide fram
       { temperature: 0.3 }
     );
 
+    // Final completion message
+    const totalDataPoints = (metricsData.current_kpi_data?.length || 0) + (metricsData.goals?.length || 0) + (metricsData.metrics_definitions?.length || 0);
+    progressCallback?.('Analysis complete', 6, 'completed', `Generated comprehensive metrics analysis from ${totalDataPoints} live data points`);
+
     return {
       success: true,
       response: finalResponse.response || finalResponse,
@@ -169,6 +206,9 @@ If the data shows no records, explain that this is a new system and provide fram
 
   } catch (error) {
     console.error('Metrics Agent MCP Error:', error);
+    
+    // Report error in progress
+    progressCallback?.('Analysis failed', 6, 'failed', `Database operation failed: ${error instanceof Error ? error.message : String(error)}`);
     
     // No fallback - MCP connection is required
     return {

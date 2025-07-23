@@ -63,6 +63,7 @@ output_modes:
 
 configuration:
   default_output_format: "markdown"
+  execution_modes: ["immediate", "polling", "real-time"]
   visualization_types:
     - "charts"
     - "graphs"
@@ -79,3 +80,6 @@ configuration:
     performance_drop: 10
     growth_decline: 5
     error_rate: 2
+  database_integration: true
+  mcp_enabled: true
+  workflow_engine: "langgraph"

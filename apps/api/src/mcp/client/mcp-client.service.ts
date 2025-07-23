@@ -554,4 +554,27 @@ export class MCPClientService implements IMCPClient {
 
     this.logger.log('MCP Client Service shutdown complete');
   }
+
+  /**
+   * Check if MCP service is available and has connected servers
+   */
+  isAvailable(): boolean {
+    if (this.servers.size === 0) {
+      return false;
+    }
+
+    // Check if any server is connected
+    return Array.from(this.servers.values()).some(
+      connection => connection.state === 'connected'
+    );
+  }
+
+  /**
+   * Get list of available servers
+   */
+  getAvailableServers(): string[] {
+    return Array.from(this.servers.entries())
+      .filter(([_, connection]) => connection.state === 'connected')
+      .map(([name, _]) => name);
+  }
 }
