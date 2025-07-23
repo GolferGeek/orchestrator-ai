@@ -126,9 +126,9 @@ const handleSendMessage = async (content: string) => {
 }
 
 .conversation-tab.active {
-  background: var(--ion-color-primary);
-  color: var(--ion-color-primary-contrast);
-  border-bottom: 2px solid var(--ion-color-primary-shade);
+  background: #e3f2fd;
+  color: #1565c0;
+  border-bottom: 2px solid #1976d2;
 }
 
 .tab-title {
@@ -153,7 +153,8 @@ const handleSendMessage = async (content: string) => {
 }
 
 .conversation-tab.active .tab-close-button {
-  --color: var(--ion-color-primary-contrast);
+  --color: #1565c0;
+  opacity: 0.8;
 }
 
 .conversation-tab-content {
@@ -207,6 +208,16 @@ const handleSendMessage = async (content: string) => {
   
   .conversation-tab:hover {
     background: var(--ion-color-dark-tint);
+  }
+  
+  .conversation-tab.active {
+    background: #1e3a8a;
+    color: #93c5fd;
+    border-bottom-color: #3b82f6;
+  }
+  
+  .conversation-tab.active .tab-close-button {
+    --color: #93c5fd;
   }
 }
 </style>

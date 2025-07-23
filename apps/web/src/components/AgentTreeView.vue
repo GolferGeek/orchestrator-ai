@@ -823,8 +823,8 @@ watch(() => websocketService.connected.value, (connected) => {
 }
 
 .conversation-item.selected {
-  border-color: var(--ion-color-primary);
-  background: var(--ion-color-primary-tint);
+  border-color: #1976d2;
+  background: #e3f2fd;
 }
 
 .conversation-header {
@@ -957,4 +957,12 @@ watch(() => websocketService.connected.value, (connected) => {
   .agent-tree-view.compact-mode .start-conversation-btn {
     font-size: 0.8em;
   }
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .conversation-item.selected {
+    border-color: #3b82f6;
+    background: #1e3a8a;
+  }
+}
 </style>

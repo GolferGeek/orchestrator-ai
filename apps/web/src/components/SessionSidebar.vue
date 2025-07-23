@@ -668,8 +668,8 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 }
 
 .session-item.selected {
-  background-color: var(--ion-color-primary-tint);
-  border-left-color: var(--ion-color-primary);
+  background-color: #e3f2fd;
+  border-left-color: #1976d2;
 }
 
 .session-content {
@@ -795,7 +795,8 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .session-item.selected {
-    background-color: var(--ion-color-primary-shade);
+    background-color: #1e3a8a;
+    border-left-color: #3b82f6;
   }
   
   .session-name-input {
