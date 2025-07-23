@@ -30,7 +30,6 @@ export interface WorkflowState {
  */
 @Injectable()
 export class WorkflowStateService {
-
   /**
    * Create initial workflow state
    */
@@ -38,12 +37,12 @@ export class WorkflowStateService {
     workflowId: string,
     taskId: string,
     stepNames: string[],
-    initialMetadata: Record<string, any> = {}
+    initialMetadata: Record<string, any> = {},
   ): WorkflowState {
     const steps: WorkflowStep[] = stepNames.map((name, index) => ({
       name,
       index,
-      status: 'pending'
+      status: 'pending',
     }));
 
     return {
@@ -56,9 +55,9 @@ export class WorkflowStateService {
       steps,
       metadata: {
         ...initialMetadata,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       },
-      startTime: new Date().toISOString()
+      startTime: new Date().toISOString(),
     };
   }
 
@@ -70,10 +69,10 @@ export class WorkflowStateService {
     stepName: string,
     status: 'in_progress' | 'completed' | 'failed',
     error?: string,
-    stepMetadata?: Record<string, any>
+    stepMetadata?: Record<string, any>,
   ): WorkflowState {
-    const stepIndex = state.steps.findIndex(step => step.name === stepName);
-    
+    const stepIndex = state.steps.findIndex((step) => step.name === stepName);
+
     if (stepIndex === -1) {
       throw new Error(`Step '${stepName}' not found in workflow`);
     }
@@ -86,19 +85,23 @@ export class WorkflowStateService {
     if (!currentStep) {
       throw new Error(`Step at index ${stepIndex} not found`);
     }
-    
+
     updatedSteps[stepIndex] = {
       ...currentStep,
       status,
       ...(status === 'in_progress' && { startTime: currentTime }),
-      ...(status === 'completed' || status === 'failed') && { endTime: currentTime },
+      ...((status === 'completed' || status === 'failed') && {
+        endTime: currentTime,
+      }),
       ...(error && { error }),
-      ...(stepMetadata && { metadata: { ...currentStep.metadata || {}, ...stepMetadata } })
+      ...(stepMetadata && {
+        metadata: { ...(currentStep.metadata || {}), ...stepMetadata },
+      }),
     };
 
     // Determine overall workflow status
     let workflowStatus: WorkflowState['status'] = 'running';
-    
+
     if (status === 'failed') {
       workflowStatus = 'failed';
     } else if (status === 'completed' && stepIndex === state.totalSteps - 1) {
@@ -111,9 +114,9 @@ export class WorkflowStateService {
       stepIndex,
       status: workflowStatus,
       steps: updatedSteps,
-      ...(workflowStatus === 'completed' || workflowStatus === 'failed') && { 
-        endTime: currentTime 
-      }
+      ...((workflowStatus === 'completed' || workflowStatus === 'failed') && {
+        endTime: currentTime,
+      }),
     };
   }
 
@@ -127,8 +130,12 @@ export class WorkflowStateService {
     currentStep: string;
     estimatedTimeRemaining?: number;
   } {
-    const completedSteps = state.steps.filter(step => step.status === 'completed').length;
-    const progressPercent = Math.round((completedSteps / state.totalSteps) * 100);
+    const completedSteps = state.steps.filter(
+      (step) => step.status === 'completed',
+    ).length;
+    const progressPercent = Math.round(
+      (completedSteps / state.totalSteps) * 100,
+    );
 
     return {
       completedSteps,
@@ -143,16 +150,23 @@ export class WorkflowStateService {
    * Check if workflow can proceed to next step
    */
   canProceedToNextStep(state: WorkflowState, currentStepName: string): boolean {
-    const currentStep = state.steps.find(step => step.name === currentStepName);
+    const currentStep = state.steps.find(
+      (step) => step.name === currentStepName,
+    );
     return currentStep?.status === 'completed' || false;
   }
 
   /**
    * Get next step in workflow
    */
-  getNextStep(state: WorkflowState, currentStepName: string): WorkflowStep | null {
-    const currentIndex = state.steps.findIndex(step => step.name === currentStepName);
-    
+  getNextStep(
+    state: WorkflowState,
+    currentStepName: string,
+  ): WorkflowStep | null {
+    const currentIndex = state.steps.findIndex(
+      (step) => step.name === currentStepName,
+    );
+
     if (currentIndex === -1 || currentIndex >= state.steps.length - 1) {
       return null;
     }
@@ -178,11 +192,15 @@ WORKFLOW_STATE = {
 }
 
 # Step definitions
-WORKFLOW_STEPS = ${JSON.stringify(state.steps.map(step => ({
-  name: step.name,
-  index: step.index,
-  status: step.status
-})), null, 4)}
+WORKFLOW_STEPS = ${JSON.stringify(
+      state.steps.map((step) => ({
+        name: step.name,
+        index: step.index,
+        status: step.status,
+      })),
+      null,
+      4,
+    )}
 `;
   }
 
@@ -191,7 +209,7 @@ WORKFLOW_STEPS = ${JSON.stringify(state.steps.map(step => ({
    */
   generatePythonTypedDictCode(state: WorkflowState): string {
     const stateFields = Object.keys(state.metadata || {});
-    
+
     return `
 from typing import Dict, List, Any, Optional, TypedDict
 
@@ -205,7 +223,7 @@ class WorkflowState(TypedDict):
     metadata: Dict[str, Any]
     start_time: str
     end_time: Optional[str]
-    ${stateFields.map(field => `${field}: Optional[Any]`).join('\n    ')}
+    ${stateFields.map((field) => `${field}: Optional[Any]`).join('\n    ')}
 `;
   }
 }

@@ -13,7 +13,14 @@ import {
  */
 
 interface HRQueryClassification {
-  type: 'benefits' | 'leave' | 'policy' | 'performance' | 'payroll' | 'workplace' | 'general';
+  type:
+    | 'benefits'
+    | 'leave'
+    | 'policy'
+    | 'performance'
+    | 'payroll'
+    | 'workplace'
+    | 'general';
   confidence: number;
   topic: string;
   complexity: 'simple' | 'moderate' | 'complex';
@@ -33,9 +40,19 @@ interface HRWorkflowState {
 async function classifyQuery(
   state: HRWorkflowState,
   llmService: any,
-  progressCallback?: (stepName: string, stepIndex: number, status: 'in_progress' | 'completed' | 'failed', message?: string) => void,
+  progressCallback?: (
+    stepName: string,
+    stepIndex: number,
+    status: 'in_progress' | 'completed' | 'failed',
+    message?: string,
+  ) => void,
 ): Promise<HRWorkflowState> {
-  progressCallback?.('Classifying HR query', 0, 'in_progress', 'Analyzing query type and complexity');
+  progressCallback?.(
+    'Classifying HR query',
+    0,
+    'in_progress',
+    'Analyzing query type and complexity',
+  );
   const classificationPrompt = `You are an HR specialist classifier. Analyze this HR query and classify it.
 
 Classification Types:
@@ -69,8 +86,13 @@ Respond with a JSON object:
       classificationResponse,
     );
 
-    progressCallback?.('Classifying HR query', 0, 'completed', `Classified as ${classification.type} query (${classification.confidence * 100}% confidence)`);
-    
+    progressCallback?.(
+      'Classifying HR query',
+      0,
+      'completed',
+      `Classified as ${classification.type} query (${classification.confidence * 100}% confidence)`,
+    );
+
     return {
       ...state,
       classification,
@@ -107,9 +129,19 @@ Respond with a JSON object:
 async function generateResponse(
   state: HRWorkflowState,
   llmService: any,
-  progressCallback?: (stepName: string, stepIndex: number, status: 'in_progress' | 'completed' | 'failed', message?: string) => void,
+  progressCallback?: (
+    stepName: string,
+    stepIndex: number,
+    status: 'in_progress' | 'completed' | 'failed',
+    message?: string,
+  ) => void,
 ): Promise<HRWorkflowState> {
-  progressCallback?.('Generating HR response', 1, 'in_progress', `Creating ${state.classification?.type} response`);
+  progressCallback?.(
+    'Generating HR response',
+    1,
+    'in_progress',
+    `Creating ${state.classification?.type} response`,
+  );
   if (!state.classification) {
     throw new Error('Classification required before response generation');
   }
@@ -234,8 +266,13 @@ Be comprehensive and anticipate follow-up questions they might have.`;
     );
 
     const complexityNote = complexity === 'complex' ? ' (complex topic)' : '';
-    progressCallback?.('Generating HR response', 1, 'completed', `HR response generated for ${type} query${complexityNote}`);
-    
+    progressCallback?.(
+      'Generating HR response',
+      1,
+      'completed',
+      `HR response generated for ${type} query${complexityNote}`,
+    );
+
     return {
       ...state,
       response,
@@ -267,7 +304,12 @@ async function executeHRWorkflow(
   userMessage: string,
   llmService: any,
   sessionId?: string,
-  progressCallback?: (stepName: string, stepIndex: number, status: 'in_progress' | 'completed' | 'failed', message?: string) => void,
+  progressCallback?: (
+    stepName: string,
+    stepIndex: number,
+    status: 'in_progress' | 'completed' | 'failed',
+    message?: string,
+  ) => void,
 ): Promise<{ response: string; metadata: Record<string, any> }> {
   // Initialize workflow state
   let state: HRWorkflowState = {

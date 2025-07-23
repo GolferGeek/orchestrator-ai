@@ -70,7 +70,9 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       `🐍 Python script path set for ${this.getAgentName()}: ${scriptPath} (exists: ${exists})`,
     );
     if (!exists) {
-      this.pythonLogger.error(`❌ Python script file does not exist: ${scriptPath}`);
+      this.pythonLogger.error(
+        `❌ Python script file does not exist: ${scriptPath}`,
+      );
     }
   }
 
@@ -95,7 +97,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
    */
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
-    
+
     // Store current user ID for task completion handling
     if (params.currentUser?.id) {
       this.currentUserId = params.currentUser.id;
@@ -103,9 +105,13 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
     try {
       this.pythonLogger.debug(`🔍 executeTask called for ${agentName}:`);
-      this.pythonLogger.debug(`   - pythonScriptPath: ${this.pythonScriptPath}`);
-      this.pythonLogger.debug(`   - file exists: ${this.pythonScriptPath ? fs.existsSync(this.pythonScriptPath) : 'N/A'}`);
-      
+      this.pythonLogger.debug(
+        `   - pythonScriptPath: ${this.pythonScriptPath}`,
+      );
+      this.pythonLogger.debug(
+        `   - file exists: ${this.pythonScriptPath ? fs.existsSync(this.pythonScriptPath) : 'N/A'}`,
+      );
+
       // If no Python script path, fall back to context processing
       if (!this.pythonScriptPath || !fs.existsSync(this.pythonScriptPath)) {
         this.pythonLogger.debug(
@@ -113,9 +119,10 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
         );
         return this.processWithContext(method, params);
       }
-      
-      this.pythonLogger.debug(`✅ Python script found, proceeding with execution`);
-      
+
+      this.pythonLogger.debug(
+        `✅ Python script found, proceeding with execution`,
+      );
 
       // Prepare standardized parameters for the Python script
       // Note: Python scripts use API calls, so we pass user preferences in metadata
@@ -219,7 +226,9 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
         // Parse progress events from stderr
         const lines = stderrData.split('\n');
-        this.pythonLogger.debug(`Processing ${lines.length} stderr lines from Python script`);
+        this.pythonLogger.debug(
+          `Processing ${lines.length} stderr lines from Python script`,
+        );
         for (const line of lines) {
           if (line.trim()) {
             this.pythonLogger.debug(`Python stderr line: ${line}`);
@@ -241,24 +250,29 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                   stepIndex: progressEvent.stepIndex,
                   totalSteps: progressEvent.totalSteps,
                   status: progressEvent.status,
-                  message: progressEvent.message
+                  message: progressEvent.message,
                 });
-                
+
                 this.taskStatusService.addTaskMessage(
                   progressEvent.taskId,
                   messageContent,
                   'progress',
                   {
-                    progress: progressEvent.stepIndex && progressEvent.totalSteps 
-                      ? Math.round(((progressEvent.stepIndex + 1) / progressEvent.totalSteps) * 100) 
-                      : undefined,
+                    progress:
+                      progressEvent.stepIndex && progressEvent.totalSteps
+                        ? Math.round(
+                            ((progressEvent.stepIndex + 1) /
+                              progressEvent.totalSteps) *
+                              100,
+                          )
+                        : undefined,
                     stepName: progressEvent.stepName,
                     stepIndex: progressEvent.stepIndex,
                     totalSteps: progressEvent.totalSteps,
-                    stepStatus: progressEvent.status
-                  }
+                    stepStatus: progressEvent.status,
+                  },
                 );
-                
+
                 this.pythonLogger.debug(
                   `Stored progress message in live cache for task ${progressEvent.taskId}`,
                 );
@@ -275,7 +289,9 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                   progressEvent.message,
                 );
               } else {
-                this.pythonLogger.error('TaskProgressGateway is not available for broadcasting progress events');
+                this.pythonLogger.error(
+                  'TaskProgressGateway is not available for broadcasting progress events',
+                );
               }
 
               this.pythonLogger.debug(
@@ -302,7 +318,9 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                   completionEvent.message,
                 );
               } else {
-                this.pythonLogger.error('TaskProgressGateway is not available for broadcasting completion events');
+                this.pythonLogger.error(
+                  'TaskProgressGateway is not available for broadcasting completion events',
+                );
               }
 
               // Note: Task completion with result is now handled in process completion
@@ -326,10 +344,14 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
         this.pythonLogger.debug(`🔍 Python process closed with code: ${code}`);
         this.pythonLogger.debug(`🔍 Python stdout length: ${stdout.length}`);
         this.pythonLogger.debug(`🔍 Python stderr length: ${stderr.length}`);
-        this.pythonLogger.debug(`🔍 Python stdout content: ${stdout.substring(0, 500)}...`);
-        
+        this.pythonLogger.debug(
+          `🔍 Python stdout content: ${stdout.substring(0, 500)}...`,
+        );
+
         if (code !== 0) {
-          this.pythonLogger.error(`❌ Python script failed with code ${code}. Error: ${stderr}`);
+          this.pythonLogger.error(
+            `❌ Python script failed with code ${code}. Error: ${stderr}`,
+          );
           reject(
             new Error(
               `Python script exited with code ${code}. Error: ${stderr}`,
@@ -340,19 +362,34 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
         try {
           // Try to parse JSON response from Python script
-          this.pythonLogger.debug(`🔍 Attempting to parse Python script output as JSON...`);
+          this.pythonLogger.debug(
+            `🔍 Attempting to parse Python script output as JSON...`,
+          );
           const result = JSON.parse(stdout.trim());
-          this.pythonLogger.debug(`🔍 Successfully parsed JSON result:`, result);
-          
+          this.pythonLogger.debug(
+            `🔍 Successfully parsed JSON result:`,
+            result,
+          );
+
           // Save the result to the task in database for async tasks
-          this.pythonLogger.debug(`🔍 Checking if we can save result to database:`);
-          this.pythonLogger.debug(`  - tasksService available: ${!!this.tasksService}`);
-          this.pythonLogger.debug(`  - currentUserId available: ${!!this.currentUserId}`);
-          this.pythonLogger.debug(`  - params.metadata.taskId: ${params.metadata?.taskId}`);
-          this.pythonLogger.debug(`  - result to save: ${JSON.stringify(result).substring(0, 300)}...`);
-          
+          this.pythonLogger.debug(
+            `🔍 Checking if we can save result to database:`,
+          );
+          this.pythonLogger.debug(
+            `  - tasksService available: ${!!this.tasksService}`,
+          );
+          this.pythonLogger.debug(
+            `  - currentUserId available: ${!!this.currentUserId}`,
+          );
+          this.pythonLogger.debug(
+            `  - params.metadata.taskId: ${params.metadata?.taskId}`,
+          );
+          this.pythonLogger.debug(
+            `  - result to save: ${JSON.stringify(result).substring(0, 300)}...`,
+          );
+
           this.pythonLogger.debug(`🔍 About to attempt database save...`);
-          
+
           const taskId = params.metadata?.taskId;
           if (this.tasksService && this.currentUserId && taskId) {
             try {
@@ -362,29 +399,32 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                 response: JSON.stringify(result), // Save the full result
                 responseMetadata: result.metadata || {},
               };
-              
+
               this.pythonLogger.debug(`🔍 Calling updateTask with:`, {
                 taskId: taskId,
                 userId: this.currentUserId,
-                updateData: updateData
+                updateData: updateData,
               });
-              
-              const updateResult = await this.tasksService.updateTask(taskId, this.currentUserId, updateData);
-              
+
+              const updateResult = await this.tasksService.updateTask(
+                taskId,
+                this.currentUserId,
+                updateData,
+              );
+
               this.pythonLogger.debug(
-                `✅ Task ${taskId} result saved to database successfully. Update result:`, updateResult
+                `✅ Task ${taskId} result saved to database successfully. Update result:`,
+                updateResult,
               );
             } catch (error) {
               this.pythonLogger.error(
                 `❌ Failed to save task ${taskId} result:`,
-                error
+                error,
               );
-              this.pythonLogger.error(
-                `❌ Error details:`, {
-                  message: error instanceof Error ? error.message : String(error),
-                  stack: error instanceof Error ? error.stack : undefined
-                }
-              );
+              this.pythonLogger.error(`❌ Error details:`, {
+                message: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+              });
             }
           } else {
             this.pythonLogger.warn(
@@ -395,16 +435,16 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                 taskId: taskId,
                 hasTasksService: !!this.tasksService,
                 hasCurrentUserId: !!this.currentUserId,
-                hasTaskId: !!taskId
-              }
+                hasTaskId: !!taskId,
+              },
             );
           }
-          
+
           resolve(result);
         } catch {
           // If not JSON, return raw output
           const rawResult = { response: stdout.trim() };
-          
+
           // Save raw result to database for async tasks
           const taskId = params.metadata?.taskId;
           if (this.tasksService && this.currentUserId && taskId) {
@@ -414,7 +454,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                 progress: 100,
                 response: stdout.trim(),
               });
-              
+
               this.pythonLogger.debug(
                 `✅ Task ${taskId} raw result saved to database`,
               );
@@ -425,7 +465,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
               );
             }
           }
-          
+
           resolve(rawResult);
         }
       });

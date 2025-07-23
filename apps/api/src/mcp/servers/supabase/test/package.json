@@ -1,0 +1,13 @@
+{
+  "name": "mcp-supabase-tests",
+  "version": "1.0.0",
+  "description": "Test suite for MCP Supabase server implementation",
+  "scripts": {
+    "test": "ts-node run-tests.ts",
+    "test:client": "ts-node test-client.ts",
+    "start:controller": "ts-node supabase-mcp.controller.ts"
+  },
+  "keywords": ["mcp", "supabase", "testing"],
+  "author": "MCP Development Team",
+  "private": true
+}

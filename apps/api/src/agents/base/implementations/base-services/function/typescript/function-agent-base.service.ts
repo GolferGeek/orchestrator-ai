@@ -70,7 +70,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    */
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
-    
+
     // Store current user ID and task ID for progress tracking and completion handling
     if (params.currentUser?.id) {
       this.currentUserId = params.currentUser.id;
@@ -139,7 +139,12 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       };
 
       // Create progress callback that agent functions can use
-      const progressCallback = (stepName: string, stepIndex: number, status: string, message?: string) => {
+      const progressCallback = (
+        stepName: string,
+        stepIndex: number,
+        status: string,
+        message?: string,
+      ) => {
         this.emitProgress(stepName, stepIndex, status as any, message);
       };
 
@@ -172,7 +177,11 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       // Execute the pre-loaded agent function with progress tracking
       this.emitProgress('Starting task execution', 0, 'in_progress');
       const result = await this.agentFunction(functionParams);
-      this.emitProgress('Task execution completed', this.totalSteps - 1, 'completed');
+      this.emitProgress(
+        'Task execution completed',
+        this.totalSteps - 1,
+        'completed',
+      );
 
       this.functionLogger.debug(
         `Function executed successfully for ${agentName}`,
@@ -192,7 +201,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
 
       // Save the result to the task in database for async tasks
       await this.saveTaskResult(result);
-      
+
       // Broadcast task completion
       this.broadcastTaskCompletion('completed', 'Task completed successfully');
 
@@ -229,9 +238,12 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         `Function execution error for ${agentName}:`,
         error,
       );
-      
+
       // Broadcast error status
-      this.broadcastTaskCompletion('failed', error instanceof Error ? error.message : String(error));
+      this.broadcastTaskCompletion(
+        'failed',
+        error instanceof Error ? error.message : String(error),
+      );
 
       // Return structured error response
       return {
@@ -259,7 +271,9 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     message?: string,
   ): void {
     if (!this.currentTaskId) {
-      this.functionLogger.debug('No current task ID, skipping progress emission');
+      this.functionLogger.debug(
+        'No current task ID, skipping progress emission',
+      );
       return;
     }
 
@@ -314,9 +328,14 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   /**
    * Broadcast task completion event (matching Python pattern)
    */
-  protected broadcastTaskCompletion(status: 'completed' | 'failed', message: string): void {
+  protected broadcastTaskCompletion(
+    status: 'completed' | 'failed',
+    message: string,
+  ): void {
     if (!this.currentTaskId) {
-      this.functionLogger.debug('No current task ID, skipping completion broadcast');
+      this.functionLogger.debug(
+        'No current task ID, skipping completion broadcast',
+      );
       return;
     }
 
@@ -341,14 +360,11 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    */
   protected async saveTaskResult(result: any): Promise<void> {
     if (!this.tasksService || !this.currentUserId || !this.currentTaskId) {
-      this.functionLogger.debug(
-        `Cannot save result - missing requirements:`,
-        {
-          tasksService: !!this.tasksService,
-          currentUserId: this.currentUserId,
-          taskId: this.currentTaskId,
-        },
-      );
+      this.functionLogger.debug(`Cannot save result - missing requirements:`, {
+        tasksService: !!this.tasksService,
+        currentUserId: this.currentUserId,
+        taskId: this.currentTaskId,
+      });
       return;
     }
 
@@ -387,7 +403,9 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    */
   protected setTotalSteps(totalSteps: number): void {
     this.totalSteps = totalSteps;
-    this.functionLogger.debug(`Total steps set to ${totalSteps} for ${this.getAgentName()}`);
+    this.functionLogger.debug(
+      `Total steps set to ${totalSteps} for ${this.getAgentName()}`,
+    );
   }
 
   /**
@@ -405,7 +423,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
       if (!step) continue;
-      
+
       this.emitProgress(step.name, i, 'in_progress');
 
       try {

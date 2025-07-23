@@ -40,7 +40,7 @@ export class MarketingSwarmService extends FunctionAgentBaseService {
       authService,
       configurationService,
     );
-    
+
     // Set total steps for Marketing Swarm workflow
     this.setTotalSteps(5);
   }

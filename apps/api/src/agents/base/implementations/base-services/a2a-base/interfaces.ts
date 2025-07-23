@@ -302,7 +302,12 @@ export interface AgentFunctionParams {
   /** LLM service instance for agent functions to use (pre-configured with user preferences) */
   llmService?: any;
   /** Progress callback for multi-step workflows */
-  progressCallback?: (stepName: string, stepIndex: number, status: 'in_progress' | 'completed' | 'failed', message?: string) => void;
+  progressCallback?: (
+    stepName: string,
+    stepIndex: number,
+    status: 'in_progress' | 'completed' | 'failed',
+    message?: string,
+  ) => void;
   /** Additional context or metadata */
   metadata?: Record<string, any>;
 }

@@ -55,10 +55,12 @@ export abstract class A2AAgentBaseService
   protected authService: AuthService;
   protected configurationService: ConfigurationService;
   protected taskStatusService?: TaskStatusService;
-  
+
   constructor(
     protected readonly httpService: HttpService,
-    @Optional() @Inject(TaskStatusService) taskStatusService?: TaskStatusService,
+    @Optional()
+    @Inject(TaskStatusService)
+    taskStatusService?: TaskStatusService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -305,7 +307,9 @@ export abstract class A2AAgentBaseService
           card.configuration = yamlConfig.configuration;
         }
       } catch (error) {
-        this.logger.debug(`Could not load YAML configuration for ${this.getAgentName()}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        this.logger.debug(
+          `Could not load YAML configuration for ${this.getAgentName()}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     }
 
@@ -322,7 +326,8 @@ export abstract class A2AAgentBaseService
 
     // Add timeout configuration
     const timeout = this.getTaskTimeout();
-    if (timeout && timeout !== 300) { // Only include if different from default
+    if (timeout && timeout !== 300) {
+      // Only include if different from default
       card.timeout = timeout;
     }
 
@@ -492,7 +497,9 @@ export abstract class A2AAgentBaseService
     taskType: 'ephemeral' | 'long_running' | 'swarm' = 'ephemeral',
   ): Promise<void> {
     if (!this.taskStatusService) {
-      this.logger.warn('TaskStatusService not available - task status will not be tracked');
+      this.logger.warn(
+        'TaskStatusService not available - task status will not be tracked',
+      );
       return;
     }
 
@@ -522,7 +529,9 @@ export abstract class A2AAgentBaseService
     additionalData?: Record<string, any>,
   ): Promise<void> {
     if (!this.taskStatusService) {
-      this.logger.warn('TaskStatusService not available - progress update ignored');
+      this.logger.warn(
+        'TaskStatusService not available - progress update ignored',
+      );
       return;
     }
 
@@ -545,14 +554,20 @@ export abstract class A2AAgentBaseService
     additionalData?: Record<string, any>,
   ): Promise<void> {
     if (!this.taskStatusService) {
-      this.logger.warn('TaskStatusService not available - task completion not tracked');
+      this.logger.warn(
+        'TaskStatusService not available - task completion not tracked',
+      );
       return;
     }
 
     await this.taskStatusService.completeTask(taskId, userId, result);
-    
+
     if (additionalData) {
-      await this.taskStatusService.updateTaskStatus(taskId, userId, additionalData);
+      await this.taskStatusService.updateTaskStatus(
+        taskId,
+        userId,
+        additionalData,
+      );
     }
 
     this.logger.debug(`Task ${taskId} marked as completed`);
@@ -569,14 +584,20 @@ export abstract class A2AAgentBaseService
     additionalData?: Record<string, any>,
   ): Promise<void> {
     if (!this.taskStatusService) {
-      this.logger.warn('TaskStatusService not available - task failure not tracked');
+      this.logger.warn(
+        'TaskStatusService not available - task failure not tracked',
+      );
       return;
     }
 
     await this.taskStatusService.failTask(taskId, userId, error);
-    
+
     if (additionalData) {
-      await this.taskStatusService.updateTaskStatus(taskId, userId, additionalData);
+      await this.taskStatusService.updateTaskStatus(
+        taskId,
+        userId,
+        additionalData,
+      );
     }
 
     this.logger.debug(`Task ${taskId} marked as failed: ${error}`);
@@ -592,7 +613,9 @@ export abstract class A2AAgentBaseService
     statusUpdate: Record<string, any>,
   ): Promise<void> {
     if (!this.taskStatusService) {
-      this.logger.warn('TaskStatusService not available - status update ignored');
+      this.logger.warn(
+        'TaskStatusService not available - status update ignored',
+      );
       return;
     }
 

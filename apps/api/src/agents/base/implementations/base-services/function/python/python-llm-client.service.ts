@@ -35,13 +35,12 @@ export interface LLMResponse {
  */
 @Injectable()
 export class PythonLLMClientService {
-
   /**
    * Generate Python code for making LLM service calls
    */
   generateLLMServiceCallCode(
     llmServiceUrl: string = 'http://localhost:3000/api/llm',
-    includeErrorHandling: boolean = true
+    includeErrorHandling: boolean = true,
   ): string {
     return `
 import requests
@@ -75,13 +74,17 @@ class LLMServiceClient:
             return result.get("response", "")
             
         except Exception as e:
-            ${includeErrorHandling ? `
+            ${
+              includeErrorHandling
+                ? `
             print(f"LLM service call failed: {e}", file=sys.stderr)
             # Fallback for development/testing
             return f"Generated response for: {user_prompt[:100]}..."
-            ` : `
+            `
+                : `
             raise e
-            `}
+            `
+            }
     
     def create_options(
         self,
@@ -126,10 +129,10 @@ llm_client = LLMServiceClient()
     systemPrompt: string,
     userPromptVariable: string,
     optionsVariable?: string,
-    resultVariable: string = 'llm_response'
+    resultVariable: string = 'llm_response',
   ): string {
     const optionsParam = optionsVariable ? `, ${optionsVariable}` : '';
-    
+
     return `
 # Make LLM service call
 ${resultVariable} = await llm_client.call_llm_service(
@@ -146,10 +149,10 @@ ${resultVariable} = await llm_client.call_llm_service(
     agentName: string,
     agentEndpoint: string,
     userMessageVariable: string,
-    optionsVariable?: string
+    optionsVariable?: string,
   ): string {
     const optionsParam = optionsVariable ? `, ${optionsVariable}` : '';
-    
+
     return `
 async def call_${agentName.toLowerCase()}_agent(
     user_message: str,
@@ -224,7 +227,7 @@ def extract_user_preferences(metadata: Dict[str, Any]) -> Dict[str, Any]:
    * Generate complete Python LLM integration code
    */
   generateCompleteLLMIntegration(
-    llmServiceUrl: string = 'http://localhost:3000/api/llm'
+    llmServiceUrl: string = 'http://localhost:3000/api/llm',
   ): string {
     return `
 ${this.generateLLMServiceCallCode(llmServiceUrl)}
@@ -244,19 +247,22 @@ ${this.generatePreferenceMergingCode()}
   createLLMRequest(
     systemPrompt: string,
     userPrompt: string,
-    options?: LLMCallOptions
+    options?: LLMCallOptions,
   ): LLMRequest {
     return {
       systemPrompt,
       userPrompt,
-      options
+      options,
     };
   }
 
   /**
    * Validate LLM request before sending to Python
    */
-  validateLLMRequest(request: LLMRequest): { valid: boolean; errors: string[] } {
+  validateLLMRequest(request: LLMRequest): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!request.systemPrompt || request.systemPrompt.trim().length === 0) {
@@ -281,7 +287,7 @@ ${this.generatePreferenceMergingCode()}
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 }

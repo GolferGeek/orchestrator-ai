@@ -85,10 +85,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         // Don't throw - allow the agent to initialize but mark as unauthenticated
       }
     } catch (error) {
-      this.logger.error(
-        '❌ Failed to initialize external agent:',
-        error,
-      );
+      this.logger.error('❌ Failed to initialize external agent:', error);
       throw error;
     }
   }

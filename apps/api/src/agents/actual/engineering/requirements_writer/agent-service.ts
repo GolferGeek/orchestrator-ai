@@ -18,7 +18,18 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
   ) {
-    super(httpService, llmService, taskProgressGateway, tasksService, taskStatusService, undefined, undefined, undefined, undefined, undefined);
+    super(
+      httpService,
+      llmService,
+      taskProgressGateway,
+      tasksService,
+      taskStatusService,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
     // Python script path will be set by AgentDiscoveryService during discovery
   }
 
@@ -42,19 +53,19 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
    */
   protected getStatusSchema(): Record<string, any> {
     return {
-      currentStep: "string",
-      stepIndex: "number", 
-      totalSteps: "number",
+      currentStep: 'string',
+      stepIndex: 'number',
+      totalSteps: 'number',
       workflowSteps: {
-        type: "array",
+        type: 'array',
         items: {
-          stepName: "string",
-          stepIndex: "number", 
-          status: "string",
-          message: "string",
-          timestamp: "string"
-        }
-      }
+          stepName: 'string',
+          stepIndex: 'number',
+          status: 'string',
+          message: 'string',
+          timestamp: 'string',
+        },
+      },
     };
   }
 }

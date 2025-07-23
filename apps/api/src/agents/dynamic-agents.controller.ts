@@ -72,13 +72,13 @@ export class DynamicAgentsController {
     // Get agent configuration for timeout and other settings
     const agentCard = await agentInstance.getAgentCard();
     const agentTimeout = agentCard.timeout || 300; // Default to 5 minutes if not specified
-    
+
     // Create task with agent-specific timeout
     const taskRequestWithTimeout = {
       ...taskRequest,
       timeoutSeconds: agentTimeout,
     };
-    
+
     const task = await this.tasksService.createTask(
       currentUser.id,
       agentName,
@@ -94,7 +94,7 @@ export class DynamicAgentsController {
         'ephemeral', // Agent can override via getTaskType() in agent card
       );
 
-      // Prepare request for agent with task context  
+      // Prepare request for agent with task context
       const authenticatedTaskRequest = {
         ...taskRequest.params,
         method: taskRequest.method,
@@ -113,16 +113,17 @@ export class DynamicAgentsController {
       // Determine processing mode based on execution mode and pre-generated task ID
       const executionMode = taskRequest.executionMode;
       const hasPreGeneratedTaskId = taskRequest.taskId;
-      const shouldProcessAsync = executionMode === 'websocket' || executionMode === 'polling';
-      
+      const shouldProcessAsync =
+        executionMode === 'websocket' || executionMode === 'polling';
+
       if (shouldProcessAsync) {
         this.logger.debug(
           `${executionMode} mode detected for task ${task.id}${hasPreGeneratedTaskId ? ' (pre-generated for early WebSocket subscription)' : ''}. Processing asynchronously for real-time updates.`,
         );
-        
+
         // Process asynchronously (don't await) - agent will handle completion via TaskStatusService
         this.processTaskAsync(task, authenticatedTaskRequest, agentInstance);
-        
+
         // Return immediately so frontend can listen for WebSocket updates or poll
         return {
           taskId: task.id,
@@ -136,7 +137,7 @@ export class DynamicAgentsController {
       const result = await agentInstance.processTask(authenticatedTaskRequest);
 
       // Agent should have completed the task via TaskStatusService
-      // Just return the result 
+      // Just return the result
       return {
         taskId: task.id,
         conversationId: task.agentConversationId,
@@ -234,7 +235,6 @@ export class DynamicAgentsController {
     return agentInstances[agentIndex] || null;
   }
 
-
   /**
    * Process task asynchronously - simplified version using TaskStatusService
    */
@@ -265,7 +265,10 @@ export class DynamicAgentsController {
           error instanceof Error ? error.message : 'Unknown error',
         );
       } catch (statusError) {
-        this.logger.error(`Failed to update task status for error:`, statusError);
+        this.logger.error(
+          `Failed to update task status for error:`,
+          statusError,
+        );
       }
 
       this.logger.error(`Async task ${task.id} failed:`, error);

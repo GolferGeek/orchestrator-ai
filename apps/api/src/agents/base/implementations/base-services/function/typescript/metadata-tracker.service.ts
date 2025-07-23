@@ -49,7 +49,6 @@ export interface AgentMetadata {
  */
 @Injectable()
 export class MetadataTrackerService {
-  
   /**
    * Create a new metadata tracker for an agent execution
    */
@@ -74,7 +73,8 @@ export class MetadataTrackerService {
         totalTokens.input += call.inputTokens;
         totalTokens.output += call.outputTokens;
       },
-      getAggregated: () => this.aggregateMetadata(calls, totalCost, totalTokens)
+      getAggregated: () =>
+        this.aggregateMetadata(calls, totalCost, totalTokens),
     };
   }
 
@@ -84,7 +84,7 @@ export class MetadataTrackerService {
   aggregateMetadata(
     calls: LLMCall[],
     totalCost: number,
-    totalTokens: { input: number; output: number }
+    totalTokens: { input: number; output: number },
   ): LLMMetadata {
     return {
       primaryLLM: calls.length > 0 ? calls[0] : undefined,
@@ -92,7 +92,7 @@ export class MetadataTrackerService {
       totalCost,
       totalTokens,
       allCalls: calls,
-      aggregatedAt: new Date().toISOString()
+      aggregatedAt: new Date().toISOString(),
     };
   }
 
@@ -101,7 +101,7 @@ export class MetadataTrackerService {
    */
   trackLLMResponse(
     response: any,
-    tracker: ReturnType<typeof this.createTracker>
+    tracker: ReturnType<typeof this.createTracker>,
   ): any {
     // Extract LLM metadata if this was an enhanced response
     if (typeof response === 'object' && response.llmMetadata) {
@@ -114,7 +114,10 @@ export class MetadataTrackerService {
         timestamp: new Date().toISOString(),
         duration: response.llmMetadata.duration,
         prompt: response.llmMetadata.prompt,
-        response: typeof response.response === 'string' ? response.response.substring(0, 500) : undefined
+        response:
+          typeof response.response === 'string'
+            ? response.response.substring(0, 500)
+            : undefined,
       };
 
       tracker.addCall(call);
@@ -128,21 +131,21 @@ export class MetadataTrackerService {
    */
   createLLMServiceWrapper(
     llmService: any,
-    tracker: ReturnType<typeof this.createTracker>
+    tracker: ReturnType<typeof this.createTracker>,
   ) {
     return {
       ...llmService,
       generateResponse: async (
         systemPrompt: string,
         userMessage: string,
-        options?: any
+        options?: any,
       ) => {
         const startTime = Date.now();
-        
+
         const result = await llmService.generateResponse(
           systemPrompt,
           userMessage,
-          options
+          options,
         );
 
         const endTime = Date.now();
@@ -154,7 +157,7 @@ export class MetadataTrackerService {
         }
 
         return this.trackLLMResponse(result, tracker);
-      }
+      },
     };
   }
 
@@ -166,14 +169,14 @@ export class MetadataTrackerService {
     agentType: string,
     executionType: string,
     llmMetadata?: LLMMetadata,
-    additionalMetadata?: Record<string, any>
+    additionalMetadata?: Record<string, any>,
   ): AgentMetadata {
     const baseMetadata: AgentMetadata = {
       agentName,
       agentType,
       executionType,
       processedAt: new Date().toISOString(),
-      ...additionalMetadata
+      ...additionalMetadata,
     };
 
     // Add LLM metadata if available
@@ -182,12 +185,12 @@ export class MetadataTrackerService {
       baseMetadata.usage = {
         inputTokens: llmMetadata.totalTokens.input,
         outputTokens: llmMetadata.totalTokens.output,
-        totalCost: llmMetadata.totalCost
+        totalCost: llmMetadata.totalCost,
       };
       baseMetadata.llmCallsSummary = {
         totalCalls: llmMetadata.totalCalls,
         totalCost: llmMetadata.totalCost,
-        allModelsUsed: llmMetadata.allCalls.map(call => call.modelName)
+        allModelsUsed: llmMetadata.allCalls.map((call) => call.modelName),
       };
     }
 
@@ -205,14 +208,19 @@ export class MetadataTrackerService {
     tokenEfficiency: number; // cost per 1000 tokens
   } {
     const totalCost = calls.reduce((sum, call) => sum + call.cost, 0);
-    const totalTokens = calls.reduce((sum, call) => sum + call.inputTokens + call.outputTokens, 0);
-    
+    const totalTokens = calls.reduce(
+      (sum, call) => sum + call.inputTokens + call.outputTokens,
+      0,
+    );
+
     const costByModel: Record<string, number> = {};
     const costByProvider: Record<string, number> = {};
 
-    calls.forEach(call => {
-      costByModel[call.modelName] = (costByModel[call.modelName] || 0) + call.cost;
-      costByProvider[call.providerId] = (costByProvider[call.providerId] || 0) + call.cost;
+    calls.forEach((call) => {
+      costByModel[call.modelName] =
+        (costByModel[call.modelName] || 0) + call.cost;
+      costByProvider[call.providerId] =
+        (costByProvider[call.providerId] || 0) + call.cost;
     });
 
     return {
@@ -220,7 +228,7 @@ export class MetadataTrackerService {
       averageCostPerCall: calls.length > 0 ? totalCost / calls.length : 0,
       costByModel,
       costByProvider,
-      tokenEfficiency: totalTokens > 0 ? (totalCost / totalTokens) * 1000 : 0
+      tokenEfficiency: totalTokens > 0 ? (totalCost / totalTokens) * 1000 : 0,
     };
   }
 
@@ -230,7 +238,7 @@ export class MetadataTrackerService {
   generateUsageReport(
     agentName: string,
     timeframe: { start: Date; end: Date },
-    calls: LLMCall[]
+    calls: LLMCall[],
   ): {
     agentName: string;
     timeframe: { start: string; end: string };
@@ -242,7 +250,10 @@ export class MetadataTrackerService {
     };
     breakdown: {
       byModel: Record<string, { calls: number; cost: number; tokens: number }>;
-      byProvider: Record<string, { calls: number; cost: number; tokens: number }>;
+      byProvider: Record<
+        string,
+        { calls: number; cost: number; tokens: number }
+      >;
     };
     trends: {
       callsPerHour: number;
@@ -250,7 +261,7 @@ export class MetadataTrackerService {
       efficiency: number;
     };
   } {
-    const filteredCalls = calls.filter(call => {
+    const filteredCalls = calls.filter((call) => {
       const callTime = new Date(call.timestamp);
       return callTime >= timeframe.start && callTime <= timeframe.end;
     });
@@ -258,16 +269,27 @@ export class MetadataTrackerService {
     const summary = {
       totalCalls: filteredCalls.length,
       totalCost: filteredCalls.reduce((sum, call) => sum + call.cost, 0),
-      totalTokens: filteredCalls.reduce((sum, call) => sum + call.inputTokens + call.outputTokens, 0),
-      averageResponseTime: filteredCalls.reduce((sum, call) => sum + (call.duration || 0), 0) / filteredCalls.length || 0
+      totalTokens: filteredCalls.reduce(
+        (sum, call) => sum + call.inputTokens + call.outputTokens,
+        0,
+      ),
+      averageResponseTime:
+        filteredCalls.reduce((sum, call) => sum + (call.duration || 0), 0) /
+          filteredCalls.length || 0,
     };
 
-    const byModel: Record<string, { calls: number; cost: number; tokens: number }> = {};
-    const byProvider: Record<string, { calls: number; cost: number; tokens: number }> = {};
+    const byModel: Record<
+      string,
+      { calls: number; cost: number; tokens: number }
+    > = {};
+    const byProvider: Record<
+      string,
+      { calls: number; cost: number; tokens: number }
+    > = {};
 
-    filteredCalls.forEach(call => {
+    filteredCalls.forEach((call) => {
       const tokens = call.inputTokens + call.outputTokens;
-      
+
       if (!byModel[call.modelName]) {
         byModel[call.modelName] = { calls: 0, cost: 0, tokens: 0 };
       }
@@ -283,21 +305,23 @@ export class MetadataTrackerService {
       byProvider[call.providerId]!.tokens += tokens;
     });
 
-    const timeframeDurationHours = (timeframe.end.getTime() - timeframe.start.getTime()) / (1000 * 60 * 60);
-    
+    const timeframeDurationHours =
+      (timeframe.end.getTime() - timeframe.start.getTime()) / (1000 * 60 * 60);
+
     return {
       agentName,
       timeframe: {
         start: timeframe.start.toISOString(),
-        end: timeframe.end.toISOString()
+        end: timeframe.end.toISOString(),
       },
       summary,
       breakdown: { byModel, byProvider },
       trends: {
         callsPerHour: summary.totalCalls / timeframeDurationHours,
         costPerHour: summary.totalCost / timeframeDurationHours,
-        efficiency: summary.totalTokens > 0 ? summary.totalCost / summary.totalTokens : 0
-      }
+        efficiency:
+          summary.totalTokens > 0 ? summary.totalCost / summary.totalTokens : 0,
+      },
     };
   }
 }

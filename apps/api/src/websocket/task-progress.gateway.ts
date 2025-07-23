@@ -60,14 +60,18 @@ export class TaskProgressGateway
 
   async handleConnection(client: AuthenticatedSocket) {
     this.logger.debug(`🔗 Client attempting to connect: ${client.id}`);
-    
+
     try {
       // Extract JWT token from handshake
       const token = this.extractTokenFromHandshake(client);
-      this.logger.debug(`🔑 Extracted token for client ${client.id}: ${token ? 'present' : 'missing'}`);
-      
+      this.logger.debug(
+        `🔑 Extracted token for client ${client.id}: ${token ? 'present' : 'missing'}`,
+      );
+
       if (!token) {
-        this.logger.warn(`⚠️ Client ${client.id} connected without token - allowing anonymous access`);
+        this.logger.warn(
+          `⚠️ Client ${client.id} connected without token - allowing anonymous access`,
+        );
         client.userId = 'anonymous';
         client.subscribedTasks = new Set();
         this.connectedClients.set(client.id, client);
@@ -81,16 +85,18 @@ export class TaskProgressGateway
         data: { user },
         error,
       } = await supabaseClient.auth.getUser(token);
-      
+
       if (error || !user) {
-        this.logger.warn(`⚠️ Token validation failed for client ${client.id}: ${error?.message || 'No user found'} - allowing anonymous access`);
+        this.logger.warn(
+          `⚠️ Token validation failed for client ${client.id}: ${error?.message || 'No user found'} - allowing anonymous access`,
+        );
         client.userId = 'anonymous';
         client.subscribedTasks = new Set();
         this.connectedClients.set(client.id, client);
         this.logger.log(`✅ Anonymous client connected: ${client.id}`);
         return;
       }
-      
+
       client.userId = user.id;
       client.subscribedTasks = new Set();
 
@@ -109,7 +115,9 @@ export class TaskProgressGateway
       client.userId = 'anonymous';
       client.subscribedTasks = new Set();
       this.connectedClients.set(client.id, client);
-      this.logger.log(`✅ Anonymous client connected as fallback: ${client.id}`);
+      this.logger.log(
+        `✅ Anonymous client connected as fallback: ${client.id}`,
+      );
     }
   }
 
@@ -126,11 +134,15 @@ export class TaskProgressGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { taskId: string },
   ) {
-    this.logger.log(`📡 Received subscribe_task request for task: ${data.taskId} from client: ${client.id}`);
-    
+    this.logger.log(
+      `📡 Received subscribe_task request for task: ${data.taskId} from client: ${client.id}`,
+    );
+
     // Allow subscription without authentication for development/testing
     if (!client.userId) {
-      this.logger.warn(`⚠️ Client ${client.id} not authenticated but allowing task subscription for development`);
+      this.logger.warn(
+        `⚠️ Client ${client.id} not authenticated but allowing task subscription for development`,
+      );
       // Set a temporary user ID for unauthenticated clients
       client.userId = 'anonymous';
     }
@@ -151,22 +163,35 @@ export class TaskProgressGateway
 
       // Check room immediately after joining
       setTimeout(() => {
-        const roomClients = this.server?.sockets?.adapter?.rooms?.get(`task:${data.taskId}`);
+        const roomClients = this.server?.sockets?.adapter?.rooms?.get(
+          `task:${data.taskId}`,
+        );
         const clientCount = roomClients ? roomClients.size : 0;
-        this.logger.log(`📊 Room task:${data.taskId} now has ${clientCount} clients`);
-        
+        this.logger.log(
+          `📊 Room task:${data.taskId} now has ${clientCount} clients`,
+        );
+
         if (clientCount === 0) {
-          this.logger.warn(`⚠️ Room count still 0 after join - checking all rooms...`);
-          const allRooms = Array.from(this.server?.sockets?.adapter?.rooms?.keys() || []);
+          this.logger.warn(
+            `⚠️ Room count still 0 after join - checking all rooms...`,
+          );
+          const allRooms = Array.from(
+            this.server?.sockets?.adapter?.rooms?.keys() || [],
+          );
           this.logger.debug(`🏠 All rooms: ${allRooms.join(', ')}`);
           const clientRooms = Array.from(client.rooms || []);
-          this.logger.debug(`👤 Client ${client.id} is in rooms: ${clientRooms.join(', ')}`);
+          this.logger.debug(
+            `👤 Client ${client.id} is in rooms: ${clientRooms.join(', ')}`,
+          );
         }
       }, 100); // Small delay to let room join complete
-      
+
       client.emit('subscription_confirmed', { taskId: data.taskId });
     } catch (error) {
-      this.logger.error(`❌ Error subscribing client ${client.id} to task ${data.taskId}:`, error);
+      this.logger.error(
+        `❌ Error subscribing client ${client.id} to task ${data.taskId}:`,
+        error,
+      );
       client.emit('subscription_error', {
         taskId: data.taskId,
         message: 'Failed to subscribe to task',
@@ -236,23 +261,29 @@ export class TaskProgressGateway
       roomClients = this.server?.sockets?.adapter?.rooms?.get(`task:${taskId}`);
       clientCount = roomClients ? roomClients.size : 0;
     } catch (error) {
-      this.logger.warn(`Failed to check room clients: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.warn(
+        `Failed to check room clients: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
-    
+
     this.logger.log(
       `📢 Broadcasting workflow_step_progress to ${clientCount} clients in room: task:${taskId}`,
     );
-    
+
     if (clientCount === 0) {
-      this.logger.warn(`⚠️ NO CLIENTS IN ROOM task:${taskId} - Event will be lost!`);
+      this.logger.warn(
+        `⚠️ NO CLIENTS IN ROOM task:${taskId} - Event will be lost!`,
+      );
       // Log all current rooms to debug
-      const allRooms = Array.from(this.server?.sockets?.adapter?.rooms?.keys() || []);
+      const allRooms = Array.from(
+        this.server?.sockets?.adapter?.rooms?.keys() || [],
+      );
       this.logger.debug(`🏠 All current rooms: ${allRooms.join(', ')}`);
     }
 
     // Broadcast to all clients subscribed to this task
     this.server.to(`task:${taskId}`).emit('workflow_step_progress', event);
-    
+
     this.logger.debug(
       `📤 Emitted workflow_step_progress event for task ${taskId}, step: ${stepName}`,
     );
@@ -261,11 +292,7 @@ export class TaskProgressGateway
   /**
    * Broadcast task completion updates
    */
-  broadcastTaskCompletion(
-    taskId: string,
-    status: string,
-    message?: string,
-  ) {
+  broadcastTaskCompletion(taskId: string, status: string, message?: string) {
     const event = {
       taskId,
       status,
@@ -280,19 +307,23 @@ export class TaskProgressGateway
     // Check how many clients are in the room (with null safety)
     let clientCount = 0;
     try {
-      const roomClients = this.server?.sockets?.adapter?.rooms?.get(`task:${taskId}`);
+      const roomClients = this.server?.sockets?.adapter?.rooms?.get(
+        `task:${taskId}`,
+      );
       clientCount = roomClients ? roomClients.size : 0;
     } catch (error) {
-      this.logger.warn(`Failed to check room clients: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.warn(
+        `Failed to check room clients: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
-    
+
     this.logger.debug(
       `📢 Broadcasting task_completed to ${clientCount} clients in room: task:${taskId}`,
     );
 
     // Broadcast to all clients subscribed to this task
     this.server.to(`task:${taskId}`).emit('task_completed', event);
-    
+
     this.logger.debug(
       `📤 Emitted task_completed event for task ${taskId}, status: ${status}`,
     );
@@ -329,7 +360,7 @@ export class TaskProgressGateway
     this.logger.debug(
       `Broadcasting status change for task ${event.taskId}: ${event.status} (${event.progress}%)`,
     );
-    
+
     // Broadcast to task room and user room with full JSON data
     this.server.to(`task:${event.taskId}`).emit('task_status_changed', event);
     this.server.to(`user:${event.userId}`).emit('task_status_changed', event);
@@ -341,8 +372,10 @@ export class TaskProgressGateway
    */
   @OnEvent('task.completed')
   handleTaskCompleted(event: { taskId: string; userId: string }) {
-    this.logger.debug(`Task completion event received: ${event.taskId} (WebSocket broadcasting disabled to prevent duplicates - handled by broadcastTaskCompletion)`);
-    
+    this.logger.debug(
+      `Task completion event received: ${event.taskId} (WebSocket broadcasting disabled to prevent duplicates - handled by broadcastTaskCompletion)`,
+    );
+
     // Don't emit WebSocket events here - broadcastTaskCompletion() already handles this
     // to prevent duplicate task_completed events that cause multiple frontend completion handlers
   }
@@ -472,10 +505,16 @@ export class TaskProgressGateway
    */
   private extractTokenFromHandshake(client: Socket): string | null {
     this.logger.debug(`🔍 Checking handshake for client ${client.id}:`);
-    this.logger.debug(`  - auth.token: ${client.handshake.auth?.token ? 'present' : 'missing'}`);
-    this.logger.debug(`  - headers.authorization: ${client.handshake.headers?.authorization ? 'present' : 'missing'}`);
-    this.logger.debug(`  - query.token: ${client.handshake.query?.token ? 'present' : 'missing'}`);
-    
+    this.logger.debug(
+      `  - auth.token: ${client.handshake.auth?.token ? 'present' : 'missing'}`,
+    );
+    this.logger.debug(
+      `  - headers.authorization: ${client.handshake.headers?.authorization ? 'present' : 'missing'}`,
+    );
+    this.logger.debug(
+      `  - query.token: ${client.handshake.query?.token ? 'present' : 'missing'}`,
+    );
+
     const token =
       client.handshake.auth?.token ||
       client.handshake.headers?.authorization?.replace('Bearer ', '') ||
