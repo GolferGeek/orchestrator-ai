@@ -131,7 +131,9 @@ async function analyzeMarketingTask(
   state: SwarmWorkflowState,
   llmService: any,
   llmPreferences?: any,
+  progressCallback?: (stepName: string, stepIndex: number, status: 'in_progress' | 'completed' | 'failed', message?: string) => void,
 ): Promise<SwarmWorkflowState> {
+  progressCallback?.('Analyzing marketing task', 0, 'in_progress', 'Understanding request and determining complexity');
   const analysisPrompt = `Analyze this marketing request and classify it:
 
 Request: "${state.originalRequest}"
@@ -171,6 +173,8 @@ Respond with JSON:
 
     const taskAnalysis: MarketingTask = JSON.parse(analysisResponse);
 
+    progressCallback?.('Analyzing marketing task', 0, 'completed', `Task identified as ${taskAnalysis.complexity} ${taskAnalysis.type}`);
+    
     return {
       ...state,
       taskAnalysis,
@@ -209,7 +213,9 @@ Respond with JSON:
 async function selectAgentTeam(
   state: SwarmWorkflowState,
   _llmService: any,
+  progressCallback?: (stepName: string, stepIndex: number, status: 'in_progress' | 'completed' | 'failed', message?: string) => void,
 ): Promise<SwarmWorkflowState> {
+  progressCallback?.('Selecting agent team', 1, 'in_progress', 'Choosing specialist agents based on requirements');
   if (!state.taskAnalysis) {
     throw new Error('Task analysis required before agent selection');
   }
@@ -220,13 +226,17 @@ async function selectAgentTeam(
   // Content creation agents based on content types
   if (
     content_types.includes('blog_post') ||
-    content_types.includes('article')
+    content_types.includes('article') ||
+    content_types.includes('blog') ||
+    content_types.includes('content')
   ) {
     selectedAgents.push(SPECIALIST_AGENTS['blog_writer']!);
   }
   if (
     content_types.includes('social_media') ||
-    content_types.includes('social')
+    content_types.includes('social') ||
+    content_types.includes('campaign') ||
+    content_types.includes('marketing')
   ) {
     selectedAgents.push(SPECIALIST_AGENTS['social_media_specialist']!);
   }
@@ -250,14 +260,23 @@ async function selectAgentTeam(
     selectedAgents.push(SPECIALIST_AGENTS['conversion_optimizer']!);
   }
 
+  // Ensure we always have at least one content creator for general marketing requests
+  const hasContentCreator = selectedAgents.some(agent => agent.role === 'content_creator');
+  if (!hasContentCreator) {
+    selectedAgents.push(SPECIALIST_AGENTS['blog_writer']!);
+    selectedAgents.push(SPECIALIST_AGENTS['social_media_specialist']!);
+  }
+
   // Ensure minimum team size
-  if (selectedAgents.length < 2) {
+  if (selectedAgents.length < 3) {
     selectedAgents.push(
       SPECIALIST_AGENTS['blog_writer']!,
       SPECIALIST_AGENTS['seo_specialist']!,
     );
   }
 
+  progressCallback?.('Selecting agent team', 1, 'completed', `Selected ${selectedAgents.length} specialist agents: ${selectedAgents.map(a => a.name).join(', ')}`);
+  
   return {
     ...state,
     selectedAgents,
@@ -276,13 +295,18 @@ async function selectAgentTeam(
 async function coordinateContentCreation(
   state: SwarmWorkflowState,
   llmService: any,
+  progressCallback?: (stepName: string, stepIndex: number, status: 'in_progress' | 'completed' | 'failed', message?: string) => void,
 ): Promise<SwarmWorkflowState> {
+  progressCallback?.('Coordinating content creation', 2, 'in_progress', 'Content creators generating specialized content');
   const agentOutputs = new Map();
   const contentCreators = state.selectedAgents.filter(
     (agent) => agent.role === 'content_creator',
   );
 
-  for (const agent of contentCreators) {
+  // Ensure we have content creators - if not, treat all agents as content creators
+  const agentsToUse = contentCreators.length > 0 ? contentCreators : state.selectedAgents;
+
+  for (const agent of agentsToUse) {
     try {
       const contentPrompt = `${state.originalRequest}
 
@@ -291,7 +315,7 @@ Task Requirements:
 - Goals: ${state.taskAnalysis?.requirements.goals.join(', ')}
 - Content Type: Focus on your specialty (${agent.specialties.join(', ')})
 
-Create high-quality content according to your expertise. Be comprehensive and actionable.`;
+Create high-quality, actionable marketing content according to your expertise. Make it compelling and ready to use.`;
 
       const content = await llmService.generateResponse(
         agent.systemPrompt,
@@ -314,6 +338,8 @@ Create high-quality content according to your expertise. Be comprehensive and ac
     }
   }
 
+  progressCallback?.('Coordinating content creation', 2, 'completed', `Generated ${agentOutputs.size} content pieces from specialist agents`);
+  
   return {
     ...state,
     agentOutputs,
@@ -331,7 +357,9 @@ Create high-quality content according to your expertise. Be comprehensive and ac
 async function evaluateAndOptimize(
   state: SwarmWorkflowState,
   llmService: any,
+  progressCallback?: (stepName: string, stepIndex: number, status: 'in_progress' | 'completed' | 'failed', message?: string) => void,
 ): Promise<SwarmWorkflowState> {
+  progressCallback?.('Evaluating and optimizing', 3, 'in_progress', 'Specialist agents analyzing and optimizing content');
   const evaluationResults = new Map();
   const evaluators = state.selectedAgents.filter(
     (agent) => agent.role === 'evaluator' || agent.role === 'optimizer',
@@ -389,6 +417,13 @@ Format as JSON:
     }
   }
 
+  const avgScore = Array.from(evaluationResults.values()).reduce(
+    (acc, result) => acc + (result.score || 5),
+    0,
+  ) / evaluationResults.size;
+  
+  progressCallback?.('Evaluating and optimizing', 3, 'completed', `Completed ${evaluationResults.size} evaluations with average score ${avgScore.toFixed(1)}/10`);
+  
   return {
     ...state,
     evaluationResults,
@@ -396,11 +431,7 @@ Format as JSON:
       ...state.metadata,
       evaluation_step: 'completed',
       evaluations_completed: evaluationResults.size,
-      average_score:
-        Array.from(evaluationResults.values()).reduce(
-          (acc, result) => acc + (result.score || 5),
-          0,
-        ) / evaluationResults.size,
+      average_score: avgScore,
     },
   };
 }
@@ -411,7 +442,9 @@ Format as JSON:
 async function synthesizeFinalContent(
   state: SwarmWorkflowState,
   llmService: any,
+  progressCallback?: (stepName: string, stepIndex: number, status: 'in_progress' | 'completed' | 'failed', message?: string) => void,
 ): Promise<SwarmWorkflowState> {
+  progressCallback?.('Synthesizing final content', 4, 'in_progress', 'Creating comprehensive optimized content package');
   const allContent = Array.from(state.agentOutputs.entries());
   const allEvaluations = Array.from(state.evaluationResults.entries());
 
@@ -428,24 +461,39 @@ ${allEvaluations
   )
   .join('\n\n')}
 
-Create a comprehensive content package that:
-1. Incorporates the best elements from each agent
-2. Implements evaluation recommendations
-3. Maintains consistency across all content pieces
-4. Includes metadata and performance predictions
+Create a comprehensive MARKETING CONTENT PACKAGE that:
+1. Incorporates the best elements from each specialist agent
+2. Implements evaluation recommendations for maximum impact
+3. Provides ready-to-use marketing content across multiple channels
+4. Includes actionable recommendations and next steps
 
-Format as JSON with content, metadata, and recommendations.`;
+Format the response as a well-structured marketing content package with clear sections for each content type. Include headlines, copy, and implementation guidance. Make it immediately useful for marketing execution.`;
 
   try {
     const finalPackage = await llmService.generateResponse(
-      `You are a senior marketing coordinator. Synthesize agent outputs into a cohesive, optimized content package.`,
+      `You are a senior marketing coordinator. Synthesize agent outputs into a cohesive, optimized MARKETING CONTENT PACKAGE. Create ready-to-use marketing materials, not technical documentation. Focus on compelling copy, clear messaging, and actionable content.`,
       synthesisPrompt,
-      { temperature: 0.4, maxTokens: 2000 },
+      { temperature: 0.4, maxTokens: 2500 },
     );
 
+    // Try to parse as JSON, but if it fails, use the raw content
+    let finalResult;
+    try {
+      finalResult = JSON.parse(finalPackage);
+    } catch {
+      // If JSON parsing fails, format the content as marketing package
+      finalResult = {
+        marketing_content_package: finalPackage,
+        content_pieces: Object.fromEntries(state.agentOutputs),
+        evaluations: Object.fromEntries(state.evaluationResults),
+        ready_to_use: true
+      };
+    }
+    progressCallback?.('Synthesizing final content', 4, 'completed', 'Final optimized content package ready');
+    
     return {
       ...state,
-      finalContent: JSON.parse(finalPackage),
+      finalContent: finalResult,
       metadata: {
         ...state.metadata,
         synthesis_step: 'completed',
@@ -457,9 +505,11 @@ Format as JSON with content, metadata, and recommendations.`;
     return {
       ...state,
       finalContent: {
+        marketing_content_package: "Marketing content generation encountered an error, but here are the individual pieces created by our specialist agents:",
         content_pieces: Object.fromEntries(state.agentOutputs),
         evaluations: Object.fromEntries(state.evaluationResults),
         synthesis_error: error instanceof Error ? error.message : String(error),
+        note: "Each content piece above was created by a specialist agent and can be used individually for your marketing efforts."
       },
       metadata: {
         ...state.metadata,
@@ -478,6 +528,7 @@ async function executeMarketingSwarm(
   llmService: any,
   sessionId?: string,
   llmPreferences?: any,
+  progressCallback?: (stepName: string, stepIndex: number, status: 'in_progress' | 'completed' | 'failed', message?: string) => void,
 ): Promise<{ response: string; metadata: Record<string, any> }> {
   let state: SwarmWorkflowState = {
     originalRequest: userMessage,
@@ -496,27 +547,41 @@ async function executeMarketingSwarm(
 
   try {
     // Step 1: Analyze marketing task
-    state = await analyzeMarketingTask(state, llmService, llmPreferences);
+    state = await analyzeMarketingTask(state, llmService, llmPreferences, progressCallback);
     state.metadata.steps_completed.push('task_analysis');
 
     // Step 2: Select agent team
-    state = await selectAgentTeam(state, llmService);
+    state = await selectAgentTeam(state, llmService, progressCallback);
     state.metadata.steps_completed.push('agent_selection');
 
     // Step 3: Coordinate content creation
-    state = await coordinateContentCreation(state, llmService);
+    state = await coordinateContentCreation(state, llmService, progressCallback);
     state.metadata.steps_completed.push('content_creation');
 
     // Step 4: Evaluate and optimize
-    state = await evaluateAndOptimize(state, llmService);
+    state = await evaluateAndOptimize(state, llmService, progressCallback);
     state.metadata.steps_completed.push('evaluation');
 
     // Step 5: Synthesize final package
-    state = await synthesizeFinalContent(state, llmService);
+    state = await synthesizeFinalContent(state, llmService, progressCallback);
     state.metadata.steps_completed.push('synthesis');
 
+    // Format the response in a user-friendly way instead of raw JSON
+    const formattedResponse = typeof state.finalContent === 'object' && state.finalContent.marketing_content_package
+      ? `# 📋 Marketing Content Package
+
+${state.finalContent.marketing_content_package}
+
+## Individual Content Pieces
+
+${Object.entries(state.finalContent.content_pieces || {}).map(([agent, piece]: [string, any]) => 
+        `### ${agent}
+${piece.content || piece}
+`).join('\n')}`
+      : JSON.stringify(state.finalContent, null, 2);
+    
     return {
-      response: JSON.stringify(state.finalContent, null, 2),
+      response: formattedResponse,
       metadata: {
         ...state.metadata,
         workflow_status: 'completed',
@@ -554,12 +619,15 @@ async function executeMarketingSwarm(
 export async function execute(
   params: AgentFunctionParams,
 ): Promise<AgentFunctionResponse> {
-  const { userMessage, sessionId, llmService } = params;
+  const { userMessage, sessionId, llmService, metadata, progressCallback } = params;
   const startTime = Date.now();
+
+  // Extract LLM preferences from metadata if available
+  const llmPreferences = metadata?.llmPreferences;
 
   try {
     const { response, metadata: workflowMetadata } =
-      await executeMarketingSwarm(userMessage, llmService, sessionId);
+      await executeMarketingSwarm(userMessage, llmService, sessionId, llmPreferences, progressCallback);
 
     const processingTime = Date.now() - startTime;
 
