@@ -33,19 +33,23 @@ export class MCPModule implements OnModuleInit {
 
       if (supabaseUrl && supabaseKey) {
         await this.mcpClientService.registerServer({
+          id: 'supabase-server',
           name: 'supabase',
-          type: 'http',
+          type: 'same-box',
+          transport: 'http',
           endpoint: 'http://localhost:4000/mcp/supabase',
           authentication: {
             type: 'bearer',
             token: supabaseKey,
           },
           timeout: 30000,
-          retryAttempts: 3,
+          maxRetries: 3,
           healthCheck: {
             enabled: true,
             endpoint: '/health',
             interval: 30000,
+            timeout: 5000,
+            retries: 3,
           },
         });
 
