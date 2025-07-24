@@ -600,17 +600,16 @@ Use the database schema information and query execution tools to validate sugges
     details?: any;
   }> {
     try {
-      // Simple database connection test using a basic query
+      // Simple database connection test using pg_tables instead of information_schema
       const { data, error } = await this.supabaseClient
-        .from('information_schema.tables')
-        .select('table_name')
-        .eq('table_schema', 'public')
-        .eq('table_type', 'BASE TABLE')
+        .from('pg_tables')
+        .select('tablename')
+        .eq('schemaname', 'public')
         .limit(1);
 
       if (error) {
-        // If information_schema is not accessible, try an even simpler test
-        this.serverLogger.debug('Information schema query failed, trying fallback', error);
+        // If pg_tables is not accessible, try an even simpler test
+        this.serverLogger.debug('pg_tables query failed, trying fallback', error);
         
         // Test basic connectivity by attempting to create a dummy query
         // This should fail with "relation does not exist" if we're connected
@@ -702,7 +701,7 @@ Use the database schema information and query execution tools to validate sugges
         } else if (naturalLanguageQuery.toLowerCase().includes('user')) {
           sql = 'SELECT * FROM users LIMIT 10';
         } else {
-          sql = 'SELECT COUNT(*) as total FROM information_schema.tables WHERE table_schema = \'public\'';
+          sql = 'SELECT COUNT(*) as total FROM pg_tables WHERE schemaname = \'public\'';
         }
 
         return {
