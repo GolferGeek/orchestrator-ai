@@ -95,12 +95,12 @@ Respond with a JSON object containing:
     });
     
     if (metricsResult.success) {
-      // MCP response structure: result.data contains the parsed JSON from content[0].text
-      progressCallback?.('Debug full metrics response', 2, 'in_progress', `Full MCP Response: ${JSON.stringify(metricsResult, null, 2)}`);
-      
-      const metricsData = Array.isArray(metricsResult.data) ? metricsResult.data : [];
+      // MCP response structure: result.data contains the parsed JSON with nested data array
+      // The actual records are in result.data.data, not result.data directly
+      const metricsData = Array.isArray(metricsResult.data?.data) ? metricsResult.data.data : [];
       const metricsCount = metricsData.length;
       progressCallback?.('Metrics definitions', 2, 'completed', `Retrieved ${metricsCount} metric definitions from database`);
+      progressCallback?.('Debug metrics structure', 2, 'in_progress', `Metrics data structure: ${JSON.stringify(metricsResult.data, null, 2)?.substring(0, 300)}...`);
     } else {
       progressCallback?.('Metrics definitions', 2, 'failed', `Failed to retrieve metrics: ${metricsResult.error}`);
     }
@@ -123,18 +123,21 @@ Respond with a JSON object containing:
     
     if (kpiDataResult.success) {
       // Handle different response structures from queryAndFormat vs readData
-      progressCallback?.('Debug full KPI response', 3, 'in_progress', `Full KPI MCP Response: ${JSON.stringify(kpiDataResult, null, 2)}`);
-      
+      // Look for the actual data in nested structures
       let kpiData = [];
-      if (Array.isArray(kpiDataResult.data)) {
-        kpiData = kpiDataResult.data;
-      } else if (kpiDataResult.data?.results && Array.isArray(kpiDataResult.data.results)) {
+      if (Array.isArray(kpiDataResult.data?.data)) {
+        // readData format: result.data.data contains the array
+        kpiData = kpiDataResult.data.data;
+      } else if (Array.isArray(kpiDataResult.data?.results)) {
+        // queryAndFormat format: result.data.results contains the array
         kpiData = kpiDataResult.data.results;
-      } else if (kpiDataResult.formatted_data && Array.isArray(kpiDataResult.formatted_data)) {
-        kpiData = kpiDataResult.formatted_data;
+      } else if (Array.isArray(kpiDataResult.data)) {
+        // Direct array format (fallback)
+        kpiData = kpiDataResult.data;
       }
       const dataCount = kpiData.length;
       progressCallback?.('KPI data', 3, 'completed', `Retrieved ${dataCount} recent KPI data points via SQL query`);
+      progressCallback?.('Debug KPI structure', 3, 'in_progress', `KPI data structure: ${JSON.stringify(kpiDataResult.data, null, 2)?.substring(0, 300)}...`);
     } else {
       progressCallback?.('KPI data', 3, 'failed', `Query execution failed: ${kpiDataResult.error}`);
     }
@@ -149,11 +152,11 @@ Respond with a JSON object containing:
     });
     
     if (goalsResult.success) {
-      progressCallback?.('Debug full goals response', 4, 'in_progress', `Full Goals MCP Response: ${JSON.stringify(goalsResult, null, 2)}`);
-      
-      const goalsData = Array.isArray(goalsResult.data) ? goalsResult.data : [];
+      // Goals data structure: look for nested data array
+      const goalsData = Array.isArray(goalsResult.data?.data) ? goalsResult.data.data : [];
       const goalsCount = goalsData.length;
       progressCallback?.('Goals data', 4, 'completed', `Retrieved ${goalsCount} KPI goals and targets`);
+      progressCallback?.('Debug goals structure', 4, 'in_progress', `Goals data structure: ${JSON.stringify(goalsResult.data, null, 2)?.substring(0, 300)}...`);
     } else {
       progressCallback?.('Goals data', 4, 'failed', `Failed to retrieve goals: ${goalsResult.error}`);
     }
@@ -161,21 +164,24 @@ Respond with a JSON object containing:
     // Step 4: Generate comprehensive metrics analysis
     progressCallback?.('Analysis generation', 5, 'in_progress', 'Generating insights from live database data...');
 
-    // Extract actual data arrays from MCP responses
-    const metricsDefinitions = metricsResult.success && Array.isArray(metricsResult.data) ? metricsResult.data : [];
+    // Extract actual data arrays from MCP responses with correct nested structure
+    const metricsDefinitions = metricsResult.success && Array.isArray(metricsResult.data?.data) ? metricsResult.data.data : [];
     
     let currentKpiData = [];
     if (kpiDataResult.success) {
-      if (Array.isArray(kpiDataResult.data)) {
-        currentKpiData = kpiDataResult.data;
-      } else if (kpiDataResult.data?.results && Array.isArray(kpiDataResult.data.results)) {
+      if (Array.isArray(kpiDataResult.data?.data)) {
+        // readData format: result.data.data contains the array
+        currentKpiData = kpiDataResult.data.data;
+      } else if (Array.isArray(kpiDataResult.data?.results)) {
+        // queryAndFormat format: result.data.results contains the array
         currentKpiData = kpiDataResult.data.results;
-      } else if (kpiDataResult.formatted_data && Array.isArray(kpiDataResult.formatted_data)) {
-        currentKpiData = kpiDataResult.formatted_data;
+      } else if (Array.isArray(kpiDataResult.data)) {
+        // Direct array format (fallback)
+        currentKpiData = kpiDataResult.data;
       }
     }
     
-    const goalsData = goalsResult.success && Array.isArray(goalsResult.data) ? goalsResult.data : [];
+    const goalsData = goalsResult.success && Array.isArray(goalsResult.data?.data) ? goalsResult.data.data : [];
 
     const metricsData = {
       metrics_definitions: metricsDefinitions,
