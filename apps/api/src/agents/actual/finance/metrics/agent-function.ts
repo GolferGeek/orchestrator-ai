@@ -96,10 +96,11 @@ Respond with a JSON object containing:
     
     if (metricsResult.success) {
       // MCP response structure: result.data contains the parsed JSON from content[0].text
+      progressCallback?.('Debug full metrics response', 2, 'in_progress', `Full MCP Response: ${JSON.stringify(metricsResult, null, 2)}`);
+      
       const metricsData = Array.isArray(metricsResult.data) ? metricsResult.data : [];
       const metricsCount = metricsData.length;
       progressCallback?.('Metrics definitions', 2, 'completed', `Retrieved ${metricsCount} metric definitions from database`);
-      progressCallback?.('Debug metrics data', 2, 'in_progress', `Metrics structure: ${JSON.stringify(metricsResult.data)?.substring(0, 200)}...`);
     } else {
       progressCallback?.('Metrics definitions', 2, 'failed', `Failed to retrieve metrics: ${metricsResult.error}`);
     }
@@ -122,6 +123,8 @@ Respond with a JSON object containing:
     
     if (kpiDataResult.success) {
       // Handle different response structures from queryAndFormat vs readData
+      progressCallback?.('Debug full KPI response', 3, 'in_progress', `Full KPI MCP Response: ${JSON.stringify(kpiDataResult, null, 2)}`);
+      
       let kpiData = [];
       if (Array.isArray(kpiDataResult.data)) {
         kpiData = kpiDataResult.data;
@@ -132,7 +135,6 @@ Respond with a JSON object containing:
       }
       const dataCount = kpiData.length;
       progressCallback?.('KPI data', 3, 'completed', `Retrieved ${dataCount} recent KPI data points via SQL query`);
-      progressCallback?.('Debug KPI data', 3, 'in_progress', `KPI structure: ${JSON.stringify(kpiDataResult.data)?.substring(0, 200)}...`);
     } else {
       progressCallback?.('KPI data', 3, 'failed', `Query execution failed: ${kpiDataResult.error}`);
     }
@@ -147,10 +149,11 @@ Respond with a JSON object containing:
     });
     
     if (goalsResult.success) {
+      progressCallback?.('Debug full goals response', 4, 'in_progress', `Full Goals MCP Response: ${JSON.stringify(goalsResult, null, 2)}`);
+      
       const goalsData = Array.isArray(goalsResult.data) ? goalsResult.data : [];
       const goalsCount = goalsData.length;
       progressCallback?.('Goals data', 4, 'completed', `Retrieved ${goalsCount} KPI goals and targets`);
-      progressCallback?.('Debug goals data', 4, 'in_progress', `Goals structure: ${JSON.stringify(goalsResult.data)?.substring(0, 200)}...`);
     } else {
       progressCallback?.('Goals data', 4, 'failed', `Failed to retrieve goals: ${goalsResult.error}`);
     }
