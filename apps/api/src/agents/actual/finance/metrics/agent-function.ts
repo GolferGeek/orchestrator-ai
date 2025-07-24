@@ -28,7 +28,12 @@ export async function execute(params: AgentFunctionParams): Promise<AgentFunctio
     // Step 1: Get database schema to understand available metrics
     progressCallback?.('Database connection', 0, 'in_progress', 'Connecting to metrics database...');
     
+    // Debug: Check MCP service availability and methods
+    progressCallback?.('MCP Debug', 0, 'in_progress', `MCP Service available: ${mcpService.isAvailable()}, Methods: ${Object.keys(mcpService).join(',')}`);
+    
     const schemaResult = await mcpService.getSchema();
+    progressCallback?.('Schema Debug', 0, 'in_progress', `Schema result: success=${schemaResult.success}, error=${schemaResult.error}, data=${JSON.stringify(schemaResult.data)?.substring(0, 200)}...`);
+    
     if (!schemaResult.success) {
       progressCallback?.('Database connection', 0, 'failed', `Failed to connect to database: ${schemaResult.error}`);
       throw new Error(`Failed to get database schema: ${schemaResult.error}`);
@@ -88,11 +93,15 @@ Respond with a JSON object containing:
     progressCallback?.('Data retrieval', 2, 'in_progress', 'Retrieving KPI metrics definitions...');
 
     // Get KPI metrics definitions
+    progressCallback?.('MCP Call Debug', 2, 'in_progress', 'About to call mcpService.readData for kpi_metrics...');
+    
     const metricsResult = await mcpService.readData({
       table_name: 'kpi_metrics',
       format: 'json',
       limit: 50
     });
+    
+    progressCallback?.('MCP Call Debug', 2, 'in_progress', `Raw metrics result: ${JSON.stringify(metricsResult, null, 2)?.substring(0, 500)}...`);
     
     if (metricsResult.success) {
       // MCP response structure: result.data contains the parsed JSON with nested data array
@@ -220,7 +229,7 @@ Create a professional metrics analysis report with:
 Use professional tone, data-driven insights, and clear formatting with emojis for visual appeal.
 Focus on actionable business intelligence that drives decision-making.
 
-If the data shows no records, explain that this is a new system and provide framework for metrics tracking.
+IMPORTANT: Only use the actual data provided above. If any of the data arrays are empty [], DO NOT generate fake or example data. Instead, explain that no data is available for that section and provide guidance on setting up metrics tracking.
 `;
 
     const finalResponse = await llmService.generateResponse(
@@ -232,6 +241,9 @@ If the data shows no records, explain that this is a new system and provide fram
     // Final completion message with actual data counts
     const totalDataPoints = metricsDefinitions.length + currentKpiData.length + goalsData.length;
     progressCallback?.('Analysis complete', 6, 'completed', `Generated comprehensive metrics analysis from ${totalDataPoints} live data points (${metricsDefinitions.length} definitions, ${currentKpiData.length} KPI records, ${goalsData.length} goals)`);
+    
+    // Debug: Show what data we actually extracted
+    progressCallback?.('Debug final data', 6, 'in_progress', `Final extracted data - Metrics: ${JSON.stringify(metricsDefinitions)?.substring(0, 200)}... KPI: ${JSON.stringify(currentKpiData)?.substring(0, 200)}...`);
 
     return {
       success: true,
