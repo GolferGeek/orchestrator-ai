@@ -6,7 +6,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { SupabaseService } from '../../../shared/supabase/supabase.service';
+import { SupabaseService } from '../../../../supabase/supabase.service';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface MCPExecutionContext {
@@ -172,7 +172,7 @@ export class MCPExecutionTrackerService {
     context: MCPExecutionContext,
     status: string
   ): Promise<void> {
-    const { error } = await this.supabaseService.getClient()
+    const { error } = await this.supabaseService.getServiceClient()
       .from('mcp_executions')
       .insert({
         id: executionId,
@@ -212,7 +212,7 @@ export class MCPExecutionTrackerService {
       retry_count?: number;
     }
   ): Promise<void> {
-    const { error } = await this.supabaseService.getClient()
+    const { error } = await this.supabaseService.getServiceClient()
       .from('mcp_executions')
       .update({
         ...updates,
@@ -230,7 +230,7 @@ export class MCPExecutionTrackerService {
    * Log detailed failure information
    */
   private async logFailure(executionId: string, failure: MCPFailureDetails): Promise<void> {
-    const { error } = await this.supabaseService.getClient()
+    const { error } = await this.supabaseService.getServiceClient()
       .from('mcp_failures')
       .insert({
         execution_id: executionId,
@@ -260,7 +260,7 @@ export class MCPExecutionTrackerService {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const { data: executions, error } = await this.supabaseService.getClient()
+    const { data: executions, error } = await this.supabaseService.getServiceClient()
       .from('mcp_executions')
       .select('*')
       .eq('user_id', userId)
@@ -271,14 +271,14 @@ export class MCPExecutionTrackerService {
     }
 
     const totalExecutions = executions.length;
-    const successfulExecutions = executions.filter(e => e.status === 'success').length;
+    const successfulExecutions = executions.filter((e: any) => e.status === 'success').length;
     const successRate = totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
     const avgExecutionTime = totalExecutions > 0 
-      ? executions.reduce((sum, e) => sum + (e.execution_time_ms || 0), 0) / totalExecutions 
+      ? executions.reduce((sum: number, e: any) => sum + (e.execution_time_ms || 0), 0) / totalExecutions 
       : 0;
 
     // Calculate top tools
-    const toolStats = executions.reduce((acc, exec) => {
+    const toolStats = executions.reduce((acc: any, exec: any) => {
       const key = exec.tool_name;
       if (!acc[key]) {
         acc[key] = { total: 0, successful: 0 };
@@ -291,8 +291,8 @@ export class MCPExecutionTrackerService {
     const topTools = Object.entries(toolStats)
       .map(([tool_name, stats]) => ({
         tool_name,
-        count: stats.total,
-        success_rate: (stats.successful / stats.total) * 100
+        count: (stats as any).total,
+        success_rate: ((stats as any).successful / (stats as any).total) * 100
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
@@ -319,7 +319,7 @@ export class MCPExecutionTrackerService {
     }
   ): Promise<void> {
     // First, get the execution ID from the feedback token
-    const { data: execution, error: executionError } = await this.supabaseService.getClient()
+    const { data: execution, error: executionError } = await this.supabaseService.getServiceClient()
       .from('mcp_executions')
       .select('id')
       .eq('feedback_token', feedbackToken)
@@ -331,7 +331,7 @@ export class MCPExecutionTrackerService {
     }
 
     // Store the feedback
-    const { error } = await this.supabaseService.getClient()
+    const { error } = await this.supabaseService.getServiceClient()
       .from('mcp_feedback')
       .insert({
         feedback_token: feedbackToken,

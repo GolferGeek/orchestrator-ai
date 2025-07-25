@@ -528,7 +528,7 @@ export const useAgentChatStore = defineStore('agentChat', {
               // Use the websocket handler to subscribe to this task
               await websocketHandler.subscribeToTaskEvents(conv.id, task.taskId, {
                 onTaskStatus: (update) => this.handleTaskStatusUpdate(conv.id, task.taskId, update),
-                onCompletion: (taskId) => this.handleTaskCompletion(conv.id, taskId, { taskId, status: 'completed' }),
+                onCompletion: (taskId) => this.handleTaskCompletion(conv.id, taskId),
                 onWorkflowStep: (stepEvent) => this.handleWorkflowStepUpdate(conv.id, task.taskId, stepEvent)
               });
               
