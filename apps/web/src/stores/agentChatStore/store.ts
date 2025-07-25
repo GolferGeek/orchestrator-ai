@@ -529,7 +529,7 @@ export const useAgentChatStore = defineStore('agentChat', {
               await websocketHandler.subscribeToTaskEvents(conv.id, task.taskId, {
                 onTaskStatus: (update) => this.handleTaskStatusUpdate(conv.id, task.taskId, update),
                 onCompletion: (taskId) => this.handleTaskCompletion(conv.id, taskId, { taskId, status: 'completed' }),
-                onWorkflowStep: (stepUpdate) => this.handleWorkflowStepProgress(conv.id, task.taskId, stepUpdate)
+                onWorkflowStep: (stepEvent) => this.handleWorkflowStepUpdate(conv.id, task.taskId, stepEvent)
               });
               
               console.log(`✅ WebSocket subscription restored for task: ${task.taskId}`);

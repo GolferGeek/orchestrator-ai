@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseMCPServer, SupabaseMCPConfig } from '../supabase-mcp.server';
 import { MCPToolRequest } from '../../base/interfaces/mcp-server.interface';
+import { LLMService } from '@/llms/llm.service';
 
 @Controller('mcp/supabase')
 export class SupabaseMCPController {
@@ -16,8 +17,8 @@ export class SupabaseMCPController {
   private mcpServer: SupabaseMCPServer;
   private initialized = false;
 
-  constructor() {
-    this.mcpServer = new SupabaseMCPServer();
+  constructor(private readonly llmService: LLMService) {
+    this.mcpServer = new SupabaseMCPServer(this.llmService);
   }
 
   /**

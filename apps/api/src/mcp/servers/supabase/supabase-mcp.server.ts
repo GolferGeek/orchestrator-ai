@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { MCPServerBaseService } from '../base/mcp-server-base.service';
+import { LLMService } from '@/llms/llm.service';
 import {
   IMCPServer,
   MCPServerInfo,
@@ -47,7 +48,7 @@ export class SupabaseMCPServer
   private sqlGeneratorService!: SQLGeneratorService;
   private queryExecutorService!: QueryExecutorService;
 
-  constructor() {
+  constructor(private readonly llmService: LLMService) {
     super();
   }
 
@@ -94,8 +95,8 @@ export class SupabaseMCPServer
 
       // Initialize services
       this.simpleSchemaService = new SimpleSchemaService();
-      // Create a mock SQL generator for testing - TODO: integrate proper LLM service
-      this.sqlGeneratorService = this.createMockSQLGenerator();
+      // Use the REAL SQL generator service with LLM integration
+      this.sqlGeneratorService = new SQLGeneratorService(this.llmService);
       this.queryExecutorService = new QueryExecutorService();
 
       // Test connection with a simple query
@@ -684,37 +685,4 @@ Use the database schema information and query execution tools to validate sugges
     };
   }
 
-  /**
-   * Create a mock SQL generator for testing - TODO: replace with proper LLM integration
-   */
-  private createMockSQLGenerator(): any {
-    return {
-      generateSQL: async (request: any) => {
-        // Simple mock implementation for testing
-        const { naturalLanguageQuery, schemaContext } = request;
-        
-        // Mock SQL generation based on common patterns
-        let sql = '';
-        if (naturalLanguageQuery.toLowerCase().includes('kpi') || 
-            naturalLanguageQuery.toLowerCase().includes('metric')) {
-          sql = 'SELECT * FROM kpi_metrics LIMIT 10';
-        } else if (naturalLanguageQuery.toLowerCase().includes('user')) {
-          sql = 'SELECT * FROM users LIMIT 10';
-        } else {
-          sql = 'SELECT COUNT(*) as total FROM pg_tables WHERE schemaname = \'public\'';
-        }
-
-        return {
-          sql,
-          explanation: `Mock-generated SQL for: "${naturalLanguageQuery}"`,
-          safetyScore: 0.9,
-          estimatedComplexity: 'low',
-          warnings: ['This is a mock SQL generator for testing'],
-          suggestedTables: ['kpi_metrics'],
-          modelUsed: 'mock-generator',
-          generationTime: 50
-        };
-      }
-    };
-  }
 }

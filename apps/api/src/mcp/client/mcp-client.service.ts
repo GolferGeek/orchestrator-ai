@@ -278,11 +278,25 @@ export class MCPClientService implements IMCPClient {
 
       const result = await response.json();
 
+      // Parse the MCP server response correctly
+      let parsedData = null;
+      
+      if (!result.isError && result.content?.[0]?.text) {
+        try {
+          // Try to parse the JSON text from the content
+          parsedData = JSON.parse(result.content[0].text);
+        } catch (parseError) {
+          // If JSON parsing fails, use the raw text
+          parsedData = result.content[0].text;
+        }
+      } else if (!result.isError && result.content) {
+        // Fallback to raw content if no text field
+        parsedData = result.content;
+      }
+
       return {
         success: !result.isError,
-        data: result.content?.[0]?.text
-          ? JSON.parse(result.content[0].text)
-          : result.content,
+        data: parsedData,
         error: result.isError ? result.content?.[0]?.text : undefined,
         metadata: result._meta || {},
       };

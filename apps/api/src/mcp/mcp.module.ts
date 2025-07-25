@@ -4,6 +4,7 @@ import { MCPClientService } from './client/mcp-client.service';
 import { SupabaseMCPServer } from './servers/supabase/supabase-mcp.server';
 import { MCPRegistryService } from './mcp-registry.service';
 import { LLMModule } from '@/llms/llm.module';
+import { LLMService } from '@/llms/llm.service';
 import { SupabaseModule } from '@/supabase/supabase.module';
 import { ConfigService } from '@nestjs/config';
 
