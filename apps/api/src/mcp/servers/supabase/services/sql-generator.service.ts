@@ -213,21 +213,37 @@ export class SQLGeneratorService {
   private buildSystemPrompt(
     schemaContext?: SimpleSchema | SimpleTableSchema[],
   ): string {
-    let prompt = `You are an expert SQL generator. Your task is to convert natural language queries into safe, efficient SQL queries.
+    let prompt = `You are an expert SQL generator. Your task is to convert natural language queries into safe, efficient SQL queries that ACTUALLY ADDRESS THE USER'S REQUEST.
+
+CRITICAL REQUIREMENTS:
+1. NEVER use fallback queries like "SELECT * FROM kpi_metrics LIMIT 10" or "SELECT COUNT(*) FROM pg_tables"
+2. ACTUALLY PARSE the natural language request and generate SQL that addresses it specifically
+3. If the request asks for sales data, query sales-related tables and columns
+4. If the request asks for department budgets, query departments table with budget columns
+5. If the request asks for user activity, query users with appropriate JOINs and date filters
+6. ALWAYS match the SQL to the specific intent of the natural language query
 
 IMPORTANT GUIDELINES:
-1. Always include LIMIT clauses for SELECT statements (default: LIMIT 100)
-2. Use proper WHERE clauses to filter data appropriately
-3. Never generate destructive operations (DROP, TRUNCATE) unless explicitly requested
-4. Use parameterized queries when possible
-5. Follow PostgreSQL syntax (this is a Supabase/PostgreSQL database)
-6. Return only valid, executable SQL
+7. Always include LIMIT clauses for SELECT statements (default: LIMIT 100)
+8. Use proper WHERE clauses to filter data appropriately
+9. When joining tables, handle UUID/VARCHAR type mismatches with explicit casts (e.g., uuid_column::text = varchar_column)
+10. Use proper PostgreSQL syntax for date operations (CURRENT_DATE, INTERVAL)
+11. Follow PostgreSQL syntax (this is a Supabase/PostgreSQL database)
+12. Return only valid, executable SQL that ANSWERS THE ACTUAL QUESTION
+
+COMMON PATTERNS TO IMPLEMENT:
+- Sales queries: Look for revenue, sales, or financial data with date filtering
+- Department analysis: JOIN departments table with related data  
+- User activity: JOIN users with activity tables, use date filtering
+- Top N queries: Use ORDER BY with LIMIT
+- Aggregations: Use GROUP BY, COUNT, AVG, SUM as appropriate
+- Complex relationships: Use proper JOINs with correct foreign key relationships
 
 OUTPUT FORMAT:
 Respond with a JSON object containing:
 {
-  "sql": "The generated SQL query",
-  "explanation": "Clear explanation of what the query does",
+  "sql": "The generated SQL query that ACTUALLY addresses the user's request",
+  "explanation": "Clear explanation of what the query does and how it answers the user's question",
   "safety_score": 0.95,
   "complexity": "low|medium|high",
   "warnings": ["any warnings about the query"],
@@ -328,20 +344,8 @@ Respond with a JSON object containing:
           throw new Error('No JSON found in response');
         }
       } catch (parseError) {
-        // Fallback: extract SQL from code blocks
-        const sqlMatch =
-          content.match(/```sql\n([\s\S]*?)\n```/) ||
-          content.match(/```\n([\s\S]*?)\n```/);
-        const sql = sqlMatch ? sqlMatch[1].trim() : content.trim();
-
-        parsed = {
-          sql,
-          explanation: 'SQL extracted from response',
-          safety_score: 0.5,
-          complexity: 'medium',
-          warnings: ['Could not parse structured response'],
-          suggested_tables: [],
-        };
+        // NO FALLBACK - Force proper JSON response or fail completely
+        throw new Error(`LLM must return valid JSON format. Got: ${content.substring(0, 200)}...`);
       }
 
       // Validate and sanitize the response
