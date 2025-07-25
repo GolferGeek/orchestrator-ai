@@ -6,7 +6,8 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '../../../../../types/database.types';
+// import { Database } from '../../../../../types/database.types';
+type Database = any; // Fallback type for testing
 
 export interface SQLValidationResult {
   isValid: boolean;
@@ -212,7 +213,7 @@ export class SQLValidator {
     patterns.forEach(pattern => {
       let match;
       while ((match = pattern.exec(sql)) !== null) {
-        const tableName = match[1].toLowerCase();
+        const tableName = match[1]?.toLowerCase() || '';
         if (!tables.includes(tableName)) {
           tables.push(tableName);
         }

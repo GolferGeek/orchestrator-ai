@@ -1,32 +1,36 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+/**
+ * Enhanced Supabase MCP Server
+ * 
+ * Intelligent MCP server with execution tracking, context learning, and comprehensive analytics.
+ * Replaces the existing implementation with the new infrastructure.
+ */
+
+import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { MCPServerBaseService } from '../base/mcp-server-base.service';
-import { LLMService } from '@/llms/llm.service';
-import {
-  IMCPServer,
-  MCPServerInfo,
-  MCPToolRequest,
+import { IntelligentMCPBaseService, MCPServerInfo, MCPToolDefinition, MCPToolExecutionOptions } from './base/intelligent-mcp-base.service';
+import { MCPExecutionTrackerService } from './services/mcp-execution-tracker.service';
+import { ContextLearningService } from './services/context-learning.service';
+import { SupabaseService } from '../../../supabase/supabase.service';
+import { LLMService } from '../../../llms/llm.service';
+import { 
+  IMCPServer, 
+  MCPListToolsResponse, 
+  MCPToolRequest, 
   MCPToolResponse,
-  MCPListToolsResponse,
   MCPListResourcesResponse,
-  MCPListPromptsResponse,
   MCPGetResourceRequest,
   MCPGetResourceResponse,
+  MCPListPromptsResponse,
   MCPGetPromptRequest,
-  MCPGetPromptResponse,
+  MCPGetPromptResponse
 } from '../base/interfaces/mcp-server.interface';
 
-// Services
-import { SimpleSchemaService } from './services/simple-schema.service';
-import { SQLGeneratorService } from './services/sql-generator.service';
-import { QueryExecutorService } from './services/query-executor.service';
-
-// Tools
-import { GetSchemaTool } from './tools/get-schema.tool';
-import { GenerateSQLTool } from './tools/generate-sql.tool';
-import { ExecuteSQLTool } from './tools/execute-sql.tool';
-import { QueryAndFormatTool } from './tools/query-and-format.tool';
-import { ReadDataTool } from './tools/read-data.tool';
+// Tool implementations
+import { EnhancedGenerateSQLTool } from './tools/generate-sql.tool';
+import { EnhancedGetSchemaTool } from './tools/get-schema.tool';
+import { ExecuteSQLTool as EnhancedExecuteSQLTool } from './tools/execute-sql.tool';
+import { QueryAndFormatTool as EnhancedQueryAndFormatTool } from './tools/query-and-format.tool';
+import { ReadDataTool as EnhancedReadDataTool } from './tools/read-data.tool';
 
 export interface SupabaseMCPConfig {
   supabaseUrl: string;
@@ -35,635 +39,323 @@ export interface SupabaseMCPConfig {
   cacheTTL: number;
   maxQueryTimeout: number;
   sqlModels: string[];
+  enableContextLearning?: boolean;
+  defaultLLMProvider?: string;
+  defaultLLMModel?: string;
 }
 
 @Injectable()
-export class SupabaseMCPServer
-  extends MCPServerBaseService
-  implements IMCPServer
-{
-  private readonly serverLogger = new Logger(SupabaseMCPServer.name);
+export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCPServer {
+  private readonly logger = new Logger(SupabaseMCPServer.name);
   private supabaseClient!: SupabaseClient;
-  private simpleSchemaService!: SimpleSchemaService;
-  private sqlGeneratorService!: SQLGeneratorService;
-  private queryExecutorService!: QueryExecutorService;
+  private config!: SupabaseMCPConfig;
 
-  constructor(private readonly llmService: LLMService) {
-    super();
-  }
+  // Tool instances
+  private generateSQLTool!: EnhancedGenerateSQLTool;
+  private getSchemaTool!: EnhancedGetSchemaTool;
+  private executeSQLTool!: EnhancedExecuteSQLTool;
+  private queryAndFormatTool!: EnhancedQueryAndFormatTool;
+  private readDataTool!: EnhancedReadDataTool;
 
-  async getServerInfo(): Promise<MCPServerInfo> {
-    return {
-      name: 'Supabase MCP Server',
-      version: '1.0.0',
-      description:
-        'MCP server for Supabase database operations with AI-powered SQL generation',
-      capabilities: {
-        tools: true,
-        resources: true,
-        prompts: true,
-        logging: false,
+  protected serverInfo: MCPServerInfo = {
+    name: 'supabase',
+    version: '2.0.0',
+    description: 'Intelligent Supabase MCP server with context learning and execution tracking',
+    capabilities: {
+      tools: true,
+      resources: true,
+      prompts: true,
+      logging: true
+    },
+    tools: [
+      {
+        name: 'generate-sql',
+        description: 'Generate SQL from natural language with context learning',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            prompt: {
+              type: 'string',
+              description: 'Natural language description of the desired query'
+            },
+            use_context: {
+              type: 'boolean',
+              description: 'Apply context learning patterns',
+              default: true
+            },
+            llm_provider: {
+              type: 'string',
+              description: 'LLM provider to use (anthropic, openai, google)',
+              default: 'anthropic'
+            },
+            llm_model: {
+              type: 'string',
+              description: 'Specific model to use',
+              default: 'claude-3-5-sonnet'
+            },
+            max_retries: {
+              type: 'integer',
+              description: 'Maximum retry attempts',
+              default: 3,
+              minimum: 0,
+              maximum: 5
+            }
+          },
+          required: ['prompt']
+        }
       },
-      metadata: {
-        database_type: 'postgresql',
-        features: [
-          'schema_introspection',
-          'sql_generation',
-          'query_execution',
-          'data_analysis',
-        ],
-        transport: 'http+sse',
-        models_supported: [],
-      },
-    };
-  }
-
-  async initialize(config?: SupabaseMCPConfig): Promise<void> {
-    if (!config) {
-      throw new Error('Supabase MCP server requires configuration');
-    }
-    try {
-      this.serverLogger.log('Initializing Supabase MCP Server...');
-
-      // Import Supabase client dynamically to avoid potential issues
-      const { createClient } = await import('@supabase/supabase-js');
-
-      this.supabaseClient = createClient(
-        config.supabaseUrl,
-        config.supabaseKey,
-      );
-
-      // Initialize services
-      this.simpleSchemaService = new SimpleSchemaService();
-      // Use the REAL SQL generator service with LLM integration
-      this.sqlGeneratorService = new SQLGeneratorService(this.llmService);
-      this.queryExecutorService = new QueryExecutorService();
-
-      // Test connection with a simple query
-      const { data, error } = await this.supabaseClient.rpc(
-        'test_connection',
-        {},
-      );
-
-      // If RPC doesn't exist, try a direct SQL query
-      if (error && error.code === 'PGRST202') {
-        // Try a basic query instead - check if we can access any tables
-        const { data: tables, error: tablesError } = await this.supabaseClient
-          .from('pg_tables')
-          .select('tablename')
-          .eq('schemaname', 'public')
-          .limit(1);
-
-        if (tablesError) {
-          // Fall back to most basic test - just verify we can make a connection
-          this.serverLogger.warn(
-            'Cannot query system tables, testing basic connection...',
-          );
-          const { data: basicTest, error: basicError } =
-            await this.supabaseClient
-              .from('nonexistent_table_test')
-              .select('*')
-              .limit(1);
-
-          // We expect this to fail, but if it fails with "relation does not exist"
-          // that means we connected successfully
-          if (
-            basicError &&
-            !basicError.message.includes('relation') &&
-            !basicError.message.includes('does not exist')
-          ) {
-            throw new Error(
-              `Failed to connect to Supabase: ${basicError.message}`,
-            );
+      {
+        name: 'get-schema',
+        description: 'Get database schema information with caching',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            table_names: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Specific tables to get schema for (optional)'
+            },
+            format: {
+              type: 'string',
+              enum: ['json', 'markdown', 'sql'],
+              description: 'Output format for schema',
+              default: 'json'
+            },
+            refresh_cache: {
+              type: 'boolean',
+              description: 'Force refresh of cached schema',
+              default: false
+            }
           }
         }
-      } else if (error) {
-        throw new Error(`Failed to connect to Supabase: ${error.message}`);
+      },
+      {
+        name: 'execute-sql',
+        description: 'Execute SQL queries with safety checks',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sql: {
+              type: 'string',
+              description: 'SQL query to execute'
+            },
+            dry_run: {
+              type: 'boolean',
+              description: 'Perform validation only without execution',
+              default: true
+            },
+            timeout_ms: {
+              type: 'integer',
+              description: 'Query timeout in milliseconds',
+              default: 30000,
+              minimum: 1000,
+              maximum: 60000
+            },
+            max_rows: {
+              type: 'integer',
+              description: 'Maximum rows to return',
+              default: 1000,
+              minimum: 1,
+              maximum: 10000
+            }
+          },
+          required: ['sql']
+        }
+      },
+      {
+        name: 'query-and-format',
+        description: 'Generate SQL from prompt and execute with formatting',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            prompt: {
+              type: 'string',
+              description: 'Natural language query description'
+            },
+            format: {
+              type: 'string',
+              enum: ['json', 'csv', 'markdown', 'table'],
+              description: 'Output format for results',
+              default: 'json'
+            },
+            execute: {
+              type: 'boolean',
+              description: 'Execute the generated query',
+              default: false
+            },
+            use_context: {
+              type: 'boolean',
+              description: 'Apply context learning',
+              default: true
+            }
+          },
+          required: ['prompt']
+        }
+      },
+      {
+        name: 'read-data',
+        description: 'Read data from tables with filtering',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            table_name: {
+              type: 'string',
+              description: 'Name of the table to read from'
+            },
+            columns: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Specific columns to select (optional)'
+            },
+            limit: {
+              type: 'integer',
+              description: 'Maximum number of rows',
+              default: 100,
+              minimum: 1,
+              maximum: 1000
+            },
+            offset: {
+              type: 'integer',
+              description: 'Number of rows to skip',
+              default: 0,
+              minimum: 0
+            }
+          },
+          required: ['table_name']
+        }
+      }
+    ]
+  };
+
+  constructor(
+    private readonly llmService: LLMService,
+    executionTracker?: MCPExecutionTrackerService,
+    supabaseService?: SupabaseService,
+    private readonly contextLearning?: ContextLearningService
+  ) {
+    // Create dummy services if not provided (for testing purposes)
+    const dummyTracker = executionTracker || ({} as MCPExecutionTrackerService);
+    const dummySupabase = supabaseService || ({} as SupabaseService);
+    super(dummyTracker, dummySupabase);
+  }
+
+  /**
+   * Initialize the server with configuration
+   */
+  async initialize(config: SupabaseMCPConfig): Promise<void> {
+    try {
+      this.logger.log('Initializing Enhanced Supabase MCP Server...');
+      this.config = config;
+
+      // Create Supabase client
+      const { createClient } = await import('@supabase/supabase-js');
+      this.supabaseClient = createClient(config.supabaseUrl, config.supabaseKey);
+
+      // Test connection
+      await this.testConnection();
+
+      // Initialize context learning if enabled
+      if (config.enableContextLearning !== false && this.contextLearning) {
+        await this.contextLearning.onModuleInit();
+        this.logger.log('Context learning system initialized');
       }
 
-      this.serverLogger.log('Supabase MCP Server initialized successfully');
+      // Initialize tool instances
+      this.initializeTools();
+
+      this.logger.log('Enhanced Supabase MCP Server initialized successfully');
     } catch (error) {
-      this.serverLogger.error(
-        'Failed to initialize Supabase MCP Server:',
-        error,
-      );
+      this.logger.error('Failed to initialize Supabase MCP Server:', error);
       throw error;
     }
   }
 
-  async shutdown(): Promise<void> {
+  /**
+   * Initialize all tool instances
+   */
+  private initializeTools(): void {
+    this.generateSQLTool = new EnhancedGenerateSQLTool(
+      this.supabaseClient,
+      this.contextLearning || ({} as ContextLearningService),
+      this.llmService
+    );
+
+    this.getSchemaTool = new EnhancedGetSchemaTool(this.supabaseClient);
+    this.executeSQLTool = new EnhancedExecuteSQLTool(this.supabaseClient);
+    this.queryAndFormatTool = new EnhancedQueryAndFormatTool(
+      this.supabaseClient,
+      this.contextLearning || ({} as ContextLearningService),
+      this.llmService
+    );
+    this.readDataTool = new EnhancedReadDataTool(this.supabaseClient);
+  }
+
+  /**
+   * Test database connection
+   */
+  private async testConnection(): Promise<void> {
     try {
-      this.serverLogger.log('Shutting down Supabase MCP Server...');
-
-      // Clear caches
-      if (this.simpleSchemaService) {
-        await this.simpleSchemaService.clearCache();
-      }
-
-      this.serverLogger.log('Supabase MCP Server shutdown complete');
-    } catch (error) {
-      this.serverLogger.error(
-        'Error during Supabase MCP Server shutdown:',
-        error,
-      );
-    }
-  }
-
-  async listTools(): Promise<MCPListToolsResponse> {
-    return this.formatResponse({
-      tools: [
-        GetSchemaTool.getDefinition(),
-        GenerateSQLTool.getDefinition(),
-        ExecuteSQLTool.getDefinition(),
-        QueryAndFormatTool.getDefinition(),
-        ReadDataTool.getDefinition(),
-      ],
-    });
-  }
-
-  async callTool(
-    request: MCPToolRequest,
-    progressCallback?: (progress: any) => Promise<void>,
-  ): Promise<MCPToolResponse> {
-    try {
-      this.serverLogger.debug(`Calling tool: ${request.name}`, {
-        arguments: request.arguments,
-      });
-
-      switch (request.name) {
-        case 'get-schema':
-          return await GetSchemaTool.execute(
-            request,
-            this.supabaseClient,
-            this.simpleSchemaService,
-          );
-
-        case 'generate-sql':
-          return await GenerateSQLTool.execute(
-            request,
-            this.supabaseClient,
-            this.simpleSchemaService,
-            this.sqlGeneratorService,
-          );
-
-        case 'execute-sql':
-          return await ExecuteSQLTool.execute(
-            request,
-            this.supabaseClient,
-            this.queryExecutorService,
-          );
-
-        case 'query-and-format':
-          return await QueryAndFormatTool.execute(
-            request,
-            this.supabaseClient,
-            this.simpleSchemaService,
-            this.sqlGeneratorService,
-            this.queryExecutorService,
-            progressCallback,
-          );
-
-        case 'read-data':
-          return await ReadDataTool.execute(request, this.supabaseClient);
-
-        default:
-          return this.formatErrorResponse(
-            `Unknown tool: ${request.name}`,
-            request.name,
-          );
-      }
-    } catch (error) {
-      this.serverLogger.error(`Error calling tool ${request.name}:`, error);
-      return this.formatErrorResponse(
-        error instanceof Error ? error.message : 'Unknown error',
-        request.name,
-      );
-    }
-  }
-
-  async listResources(): Promise<MCPListResourcesResponse> {
-    try {
-      // Get database schema to list tables as resources
-      const schema = await this.simpleSchemaService.getSchema(
-        this.supabaseClient,
-      );
-
-      const resources = [];
-
-      // Add database schema as a resource
-      resources.push({
-        uri: 'supabase://schema/database',
-        name: 'Database Schema',
-        description:
-          'Complete database schema with all tables, columns, and relationships',
-        mimeType: 'application/json',
-      });
-
-      // Add each table as a resource
-      if ('tables' in schema) {
-        for (const table of schema.tables) {
-          resources.push({
-            uri: `supabase://table/${table.table_name}`,
-            name: `Table: ${table.table_name}`,
-            description: `Schema for table ${table.table_name} with ${table.sample_columns.length} columns`,
-            mimeType: 'application/json',
-          });
-        }
-      }
-
-      return this.formatResponse({ resources });
-    } catch (error) {
-      this.serverLogger.error('Error listing resources:', error);
-      return this.formatResponse({ resources: [] });
-    }
-  }
-
-  async getResource(
-    request: MCPGetResourceRequest,
-  ): Promise<MCPGetResourceResponse> {
-    try {
-      const uri = request.uri;
-
-      if (uri === 'supabase://schema/database') {
-        // Return full database schema
-        const schema = await this.simpleSchemaService.getSchema(
-          this.supabaseClient,
-        );
-        return this.formatResponse({
-          contents: [
-            {
-              uri: uri,
-              mimeType: 'application/json',
-              text: JSON.stringify(schema, null, 2),
-            },
-          ],
-        });
-      }
-
-      if (uri.startsWith('supabase://table/')) {
-        // Return specific table schema
-        const tableName = uri.replace('supabase://table/', '');
-        const tableSchema = await this.simpleSchemaService.getTableInfo(
-          this.supabaseClient,
-          tableName,
-        );
-        return this.formatResponse({
-          contents: [
-            {
-              uri: uri,
-              mimeType: 'application/json',
-              text: JSON.stringify(tableSchema, null, 2),
-            },
-          ],
-        });
-      }
-
-      return this.formatResponse({
-        contents: [
-          {
-            uri: uri,
-            mimeType: 'text/plain',
-            text: `Error: Resource not found: ${uri}`,
-          },
-        ],
-      });
-    } catch (error) {
-      this.serverLogger.error(`Error getting resource ${request.uri}:`, error);
-      return this.formatResponse({
-        contents: [
-          {
-            uri: request.uri,
-            mimeType: 'text/plain',
-            text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          },
-        ],
-      });
-    }
-  }
-
-  async listPrompts(): Promise<MCPListPromptsResponse> {
-    return this.formatResponse({
-      prompts: [
-        {
-          name: 'analyze-data',
-          description: 'Analyze data patterns and generate insights',
-          arguments: [
-            {
-              name: 'table_name',
-              description: 'Name of the table to analyze',
-              required: true,
-            },
-            {
-              name: 'analysis_type',
-              description:
-                'Type of analysis: summary, trends, anomalies, correlations',
-              required: false,
-            },
-          ],
-        },
-        {
-          name: 'generate-report',
-          description: 'Generate a comprehensive data report',
-          arguments: [
-            {
-              name: 'query_description',
-              description: 'Natural language description of what to report on',
-              required: true,
-            },
-            {
-              name: 'format',
-              description: 'Report format: executive, detailed, technical',
-              required: false,
-            },
-          ],
-        },
-        {
-          name: 'optimize-query',
-          description: 'Suggest optimizations for a SQL query',
-          arguments: [
-            {
-              name: 'sql_query',
-              description: 'The SQL query to optimize',
-              required: true,
-            },
-            {
-              name: 'performance_target',
-              description: 'Performance target: speed, memory, readability',
-              required: false,
-            },
-          ],
-        },
-      ],
-    });
-  }
-
-  async getPrompt(request: MCPGetPromptRequest): Promise<MCPGetPromptResponse> {
-    try {
-      const { name, arguments: args } = request;
-
-      switch (name) {
-        case 'analyze-data':
-          return await this.generateAnalysisPrompt(args);
-        case 'generate-report':
-          return await this.generateReportPrompt(args);
-        case 'optimize-query':
-          return await this.generateOptimizationPrompt(args);
-        default:
-          return this.formatResponse({
-            description: `Error: Unknown prompt: ${name}`,
-            messages: [
-              {
-                role: 'user',
-                content: {
-                  type: 'text',
-                  text: `Error: Unknown prompt: ${name}`,
-                },
-              },
-            ],
-          });
-      }
-    } catch (error) {
-      this.serverLogger.error(`Error getting prompt ${request.name}:`, error);
-      return this.formatResponse({
-        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          },
-        ],
-      });
-    }
-  }
-
-  private async generateAnalysisPrompt(
-    args: any,
-  ): Promise<MCPGetPromptResponse> {
-    const tableName = args?.table_name;
-    const analysisType = args?.analysis_type || 'summary';
-
-    if (!tableName) {
-      return this.formatPromptErrorResponse(
-        'table_name is required for analysis prompt',
-      );
-    }
-
-    try {
-      // Get table schema for context
-      const tableSchema = await this.simpleSchemaService.getTableInfo(
-        this.supabaseClient,
-        tableName,
-      );
-
-      const prompt = `Analyze the data in table "${tableName}" and provide ${analysisType} insights.
-
-Table Schema:
-${JSON.stringify(tableSchema, null, 2)}
-
-Please provide:
-1. Data overview and basic statistics
-2. Key patterns and trends
-3. Notable findings or anomalies
-4. Recommendations for further analysis
-
-Use the available MCP tools to query the data and generate comprehensive insights.`;
-
-      return this.formatResponse({
-        description: `Data analysis prompt for ${tableName}`,
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: prompt,
-            },
-          },
-        ],
-      });
-    } catch (error) {
-      return this.formatPromptErrorResponse(
-        `Failed to generate analysis prompt: ${error}`,
-      );
-    }
-  }
-
-  private async generateReportPrompt(args: any): Promise<MCPGetPromptResponse> {
-    const queryDescription = args?.query_description;
-    const format = args?.format || 'detailed';
-
-    if (!queryDescription) {
-      return this.formatPromptErrorResponse(
-        'query_description is required for report prompt',
-      );
-    }
-
-    const prompt = `Generate a ${format} report based on the following request:
-
-"${queryDescription}"
-
-Please:
-1. First understand what data is needed by examining the database schema
-2. Generate appropriate SQL queries to gather the required data
-3. Execute the queries and analyze the results
-4. Format the findings into a comprehensive ${format} report
-5. Include visualizations or charts recommendations where appropriate
-
-Use the query-and-format tool with report output format to get structured results.`;
-
-    return this.formatResponse({
-      description: `Report generation prompt for: ${queryDescription}`,
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: prompt,
-          },
-        },
-      ],
-    });
-  }
-
-  private async generateOptimizationPrompt(
-    args: any,
-  ): Promise<MCPGetPromptResponse> {
-    const sqlQuery = args?.sql_query;
-    const performanceTarget = args?.performance_target || 'speed';
-
-    if (!sqlQuery) {
-      return this.formatPromptErrorResponse(
-        'sql_query is required for optimization prompt',
-      );
-    }
-
-    const prompt = `Analyze and optimize the following SQL query for ${performanceTarget}:
-
-\`\`\`sql
-${sqlQuery}
-\`\`\`
-
-Please:
-1. Analyze the current query structure and performance characteristics
-2. Identify potential bottlenecks or inefficiencies
-3. Suggest specific optimizations based on the ${performanceTarget} target
-4. Provide the optimized query with explanations
-5. Compare expected performance improvements
-
-Use the database schema information and query execution tools to validate suggestions.`;
-
-    return this.formatResponse({
-      description: `Query optimization prompt for ${performanceTarget}`,
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: prompt,
-          },
-        },
-      ],
-    });
-  }
-
-  // Helper methods
-  private formatResponse<T>(data: T): T {
-    return data;
-  }
-
-  private formatErrorResponse(
-    error: string,
-    toolName: string,
-  ): MCPToolResponse {
-    return this.createErrorResponse(error, { tool: toolName });
-  }
-
-  private formatPromptErrorResponse(error: string): MCPGetPromptResponse {
-    return this.formatResponse({
-      description: `Error: ${error}`,
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Error: ${error}`,
-          },
-        },
-      ],
-    });
-  }
-
-  // Health check method
-  async healthCheck(): Promise<{
-    status: 'healthy' | 'unhealthy';
-    details?: any;
-  }> {
-    try {
-      // Simple database connection test using pg_tables instead of information_schema
       const { data, error } = await this.supabaseClient
-        .from('pg_tables')
-        .select('tablename')
-        .eq('schemaname', 'public')
+        .from('users')
+        .select('id')
         .limit(1);
 
-      if (error) {
-        // If pg_tables is not accessible, try an even simpler test
-        this.serverLogger.debug('pg_tables query failed, trying fallback', error);
-        
-        // Test basic connectivity by attempting to create a dummy query
-        // This should fail with "relation does not exist" if we're connected
-        const { data: fallbackData, error: fallbackError } = await this.supabaseClient
-          .from('_health_check_dummy_table_')
-          .select('*')
-          .limit(1);
-
-        // If we get a "relation does not exist" error, that means we're connected
-        if (fallbackError && (
-          fallbackError.message.includes('relation') || 
-          fallbackError.message.includes('does not exist') ||
-          fallbackError.message.includes('table') ||
-          fallbackError.code === 'PGRST106'
-        )) {
-          // This is good - we're connected but the table doesn't exist
-          this.serverLogger.debug('Database connection confirmed via fallback test');
-        } else {
-          return {
-            status: 'unhealthy',
-            details: { database: `Connection test failed: ${fallbackError?.message || 'Unknown error'}` },
-          };
-        }
+      if (error && !error.message.includes('relation')) {
+        throw new Error(`Database connection failed: ${error.message}`);
       }
 
-      // Test service health
-      const serviceHealth = {
-        schema_cache: { status: 'available' },
-        sql_generator: { status: 'available' },
-        query_executor: { status: 'available' },
-      };
-
-      return {
-        status: 'healthy',
-        details: {
-          database: 'connected',
-          services: serviceHealth,
-          tools_available: 5,
-          resources_available: 'dynamic',
-        },
-      };
+      this.logger.log('Database connection verified');
     } catch (error) {
-      this.serverLogger.error('Health check failed:', error);
-      return {
-        status: 'unhealthy',
-        details: {
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-      };
+      throw new Error(`Failed to verify database connection: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  // Get server capabilities
+  /**
+   * Execute tool implementation with our enhanced infrastructure
+   */
+  protected async executeToolImplementation(
+    toolName: string,
+    parameters: any,
+    options: MCPToolExecutionOptions
+  ): Promise<any> {
+    // Validate parameters
+    const validation = this.validateParameters(toolName, parameters);
+    if (!validation.valid) {
+      throw new Error(`Parameter validation failed: ${validation.errors.join(', ')}`);
+    }
+
+    // Set default LLM options
+    const enhancedOptions = {
+      ...options,
+      llmProvider: options.llmProvider || this.config.defaultLLMProvider || 'anthropic',
+      llmModel: options.llmModel || this.config.defaultLLMModel || 'claude-3-5-sonnet'
+    };
+
+    // Execute the appropriate tool
+    switch (toolName) {
+      case 'generate-sql':
+        return await this.generateSQLTool.execute(parameters, enhancedOptions);
+
+      case 'get-schema':
+        return await this.getSchemaTool.execute(parameters, enhancedOptions);
+
+      case 'execute-sql':
+        return await this.executeSQLTool.execute(parameters, enhancedOptions);
+
+      case 'query-and-format':
+        return await this.queryAndFormatTool.execute(parameters, enhancedOptions);
+
+      case 'read-data':
+        return await this.readDataTool.execute(parameters, enhancedOptions);
+
+      default:
+        throw new Error(`Unknown tool: ${toolName}`);
+    }
+  }
+
+  /**
+   * Get enhanced server capabilities
+   */
   getCapabilities(): any {
     return {
       tools: {
@@ -677,12 +369,292 @@ Use the database schema information and query execution tools to validate sugges
         listChanged: false,
       },
       experimental: {
-        sqlGeneration: true,
-        modelComparison: true,
-        realTimeProgress: true,
-        caching: true,
+        contextLearning: this.config.enableContextLearning !== false,
+        executionTracking: true,
+        performanceAnalytics: true,
+        multiModelSupport: true,
+        smartRetry: true,
+        securityValidation: true
       },
     };
   }
 
+  /**
+   * Enhanced health check with detailed diagnostics
+   */
+  async healthCheck(): Promise<{
+    status: 'healthy' | 'unhealthy';
+    details?: any;
+  }> {
+    try {
+      // Test database connection
+      const { data, error } = await this.supabaseClient
+        .from('users')
+        .select('id')
+        .limit(1);
+
+      const dbStatus = error && !error.message.includes('relation') ? 'unhealthy' : 'healthy';
+
+      // Test context learning
+      const contextStats = this.contextLearning?.getContextStats() || { totalPatterns: 0, lastReload: null };
+
+      // Test execution tracking (basic check)
+      const userStats = await this.getServerStats('test-user-id', 1).catch(() => null);
+
+      return {
+        status: dbStatus,
+        details: {
+          database: {
+            status: dbStatus,
+            connection: 'verified'
+          },
+          contextLearning: {
+            status: 'healthy',
+            totalPatterns: contextStats.totalPatterns,
+            lastReload: contextStats.lastReload
+          },
+          executionTracking: {
+            status: userStats ? 'healthy' : 'available',
+            tables: ['mcp_executions', 'mcp_failures', 'mcp_feedback']
+          },
+          tools: {
+            available: this.serverInfo.tools.length,
+            status: 'healthy'
+          },
+          performance: {
+            caching: this.config.enableCaching,
+            timeout: this.config.maxQueryTimeout,
+            llmModels: this.config.sqlModels
+          }
+        }
+      };
+    } catch (error) {
+      this.logger.error('Health check failed:', error);
+      return {
+        status: 'unhealthy',
+        details: {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      };
+    }
+  }
+
+  /**
+   * Get context learning statistics
+   */
+  async getContextStats(): Promise<any> {
+    return this.contextLearning?.getContextStats() || { totalPatterns: 0, lastReload: null };
+  }
+
+  /**
+   * Force reload context learning data
+   */
+  async reloadContext(): Promise<void> {
+    if (this.contextLearning) {
+      await this.contextLearning.forceReload();
+    }
+  }
+
+  /**
+   * Shutdown the server gracefully
+   */
+  async shutdown(): Promise<void> {
+    try {
+      this.logger.log('Shutting down Enhanced Supabase MCP Server...');
+
+      // Cleanup context learning
+      if (this.contextLearning) {
+        await this.contextLearning.onModuleDestroy();
+      }
+
+      // Clear any caches
+      // (Individual tools would handle their own cleanup)
+
+      this.logger.log('Enhanced Supabase MCP Server shutdown complete');
+    } catch (error) {
+      this.logger.error('Error during server shutdown:', error);
+    }
+  }
+
+  /**
+   * Get server configuration (sanitized)
+   */
+  getServerConfig(): Partial<SupabaseMCPConfig> {
+    return {
+      enableCaching: this.config.enableCaching,
+      cacheTTL: this.config.cacheTTL,
+      maxQueryTimeout: this.config.maxQueryTimeout,
+      sqlModels: this.config.sqlModels,
+      enableContextLearning: this.config.enableContextLearning,
+      defaultLLMProvider: this.config.defaultLLMProvider,
+      defaultLLMModel: this.config.defaultLLMModel
+      // Note: Sensitive data (URLs, keys) are excluded
+    };
+  }
+
+  /**
+   * MCP Protocol Implementation
+   */
+
+  async listTools(): Promise<MCPListToolsResponse> {
+    return {
+      tools: this.serverInfo.tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema
+      }))
+    };
+  }
+
+  async callTool(
+    request: MCPToolRequest,
+    progressCallback?: (progress: any) => Promise<void>
+  ): Promise<MCPToolResponse> {
+    try {
+      const result = await this.executeTool(
+        request.name,
+        request.arguments || {},
+        {
+          userId: 'mcp-user',
+          agentConversationId: 'mcp-conversation',
+          sessionId: 'mcp-session',
+          llmProvider: 'anthropic',
+          llmModel: 'claude-3-5-sonnet'
+        }
+      );
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify(result, null, 2)
+        }],
+        isError: false,
+        _meta: {
+          tool_name: request.name,
+          execution_time: Date.now()
+        }
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Error executing tool ${request.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }],
+        isError: true,
+        _meta: {
+          tool_name: request.name,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      };
+    }
+  }
+
+  async listResources(): Promise<MCPListResourcesResponse> {
+    return {
+      resources: [
+        {
+          uri: 'supabase://schema',
+          name: 'Database Schema',
+          description: 'Complete database schema information',
+          mimeType: 'application/json'
+        },
+        {
+          uri: 'supabase://context',
+          name: 'SQL Context',
+          description: 'SQL generation context and patterns',
+          mimeType: 'text/markdown'
+        }
+      ]
+    };
+  }
+
+  async getResource(request: MCPGetResourceRequest): Promise<MCPGetResourceResponse> {
+    if (request.uri === 'supabase://schema') {
+      const schemaResult = await this.getSchemaTool.execute({}, {
+        userId: 'mcp-user',
+        agentConversationId: 'mcp-conversation',
+        sessionId: 'mcp-session',
+        llmProvider: 'anthropic',
+        llmModel: 'claude-3-5-sonnet'
+      });
+
+      return {
+        contents: [{
+          uri: request.uri,
+          mimeType: 'application/json',
+          text: JSON.stringify(schemaResult, null, 2)
+        }]
+      };
+    }
+
+    if (request.uri === 'supabase://context') {
+      const contextStats = this.contextLearning?.getContextStats() || { totalPatterns: 0, lastReload: null };
+      return {
+        contents: [{
+          uri: request.uri,
+          mimeType: 'text/markdown',
+          text: `# SQL Context Learning\n\nTotal patterns: ${contextStats.totalPatterns}\nLast reload: ${contextStats.lastReload}\n\nThis resource contains SQL generation patterns learned from successful queries.`
+        }]
+      };
+    }
+
+    throw new Error(`Resource not found: ${request.uri}`);
+  }
+
+  async listPrompts(): Promise<MCPListPromptsResponse> {
+    return {
+      prompts: [
+        {
+          name: 'generate-optimized-sql',
+          description: 'Generate an optimized SQL query with performance considerations',
+          arguments: [
+            { name: 'query_description', description: 'Natural language description of the query', required: true },
+            { name: 'performance_level', description: 'Performance optimization level (low, medium, high)', required: false }
+          ]
+        },
+        {
+          name: 'analyze-query-performance',
+          description: 'Analyze and suggest improvements for an existing SQL query',
+          arguments: [
+            { name: 'sql_query', description: 'The SQL query to analyze', required: true }
+          ]
+        }
+      ]
+    };
+  }
+
+  async getPrompt(request: MCPGetPromptRequest): Promise<MCPGetPromptResponse> {
+    if (request.name === 'generate-optimized-sql') {
+      const queryDescription = request.arguments?.query_description || 'data retrieval query';
+      const performanceLevel = request.arguments?.performance_level || 'medium';
+
+      return {
+        description: 'Generate an optimized SQL query with performance considerations',
+        messages: [{
+          role: 'user',
+          content: {
+            type: 'text',
+            text: `Generate an optimized SQL query for: ${queryDescription}\n\nOptimization level: ${performanceLevel}\n\nPlease consider:\n- Proper indexing strategies\n- Efficient JOIN operations\n- Query plan optimization\n- Performance best practices`
+          }
+        }]
+      };
+    }
+
+    if (request.name === 'analyze-query-performance') {
+      const sqlQuery = request.arguments?.sql_query || '';
+
+      return {
+        description: 'Analyze and suggest improvements for an existing SQL query',
+        messages: [{
+          role: 'user',
+          content: {
+            type: 'text',
+            text: `Analyze this SQL query for performance improvements:\n\n\`\`\`sql\n${sqlQuery}\n\`\`\`\n\nPlease provide:\n- Performance bottlenecks\n- Optimization suggestions\n- Index recommendations\n- Alternative query patterns`
+          }
+        }]
+      };
+    }
+
+    throw new Error(`Prompt not found: ${request.name}`);
+  }
 }

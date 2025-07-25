@@ -6,7 +6,8 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '../../../../../types/database.types';
+// import { Database } from '../../../../../types/database.types';
+type Database = any; // Fallback type for testing
 
 export interface TestUser {
   id: string;
@@ -494,9 +495,9 @@ export class TestDataManager {
 
     const toolBreakdown = Object.entries(toolStats).map(([tool_name, stats]) => ({
       tool_name,
-      count: stats.total,
-      success_rate: (stats.successful / stats.total) * 100,
-      avg_time: stats.totalTime / stats.total
+      count: (stats as any).total,
+      success_rate: ((stats as any).successful / (stats as any).total) * 100,
+      avg_time: (stats as any).totalTime / (stats as any).total
     }));
 
     return {

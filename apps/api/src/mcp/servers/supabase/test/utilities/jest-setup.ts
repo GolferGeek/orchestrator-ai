@@ -48,7 +48,7 @@ expect.extend({
         isValid 
           ? `Expected ${received} not to be valid SQL`
           : `Expected ${received} to be valid SQL`,
-      pass: isValid,
+      pass: Boolean(isValid),
     };
   },
 

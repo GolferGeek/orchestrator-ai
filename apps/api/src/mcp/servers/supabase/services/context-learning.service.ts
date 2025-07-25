@@ -74,7 +74,7 @@ export class ContextLearningService implements OnModuleInit, OnModuleDestroy {
       console.log(`📊 Loaded ${Array.from(this.contextData.values()).flat().length} patterns`);
       
     } catch (error) {
-      console.warn(`⚠️  Failed to load context file: ${error.message}`);
+      console.warn(`⚠️  Failed to load context file: ${error instanceof Error ? error.message : 'Unknown error'}`);
       // Initialize with empty context if file doesn't exist
       this.contextData.clear();
     }
@@ -94,7 +94,7 @@ export class ContextLearningService implements OnModuleInit, OnModuleDestroy {
     let codeContent = '';
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+      const line = lines[i]?.trim() || '';
 
       // Track code blocks
       if (line.startsWith('```')) {
@@ -153,9 +153,9 @@ export class ContextLearningService implements OnModuleInit, OnModuleDestroy {
       const [condition, solution] = line.substring(2).split(':', 2);
       pattern.type = 'success';
       pattern.category = category || 'general';
-      pattern.description = condition.trim();
-      pattern.pattern = solution.trim();
-      pattern.conditions = [condition.trim()];
+      pattern.description = condition?.trim() || '';
+      pattern.pattern = solution?.trim() || '';
+      pattern.conditions = [condition?.trim() || ''];
     }
   }
 

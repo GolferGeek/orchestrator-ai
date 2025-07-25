@@ -7,7 +7,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { MCPExecutionTrackerService, MCPExecutionContext, MCPExecutionResult } from '../services/mcp-execution-tracker.service';
-import { SupabaseService } from '../../../shared/supabase/supabase.service';
+import { SupabaseService } from '../../../../supabase/supabase.service';
 
 export interface MCPToolDefinition {
   name: string;
@@ -20,7 +20,12 @@ export interface MCPServerInfo {
   name: string;
   version: string;
   description: string;
-  capabilities: string[];
+  capabilities: {
+    tools?: boolean;
+    resources?: boolean;
+    prompts?: boolean;
+    logging?: boolean;
+  };
   tools: MCPToolDefinition[];
 }
 
@@ -47,7 +52,7 @@ export abstract class IntelligentMCPBaseService {
   /**
    * Get server information and available tools
    */
-  getServerInfo(): MCPServerInfo {
+  async getServerInfo(): Promise<MCPServerInfo> {
     return this.serverInfo;
   }
 
@@ -128,7 +133,7 @@ export abstract class IntelligentMCPBaseService {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const { data: executions, error } = await this.supabaseService.getClient()
+    const { data: executions, error } = await this.supabaseService.getServiceClient()
       .from('mcp_executions')
       .select('*')
       .eq('user_id', userId)
@@ -140,14 +145,14 @@ export abstract class IntelligentMCPBaseService {
     }
 
     const totalExecutions = executions.length;
-    const successfulExecutions = executions.filter(e => e.status === 'success').length;
+    const successfulExecutions = executions.filter((e: any) => e.status === 'success').length;
     const successRate = totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
     const avgExecutionTime = totalExecutions > 0 
-      ? executions.reduce((sum, e) => sum + (e.execution_time_ms || 0), 0) / totalExecutions 
+      ? executions.reduce((sum: number, e: any) => sum + (e.execution_time_ms || 0), 0) / totalExecutions 
       : 0;
 
     // Calculate per-tool statistics
-    const toolStatsMap = executions.reduce((acc, exec) => {
+    const toolStatsMap = executions.reduce((acc: any, exec: any) => {
       const toolName = exec.tool_name;
       if (!acc[toolName]) {
         acc[toolName] = { total: 0, successful: 0, totalTime: 0 };
@@ -160,9 +165,9 @@ export abstract class IntelligentMCPBaseService {
 
     const toolStats = Object.entries(toolStatsMap).map(([toolName, stats]) => ({
       toolName,
-      executions: stats.total,
-      successRate: (stats.successful / stats.total) * 100,
-      avgTime: stats.totalTime / stats.total
+      executions: (stats as any).total,
+      successRate: ((stats as any).successful / (stats as any).total) * 100,
+      avgTime: (stats as any).totalTime / (stats as any).total
     }));
 
     return {
@@ -191,7 +196,7 @@ export abstract class IntelligentMCPBaseService {
     hasFailure: boolean;
     hasFeedback: boolean;
   }>> {
-    let query = this.supabaseService.getClient()
+    let query = this.supabaseService.getServiceClient()
       .from('mcp_executions')
       .select(`
         id,
@@ -218,7 +223,7 @@ export abstract class IntelligentMCPBaseService {
       throw new Error(`Failed to get recent executions: ${error.message}`);
     }
 
-    return (executions || []).map(exec => ({
+    return (executions || []).map((exec: any) => ({
       id: exec.id,
       toolName: exec.tool_name,
       status: exec.status,
