@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import HomePage from '../views/HomePage.vue';
 import LoginPage from '../views/LoginPage.vue';
+import MCPDiscoveryPage from '../views/MCPDiscoveryPage.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -18,6 +19,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/chat',
     name: 'Chat', 
     component: HomePage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/mcp-discovery',
+    name: 'MCPDiscovery',
+    component: MCPDiscoveryPage,
     meta: { requiresAuth: true }
   },
   {
