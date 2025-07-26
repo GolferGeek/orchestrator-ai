@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { HealthModule } from './health/health.module';
 import { AgentPoolModule } from './agent-pool/agent-pool.module';
+import { MCPPoolModule } from './mcp-pool/mcp-pool.module';
 import { LLMModule } from '@/llms/llm.module';
 import { AgentDiscoveryService } from './agent-discovery.service';
 import { AgentFactoryService } from './agent-factory.service';
@@ -51,6 +52,7 @@ import supabaseConfig from './supabase/supabase.config';
     SessionsModule,
     HealthModule,
     AgentPoolModule,
+    MCPPoolModule, // MCP service discovery and pool management
     // LLM Evaluation Enhancement Modules
     ProvidersModule, // LLM providers and models management
     CIDAFMModule, // AI Function Module behavior modification
