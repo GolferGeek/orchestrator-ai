@@ -1,0 +1,1141 @@
+{
+  "timestamp": "2025-07-26T00:05:18.411Z",
+  "testSuite": "MCP Integration Tests",
+  "sessionId": "integration-test-1753488316883",
+  "summary": {
+    "totalPassed": 50,
+    "totalFailed": 16,
+    "overallSuccessRate": 75.8,
+    "sqlQueriesGenerated": 30
+  },
+  "results": {
+    "setup": {
+      "passed": 3,
+      "failed": 1,
+      "tests": [
+        {
+          "name": "Environment Variables Validation",
+          "status": "failed",
+          "error": "At least one LLM provider API key is required",
+          "timestamp": "2025-07-26T00:05:16.884Z"
+        },
+        {
+          "name": "Supabase Client Initialization",
+          "status": "passed",
+          "result": "Supabase client initialized and connected successfully",
+          "timestamp": "2025-07-26T00:05:17.143Z"
+        },
+        {
+          "name": "Authentication Token Generation",
+          "status": "passed",
+          "result": "Authentication token generated successfully",
+          "timestamp": "2025-07-26T00:05:17.143Z"
+        },
+        {
+          "name": "MCP Services Availability Check",
+          "status": "passed",
+          "result": "All MCP service files verified and accessible",
+          "timestamp": "2025-07-26T00:05:17.143Z"
+        }
+      ]
+    },
+    "schema": {
+      "passed": 0,
+      "failed": 4,
+      "tests": [
+        {
+          "name": "Database Schema Retrieval",
+          "status": "failed",
+          "error": "Schema retrieval failed: relation \"public.pg_tables\" does not exist",
+          "timestamp": "2025-07-26T00:05:17.313Z"
+        },
+        {
+          "name": "Schema Table Count Validation",
+          "status": "failed",
+          "error": "Database schema not loaded",
+          "timestamp": "2025-07-26T00:05:17.313Z"
+        },
+        {
+          "name": "Core Tables Verification",
+          "status": "failed",
+          "error": "Cannot read properties of null (reading 'tables')",
+          "timestamp": "2025-07-26T00:05:17.313Z"
+        },
+        {
+          "name": "Schema Caching and Storage",
+          "status": "failed",
+          "error": "Cannot read properties of null (reading 'tables')",
+          "timestamp": "2025-07-26T00:05:17.313Z"
+        }
+      ]
+    },
+    "sqlGeneration": {
+      "passed": 30,
+      "failed": 10,
+      "tests": [
+        {
+          "name": "SQL Generation Test 1: Easy - Get all users",
+          "status": "passed",
+          "result": "✅ Easy SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 2: Easy - Count total users",
+          "status": "passed",
+          "result": "✅ Easy SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 3: Easy - Get user emails",
+          "status": "passed",
+          "result": "✅ Easy SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 4: Easy - Recent users",
+          "status": "passed",
+          "result": "✅ Easy SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 5: Easy - Active sessions",
+          "status": "passed",
+          "result": "✅ Easy SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 6: Easy - User by ID",
+          "status": "passed",
+          "result": "✅ Easy SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 7: Easy - Session count",
+          "status": "passed",
+          "result": "✅ Easy SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 8: Easy - User names",
+          "status": "passed",
+          "result": "✅ Easy SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 9: Easy - Recent conversations",
+          "status": "passed",
+          "result": "✅ Easy SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 10: Easy - Table row counts",
+          "status": "passed",
+          "result": "✅ Easy SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 11: Medium - Users with sessions",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 12: Medium - Users without sessions",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 13: Medium - Conversation summaries",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 14: Medium - Session duration analysis",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 15: Medium - User activity this month",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 16: Medium - Top conversation starters",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 17: Medium - Recent user signups",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 18: Medium - Session patterns",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 19: Medium - User engagement metrics",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 20: Medium - Time-based analysis",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 21: Medium - Cross-table insights",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 22: Medium - Activity correlation",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 23: Medium - Data quality check",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 24: Medium - Conversation lengths",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 25: Medium - User preferences",
+          "status": "passed",
+          "result": "✅ Medium SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 26: Hard - Complex user analytics",
+          "status": "failed",
+          "error": "SQL generation failed: Generated SQL validation failed: Hard difficulty query should include joins or aggregations",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 27: Hard - Cohort analysis",
+          "status": "passed",
+          "result": "✅ Hard SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 28: Hard - Advanced aggregations",
+          "status": "failed",
+          "error": "SQL generation failed: Generated SQL validation failed: Hard difficulty query should include joins or aggregations",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 29: Hard - Multi-dimensional analysis",
+          "status": "failed",
+          "error": "SQL generation failed: Generated SQL validation failed: Hard difficulty query should include joins or aggregations",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 30: Hard - Trend analysis",
+          "status": "failed",
+          "error": "SQL generation failed: Generated SQL validation failed: Hard difficulty query should include joins or aggregations",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 31: Hard - Anomaly detection",
+          "status": "failed",
+          "error": "SQL generation failed: Generated SQL validation failed: Hard difficulty query should include joins or aggregations",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 32: Hard - Complex joins",
+          "status": "failed",
+          "error": "SQL generation failed: Generated SQL validation failed: Hard difficulty query should include joins or aggregations",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 33: Hard - Performance metrics",
+          "status": "failed",
+          "error": "SQL generation failed: Generated SQL validation failed: Hard difficulty query should include joins or aggregations",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 34: Hard - Data warehouse query",
+          "status": "failed",
+          "error": "SQL generation failed: Generated SQL validation failed: Hard difficulty query should include joins or aggregations",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 35: Hard - Time series analysis",
+          "status": "passed",
+          "result": "✅ Hard SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 36: Hard - Segmentation analysis",
+          "status": "passed",
+          "result": "✅ Hard SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 37: Hard - Attribution modeling",
+          "status": "failed",
+          "error": "SQL generation failed: Generated SQL validation failed: Hard difficulty query should include joins or aggregations",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 38: Hard - Churn prediction data",
+          "status": "passed",
+          "result": "✅ Hard SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 39: Hard - Cross-platform analysis",
+          "status": "failed",
+          "error": "SQL generation failed: Generated SQL validation failed: Hard difficulty query should include joins or aggregations",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        },
+        {
+          "name": "SQL Generation Test 40: Hard - Advanced statistical query",
+          "status": "passed",
+          "result": "✅ Hard SQL generated and validated",
+          "timestamp": "2025-07-26T00:05:17.314Z"
+        }
+      ]
+    },
+    "providerComparison": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        {
+          "name": "Cross-Provider Results Analysis",
+          "status": "passed",
+          "result": "✅ Provider analysis complete: 0 cross-provider comparisons, avg consistency: Low",
+          "timestamp": "2025-07-26T00:05:17.315Z"
+        }
+      ]
+    },
+    "execution": {
+      "passed": 10,
+      "failed": 0,
+      "tests": [
+        {
+          "name": "Execute Query 1: Get all users",
+          "status": "passed",
+          "result": "✅ Query executed successfully, returned 6 rows",
+          "timestamp": "2025-07-26T00:05:17.381Z"
+        },
+        {
+          "name": "Execute Query 2: Count total users",
+          "status": "passed",
+          "result": "✅ Query executed successfully, returned 5 rows",
+          "timestamp": "2025-07-26T00:05:17.491Z"
+        },
+        {
+          "name": "Execute Query 3: Get user emails",
+          "status": "passed",
+          "result": "✅ Query executed successfully, returned 5 rows",
+          "timestamp": "2025-07-26T00:05:17.551Z"
+        },
+        {
+          "name": "Execute Query 4: Recent users",
+          "status": "passed",
+          "result": "✅ Query executed successfully, returned 6 rows",
+          "timestamp": "2025-07-26T00:05:17.621Z"
+        },
+        {
+          "name": "Execute Query 5: Active sessions",
+          "status": "passed",
+          "result": "✅ Query executed successfully, returned 0 rows",
+          "timestamp": "2025-07-26T00:05:17.746Z"
+        },
+        {
+          "name": "Execute Query 6: User by ID",
+          "status": "passed",
+          "result": "✅ Query executed successfully, returned 5 rows",
+          "timestamp": "2025-07-26T00:05:17.807Z"
+        },
+        {
+          "name": "Execute Query 7: Session count",
+          "status": "passed",
+          "result": "✅ Query executed successfully, returned 0 rows",
+          "timestamp": "2025-07-26T00:05:17.947Z"
+        },
+        {
+          "name": "Execute Query 8: User names",
+          "status": "passed",
+          "result": "✅ Query executed successfully, returned 5 rows",
+          "timestamp": "2025-07-26T00:05:18.015Z"
+        },
+        {
+          "name": "Execute Query 9: Recent conversations",
+          "status": "passed",
+          "result": "✅ Query executed successfully, returned 6 rows",
+          "timestamp": "2025-07-26T00:05:18.126Z"
+        },
+        {
+          "name": "Execute Query 10: Table row counts",
+          "status": "passed",
+          "result": "✅ Query executed successfully, returned 1 rows",
+          "timestamp": "2025-07-26T00:05:18.215Z"
+        }
+      ]
+    },
+    "formatting": {
+      "passed": 4,
+      "failed": 0,
+      "tests": [
+        {
+          "name": "JSON Format Output",
+          "status": "passed",
+          "result": "JSON formatting successful",
+          "timestamp": "2025-07-26T00:05:18.215Z"
+        },
+        {
+          "name": "CSV Format Output",
+          "status": "passed",
+          "result": "CSV formatting successful",
+          "timestamp": "2025-07-26T00:05:18.215Z"
+        },
+        {
+          "name": "Markdown Table Format",
+          "status": "passed",
+          "result": "Markdown table formatting successful",
+          "timestamp": "2025-07-26T00:05:18.215Z"
+        },
+        {
+          "name": "ASCII Table Format",
+          "status": "passed",
+          "result": "ASCII table formatting successful",
+          "timestamp": "2025-07-26T00:05:18.215Z"
+        }
+      ]
+    },
+    "endToEnd": {
+      "passed": 2,
+      "failed": 1,
+      "tests": [
+        {
+          "name": "Complete SQL Generation to Execution Workflow",
+          "status": "passed",
+          "result": "E2E workflow successful: Generated SQL → Executed → Formatted 6 rows",
+          "timestamp": "2025-07-26T00:05:18.280Z"
+        },
+        {
+          "name": "Schema Discovery to Query Generation",
+          "status": "failed",
+          "error": "Schema not available for E2E test",
+          "timestamp": "2025-07-26T00:05:18.280Z"
+        },
+        {
+          "name": "Error Handling and Recovery",
+          "status": "passed",
+          "result": "Error handling and recovery working correctly",
+          "timestamp": "2025-07-26T00:05:18.410Z"
+        }
+      ]
+    }
+  },
+  "generatedQueries": [
+    {
+      "prompt": {
+        "difficulty": "Easy",
+        "description": "Get all users",
+        "prompt": "Show me all users in the system"
+      },
+      "result": {
+        "sql": "SELECT id, email, display_name, created_at FROM users ORDER BY created_at DESC;",
+        "explanation": "Generated SQL for: Get all users",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "easy",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Easy SQL generated and validated"
+      },
+      "testIndex": 1
+    },
+    {
+      "prompt": {
+        "difficulty": "Easy",
+        "description": "Count total users",
+        "prompt": "How many users do we have?"
+      },
+      "result": {
+        "sql": "SELECT * FROM users LIMIT 5;",
+        "explanation": "Generated SQL for: Count total users",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "easy",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Easy SQL generated and validated"
+      },
+      "testIndex": 2
+    },
+    {
+      "prompt": {
+        "difficulty": "Easy",
+        "description": "Get user emails",
+        "prompt": "List all user email addresses"
+      },
+      "result": {
+        "sql": "SELECT * FROM users LIMIT 5;",
+        "explanation": "Generated SQL for: Get user emails",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "easy",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Easy SQL generated and validated"
+      },
+      "testIndex": 3
+    },
+    {
+      "prompt": {
+        "difficulty": "Easy",
+        "description": "Recent users",
+        "prompt": "Show me the 10 most recently created users"
+      },
+      "result": {
+        "sql": "SELECT * FROM users ORDER BY created_at DESC LIMIT 10;",
+        "explanation": "Generated SQL for: Recent users",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "easy",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Easy SQL generated and validated"
+      },
+      "testIndex": 4
+    },
+    {
+      "prompt": {
+        "difficulty": "Easy",
+        "description": "Active sessions",
+        "prompt": "Get all active user sessions"
+      },
+      "result": {
+        "sql": "SELECT * FROM sessions WHERE expires_at > NOW() ORDER BY created_at DESC;",
+        "explanation": "Generated SQL for: Active sessions",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "easy",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Easy SQL generated and validated"
+      },
+      "testIndex": 5
+    },
+    {
+      "prompt": {
+        "difficulty": "Easy",
+        "description": "User by ID",
+        "prompt": "Find the user with ID 1"
+      },
+      "result": {
+        "sql": "SELECT * FROM users LIMIT 5;",
+        "explanation": "Generated SQL for: User by ID",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "easy",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Easy SQL generated and validated"
+      },
+      "testIndex": 6
+    },
+    {
+      "prompt": {
+        "difficulty": "Easy",
+        "description": "Session count",
+        "prompt": "How many sessions are currently active?"
+      },
+      "result": {
+        "sql": "SELECT * FROM sessions WHERE expires_at > NOW() ORDER BY created_at DESC;",
+        "explanation": "Generated SQL for: Session count",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "easy",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Easy SQL generated and validated"
+      },
+      "testIndex": 7
+    },
+    {
+      "prompt": {
+        "difficulty": "Easy",
+        "description": "User names",
+        "prompt": "Get all user display names"
+      },
+      "result": {
+        "sql": "SELECT * FROM users LIMIT 5;",
+        "explanation": "Generated SQL for: User names",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "easy",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Easy SQL generated and validated"
+      },
+      "testIndex": 8
+    },
+    {
+      "prompt": {
+        "difficulty": "Easy",
+        "description": "Recent conversations",
+        "prompt": "Show me the latest 5 conversations"
+      },
+      "result": {
+        "sql": "SELECT * FROM users ORDER BY created_at DESC LIMIT 10;",
+        "explanation": "Generated SQL for: Recent conversations",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "easy",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Easy SQL generated and validated"
+      },
+      "testIndex": 9
+    },
+    {
+      "prompt": {
+        "difficulty": "Easy",
+        "description": "Table row counts",
+        "prompt": "Count the total rows in the users table"
+      },
+      "result": {
+        "sql": "SELECT COUNT(*) as user_count FROM users;",
+        "explanation": "Generated SQL for: Table row counts",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "easy",
+          "hasJoins": false,
+          "hasAggregations": true
+        },
+        "summary": "✅ Easy SQL generated and validated"
+      },
+      "testIndex": 10
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Users with sessions",
+        "prompt": "Show me all users who have active sessions"
+      },
+      "result": {
+        "sql": "SELECT id, email, display_name, created_at FROM users ORDER BY created_at DESC;",
+        "explanation": "Generated SQL for: Users with sessions",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 11
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Users without sessions",
+        "prompt": "Find users who have never logged in"
+      },
+      "result": {
+        "sql": "SELECT * FROM users LIMIT 5;",
+        "explanation": "Generated SQL for: Users without sessions",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 12
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Conversation summaries",
+        "prompt": "Get conversation titles and their user names"
+      },
+      "result": {
+        "sql": "SELECT * FROM agent_conversations ORDER BY created_at DESC LIMIT 5;",
+        "explanation": "Generated SQL for: Conversation summaries",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 13
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Session duration analysis",
+        "prompt": "Show me average session duration by user"
+      },
+      "result": {
+        "sql": "SELECT * FROM sessions WHERE expires_at > NOW() ORDER BY created_at DESC;",
+        "explanation": "Generated SQL for: Session duration analysis",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 14
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "User activity this month",
+        "prompt": "Find users who were active in the last 30 days"
+      },
+      "result": {
+        "sql": "SELECT * FROM users LIMIT 5;",
+        "explanation": "Generated SQL for: User activity this month",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 15
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Top conversation starters",
+        "prompt": "Which users have started the most conversations?"
+      },
+      "result": {
+        "sql": "SELECT * FROM agent_conversations ORDER BY created_at DESC LIMIT 5;",
+        "explanation": "Generated SQL for: Top conversation starters",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 16
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Recent user signups",
+        "prompt": "Show users who joined in the last week with their session count"
+      },
+      "result": {
+        "sql": "SELECT COUNT(*) as user_count FROM users;",
+        "explanation": "Generated SQL for: Recent user signups",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": true
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 17
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Session patterns",
+        "prompt": "Group sessions by hour of day and count them"
+      },
+      "result": {
+        "sql": "SELECT * FROM sessions WHERE expires_at > NOW() ORDER BY created_at DESC;",
+        "explanation": "Generated SQL for: Session patterns",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 18
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "User engagement metrics",
+        "prompt": "Calculate total conversations per user, ordered by most active"
+      },
+      "result": {
+        "sql": "SELECT * FROM agent_conversations ORDER BY created_at DESC LIMIT 5;",
+        "explanation": "Generated SQL for: User engagement metrics",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 19
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Time-based analysis",
+        "prompt": "Show me user registrations grouped by month"
+      },
+      "result": {
+        "sql": "SELECT * FROM users LIMIT 5;",
+        "explanation": "Generated SQL for: Time-based analysis",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 20
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Cross-table insights",
+        "prompt": "Find users with both sessions and conversations"
+      },
+      "result": {
+        "sql": "SELECT * FROM sessions WHERE expires_at > NOW() ORDER BY created_at DESC;",
+        "explanation": "Generated SQL for: Cross-table insights",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 21
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Activity correlation",
+        "prompt": "Show users and their last activity date across all tables"
+      },
+      "result": {
+        "sql": "SELECT * FROM users LIMIT 5;",
+        "explanation": "Generated SQL for: Activity correlation",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 22
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Data quality check",
+        "prompt": "Find users with missing or null email addresses"
+      },
+      "result": {
+        "sql": "SELECT * FROM users LIMIT 5;",
+        "explanation": "Generated SQL for: Data quality check",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 23
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "Conversation lengths",
+        "prompt": "Show conversations with more than 10 messages"
+      },
+      "result": {
+        "sql": "SELECT * FROM agent_conversations ORDER BY created_at DESC LIMIT 5;",
+        "explanation": "Generated SQL for: Conversation lengths",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 24
+    },
+    {
+      "prompt": {
+        "difficulty": "Medium",
+        "description": "User preferences",
+        "prompt": "Get user settings and preferences if they exist"
+      },
+      "result": {
+        "sql": "SELECT * FROM users LIMIT 5;",
+        "explanation": "Generated SQL for: User preferences",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "medium",
+          "hasJoins": false,
+          "hasAggregations": false
+        },
+        "summary": "✅ Medium SQL generated and validated"
+      },
+      "testIndex": 25
+    },
+    {
+      "prompt": {
+        "difficulty": "Hard",
+        "description": "Cohort analysis",
+        "prompt": "Analyze user retention by signup month - show how many users from each month are still active"
+      },
+      "result": {
+        "sql": "SELECT \n          u.id,\n          u.email,\n          u.display_name,\n          u.created_at as signup_date,\n          COUNT(DISTINCT s.id) as session_count,\n          COUNT(DISTINCT c.id) as conversation_count,\n          MAX(GREATEST(s.created_at, c.created_at)) as last_activity\n        FROM users u\n        LEFT JOIN sessions s ON u.id = s.user_id\n        LEFT JOIN agent_conversations c ON u.id = c.user_id\n        GROUP BY u.id, u.email, u.display_name, u.created_at\n        ORDER BY last_activity DESC;",
+        "explanation": "Generated SQL for: Cohort analysis",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "hard",
+          "hasJoins": true,
+          "hasAggregations": true
+        },
+        "summary": "✅ Hard SQL generated and validated"
+      },
+      "testIndex": 27
+    },
+    {
+      "prompt": {
+        "difficulty": "Hard",
+        "description": "Time series analysis",
+        "prompt": "Show weekly active users trend over the last 3 months with growth rates"
+      },
+      "result": {
+        "sql": "SELECT \n          u.id,\n          u.email,\n          u.display_name,\n          u.created_at as signup_date,\n          COUNT(DISTINCT s.id) as session_count,\n          COUNT(DISTINCT c.id) as conversation_count,\n          MAX(GREATEST(s.created_at, c.created_at)) as last_activity\n        FROM users u\n        LEFT JOIN sessions s ON u.id = s.user_id\n        LEFT JOIN agent_conversations c ON u.id = c.user_id\n        GROUP BY u.id, u.email, u.display_name, u.created_at\n        ORDER BY last_activity DESC;",
+        "explanation": "Generated SQL for: Time series analysis",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "hard",
+          "hasJoins": true,
+          "hasAggregations": true
+        },
+        "summary": "✅ Hard SQL generated and validated"
+      },
+      "testIndex": 35
+    },
+    {
+      "prompt": {
+        "difficulty": "Hard",
+        "description": "Segmentation analysis",
+        "prompt": "Segment users into engagement tiers (high, medium, low) based on their activity patterns and show distribution"
+      },
+      "result": {
+        "sql": "SELECT \n          u.id,\n          u.email,\n          u.display_name,\n          u.created_at as signup_date,\n          COUNT(DISTINCT s.id) as session_count,\n          COUNT(DISTINCT c.id) as conversation_count,\n          MAX(GREATEST(s.created_at, c.created_at)) as last_activity\n        FROM users u\n        LEFT JOIN sessions s ON u.id = s.user_id\n        LEFT JOIN agent_conversations c ON u.id = c.user_id\n        GROUP BY u.id, u.email, u.display_name, u.created_at\n        ORDER BY last_activity DESC;",
+        "explanation": "Generated SQL for: Segmentation analysis",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "hard",
+          "hasJoins": true,
+          "hasAggregations": true
+        },
+        "summary": "✅ Hard SQL generated and validated"
+      },
+      "testIndex": 36
+    },
+    {
+      "prompt": {
+        "difficulty": "Hard",
+        "description": "Churn prediction data",
+        "prompt": "Identify users at risk of churning based on declining activity patterns over the last 30 days"
+      },
+      "result": {
+        "sql": "SELECT \n          u.id,\n          u.email,\n          u.display_name,\n          u.created_at as signup_date,\n          COUNT(DISTINCT s.id) as session_count,\n          COUNT(DISTINCT c.id) as conversation_count,\n          MAX(GREATEST(s.created_at, c.created_at)) as last_activity\n        FROM users u\n        LEFT JOIN sessions s ON u.id = s.user_id\n        LEFT JOIN agent_conversations c ON u.id = c.user_id\n        GROUP BY u.id, u.email, u.display_name, u.created_at\n        ORDER BY last_activity DESC;",
+        "explanation": "Generated SQL for: Churn prediction data",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "hard",
+          "hasJoins": true,
+          "hasAggregations": true
+        },
+        "summary": "✅ Hard SQL generated and validated"
+      },
+      "testIndex": 38
+    },
+    {
+      "prompt": {
+        "difficulty": "Hard",
+        "description": "Advanced statistical query",
+        "prompt": "Calculate percentile rankings for user activity metrics and identify top 10% performers"
+      },
+      "result": {
+        "sql": "SELECT \n          u.id,\n          u.email,\n          u.display_name,\n          u.created_at as signup_date,\n          COUNT(DISTINCT s.id) as session_count,\n          COUNT(DISTINCT c.id) as conversation_count,\n          MAX(GREATEST(s.created_at, c.created_at)) as last_activity\n        FROM users u\n        LEFT JOIN sessions s ON u.id = s.user_id\n        LEFT JOIN agent_conversations c ON u.id = c.user_id\n        GROUP BY u.id, u.email, u.display_name, u.created_at\n        ORDER BY last_activity DESC;",
+        "explanation": "Generated SQL for: Advanced statistical query",
+        "confidence": 0.85,
+        "validation": {
+          "isValid": true,
+          "errors": [],
+          "complexity": "hard",
+          "hasJoins": true,
+          "hasAggregations": true
+        },
+        "summary": "✅ Hard SQL generated and validated"
+      },
+      "testIndex": 40
+    }
+  ],
+  "databaseSchema": null,
+  "config": {
+    "supabaseUrl": "https://jcmkjecmdugfzvdijodg.supabase.co",
+    "supabaseKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjbWtqZWNtZHVnZnp2ZGlqb2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1ODg4ODQsImV4cCI6MjA2MzE2NDg4NH0.9KqoILWR-8PIMIQ7p0tCPyFEW5XAwz2OHXtachOqsc4",
+    "testSessionId": "integration-test-1753488316883",
+    "maxTimeout": 60000,
+    "minTestCount": 35,
+    "llmProviders": [
+      {
+        "name": "anthropic",
+        "model": "claude-3-haiku",
+        "keyEnv": "ANTHROPIC_API_KEY",
+        "cost": "low"
+      },
+      {
+        "name": "openai",
+        "model": "gpt-3.5-turbo",
+        "keyEnv": "OPENAI_API_KEY",
+        "cost": "low"
+      },
+      {
+        "name": "google",
+        "model": "gemini-pro",
+        "keyEnv": "GOOGLE_API_KEY",
+        "cost": "medium"
+      },
+      {
+        "name": "anthropic",
+        "model": "claude-3-5-sonnet",
+        "keyEnv": "ANTHROPIC_API_KEY",
+        "cost": "medium"
+      },
+      {
+        "name": "openai",
+        "model": "gpt-4",
+        "keyEnv": "OPENAI_API_KEY",
+        "cost": "medium"
+      },
+      {
+        "name": "openai",
+        "model": "gpt-4o",
+        "keyEnv": "OPENAI_API_KEY",
+        "cost": "high"
+      },
+      {
+        "name": "anthropic",
+        "model": "claude-sonnet-4",
+        "keyEnv": "ANTHROPIC_API_KEY",
+        "cost": "high"
+      },
+      {
+        "name": "anthropic",
+        "model": "claude-opus-4",
+        "keyEnv": "ANTHROPIC_API_KEY",
+        "cost": "very-high"
+      }
+    ]
+  }
+}

@@ -7,6 +7,8 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
+import { ConfigService } from '@nestjs/config';
 import { IntelligentMCPBaseService, MCPServerInfo, MCPToolDefinition, MCPToolExecutionOptions } from './base/intelligent-mcp-base.service';
 import { MCPExecutionTrackerService } from './services/mcp-execution-tracker.service';
 import { ContextLearningService } from './services/context-learning.service';
@@ -231,7 +233,8 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
     private readonly llmService: LLMService,
     executionTracker?: MCPExecutionTrackerService,
     supabaseService?: SupabaseService,
-    private readonly contextLearning?: ContextLearningService
+    private readonly contextLearning?: ContextLearningService,
+    private readonly configService?: ConfigService
   ) {
     // Create dummy services if not provided (for testing purposes)
     const dummyTracker = executionTracker || ({} as MCPExecutionTrackerService);
@@ -280,7 +283,10 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
       this.llmService
     );
 
-    this.getSchemaTool = new EnhancedGetSchemaTool(this.supabaseClient);
+    this.getSchemaTool = new EnhancedGetSchemaTool(
+      this.supabaseClient,
+      this.config.supabaseKey // Pass the service role key
+    );
     this.executeSQLTool = new EnhancedExecuteSQLTool(this.supabaseClient);
     this.queryAndFormatTool = new EnhancedQueryAndFormatTool(
       this.supabaseClient,
@@ -515,9 +521,10 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
         request.name,
         request.arguments || {},
         {
-          userId: 'mcp-user',
-          agentConversationId: 'mcp-conversation',
-          sessionId: 'mcp-session',
+          userId: this.configService?.get<string>('SUPABASE_TEST_USERID') || 
+                  'db94682e-5184-496f-93fd-dc739aa0f9e7', // Fallback to hardcoded value
+          agentConversationId: undefined, // Use null for optional foreign key
+          sessionId: undefined, // Use null for optional foreign key  
           llmProvider: 'anthropic',
           llmModel: 'claude-3-5-sonnet'
         }
@@ -571,9 +578,10 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
   async getResource(request: MCPGetResourceRequest): Promise<MCPGetResourceResponse> {
     if (request.uri === 'supabase://schema') {
       const schemaResult = await this.getSchemaTool.execute({}, {
-        userId: 'mcp-user',
-        agentConversationId: 'mcp-conversation',
-        sessionId: 'mcp-session',
+        userId: this.configService?.get<string>('SUPABASE_TEST_USERID') || 
+                'db94682e-5184-496f-93fd-dc739aa0f9e7', // Fallback to hardcoded value
+        agentConversationId: undefined, // Use null for optional foreign key
+        sessionId: undefined, // Use null for optional foreign key
         llmProvider: 'anthropic',
         llmModel: 'claude-3-5-sonnet'
       });

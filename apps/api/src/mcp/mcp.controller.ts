@@ -42,6 +42,7 @@ export class MCPController implements OnModuleInit {
       const config: SupabaseMCPConfig = {
         supabaseUrl: this.configService.get<string>('SUPABASE_URL') || '',
         supabaseKey:
+          this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') ||
           this.configService.get<string>('SUPABASE_ANON_KEY') ||
           this.configService.get<string>('SUPABASE_KEY') ||
           '',

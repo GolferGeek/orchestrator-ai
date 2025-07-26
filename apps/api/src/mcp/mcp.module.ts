@@ -7,6 +7,8 @@ import { LLMModule } from '@/llms/llm.module';
 import { LLMService } from '@/llms/llm.service';
 import { SupabaseModule } from '@/supabase/supabase.module';
 import { ConfigService } from '@nestjs/config';
+import { MCPExecutionTrackerService } from './servers/supabase/services/mcp-execution-tracker.service';
+import { ContextLearningService } from './servers/supabase/services/context-learning.service';
 
 @Global()
 @Module({
@@ -19,6 +21,8 @@ import { ConfigService } from '@nestjs/config';
     MCPClientService,
     SupabaseMCPServer,
     MCPRegistryService,
+    MCPExecutionTrackerService,
+    ContextLearningService,
     // Additional MCP servers can be added here
   ],
   exports: [MCPClientService, SupabaseMCPServer, MCPRegistryService],
