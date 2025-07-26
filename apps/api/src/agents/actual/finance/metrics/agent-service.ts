@@ -5,7 +5,7 @@ import { LLMService } from '@/llms/llm.service';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
-import { MCPClientService } from '@/mcp/client/mcp-client.service';
+import { MCPPoolService } from '@/mcp-pool/mcp-pool.service';
 import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
@@ -23,7 +23,7 @@ export class MetricsAgentService extends FunctionAgentBaseService {
     tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
-    mcpClientService: MCPClientService | undefined,
+    mcpPoolService: MCPPoolService | undefined,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -36,7 +36,7 @@ export class MetricsAgentService extends FunctionAgentBaseService {
       taskProgressGateway,
       tasksService,
       taskStatusService,
-      mcpClientService,
+      mcpPoolService,
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,

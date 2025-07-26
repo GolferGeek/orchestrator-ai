@@ -141,6 +141,30 @@ export class MCPPoolService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Get all MCP registrations
+   */
+  getRegistrations(): MCPRegistration[] {
+    return Array.from(this.mcps.values());
+  }
+
+  /**
+   * Execute tool on MCP by name (convenience method)
+   */
+  async executeToolByName(mcpName: string, toolName: string, parameters: Record<string, any>): Promise<MCPExecutionResult> {
+    // Find MCP by name
+    const mcp = Array.from(this.mcps.values()).find(m => m.name === mcpName || m.id === mcpName);
+    if (!mcp) {
+      throw new Error(`MCP service not found: ${mcpName}`);
+    }
+
+    return this.executeMCPTool({
+      mcpId: mcp.id,
+      toolName,
+      parameters
+    });
+  }
+
+  /**
    * Get MCP services by type
    */
   getMCPsByType(type: string): MCPRegistration[] {
