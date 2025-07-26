@@ -17,6 +17,25 @@
             
             <hr/>
             
+            <!-- Navigation -->
+            <ion-list>
+              <ion-list-header>Navigation</ion-list-header>
+              <ion-menu-toggle :auto-hide="false">
+                <ion-item router-direction="root" router-link="/home" lines="none" :detail="false">
+                  <ion-icon aria-hidden="true" :icon="homeOutline" slot="start"></ion-icon>
+                  <ion-label>Home</ion-label>
+                </ion-item>
+              </ion-menu-toggle>
+              <ion-menu-toggle :auto-hide="false">
+                <ion-item router-direction="root" router-link="/mcp-discovery" lines="none" :detail="false">
+                  <ion-icon aria-hidden="true" :icon="layersOutline" slot="start"></ion-icon>
+                  <ion-label>MCP Discovery</ion-label>
+                </ion-item>
+              </ion-menu-toggle>
+            </ion-list>
+            
+            <hr/>
+            
             <!-- Session sidebar -->
             <SessionSidebar 
               @agent-chat-started="handleAgentChatStarted" 
@@ -46,7 +65,7 @@ import { computed } from 'vue';
 import { 
   IonApp, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle 
 } from '@ionic/vue';
-import { logInOutline, logOutOutline } from 'ionicons/icons';
+import { logInOutline, logOutOutline, homeOutline, layersOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'vue-router';
 import SessionSidebar from '@/components/SessionSidebar.vue';
