@@ -12,6 +12,7 @@ import { AgentRegistrationService } from './agents/base/sub-services/agent-regis
 import { TaskProgressGateway } from './websocket/task-progress.gateway';
 import { TasksService } from './tasks/tasks.service';
 import { TaskStatusService } from './tasks/task-status.service';
+import { MCPPoolService } from './mcp-pool/mcp-pool.service';
 
 export interface DiscoveredAgent {
   name: string;
@@ -65,6 +66,7 @@ export class AgentFactoryService {
     private readonly taskProgressGateway: TaskProgressGateway,
     private readonly tasksService: TasksService,
     private readonly taskStatusService: TaskStatusService,
+    private readonly mcpPoolService: MCPPoolService,
   ) {
     this.logger.log('🏭 AgentFactoryService initialized');
   }
@@ -251,6 +253,7 @@ export class AgentFactoryService {
             this.taskProgressGateway,
             this.tasksService,
             this.taskStatusService,
+            this.mcpPoolService,
             this.agentRegistrationService,
             undefined, // jsonRpcProtocolService
             undefined, // loggingService
