@@ -1,0 +1,50 @@
+{
+  "timestamp": "2025-07-25T23:42:00.873Z",
+  "testSuite": "End-to-End MCP Workflows",
+  "summary": {
+    "totalPassed": 6,
+    "totalFailed": 0,
+    "overallSuccessRate": 100
+  },
+  "results": {
+    "passed": 6,
+    "failed": 0,
+    "tests": [
+      {
+        "name": "Complete SQL Generation Workflow",
+        "status": "passed",
+        "result": "Complete SQL generation workflow functional"
+      },
+      {
+        "name": "Schema Discovery Workflow",
+        "status": "passed",
+        "result": "Schema discovery workflow functional"
+      },
+      {
+        "name": "Query Execution Workflow",
+        "status": "passed",
+        "result": "Query execution workflow functional"
+      },
+      {
+        "name": "Data Reading Workflow",
+        "status": "passed",
+        "result": "Data reading workflow functional"
+      },
+      {
+        "name": "Error Handling Workflow",
+        "status": "passed",
+        "result": "Error handling workflow functional"
+      },
+      {
+        "name": "Context Learning Integration",
+        "status": "passed",
+        "result": "Context learning integration functional"
+      }
+    ]
+  },
+  "config": {
+    "supabaseUrl": "https://jcmkjecmdugfzvdijodg.supabase.co",
+    "supabaseKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjbWtqZWNtZHVnZnp2ZGlqb2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1ODg4ODQsImV4cCI6MjA2MzE2NDg4NH0.9KqoILWR-8PIMIQ7p0tCPyFEW5XAwz2OHXtachOqsc4",
+    "testUserId": "e2e-test-user-1753486920865"
+  }
+}

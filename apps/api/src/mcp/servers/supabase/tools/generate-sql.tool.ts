@@ -153,27 +153,48 @@ export class EnhancedGenerateSQLTool {
    * Build system prompt with database schema
    */
   private buildSystemPrompt(schema: any): string {
-    return `You are an expert PostgreSQL query generator. Generate accurate, secure SQL queries based on natural language requests.
+    return `You are an expert SQL query generator for SUPABASE REST API. Generate queries that work with Supabase's PostgREST API limitations.
 
 DATABASE SCHEMA:
 ${JSON.stringify(schema, null, 2)}
 
-IMPORTANT RULES:
-1. Always use exact table and column names from the schema
-2. Use PostgreSQL-specific syntax and functions
-3. Include proper JOINs when querying related tables  
-4. Use parameterized queries when possible
-5. Add appropriate LIMIT clauses for large result sets
-6. Use created_at and updated_at (NOT created_date/updated_date)
-7. For "active" conversations, use WHERE ended_at IS NULL
-8. Always use LEFT JOINs for nullable foreign keys
+CRITICAL SUPABASE CONSTRAINTS:
+1. NO table aliases in SELECT (d.id, d.name) - Use direct column names only
+2. NO AS aliases (name AS dept_name) - These will fail parsing
+3. NO calculated columns ((id * 2) AS double_id) - Use simple column references
+4. NO multiple ORDER BY columns (ORDER BY name, id) - Single column only
+5. NO functions in ORDER BY (ORDER BY LOWER(name)) - Use simple columns
+6. NO complex JOINs with aliases - Keep queries simple
+7. LIMIT is required for safety - Always add LIMIT clause
+
+SAFE SQL PATTERNS THAT WORK:
+✅ SELECT id, name FROM departments ORDER BY name LIMIT 100
+✅ SELECT COUNT(*) FROM departments  
+✅ SELECT company_id, COUNT(*) FROM departments GROUP BY company_id
+✅ SELECT AVG(column_name) FROM table_name WHERE created_at >= NOW() - INTERVAL '30 days' LIMIT 1
+✅ SELECT MAX(column_name), MIN(column_name), SUM(column_name) FROM table_name LIMIT 1
+✅ Simple WHERE clauses with basic conditions
+
+UNSAFE PATTERNS THAT FAIL:
+❌ SELECT d.id, d.name FROM departments d JOIN companies c ON d.company_id = c.id
+❌ SELECT name AS dept_name FROM departments ORDER BY dept_name  
+❌ SELECT (id * 2) AS double_id FROM departments
+❌ ORDER BY name, id (multiple columns)
+❌ ORDER BY LOWER(name) (functions)
+
+QUERY GENERATION STRATEGY:
+- Use only basic SELECT, FROM, WHERE, ORDER BY, LIMIT
+- No table aliases, column aliases, or calculated fields
+- Single table queries preferred
+- For complex needs, suggest creating database views
+- Always include safety LIMIT clauses
 
 RESPONSE FORMAT:
 Return your response as JSON with these fields:
 {
-  "sql": "The generated SQL query",
-  "explanation": "Step-by-step explanation of the query",
-  "confidence": 0.95 // Float between 0 and 1
+  "sql": "The generated SQL query (Supabase-compatible)",
+  "explanation": "Step-by-step explanation including Supabase constraints",
+  "confidence": 0.95 // Float between 0 and 1 
 }`;
   }
 
