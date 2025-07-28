@@ -4,7 +4,8 @@
     <div class="mcp-header">
       <div class="header-info">
         <h2 class="mcp-name">{{ mcp.name }}</h2>
-        <p class="mcp-description">{{ mcp.description }}</p>
+        <p class="mcp-description" v-if="mcp.description">{{ mcp.description }}</p>
+        <p class="mcp-description" v-else>{{ getDefaultDescription(mcp.type, mcp.provider) }}</p>
       </div>
       <div class="header-badges">
         <ion-badge :color="getStatusColor(mcp.status)" class="status-badge">
@@ -21,14 +22,14 @@
       <div class="stat-item">
         <ion-icon :icon="buildOutline" class="stat-icon"></ion-icon>
         <div class="stat-content">
-          <div class="stat-value">{{ mcp.tools.length }}</div>
+          <div class="stat-value">{{ (mcp.tools && mcp.tools.length) || 0 }}</div>
           <div class="stat-label">Tools</div>
         </div>
       </div>
       <div class="stat-item">
         <ion-icon :icon="extensionPuzzleOutline" class="stat-icon"></ion-icon>
         <div class="stat-content">
-          <div class="stat-value">{{ mcp.capabilities.length }}</div>
+          <div class="stat-value">{{ getCapabilitiesCount(mcp.capabilities) }}</div>
           <div class="stat-label">Capabilities</div>
         </div>
       </div>
@@ -83,13 +84,31 @@
     </div>
 
     <!-- Capabilities -->
-    <div class="capabilities-section" v-if="mcp.capabilities.length > 0">
+    <div class="capabilities-section" v-if="hasCapabilities(mcp.capabilities)">
       <h3 class="section-title">
         <ion-icon :icon="extensionPuzzleOutline" class="section-icon"></ion-icon>
         Capabilities
       </h3>
       <div class="capabilities-list">
+        <!-- Handle simple string array capabilities (from backend) -->
         <div 
+          v-if="isSimpleCapabilities(mcp.capabilities)"
+          class="simple-capabilities"
+        >
+          <div class="capability-chips">
+            <ion-chip 
+              v-for="capability in mcp.capabilities" 
+              :key="capability"
+              color="primary"
+              fill="outline"
+            >
+              {{ capability }}
+            </ion-chip>
+          </div>
+        </div>
+        <!-- Handle complex capability objects (if any) -->
+        <div 
+          v-else
           v-for="capability in mcp.capabilities" 
           :key="capability.name"
           class="capability-item"
@@ -101,7 +120,7 @@
             </ion-badge>
           </div>
           <p class="capability-description">{{ capability.description }}</p>
-          <div class="capability-tools">
+          <div class="capability-tools" v-if="capability.tools && capability.tools.length > 0">
             <span class="tools-label">Tools:</span>
             <div class="tools-list">
               <ion-chip 
@@ -115,7 +134,7 @@
               </ion-chip>
             </div>
           </div>
-          <div class="capability-examples" v-if="capability.examples.length > 0">
+          <div class="capability-examples" v-if="capability.examples && capability.examples.length > 0">
             <span class="examples-label">Examples:</span>
             <ul class="examples-list">
               <li v-for="example in capability.examples" :key="example" class="example-item">
@@ -128,7 +147,7 @@
     </div>
 
     <!-- Tools -->
-    <div class="tools-section" v-if="mcp.tools.length > 0">
+    <div class="tools-section" v-if="mcp.tools && mcp.tools.length > 0">
       <h3 class="section-title">
         <ion-icon :icon="buildOutline" class="section-icon"></ion-icon>
         Available Tools
@@ -155,7 +174,7 @@
             <span class="param-count">
               {{ getParameterCount(tool.parameters) }} parameters
             </span>
-            <span v-if="tool.examples.length > 0" class="example-count">
+            <span v-if="tool.examples && tool.examples.length > 0" class="example-count">
               {{ tool.examples.length }} examples
             </span>
           </div>
@@ -344,11 +363,43 @@ const getUsagePercentage = (count: number, toolsUsed?: Record<string, number>): 
 };
 
 const executeToolByName = (toolName: string) => {
-  if (!props.mcp) return;
+  if (!props.mcp || !props.mcp.tools) return;
   const tool = props.mcp.tools.find(t => t.name === toolName);
   if (tool) {
     emit('execute-tool', props.mcp, tool);
   }
+};
+
+// Handle capabilities that can be either simple strings or complex objects
+const getCapabilitiesCount = (capabilities: any): number => {
+  if (!capabilities) return 0;
+  if (Array.isArray(capabilities)) return capabilities.length;
+  return 0;
+};
+
+const hasCapabilities = (capabilities: any): boolean => {
+  if (!capabilities) return false;
+  if (Array.isArray(capabilities)) return capabilities.length > 0;
+  return false;
+};
+
+const isSimpleCapabilities = (capabilities: any): boolean => {
+  if (!capabilities || !Array.isArray(capabilities)) return false;
+  if (capabilities.length === 0) return false;
+  // Check if first item is a string (simple capability) or object (complex capability)
+  return typeof capabilities[0] === 'string';
+};
+
+const getDefaultDescription = (type: string, provider: string): string => {
+  const descriptions: Record<string, string> = {
+    database: `${provider} database integration providing data access and query capabilities`,
+    api: `${provider} API integration for external service communication`,
+    file: `${provider} file system integration for file operations`,
+    communication: `${provider} communication service integration`,
+    computation: `${provider} computational service integration`,
+    external: `${provider} external service integration`
+  };
+  return descriptions[type] || `${provider} MCP service integration`;
 };
 
 </script>
@@ -497,6 +548,18 @@ const executeToolByName = (toolName: string) => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.simple-capabilities {
+  padding: 16px;
+  background: var(--ion-color-light);
+  border-radius: 8px;
+}
+
+.capability-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .capability-item,

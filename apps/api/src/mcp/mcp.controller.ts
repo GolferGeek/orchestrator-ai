@@ -450,6 +450,153 @@ export class MCPController implements OnModuleInit {
   }
 
   /**
+   * Get overall MCP client health status
+   * GET /mcp/health
+   */
+  @Get('health')
+  async getHealthStatus() {
+    try {
+      const mcpStatus = await this.getMCPStatus();
+      const supabaseHealth = this.initialized 
+        ? await this.getSupabaseHealth() 
+        : { status: 'offline', message: 'Server not initialized' };
+
+      return {
+        status: this.initialized && supabaseHealth.status === 'operational' ? 'healthy' : 'degraded',
+        poolSize: 1, // We have one MCP server (Supabase)
+        onlineMCPs: this.initialized ? 1 : 0,
+        healthScore: this.initialized ? (supabaseHealth.status === 'operational' ? 100 : 50) : 0,
+        lastCheck: new Date(),
+        services: {
+          supabase: supabaseHealth.status,
+          mcp_client: mcpStatus.mcp_system.status
+        }
+      };
+    } catch (error) {
+      this.logger.error('Failed to get health status:', error);
+      return {
+        status: 'offline',
+        poolSize: 1,
+        onlineMCPs: 0,
+        healthScore: 0,
+        lastCheck: new Date(),
+        services: {
+          supabase: 'offline',
+          mcp_client: 'offline'
+        }
+      };
+    }
+  }
+
+  /**
+   * Get list of registered MCP services
+   * GET /mcp/mcps
+   */
+  @Get('mcps')
+  async getRegisteredMCPs() {
+    try {
+      const supabaseInfo = this.initialized 
+        ? await this.getSupabaseServerInfo() 
+        : { name: 'supabase-mcp', version: 'unknown', status: 'offline' };
+      
+      const supabaseHealth = this.initialized 
+        ? await this.getSupabaseHealth() 
+        : { status: 'offline' };
+
+      const supabaseTools = this.initialized 
+        ? await this.listSupabaseTools() 
+        : { tools: [] };
+
+      return [{
+        id: 'supabase-mcp',
+        name: 'Supabase MCP Server',
+        type: 'database',
+        provider: 'supabase',
+        status: this.initialized ? (supabaseHealth.status === 'operational' ? 'online' : 'degraded') : 'offline',
+        version: supabaseInfo.version || '1.0.0',
+        url: 'internal://supabase-mcp',
+        discoveredAt: new Date(),
+        registeredAt: new Date(),
+        lastHeartbeat: new Date(),
+        capabilities: ['tools', 'resources', 'prompts'],
+        tools: supabaseTools.tools || [],
+        toolCount: supabaseTools.tools?.length || 0,
+        metadata: {
+          database: 'supabase',
+          enhanced: true,
+          context_learning: true
+        }
+      }];
+    } catch (error) {
+      this.logger.error('Failed to get MCP services list:', error);
+      return [{
+        id: 'supabase-mcp',
+        name: 'Supabase MCP Server',
+        type: 'database',
+        provider: 'supabase',
+        status: 'offline',
+        version: 'unknown',
+        url: 'internal://supabase-mcp',
+        discoveredAt: new Date(),
+        registeredAt: new Date(),
+        lastHeartbeat: new Date(),
+        capabilities: [],
+        tools: [],
+        toolCount: 0,
+        metadata: {
+          database: 'supabase',
+          enhanced: true,
+          context_learning: true
+        }
+      }];
+    }
+  }
+
+  /**
+   * Get all available tools across MCP services
+   * GET /mcp/tools
+   */
+  @Get('tools')
+  async getAllTools() {
+    try {
+      const supabaseTools = this.initialized 
+        ? await this.listSupabaseTools() 
+        : { tools: [] };
+
+      const tools = supabaseTools.tools || [];
+      return {
+        totalTools: tools.length,
+        mcpsIncluded: 1,
+        tools: tools.map(tool => ({
+          name: tool.name,
+          description: tool.description,
+          mcpId: 'supabase-mcp',
+          mcpName: 'Supabase MCP Server',
+          parameters: tool.inputSchema || {},
+          examples: []
+        })),
+        categories: {
+          database: tools.length,
+          analytics: 0,
+          automation: 0
+        }
+      };
+    } catch (error) {
+      this.logger.error('Failed to get all tools:', error);
+      return {
+        totalTools: 0,
+        mcpsIncluded: 0,
+        tools: [],
+        categories: {
+          database: 0,
+          analytics: 0,
+          automation: 0
+        }
+      };
+    }
+  }
+
+  /**
    * Ensure the MCP server is initialized before executing operations
    */
   private ensureInitialized() {
