@@ -9,7 +9,6 @@ import { AuthModule } from './auth/auth.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { HealthModule } from './health/health.module';
 import { AgentPoolModule } from './agent-pool/agent-pool.module';
-import { MCPPoolModule } from './mcp-pool/mcp-pool.module';
 import { LLMModule } from '@/llms/llm.module';
 import { AgentDiscoveryService } from './agent-discovery.service';
 import { AgentFactoryService } from './agent-factory.service';
@@ -34,12 +33,23 @@ import supabaseConfig from './supabase/supabase.config';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
-        '.env.local',
-        '.env',
+        // First try the root directory (where the .env file actually is)
+        join(process.cwd(), '../../.env.local'),
+        join(process.cwd(), '../../.env'),
+        // Then try relative to current working directory
         join(process.cwd(), '.env.local'),
         join(process.cwd(), '.env'),
+        // Try relative paths from apps/api
+        '../../.env.local',
+        '../../.env',
+        // Local overrides
+        '.env.local',
+        '.env',
+        // Compiled dist directory paths
         join(__dirname, '../../../.env.local'),
         join(__dirname, '../../../.env'),
+        join(__dirname, '../../.env.local'),
+        join(__dirname, '../../.env'),
       ],
       expandVariables: true,
       load: [supabaseConfig],
@@ -52,7 +62,6 @@ import supabaseConfig from './supabase/supabase.config';
     SessionsModule,
     HealthModule,
     AgentPoolModule,
-    MCPPoolModule, // MCP service discovery and pool management
     // LLM Evaluation Enhancement Modules
     ProvidersModule, // LLM providers and models management
     CIDAFMModule, // AI Function Module behavior modification

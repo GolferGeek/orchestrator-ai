@@ -331,7 +331,8 @@ const handleViewDetails = (mcp: MCPRegistration) => {
 };
 
 const handleExecutionComplete = (result: any) => {
-  showToolExecution.value = false;
+  // Don't automatically close the modal - let the user see the result
+  // showToolExecution.value = false;
   
   if (result.success) {
     showToastMessage('Tool executed successfully');

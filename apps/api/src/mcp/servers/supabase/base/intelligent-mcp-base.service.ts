@@ -6,8 +6,8 @@
  */
 
 import { Injectable } from '@nestjs/common';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { MCPExecutionTrackerService, MCPExecutionContext, MCPExecutionResult } from '../services/mcp-execution-tracker.service';
-import { SupabaseService } from '../../../../supabase/supabase.service';
 
 export interface MCPToolDefinition {
   name: string;
@@ -43,11 +43,18 @@ export interface MCPToolExecutionOptions {
 @Injectable()
 export abstract class IntelligentMCPBaseService {
   protected abstract serverInfo: MCPServerInfo;
+  protected supabaseClient!: SupabaseClient;
 
   constructor(
-    protected readonly executionTracker: MCPExecutionTrackerService,
-    protected readonly supabaseService: SupabaseService
+    protected readonly executionTracker: MCPExecutionTrackerService
   ) {}
+
+  /**
+   * Set the Supabase client for execution tracking
+   */
+  protected setSupabaseClient(client: SupabaseClient): void {
+    this.supabaseClient = client;
+  }
 
   /**
    * Get server information and available tools
@@ -133,7 +140,7 @@ export abstract class IntelligentMCPBaseService {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const { data: executions, error } = await this.supabaseService.getServiceClient()
+    const { data: executions, error } = await this.supabaseClient
       .from('mcp_executions')
       .select('*')
       .eq('user_id', userId)
@@ -196,7 +203,7 @@ export abstract class IntelligentMCPBaseService {
     hasFailure: boolean;
     hasFeedback: boolean;
   }>> {
-    let query = this.supabaseService.getServiceClient()
+    let query = this.supabaseClient
       .from('mcp_executions')
       .select(`
         id,
@@ -278,8 +285,21 @@ export abstract class IntelligentMCPBaseService {
           const value = parameters[fieldName];
           const type = (fieldSchema as any).type;
           
-          if (type && typeof value !== type) {
-            errors.push(`Parameter '${fieldName}' should be of type ${type}, got ${typeof value}`);
+          if (type) {
+            // Handle JSON Schema types vs JavaScript types
+            let isValidType = false;
+            
+            if (type === 'integer') {
+              isValidType = typeof value === 'number' && Number.isInteger(value);
+            } else if (type === 'number') {
+              isValidType = typeof value === 'number';
+            } else {
+              isValidType = typeof value === type;
+            }
+            
+            if (!isValidType) {
+              errors.push(`Parameter '${fieldName}' should be of type ${type}, got ${typeof value}`);
+            }
           }
         }
       }

@@ -21,9 +21,10 @@ export class SupabaseService implements OnModuleInit {
   }
 
   private initializeClients() {
-    const url = this.configService.get<string>('supabase.url');
-    const anonKey = this.configService.get<string>('supabase.anonKey');
-    const serviceKey = this.configService.get<string>('supabase.serviceKey');
+    // Try nested config first, then fallback to flat env variables
+    const url = this.configService.get<string>('supabase.url') || this.configService.get<string>('SUPABASE_URL');
+    const anonKey = this.configService.get<string>('supabase.anonKey') || this.configService.get<string>('SUPABASE_ANON_KEY');
+    const serviceKey = this.configService.get<string>('supabase.serviceKey') || this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!url) {
       this.logger.warn(
@@ -120,8 +121,8 @@ export class SupabaseService implements OnModuleInit {
    * Equivalent to FastAPI's get_supabase_client_as_current_user()
    */
   createAuthenticatedClient(token: string): SupabaseClient {
-    const url = this.configService.get<string>('supabase.url');
-    const anonKey = this.configService.get<string>('supabase.anonKey');
+    const url = this.configService.get<string>('supabase.url') || this.configService.get<string>('SUPABASE_URL');
+    const anonKey = this.configService.get<string>('supabase.anonKey') || this.configService.get<string>('SUPABASE_ANON_KEY');
 
     if (!url || !anonKey) {
       this.logger.error(

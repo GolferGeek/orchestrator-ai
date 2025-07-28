@@ -280,25 +280,56 @@ export class MCPClientService implements IMCPClient {
 
       // Parse the MCP server response correctly
       let parsedData = null;
+      let success = false;
+      let error = undefined;
       
-      if (!result.isError && result.content?.[0]?.text) {
-        try {
-          // Try to parse the JSON text from the content
-          parsedData = JSON.parse(result.content[0].text);
-        } catch (parseError) {
-          // If JSON parsing fails, use the raw text
-          parsedData = result.content[0].text;
+      // Handle Enhanced Supabase MCP server response format
+      if (result.tool_result) {
+        success = !result.tool_result.isError;
+        error = result.tool_result.isError ? result.tool_result.content?.[0]?.text : undefined;
+        
+        if (!result.tool_result.isError && result.tool_result.content?.[0]?.text) {
+          try {
+            // Try to parse the JSON text from the content
+            parsedData = JSON.parse(result.tool_result.content[0].text);
+          } catch (parseError) {
+            // If JSON parsing fails, use the raw text
+            parsedData = result.tool_result.content[0].text;
+          }
+        } else if (!result.tool_result.isError && result.tool_result.content) {
+          // Fallback to raw content if no text field
+          parsedData = result.tool_result.content;
         }
-      } else if (!result.isError && result.content) {
-        // Fallback to raw content if no text field
-        parsedData = result.content;
+      }
+      // Handle standard MCP response format (fallback)
+      else if (result.hasOwnProperty('isError')) {
+        success = !result.isError;
+        error = result.isError ? result.content?.[0]?.text : undefined;
+        
+        if (!result.isError && result.content?.[0]?.text) {
+          try {
+            // Try to parse the JSON text from the content
+            parsedData = JSON.parse(result.content[0].text);
+          } catch (parseError) {
+            // If JSON parsing fails, use the raw text
+            parsedData = result.content[0].text;
+          }
+        } else if (!result.isError && result.content) {
+          // Fallback to raw content if no text field
+          parsedData = result.content;
+        }
+      }
+      // Handle direct response format
+      else {
+        success = true;
+        parsedData = result;
       }
 
       return {
-        success: !result.isError,
+        success,
         data: parsedData,
-        error: result.isError ? result.content?.[0]?.text : undefined,
-        metadata: result._meta || {},
+        error,
+        metadata: result.execution_info || result._meta || {},
       };
     } catch (error) {
       throw new Error(

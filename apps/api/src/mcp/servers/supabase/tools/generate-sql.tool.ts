@@ -50,25 +50,22 @@ export class EnhancedGenerateSQLTool {
     
     try {
       // Get enhanced prompt with context learning
+      console.log('🔧 DEBUG: About to call enhancePrompt with use_context =', parameters.use_context);
+      console.log('🔧 DEBUG: Original prompt:', parameters.prompt);
+      
       const enhancedPrompt = parameters.use_context !== false
-        ? await this.contextLearning.enhancePrompt(
-            parameters.prompt,
-            'generate-sql',
-            'sql_generation'
-          )
-        : {
-            originalPrompt: parameters.prompt,
-            enhancedPrompt: parameters.prompt,
-            appliedPatterns: [],
-            warnings: []
-          };
+        ? await this.contextLearning.enhancePrompt(parameters.prompt, 'generate-sql')
+        : parameters.prompt;
+        
+      console.log('🔧 DEBUG: Enhanced prompt length:', enhancedPrompt.length);
+      console.log('🔧 DEBUG: Enhanced prompt preview:', enhancedPrompt.substring(0, 200));
 
       // Get database schema for context
       const schema = await this.getRelevantSchema();
 
       // Generate SQL using LLM
       const sqlResult = await this.generateSQLWithLLM(
-        enhancedPrompt.enhancedPrompt,
+        enhancedPrompt,
         schema,
         parameters,
         options
@@ -77,34 +74,20 @@ export class EnhancedGenerateSQLTool {
       // Validate the generated SQL
       const validation = await this.validateSQL(sqlResult.sql);
 
-      // Learn from this execution
-      await this.contextLearning.learnFromExecution(
-        parameters.prompt,
-        sqlResult.sql,
-        validation.is_valid,
-        validation.security_issues.join(', ') || undefined
-      );
+      // Context learning is handled by the simplified service
 
       return {
         sql: sqlResult.sql,
         explanation: sqlResult.explanation,
         confidence: sqlResult.confidence,
-        warnings: [...enhancedPrompt.warnings, ...validation.security_issues],
-        context_patterns_applied: enhancedPrompt.appliedPatterns.length,
+        warnings: validation.security_issues,
+        context_patterns_applied: parameters.use_context !== false ? 1 : 0,
         execution_time_ms: Date.now() - startTime,
         model_used: sqlResult.model_used,
         validation_results: validation
       };
 
     } catch (error) {
-      // Learn from failures too
-      await this.contextLearning.learnFromExecution(
-        parameters.prompt,
-        '',
-        false,
-        error instanceof Error ? error.message : 'Unknown error'
-      );
-
       throw error;
     }
   }
@@ -254,9 +237,10 @@ Return your response as JSON with these fields:
    * Get relevant database schema
    */
   private async getRelevantSchema(): Promise<any> {
-    // Fallback to known tables since information_schema might not be accessible
+    // Complete schema including KPI business tables
     return {
       tables: [
+        // Application tables
         {
           name: 'users',
           columns: ['id', 'email', 'display_name', 'created_at', 'updated_at']
@@ -276,7 +260,35 @@ Return your response as JSON with these fields:
         {
           name: 'mcp_executions',
           columns: ['id', 'mcp_name', 'tool_name', 'user_id', 'agent_conversation_id', 'session_id', 'status', 'execution_time_ms', 'created_at']
+        },
+        // KPI Business tables
+        {
+          name: 'companies',
+          columns: ['id', 'name', 'industry', 'founded_year', 'created_at']
+        },
+        {
+          name: 'departments',
+          columns: ['id', 'company_id', 'name', 'head_of_department', 'budget', 'created_at']
+        },
+        {
+          name: 'kpi_metrics',
+          columns: ['id', 'name', 'description', 'unit', 'metric_type', 'created_at']
+        },
+        {
+          name: 'kpi_data',
+          columns: ['id', 'department_id', 'metric_id', 'value', 'date_recorded', 'created_at']
+        },
+        {
+          name: 'kpi_goals',
+          columns: ['id', 'department_id', 'metric_id', 'target_value', 'period_start', 'period_end', 'created_at']
         }
+      ],
+      relationships: [
+        'companies.id = departments.company_id',
+        'departments.id = kpi_data.department_id',
+        'kpi_metrics.id = kpi_data.metric_id',
+        'departments.id = kpi_goals.department_id',
+        'kpi_metrics.id = kpi_goals.metric_id'
       ]
     };
   }

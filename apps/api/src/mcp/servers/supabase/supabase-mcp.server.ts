@@ -5,10 +5,11 @@
  * Replaces the existing implementation with the new infrastructure.
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
 import { IntelligentMCPBaseService, MCPServerInfo, MCPToolDefinition, MCPToolExecutionOptions } from './base/intelligent-mcp-base.service';
 import { MCPExecutionTrackerService } from './services/mcp-execution-tracker.service';
 import { ContextLearningService } from './services/context-learning.service';
@@ -47,10 +48,15 @@ export interface SupabaseMCPConfig {
 }
 
 @Injectable()
-export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCPServer {
+export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCPServer, OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SupabaseMCPServer.name);
-  private supabaseClient!: SupabaseClient;
   private config!: SupabaseMCPConfig;
+  
+  // Heartbeat mechanism
+  private heartbeatInterval?: NodeJS.Timeout;
+  private readonly heartbeatIntervalMs = 60000; // 60 seconds
+  // MCP Pool Service removed - using direct MCP Client Service
+  private startTime = new Date();
 
   // Tool instances
   private generateSQLTool!: EnhancedGenerateSQLTool;
@@ -231,15 +237,15 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
 
   constructor(
     private readonly llmService: LLMService,
+    private readonly httpService: HttpService,
     executionTracker?: MCPExecutionTrackerService,
-    supabaseService?: SupabaseService,
+    private readonly supabaseService?: SupabaseService,
     private readonly contextLearning?: ContextLearningService,
     private readonly configService?: ConfigService
   ) {
-    // Create dummy services if not provided (for testing purposes)
-    const dummyTracker = executionTracker || ({} as MCPExecutionTrackerService);
-    const dummySupabase = supabaseService || ({} as SupabaseService);
-    super(dummyTracker, dummySupabase);
+    // Create execution tracker with proper SupabaseService injection
+    const workingTracker = executionTracker || new MCPExecutionTrackerService(supabaseService);
+    super(workingTracker);
   }
 
   /**
@@ -253,6 +259,14 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
       // Create Supabase client
       const { createClient } = await import('@supabase/supabase-js');
       this.supabaseClient = createClient(config.supabaseUrl, config.supabaseKey);
+      
+      // Set the client in the base class for execution tracking
+      this.setSupabaseClient(this.supabaseClient);
+      
+      // Also set the client in the execution tracker if it exists
+      if (this.executionTracker && typeof this.executionTracker.setSupabaseClient === 'function') {
+        this.executionTracker.setSupabaseClient(this.supabaseClient);
+      }
 
       // Test connection
       await this.testConnection();
@@ -271,6 +285,20 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
       this.logger.error('Failed to initialize Supabase MCP Server:', error);
       throw error;
     }
+  }
+
+  /**
+   * Module lifecycle - start heartbeat when module initializes
+   */
+  async onModuleInit() {
+    this.startHeartbeat();
+  }
+
+  /**
+   * Module lifecycle - stop heartbeat when module destroys
+   */
+  onModuleDestroy() {
+    this.stopHeartbeat();
   }
 
   /**
@@ -324,6 +352,10 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
     parameters: any,
     options: MCPToolExecutionOptions
   ): Promise<any> {
+    console.log(`🔧 TOOL EXECUTION DEBUG: Starting ${toolName}`);
+    console.log(`🔧 TOOL EXECUTION DEBUG: this.supabaseClient = ${!!this.supabaseClient}`);
+    console.log(`🔧 TOOL EXECUTION DEBUG: Parameters:`, JSON.stringify(parameters, null, 2));
+    
     // Validate parameters
     const validation = this.validateParameters(toolName, parameters);
     if (!validation.valid) {
@@ -337,25 +369,40 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
       llmModel: options.llmModel || this.config.defaultLLMModel || 'claude-3-5-sonnet'
     };
 
-    // Execute the appropriate tool
-    switch (toolName) {
-      case 'generate-sql':
-        return await this.generateSQLTool.execute(parameters, enhancedOptions);
+    try {
+      // Execute the appropriate tool
+      switch (toolName) {
+        case 'generate-sql':
+          console.log('🚀 SERVER DEBUG: About to call generateSQLTool.execute');
+          console.log('🚀 SERVER DEBUG: Parameters:', JSON.stringify(parameters, null, 2));
+          const result = await this.generateSQLTool.execute(parameters, enhancedOptions);
+          console.log('🚀 SERVER DEBUG: Result from generateSQLTool.execute completed');
+          return result;
 
-      case 'get-schema':
-        return await this.getSchemaTool.execute(parameters, enhancedOptions);
+        case 'get-schema':
+          console.log('🔧 TOOL DEBUG: About to call getSchemaTool.execute');
+          console.log(`🔧 TOOL DEBUG: getSchemaTool exists = ${!!this.getSchemaTool}`);
+          return await this.getSchemaTool.execute(parameters, enhancedOptions);
 
-      case 'execute-sql':
-        return await this.executeSQLTool.execute(parameters, enhancedOptions);
+        case 'execute-sql':
+          console.log('🔧 TOOL DEBUG: About to call executeSQLTool.execute');
+          console.log(`🔧 TOOL DEBUG: executeSQLTool exists = ${!!this.executeSQLTool}`);
+          return await this.executeSQLTool.execute(parameters, enhancedOptions);
 
-      case 'query-and-format':
-        return await this.queryAndFormatTool.execute(parameters, enhancedOptions);
+        case 'query-and-format':
+          console.log('🔧 TOOL DEBUG: About to call queryAndFormatTool.execute');
+          return await this.queryAndFormatTool.execute(parameters, enhancedOptions);
 
-      case 'read-data':
-        return await this.readDataTool.execute(parameters, enhancedOptions);
+        case 'read-data':
+          console.log('🔧 TOOL DEBUG: About to call readDataTool.execute');
+          return await this.readDataTool.execute(parameters, enhancedOptions);
 
-      default:
-        throw new Error(`Unknown tool: ${toolName}`);
+        default:
+          throw new Error(`Unknown tool: ${toolName}`);
+      }
+    } catch (error) {
+      console.error(`❌ TOOL EXECUTION ERROR: ${toolName} failed:`, error);
+      throw error;
     }
   }
 
@@ -386,6 +433,123 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
   }
 
   /**
+   * Start heartbeat mechanism to keep MCP pool registration alive
+   */
+  private startHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      return; // Already started
+    }
+
+    this.logger.log('Starting heartbeat mechanism for MCP pool integration');
+    
+    // Send initial heartbeat
+    this.sendHeartbeat();
+    
+    // Set up recurring heartbeat
+    this.heartbeatInterval = setInterval(() => {
+      this.sendHeartbeat();
+    }, this.heartbeatIntervalMs);
+  }
+
+  /**
+   * Stop heartbeat mechanism
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = undefined;
+      this.logger.log('Heartbeat mechanism stopped');
+    }
+  }
+
+  /**
+   * Send heartbeat to MCP pool
+   */
+  private async sendHeartbeat(): Promise<void> {
+    try {
+      const metrics = await this.collectMetrics();
+      
+      const heartbeat = {
+        mcpId: 'supabase-mcp',
+        timestamp: new Date(),
+        metrics,
+        status: 'healthy',
+        toolsAvailable: 5
+      };
+
+      // MCP Pool heartbeat removed - using direct MCP Client Service
+
+      this.logger.debug('Heartbeat mechanism disabled - using direct MCP Client Service');
+    } catch (error) {
+      this.logger.warn(`Heartbeat mechanism disabled: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Collect metrics for heartbeat
+   */
+  private async collectMetrics(): Promise<any> {
+    try {
+      const uptime = Date.now() - this.startTime.getTime();
+      
+      // Get execution stats from tracker if available
+      let executionStats = {
+        totalExecutions: 0,
+        successfulExecutions: 0,
+        failedExecutions: 0,
+        averageResponseTime: 0,
+        averageExecutionTime: 0,
+        toolsUsed: {},
+        errorRate: 0,
+        lastExecutionAt: undefined
+      };
+
+      if (this.executionTracker && typeof this.executionTracker.getExecutionStats === 'function') {
+        try {
+          const trackerStats = await this.executionTracker.getExecutionStats('system', 30);
+          const successfulExecutions = Math.round((trackerStats.successRate / 100) * trackerStats.totalExecutions);
+          const failedExecutions = trackerStats.totalExecutions - successfulExecutions;
+          
+          executionStats = {
+            totalExecutions: trackerStats.totalExecutions,
+            successfulExecutions,
+            failedExecutions,
+            averageResponseTime: trackerStats.avgExecutionTime || 0,
+            averageExecutionTime: trackerStats.avgExecutionTime || 0,
+            toolsUsed: trackerStats.topTools?.reduce((acc: any, tool: any) => {
+              acc[tool.tool_name] = tool.count;
+              return acc;
+            }, {}) || {},
+            errorRate: 100 - trackerStats.successRate,
+            lastExecutionAt: undefined // Not available in current stats
+          };
+        } catch (error) {
+          this.logger.debug('Could not get execution metrics from tracker');
+        }
+      }
+
+      return {
+        ...executionStats,
+        uptime,
+        memoryUsage: process.memoryUsage().heapUsed,
+        diskUsage: 0 // Not easily available in Node.js
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to collect metrics: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return {
+        totalExecutions: 0,
+        successfulExecutions: 0,
+        failedExecutions: 0,
+        averageResponseTime: 0,
+        averageExecutionTime: 0,
+        toolsUsed: {},
+        uptime: Date.now() - this.startTime.getTime(),
+        errorRate: 0
+      };
+    }
+  }
+
+  /**
    * Enhanced health check with detailed diagnostics
    */
   async healthCheck(): Promise<{
@@ -393,6 +557,17 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
     details?: any;
   }> {
     try {
+      // Check if client is initialized
+      if (!this.supabaseClient) {
+        return {
+          status: 'unhealthy',
+          details: {
+            error: 'Supabase client not initialized',
+            database: { status: 'not_initialized' }
+          }
+        };
+      }
+
       // Test database connection
       const { data, error } = await this.supabaseClient
         .from('users')
@@ -404,8 +579,16 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
       // Test context learning
       const contextStats = this.contextLearning?.getContextStats() || { totalPatterns: 0, lastReload: null };
 
-      // Test execution tracking (basic check)
-      const userStats = await this.getServerStats('test-user-id', 1).catch(() => null);
+      // Test execution tracking (basic check) - only if client is available
+      let userStats = null;
+      try {
+        if (this.supabaseClient) {
+          userStats = await this.getServerStats('test-user-id', 1);
+        }
+      } catch (error) {
+        // Execution tracking might fail if tables don't exist yet
+        userStats = null;
+      }
 
       return {
         status: dbStatus,
@@ -517,7 +700,11 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
     progressCallback?: (progress: any) => Promise<void>
   ): Promise<MCPToolResponse> {
     try {
-      const result = await this.executeTool(
+      console.log('🎯 CALLTOOL DEBUG: callTool method called with:', request.name);
+      console.log('🎯 CALLTOOL DEBUG: arguments:', JSON.stringify(request.arguments, null, 2));
+      
+      // Execute with proper tracking
+      const executionResult = await this.executeTool(
         request.name,
         request.arguments || {},
         {
@@ -529,16 +716,35 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
           llmModel: 'claude-3-5-sonnet'
         }
       );
+      
+      // Check if execution was successful
+      if (!executionResult.success) {
+        return {
+          content: [{
+            type: 'text',
+            text: `Tool execution failed: ${executionResult.error}`
+          }],
+          isError: true,
+          _meta: {
+            tool_name: request.name,
+            execution_id: executionResult.executionId,
+            feedback_token: executionResult.feedbackToken,
+            error: executionResult.error
+          }
+        };
+      }
 
       return {
         content: [{
           type: 'text',
-          text: JSON.stringify(result, null, 2)
+          text: JSON.stringify(executionResult.data, null, 2)
         }],
         isError: false,
         _meta: {
           tool_name: request.name,
-          execution_time: Date.now()
+          execution_id: executionResult.executionId,
+          feedback_token: executionResult.feedbackToken,
+          execution_time: executionResult.executionTime
         }
       };
     } catch (error) {
@@ -573,6 +779,13 @@ export class SupabaseMCPServer extends IntelligentMCPBaseService implements IMCP
         }
       ]
     };
+  }
+
+  /**
+   * Get the execution tracker service for feedback and analytics
+   */
+  getExecutionTracker(): MCPExecutionTrackerService {
+    return this.executionTracker;
   }
 
   async getResource(request: MCPGetResourceRequest): Promise<MCPGetResourceResponse> {

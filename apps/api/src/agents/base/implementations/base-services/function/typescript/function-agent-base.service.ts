@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef, Optional } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from '../../a2a-base/a2a-agent-base.service';
 import { LLMService } from '@/llms/llm.service';
@@ -12,8 +12,6 @@ import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
 import { MCPClientService } from '@/mcp/client/mcp-client.service';
-import { MCPPoolService } from '@/mcp-pool/mcp-pool.service';
-import { MCPRegistryService } from '@/mcp/mcp-registry.service';
 
 export interface AgentFunctionResponse {
   response: string;
@@ -31,6 +29,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   private currentUserId: string | null = null; // Store current user ID for task completion
   protected currentTaskId: string | null = null; // Store current task ID for progress tracking
   protected totalSteps: number = 1; // Default to 1 step, can be overridden by agents
+  protected mcpClientService?: MCPClientService;
 
   constructor(
     protected readonly httpService: HttpService,
@@ -41,7 +40,9 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     protected readonly tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     protected readonly taskStatusService: TaskStatusService | undefined,
-    protected readonly mcpPoolService: MCPPoolService | undefined,
+    @Optional()
+    @Inject(MCPClientService)
+    mcpClientService?: MCPClientService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -58,11 +59,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       configurationService,
     );
     
-    // Debug MCP pool service injection
-    this.functionLogger.debug(`MCP Pool Service initialized: ${!!this.mcpPoolService}`);
-    if (this.mcpPoolService) {
-      this.functionLogger.debug(`MCP Pool Service has methods: ${Object.keys(this.mcpPoolService).join(',')}`);
-    }
+    this.mcpClientService = mcpClientService;
   }
 
   /**
@@ -158,39 +155,40 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         this.emitProgress(stepName, stepIndex, status as any, message);
       };
 
-      // Create MCP service wrapper for agent functions - use pool service for KPI-focused operations
-      const mcpService = this.mcpPoolService ? {
+      // Create MCP service wrapper from the inherited A2A base service MCP pool
+      const mcpService = this.mcpClientService ? {
         isAvailable: () => {
           try {
-            if (!this.mcpPoolService) {
-              this.functionLogger.warn('MCP Pool Service not available');
+            if (!this.mcpClientService) {
+              this.functionLogger.warn('MCP Client Service not available');
               return false;
             }
             
-            // Check if pool has active registrations 
-            const registrations = this.mcpPoolService.getRegistrations();
-            const supabaseRegistration = registrations.find((r: any) => r.name === 'supabase');
+            // Check if client has active servers
+            const availableServers = this.mcpClientService.getAvailableServers();
+            const hasSupabase = availableServers.includes('supabase');
             
-            this.functionLogger.debug(`MCP Pool Service status: registrations=${registrations.length}, supabase=${!!supabaseRegistration}`);
+            this.functionLogger.debug(`MCP Client Service status: servers=${availableServers.length}, supabase=${hasSupabase}`);
             
-            return !!supabaseRegistration && supabaseRegistration.status === 'online';
+            return hasSupabase && this.mcpClientService.isAvailable();
           } catch (error) {
-            this.functionLogger.warn('MCP Pool isAvailable check failed:', error);
+            this.functionLogger.warn('MCP Client isAvailable check failed:', error);
             return false;
           }
         },
         
         // Database operations - KPI-focused with table filtering
         getSchema: async (options?: { table_name?: string; refresh_cache?: boolean; focus_tables?: string[] }) => {
-          if (!this.mcpPoolService) {
-            throw new Error('MCP Pool Service not available');
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
           }
           // Add KPI table focus for metrics agent
           const kpiOptions = {
             ...options,
             focus_tables: options?.focus_tables || ['kpi_data', 'kpi_metrics', 'kpi_goals', 'departments', 'companies']
           };
-          return await this.mcpPoolService.executeToolByName('supabase', 'get-schema', kpiOptions);
+          const toolRequest = { name: 'get-schema', arguments: kpiOptions };
+          return await this.mcpClientService.callTool('supabase', toolRequest);
         },
         
         readData: async (params: { 
@@ -202,10 +200,11 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           order_by?: { column: string; ascending?: boolean };
           format?: 'json' | 'table' | 'csv';
         }) => {
-          if (!this.mcpPoolService) {
-            throw new Error('MCP Pool Service not available');
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
           }
-          return await this.mcpPoolService.executeToolByName('supabase', 'read-data', params);
+          const toolRequest = { name: 'read-data', arguments: params };
+          return await this.mcpClientService.callTool('supabase', toolRequest);
         },
         
         executeSQL: async (params: { 
@@ -215,10 +214,11 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           max_rows?: number; 
           format?: 'detailed' | 'compact' | 'csv' | 'json';
         }) => {
-          if (!this.mcpPoolService) {
-            throw new Error('MCP Pool Service not available');
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
           }
-          return await this.mcpPoolService.executeToolByName('supabase', 'execute-sql', params);
+          const toolRequest = { name: 'execute-sql', arguments: params };
+          return await this.mcpClientService.callTool('supabase', toolRequest);
         },
         
         generateSQL: async (params: { 
@@ -229,15 +229,16 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           max_rows?: number;
           schema_tables?: string[];
         }) => {
-          if (!this.mcpPoolService) {
-            throw new Error('MCP Pool Service not available');
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
           }
           // Add KPI table focus for better SQL generation
           const kpiParams = {
             ...params,
             schema_tables: params.schema_tables || ['kpi_data', 'kpi_metrics', 'kpi_goals', 'departments', 'companies']
           };
-          return await this.mcpPoolService.executeToolByName('supabase', 'generate-sql', kpiParams);
+          const toolRequest = { name: 'generate-sql', arguments: kpiParams };
+          return await this.mcpClientService.callTool('supabase', toolRequest);
         },
         
         queryAndFormat: async (params: { 
@@ -249,34 +250,36 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           include_schema_context?: boolean;
           suggested_tables?: string[];
         }) => {
-          if (!this.mcpPoolService) {
-            throw new Error('MCP Pool Service not available');
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
           }
           // Add KPI table suggestions for focused analysis
           const kpiParams = {
             ...params,
             suggested_tables: params.suggested_tables || ['kpi_data', 'kpi_metrics', 'kpi_goals', 'departments', 'companies']
           };
-          return await this.mcpPoolService.executeToolByName('supabase', 'query-and-format', kpiParams);
+          const toolRequest = { name: 'query-and-format', arguments: kpiParams };
+          return await this.mcpClientService.callTool('supabase', toolRequest);
         },
         
         // Generic tool call method for extensibility
         callTool: async (server: string, toolName: string, params: any) => {
-          if (!this.mcpPoolService) {
-            throw new Error('MCP Pool Service not available');
+          if (!this.mcpClientService) {
+            throw new Error('MCP Client Service not available');
           }
-          return await this.mcpPoolService.executeToolByName(server, toolName, params);
+          
+          // Map server names from agent function expectations to MCPClientService format
+          let actualServerName = server;
+          if (server === 'supabase-mcp') {
+            actualServerName = 'supabase';
+          }
+          
+          this.functionLogger.debug(`MCP Tool call: ${server} -> ${actualServerName}, tool: ${toolName}`);
+          
+          const toolRequest = { name: toolName, arguments: params };
+          return await this.mcpClientService.callTool(actualServerName, toolRequest);
         }
-      } : {
-        // Fallback when MCP pool service is not available
-        isAvailable: () => false,
-        getSchema: async () => ({ success: false, error: 'MCP Pool Service not available' }),
-        readData: async () => ({ success: false, error: 'MCP Pool Service not available' }),
-        executeSQL: async () => ({ success: false, error: 'MCP Pool Service not available' }),
-        generateSQL: async () => ({ success: false, error: 'MCP Pool Service not available' }),
-        queryAndFormat: async () => ({ success: false, error: 'MCP Pool Service not available' }),
-        callTool: async () => ({ success: false, error: 'MCP Pool Service not available' })
-      };
+      } : null;
 
       // Prepare standardized parameters for the agent function
       const functionParams: AgentFunctionParams = {
@@ -287,21 +290,13 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         authToken: params.authToken,
         llmService: wrappedLLMService,
         progressCallback,
-        mcpService, // Add MCP service for database operations
+        mcpService, // MCP service from A2A base service
         metadata: {
           method,
           originalParams: params,
           agentName: agentName,
           timestamp: new Date().toISOString(),
           taskId: this.currentTaskId,
-          // Pass LLM preferences to agent function
-          llmPreferences: {
-            providerId: params.providerId,
-            modelId: params.modelId,
-            temperature: params.temperature,
-            maxTokens: params.maxTokens,
-            cidafmOptions: params.cidafmOptions,
-          },
         },
       };
 
@@ -639,48 +634,16 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     // For now, just setting the path is sufficient
   }
 
-  /**
-   * Test MCP Pool service availability (debugging method)
-   */
-  testMCPService(): any {
-    if (!this.mcpPoolService) {
-      return {
-        hasPoolService: false,
-        error: 'No MCPPoolService available'
-      };
-    }
-    
-    try {
-      const registrations = this.mcpPoolService.getRegistrations();
-      const supabaseReg = registrations.find((r: any) => r.name === 'supabase');
-      
-      return {
-        hasPoolService: true,
-        registrationCount: registrations.length,
-        registrations: registrations.map((r: any) => ({ name: r.name, status: r.status })),
-        supabaseAvailable: !!supabaseReg,
-        supabaseStatus: supabaseReg?.status || 'not_found',
-        methods: Object.keys(this.mcpPoolService)
-      };
-    } catch (error) {
-      return {
-        hasPoolService: true,
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
 
   /**
    * Get agent card with function status
    */
   async getAgentCard(): Promise<any> {
     const baseCard = await super.getAgentCard();
-    const mcpStatus = this.testMCPService();
     return {
       ...baseCard,
       functionStatus: this.agentFunction ? 'loaded' : 'not_loaded',
       loadedAt: this.agentFunction ? new Date().toISOString() : null,
-      mcpStatus
     };
   }
 }
