@@ -18,11 +18,11 @@ import {
 class MCPService {
   
   /**
-   * Get MCP pool health status
+   * Get MCP client health status
    */
   async getPoolHealth(): Promise<MCPHealthInfo> {
     try {
-      const response = await apiService.get('/mcp-pool/health');
+      const response = await apiService.get('/mcp/health');
       return {
         status: response.status === 'healthy' ? 'healthy' : 'degraded',
         poolSize: response.poolSize || 0,
@@ -42,18 +42,36 @@ class MCPService {
   }
 
   /**
-   * Get MCP pool statistics
+   * Get MCP client statistics (placeholder for compatibility)
    */
   async getPoolStats(): Promise<MCPPoolStats> {
-    const response = await apiService.get('/mcp-pool/stats');
-    return response;
+    try {
+      const health = await this.getPoolHealth();
+      return {
+        totalRegistered: health.poolSize,
+        totalOnline: health.onlineMCPs,
+        totalTools: 0, // Will be calculated from MCP services
+        totalExecutions: 0, // Not tracked in current system
+        averageResponseTime: 0, // Not tracked in current system
+        lastUpdated: new Date()
+      };
+    } catch (error) {
+      return {
+        totalRegistered: 0,
+        totalOnline: 0,
+        totalTools: 0,
+        totalExecutions: 0,
+        averageResponseTime: 0,
+        lastUpdated: new Date()
+      };
+    }
   }
 
   /**
    * Get all registered MCP services
    */
   async getRegisteredMCPs(): Promise<MCPRegistration[]> {
-    const response = await apiService.get('/mcp-pool/mcps');
+    const response = await apiService.get('/mcp/mcps');
     return response.map((mcp: any) => ({
       ...mcp,
       discoveredAt: new Date(mcp.discoveredAt),
@@ -66,69 +84,84 @@ class MCPService {
    * Get only online MCP services
    */
   async getOnlineMCPs(): Promise<MCPRegistration[]> {
-    const response = await apiService.get('/mcp-pool/mcps/online');
-    return response.map((mcp: any) => ({
-      ...mcp,
-      discoveredAt: new Date(mcp.discoveredAt),
-      registeredAt: mcp.registeredAt ? new Date(mcp.registeredAt) : undefined,
-      lastHeartbeat: mcp.lastHeartbeat ? new Date(mcp.lastHeartbeat) : undefined
-    }));
+    const allMCPs = await this.getRegisteredMCPs();
+    return allMCPs.filter(mcp => mcp.status === 'online');
   }
 
   /**
    * Get MCP services by type
    */
   async getMCPsByType(type: string): Promise<MCPRegistration[]> {
-    const response = await apiService.get(`/mcp-pool/mcps/type/${type}`);
-    return response.map((mcp: any) => ({
-      ...mcp,
-      discoveredAt: new Date(mcp.discoveredAt),
-      registeredAt: mcp.registeredAt ? new Date(mcp.registeredAt) : undefined,
-      lastHeartbeat: mcp.lastHeartbeat ? new Date(mcp.lastHeartbeat) : undefined
-    }));
+    const allMCPs = await this.getRegisteredMCPs();
+    return allMCPs.filter(mcp => mcp.type === type);
   }
 
   /**
    * Get MCP services by provider
    */
   async getMCPsByProvider(provider: string): Promise<MCPRegistration[]> {
-    const response = await apiService.get(`/mcp-pool/mcps/provider/${provider}`);
-    return response.map((mcp: any) => ({
-      ...mcp,
-      discoveredAt: new Date(mcp.discoveredAt),
-      registeredAt: mcp.registeredAt ? new Date(mcp.registeredAt) : undefined,
-      lastHeartbeat: mcp.lastHeartbeat ? new Date(mcp.lastHeartbeat) : undefined
-    }));
+    const allMCPs = await this.getRegisteredMCPs();
+    return allMCPs.filter(mcp => mcp.provider === provider);
   }
 
   /**
    * Get comprehensive MCP capabilities document for orchestrator
    */
   async getCapabilitiesDocument(): Promise<MCPCapabilitiesDocument> {
-    const response = await apiService.get('/mcp-pool/capabilities');
-    return {
-      ...response,
-      generatedAt: new Date(response.generatedAt),
-      mcps: response.mcps.map((mcp: any) => ({
-        ...mcp,
-        lastHeartbeat: mcp.lastHeartbeat ? new Date(mcp.lastHeartbeat) : undefined
-      }))
-    };
+    try {
+      const [mcps, tools, health] = await Promise.all([
+        this.getRegisteredMCPs(),
+        this.getAllAvailableTools(),
+        this.getPoolHealth()
+      ]);
+
+      return {
+        version: '1.0.0',
+        mcps: mcps,
+        tools: tools,
+        capabilities: {
+          database: true,
+          analytics: true,
+          automation: false
+        },
+        health: health,
+        generatedAt: new Date()
+      };
+    } catch (error) {
+      return {
+        version: '1.0.0',
+        mcps: [],
+        tools: { total_tools: 0, services: [], categories: {} },
+        capabilities: { database: false, analytics: false, automation: false },
+        health: { status: 'offline', poolSize: 0, onlineMCPs: 0, healthScore: 0, lastCheck: new Date() },
+        generatedAt: new Date()
+      };
+    }
   }
 
   /**
    * Get orchestration-friendly MCP list for LLM prompts
    */
   async getOrchestrationMCPList(): Promise<MCPOrchestrationInfo> {
-    const response = await apiService.get('/mcp-pool/orchestration/mcps');
-    return response;
+    const mcps = await this.getRegisteredMCPs();
+    return {
+      available_mcps: mcps.map(mcp => ({
+        id: mcp.id,
+        name: mcp.name,
+        type: mcp.type,
+        status: mcp.status,
+        capabilities: mcp.capabilities || []
+      })),
+      total_count: mcps.length,
+      online_count: mcps.filter(mcp => mcp.status === 'online').length
+    };
   }
 
   /**
    * Get all available tools across MCP services
    */
   async getAllAvailableTools(): Promise<MCPToolsInfo> {
-    const response = await apiService.get('/mcp-pool/tools');
+    const response = await apiService.get('/mcp/tools');
     return response;
   }
 
@@ -136,18 +169,20 @@ class MCPService {
    * Trigger manual MCP service discovery
    */
   async triggerDiscovery(): Promise<MCPDiscoveryResult> {
-    const response = await apiService.post('/mcp-pool/discover');
+    // Since we only have one MCP server (Supabase), just return its current status
+    const mcps = await this.getRegisteredMCPs();
     return {
-      ...response,
-      discoveredAt: new Date(response.discoveredAt),
-      discovered: response.discovered.map((mcp: any) => ({
-        ...mcp,
-        discoveredAt: new Date(mcp.discoveredAt)
+      total_searched: 1,
+      total_discovered: mcps.length,
+      discovered: mcps.map(mcp => ({
+        id: mcp.id,
+        name: mcp.name,
+        type: mcp.type,
+        status: mcp.status,
+        discoveredAt: new Date()
       })),
-      errors: response.errors.map((error: any) => ({
-        ...error,
-        timestamp: new Date(error.timestamp)
-      }))
+      errors: [],
+      discoveredAt: new Date()
     };
   }
 
@@ -155,50 +190,45 @@ class MCPService {
    * Execute a tool on a specific MCP service
    */
   async executeMCPTool(request: MCPExecutionRequest): Promise<MCPExecutionResult> {
-    const response = await apiService.post('/mcp-pool/execute', request);
-    return {
-      ...response,
-      timestamp: new Date(response.timestamp)
-    };
+    // For now, this would need to be implemented if the frontend needs direct tool execution
+    // Currently, tool execution goes through the metrics agent and other agents
+    throw new Error('Direct MCP tool execution not implemented in current architecture. Use specific agent endpoints instead.');
   }
 
   /**
-   * Register a new MCP service manually
+   * Register a new MCP service manually (not applicable with single server)
    */
   async registerMCP(registration: Omit<MCPRegistration, 'discoveredAt' | 'registeredAt' | 'lastHeartbeat'>): Promise<void> {
-    await apiService.post('/mcp-pool/register', registration);
+    throw new Error('Manual MCP registration not supported with single server architecture');
   }
 
   /**
-   * Unregister an MCP service
+   * Unregister an MCP service (not applicable with single server)
    */
   async unregisterMCP(mcpId: string): Promise<void> {
-    await apiService.delete(`/mcp-pool/mcps/${mcpId}`);
+    throw new Error('MCP unregistration not supported with single server architecture');
   }
 
   /**
-   * Send heartbeat for an MCP service
+   * Send heartbeat for an MCP service (handled internally)
    */
   async sendHeartbeat(mcpId: string, metrics?: any): Promise<void> {
-    await apiService.post(`/mcp-pool/mcps/${mcpId}/heartbeat`, {
-      mcpId,
-      timestamp: new Date(),
-      status: 'online',
-      metrics
-    });
+    // Heartbeats are handled internally by the MCP client service
+    console.log(`Heartbeat requested for ${mcpId} - handled internally`);
   }
 
   /**
    * Get specific MCP service details
    */
   async getMCPDetails(mcpId: string): Promise<MCPRegistration> {
-    const response = await apiService.get(`/mcp-pool/mcps/${mcpId}`);
-    return {
-      ...response,
-      discoveredAt: new Date(response.discoveredAt),
-      registeredAt: response.registeredAt ? new Date(response.registeredAt) : undefined,
-      lastHeartbeat: response.lastHeartbeat ? new Date(response.lastHeartbeat) : undefined
-    };
+    const allMCPs = await this.getRegisteredMCPs();
+    const mcp = allMCPs.find(m => m.id === mcpId);
+    
+    if (!mcp) {
+      throw new Error(`MCP service with ID ${mcpId} not found`);
+    }
+    
+    return mcp;
   }
 
   /**
