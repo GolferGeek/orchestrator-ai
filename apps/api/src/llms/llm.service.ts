@@ -42,7 +42,7 @@ if (langsmithEnabled && langsmithApiKey) {
 @Injectable()
 export class LLMService {
   private readonly logger = new Logger(LLMService.name);
-  private readonly openai: OpenAI;
+  private openai: OpenAI | null = null;
   public readonly systemLLMConfigs: SystemLLMConfigs;
 
   constructor(
@@ -54,10 +54,15 @@ export class LLMService {
       `- OpenAI API Key available: ${!!process.env.OPENAI_API_KEY}`,
     );
 
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-    this.logger.log('✅ OpenAI client created');
+    // Initialize OpenAI client only if API key is available
+    if (process.env.OPENAI_API_KEY) {
+      this.openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+      this.logger.log('✅ OpenAI client created');
+    } else {
+      this.logger.log('⚠️ OpenAI API key not found - OpenAI client not initialized');
+    }
 
     // Initialize system LLM configurations for different orchestrator operations
     // Each operation type can have its own optimized configuration
@@ -167,10 +172,20 @@ export class LLMService {
     },
   ): Promise<string | any> {
     try {
-      // If full LLM preferences are provided, delegate to enhanced response
+      // Debug LLM options being received
+      this.logger.debug(`🔍 LLM Service Debug - Options received:`, {
+        providerId: options?.providerId,
+        modelId: options?.modelId,
+        provider: options?.provider,
+        temperature: options?.temperature,
+        maxTokens: options?.maxTokens,
+        hasCurrentUser: !!options?.currentUser
+      });
+      
+      // If providerId/modelId are provided, delegate to enhanced response for proper DB lookup
       if (options?.providerId || options?.modelId || options?.cidafmOptions) {
         this.logger.log(
-          `🎯 Full LLM preferences detected, delegating to enhanced response method`,
+          `🎯 LLM preferences with providerId/modelId detected, delegating to enhanced response method`,
         );
 
         // Extract user ID from currentUser object or use 'system' as fallback
@@ -190,8 +205,8 @@ export class LLMService {
           },
         );
 
-        // Return the full enhanced result with metadata
-        return enhancedResult;
+        // Return just the content for backward compatibility with simple method
+        return enhancedResult.content;
       }
 
       // Original simple implementation for backward compatibility
@@ -207,6 +222,7 @@ export class LLMService {
         options?.temperature || options?.maxTokens || options?.provider
           ? this.createCustomLangGraphLLM({
               provider: options?.provider || 'openai',
+              model: options?.modelId,
               temperature: options?.temperature,
               maxTokens: options?.maxTokens,
             })

@@ -1,7 +1,7 @@
 # Metrics Agent Configuration
 metadata:
   name: "Metrics Agent"
-  type: "specialists"
+  type: "finance"
   category: "analytics_monitoring"
   version: "1.0.0"
   description: "A specialist agent for business metrics analysis, performance tracking, and data-driven insights."

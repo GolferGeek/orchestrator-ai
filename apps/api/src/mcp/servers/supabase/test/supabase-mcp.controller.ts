@@ -7,6 +7,7 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import { SupabaseMCPServer, SupabaseMCPConfig } from '../supabase-mcp.server';
 import { MCPToolRequest } from '../../base/interfaces/mcp-server.interface';
 import { LLMService } from '@/llms/llm.service';
@@ -17,8 +18,11 @@ export class SupabaseMCPController {
   private mcpServer: SupabaseMCPServer;
   private initialized = false;
 
-  constructor(private readonly llmService: LLMService) {
-    this.mcpServer = new SupabaseMCPServer(this.llmService);
+  constructor(
+    private readonly llmService: LLMService,
+    private readonly httpService: HttpService
+  ) {
+    this.mcpServer = new SupabaseMCPServer(this.llmService, this.httpService);
   }
 
   /**

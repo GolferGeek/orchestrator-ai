@@ -7,6 +7,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../../../../supabase/supabase.service';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface MCPExecutionContext {
@@ -42,7 +43,43 @@ export interface MCPFailureDetails {
 
 @Injectable()
 export class MCPExecutionTrackerService {
-  constructor(private readonly supabaseService: SupabaseService) {}
+  private supabaseClient: SupabaseClient | null = null;
+
+  constructor(private readonly supabaseService?: SupabaseService) {}
+
+  /**
+   * Set a Supabase client directly for database operations
+   */
+  setSupabaseClient(client: SupabaseClient): void {
+    this.supabaseClient = client;
+  }
+
+  /**
+   * Get the working Supabase client (either direct client or from service)
+   */
+  private getSupabaseClient(): SupabaseClient {
+    if (this.supabaseClient) {
+      return this.supabaseClient;
+    }
+    
+    if (this.supabaseService) {
+      try {
+        return this.supabaseService.getServiceClient();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.warn('SupabaseService.getServiceClient() failed, trying anon client:', errorMessage);
+        try {
+          return this.supabaseService.getAnonClient();
+        } catch (anonError) {
+          const anonErrorMessage = anonError instanceof Error ? anonError.message : 'Unknown error';
+          console.error('Both service and anon clients failed:', anonErrorMessage);
+          throw new Error(`Supabase clients unavailable: ${errorMessage}`);
+        }
+      }
+    }
+    
+    throw new Error('No Supabase client available for MCP execution tracking');
+  }
 
   /**
    * Execute an MCP tool with comprehensive tracking
@@ -172,7 +209,7 @@ export class MCPExecutionTrackerService {
     context: MCPExecutionContext,
     status: string
   ): Promise<void> {
-    const { error } = await this.supabaseService.getServiceClient()
+    const { error } = await this.getSupabaseClient()
       .from('mcp_executions')
       .insert({
         id: executionId,
@@ -212,7 +249,7 @@ export class MCPExecutionTrackerService {
       retry_count?: number;
     }
   ): Promise<void> {
-    const { error } = await this.supabaseService.getServiceClient()
+    const { error } = await this.getSupabaseClient()
       .from('mcp_executions')
       .update({
         ...updates,
@@ -230,7 +267,7 @@ export class MCPExecutionTrackerService {
    * Log detailed failure information
    */
   private async logFailure(executionId: string, failure: MCPFailureDetails): Promise<void> {
-    const { error } = await this.supabaseService.getServiceClient()
+    const { error } = await this.getSupabaseClient()
       .from('mcp_failures')
       .insert({
         execution_id: executionId,
@@ -260,7 +297,7 @@ export class MCPExecutionTrackerService {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const { data: executions, error } = await this.supabaseService.getServiceClient()
+    const { data: executions, error } = await this.getSupabaseClient()
       .from('mcp_executions')
       .select('*')
       .eq('user_id', userId)
@@ -319,7 +356,7 @@ export class MCPExecutionTrackerService {
     }
   ): Promise<void> {
     // First, get the execution ID from the feedback token
-    const { data: execution, error: executionError } = await this.supabaseService.getServiceClient()
+    const { data: execution, error: executionError } = await this.getSupabaseClient()
       .from('mcp_executions')
       .select('id')
       .eq('feedback_token', feedbackToken)
@@ -331,7 +368,7 @@ export class MCPExecutionTrackerService {
     }
 
     // Store the feedback
-    const { error } = await this.supabaseService.getServiceClient()
+    const { error } = await this.getSupabaseClient()
       .from('mcp_feedback')
       .insert({
         feedback_token: feedbackToken,

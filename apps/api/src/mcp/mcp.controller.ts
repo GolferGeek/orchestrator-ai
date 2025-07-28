@@ -30,44 +30,31 @@ export class MCPController implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    // Auto-initialize the Supabase MCP server with config from environment
-    await this.initializeSupabaseServer();
+    // Note: Server initialization is handled by MCPModule discovery process
+    // This controller just provides REST API endpoints for the initialized server
+    this.logger.log('📡 MCP Controller initialized - using server from discovery process');
+    
+    // Wait a bit for the discovery process to complete, then check if server is ready
+    setTimeout(async () => {
+      try {
+        const serverInfo = await this.supabaseMCPServer.getServerInfo();
+        this.initialized = true;
+        this.logger.log('✅ Controller connected to initialized MCP server');
+      } catch (error) {
+        this.logger.warn('⚠️ MCP server not yet initialized by discovery process');
+      }
+    }, 1000);
   }
 
   /**
-   * Auto-initialize Supabase MCP server using environment configuration
+   * Check if the server was initialized by the discovery process
    */
-  private async initializeSupabaseServer(): Promise<void> {
+  private async checkServerInitialization(): Promise<boolean> {
     try {
-      const config: SupabaseMCPConfig = {
-        supabaseUrl: this.configService.get<string>('SUPABASE_URL') || '',
-        supabaseKey:
-          this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') ||
-          this.configService.get<string>('SUPABASE_ANON_KEY') ||
-          this.configService.get<string>('SUPABASE_KEY') ||
-          '',
-        enableCaching: true,
-        cacheTTL: 5 * 60 * 1000, // 5 minutes
-        maxQueryTimeout: 30000, // 30 seconds
-        sqlModels: ['gpt-4', 'claude-3-sonnet', 'gpt-3.5-turbo'],
-      };
-
-      if (!config.supabaseUrl || !config.supabaseKey) {
-        this.logger.warn(
-          'Supabase credentials not found in environment. MCP server will not be initialized.',
-        );
-        return;
-      }
-
-      await this.supabaseMCPServer.initialize(config);
-      this.initialized = true;
-      this.logger.log('✅ Supabase MCP Server auto-initialized successfully');
+      await this.supabaseMCPServer.getServerInfo();
+      return true;
     } catch (error) {
-      this.logger.error(
-        '❌ Failed to auto-initialize Supabase MCP Server:',
-        error,
-      );
-      // Don't throw - let the API start even if MCP isn't working
+      return false;
     }
   }
 
@@ -165,6 +152,9 @@ export class MCPController implements OnModuleInit {
     @Param('toolName') toolName: string,
     @Body() request: { arguments?: any },
   ) {
+    console.log('🌐 HTTP ENDPOINT DEBUG: MCP Controller received request for tool:', toolName);
+    console.log('🌐 HTTP ENDPOINT DEBUG: Request body:', JSON.stringify(request, null, 2));
+    
     this.ensureInitialized();
 
     try {
@@ -415,6 +405,48 @@ export class MCPController implements OnModuleInit {
         format: request.format || 'json',
       },
     });
+  }
+
+  /**
+   * Submit feedback for an MCP execution
+   * POST /mcp/supabase/feedback
+   */
+  @Post('supabase/feedback')
+  async submitFeedback(@Body() request: {
+    feedbackToken: string;
+    userId: string;
+    feedback: {
+      rating?: 'up' | 'down';
+      ratingScore?: number;
+      comment?: string;
+      helpfulTags?: string[];
+    };
+  }) {
+    this.ensureInitialized();
+    
+    if (!request.feedbackToken || !request.userId) {
+      throw new BadRequestException('feedbackToken and userId are required');
+    }
+
+    try {
+      await this.supabaseMCPServer.getExecutionTracker().storeFeedback(
+        request.feedbackToken,
+        request.userId,
+        request.feedback
+      );
+
+      return {
+        success: true,
+        message: 'Feedback submitted successfully',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error('Failed to submit feedback:', error);
+      throw new HttpException(
+        `Failed to submit feedback: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   /**
