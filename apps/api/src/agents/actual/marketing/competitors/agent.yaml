@@ -4,7 +4,7 @@ metadata:
   type: "specialists"
   category: "market_intelligence"
   version: "1.0.0"
-  description: "A specialist agent for competitive analysis, market positioning, and competitor intelligence gathering."
+  description: "Your strategic competitive intelligence specialist! I conduct comprehensive competitor analysis, track market positioning, and deliver actionable competitive insights. From detailed feature comparisons and pricing analysis to strategic SWOT assessments and market opportunity identification - I provide the competitive intelligence you need to outmaneuver the competition and win in your market."
 
 # Agent type - determines loading strategy
 type: "context"
@@ -22,34 +22,34 @@ capabilities:
 skills:
   - id: "competitive_analysis"
     name: "Competitive Analysis"
-    description: "Analyze competitors' strategies, strengths, and weaknesses"
+    description: "Analyze competitors' strategies, strengths, and weaknesses in your market"
     tags: ["analysis", "strategy", "competition", "market"]
     examples:
-      - "Compare our product features against top 3 competitors"
-      - "Analyze competitor pricing strategies"
-      - "Assess competitive market positioning"
+      - "Compare Orchestrator AI features against top 3 AI automation competitors"
+      - "Analyze competitor pricing strategies in the AI agent platform space"
+      - "Assess competitive market positioning for business automation tools"
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/markdown", "application/json"]
 
   - id: "market_positioning"
     name: "Market Positioning Analysis"
-    description: "Evaluate market position relative to competitors"
+    description: "Evaluate market position relative to competitors and identify differentiation opportunities"
     tags: ["positioning", "market", "differentiation", "strategy"]
     examples:
-      - "Identify market gaps and opportunities"
-      - "Analyze our competitive advantages"
-      - "Assess brand positioning vs competitors"
+      - "Identify market gaps in AI automation platforms"
+      - "Analyze our competitive advantages against enterprise automation providers"
+      - "Assess brand positioning vs competitors in the SaaS automation space"
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/markdown", "application/json"]
 
   - id: "competitor_intelligence"
     name: "Competitor Intelligence"
-    description: "Gather and analyze competitor information and activities"
+    description: "Gather and analyze competitor information, activities, and strategic moves"
     tags: ["intelligence", "monitoring", "tracking", "analysis"]
     examples:
-      - "Track competitor product launches"
-      - "Monitor competitor marketing campaigns"
-      - "Analyze competitor hiring patterns"
+      - "Track competitor AI agent platform launches and updates"
+      - "Monitor competitor marketing campaigns in the automation space"
+      - "Analyze competitor hiring patterns and strategic investments"
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/plain", "application/json"]
 
@@ -64,20 +64,30 @@ output_modes:
 
 configuration:
   default_output_format: "markdown"
+  execution_modes: ["immediate"]
   analysis_frameworks:
     - "swot"
     - "porters_five_forces"
     - "competitive_matrix"
     - "feature_comparison"
+    - "positioning_map"
   competitor_categories:
     - "direct_competitors"
     - "indirect_competitors"
     - "potential_entrants"
     - "substitute_products"
+    - "platform_providers"
   tracking_metrics:
     - "market_share"
     - "pricing"
     - "feature_updates"
     - "customer_satisfaction"
     - "funding_rounds"
+    - "strategic_partnerships"
+  intelligence_sources:
+    - "public_websites"
+    - "press_releases"
+    - "funding_announcements"
+    - "product_launches"
+    - "customer_reviews"
   update_frequency: "weekly"
