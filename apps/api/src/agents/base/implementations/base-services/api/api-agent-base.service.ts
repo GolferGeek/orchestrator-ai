@@ -11,6 +11,8 @@ import { LoggingService } from '../../../sub-services/logging/logging.service';
 import { AuthService } from '../../../sub-services/auth/auth.service';
 import { ConfigurationService } from '../../../sub-services/configuration/configuration.service';
 import { AgentContextService } from '../a2a-base/agent-context.service';
+import { TaskStatusService } from '@/tasks/task-status.service';
+import { TasksService } from '@/tasks/tasks.service';
 
 export interface ApiConfiguration {
   endpoint: string;
@@ -66,9 +68,13 @@ export class ApiAgentBaseService
   protected readonly apiLogger = new Logger(ApiAgentBaseService.name);
   private apiConfiguration: ApiConfiguration | null = null;
   protected readonly agentContextService = new AgentContextService();
+  private currentUserId: string | null = null; // Store current user ID for task completion
+  private currentTaskId: string | null = null; // Store current task ID for task completion
 
   constructor(
     protected readonly httpService: HttpService,
+    protected readonly taskStatusService?: TaskStatusService,
+    protected readonly tasksService?: TasksService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -77,13 +83,18 @@ export class ApiAgentBaseService
   ) {
     super(
       httpService,
-      undefined, // TaskStatusService will be injected automatically
+      taskStatusService, // Pass TaskStatusService to parent
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,
       authService,
       configurationService,
     );
+
+    this.apiLogger.debug(`API Agent initialized with services:`, {
+      hasTaskStatusService: !!taskStatusService,
+      hasTasksService: !!tasksService,
+    });
   }
 
   /**
@@ -341,6 +352,30 @@ export class ApiAgentBaseService
       `ExecuteTask called for ${agentName}, method: ${method}`,
     );
 
+    // Store current user ID and task ID for task completion
+    if (params.currentUser?.id) {
+      this.currentUserId = params.currentUser.id;
+    }
+    if (params.taskId) {
+      this.currentTaskId = params.taskId;
+    }
+
+    this.apiLogger.debug(`Task execution context:`, {
+      taskId: this.currentTaskId,
+      userId: this.currentUserId,
+      hasTasksService: !!this.tasksService,
+      hasTaskStatusService: !!this.taskStatusService,
+      agentName: this.getAgentName(),
+    });
+
+    // Log what services were injected during construction
+    this.apiLogger.debug(`API Agent services status:`, {
+      hasTasksService: !!this.tasksService,
+      hasTaskStatusService: !!this.taskStatusService,
+      tasksServiceType: this.tasksService ? this.tasksService.constructor.name : 'undefined',
+      taskStatusServiceType: this.taskStatusService ? this.taskStatusService.constructor.name : 'undefined',
+    });
+
     try {
       // Lazy loading: If no API configuration, try to load it now
       if (!this.apiConfiguration) {
@@ -378,7 +413,7 @@ export class ApiAgentBaseService
 
       this.apiLogger.debug(`API call executed successfully for ${agentName}`);
 
-      return {
+      const response = {
         success: true,
         response: result.response,
         metadata: {
@@ -389,6 +424,13 @@ export class ApiAgentBaseService
           ...apiParams.metadata,
         },
       };
+
+      // Save the task result to the database for async tasks
+      this.apiLogger.debug(`About to save API task result...`);
+      await this.saveApiTaskResult(result);
+      this.apiLogger.debug(`API task result save completed`);
+
+      return response;
     } catch (error) {
       this.apiLogger.error(`API execution error for ${agentName}:`, error);
 
@@ -875,6 +917,63 @@ export class ApiAgentBaseService
    */
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Save API task result to database (matching context agent pattern)
+   */
+  protected async saveApiTaskResult(result: any): Promise<void> {
+    if (!this.tasksService) {
+      this.apiLogger.debug(`Cannot save result - TasksService not available`);
+      return;
+    }
+
+    if (!this.currentUserId || !this.currentTaskId) {
+      this.apiLogger.debug(`Cannot save result - missing user or task ID:`, {
+        userId: this.currentUserId,
+        taskId: this.currentTaskId,
+      });
+      return;
+    }
+
+    try {
+      const updateData = {
+        status: 'completed' as const,
+        progress: 100,
+        response: typeof result === 'string' ? result : JSON.stringify(result),
+        responseMetadata: {
+          ...result.metadata,
+          agentName: this.getAgentName(),
+          agentType: this.getAgentType(),
+          apiStatus: 'executed',
+          processedAt: new Date().toISOString(),
+          taskId: this.currentTaskId,
+          userId: this.currentUserId,
+        },
+      };
+
+      this.apiLogger.debug(`Saving API task result to database:`, {
+        taskId: this.currentTaskId,
+        userId: this.currentUserId,
+        agentName: this.getAgentName(),
+      });
+
+      await this.tasksService.updateTask(
+        this.currentTaskId,
+        this.currentUserId,
+        updateData,
+      );
+
+      this.apiLogger.debug(
+        `✅ API Task ${this.currentTaskId} result saved to database successfully`,
+      );
+    } catch (error) {
+      this.apiLogger.error(
+        `❌ Failed to save API task ${this.currentTaskId} result:`,
+        error,
+      );
+      throw error;
+    }
   }
 
   /**
