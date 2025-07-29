@@ -1,13 +1,17 @@
 /**
  * Base Intelligent MCP Server
- * 
+ *
  * Abstract base class for all intelligent MCP servers that provides
  * execution tracking, context learning, and comprehensive error handling.
  */
 
 import { Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { MCPExecutionTrackerService, MCPExecutionContext, MCPExecutionResult } from '../services/mcp-execution-tracker.service';
+import {
+  MCPExecutionTrackerService,
+  MCPExecutionContext,
+  MCPExecutionResult,
+} from '../services/mcp-execution-tracker.service';
 
 export interface MCPToolDefinition {
   name: string;
@@ -46,7 +50,7 @@ export abstract class IntelligentMCPBaseService {
   protected supabaseClient!: SupabaseClient;
 
   constructor(
-    protected readonly executionTracker: MCPExecutionTrackerService
+    protected readonly executionTracker: MCPExecutionTrackerService,
   ) {}
 
   /**
@@ -76,12 +80,14 @@ export abstract class IntelligentMCPBaseService {
   async executeTool(
     toolName: string,
     parameters: any,
-    options: MCPToolExecutionOptions
+    options: MCPToolExecutionOptions,
   ): Promise<MCPExecutionResult> {
     // Validate tool exists
-    const tool = this.serverInfo.tools.find(t => t.name === toolName);
+    const tool = this.serverInfo.tools.find((t) => t.name === toolName);
     if (!tool) {
-      throw new Error(`Tool '${toolName}' not found in ${this.serverInfo.name} server`);
+      throw new Error(
+        `Tool '${toolName}' not found in ${this.serverInfo.name} server`,
+      );
     }
 
     // Create execution context
@@ -94,7 +100,7 @@ export abstract class IntelligentMCPBaseService {
       requestData: parameters,
       llmProvider: options.llmProvider,
       llmModel: options.llmModel,
-      contextUsed: options.contextUsed || false
+      contextUsed: options.contextUsed || false,
     };
 
     // Execute with retry logic if specified
@@ -103,12 +109,11 @@ export abstract class IntelligentMCPBaseService {
         context,
         () => this.executeToolImplementation(toolName, parameters, options),
         options.maxRetries,
-        options.retryDelay || 1000
+        options.retryDelay || 1000,
       );
     } else {
-      return await this.executionTracker.executeWithTracking(
-        context,
-        () => this.executeToolImplementation(toolName, parameters, options)
+      return await this.executionTracker.executeWithTracking(context, () =>
+        this.executeToolImplementation(toolName, parameters, options),
       );
     }
   }
@@ -119,13 +124,16 @@ export abstract class IntelligentMCPBaseService {
   protected abstract executeToolImplementation(
     toolName: string,
     parameters: any,
-    options: MCPToolExecutionOptions
+    options: MCPToolExecutionOptions,
   ): Promise<any>;
 
   /**
    * Get execution statistics for this MCP server
    */
-  async getServerStats(userId: string, days: number = 30): Promise<{
+  async getServerStats(
+    userId: string,
+    days: number = 30,
+  ): Promise<{
     serverName: string;
     totalExecutions: number;
     successRate: number;
@@ -152,29 +160,42 @@ export abstract class IntelligentMCPBaseService {
     }
 
     const totalExecutions = executions.length;
-    const successfulExecutions = executions.filter((e: any) => e.status === 'success').length;
-    const successRate = totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
-    const avgExecutionTime = totalExecutions > 0 
-      ? executions.reduce((sum: number, e: any) => sum + (e.execution_time_ms || 0), 0) / totalExecutions 
-      : 0;
+    const successfulExecutions = executions.filter(
+      (e: any) => e.status === 'success',
+    ).length;
+    const successRate =
+      totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
+    const avgExecutionTime =
+      totalExecutions > 0
+        ? executions.reduce(
+            (sum: number, e: any) => sum + (e.execution_time_ms || 0),
+            0,
+          ) / totalExecutions
+        : 0;
 
     // Calculate per-tool statistics
-    const toolStatsMap = executions.reduce((acc: any, exec: any) => {
-      const toolName = exec.tool_name;
-      if (!acc[toolName]) {
-        acc[toolName] = { total: 0, successful: 0, totalTime: 0 };
-      }
-      acc[toolName].total++;
-      if (exec.status === 'success') acc[toolName].successful++;
-      acc[toolName].totalTime += exec.execution_time_ms || 0;
-      return acc;
-    }, {} as Record<string, { total: number; successful: number; totalTime: number }>);
+    const toolStatsMap = executions.reduce(
+      (acc: any, exec: any) => {
+        const toolName = exec.tool_name;
+        if (!acc[toolName]) {
+          acc[toolName] = { total: 0, successful: 0, totalTime: 0 };
+        }
+        acc[toolName].total++;
+        if (exec.status === 'success') acc[toolName].successful++;
+        acc[toolName].totalTime += exec.execution_time_ms || 0;
+        return acc;
+      },
+      {} as Record<
+        string,
+        { total: number; successful: number; totalTime: number }
+      >,
+    );
 
     const toolStats = Object.entries(toolStatsMap).map(([toolName, stats]) => ({
       toolName,
       executions: (stats as any).total,
       successRate: ((stats as any).successful / (stats as any).total) * 100,
-      avgTime: (stats as any).totalTime / (stats as any).total
+      avgTime: (stats as any).totalTime / (stats as any).total,
     }));
 
     return {
@@ -182,7 +203,7 @@ export abstract class IntelligentMCPBaseService {
       totalExecutions,
       successRate,
       avgExecutionTime,
-      toolStats
+      toolStats,
     };
   }
 
@@ -190,22 +211,25 @@ export abstract class IntelligentMCPBaseService {
    * Get recent executions for debugging and monitoring
    */
   async getRecentExecutions(
-    userId: string, 
+    userId: string,
     limit: number = 50,
-    toolName?: string
-  ): Promise<Array<{
-    id: string;
-    toolName: string;
-    status: string;
-    executionTime: number;
-    createdAt: string;
-    error?: string;
-    hasFailure: boolean;
-    hasFeedback: boolean;
-  }>> {
+    toolName?: string,
+  ): Promise<
+    Array<{
+      id: string;
+      toolName: string;
+      status: string;
+      executionTime: number;
+      createdAt: string;
+      error?: string;
+      hasFailure: boolean;
+      hasFeedback: boolean;
+    }>
+  > {
     let query = this.supabaseClient
       .from('mcp_executions')
-      .select(`
+      .select(
+        `
         id,
         tool_name,
         status,
@@ -214,7 +238,8 @@ export abstract class IntelligentMCPBaseService {
         error_message,
         mcp_failures (id),
         mcp_feedback (id)
-      `)
+      `,
+      )
       .eq('user_id', userId)
       .eq('mcp_name', this.serverInfo.name)
       .order('created_at', { ascending: false })
@@ -237,8 +262,10 @@ export abstract class IntelligentMCPBaseService {
       executionTime: exec.execution_time_ms || 0,
       createdAt: exec.created_at,
       error: exec.error_message || undefined,
-      hasFailure: Array.isArray(exec.mcp_failures) && exec.mcp_failures.length > 0,
-      hasFeedback: Array.isArray(exec.mcp_feedback) && exec.mcp_feedback.length > 0
+      hasFailure:
+        Array.isArray(exec.mcp_failures) && exec.mcp_failures.length > 0,
+      hasFeedback:
+        Array.isArray(exec.mcp_feedback) && exec.mcp_feedback.length > 0,
     }));
   }
 
@@ -253,16 +280,23 @@ export abstract class IntelligentMCPBaseService {
       ratingScore?: number;
       comment?: string;
       helpfulTags?: string[];
-    }
+    },
   ): Promise<void> {
-    return await this.executionTracker.storeFeedback(feedbackToken, userId, feedback);
+    return await this.executionTracker.storeFeedback(
+      feedbackToken,
+      userId,
+      feedback,
+    );
   }
 
   /**
    * Validate tool parameters against schema
    */
-  protected validateParameters(toolName: string, parameters: any): { valid: boolean; errors: string[] } {
-    const tool = this.serverInfo.tools.find(t => t.name === toolName);
+  protected validateParameters(
+    toolName: string,
+    parameters: any,
+  ): { valid: boolean; errors: string[] } {
+    const tool = this.serverInfo.tools.find((t) => t.name === toolName);
     if (!tool) {
       return { valid: false, errors: [`Tool '${toolName}' not found`] };
     }
@@ -280,25 +314,30 @@ export abstract class IntelligentMCPBaseService {
     }
 
     if (schema.properties) {
-      for (const [fieldName, fieldSchema] of Object.entries(schema.properties as any)) {
+      for (const [fieldName, fieldSchema] of Object.entries(
+        schema.properties,
+      )) {
         if (fieldName in parameters) {
           const value = parameters[fieldName];
           const type = (fieldSchema as any).type;
-          
+
           if (type) {
             // Handle JSON Schema types vs JavaScript types
             let isValidType = false;
-            
+
             if (type === 'integer') {
-              isValidType = typeof value === 'number' && Number.isInteger(value);
+              isValidType =
+                typeof value === 'number' && Number.isInteger(value);
             } else if (type === 'number') {
               isValidType = typeof value === 'number';
             } else {
               isValidType = typeof value === type;
             }
-            
+
             if (!isValidType) {
-              errors.push(`Parameter '${fieldName}' should be of type ${type}, got ${typeof value}`);
+              errors.push(
+                `Parameter '${fieldName}' should be of type ${type}, got ${typeof value}`,
+              );
             }
           }
         }
@@ -315,20 +354,26 @@ export abstract class IntelligentMCPBaseService {
     toolName: string,
     metricName: string,
     value: number,
-    userId: string
+    userId: string,
   ): Promise<void> {
     // This could be enhanced to store custom performance metrics
-    console.log(`Performance Metric - ${this.serverInfo.name}:${toolName}:${metricName} = ${value} (user: ${userId})`);
+    console.log(
+      `Performance Metric - ${this.serverInfo.name}:${toolName}:${metricName} = ${value} (user: ${userId})`,
+    );
   }
 
   /**
    * Handle tool execution errors with context
    */
-  protected handleToolError(error: any, toolName: string, parameters: any): Error {
+  protected handleToolError(
+    error: any,
+    toolName: string,
+    parameters: any,
+  ): Error {
     const contextualError = new Error(
-      `${this.serverInfo.name}:${toolName} failed: ${error.message}`
+      `${this.serverInfo.name}:${toolName} failed: ${error.message}`,
     );
-    
+
     // Preserve original error properties
     (contextualError as any).originalError = error;
     (contextualError as any).toolName = toolName;

@@ -1,6 +1,6 @@
 /**
  * Jest Global Teardown for Supabase MCP Tests
- * 
+ *
  * Handles final cleanup after all test suites complete.
  */
 

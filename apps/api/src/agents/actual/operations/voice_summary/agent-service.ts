@@ -8,7 +8,7 @@ import { ContextAgentBaseService } from '@agents/base/implementations/base-servi
 @Injectable()
 export class VoiceSummaryAgentService extends ContextAgentBaseService {
   constructor(
-    httpService: HttpService, 
+    httpService: HttpService,
     llmService: LLMService,
     agentRegistrationService?: any,
     jsonRpcProtocolService?: any,
@@ -16,9 +16,19 @@ export class VoiceSummaryAgentService extends ContextAgentBaseService {
     authService?: any,
     configurationService?: any,
     taskStatusService?: TaskStatusService,
-    tasksService?: TasksService
+    tasksService?: TasksService,
   ) {
-    super(httpService, llmService, agentRegistrationService, jsonRpcProtocolService, loggingService, authService, configurationService, taskStatusService, tasksService);
+    super(
+      httpService,
+      llmService,
+      agentRegistrationService,
+      jsonRpcProtocolService,
+      loggingService,
+      authService,
+      configurationService,
+      taskStatusService,
+      tasksService,
+    );
   }
 
   /**

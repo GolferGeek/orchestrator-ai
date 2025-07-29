@@ -1,6 +1,6 @@
 /**
  * Test Setup Utilities for Supabase MCP Testing
- * 
+ *
  * Provides test environment setup, configuration, and shared utilities
  * for all Supabase MCP test suites.
  */
@@ -32,9 +32,12 @@ export class TestSetup {
   private constructor(config: TestConfig = {}) {
     this.config = {
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || config.supabaseUrl,
-      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || config.supabaseKey,
-      contextFilePath: config.contextFilePath || path.join(__dirname, '../context/supabase-sql-context.md'),
-      cleanupAfterTests: config.cleanupAfterTests ?? true
+      supabaseKey:
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || config.supabaseKey,
+      contextFilePath:
+        config.contextFilePath ||
+        path.join(__dirname, '../context/supabase-sql-context.md'),
+      cleanupAfterTests: config.cleanupAfterTests ?? true,
     };
   }
 
@@ -54,17 +57,22 @@ export class TestSetup {
     }
 
     if (!this.config.supabaseUrl || !this.config.supabaseKey) {
-      throw new Error('Supabase URL and key must be provided in environment variables or config');
+      throw new Error(
+        'Supabase URL and key must be provided in environment variables or config',
+      );
     }
 
-    const supabase = createClient(this.config.supabaseUrl, this.config.supabaseKey);
+    const supabase = createClient(
+      this.config.supabaseUrl,
+      this.config.supabaseKey,
+    );
     const testDataManager = new TestDataManager(supabase);
     const sqlValidator = new SQLValidator(supabase);
 
     this.environment = {
       supabase,
       testDataManager,
-      sqlValidator
+      sqlValidator,
     };
 
     return this.environment;
@@ -79,11 +87,11 @@ export class TestSetup {
     }
 
     const contextContent = content || this.getDefaultContextContent();
-    
+
     // Ensure directory exists
     const dir = path.dirname(this.config.contextFilePath);
     await fs.mkdir(dir, { recursive: true });
-    
+
     // Write context file
     await fs.writeFile(this.config.contextFilePath, contextContent, 'utf-8');
   }
@@ -93,7 +101,7 @@ export class TestSetup {
    */
   async cleanupTestContext(): Promise<void> {
     if (!this.config.contextFilePath) return;
-    
+
     try {
       await fs.unlink(this.config.contextFilePath);
     } catch (error) {
@@ -194,12 +202,12 @@ export class TestSetup {
     // In a real scenario, you might want to create an actual auth user
     const testUser = await this.environment.testDataManager.createTestUser({
       email: `test-${Date.now()}@example.com`,
-      display_name: `Test User ${Date.now()}`
+      display_name: `Test User ${Date.now()}`,
     });
 
     return {
       user: testUser,
-      session: null // No auth session for basic testing
+      session: null, // No auth session for basic testing
     };
   }
 
@@ -212,8 +220,7 @@ export class TestSetup {
         await this.initializeTestEnvironment();
       }
 
-      const { data, error } = await this.environment!.supabase
-        .from('users')
+      const { data, error } = await this.environment!.supabase.from('users')
         .select('id')
         .limit(1);
 
@@ -227,7 +234,10 @@ export class TestSetup {
   /**
    * Run database migration check
    */
-  async checkMigrations(): Promise<{ hasMCPTables: boolean; missingTables: string[] }> {
+  async checkMigrations(): Promise<{
+    hasMCPTables: boolean;
+    missingTables: string[];
+  }> {
     if (!this.environment) {
       await this.initializeTestEnvironment();
     }
@@ -237,11 +247,10 @@ export class TestSetup {
 
     for (const table of requiredTables) {
       try {
-        const { error } = await this.environment!.supabase
-          .from(table as any)
+        const { error } = await this.environment!.supabase.from(table as any)
           .select('id')
           .limit(0);
-        
+
         if (error) {
           missingTables.push(table);
         }
@@ -252,7 +261,7 @@ export class TestSetup {
 
     return {
       hasMCPTables: missingTables.length === 0,
-      missingTables
+      missingTables,
     };
   }
 
@@ -264,13 +273,14 @@ export class TestSetup {
       setupFilesAfterEnv: [path.join(__dirname, 'jest-setup.ts')],
       testEnvironment: 'node',
       testTimeout: 30000, // 30 second timeout for database operations
-      globalTeardown: path.join(__dirname, 'jest-teardown.ts')
+      globalTeardown: path.join(__dirname, 'jest-teardown.ts'),
     };
   }
 }
 
 // Export singleton instance getter
-export const getTestSetup = (config?: TestConfig) => TestSetup.getInstance(config);
+export const getTestSetup = (config?: TestConfig) =>
+  TestSetup.getInstance(config);
 
 // Export commonly used test utilities
 export * from './test-data-manager';

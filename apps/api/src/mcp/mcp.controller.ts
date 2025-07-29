@@ -32,8 +32,10 @@ export class MCPController implements OnModuleInit {
   async onModuleInit() {
     // Note: Server initialization is handled by MCPModule discovery process
     // This controller just provides REST API endpoints for the initialized server
-    this.logger.log('📡 MCP Controller initialized - using server from discovery process');
-    
+    this.logger.log(
+      '📡 MCP Controller initialized - using server from discovery process',
+    );
+
     // Wait a bit for the discovery process to complete, then check if server is ready
     setTimeout(async () => {
       try {
@@ -41,7 +43,9 @@ export class MCPController implements OnModuleInit {
         this.initialized = true;
         this.logger.log('✅ Controller connected to initialized MCP server');
       } catch (error) {
-        this.logger.warn('⚠️ MCP server not yet initialized by discovery process');
+        this.logger.warn(
+          '⚠️ MCP server not yet initialized by discovery process',
+        );
       }
     }, 1000);
   }
@@ -152,9 +156,15 @@ export class MCPController implements OnModuleInit {
     @Param('toolName') toolName: string,
     @Body() request: { arguments?: any },
   ) {
-    console.log('🌐 HTTP ENDPOINT DEBUG: MCP Controller received request for tool:', toolName);
-    console.log('🌐 HTTP ENDPOINT DEBUG: Request body:', JSON.stringify(request, null, 2));
-    
+    console.log(
+      '🌐 HTTP ENDPOINT DEBUG: MCP Controller received request for tool:',
+      toolName,
+    );
+    console.log(
+      '🌐 HTTP ENDPOINT DEBUG: Request body:',
+      JSON.stringify(request, null, 2),
+    );
+
     this.ensureInitialized();
 
     try {
@@ -317,7 +327,8 @@ export class MCPController implements OnModuleInit {
       const servers = await this.mcpClientService.listServers();
       const instanceId = (this.mcpClientService as any).instanceId || 'unknown';
       const isAvailable = this.mcpClientService.isAvailable();
-      const availableServers = this.mcpClientService.getAvailableServers?.() || [];
+      const availableServers =
+        this.mcpClientService.getAvailableServers?.() || [];
 
       return {
         mcp_system: {
@@ -329,7 +340,7 @@ export class MCPController implements OnModuleInit {
           controller_instance_id: instanceId,
           is_available: isAvailable,
           available_servers_count: availableServers.length,
-          available_server_names: availableServers
+          available_server_names: availableServers,
         },
         servers: servers,
         available_endpoints: {
@@ -412,28 +423,29 @@ export class MCPController implements OnModuleInit {
    * POST /mcp/supabase/feedback
    */
   @Post('supabase/feedback')
-  async submitFeedback(@Body() request: {
-    feedbackToken: string;
-    userId: string;
-    feedback: {
-      rating?: 'up' | 'down';
-      ratingScore?: number;
-      comment?: string;
-      helpfulTags?: string[];
-    };
-  }) {
+  async submitFeedback(
+    @Body()
+    request: {
+      feedbackToken: string;
+      userId: string;
+      feedback: {
+        rating?: 'up' | 'down';
+        ratingScore?: number;
+        comment?: string;
+        helpfulTags?: string[];
+      };
+    },
+  ) {
     this.ensureInitialized();
-    
+
     if (!request.feedbackToken || !request.userId) {
       throw new BadRequestException('feedbackToken and userId are required');
     }
 
     try {
-      await this.supabaseMCPServer.getExecutionTracker().storeFeedback(
-        request.feedbackToken,
-        request.userId,
-        request.feedback
-      );
+      await this.supabaseMCPServer
+        .getExecutionTracker()
+        .storeFeedback(request.feedbackToken, request.userId, request.feedback);
 
       return {
         success: true,
@@ -457,20 +469,27 @@ export class MCPController implements OnModuleInit {
   async getHealthStatus() {
     try {
       const mcpStatus = await this.getMCPStatus();
-      const supabaseHealth = this.initialized 
-        ? await this.getSupabaseHealth() 
+      const supabaseHealth = this.initialized
+        ? await this.getSupabaseHealth()
         : { status: 'offline', message: 'Server not initialized' };
 
       return {
-        status: this.initialized && supabaseHealth.status === 'operational' ? 'healthy' : 'degraded',
+        status:
+          this.initialized && supabaseHealth.status === 'operational'
+            ? 'healthy'
+            : 'degraded',
         poolSize: 1, // We have one MCP server (Supabase)
         onlineMCPs: this.initialized ? 1 : 0,
-        healthScore: this.initialized ? (supabaseHealth.status === 'operational' ? 100 : 50) : 0,
+        healthScore: this.initialized
+          ? supabaseHealth.status === 'operational'
+            ? 100
+            : 50
+          : 0,
         lastCheck: new Date(),
         services: {
           supabase: supabaseHealth.status,
-          mcp_client: mcpStatus.mcp_system.status
-        }
+          mcp_client: mcpStatus.mcp_system.status,
+        },
       };
     } catch (error) {
       this.logger.error('Failed to get health status:', error);
@@ -482,8 +501,8 @@ export class MCPController implements OnModuleInit {
         lastCheck: new Date(),
         services: {
           supabase: 'offline',
-          mcp_client: 'offline'
-        }
+          mcp_client: 'offline',
+        },
       };
     }
   }
@@ -495,60 +514,68 @@ export class MCPController implements OnModuleInit {
   @Get('mcps')
   async getRegisteredMCPs() {
     try {
-      const supabaseInfo = this.initialized 
-        ? await this.getSupabaseServerInfo() 
+      const supabaseInfo = this.initialized
+        ? await this.getSupabaseServerInfo()
         : { name: 'supabase-mcp', version: 'unknown', status: 'offline' };
-      
-      const supabaseHealth = this.initialized 
-        ? await this.getSupabaseHealth() 
+
+      const supabaseHealth = this.initialized
+        ? await this.getSupabaseHealth()
         : { status: 'offline' };
 
-      const supabaseTools = this.initialized 
-        ? await this.listSupabaseTools() 
+      const supabaseTools = this.initialized
+        ? await this.listSupabaseTools()
         : { tools: [] };
 
-      return [{
-        id: 'supabase-mcp',
-        name: 'Supabase MCP Server',
-        type: 'database',
-        provider: 'supabase',
-        status: this.initialized ? (supabaseHealth.status === 'operational' ? 'online' : 'degraded') : 'offline',
-        version: supabaseInfo.version || '1.0.0',
-        url: 'internal://supabase-mcp',
-        discoveredAt: new Date(),
-        registeredAt: new Date(),
-        lastHeartbeat: new Date(),
-        capabilities: ['tools', 'resources', 'prompts'],
-        tools: supabaseTools.tools || [],
-        toolCount: supabaseTools.tools?.length || 0,
-        metadata: {
-          database: 'supabase',
-          enhanced: true,
-          context_learning: true
-        }
-      }];
+      return [
+        {
+          id: 'supabase-mcp',
+          name: 'Supabase MCP Server',
+          type: 'database',
+          provider: 'supabase',
+          status: this.initialized
+            ? supabaseHealth.status === 'operational'
+              ? 'online'
+              : 'degraded'
+            : 'offline',
+          version: supabaseInfo.version || '1.0.0',
+          url: 'internal://supabase-mcp',
+          discoveredAt: new Date(),
+          registeredAt: new Date(),
+          lastHeartbeat: new Date(),
+          capabilities: ['tools', 'resources', 'prompts'],
+          tools: supabaseTools.tools || [],
+          toolCount: supabaseTools.tools?.length || 0,
+          metadata: {
+            database: 'supabase',
+            enhanced: true,
+            context_learning: true,
+          },
+        },
+      ];
     } catch (error) {
       this.logger.error('Failed to get MCP services list:', error);
-      return [{
-        id: 'supabase-mcp',
-        name: 'Supabase MCP Server',
-        type: 'database',
-        provider: 'supabase',
-        status: 'offline',
-        version: 'unknown',
-        url: 'internal://supabase-mcp',
-        discoveredAt: new Date(),
-        registeredAt: new Date(),
-        lastHeartbeat: new Date(),
-        capabilities: [],
-        tools: [],
-        toolCount: 0,
-        metadata: {
-          database: 'supabase',
-          enhanced: true,
-          context_learning: true
-        }
-      }];
+      return [
+        {
+          id: 'supabase-mcp',
+          name: 'Supabase MCP Server',
+          type: 'database',
+          provider: 'supabase',
+          status: 'offline',
+          version: 'unknown',
+          url: 'internal://supabase-mcp',
+          discoveredAt: new Date(),
+          registeredAt: new Date(),
+          lastHeartbeat: new Date(),
+          capabilities: [],
+          tools: [],
+          toolCount: 0,
+          metadata: {
+            database: 'supabase',
+            enhanced: true,
+            context_learning: true,
+          },
+        },
+      ];
     }
   }
 
@@ -559,27 +586,27 @@ export class MCPController implements OnModuleInit {
   @Get('tools')
   async getAllTools() {
     try {
-      const supabaseTools = this.initialized 
-        ? await this.listSupabaseTools() 
+      const supabaseTools = this.initialized
+        ? await this.listSupabaseTools()
         : { tools: [] };
 
       const tools = supabaseTools.tools || [];
       return {
         totalTools: tools.length,
         mcpsIncluded: 1,
-        tools: tools.map(tool => ({
+        tools: tools.map((tool) => ({
           name: tool.name,
           description: tool.description,
           mcpId: 'supabase-mcp',
           mcpName: 'Supabase MCP Server',
           parameters: tool.inputSchema || {},
-          examples: []
+          examples: [],
         })),
         categories: {
           database: tools.length,
           analytics: 0,
-          automation: 0
-        }
+          automation: 0,
+        },
       };
     } catch (error) {
       this.logger.error('Failed to get all tools:', error);
@@ -590,8 +617,8 @@ export class MCPController implements OnModuleInit {
         categories: {
           database: 0,
           analytics: 0,
-          automation: 0
-        }
+          automation: 0,
+        },
       };
     }
   }

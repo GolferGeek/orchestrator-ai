@@ -1,4 +1,10 @@
-import { Injectable, Logger, Inject, forwardRef, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  Inject,
+  forwardRef,
+  Optional,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from '../../a2a-base/a2a-agent-base.service';
 import { LLMService } from '@/llms/llm.service';
@@ -60,7 +66,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       authService,
       configurationService,
     );
-    
+
     this.mcpClientService = mcpClientService;
   }
 
@@ -163,130 +169,196 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       };
 
       // Create MCP service wrapper from the inherited A2A base service MCP pool
-      const mcpService = this.mcpClientService ? {
-        isAvailable: () => {
-          try {
-            if (!this.mcpClientService) {
-              this.functionLogger.warn('MCP Client Service not available');
-              return false;
-            }
-            
-            // Check if client has active servers
-            const availableServers = this.mcpClientService.getAvailableServers();
-            const hasSupabase = availableServers.includes('supabase');
-            
-            this.functionLogger.debug(`MCP Client Service status: servers=${availableServers.length}, supabase=${hasSupabase}`);
-            
-            return hasSupabase && this.mcpClientService.isAvailable();
-          } catch (error) {
-            this.functionLogger.warn('MCP Client isAvailable check failed:', error);
-            return false;
+      const mcpService = this.mcpClientService
+        ? {
+            isAvailable: () => {
+              try {
+                if (!this.mcpClientService) {
+                  this.functionLogger.warn('MCP Client Service not available');
+                  return false;
+                }
+
+                // Check if client has active servers
+                const availableServers =
+                  this.mcpClientService.getAvailableServers();
+                const hasSupabase = availableServers.includes('supabase');
+
+                this.functionLogger.debug(
+                  `MCP Client Service status: servers=${availableServers.length}, supabase=${hasSupabase}`,
+                );
+
+                return hasSupabase && this.mcpClientService.isAvailable();
+              } catch (error) {
+                this.functionLogger.warn(
+                  'MCP Client isAvailable check failed:',
+                  error,
+                );
+                return false;
+              }
+            },
+
+            // Database operations - KPI-focused with table filtering
+            getSchema: async (options?: {
+              table_name?: string;
+              refresh_cache?: boolean;
+              focus_tables?: string[];
+            }) => {
+              if (!this.mcpClientService) {
+                throw new Error('MCP Client Service not available');
+              }
+              // Add KPI table focus for metrics agent
+              const kpiOptions = {
+                ...options,
+                focus_tables: options?.focus_tables || [
+                  'kpi_data',
+                  'kpi_metrics',
+                  'kpi_goals',
+                  'departments',
+                  'companies',
+                ],
+              };
+              const toolRequest = { name: 'get-schema', arguments: kpiOptions };
+              return await this.mcpClientService.callTool(
+                'supabase',
+                toolRequest,
+              );
+            },
+
+            readData: async (params: {
+              table_name: string;
+              columns?: string[];
+              filters?: Record<string, any>;
+              limit?: number;
+              offset?: number;
+              order_by?: { column: string; ascending?: boolean };
+              format?: 'json' | 'table' | 'csv';
+            }) => {
+              if (!this.mcpClientService) {
+                throw new Error('MCP Client Service not available');
+              }
+              const toolRequest = { name: 'read-data', arguments: params };
+              return await this.mcpClientService.callTool(
+                'supabase',
+                toolRequest,
+              );
+            },
+
+            executeSQL: async (params: {
+              sql_query: string;
+              parameters?: any[];
+              dry_run?: boolean;
+              max_rows?: number;
+              format?: 'detailed' | 'compact' | 'csv' | 'json';
+            }) => {
+              if (!this.mcpClientService) {
+                throw new Error('MCP Client Service not available');
+              }
+              const toolRequest = { name: 'execute-sql', arguments: params };
+              return await this.mcpClientService.callTool(
+                'supabase',
+                toolRequest,
+              );
+            },
+
+            generateSQL: async (params: {
+              natural_language_query: string;
+              query_type?:
+                | 'SELECT'
+                | 'INSERT'
+                | 'UPDATE'
+                | 'DELETE'
+                | 'auto-detect';
+              model_override?: string;
+              include_explanation?: boolean;
+              max_rows?: number;
+              schema_tables?: string[];
+            }) => {
+              if (!this.mcpClientService) {
+                throw new Error('MCP Client Service not available');
+              }
+              // Add KPI table focus for better SQL generation
+              const kpiParams = {
+                ...params,
+                schema_tables: params.schema_tables || [
+                  'kpi_data',
+                  'kpi_metrics',
+                  'kpi_goals',
+                  'departments',
+                  'companies',
+                ],
+              };
+              const toolRequest = {
+                name: 'generate-sql',
+                arguments: kpiParams,
+              };
+              return await this.mcpClientService.callTool(
+                'supabase',
+                toolRequest,
+              );
+            },
+
+            queryAndFormat: async (params: {
+              user_prompt: string;
+              output_format?:
+                | 'table'
+                | 'json'
+                | 'summary'
+                | 'chart-data'
+                | 'report';
+              include_explanation?: boolean;
+              model_override?: string;
+              max_rows?: number;
+              include_schema_context?: boolean;
+              suggested_tables?: string[];
+            }) => {
+              if (!this.mcpClientService) {
+                throw new Error('MCP Client Service not available');
+              }
+              // Add KPI table suggestions for focused analysis
+              const kpiParams = {
+                ...params,
+                suggested_tables: params.suggested_tables || [
+                  'kpi_data',
+                  'kpi_metrics',
+                  'kpi_goals',
+                  'departments',
+                  'companies',
+                ],
+              };
+              const toolRequest = {
+                name: 'query-and-format',
+                arguments: kpiParams,
+              };
+              return await this.mcpClientService.callTool(
+                'supabase',
+                toolRequest,
+              );
+            },
+
+            // Generic tool call method for extensibility
+            callTool: async (server: string, toolName: string, params: any) => {
+              if (!this.mcpClientService) {
+                throw new Error('MCP Client Service not available');
+              }
+
+              // Map server names from agent function expectations to MCPClientService format
+              let actualServerName = server;
+              if (server === 'supabase-mcp') {
+                actualServerName = 'supabase';
+              }
+
+              this.functionLogger.debug(
+                `MCP Tool call: ${server} -> ${actualServerName}, tool: ${toolName}`,
+              );
+
+              const toolRequest = { name: toolName, arguments: params };
+              return await this.mcpClientService.callTool(
+                actualServerName,
+                toolRequest,
+              );
+            },
           }
-        },
-        
-        // Database operations - KPI-focused with table filtering
-        getSchema: async (options?: { table_name?: string; refresh_cache?: boolean; focus_tables?: string[] }) => {
-          if (!this.mcpClientService) {
-            throw new Error('MCP Client Service not available');
-          }
-          // Add KPI table focus for metrics agent
-          const kpiOptions = {
-            ...options,
-            focus_tables: options?.focus_tables || ['kpi_data', 'kpi_metrics', 'kpi_goals', 'departments', 'companies']
-          };
-          const toolRequest = { name: 'get-schema', arguments: kpiOptions };
-          return await this.mcpClientService.callTool('supabase', toolRequest);
-        },
-        
-        readData: async (params: { 
-          table_name: string; 
-          columns?: string[]; 
-          filters?: Record<string, any>; 
-          limit?: number; 
-          offset?: number;
-          order_by?: { column: string; ascending?: boolean };
-          format?: 'json' | 'table' | 'csv';
-        }) => {
-          if (!this.mcpClientService) {
-            throw new Error('MCP Client Service not available');
-          }
-          const toolRequest = { name: 'read-data', arguments: params };
-          return await this.mcpClientService.callTool('supabase', toolRequest);
-        },
-        
-        executeSQL: async (params: { 
-          sql_query: string; 
-          parameters?: any[]; 
-          dry_run?: boolean; 
-          max_rows?: number; 
-          format?: 'detailed' | 'compact' | 'csv' | 'json';
-        }) => {
-          if (!this.mcpClientService) {
-            throw new Error('MCP Client Service not available');
-          }
-          const toolRequest = { name: 'execute-sql', arguments: params };
-          return await this.mcpClientService.callTool('supabase', toolRequest);
-        },
-        
-        generateSQL: async (params: { 
-          natural_language_query: string; 
-          query_type?: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'auto-detect';
-          model_override?: string;
-          include_explanation?: boolean;
-          max_rows?: number;
-          schema_tables?: string[];
-        }) => {
-          if (!this.mcpClientService) {
-            throw new Error('MCP Client Service not available');
-          }
-          // Add KPI table focus for better SQL generation
-          const kpiParams = {
-            ...params,
-            schema_tables: params.schema_tables || ['kpi_data', 'kpi_metrics', 'kpi_goals', 'departments', 'companies']
-          };
-          const toolRequest = { name: 'generate-sql', arguments: kpiParams };
-          return await this.mcpClientService.callTool('supabase', toolRequest);
-        },
-        
-        queryAndFormat: async (params: { 
-          user_prompt: string; 
-          output_format?: 'table' | 'json' | 'summary' | 'chart-data' | 'report';
-          include_explanation?: boolean;
-          model_override?: string;
-          max_rows?: number;
-          include_schema_context?: boolean;
-          suggested_tables?: string[];
-        }) => {
-          if (!this.mcpClientService) {
-            throw new Error('MCP Client Service not available');
-          }
-          // Add KPI table suggestions for focused analysis
-          const kpiParams = {
-            ...params,
-            suggested_tables: params.suggested_tables || ['kpi_data', 'kpi_metrics', 'kpi_goals', 'departments', 'companies']
-          };
-          const toolRequest = { name: 'query-and-format', arguments: kpiParams };
-          return await this.mcpClientService.callTool('supabase', toolRequest);
-        },
-        
-        // Generic tool call method for extensibility
-        callTool: async (server: string, toolName: string, params: any) => {
-          if (!this.mcpClientService) {
-            throw new Error('MCP Client Service not available');
-          }
-          
-          // Map server names from agent function expectations to MCPClientService format
-          let actualServerName = server;
-          if (server === 'supabase-mcp') {
-            actualServerName = 'supabase';
-          }
-          
-          this.functionLogger.debug(`MCP Tool call: ${server} -> ${actualServerName}, tool: ${toolName}`);
-          
-          const toolRequest = { name: toolName, arguments: params };
-          return await this.mcpClientService.callTool(actualServerName, toolRequest);
-        }
-      } : null;
+        : null;
 
       // Prepare standardized parameters for the agent function
       const functionParams: AgentFunctionParams = {
@@ -411,7 +483,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     }
 
     // Track completed workflow steps
-    if (status === 'completed' && !this.completedWorkflowSteps.includes(stepName)) {
+    if (
+      status === 'completed' &&
+      !this.completedWorkflowSteps.includes(stepName)
+    ) {
       this.completedWorkflowSteps.push(stepName);
       this.functionLogger.debug(
         `Added completed workflow step: ${stepName} (${this.completedWorkflowSteps.length}/${this.totalSteps})`,
@@ -664,7 +739,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     // If we need to notify sub-services about the path change, we could do it here
     // For now, just setting the path is sufficient
   }
-
 
   /**
    * Get agent card with function status

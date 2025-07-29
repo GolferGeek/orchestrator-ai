@@ -372,8 +372,12 @@ export class ApiAgentBaseService
     this.apiLogger.debug(`API Agent services status:`, {
       hasTasksService: !!this.tasksService,
       hasTaskStatusService: !!this.taskStatusService,
-      tasksServiceType: this.tasksService ? this.tasksService.constructor.name : 'undefined',
-      taskStatusServiceType: this.taskStatusService ? this.taskStatusService.constructor.name : 'undefined',
+      tasksServiceType: this.tasksService
+        ? this.tasksService.constructor.name
+        : 'undefined',
+      taskStatusServiceType: this.taskStatusService
+        ? this.taskStatusService.constructor.name
+        : 'undefined',
     });
 
     try {

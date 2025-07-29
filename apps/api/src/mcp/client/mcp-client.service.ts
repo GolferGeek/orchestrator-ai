@@ -31,8 +31,12 @@ export class MCPClientService implements IMCPClient {
   private readonly instanceId = `mcp-${Date.now()}-${Math.random().toString(36).substr(2, 8)}`;
 
   constructor() {
-    this.logger.log(`🚀 MCPClientService constructor called - Instance ID: ${this.instanceId}`);
-    this.logger.log(`📊 isAvailable method exists: ${typeof this.isAvailable === 'function'}`);
+    this.logger.log(
+      `🚀 MCPClientService constructor called - Instance ID: ${this.instanceId}`,
+    );
+    this.logger.log(
+      `📊 isAvailable method exists: ${typeof this.isAvailable === 'function'}`,
+    );
     this.startHealthCheckLoop();
   }
 
@@ -282,13 +286,18 @@ export class MCPClientService implements IMCPClient {
       let parsedData = null;
       let success = false;
       let error = undefined;
-      
+
       // Handle Enhanced Supabase MCP server response format
       if (result.tool_result) {
         success = !result.tool_result.isError;
-        error = result.tool_result.isError ? result.tool_result.content?.[0]?.text : undefined;
-        
-        if (!result.tool_result.isError && result.tool_result.content?.[0]?.text) {
+        error = result.tool_result.isError
+          ? result.tool_result.content?.[0]?.text
+          : undefined;
+
+        if (
+          !result.tool_result.isError &&
+          result.tool_result.content?.[0]?.text
+        ) {
           try {
             // Try to parse the JSON text from the content
             parsedData = JSON.parse(result.tool_result.content[0].text);
@@ -305,7 +314,7 @@ export class MCPClientService implements IMCPClient {
       else if (result.hasOwnProperty('isError')) {
         success = !result.isError;
         error = result.isError ? result.content?.[0]?.text : undefined;
-        
+
         if (!result.isError && result.content?.[0]?.text) {
           try {
             // Try to parse the JSON text from the content
@@ -610,11 +619,13 @@ export class MCPClientService implements IMCPClient {
   isAvailable(): boolean {
     const hasServers = this.servers.size > 0;
     const connectedServers = Array.from(this.servers.values()).filter(
-      connection => connection.state === 'connected'
+      (connection) => connection.state === 'connected',
     );
-    
-    this.logger.debug(`isAvailable check [${this.instanceId}]: hasServers=${hasServers}, connectedCount=${connectedServers.length}`);
-    
+
+    this.logger.debug(
+      `isAvailable check [${this.instanceId}]: hasServers=${hasServers}, connectedCount=${connectedServers.length}`,
+    );
+
     if (this.servers.size === 0) {
       return false;
     }

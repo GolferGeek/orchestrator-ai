@@ -61,7 +61,9 @@ export class LLMService {
       });
       this.logger.log('✅ OpenAI client created');
     } else {
-      this.logger.log('⚠️ OpenAI API key not found - OpenAI client not initialized');
+      this.logger.log(
+        '⚠️ OpenAI API key not found - OpenAI client not initialized',
+      );
     }
 
     // Initialize system LLM configurations for different orchestrator operations
@@ -179,9 +181,9 @@ export class LLMService {
         provider: options?.provider,
         temperature: options?.temperature,
         maxTokens: options?.maxTokens,
-        hasCurrentUser: !!options?.currentUser
+        hasCurrentUser: !!options?.currentUser,
       });
-      
+
       // If providerId/modelId are provided, delegate to enhanced response for proper DB lookup
       if (options?.providerId || options?.modelId || options?.cidafmOptions) {
         this.logger.log(

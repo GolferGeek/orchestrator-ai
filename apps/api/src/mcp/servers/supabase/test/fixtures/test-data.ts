@@ -1,6 +1,6 @@
 /**
  * Test Data Fixtures for Supabase MCP Testing
- * 
+ *
  * Provides standardized test data for consistent testing across all MCP tools.
  * Uses existing database schema without creating separate test tables.
  */
@@ -25,16 +25,16 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['users'],
     expectedFeatures: ['SELECT'],
     complexity: 'easy',
-    category: 'basic-select'
+    category: 'basic-select',
   },
   {
-    id: 'easy-002', 
+    id: 'easy-002',
     description: 'Users created today',
     prompt: 'Find users created today',
     expectedTables: ['users'],
     expectedFeatures: ['SELECT', 'WHERE', 'DATE'],
     complexity: 'easy',
-    category: 'date-filtering'
+    category: 'date-filtering',
   },
   {
     id: 'easy-003',
@@ -43,7 +43,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['agent_conversations'],
     expectedFeatures: ['SELECT', 'WHERE'],
     complexity: 'easy',
-    category: 'basic-filtering'
+    category: 'basic-filtering',
   },
   {
     id: 'easy-004',
@@ -52,7 +52,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['users'],
     expectedFeatures: ['SELECT', 'COUNT'],
     complexity: 'easy',
-    category: 'aggregation'
+    category: 'aggregation',
   },
   {
     id: 'easy-005',
@@ -61,7 +61,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['users'],
     expectedFeatures: ['SELECT', 'WHERE'],
     complexity: 'easy',
-    category: 'specific-lookup'
+    category: 'specific-lookup',
   },
   {
     id: 'easy-006',
@@ -70,7 +70,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['agent_conversations'],
     expectedFeatures: ['SELECT', 'DISTINCT'],
     complexity: 'easy',
-    category: 'distinct-values'
+    category: 'distinct-values',
   },
   {
     id: 'easy-007',
@@ -79,7 +79,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['users'],
     expectedFeatures: ['SELECT', 'WHERE', 'LIKE'],
     complexity: 'easy',
-    category: 'pattern-matching'
+    category: 'pattern-matching',
   },
   {
     id: 'easy-008',
@@ -88,7 +88,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['agent_conversations'],
     expectedFeatures: ['SELECT', 'WHERE', 'ORDER BY'],
     complexity: 'easy',
-    category: 'recent-data'
+    category: 'recent-data',
   },
   {
     id: 'easy-009',
@@ -97,7 +97,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['agent_conversations'],
     expectedFeatures: ['SELECT', 'WHERE', 'DATE_TRUNC'],
     complexity: 'easy',
-    category: 'date-filtering'
+    category: 'date-filtering',
   },
   {
     id: 'easy-010',
@@ -106,7 +106,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['agent_conversations'],
     expectedFeatures: ['SELECT', 'COUNT', 'WHERE'],
     complexity: 'easy',
-    category: 'conditional-count'
+    category: 'conditional-count',
   },
 
   // ================== MID LEVEL TESTS ==================
@@ -117,16 +117,17 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['users', 'agent_conversations'],
     expectedFeatures: ['SELECT', 'LEFT JOIN', 'COUNT', 'GROUP BY'],
     complexity: 'mid',
-    category: 'join-aggregation'
+    category: 'join-aggregation',
   },
   {
     id: 'mid-002',
     description: 'Conversations with user details in date range',
-    prompt: 'Find conversations between 2024-01-01 and 2024-12-31 with user details',
+    prompt:
+      'Find conversations between 2024-01-01 and 2024-12-31 with user details',
     expectedTables: ['agent_conversations', 'users'],
     expectedFeatures: ['SELECT', 'JOIN', 'WHERE', 'BETWEEN'],
     complexity: 'mid',
-    category: 'join-filtering'
+    category: 'join-filtering',
   },
   {
     id: 'mid-003',
@@ -135,7 +136,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['mcp_executions'],
     expectedFeatures: ['SELECT', 'AVG', 'GROUP BY'],
     complexity: 'mid',
-    category: 'aggregation-grouping'
+    category: 'aggregation-grouping',
   },
   {
     id: 'mid-004',
@@ -144,7 +145,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['users', 'agent_conversations'],
     expectedFeatures: ['SELECT', 'LEFT JOIN', 'WHERE', 'IS NULL'],
     complexity: 'mid',
-    category: 'anti-join'
+    category: 'anti-join',
   },
   {
     id: 'mid-005',
@@ -153,7 +154,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['agent_conversations', 'tasks'],
     expectedFeatures: ['SELECT', 'JOIN', 'GROUP BY', 'HAVING', 'COUNT'],
     complexity: 'mid',
-    category: 'having-clause'
+    category: 'having-clause',
   },
   {
     id: 'mid-006',
@@ -162,16 +163,23 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['users'],
     expectedFeatures: ['SELECT', 'DATE_TRUNC', 'COUNT', 'GROUP BY', 'ORDER BY'],
     complexity: 'mid',
-    category: 'time-series'
+    category: 'time-series',
   },
   {
     id: 'mid-007',
     description: 'Top active users',
     prompt: 'Show top 5 most active users by conversation count',
     expectedTables: ['users', 'agent_conversations'],
-    expectedFeatures: ['SELECT', 'JOIN', 'COUNT', 'GROUP BY', 'ORDER BY', 'LIMIT'],
+    expectedFeatures: [
+      'SELECT',
+      'JOIN',
+      'COUNT',
+      'GROUP BY',
+      'ORDER BY',
+      'LIMIT',
+    ],
     complexity: 'mid',
-    category: 'ranking'
+    category: 'ranking',
   },
   {
     id: 'mid-008',
@@ -180,7 +188,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['users', 'agent_conversations', 'tasks'],
     expectedFeatures: ['SELECT', 'JOIN', 'LEFT JOIN', 'WHERE', 'IS NULL'],
     complexity: 'mid',
-    category: 'complex-filtering'
+    category: 'complex-filtering',
   },
   {
     id: 'mid-009',
@@ -189,7 +197,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['agent_conversations', 'tasks'],
     expectedFeatures: ['SELECT', 'JOIN', 'GROUP BY', 'COUNT', 'CASE'],
     complexity: 'mid',
-    category: 'conditional-aggregation'
+    category: 'conditional-aggregation',
   },
   {
     id: 'mid-010',
@@ -198,27 +206,43 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['mcp_executions'],
     expectedFeatures: ['SELECT', 'DATE_TRUNC', 'COUNT', 'GROUP BY', 'ORDER BY'],
     complexity: 'mid',
-    category: 'daily-analytics'
+    category: 'daily-analytics',
   },
 
   // ================== ADVANCED LEVEL TESTS ==================
   {
     id: 'adv-001',
     description: 'Running totals with percentage change',
-    prompt: 'Show running total of user registrations by month with percentage change',
+    prompt:
+      'Show running total of user registrations by month with percentage change',
     expectedTables: ['users'],
-    expectedFeatures: ['SELECT', 'DATE_TRUNC', 'COUNT', 'SUM', 'OVER', 'LAG', 'WINDOW'],
+    expectedFeatures: [
+      'SELECT',
+      'DATE_TRUNC',
+      'COUNT',
+      'SUM',
+      'OVER',
+      'LAG',
+      'WINDOW',
+    ],
     complexity: 'advanced',
-    category: 'window-functions'
+    category: 'window-functions',
   },
   {
     id: 'adv-002',
     description: 'Similar user patterns',
-    prompt: 'Find users whose conversation patterns are similar using window functions',
+    prompt:
+      'Find users whose conversation patterns are similar using window functions',
     expectedTables: ['users', 'agent_conversations'],
-    expectedFeatures: ['SELECT', 'WINDOW', 'PARTITION BY', 'ROW_NUMBER', 'RANK'],
+    expectedFeatures: [
+      'SELECT',
+      'WINDOW',
+      'PARTITION BY',
+      'ROW_NUMBER',
+      'RANK',
+    ],
     complexity: 'advanced',
-    category: 'pattern-analysis'
+    category: 'pattern-analysis',
   },
   {
     id: 'adv-003',
@@ -227,16 +251,17 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['users', 'agent_conversations'],
     expectedFeatures: ['WITH', 'CTE', 'WINDOW', 'DATE_TRUNC', 'LAG', 'CASE'],
     complexity: 'advanced',
-    category: 'cohort-analysis'
+    category: 'cohort-analysis',
   },
   {
     id: 'adv-004',
     description: 'Execution time percentiles',
-    prompt: 'Show agent conversations with execution time percentiles and outlier detection',
+    prompt:
+      'Show agent conversations with execution time percentiles and outlier detection',
     expectedTables: ['agent_conversations', 'mcp_executions'],
     expectedFeatures: ['SELECT', 'PERCENTILE_CONT', 'WINDOW', 'CASE', 'STDDEV'],
     complexity: 'advanced',
-    category: 'statistical-analysis'
+    category: 'statistical-analysis',
   },
   {
     id: 'adv-005',
@@ -245,7 +270,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['agent_conversations', 'tasks'],
     expectedFeatures: ['WITH RECURSIVE', 'CTE', 'JOIN', 'UNION'],
     complexity: 'advanced',
-    category: 'recursive-queries'
+    category: 'recursive-queries',
   },
   {
     id: 'adv-006',
@@ -254,7 +279,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['mcp_executions'],
     expectedFeatures: ['WITH', 'WINDOW', 'LAG', 'LEAD', 'OVER', 'DATE_TRUNC'],
     complexity: 'advanced',
-    category: 'time-series-analysis'
+    category: 'time-series-analysis',
   },
   {
     id: 'adv-007',
@@ -263,7 +288,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['users', 'agent_conversations', 'mcp_executions'],
     expectedFeatures: ['WITH', 'CTE', 'NTILE', 'CASE', 'WINDOW'],
     complexity: 'advanced',
-    category: 'segmentation'
+    category: 'segmentation',
   },
   {
     id: 'adv-008',
@@ -272,7 +297,7 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['mcp_executions'],
     expectedFeatures: ['SELECT', 'STDDEV', 'AVG', 'ABS', 'CASE', 'WINDOW'],
     complexity: 'advanced',
-    category: 'anomaly-detection'
+    category: 'anomaly-detection',
   },
   {
     id: 'adv-009',
@@ -281,17 +306,18 @@ export const TEST_PROMPTS: TestPromptCase[] = [
     expectedTables: ['agent_conversations', 'tasks', 'mcp_executions'],
     expectedFeatures: ['WITH', 'CTE', 'CASE', 'SUM', 'GROUP BY'],
     complexity: 'advanced',
-    category: 'pivot-analysis'
+    category: 'pivot-analysis',
   },
   {
     id: 'adv-010',
     description: 'Complex funnel analysis',
-    prompt: 'Show complex funnel analysis from registration to conversation completion',
+    prompt:
+      'Show complex funnel analysis from registration to conversation completion',
     expectedTables: ['users', 'agent_conversations', 'tasks'],
     expectedFeatures: ['WITH', 'CTE', 'WINDOW', 'LAG', 'COUNT', 'CASE'],
     complexity: 'advanced',
-    category: 'funnel-analysis'
-  }
+    category: 'funnel-analysis',
+  },
 ];
 
 export const CONTEXT_EXAMPLES = {
@@ -332,14 +358,14 @@ export const CONTEXT_EXAMPLES = {
 - Use for complex multi-step queries
 - Helpful for user cohort analysis and funnel metrics
 - Example: \`WITH user_stats AS (SELECT user_id, COUNT(*) as conversation_count FROM agent_conversations GROUP BY user_id)\`
-`
+`,
 };
 
 export const EXPECTED_SQL_EXAMPLES = {
   'easy-001': 'SELECT * FROM users;',
-  'easy-002': "SELECT * FROM users WHERE created_at >= CURRENT_DATE;",
-  'easy-003': "SELECT * FROM agent_conversations WHERE ended_at IS NULL;",
-  'easy-004': "SELECT COUNT(*) FROM users;",
+  'easy-002': 'SELECT * FROM users WHERE created_at >= CURRENT_DATE;',
+  'easy-003': 'SELECT * FROM agent_conversations WHERE ended_at IS NULL;',
+  'easy-004': 'SELECT COUNT(*) FROM users;',
   'easy-005': "SELECT * FROM users WHERE email = 'test@example.com';",
   'mid-001': `
     SELECT u.*, COUNT(ac.id) as conversation_count 
@@ -365,7 +391,7 @@ export const EXPECTED_SQL_EXAMPLES = {
            END as percentage_change
     FROM monthly_registrations
     ORDER BY month;
-  `
+  `,
 };
 
 // Test data for bulk testing scenarios
@@ -374,19 +400,19 @@ export const BULK_TEST_SCENARIOS = {
     user_count: 100,
     conversations_per_user: 5,
     executions_per_conversation: 10,
-    failure_rate: 0.1 // 10% failure rate
+    failure_rate: 0.1, // 10% failure rate
   },
-  
+
   context_learning: {
     patterns_to_learn: [
       'Users with recent activity should use last_active_at',
       'Conversation metrics should group by agent_type',
-      'MCP analytics should include execution_time_ms averages'
+      'MCP analytics should include execution_time_ms averages',
     ],
     error_patterns_to_avoid: [
       'Using created_date instead of created_at',
       'Missing JOIN conditions',
-      'Incorrect table aliases'
-    ]
-  }
+      'Incorrect table aliases',
+    ],
+  },
 };

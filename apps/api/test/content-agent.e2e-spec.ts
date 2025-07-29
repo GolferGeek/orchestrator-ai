@@ -43,7 +43,8 @@ describe('Content Agent E2E Test', () => {
     // Step 1: Create a task for the content agent
     const taskData = {
       method: 'process',
-      prompt: 'Create a compelling blog post about the benefits of AI-powered project management tools for remote teams. Include SEO optimization and a strong call-to-action.',
+      prompt:
+        'Create a compelling blog post about the benefits of AI-powered project management tools for remote teams. Include SEO optimization and a strong call-to-action.',
       timeoutSeconds: 300,
     };
 
@@ -98,14 +99,17 @@ describe('Content Agent E2E Test', () => {
     expect(conversationResponse.body).toBeDefined();
 
     console.log('✅ Content Agent test completed successfully');
-    console.log(`📝 Generated content length: ${task.response.length} characters`);
+    console.log(
+      `📝 Generated content length: ${task.response.length} characters`,
+    );
   }, 90000); // 90 second timeout for the entire test
 
   it('should create and execute a content strategy task successfully', async () => {
     // Step 1: Create a strategy task for the content agent
     const taskData = {
       method: 'process',
-      prompt: 'Develop a comprehensive content strategy for Q2 SaaS product launch. Include content calendar, channel distribution, and success metrics.',
+      prompt:
+        'Develop a comprehensive content strategy for Q2 SaaS product launch. Include content calendar, channel distribution, and success metrics.',
       timeoutSeconds: 300,
     };
 
@@ -148,6 +152,8 @@ describe('Content Agent E2E Test', () => {
     expect(task.agentConversationId).toBe(conversationId);
 
     console.log('✅ Content Strategy test completed successfully');
-    console.log(`📊 Generated strategy length: ${task.response.length} characters`);
+    console.log(
+      `📊 Generated strategy length: ${task.response.length} characters`,
+    );
   }, 90000);
-}); 
+});

@@ -9,7 +9,10 @@ import {
   MCPExecutionRequest,
   MCPExecutionResult,
   MCPHealthInfo,
-  MCPListItem
+  MCPListItem,
+  MCPType,
+  MCPCapability,
+  MCPCapabilityCategory
 } from '../types/mcp';
 
 /**
@@ -48,21 +51,27 @@ class MCPService {
     try {
       const health = await this.getPoolHealth();
       return {
-        totalRegistered: health.poolSize,
-        totalOnline: health.onlineMCPs,
-        totalTools: 0, // Will be calculated from MCP services
-        totalExecutions: 0, // Not tracked in current system
-        averageResponseTime: 0, // Not tracked in current system
-        lastUpdated: new Date()
+        total: health.poolSize,
+        online: health.onlineMCPs,
+        offline: health.poolSize - health.onlineMCPs,
+        discovering: 0,
+        byType: {} as Record<MCPType, number>,
+        byProvider: {} as Record<string, number>,
+        totalTools: 0,
+        totalCapabilities: 0,
+        healthScore: health.healthScore
       };
     } catch (error) {
       return {
-        totalRegistered: 0,
-        totalOnline: 0,
+        total: 0,
+        online: 0,
+        offline: 0,
+        discovering: 0,
+        byType: {} as Record<MCPType, number>,
+        byProvider: {} as Record<string, number>,
         totalTools: 0,
-        totalExecutions: 0,
-        averageResponseTime: 0,
-        lastUpdated: new Date()
+        totalCapabilities: 0,
+        healthScore: 0
       };
     }
   }
@@ -116,25 +125,25 @@ class MCPService {
       ]);
 
       return {
-        version: '1.0.0',
-        mcps: mcps,
-        tools: tools,
-        capabilities: {
-          database: true,
-          analytics: true,
-          automation: false
-        },
-        health: health,
-        generatedAt: new Date()
+        generatedAt: new Date(),
+        totalMCPs: mcps.length,
+        mcpsByType: {} as Record<MCPType, number>,
+        mcpsByProvider: {} as Record<string, number>,
+        totalTools: tools.totalTools,
+        totalCapabilities: 0,
+        capabilitiesByCategory: {} as Record<MCPCapabilityCategory, MCPCapability[]>,
+        mcps: mcps
       };
     } catch (error) {
       return {
-        version: '1.0.0',
-        mcps: [],
-        tools: { total_tools: 0, services: [], categories: {} },
-        capabilities: { database: false, analytics: false, automation: false },
-        health: { status: 'offline', poolSize: 0, onlineMCPs: 0, healthScore: 0, lastCheck: new Date() },
-        generatedAt: new Date()
+        generatedAt: new Date(),
+        totalMCPs: 0,
+        mcpsByType: {} as Record<MCPType, number>,
+        mcpsByProvider: {} as Record<string, number>,
+        totalTools: 0,
+        totalCapabilities: 0,
+        capabilitiesByCategory: {} as Record<MCPCapabilityCategory, MCPCapability[]>,
+        mcps: []
       };
     }
   }
@@ -145,15 +154,9 @@ class MCPService {
   async getOrchestrationMCPList(): Promise<MCPOrchestrationInfo> {
     const mcps = await this.getRegisteredMCPs();
     return {
-      available_mcps: mcps.map(mcp => ({
-        id: mcp.id,
-        name: mcp.name,
-        type: mcp.type,
-        status: mcp.status,
-        capabilities: mcp.capabilities || []
-      })),
-      total_count: mcps.length,
-      online_count: mcps.filter(mcp => mcp.status === 'online').length
+      mcpCount: mcps.length,
+      toolCount: mcps.reduce((total, mcp) => total + mcp.tools.length, 0),
+      mcpList: mcps.map(mcp => `${mcp.name}(${mcp.type})`).join(', ')
     };
   }
 
@@ -172,17 +175,11 @@ class MCPService {
     // Since we only have one MCP server (Supabase), just return its current status
     const mcps = await this.getRegisteredMCPs();
     return {
-      total_searched: 1,
-      total_discovered: mcps.length,
-      discovered: mcps.map(mcp => ({
-        id: mcp.id,
-        name: mcp.name,
-        type: mcp.type,
-        status: mcp.status,
-        discoveredAt: new Date()
-      })),
+      discovered: mcps,
       errors: [],
-      discoveredAt: new Date()
+      discoveredAt: new Date(),
+      totalFound: mcps.length,
+      successfulRegistrations: mcps.filter(mcp => mcp.status === 'online').length
     };
   }
 

@@ -20,7 +20,7 @@ export class SupabaseMCPController {
 
   constructor(
     private readonly llmService: LLMService,
-    private readonly httpService: HttpService
+    private readonly httpService: HttpService,
   ) {
     this.mcpServer = new SupabaseMCPServer(this.llmService, this.httpService);
   }

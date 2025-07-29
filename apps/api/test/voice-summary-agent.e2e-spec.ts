@@ -43,7 +43,8 @@ describe('Voice Summary Agent E2E Test', () => {
     // Step 1: Create a task for the voice summary agent
     const taskData = {
       method: 'process',
-      prompt: 'Create a comprehensive executive summary of our Q4 board meeting. The meeting covered strategic decisions including European market expansion with $2.5M budget approval, engineering team scaling with 25 new hires, and marketing budget increase of 20%. Extract key action items with owners and deadlines, and analyze the overall sentiment and engagement of the leadership team.',
+      prompt:
+        'Create a comprehensive executive summary of our Q4 board meeting. The meeting covered strategic decisions including European market expansion with $2.5M budget approval, engineering team scaling with 25 new hires, and marketing budget increase of 20%. Extract key action items with owners and deadlines, and analyze the overall sentiment and engagement of the leadership team.',
       timeoutSeconds: 300,
     };
 
@@ -98,14 +99,17 @@ describe('Voice Summary Agent E2E Test', () => {
     expect(conversationResponse.body).toBeDefined();
 
     console.log('✅ Voice Summary Agent test completed successfully');
-    console.log(`📊 Generated summary length: ${task.response.length} characters`);
+    console.log(
+      `📊 Generated summary length: ${task.response.length} characters`,
+    );
   }, 90000); // 90 second timeout for the entire test
 
   it('should create and execute an action item extraction task successfully', async () => {
     // Step 1: Create an action extraction task for the voice summary agent
     const taskData = {
       method: 'process',
-      prompt: 'Extract and prioritize all action items from our client implementation call. The call included urgent technical issues requiring immediate CTO attention, stakeholder communication needs, data migration planning, and user training coordination. Organize by urgency levels and include owners and deadlines.',
+      prompt:
+        'Extract and prioritize all action items from our client implementation call. The call included urgent technical issues requiring immediate CTO attention, stakeholder communication needs, data migration planning, and user training coordination. Organize by urgency levels and include owners and deadlines.',
       timeoutSeconds: 300,
     };
 
@@ -148,6 +152,8 @@ describe('Voice Summary Agent E2E Test', () => {
     expect(task.agentConversationId).toBe(conversationId);
 
     console.log('✅ Action Item Extraction test completed successfully');
-    console.log(`📋 Generated action plan length: ${task.response.length} characters`);
+    console.log(
+      `📋 Generated action plan length: ${task.response.length} characters`,
+    );
   }, 90000);
-}); 
+});

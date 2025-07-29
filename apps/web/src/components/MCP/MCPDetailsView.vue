@@ -97,8 +97,8 @@
         >
           <div class="capability-chips">
             <ion-chip 
-              v-for="capability in mcp.capabilities" 
-              :key="capability"
+              v-for="(capability, index) in mcp.capabilities" 
+              :key="index"
               color="primary"
               fill="outline"
             >

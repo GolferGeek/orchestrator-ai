@@ -21,7 +21,7 @@ describe('Email Triage Agent E2E Test', () => {
     await app.init();
 
     // Wait for agents to be discovered
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Authenticate first
     const authResponse = await request(app.getHttpServer())
@@ -32,7 +32,10 @@ describe('Email Triage Agent E2E Test', () => {
       })
       .expect(201);
 
-    authToken = authResponse.body.token || authResponse.body.accessToken || authResponse.body.access_token;
+    authToken =
+      authResponse.body.token ||
+      authResponse.body.accessToken ||
+      authResponse.body.access_token;
     expect(authToken).toBeDefined();
   });
 
@@ -42,10 +45,11 @@ describe('Email Triage Agent E2E Test', () => {
 
   it('should handle email triage request successfully', async () => {
     console.log('📧 Testing Email Triage Agent...');
-    
+
     const taskRequest = {
       method: 'executeTask',
-      prompt: 'Please triage this executive email: "From: board.chair@company.com Subject: URGENT: Q4 Results Discussion Required Body: We need to schedule an emergency board meeting to discuss the Q4 results before the public announcement. Please coordinate with all board members for tomorrow if possible. This is time-sensitive due to market conditions."',
+      prompt:
+        'Please triage this executive email: "From: board.chair@company.com Subject: URGENT: Q4 Results Discussion Required Body: We need to schedule an emergency board meeting to discuss the Q4 results before the public announcement. Please coordinate with all board members for tomorrow if possible. This is time-sensitive due to market conditions."',
       providerId: null,
       modelId: null,
       temperature: 0.7,
@@ -61,7 +65,7 @@ describe('Email Triage Agent E2E Test', () => {
 
     expect(createResponse.body).toHaveProperty('taskId');
     expect(createResponse.body).toHaveProperty('status');
-    
+
     const taskId = createResponse.body.taskId;
     console.log(`   Task created: ${taskId}`);
 
@@ -71,22 +75,26 @@ describe('Email Triage Agent E2E Test', () => {
     let finalResponse;
 
     while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       const statusResponse = await request(app.getHttpServer())
         .get(`/tasks/${taskId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      console.log(`   Attempt ${attempts + 1}: Status = ${statusResponse.body.status}`);
-      
+      console.log(
+        `   Attempt ${attempts + 1}: Status = ${statusResponse.body.status}`,
+      );
+
       if (statusResponse.body.status === 'completed') {
         finalResponse = statusResponse.body;
         break;
       } else if (statusResponse.body.status === 'failed') {
-        throw new Error(`Task failed: ${statusResponse.body.error || 'Unknown error'}`);
+        throw new Error(
+          `Task failed: ${statusResponse.body.error || 'Unknown error'}`,
+        );
       }
-      
+
       attempts++;
     }
 
@@ -95,9 +103,13 @@ describe('Email Triage Agent E2E Test', () => {
     expect(finalResponse.status).toBe('completed');
     expect(finalResponse.response).toBeDefined();
     expect(finalResponse.response.length).toBeGreaterThan(0);
-    
+
     console.log(`✅ Email Triage Agent test completed successfully`);
-    console.log(`   Response length: ${finalResponse.response.length} characters`);
-    console.log(`   First 200 chars: ${finalResponse.response.substring(0, 200)}...`);
+    console.log(
+      `   Response length: ${finalResponse.response.length} characters`,
+    );
+    console.log(
+      `   First 200 chars: ${finalResponse.response.substring(0, 200)}...`,
+    );
   }, 90000); // 90 second timeout
-}); 
+});

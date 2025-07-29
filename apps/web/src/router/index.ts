@@ -35,6 +35,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/admin/evaluations',
+    name: 'AdminEvaluations',
+    component: () => import('../views/AdminEvaluationsPage.vue'),
+    meta: { requiresAuth: true, requiresRole: ['admin', 'evaluation-monitor'] }
+  },
+  {
     path: '/login',
     name: 'Login',
     component: LoginPage
@@ -46,8 +52,8 @@ const router = createRouter({
   routes
 });
 
-// Navigation guard for authentication
-router.beforeEach((to, from, next) => {
+// Navigation guard for authentication and roles
+router.beforeEach(async (to, from, next) => {
   // Check if route requires auth
   if (to.matched.some(record => record.meta.requiresAuth)) {
     // Check if user is authenticated
@@ -57,9 +63,39 @@ router.beforeEach((to, from, next) => {
         path: '/login',
         query: { redirect: to.fullPath }
       });
-    } else {
-      next();
+      return;
     }
+
+    // Check if route requires specific roles
+    const requiredRoles = to.meta.requiresRole as string[] | undefined;
+    if (requiredRoles && requiredRoles.length > 0) {
+      try {
+        // Get current user info to check roles
+        const userDataStr = localStorage.getItem('userData');
+        if (userDataStr) {
+          const userData = JSON.parse(userDataStr);
+          const userRoles = userData.roles || ['user'];
+          
+          // Check if user has any of the required roles
+          const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role));
+          
+          if (!hasRequiredRole) {
+            next({ path: '/home' }); // Redirect to home if insufficient permissions
+            return;
+          }
+        } else {
+          // No user data, redirect to login
+          next({ path: '/login', query: { redirect: to.fullPath } });
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking user roles:', error);
+        next({ path: '/login', query: { redirect: to.fullPath } });
+        return;
+      }
+    }
+    
+    next();
   } else {
     next();
   }
