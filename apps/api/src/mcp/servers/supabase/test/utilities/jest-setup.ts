@@ -1,6 +1,6 @@
 /**
  * Jest Setup for Supabase MCP Tests
- * 
+ *
  * Global setup configuration for all MCP test suites.
  * Initializes test environment and provides shared utilities.
  */
@@ -10,22 +10,26 @@ import { getTestSetup } from './test-setup';
 // Global test setup
 beforeAll(async () => {
   const testSetup = getTestSetup();
-  
+
   // Validate database connection
   const isConnected = await testSetup.validateConnection();
   if (!isConnected) {
-    throw new Error('Failed to connect to test database. Check your Supabase configuration.');
+    throw new Error(
+      'Failed to connect to test database. Check your Supabase configuration.',
+    );
   }
 
   // Check required migrations
   const { hasMCPTables, missingTables } = await testSetup.checkMigrations();
   if (!hasMCPTables) {
-    throw new Error(`Missing required database tables: ${missingTables.join(', ')}. Run the MCP tracking migration first.`);
+    throw new Error(
+      `Missing required database tables: ${missingTables.join(', ')}. Run the MCP tracking migration first.`,
+    );
   }
 
   // Initialize test environment
   await testSetup.initializeTestEnvironment();
-  
+
   console.log('Test environment initialized successfully');
 });
 
@@ -39,13 +43,14 @@ afterAll(async () => {
 // Add custom matchers for SQL testing
 expect.extend({
   toBeValidSQL(received: string) {
-    const isValid = received && 
-      received.trim().length > 0 && 
+    const isValid =
+      received &&
+      received.trim().length > 0 &&
       /^(SELECT|INSERT|UPDATE|DELETE|WITH)/i.test(received.trim());
-    
+
     return {
-      message: () => 
-        isValid 
+      message: () =>
+        isValid
           ? `Expected ${received} not to be valid SQL`
           : `Expected ${received} to be valid SQL`,
       pass: Boolean(isValid),
@@ -54,7 +59,7 @@ expect.extend({
 
   toContainTable(received: string, tableName: string) {
     const containsTable = new RegExp(`\\b${tableName}\\b`, 'i').test(received);
-    
+
     return {
       message: () =>
         containsTable
@@ -66,19 +71,19 @@ expect.extend({
 
   toHaveJoin(received: string) {
     const hasJoin = /\bJOIN\b/i.test(received);
-    
+
     return {
       message: () =>
-        hasJoin
-          ? `Expected SQL not to have JOIN`
-          : `Expected SQL to have JOIN`,
+        hasJoin ? `Expected SQL not to have JOIN` : `Expected SQL to have JOIN`,
       pass: hasJoin,
     };
   },
 
   toHaveAggregation(received: string) {
-    const hasAggregation = /\b(COUNT|SUM|AVG|MIN|MAX|GROUP BY)\b/i.test(received);
-    
+    const hasAggregation = /\b(COUNT|SUM|AVG|MIN|MAX|GROUP BY)\b/i.test(
+      received,
+    );
+
     return {
       message: () =>
         hasAggregation
@@ -89,8 +94,11 @@ expect.extend({
   },
 
   toHaveAdvancedFeatures(received: string) {
-    const hasAdvanced = /\b(WITH|CTE|WINDOW|OVER|PARTITION|RECURSIVE|PERCENTILE)\b/i.test(received);
-    
+    const hasAdvanced =
+      /\b(WITH|CTE|WINDOW|OVER|PARTITION|RECURSIVE|PERCENTILE)\b/i.test(
+        received,
+      );
+
     return {
       message: () =>
         hasAdvanced
@@ -98,7 +106,7 @@ expect.extend({
           : `Expected SQL to have advanced features (CTE, Window functions, etc.)`,
       pass: hasAdvanced,
     };
-  }
+  },
 });
 
 // Extend Jest matchers type definitions

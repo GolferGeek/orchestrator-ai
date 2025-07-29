@@ -42,16 +42,21 @@ export class MCPModule implements OnModuleInit {
   async onModuleInit() {
     console.log('🚀 MCPModule onModuleInit called');
     console.log(`📊 MCP Client Service available: ${!!this.mcpClientService}`);
-    
+
     // Register the MCP client service in the global registry
     MCPRegistryService.setMCPClient(this.mcpClientService);
     console.log('✅ MCPClientService registered in global registry');
-    
+
     // Auto-register Supabase MCP server with both MCP Client and MCP Pool
     try {
       const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-      const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
-      const baseUrl = this.configService.get<string>('BASE_URL', 'http://localhost:4000');
+      const supabaseKey = this.configService.get<string>(
+        'SUPABASE_SERVICE_ROLE_KEY',
+      );
+      const baseUrl = this.configService.get<string>(
+        'BASE_URL',
+        'http://localhost:4000',
+      );
 
       console.log(`🔑 Supabase URL: ${supabaseUrl ? 'SET' : 'MISSING'}`);
       console.log(`🔑 Supabase Key: ${supabaseKey ? 'SET' : 'MISSING'}`);
@@ -59,7 +64,7 @@ export class MCPModule implements OnModuleInit {
 
       if (supabaseUrl && supabaseKey) {
         console.log('📡 Auto-registering Enhanced Supabase MCP Server...');
-        
+
         // Initialize the Supabase MCP Server first
         console.log('🔧 Initializing Supabase MCP Server...');
         await this.supabaseMCPServer.initialize({
@@ -71,10 +76,10 @@ export class MCPModule implements OnModuleInit {
           sqlModels: ['claude-3-5-sonnet', 'gpt-4'],
           enableContextLearning: true,
           defaultLLMProvider: 'anthropic',
-          defaultLLMModel: 'claude-3-5-sonnet'
+          defaultLLMModel: 'claude-3-5-sonnet',
         });
         console.log('✅ Supabase MCP Server initialized successfully');
-        
+
         // Register with MCP Client Service (legacy compatibility)
         await this.mcpClientService.registerServer({
           id: 'supabase-mcp',
@@ -99,15 +104,24 @@ export class MCPModule implements OnModuleInit {
         console.log('✅ Supabase MCP registered with MCP Client Service');
 
         // MCP Pool Service removed - using direct MCP Client Service
-        
+
         // Check if server is available
-        const availableServers = this.mcpClientService.getAvailableServers?.() || [];
-        console.log(`🌐 Available MCP servers: ${availableServers.join(', ') || 'none'}`);
-        console.log(`🔍 MCP Service available: ${this.mcpClientService.isAvailable?.() || false}`);
-        
-        console.log('🎉 Auto-registration completed - Enhanced Supabase MCP available via MCP Client Service');
+        const availableServers =
+          this.mcpClientService.getAvailableServers?.() || [];
+        console.log(
+          `🌐 Available MCP servers: ${availableServers.join(', ') || 'none'}`,
+        );
+        console.log(
+          `🔍 MCP Service available: ${this.mcpClientService.isAvailable?.() || false}`,
+        );
+
+        console.log(
+          '🎉 Auto-registration completed - Enhanced Supabase MCP available via MCP Client Service',
+        );
       } else {
-        console.warn('⚠️ Supabase configuration missing - MCP server not registered');
+        console.warn(
+          '⚠️ Supabase configuration missing - MCP server not registered',
+        );
       }
     } catch (error) {
       console.error('❌ Failed to auto-register Supabase MCP server:', error);

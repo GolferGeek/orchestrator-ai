@@ -1,6 +1,6 @@
 /**
  * Enhanced Generate SQL Tool
- * 
+ *
  * Intelligent SQL generation with context learning, execution tracking,
  * and comprehensive error handling. Replaces the existing implementation.
  */
@@ -39,26 +39,36 @@ export class EnhancedGenerateSQLTool {
   constructor(
     private readonly supabaseClient: SupabaseClient,
     private readonly contextLearning: ContextLearningService,
-    private readonly llmService: LLMService
+    private readonly llmService: LLMService,
   ) {}
 
   async execute(
     parameters: GenerateSQLParameters,
-    options: MCPToolExecutionOptions
+    options: MCPToolExecutionOptions,
   ): Promise<GenerateSQLResult> {
     const startTime = Date.now();
-    
+
     try {
       // Get enhanced prompt with context learning
-      console.log('🔧 DEBUG: About to call enhancePrompt with use_context =', parameters.use_context);
+      console.log(
+        '🔧 DEBUG: About to call enhancePrompt with use_context =',
+        parameters.use_context,
+      );
       console.log('🔧 DEBUG: Original prompt:', parameters.prompt);
-      
-      const enhancedPrompt = parameters.use_context !== false
-        ? await this.contextLearning.enhancePrompt(parameters.prompt, 'generate-sql')
-        : parameters.prompt;
-        
+
+      const enhancedPrompt =
+        parameters.use_context !== false
+          ? await this.contextLearning.enhancePrompt(
+              parameters.prompt,
+              'generate-sql',
+            )
+          : parameters.prompt;
+
       console.log('🔧 DEBUG: Enhanced prompt length:', enhancedPrompt.length);
-      console.log('🔧 DEBUG: Enhanced prompt preview:', enhancedPrompt.substring(0, 200));
+      console.log(
+        '🔧 DEBUG: Enhanced prompt preview:',
+        enhancedPrompt.substring(0, 200),
+      );
 
       // Get database schema for context
       const schema = await this.getRelevantSchema();
@@ -68,7 +78,7 @@ export class EnhancedGenerateSQLTool {
         enhancedPrompt,
         schema,
         parameters,
-        options
+        options,
       );
 
       // Validate the generated SQL
@@ -84,9 +94,8 @@ export class EnhancedGenerateSQLTool {
         context_patterns_applied: parameters.use_context !== false ? 1 : 0,
         execution_time_ms: Date.now() - startTime,
         model_used: sqlResult.model_used,
-        validation_results: validation
+        validation_results: validation,
       };
-
     } catch (error) {
       throw error;
     }
@@ -99,7 +108,7 @@ export class EnhancedGenerateSQLTool {
     prompt: string,
     schema: any,
     parameters: GenerateSQLParameters,
-    options: MCPToolExecutionOptions
+    options: MCPToolExecutionOptions,
   ): Promise<{
     sql: string;
     explanation: string;
@@ -114,11 +123,13 @@ export class EnhancedGenerateSQLTool {
       systemPrompt,
       userPrompt,
       {
-        providerId: parameters.llm_provider || options.llmProvider || 'anthropic',
-        modelId: parameters.llm_model || options.llmModel || 'claude-3-5-sonnet',
+        providerId:
+          parameters.llm_provider || options.llmProvider || 'anthropic',
+        modelId:
+          parameters.llm_model || options.llmModel || 'claude-3-5-sonnet',
         temperature: 0.1,
-        maxTokens: 2000
-      }
+        maxTokens: 2000,
+      },
     );
 
     // Parse the LLM response
@@ -128,7 +139,7 @@ export class EnhancedGenerateSQLTool {
       sql: parsedResult.sql,
       explanation: parsedResult.explanation,
       confidence: parsedResult.confidence,
-      model_used: `${parameters.llm_provider || options.llmProvider || 'anthropic'}:${parameters.llm_model || options.llmModel || 'claude-3-5-sonnet'}`
+      model_used: `${parameters.llm_provider || options.llmProvider || 'anthropic'}:${parameters.llm_model || options.llmModel || 'claude-3-5-sonnet'}`,
     };
   }
 
@@ -184,15 +195,20 @@ Return your response as JSON with these fields:
   /**
    * Build user prompt with specific request
    */
-  private buildUserPrompt(prompt: string, parameters: GenerateSQLParameters): string {
+  private buildUserPrompt(
+    prompt: string,
+    parameters: GenerateSQLParameters,
+  ): string {
     let userPrompt = `Generate a PostgreSQL query for: ${prompt}`;
 
     if (parameters.include_explanation !== false) {
-      userPrompt += '\n\nPlease include a detailed explanation of the query logic.';
+      userPrompt +=
+        '\n\nPlease include a detailed explanation of the query logic.';
     }
 
     if (parameters.dry_run) {
-      userPrompt += '\n\nThis is for validation only - focus on query correctness and security.';
+      userPrompt +=
+        '\n\nThis is for validation only - focus on query correctness and security.';
     }
 
     return userPrompt;
@@ -214,7 +230,7 @@ Return your response as JSON with these fields:
         return {
           sql: parsed.sql || '',
           explanation: parsed.explanation || 'No explanation provided',
-          confidence: parsed.confidence || 0.8
+          confidence: parsed.confidence || 0.8,
         };
       }
 
@@ -225,11 +241,12 @@ Return your response as JSON with these fields:
       return {
         sql,
         explanation: 'Generated SQL query',
-        confidence: 0.7
+        confidence: 0.7,
       };
-
     } catch (error) {
-      throw new Error(`Failed to parse LLM response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to parse LLM response: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -243,53 +260,111 @@ Return your response as JSON with these fields:
         // Application tables
         {
           name: 'users',
-          columns: ['id', 'email', 'display_name', 'created_at', 'updated_at']
+          columns: ['id', 'email', 'display_name', 'created_at', 'updated_at'],
         },
         {
           name: 'sessions',
-          columns: ['id', 'user_id', 'name', 'created_at', 'updated_at']
+          columns: ['id', 'user_id', 'name', 'created_at', 'updated_at'],
         },
         {
           name: 'agent_conversations',
-          columns: ['id', 'user_id', 'agent_name', 'agent_type', 'started_at', 'ended_at', 'last_active_at', 'created_at', 'updated_at']
+          columns: [
+            'id',
+            'user_id',
+            'agent_name',
+            'agent_type',
+            'started_at',
+            'ended_at',
+            'last_active_at',
+            'created_at',
+            'updated_at',
+          ],
         },
         {
-          name: 'tasks',  
-          columns: ['id', 'agent_conversation_id', 'user_id', 'method', 'prompt', 'status', 'created_at', 'updated_at']
+          name: 'tasks',
+          columns: [
+            'id',
+            'agent_conversation_id',
+            'user_id',
+            'method',
+            'prompt',
+            'status',
+            'created_at',
+            'updated_at',
+          ],
         },
         {
           name: 'mcp_executions',
-          columns: ['id', 'mcp_name', 'tool_name', 'user_id', 'agent_conversation_id', 'session_id', 'status', 'execution_time_ms', 'created_at']
+          columns: [
+            'id',
+            'mcp_name',
+            'tool_name',
+            'user_id',
+            'agent_conversation_id',
+            'session_id',
+            'status',
+            'execution_time_ms',
+            'created_at',
+          ],
         },
         // KPI Business tables
         {
           name: 'companies',
-          columns: ['id', 'name', 'industry', 'founded_year', 'created_at']
+          columns: ['id', 'name', 'industry', 'founded_year', 'created_at'],
         },
         {
           name: 'departments',
-          columns: ['id', 'company_id', 'name', 'head_of_department', 'budget', 'created_at']
+          columns: [
+            'id',
+            'company_id',
+            'name',
+            'head_of_department',
+            'budget',
+            'created_at',
+          ],
         },
         {
           name: 'kpi_metrics',
-          columns: ['id', 'name', 'description', 'unit', 'metric_type', 'created_at']
+          columns: [
+            'id',
+            'name',
+            'description',
+            'unit',
+            'metric_type',
+            'created_at',
+          ],
         },
         {
           name: 'kpi_data',
-          columns: ['id', 'department_id', 'metric_id', 'value', 'date_recorded', 'created_at']
+          columns: [
+            'id',
+            'department_id',
+            'metric_id',
+            'value',
+            'date_recorded',
+            'created_at',
+          ],
         },
         {
           name: 'kpi_goals',
-          columns: ['id', 'department_id', 'metric_id', 'target_value', 'period_start', 'period_end', 'created_at']
-        }
+          columns: [
+            'id',
+            'department_id',
+            'metric_id',
+            'target_value',
+            'period_start',
+            'period_end',
+            'created_at',
+          ],
+        },
       ],
       relationships: [
         'companies.id = departments.company_id',
         'departments.id = kpi_data.department_id',
         'kpi_metrics.id = kpi_data.metric_id',
         'departments.id = kpi_goals.department_id',
-        'kpi_metrics.id = kpi_goals.metric_id'
-      ]
+        'kpi_metrics.id = kpi_goals.metric_id',
+      ],
     };
   }
 
@@ -302,7 +377,7 @@ Return your response as JSON with these fields:
     estimated_complexity: 'low' | 'medium' | 'high';
   }> {
     const issues: string[] = [];
-    
+
     // Basic security checks
     if (sql.match(/;\s*(DROP|DELETE|TRUNCATE|ALTER)/i)) {
       issues.push('Potentially dangerous SQL operations detected');
@@ -318,13 +393,14 @@ Return your response as JSON with these fields:
     if (sql.match(/\b(WITH|WINDOW|PARTITION)\b/i)) complexity = 'high';
 
     // Syntax validation (basic)
-    const hasBasicStructure = sql.trim().toUpperCase().startsWith('SELECT') ||
-                              sql.trim().toUpperCase().startsWith('WITH');
+    const hasBasicStructure =
+      sql.trim().toUpperCase().startsWith('SELECT') ||
+      sql.trim().toUpperCase().startsWith('WITH');
 
     return {
       is_valid: hasBasicStructure && issues.length === 0,
       security_issues: issues,
-      estimated_complexity: complexity
+      estimated_complexity: complexity,
     };
   }
 }

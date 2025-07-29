@@ -85,7 +85,11 @@ export class TaskStatusService {
     this.activeTaskStatuses.set(taskId, taskStatus);
 
     // Persist to database for all task types (including ephemeral for evaluations)
-    if (taskType === 'long_running' || taskType === 'swarm' || taskType === 'ephemeral') {
+    if (
+      taskType === 'long_running' ||
+      taskType === 'swarm' ||
+      taskType === 'ephemeral'
+    ) {
       try {
         const { error } = await this.supabaseService
           .getAnonClient()

@@ -58,10 +58,10 @@ export class ModelsService {
     console.log(`[ModelsService] About to execute query...`);
     const { data, error } = await query;
 
-    console.log(`[ModelsService] Query result:`, { 
-      dataLength: data?.length || 0, 
+    console.log(`[ModelsService] Query result:`, {
+      dataLength: data?.length || 0,
       error: error?.message,
-      sampleData: data?.[0] 
+      sampleData: data?.[0],
     });
 
     if (error) {
@@ -72,17 +72,24 @@ export class ModelsService {
       );
     }
 
-    console.log(`[ModelsService] About to map models using mapLLMModelFromDb...`);
+    console.log(
+      `[ModelsService] About to map models using mapLLMModelFromDb...`,
+    );
     try {
       const mappedModels = (data || []).map((model: any) => {
         console.log(`[ModelsService] Mapping model: ${model.display_name}`);
         return mapLLMModelFromDb(model);
       });
-      console.log(`[ModelsService] Successfully mapped ${mappedModels.length} models`);
+      console.log(
+        `[ModelsService] Successfully mapped ${mappedModels.length} models`,
+      );
       return mappedModels;
     } catch (mappingError) {
       console.error(`[ModelsService] Mapping error:`, mappingError);
-      const errorMessage = mappingError instanceof Error ? mappingError.message : 'Unknown mapping error';
+      const errorMessage =
+        mappingError instanceof Error
+          ? mappingError.message
+          : 'Unknown mapping error';
       throw new HttpException(
         `Failed to process models: ${errorMessage}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -182,7 +189,8 @@ export class ModelsService {
         model_name: createModelDto.modelId,
         pricing_info_json: {
           input_cost_per_token: (createModelDto.pricingInputPer1k || 0) / 1000,
-          output_cost_per_token: (createModelDto.pricingOutputPer1k || 0) / 1000
+          output_cost_per_token:
+            (createModelDto.pricingOutputPer1k || 0) / 1000,
         },
         capabilities: createModelDto.supportsThinking ? ['reasoning'] : [],
         max_output_tokens: createModelDto.maxTokens,

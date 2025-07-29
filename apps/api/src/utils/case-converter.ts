@@ -141,7 +141,7 @@ export function mapLLMModelFromDb(dbModel: any): Model {
     maxTokens: dbModel.max_output_tokens,
     contextWindow: dbModel.context_window,
     strengths: [], // Not available in llm_models structure
-    weaknesses: [], // Not available in llm_models structure  
+    weaknesses: [], // Not available in llm_models structure
     useCases: [], // Not available in llm_models structure
     status: dbModel.is_active ? 'active' : 'inactive',
     createdAt: dbModel.created_at,
@@ -156,7 +156,8 @@ export function mapLLMModelFromDb(dbModel: any): Model {
 export function mapLLMProviderFromDb(dbProvider: any): Provider {
   return {
     id: dbProvider.id,
-    name: dbProvider.provider_name || dbProvider.name || dbProvider.display_name,
+    name:
+      dbProvider.provider_name || dbProvider.name || dbProvider.display_name,
     apiBaseUrl: dbProvider.api_base_url || dbProvider.base_url,
     authType: dbProvider.auth_type || 'api_key',
     status: dbProvider.is_active ? 'active' : 'inactive',

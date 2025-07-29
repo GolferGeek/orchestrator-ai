@@ -1,6 +1,6 @@
 /**
  * Enhanced Query and Format Tool
- * 
+ *
  * Combines SQL generation and execution with formatted output.
  */
 
@@ -34,44 +34,50 @@ export class EnhancedQueryAndFormatTool {
   constructor(
     private readonly supabaseClient: SupabaseClient,
     private readonly contextLearning: ContextLearningService,
-    private readonly llmService: LLMService
+    private readonly llmService: LLMService,
   ) {
     this.generateSQLTool = new EnhancedGenerateSQLTool(
       supabaseClient,
       contextLearning,
-      llmService
+      llmService,
     );
     this.executeSQLTool = new EnhancedExecuteSQLTool(supabaseClient);
   }
 
   async execute(
     parameters: QueryAndFormatParameters,
-    options: MCPToolExecutionOptions
+    options: MCPToolExecutionOptions,
   ): Promise<QueryAndFormatResult> {
     const startTime = Date.now();
     const format = parameters.format || 'json';
     const shouldExecute = parameters.execute === true;
 
     // Generate SQL
-    const sqlResult = await this.generateSQLTool.execute({
-      prompt: parameters.prompt,
-      use_context: parameters.use_context
-    }, options);
+    const sqlResult = await this.generateSQLTool.execute(
+      {
+        prompt: parameters.prompt,
+        use_context: parameters.use_context,
+      },
+      options,
+    );
 
     if (!shouldExecute) {
       return {
         sql: sqlResult.sql,
         execution_success: false,
         format_used: format,
-        execution_time_ms: Date.now() - startTime
+        execution_time_ms: Date.now() - startTime,
       };
     }
 
     // Execute SQL
-    const executeResult = await this.executeSQLTool.execute({
-      sql: sqlResult.sql,
-      dry_run: false
-    }, options);
+    const executeResult = await this.executeSQLTool.execute(
+      {
+        sql: sqlResult.sql,
+        dry_run: false,
+      },
+      options,
+    );
 
     // Format results
     const formattedData = this.formatData(executeResult.data || [], format);
@@ -82,7 +88,7 @@ export class EnhancedQueryAndFormatTool {
       execution_success: executeResult.success,
       format_used: format,
       row_count: executeResult.row_count,
-      execution_time_ms: Date.now() - startTime
+      execution_time_ms: Date.now() - startTime,
     };
   }
 
@@ -102,53 +108,59 @@ export class EnhancedQueryAndFormatTool {
 
   private formatAsCSV(data: any[]): string {
     if (data.length === 0) return '';
-    
+
     const headers = Object.keys(data[0]);
     const csvRows = [
       headers.join(','),
-      ...data.map(row => headers.map(h => `"${row[h] || ''}"`).join(','))
+      ...data.map((row) => headers.map((h) => `"${row[h] || ''}"`).join(',')),
     ];
-    
+
     return csvRows.join('\n');
   }
 
   private formatAsMarkdown(data: any[]): string {
     if (data.length === 0) return 'No data returned';
-    
+
     const headers = Object.keys(data[0]);
     let md = `| ${headers.join(' | ')} |\n`;
     md += `| ${headers.map(() => '---').join(' | ')} |\n`;
-    
+
     for (const row of data) {
-      md += `| ${headers.map(h => row[h] || '').join(' | ')} |\n`;
+      md += `| ${headers.map((h) => row[h] || '').join(' | ')} |\n`;
     }
-    
+
     return md;
   }
 
   private formatAsTable(data: any[]): string {
     if (data.length === 0) return 'No data returned';
-    
+
     const headers = Object.keys(data[0]);
-    const maxWidths = headers.map(h => Math.max(h.length, 
-      ...data.map(row => String(row[h] || '').length)
-    ));
-    
+    const maxWidths = headers.map((h) =>
+      Math.max(h.length, ...data.map((row) => String(row[h] || '').length)),
+    );
+
     let table = '';
     // Header
-    table += '┌' + maxWidths.map(w => '─'.repeat(w + 2)).join('┬') + '┐\n';
-    table += '│ ' + headers.map((h, i) => h.padEnd(maxWidths[i] || 0)).join(' │ ') + ' │\n';
-    table += '├' + maxWidths.map(w => '─'.repeat(w + 2)).join('┼') + '┤\n';
-    
+    table += '┌' + maxWidths.map((w) => '─'.repeat(w + 2)).join('┬') + '┐\n';
+    table +=
+      '│ ' +
+      headers.map((h, i) => h.padEnd(maxWidths[i] || 0)).join(' │ ') +
+      ' │\n';
+    table += '├' + maxWidths.map((w) => '─'.repeat(w + 2)).join('┼') + '┤\n';
+
     // Data rows
     for (const row of data) {
-      table += '│ ' + headers.map((h, i) => 
-        String(row[h] || '').padEnd(maxWidths[i] || 0)
-      ).join(' │ ') + ' │\n';
+      table +=
+        '│ ' +
+        headers
+          .map((h, i) => String(row[h] || '').padEnd(maxWidths[i] || 0))
+          .join(' │ ') +
+        ' │\n';
     }
-    
-    table += '└' + maxWidths.map(w => '─'.repeat(w + 2)).join('┴') + '┘';
-    
+
+    table += '└' + maxWidths.map((w) => '─'.repeat(w + 2)).join('┴') + '┘';
+
     return table;
   }
 }

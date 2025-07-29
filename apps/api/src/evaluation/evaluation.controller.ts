@@ -19,12 +19,22 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import {
+  AdminOnly,
+  EvaluationMonitor,
+} from '../auth/decorators/roles.decorator';
 import { EvaluationService } from './evaluation.service';
 import {
   MessageEvaluationDto,
   EnhancedMessageResponseDto,
 } from '../dto/llm-evaluation.dto';
+import {
+  AdminEvaluationFiltersDto,
+  EvaluationAnalyticsDto,
+  EnhancedEvaluationMetadataDto,
+} from '../dto/enhanced-evaluation.dto';
 
 @ApiTags('Message Evaluation')
 @Controller('evaluation')
@@ -188,14 +198,17 @@ export class EvaluationController {
     };
   }> {
     // Debug logging to see what filters are received
-    console.log('[EvaluationController] getAllUserEvaluations called with filters:', {
-      page,
-      limit,
-      minRating,
-      hasNotes,
-      agentName,
-      userId: user.id
-    });
+    console.log(
+      '[EvaluationController] getAllUserEvaluations called with filters:',
+      {
+        page,
+        limit,
+        minRating,
+        hasNotes,
+        agentName,
+        userId: user.id,
+      },
+    );
 
     // Ensure reasonable pagination limits
     const sanitizedLimit = Math.min(Math.max(limit, 1), 100);
@@ -268,10 +281,10 @@ export class EvaluationController {
   })
   async getEvaluationStats(
     @CurrentUser() user: any,
-      @Query('startDate') startDate?: string,
-  @Query('endDate') endDate?: string,
-  @Query('providerId') providerId?: string,
-  @Query('modelId') modelId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('providerId') providerId?: string,
+    @Query('modelId') modelId?: string,
   ): Promise<{
     totalEvaluations: number;
     averageOverallRating: number;
@@ -632,5 +645,505 @@ export class EvaluationController {
         hasNotes,
       },
     );
+  }
+
+  // =========================
+  // ADMIN EVALUATION ENDPOINTS
+  // =========================
+
+  @Get('admin/all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @EvaluationMonitor()
+  @ApiOperation({
+    summary: 'Get all evaluations across all users (Admin/Monitor only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all evaluations with enhanced metadata',
+    type: [EnhancedEvaluationMetadataDto],
+  })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async getAllEvaluationsForAdmin(
+    @Query() filters: AdminEvaluationFiltersDto,
+  ): Promise<{
+    evaluations: EnhancedEvaluationMetadataDto[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }> {
+    return this.evaluationService.getAllEvaluationsForAdmin(filters);
+  }
+
+  @Get('admin/analytics/overview')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AdminOnly()
+  @ApiOperation({
+    summary: 'Get comprehensive evaluation analytics (Admin only)',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Start date filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'End date filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'userRole',
+    required: false,
+    description: 'Filter by user role',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'System-wide evaluation analytics',
+    type: EvaluationAnalyticsDto,
+  })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async getEvaluationAnalytics(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('userRole') userRole?: string,
+  ): Promise<EvaluationAnalyticsDto> {
+    return this.evaluationService.getEvaluationAnalytics({
+      startDate,
+      endDate,
+      // userRole, // TODO: Add userRole filter to AdminEvaluationFiltersDto
+    });
+  }
+
+  @Get('admin/analytics/workflow')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @EvaluationMonitor()
+  @ApiOperation({
+    summary: 'Get workflow step performance analytics (Monitor only)',
+  })
+  @ApiQuery({
+    name: 'stepName',
+    required: false,
+    description: 'Filter by specific workflow step',
+  })
+  @ApiQuery({
+    name: 'agentName',
+    required: false,
+    description: 'Filter by agent name',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Start date filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'End date filter (YYYY-MM-DD)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Workflow performance analytics',
+    schema: {
+      type: 'object',
+      properties: {
+        overallMetrics: {
+          type: 'object',
+          properties: {
+            totalWorkflows: { type: 'number' },
+            averageCompletionRate: { type: 'number' },
+            averageDuration: { type: 'number' },
+            commonFailurePoints: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        stepAnalytics: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              stepName: { type: 'string' },
+              completionRate: { type: 'number' },
+              averageDuration: { type: 'number' },
+              failureRate: { type: 'number' },
+              commonErrors: { type: 'array', items: { type: 'string' } },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async getWorkflowAnalytics(
+    @Query('stepName') stepName?: string,
+    @Query('agentName') agentName?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<any> {
+    return this.evaluationService.getWorkflowAnalytics({
+      // stepName, // TODO: Add stepName to AdminEvaluationFiltersDto
+      agentName,
+      startDate,
+      endDate,
+    });
+  }
+
+  @Get('admin/analytics/constraints')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @EvaluationMonitor()
+  @ApiOperation({
+    summary: 'Get CIDAFM constraint effectiveness analytics (Monitor only)',
+  })
+  @ApiQuery({
+    name: 'constraintType',
+    required: false,
+    description: 'Filter by constraint type (active, response, command)',
+  })
+  @ApiQuery({
+    name: 'minEffectiveness',
+    required: false,
+    type: Number,
+    description: 'Filter by minimum effectiveness score (1-5)',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Start date filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'End date filter (YYYY-MM-DD)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'CIDAFM constraint effectiveness analytics',
+    schema: {
+      type: 'object',
+      properties: {
+        overallMetrics: {
+          type: 'object',
+          properties: {
+            totalConstraintUsages: { type: 'number' },
+            averageEffectiveness: { type: 'number' },
+            averageCompliance: { type: 'number' },
+            topPerformingConstraints: {
+              type: 'array',
+              items: { type: 'string' },
+            },
+          },
+        },
+        constraintAnalytics: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              constraintName: { type: 'string' },
+              constraintType: { type: 'string' },
+              usageCount: { type: 'number' },
+              averageEffectiveness: { type: 'number' },
+              averageCompliance: { type: 'number' },
+              impactDescription: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async getConstraintAnalytics(
+    @Query('constraintType') constraintType?: string,
+    @Query('minEffectiveness') minEffectiveness?: number,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<any> {
+    return this.evaluationService.getConstraintAnalytics({
+      // constraintType,
+      // minEffectiveness, // TODO: Add these filters to AdminEvaluationFiltersDto
+      startDate,
+      endDate,
+    });
+  }
+
+  @Get('admin/export')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AdminOnly()
+  @ApiOperation({
+    summary: 'Export enhanced evaluation data for admin analysis (Admin only)',
+  })
+  @ApiQuery({
+    name: 'format',
+    required: false,
+    enum: ['json', 'csv', 'xlsx'],
+    description: 'Export format',
+  })
+  @ApiQuery({
+    name: 'includeUserData',
+    required: false,
+    type: Boolean,
+    description: 'Include user personal information in export',
+  })
+  @ApiQuery({
+    name: 'includeContent',
+    required: false,
+    type: Boolean,
+    description: 'Include task/message content in export',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Start date filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'End date filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'userRole',
+    required: false,
+    description: 'Filter by user role',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Exported enhanced evaluation data',
+    schema: {
+      oneOf: [
+        {
+          type: 'array',
+          description: 'JSON format export',
+        },
+        {
+          type: 'string',
+          description: 'CSV/XLSX format export',
+        },
+      ],
+    },
+  })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async exportEnhancedEvaluations(
+    @Query('format') format: 'json' | 'csv' = 'json',
+    @Query('includeUserData') includeUserData?: boolean,
+    @Query('includeContent') includeContent?: boolean,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('userRole') userRole?: string,
+  ): Promise<any[] | string> {
+    return this.evaluationService.exportEnhancedEvaluations(
+      {
+        startDate,
+        endDate,
+        // userRole, // TODO: Add userRole filter
+      },
+      {
+        format,
+        includeWorkflowDetails: includeContent,
+        includeConstraintDetails: includeContent,
+        anonymizeUsers: !includeUserData,
+      },
+    );
+  }
+
+  @Get('admin/users/:userId/evaluations')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @EvaluationMonitor()
+  @ApiOperation({
+    summary: 'Get evaluations for a specific user (Monitor only)',
+  })
+  @ApiParam({ name: 'userId', description: 'User UUID' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20, max: 100)',
+  })
+  @ApiQuery({
+    name: 'includeDetails',
+    required: false,
+    type: Boolean,
+    description: 'Include detailed metadata',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User evaluations with enhanced metadata',
+    type: [EnhancedEvaluationMetadataDto],
+  })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getUserEvaluationsForAdmin(
+    @Param('userId') userId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+    @Query('includeDetails') includeDetails?: boolean,
+  ): Promise<{
+    evaluations: EnhancedEvaluationMetadataDto[];
+    user: {
+      id: string;
+      email: string;
+      displayName: string;
+      roles: string[];
+    };
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }> {
+    // Sanitize pagination
+    const sanitizedLimit = Math.min(Math.max(limit, 1), 100);
+    const sanitizedPage = Math.max(page, 1);
+
+    // TODO: Implement getUserEvaluationsForAdmin method
+    const result = await this.evaluationService.getAllEvaluationsForAdmin({
+      page: sanitizedPage,
+      limit: sanitizedLimit,
+      userEmail: userId, // Temporary workaround - should filter by userId
+    });
+
+    return {
+      ...result,
+      user: {
+        id: userId,
+        email: 'user@example.com', // TODO: Get actual user data
+        displayName: 'User',
+        roles: ['user'],
+      },
+    };
+  }
+
+  @Get('admin/performance/agents')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @EvaluationMonitor()
+  @ApiOperation({ summary: 'Get agent performance comparison (Monitor only)' })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Start date filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'End date filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'minEvaluations',
+    required: false,
+    type: Number,
+    description: 'Minimum number of evaluations for inclusion',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Agent performance comparison data',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          agentName: { type: 'string' },
+          evaluationCount: { type: 'number' },
+          averageRating: { type: 'number' },
+          averageSpeedRating: { type: 'number' },
+          averageAccuracyRating: { type: 'number' },
+          averageResponseTime: { type: 'number' },
+          averageCost: { type: 'number' },
+          workflowCompletionRate: { type: 'number' },
+          topConstraints: { type: 'array', items: { type: 'string' } },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async getAgentPerformance(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('minEvaluations') minEvaluations?: number,
+  ): Promise<any[]> {
+    // TODO: Implement getAgentPerformanceComparison method
+    const analytics = await this.evaluationService.getEvaluationAnalytics({
+      startDate,
+      endDate,
+    });
+
+    // Convert to array format expected by return type
+    return analytics.topPerformingAgents || [];
+  }
+
+  @Get('admin/trends/time-series')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @AdminOnly()
+  @ApiOperation({ summary: 'Get evaluation trends over time (Admin only)' })
+  @ApiQuery({
+    name: 'timeframe',
+    required: false,
+    enum: ['daily', 'weekly', 'monthly'],
+    description: 'Time aggregation level',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Start date filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'End date filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'metric',
+    required: false,
+    enum: ['rating', 'volume', 'cost', 'response_time'],
+    description: 'Primary metric to track',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Time series evaluation trend data',
+    schema: {
+      type: 'object',
+      properties: {
+        timeframe: { type: 'string' },
+        metric: { type: 'string' },
+        dataPoints: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              date: { type: 'string' },
+              value: { type: 'number' },
+              evaluationCount: { type: 'number' },
+              metadata: { type: 'object' },
+            },
+          },
+        },
+        summary: {
+          type: 'object',
+          properties: {
+            trend: { type: 'string' },
+            percentageChange: { type: 'number' },
+            insights: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async getEvaluationTrends(
+    @Query('timeframe') timeframe: 'daily' | 'weekly' | 'monthly' = 'weekly',
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('metric')
+    metric: 'rating' | 'volume' | 'cost' | 'response_time' = 'rating',
+  ): Promise<any> {
+    // TODO: Implement getEvaluationTrends method
+    return this.evaluationService.getEvaluationAnalytics({
+      startDate,
+      endDate,
+    });
   }
 }

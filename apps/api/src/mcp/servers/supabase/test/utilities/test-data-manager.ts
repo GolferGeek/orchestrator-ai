@@ -1,6 +1,6 @@
 /**
  * Test Data Manager for Supabase MCP Testing
- * 
+ *
  * Manages test data lifecycle using existing production database schema.
  * Provides utilities for creating, managing, and cleaning up test data.
  */
@@ -78,7 +78,7 @@ export class TestDataManager {
     tasks: [],
     mcp_executions: [],
     mcp_failures: [],
-    mcp_feedback: []
+    mcp_feedback: [],
   };
 
   constructor(supabaseClient: SupabaseClient<Database>) {
@@ -92,7 +92,7 @@ export class TestDataManager {
     const userData = {
       email: `test-user-${Date.now()}@example.com`,
       display_name: `Test User ${Date.now()}`,
-      ...overrides
+      ...overrides,
     };
 
     const { data, error } = await this.supabase
@@ -102,7 +102,7 @@ export class TestDataManager {
       .single();
 
     if (error) throw new Error(`Failed to create test user: ${error.message}`);
-    
+
     this.createdRecords.users.push(data.id);
     return data as TestUser;
   }
@@ -113,7 +113,7 @@ export class TestDataManager {
   async createTestSession(userId: string, name?: string) {
     const sessionData = {
       user_id: userId,
-      name: name || `Test Session ${Date.now()}`
+      name: name || `Test Session ${Date.now()}`,
     };
 
     const { data, error } = await this.supabase
@@ -122,8 +122,9 @@ export class TestDataManager {
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to create test session: ${error.message}`);
-    
+    if (error)
+      throw new Error(`Failed to create test session: ${error.message}`);
+
     this.createdRecords.sessions.push(data.id);
     return data;
   }
@@ -131,13 +132,16 @@ export class TestDataManager {
   /**
    * Create a test agent conversation
    */
-  async createTestAgentConversation(userId: string, overrides: Partial<TestConversation> = {}): Promise<TestConversation> {
+  async createTestAgentConversation(
+    userId: string,
+    overrides: Partial<TestConversation> = {},
+  ): Promise<TestConversation> {
     const conversationData = {
       user_id: userId,
       agent_name: 'test-agent',
       agent_type: 'specialist',
       metadata: {},
-      ...overrides
+      ...overrides,
     };
 
     const { data, error } = await this.supabase
@@ -146,8 +150,9 @@ export class TestDataManager {
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to create test conversation: ${error.message}`);
-    
+    if (error)
+      throw new Error(`Failed to create test conversation: ${error.message}`);
+
     this.createdRecords.agent_conversations.push(data.id);
     return data as TestConversation;
   }
@@ -155,7 +160,10 @@ export class TestDataManager {
   /**
    * Create a test MCP execution record
    */
-  async createTestMCPExecution(userId: string, overrides: Partial<TestMCPExecution> = {}): Promise<TestMCPExecution> {
+  async createTestMCPExecution(
+    userId: string,
+    overrides: Partial<TestMCPExecution> = {},
+  ): Promise<TestMCPExecution> {
     const executionData = {
       mcp_name: 'supabase',
       tool_name: 'generate-sql',
@@ -168,7 +176,7 @@ export class TestDataManager {
       status: 'success',
       retry_count: 0,
       context_used: false,
-      ...overrides
+      ...overrides,
     };
 
     const { data, error } = await this.supabase
@@ -177,8 +185,9 @@ export class TestDataManager {
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to create test MCP execution: ${error.message}`);
-    
+    if (error)
+      throw new Error(`Failed to create test MCP execution: ${error.message}`);
+
     this.createdRecords.mcp_executions.push(data.id);
     return data as TestMCPExecution;
   }
@@ -196,7 +205,7 @@ export class TestDataManager {
       sql_attempted: 'SELECT * FORM users;', // Intentional typo
       context_before_failure: {},
       resolved: false,
-      ...overrides
+      ...overrides,
     };
 
     const { data, error } = await this.supabase
@@ -205,8 +214,9 @@ export class TestDataManager {
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to create test MCP failure: ${error.message}`);
-    
+    if (error)
+      throw new Error(`Failed to create test MCP failure: ${error.message}`);
+
     this.createdRecords.mcp_failures.push(data.id);
     return data;
   }
@@ -214,7 +224,12 @@ export class TestDataManager {
   /**
    * Create a test MCP feedback record
    */
-  async createTestMCPFeedback(executionId: string, userId: string, feedbackToken: string, overrides: any = {}) {
+  async createTestMCPFeedback(
+    executionId: string,
+    userId: string,
+    feedbackToken: string,
+    overrides: any = {},
+  ) {
     const feedbackData = {
       feedback_token: feedbackToken,
       execution_id: executionId,
@@ -223,7 +238,7 @@ export class TestDataManager {
       rating_score: 4,
       comment: 'Great SQL generation!',
       helpful_tags: ['accurate', 'fast'],
-      ...overrides
+      ...overrides,
     };
 
     const { data, error } = await this.supabase
@@ -232,8 +247,9 @@ export class TestDataManager {
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to create test MCP feedback: ${error.message}`);
-    
+    if (error)
+      throw new Error(`Failed to create test MCP feedback: ${error.message}`);
+
     this.createdRecords.mcp_feedback.push(data.id);
     return data;
   }
@@ -249,7 +265,7 @@ export class TestDataManager {
     const user = await this.createTestUser();
     const conversation = await this.createTestAgentConversation(user.id);
     const execution = await this.createTestMCPExecution(user.id, {
-      agent_conversation_id: conversation.id
+      agent_conversation_id: conversation.id,
     });
 
     return { user, conversation, execution };
@@ -258,14 +274,17 @@ export class TestDataManager {
   /**
    * Create multiple test executions for performance testing
    */
-  async createBulkTestExecutions(userId: string, count: number): Promise<TestMCPExecution[]> {
+  async createBulkTestExecutions(
+    userId: string,
+    count: number,
+  ): Promise<TestMCPExecution[]> {
     const executions: TestMCPExecution[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       const execution = await this.createTestMCPExecution(userId, {
         tool_name: i % 2 === 0 ? 'generate-sql' : 'execute-sql',
         execution_time_ms: Math.floor(Math.random() * 5000) + 500,
-        status: i % 10 === 0 ? 'error' : 'success' // 10% error rate
+        status: i % 10 === 0 ? 'error' : 'success', // 10% error rate
       });
       executions.push(execution);
     }
@@ -288,7 +307,7 @@ export class TestDataManager {
         'Find users with Gmail addresses',
         'Show recent conversations',
         'Get agent conversations created this week',
-        'Count active conversations'
+        'Count active conversations',
       ],
       mid: [
         'Show users with their conversation counts',
@@ -300,7 +319,7 @@ export class TestDataManager {
         'Show top 5 most active users by conversation count',
         'Find users with conversations but no completed tasks',
         'Get conversations grouped by agent type with success rates',
-        'Show daily MCP usage statistics'
+        'Show daily MCP usage statistics',
       ],
       advanced: [
         'Show running total of user registrations by month with percentage change',
@@ -312,8 +331,8 @@ export class TestDataManager {
         'Show advanced user segmentation based on usage patterns',
         'Find anomalous execution patterns using statistical functions',
         'Generate pivot table of agent performance metrics',
-        'Show complex funnel analysis from registration to conversation completion'
-      ]
+        'Show complex funnel analysis from registration to conversation completion',
+      ],
     };
   }
 
@@ -438,10 +457,9 @@ export class TestDataManager {
       }
 
       // Reset tracking
-      Object.keys(this.createdRecords).forEach(key => {
+      Object.keys(this.createdRecords).forEach((key) => {
         this.createdRecords[key as keyof typeof this.createdRecords] = [];
       });
-
     } catch (error) {
       console.error('Error during test cleanup:', error);
       throw error;
@@ -472,39 +490,51 @@ export class TestDataManager {
         totalExecutions: 0,
         successRate: 0,
         avgExecutionTime: 0,
-        toolBreakdown: []
+        toolBreakdown: [],
       };
     }
 
     const totalExecutions = executions.length;
-    const successfulExecutions = executions.filter(e => e.status === 'success').length;
+    const successfulExecutions = executions.filter(
+      (e) => e.status === 'success',
+    ).length;
     const successRate = (successfulExecutions / totalExecutions) * 100;
-    const avgExecutionTime = executions.reduce((sum, e) => sum + (e.execution_time_ms || 0), 0) / totalExecutions;
+    const avgExecutionTime =
+      executions.reduce((sum, e) => sum + (e.execution_time_ms || 0), 0) /
+      totalExecutions;
 
     // Tool breakdown
-    const toolStats = executions.reduce((acc, exec) => {
-      const key = exec.tool_name;
-      if (!acc[key]) {
-        acc[key] = { total: 0, successful: 0, totalTime: 0 };
-      }
-      acc[key].total++;
-      if (exec.status === 'success') acc[key].successful++;
-      acc[key].totalTime += exec.execution_time_ms || 0;
-      return acc;
-    }, {} as Record<string, { total: number; successful: number; totalTime: number }>);
+    const toolStats = executions.reduce(
+      (acc, exec) => {
+        const key = exec.tool_name;
+        if (!acc[key]) {
+          acc[key] = { total: 0, successful: 0, totalTime: 0 };
+        }
+        acc[key].total++;
+        if (exec.status === 'success') acc[key].successful++;
+        acc[key].totalTime += exec.execution_time_ms || 0;
+        return acc;
+      },
+      {} as Record<
+        string,
+        { total: number; successful: number; totalTime: number }
+      >,
+    );
 
-    const toolBreakdown = Object.entries(toolStats).map(([tool_name, stats]) => ({
-      tool_name,
-      count: (stats as any).total,
-      success_rate: ((stats as any).successful / (stats as any).total) * 100,
-      avg_time: (stats as any).totalTime / (stats as any).total
-    }));
+    const toolBreakdown = Object.entries(toolStats).map(
+      ([tool_name, stats]) => ({
+        tool_name,
+        count: (stats as any).total,
+        success_rate: ((stats as any).successful / (stats as any).total) * 100,
+        avg_time: (stats as any).totalTime / (stats as any).total,
+      }),
+    );
 
     return {
       totalExecutions,
       successRate,
       avgExecutionTime,
-      toolBreakdown
+      toolBreakdown,
     };
   }
 }

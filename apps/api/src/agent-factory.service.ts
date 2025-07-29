@@ -275,13 +275,27 @@ export class AgentFactoryService {
 
         case 'context': {
           this.logger.debug(`📝 Creating context agent`);
-          this.logger.debug(`📝 Injecting services: taskStatusService=${!!this.taskStatusService}, tasksService=${!!this.tasksService}`);
-          return new ServiceClass(this.httpService, this.llmService, undefined, undefined, undefined, undefined, undefined, this.taskStatusService, this.tasksService);
+          this.logger.debug(
+            `📝 Injecting services: taskStatusService=${!!this.taskStatusService}, tasksService=${!!this.tasksService}`,
+          );
+          return new ServiceClass(
+            this.httpService,
+            this.llmService,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            this.taskStatusService,
+            this.tasksService,
+          );
         }
 
         case 'api': {
           this.logger.debug(`🌐 Creating API agent`);
-          this.logger.debug(`🌐 Injecting services: taskStatusService=${!!this.taskStatusService}, tasksService=${!!this.tasksService}`);
+          this.logger.debug(
+            `🌐 Injecting services: taskStatusService=${!!this.taskStatusService}, tasksService=${!!this.tasksService}`,
+          );
           return new ServiceClass(
             this.httpService,
             undefined, // agentRegistrationService

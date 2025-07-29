@@ -140,11 +140,11 @@
             </ion-row>
 
             <!-- User Email if available -->
-            <ion-row v-if="evaluation.userEmail">
+            <ion-row v-if="evaluation.metadata?.userEmail">
               <ion-col size="12">
                 <ion-chip outline color="tertiary">
                   <ion-icon :icon="mailOutline"></ion-icon>
-                  <ion-label>{{ evaluation.userEmail }}</ion-label>
+                  <ion-label>{{ evaluation.metadata.userEmail }}</ion-label>
                 </ion-chip>
               </ion-col>
             </ion-row>
@@ -404,7 +404,7 @@ const parsedResponse = computed(() => {
     providerId: props.evaluation?.providerId,
     modelId: props.evaluation?.modelId
   });
-  console.log('🔍 [Frontend] User email:', props.evaluation?.userEmail);
+  console.log('🔍 [Frontend] User email:', props.evaluation?.metadata?.userEmail);
   console.log('🔍 [Frontend] Response metadata:', props.evaluation?.metadata?.responseMetadata);
   console.log('🔍 [Frontend] LLM metadata:', props.evaluation?.metadata?.llmMetadata);
   console.log('🔍 [Frontend] Has taskResponse:', !!props.evaluation?.metadata?.taskResponse);

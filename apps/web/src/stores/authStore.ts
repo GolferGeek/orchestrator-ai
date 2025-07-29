@@ -51,25 +51,31 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null;
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userData');
     
     // Clear auth from API service
     apiService.clearAuth();
   }
 
   async function login(credentials: { email: string; password: string }) {
+    console.log('🔍 Login attempt for:', credentials.email);
     isLoading.value = true;
     error.value = null;
     try {
       const tokenData = await authService.login(credentials);
+      console.log('🔍 Login successful, token received:', !!tokenData.accessToken);
       setTokenData(tokenData);
+      console.log('🔍 About to fetch current user...');
       await fetchCurrentUser();
       
       // Start token monitoring after successful login
       tokenManager.startMonitoring();
       
       isLoading.value = false;
+      console.log('🔍 Login process completed successfully');
       return true;
     } catch (e: any) {
+      console.error('🔍 Login failed:', e);
       error.value = e.message || 'Login failed in store.';
       clearAuthData();
       isLoading.value = false;
@@ -138,16 +144,24 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchCurrentUser() {
+    console.log('🔍 fetchCurrentUser called, token exists:', !!token.value);
     if (!token.value) {
       user.value = null;
+      localStorage.removeItem('userData');
       return;
     }
     // isLoading.value = true; // This can be a separate loading state if desired, or rely on component
     try {
+      console.log('🔍 Calling apiService.getCurrentUser()');
       const userData = await apiService.getCurrentUser(); 
+      console.log('🔍 User data received:', userData);
       user.value = userData;
+      // Store user data in localStorage for router access
+      localStorage.setItem('userData', JSON.stringify(userData));
+      console.log('🔍 User data stored in localStorage');
       error.value = null; // Clear previous errors if user fetch is successful
     } catch (e: any) {
+      console.error('🔍 Error fetching user data:', e);
       error.value = "Could not fetch user details.";
       if ((e as any).response && (e as any).response.status === 401) {
         clearAuthData(); 

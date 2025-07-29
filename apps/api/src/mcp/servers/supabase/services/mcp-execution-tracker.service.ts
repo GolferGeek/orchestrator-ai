@@ -1,6 +1,6 @@
 /**
  * MCP Execution Tracker Service
- * 
+ *
  * Handles comprehensive tracking of MCP tool executions with database logging,
  * performance metrics, error handling, and feedback token generation.
  */
@@ -61,23 +61,31 @@ export class MCPExecutionTrackerService {
     if (this.supabaseClient) {
       return this.supabaseClient;
     }
-    
+
     if (this.supabaseService) {
       try {
         return this.supabaseService.getServiceClient();
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.warn('SupabaseService.getServiceClient() failed, trying anon client:', errorMessage);
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.warn(
+          'SupabaseService.getServiceClient() failed, trying anon client:',
+          errorMessage,
+        );
         try {
           return this.supabaseService.getAnonClient();
         } catch (anonError) {
-          const anonErrorMessage = anonError instanceof Error ? anonError.message : 'Unknown error';
-          console.error('Both service and anon clients failed:', anonErrorMessage);
+          const anonErrorMessage =
+            anonError instanceof Error ? anonError.message : 'Unknown error';
+          console.error(
+            'Both service and anon clients failed:',
+            anonErrorMessage,
+          );
           throw new Error(`Supabase clients unavailable: ${errorMessage}`);
         }
       }
     }
-    
+
     throw new Error('No Supabase client available for MCP execution tracking');
   }
 
@@ -86,16 +94,21 @@ export class MCPExecutionTrackerService {
    */
   async executeWithTracking<T = any>(
     context: MCPExecutionContext,
-    executionFunction: () => Promise<T>
+    executionFunction: () => Promise<T>,
   ): Promise<MCPExecutionResult> {
     const startTime = Date.now();
     const executionId = uuidv4();
     const feedbackToken = uuidv4();
-    let retryCount = 0;
+    const retryCount = 0;
 
     try {
       // Create initial execution record
-      await this.createExecutionRecord(executionId, feedbackToken, context, 'pending');
+      await this.createExecutionRecord(
+        executionId,
+        feedbackToken,
+        context,
+        'pending',
+      );
 
       // Execute the actual MCP tool function
       const result = await executionFunction();
@@ -105,7 +118,7 @@ export class MCPExecutionTrackerService {
       await this.updateExecutionRecord(executionId, {
         status: 'success',
         response_data: result,
-        execution_time_ms: executionTime
+        execution_time_ms: executionTime,
       });
 
       return {
@@ -114,18 +127,18 @@ export class MCPExecutionTrackerService {
         executionId,
         feedbackToken,
         executionTime,
-        retryCount
+        retryCount,
       };
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
 
       // Update execution record with error
       await this.updateExecutionRecord(executionId, {
         status: 'error',
         error_message: errorMessage,
-        execution_time_ms: executionTime
+        execution_time_ms: executionTime,
       });
 
       // Log detailed failure information
@@ -135,7 +148,7 @@ export class MCPExecutionTrackerService {
         errorDetails: this.serializeError(error),
         retryAttempt: retryCount + 1,
         sqlAttempted: this.extractSQLFromError(error),
-        contextBeforeFailure: context
+        contextBeforeFailure: context,
       });
 
       return {
@@ -144,7 +157,7 @@ export class MCPExecutionTrackerService {
         executionId,
         feedbackToken,
         executionTime,
-        retryCount
+        retryCount,
       };
     }
   }
@@ -156,15 +169,18 @@ export class MCPExecutionTrackerService {
     context: MCPExecutionContext,
     executionFunction: () => Promise<T>,
     maxRetries: number = 3,
-    retryDelay: number = 1000
+    retryDelay: number = 1000,
   ): Promise<MCPExecutionResult> {
     let lastError: any;
-    
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const result = await this.executeWithTracking(
-          { ...context, requestData: { ...context.requestData, retry_attempt: attempt } },
-          executionFunction
+          {
+            ...context,
+            requestData: { ...context.requestData, retry_attempt: attempt },
+          },
+          executionFunction,
         );
 
         // Update retry count in the result
@@ -180,7 +196,6 @@ export class MCPExecutionTrackerService {
         if (attempt < maxRetries) {
           await this.delay(retryDelay * Math.pow(2, attempt)); // Exponential backoff
         }
-
       } catch (error) {
         lastError = error;
         if (attempt < maxRetries) {
@@ -192,11 +207,14 @@ export class MCPExecutionTrackerService {
     // All retries failed, return the last error
     return {
       success: false,
-      error: lastError instanceof Error ? lastError.message : lastError || 'Max retries exceeded',
+      error:
+        lastError instanceof Error
+          ? lastError.message
+          : lastError || 'Max retries exceeded',
       executionId: uuidv4(), // Generate ID for failed execution
       feedbackToken: uuidv4(),
       executionTime: 0,
-      retryCount: maxRetries
+      retryCount: maxRetries,
     };
   }
 
@@ -207,7 +225,7 @@ export class MCPExecutionTrackerService {
     executionId: string,
     feedbackToken: string,
     context: MCPExecutionContext,
-    status: string
+    status: string,
   ): Promise<void> {
     const { error } = await this.getSupabaseClient()
       .from('mcp_executions')
@@ -227,7 +245,7 @@ export class MCPExecutionTrackerService {
         error_message: null,
         feedback_token: feedbackToken,
         retry_count: 0,
-        context_used: context.contextUsed || false
+        context_used: context.contextUsed || false,
       });
 
     if (error) {
@@ -247,13 +265,13 @@ export class MCPExecutionTrackerService {
       execution_time_ms?: number;
       error_message?: string;
       retry_count?: number;
-    }
+    },
   ): Promise<void> {
     const { error } = await this.getSupabaseClient()
       .from('mcp_executions')
       .update({
         ...updates,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', executionId);
 
@@ -266,7 +284,10 @@ export class MCPExecutionTrackerService {
   /**
    * Log detailed failure information
    */
-  private async logFailure(executionId: string, failure: MCPFailureDetails): Promise<void> {
+  private async logFailure(
+    executionId: string,
+    failure: MCPFailureDetails,
+  ): Promise<void> {
     const { error } = await this.getSupabaseClient()
       .from('mcp_failures')
       .insert({
@@ -277,7 +298,7 @@ export class MCPExecutionTrackerService {
         retry_attempt: failure.retryAttempt,
         sql_attempted: failure.sqlAttempted || null,
         context_before_failure: failure.contextBeforeFailure || {},
-        resolved: false
+        resolved: false,
       });
 
     if (error) {
@@ -288,7 +309,10 @@ export class MCPExecutionTrackerService {
   /**
    * Get execution statistics for a user
    */
-  async getExecutionStats(userId: string, days: number = 30): Promise<{
+  async getExecutionStats(
+    userId: string,
+    days: number = 30,
+  ): Promise<{
     totalExecutions: number;
     successRate: number;
     avgExecutionTime: number;
@@ -308,28 +332,38 @@ export class MCPExecutionTrackerService {
     }
 
     const totalExecutions = executions.length;
-    const successfulExecutions = executions.filter((e: any) => e.status === 'success').length;
-    const successRate = totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
-    const avgExecutionTime = totalExecutions > 0 
-      ? executions.reduce((sum: number, e: any) => sum + (e.execution_time_ms || 0), 0) / totalExecutions 
-      : 0;
+    const successfulExecutions = executions.filter(
+      (e: any) => e.status === 'success',
+    ).length;
+    const successRate =
+      totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
+    const avgExecutionTime =
+      totalExecutions > 0
+        ? executions.reduce(
+            (sum: number, e: any) => sum + (e.execution_time_ms || 0),
+            0,
+          ) / totalExecutions
+        : 0;
 
     // Calculate top tools
-    const toolStats = executions.reduce((acc: any, exec: any) => {
-      const key = exec.tool_name;
-      if (!acc[key]) {
-        acc[key] = { total: 0, successful: 0 };
-      }
-      acc[key].total++;
-      if (exec.status === 'success') acc[key].successful++;
-      return acc;
-    }, {} as Record<string, { total: number; successful: number }>);
+    const toolStats = executions.reduce(
+      (acc: any, exec: any) => {
+        const key = exec.tool_name;
+        if (!acc[key]) {
+          acc[key] = { total: 0, successful: 0 };
+        }
+        acc[key].total++;
+        if (exec.status === 'success') acc[key].successful++;
+        return acc;
+      },
+      {} as Record<string, { total: number; successful: number }>,
+    );
 
     const topTools = Object.entries(toolStats)
       .map(([tool_name, stats]) => ({
         tool_name,
         count: (stats as any).total,
-        success_rate: ((stats as any).successful / (stats as any).total) * 100
+        success_rate: ((stats as any).successful / (stats as any).total) * 100,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
@@ -338,7 +372,7 @@ export class MCPExecutionTrackerService {
       totalExecutions,
       successRate,
       avgExecutionTime,
-      topTools
+      topTools,
     };
   }
 
@@ -353,15 +387,16 @@ export class MCPExecutionTrackerService {
       ratingScore?: number;
       comment?: string;
       helpfulTags?: string[];
-    }
+    },
   ): Promise<void> {
     // First, get the execution ID from the feedback token
-    const { data: execution, error: executionError } = await this.getSupabaseClient()
-      .from('mcp_executions')
-      .select('id')
-      .eq('feedback_token', feedbackToken)
-      .eq('user_id', userId)
-      .single();
+    const { data: execution, error: executionError } =
+      await this.getSupabaseClient()
+        .from('mcp_executions')
+        .select('id')
+        .eq('feedback_token', feedbackToken)
+        .eq('user_id', userId)
+        .single();
 
     if (executionError || !execution) {
       throw new Error('Invalid feedback token or unauthorized');
@@ -377,7 +412,7 @@ export class MCPExecutionTrackerService {
         rating: feedback.rating || null,
         rating_score: feedback.ratingScore || null,
         comment: feedback.comment || null,
-        helpful_tags: feedback.helpfulTags || []
+        helpful_tags: feedback.helpfulTags || [],
       });
 
     if (error) {
@@ -390,8 +425,10 @@ export class MCPExecutionTrackerService {
     if (error?.message?.includes('syntax')) return 'sql_syntax_error';
     if (error?.message?.includes('permission')) return 'permission_error';
     if (error?.message?.includes('timeout')) return 'timeout_error';
-    if (error?.message?.includes('connection')) return 'database_connection_error';
-    if (error?.message?.includes('LLM') || error?.message?.includes('model')) return 'llm_error';
+    if (error?.message?.includes('connection'))
+      return 'database_connection_error';
+    if (error?.message?.includes('LLM') || error?.message?.includes('model'))
+      return 'llm_error';
     return 'unknown_error';
   }
 
@@ -405,7 +442,7 @@ export class MCPExecutionTrackerService {
       stack: error?.stack,
       name: error?.name,
       cause: error?.cause,
-      ...(error?.details && { details: error.details })
+      ...(error?.details && { details: error.details }),
     };
   }
 
@@ -413,13 +450,13 @@ export class MCPExecutionTrackerService {
     // Try to extract SQL from error message or context
     if (error?.sql) return error.sql;
     if (error?.query) return error.query;
-    
+
     // Pattern match SQL from error messages
     const sqlMatch = error?.message?.match(/SQL:?\s*(.+?)(?:\n|$)/);
     return sqlMatch?.[1];
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

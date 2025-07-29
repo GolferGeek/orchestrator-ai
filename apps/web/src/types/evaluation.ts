@@ -80,6 +80,7 @@ export interface EvaluationWithMessage {
     deliverableMetadata?: any;
     progressMessage?: string;
     workflowStepsCompleted?: string[];
+    userEmail?: string;
   };
   // Optional fields
   providerId?: string;

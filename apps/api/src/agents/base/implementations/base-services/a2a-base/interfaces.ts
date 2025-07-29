@@ -310,33 +310,36 @@ export interface AgentFunctionParams {
   ) => void;
   /** MCP service for database operations (if available) */
   mcpService?: {
-    getSchema: (options?: { table_name?: string; refresh_cache?: boolean }) => Promise<any>;
-    readData: (params: { 
-      table_name: string; 
-      columns?: string[]; 
-      filters?: Record<string, any>; 
-      limit?: number; 
+    getSchema: (options?: {
+      table_name?: string;
+      refresh_cache?: boolean;
+    }) => Promise<any>;
+    readData: (params: {
+      table_name: string;
+      columns?: string[];
+      filters?: Record<string, any>;
+      limit?: number;
       offset?: number;
       order_by?: { column: string; ascending?: boolean };
       format?: 'json' | 'table' | 'csv';
     }) => Promise<any>;
-    executeSQL: (params: { 
-      sql_query: string; 
-      parameters?: any[]; 
-      dry_run?: boolean; 
-      max_rows?: number; 
+    executeSQL: (params: {
+      sql_query: string;
+      parameters?: any[];
+      dry_run?: boolean;
+      max_rows?: number;
       format?: 'detailed' | 'compact' | 'csv' | 'json';
     }) => Promise<any>;
-    generateSQL: (params: { 
-      natural_language_query: string; 
+    generateSQL: (params: {
+      natural_language_query: string;
       query_type?: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'auto-detect';
       model_override?: string;
       include_explanation?: boolean;
       max_rows?: number;
       schema_tables?: string[];
     }) => Promise<any>;
-    queryAndFormat: (params: { 
-      user_prompt: string; 
+    queryAndFormat: (params: {
+      user_prompt: string;
       output_format?: 'table' | 'json' | 'summary' | 'chart-data' | 'report';
       include_explanation?: boolean;
       model_override?: string;

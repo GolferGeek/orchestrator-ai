@@ -150,7 +150,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         hasTaskStatusService: !!this.taskStatusService,
         hasTasksService: !!this.tasksService,
         taskId: params.taskId,
-        userId: params.currentUser?.id
+        userId: params.currentUser?.id,
       });
 
       if (params.taskId && params.currentUser?.id) {
@@ -158,10 +158,13 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           this.contextLogger.debug(
             `Reporting task completion for ${params.taskId}`,
           );
-          
+
           // Use the same completion pattern as function agents
-          await this.saveContextTaskResult(params.taskId, params.currentUser.id, result);
-          
+          await this.saveContextTaskResult(
+            params.taskId,
+            params.currentUser.id,
+            result,
+          );
         } catch (error) {
           this.contextLogger.error(
             `Error reporting task completion for ${params.taskId}:`,
@@ -383,9 +386,15 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   /**
    * Save context task result using the same pattern as function agents
    */
-  protected async saveContextTaskResult(taskId: string, userId: string, result: any): Promise<void> {
+  protected async saveContextTaskResult(
+    taskId: string,
+    userId: string,
+    result: any,
+  ): Promise<void> {
     if (!this.tasksService) {
-      this.contextLogger.debug(`Cannot save result - TasksService not available`);
+      this.contextLogger.debug(
+        `Cannot save result - TasksService not available`,
+      );
       return;
     }
 
@@ -404,9 +413,14 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
 
       await this.tasksService.updateTask(taskId, userId, updateData);
 
-      this.contextLogger.debug(`Task ${taskId} marked as completed in database`);
+      this.contextLogger.debug(
+        `Task ${taskId} marked as completed in database`,
+      );
     } catch (error) {
-      this.contextLogger.error(`Error saving task result for ${taskId}:`, error);
+      this.contextLogger.error(
+        `Error saving task result for ${taskId}:`,
+        error,
+      );
       throw error;
     }
   }
