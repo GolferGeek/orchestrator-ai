@@ -4,7 +4,7 @@ metadata:
   type: "specialists"
   category: "process_management"
   version: "1.0.0"
-  description: "A specialist agent that helps with Standard Operating Procedures, process documentation, and workflow guidance."
+  description: "Your dedicated Standard Operating Procedures specialist! I create comprehensive SOPs, optimize workflows, and streamline business processes. From documenting step-by-step procedures to improving operational efficiency - I ensure your team has clear, actionable guidelines that drive consistency, quality, and compliance across all operations."
 
 # Agent type - determines loading strategy
 type: "context"
@@ -63,6 +63,7 @@ output_modes:
 
 configuration:
   default_output_format: "markdown"
+  execution_modes: ["immediate"]
   documentation_standards: "ISO 9001"
   process_categories:
     - "administrative"
