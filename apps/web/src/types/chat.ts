@@ -167,5 +167,5 @@ export interface TaskResponse {
   
   // Legacy fields for V1 compatibility
   task_id?: string;
-  responding_agent_name?: string;
+  respondingAgentName?: string;
 } 

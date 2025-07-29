@@ -574,17 +574,29 @@ onMounted(() => {
   websocketService.onTaskEvent('created', (event) => {
     // Update task counts in store without full refresh - use reactive task count updates instead
     if (event.conversationId) {
-      conversationsStore.updateConversationTaskCounts(event.conversationId, {
-        activeTasks: (conversationsStore.getConversationById(event.conversationId)?.activeTasks || 0) + 1,
-        taskCount: (conversationsStore.getConversationById(event.conversationId)?.taskCount || 0) + 1,
-      });
+      console.log('🔧 Task created event:', event.conversationId, event.taskId);
+      const conversation = conversationsStore.getConversationById(event.conversationId);
+      console.log('🔧 Found conversation for created task:', !!conversation);
+      
+      if (conversation) {
+        conversationsStore.updateConversationTaskCounts(event.conversationId, {
+          activeTasks: conversation.activeTasks + 1,
+          taskCount: conversation.taskCount + 1,
+        });
+      } else {
+        console.warn('🔧 Conversation not found in store for created task:', event.conversationId);
+      }
     }
   });
   
   websocketService.onTaskEvent('completed', (event) => {
     if (event.conversationId) {
+      console.log('🎯 Task completed event:', event.conversationId, event.taskId);
       const conversation = conversationsStore.getConversationById(event.conversationId);
+      console.log('🎯 Found conversation for completed task:', !!conversation, conversation?.activeTasks);
+      
       if (conversation) {
+        console.log('🎯 Updating task counts: activeTasks', conversation.activeTasks, '-> ', Math.max(0, conversation.activeTasks - 1));
         conversationsStore.updateConversationTaskCounts(event.conversationId, {
           activeTasks: Math.max(0, conversation.activeTasks - 1),
           completedTasks: conversation.completedTasks + 1,
@@ -593,13 +605,19 @@ onMounted(() => {
         // For long-running tasks, we need to trigger a refresh of the conversation data
         // to get the latest task results. This is a partial refresh that won't reset UI state.
         emit('task-completed', { taskId: event.taskId, conversationId: event.conversationId });
+      } else {
+        console.warn('🎯 Conversation not found in store for completed task:', event.conversationId);
+        console.log('🎯 Available conversations:', conversationsStore.conversations.map(c => ({ id: c.id, agentName: c.agentName })));
       }
     }
   });
   
   websocketService.onTaskEvent('failed', (event) => {
     if (event.conversationId) {
+      console.log('❌ Task failed event:', event.conversationId, event.taskId);
       const conversation = conversationsStore.getConversationById(event.conversationId);
+      console.log('❌ Found conversation for failed task:', !!conversation);
+      
       if (conversation) {
         conversationsStore.updateConversationTaskCounts(event.conversationId, {
           activeTasks: Math.max(0, conversation.activeTasks - 1),
@@ -608,6 +626,8 @@ onMounted(() => {
         
         // For failed tasks, also notify parent components
         emit('task-failed', { taskId: event.taskId, conversationId: event.conversationId });
+      } else {
+        console.warn('❌ Conversation not found in store for failed task:', event.conversationId);
       }
     }
   });

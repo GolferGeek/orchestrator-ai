@@ -84,8 +84,8 @@ export class TaskStatusService {
     // Store in hot cache
     this.activeTaskStatuses.set(taskId, taskStatus);
 
-    // Persist to database for long-running and swarm tasks
-    if (taskType === 'long_running' || taskType === 'swarm') {
+    // Persist to database for all task types (including ephemeral for evaluations)
+    if (taskType === 'long_running' || taskType === 'swarm' || taskType === 'ephemeral') {
       try {
         const { error } = await this.supabaseService
           .getAnonClient()
@@ -151,10 +151,11 @@ export class TaskStatusService {
     // Update hot cache
     this.activeTaskStatuses.set(taskId, newStatus);
 
-    // Persist to database for non-ephemeral tasks
+    // Persist to database for all task types (including ephemeral for evaluations)
     if (
       currentStatus.taskType === 'long_running' ||
-      currentStatus.taskType === 'swarm'
+      currentStatus.taskType === 'swarm' ||
+      currentStatus.taskType === 'ephemeral'
     ) {
       try {
         const updateData: any = {

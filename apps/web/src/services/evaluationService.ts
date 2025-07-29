@@ -1,4 +1,4 @@
-import type { EvaluationRequest, EvaluationResponse } from '../types/evaluation';
+import type { EvaluationRequest, EvaluationResponse, AllEvaluationsFilters, AllEvaluationsResponse } from '../types/evaluation';
 
 class EvaluationService {
   /**
@@ -111,6 +111,40 @@ class EvaluationService {
 
       if (!response.ok) {
         throw new Error(`Failed to get evaluation analytics: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get all evaluations for the current user
+   */
+  async getAllUserEvaluations(filters?: AllEvaluationsFilters): Promise<AllEvaluationsResponse> {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const queryParams = new URLSearchParams();
+      
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, value.toString());
+          }
+        });
+      }
+      
+      const response = await fetch(`${this.getBaseUrl()}/evaluation/user/all?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get user evaluations: ${response.statusText}`);
       }
 
       return await response.json();

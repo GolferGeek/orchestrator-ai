@@ -7,7 +7,7 @@ import {
   ModelResponseDto,
 } from '../dto/llm-evaluation.dto';
 import { ProviderStatus, ModelStatus } from '../types/llm-evaluation';
-import { mapProviderFromDb, mapModelFromDb } from '../utils/case-converter';
+import { mapLLMProviderFromDb, mapLLMModelFromDb } from '../utils/case-converter';
 
 @Injectable()
 export class ProvidersService {
@@ -17,7 +17,7 @@ export class ProvidersService {
     // Try service client first to bypass RLS
     const client = this.supabaseService.getServiceClient();
 
-    let query = client.from('providers').select('*').order('name');
+    let query = client.from('llm_providers').select('*').order('name');
 
     if (status) {
       query = query.eq('status', status);
@@ -32,14 +32,14 @@ export class ProvidersService {
       );
     }
 
-    return (data || []).map(mapProviderFromDb);
+    return (data || []).map(mapLLMProviderFromDb);
   }
 
   async findOne(id: string): Promise<ProviderResponseDto | null> {
     const client = this.supabaseService.getServiceClient();
 
     const { data, error } = await client
-      .from('providers')
+      .from('llm_providers')
       .select('*')
       .eq('id', id)
       .single();
@@ -54,7 +54,7 @@ export class ProvidersService {
       );
     }
 
-    return data ? mapProviderFromDb(data) : null;
+    return data ? mapLLMProviderFromDb(data) : null;
   }
 
   async findModelsByProvider(
@@ -64,18 +64,19 @@ export class ProvidersService {
     const client = this.supabaseService.getAnonClient();
 
     let query = client
-      .from('models')
+      .from('llm_models')
       .select(
         `
         *,
-        provider:providers(*)
+        provider:llm_providers(*)
       `,
       )
       .eq('provider_id', providerId)
-      .order('name');
+      .order('display_name');
 
     if (status) {
-      query = query.eq('status', status);
+      const isActive = status === 'active';
+      query = query.eq('is_active', isActive);
     }
 
     const { data, error } = await query;
@@ -87,7 +88,7 @@ export class ProvidersService {
       );
     }
 
-    return (data || []).map(mapModelFromDb);
+    return (data || []).map(mapLLMModelFromDb);
   }
 
   async create(
@@ -97,7 +98,7 @@ export class ProvidersService {
 
     // Check if provider name already exists
     const { data: existingProvider } = await client
-      .from('providers')
+      .from('llm_providers')
       .select('id')
       .eq('name', createProviderDto.name)
       .single();
@@ -117,7 +118,7 @@ export class ProvidersService {
     };
 
     const { data, error } = await client
-      .from('providers')
+      .from('llm_providers')
       .insert(dbPayload)
       .select()
       .single();
@@ -129,7 +130,7 @@ export class ProvidersService {
       );
     }
 
-    return mapProviderFromDb(data);
+    return mapLLMProviderFromDb(data);
   }
 
   async update(
@@ -147,7 +148,7 @@ export class ProvidersService {
     // If updating name, check for conflicts
     if (updateProviderDto.name && updateProviderDto.name !== existing.name) {
       const { data: existingProvider } = await client
-        .from('providers')
+        .from('llm_providers')
         .select('id')
         .eq('name', updateProviderDto.name)
         .neq('id', id)
@@ -174,7 +175,7 @@ export class ProvidersService {
     dbPayload.updated_at = new Date().toISOString();
 
     const { data, error } = await client
-      .from('providers')
+      .from('llm_providers')
       .update(dbPayload)
       .eq('id', id)
       .select()
@@ -187,7 +188,7 @@ export class ProvidersService {
       );
     }
 
-    return mapProviderFromDb(data);
+    return mapLLMProviderFromDb(data);
   }
 
   async delete(id: string): Promise<boolean> {
@@ -201,7 +202,7 @@ export class ProvidersService {
 
     // Check if provider has any models
     const { data: models } = await client
-      .from('models')
+      .from('llm_models')
       .select('id')
       .eq('provider_id', id)
       .limit(1);
@@ -213,7 +214,7 @@ export class ProvidersService {
       );
     }
 
-    const { error } = await client.from('providers').delete().eq('id', id);
+    const { error } = await client.from('llm_providers').delete().eq('id', id);
 
     if (error) {
       throw new HttpException(
@@ -230,7 +231,7 @@ export class ProvidersService {
     const client = this.supabaseService.getAnonClient();
 
     const { data, error } = await client
-      .from('providers')
+      .from('llm_providers')
       .select('*')
       .eq('name', name)
       .single();
@@ -245,7 +246,7 @@ export class ProvidersService {
       );
     }
 
-    return data ? mapProviderFromDb(data) : null;
+    return data ? mapLLMProviderFromDb(data) : null;
   }
 
   // Helper method to get all active providers with their models
@@ -255,15 +256,15 @@ export class ProvidersService {
     const client = this.supabaseService.getAnonClient();
 
     const { data, error } = await client
-      .from('providers')
+      .from('llm_providers')
       .select(
         `
         *,
-        models:models(*)
+        models:llm_models(*)
       `,
       )
       .eq('status', 'active')
-      .eq('models.status', 'active')
+      .eq('models.is_active', true)
       .order('name');
 
     if (error) {
@@ -274,8 +275,8 @@ export class ProvidersService {
     }
 
     return (data || []).map((provider: any) => ({
-      ...mapProviderFromDb(provider),
-      models: (provider.models || []).map(mapModelFromDb),
+      ...mapLLMProviderFromDb(provider),
+      models: (provider.models || []).map(mapLLMModelFromDb),
     }));
   }
 }

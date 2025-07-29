@@ -123,6 +123,48 @@ export function mapModelToDb(model: Partial<Model>): any {
   };
 }
 
+// New mapping function specifically for llm_models table structure
+export function mapLLMModelFromDb(dbModel: any): Model {
+  // Extract pricing info from JSON
+  const pricingInfo = dbModel.pricing_info_json || {};
+  const inputCostPer1k = (pricingInfo.input_cost_per_token || 0) * 1000;
+  const outputCostPer1k = (pricingInfo.output_cost_per_token || 0) * 1000;
+
+  return {
+    id: dbModel.id,
+    providerId: dbModel.provider_id,
+    name: dbModel.display_name || dbModel.model_name, // Use display_name as the friendly name
+    modelId: dbModel.model_name, // Use model_name as the technical ID
+    pricingInputPer1k: inputCostPer1k,
+    pricingOutputPer1k: outputCostPer1k,
+    supportsThinking: dbModel.capabilities?.includes('reasoning') || false,
+    maxTokens: dbModel.max_output_tokens,
+    contextWindow: dbModel.context_window,
+    strengths: [], // Not available in llm_models structure
+    weaknesses: [], // Not available in llm_models structure  
+    useCases: [], // Not available in llm_models structure
+    status: dbModel.is_active ? 'active' : 'inactive',
+    createdAt: dbModel.created_at,
+    updatedAt: dbModel.updated_at,
+    provider: dbModel.provider
+      ? mapLLMProviderFromDb(dbModel.provider)
+      : undefined,
+  };
+}
+
+// New mapping function specifically for llm_providers table structure
+export function mapLLMProviderFromDb(dbProvider: any): Provider {
+  return {
+    id: dbProvider.id,
+    name: dbProvider.provider_name || dbProvider.name || dbProvider.display_name,
+    apiBaseUrl: dbProvider.api_base_url || dbProvider.base_url,
+    authType: dbProvider.auth_type || 'api_key',
+    status: dbProvider.is_active ? 'active' : 'inactive',
+    createdAt: dbProvider.created_at,
+    updatedAt: dbProvider.updated_at,
+  };
+}
+
 export function mapCIDAFMCommandFromDb(dbCommand: any): CIDAFMCommand {
   return {
     id: dbCommand.id,

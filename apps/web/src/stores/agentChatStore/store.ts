@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
+import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { formatAgentName } from '@/utils/caseConverter';
 import tasksService from '@/services/tasksService';
@@ -22,6 +23,9 @@ import { deliverable } from './deliverable';
 
 // Import types
 import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent } from './types';
+
+// Pre-generated task ID for WebSocket mode
+let preGeneratedTaskId: string | undefined;
 
 interface AgentChatState {
   conversations: AgentConversation[];
@@ -159,6 +163,22 @@ export const useAgentChatStore = defineStore('agentChat', {
         this.conversations.push(newConversation);
         this.activeConversationId = backendConversationId;
         
+        // Ensure the conversation is also in the navigation tree
+        const conversationsStore = useAgentConversationsStore();
+        conversationsStore.addExistingConversation({
+          id: backendConversationId,
+          agentName: backendConversation.agentName,
+          agentType: backendConversation.agentType,
+          startedAt: new Date(backendConversation.startedAt),
+          lastActiveAt: new Date(backendConversation.lastActiveAt),
+          createdAt: new Date(backendConversation.createdAt),
+          updatedAt: new Date(backendConversation.updatedAt),
+          taskCount: backendConversation.taskCount || 0,
+          completedTasks: backendConversation.completedTasks || 0,
+          failedTasks: backendConversation.failedTasks || 0,
+          activeTasks: backendConversation.activeTasks || 0,
+        });
+        
         // Restore WebSocket subscriptions for active tasks
         await this.restoreActiveTaskSubscriptions(newConversation);
         
@@ -198,6 +218,24 @@ export const useAgentChatStore = defineStore('agentChat', {
           activeConversation.id = conversationId;
           this.activeConversationId = conversationId;
           console.log('✅ Backend conversation created:', backendId);
+          
+          // Update the conversations navigation store so the new conversation appears in the tree
+          // Do this BEFORE creating tasks to avoid race conditions with WebSocket events
+          const conversationsStore = useAgentConversationsStore();
+          conversationsStore.addExistingConversation({
+            id: conversationId,
+            agentName: activeConversation.agent.name,
+            agentType: activeConversation.agent.type,
+            startedAt: new Date(),
+            lastActiveAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            taskCount: 0,
+            completedTasks: 0,
+            failedTasks: 0,
+            activeTasks: 0,
+          });
+          console.log('✅ Conversation added to navigation tree BEFORE task creation');
         } else {
           console.log('ℹ️ Using existing conversation ID:', conversationId);
         }
@@ -216,7 +254,6 @@ export const useAgentChatStore = defineStore('agentChat', {
         const effectiveMode = taskExecution.determineExecutionMode(activeConversation, userPreferences.preferences);
         
         // For WebSocket mode, generate task ID early and set up subscriptions
-        let preGeneratedTaskId: string | undefined;
         if (effectiveMode === 'websocket') {
           preGeneratedTaskId = generateUUID();
           console.log(`🔗 Pre-generated task ID for WebSocket mode: ${preGeneratedTaskId}`);

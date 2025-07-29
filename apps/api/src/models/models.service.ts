@@ -8,7 +8,7 @@ import {
   CostEstimateResponseDto,
 } from '../dto/llm-evaluation.dto';
 import { ModelStatus, CostCalculation } from '../types/llm-evaluation';
-import { mapModelFromDb } from '../utils/case-converter';
+import { mapModelFromDb, mapLLMModelFromDb } from '../utils/case-converter';
 
 interface ModelFilters {
   providerId?: string;
@@ -30,33 +30,64 @@ export class ModelsService {
   async findAll(filters: ModelFilters = {}): Promise<ModelResponseDto[]> {
     const client = this.supabaseService.getServiceClient();
 
+    console.log(`[ModelsService] findAll called with filters:`, filters);
+
     let query = client
-      .from('models')
-      .select(filters.includeProvider ? `*, provider:providers(*)` : '*')
-      .order('name');
+      .from('llm_models')
+      .select(filters.includeProvider ? `*, provider:llm_providers(*)` : '*')
+      .order('display_name');
 
     if (filters.providerId) {
       query = query.eq('provider_id', filters.providerId);
     }
 
     if (filters.status) {
-      query = query.eq('status', filters.status);
+      const isActive = filters.status === 'active';
+      query = query.eq('is_active', isActive);
     }
 
     if (filters.supportsThinking !== undefined) {
-      query = query.eq('supports_thinking', filters.supportsThinking);
+      // Filter by capabilities array containing 'reasoning'
+      if (filters.supportsThinking) {
+        query = query.contains('capabilities', ['reasoning']);
+      } else {
+        query = query.not('capabilities', 'cs', ['reasoning']);
+      }
     }
 
+    console.log(`[ModelsService] About to execute query...`);
     const { data, error } = await query;
 
+    console.log(`[ModelsService] Query result:`, { 
+      dataLength: data?.length || 0, 
+      error: error?.message,
+      sampleData: data?.[0] 
+    });
+
     if (error) {
+      console.error(`[ModelsService] Database error:`, error);
       throw new HttpException(
         `Failed to fetch models: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
 
-    return (data || []).map((model: any) => mapModelFromDb(model));
+    console.log(`[ModelsService] About to map models using mapLLMModelFromDb...`);
+    try {
+      const mappedModels = (data || []).map((model: any) => {
+        console.log(`[ModelsService] Mapping model: ${model.display_name}`);
+        return mapLLMModelFromDb(model);
+      });
+      console.log(`[ModelsService] Successfully mapped ${mappedModels.length} models`);
+      return mappedModels;
+    } catch (mappingError) {
+      console.error(`[ModelsService] Mapping error:`, mappingError);
+      const errorMessage = mappingError instanceof Error ? mappingError.message : 'Unknown mapping error';
+      throw new HttpException(
+        `Failed to process models: ${errorMessage}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   async findOne(
@@ -66,8 +97,8 @@ export class ModelsService {
     const client = this.supabaseService.getServiceClient();
 
     const { data, error } = await client
-      .from('models')
-      .select(includeProvider ? `*, provider:providers(*)` : '*')
+      .from('llm_models')
+      .select(includeProvider ? `*, provider:llm_providers(*)` : '*')
       .eq('id', id)
       .single();
 
@@ -81,7 +112,7 @@ export class ModelsService {
       );
     }
 
-    return data ? mapModelFromDb(data) : null;
+    return data ? mapLLMModelFromDb(data) : null;
   }
 
   async findByModelId(
@@ -91,9 +122,9 @@ export class ModelsService {
     const client = this.supabaseService.getServiceClient();
 
     let query = client
-      .from('models')
-      .select(`*, provider:providers(*)`)
-      .eq('model_id', modelId);
+      .from('llm_models')
+      .select(`*, provider:llm_providers(*)`)
+      .eq('model_name', modelId);
 
     if (providerId) {
       query = query.eq('provider_id', providerId);
@@ -111,7 +142,7 @@ export class ModelsService {
       );
     }
 
-    return data;
+    return data ? mapLLMModelFromDb(data) : null;
   }
 
   async create(createModelDto: CreateModelDto): Promise<ModelResponseDto> {
@@ -119,7 +150,7 @@ export class ModelsService {
 
     // Check if provider exists
     const { data: provider } = await client
-      .from('providers')
+      .from('llm_providers')
       .select('id')
       .eq('id', createModelDto.providerId)
       .single();
@@ -130,10 +161,10 @@ export class ModelsService {
 
     // Check if model_id already exists for this provider
     const { data: existingModel } = await client
-      .from('models')
+      .from('llm_models')
       .select('id')
       .eq('provider_id', createModelDto.providerId)
-      .eq('model_id', createModelDto.modelId)
+      .eq('model_name', createModelDto.modelId)
       .single();
 
     if (existingModel) {
@@ -144,20 +175,19 @@ export class ModelsService {
     }
 
     const { data, error } = await client
-      .from('models')
+      .from('llm_models')
       .insert({
         provider_id: createModelDto.providerId,
-        name: createModelDto.name,
-        model_id: createModelDto.modelId,
-        pricing_input_per_1k: createModelDto.pricingInputPer1k,
-        pricing_output_per_1k: createModelDto.pricingOutputPer1k,
-        supports_thinking: createModelDto.supportsThinking || false,
-        max_tokens: createModelDto.maxTokens,
+        display_name: createModelDto.name,
+        model_name: createModelDto.modelId,
+        pricing_info_json: {
+          input_cost_per_token: (createModelDto.pricingInputPer1k || 0) / 1000,
+          output_cost_per_token: (createModelDto.pricingOutputPer1k || 0) / 1000
+        },
+        capabilities: createModelDto.supportsThinking ? ['reasoning'] : [],
+        max_output_tokens: createModelDto.maxTokens,
         context_window: createModelDto.contextWindow,
-        strengths: createModelDto.strengths,
-        weaknesses: createModelDto.weaknesses,
-        use_cases: createModelDto.useCases,
-        status: createModelDto.status || 'active',
+        is_active: createModelDto.status !== 'inactive',
       })
       .select()
       .single();
@@ -169,7 +199,7 @@ export class ModelsService {
       );
     }
 
-    return data;
+    return mapLLMModelFromDb(data);
   }
 
   async update(
@@ -187,10 +217,10 @@ export class ModelsService {
     // If updating model_id, check for conflicts
     if (updateModelDto.modelId && updateModelDto.modelId !== existing.modelId) {
       const { data: existingModel } = await client
-        .from('models')
+        .from('llm_models')
         .select('id')
         .eq('provider_id', existing.providerId)
-        .eq('model_id', updateModelDto.modelId)
+        .eq('model_name', updateModelDto.modelId)
         .neq('id', id)
         .single();
 
@@ -203,7 +233,7 @@ export class ModelsService {
     }
 
     const { data, error } = await client
-      .from('models')
+      .from('llm_models')
       .update({
         ...updateModelDto,
         updated_at: new Date().toISOString(),
@@ -219,7 +249,7 @@ export class ModelsService {
       );
     }
 
-    return data;
+    return mapLLMModelFromDb(data);
   }
 
   async delete(id: string): Promise<boolean> {
@@ -245,7 +275,7 @@ export class ModelsService {
       );
     }
 
-    const { error } = await client.from('models').delete().eq('id', id);
+    const { error } = await client.from('llm_models').delete().eq('id', id);
 
     if (error) {
       throw new HttpException(
@@ -308,7 +338,7 @@ export class ModelsService {
     const client = this.supabaseService.getServiceClient();
 
     let query = client
-      .from('models')
+      .from('llm_models')
       .select(`*, provider:providers(*)`)
       .eq('status', 'active')
       .contains('use_cases', [filters.useCase])
@@ -359,11 +389,11 @@ export class ModelsService {
     const client = this.supabaseService.getServiceClient();
 
     const { data, error } = await client
-      .from('models')
-      .select(`*, provider:providers(*)`)
-      .eq('provider.name', providerName)
-      .eq('status', 'active')
-      .order('name');
+      .from('llm_models')
+      .select(`*, provider:llm_providers(*)`)
+      .eq('provider.provider_name', providerName)
+      .eq('is_active', true)
+      .order('display_name');
 
     if (error) {
       throw new HttpException(
@@ -372,6 +402,6 @@ export class ModelsService {
       );
     }
 
-    return data || [];
+    return (data || []).map(mapLLMModelFromDb);
   }
 }

@@ -300,8 +300,8 @@ class TasksService {
     filters?: { minRating?: number; hasNotes?: boolean }
   ): Promise<Task[]> {
     const queryParams = new URLSearchParams();
-    if (filters?.minRating) queryParams.append('min_rating', filters.minRating.toString());
-    if (filters?.hasNotes) queryParams.append('has_notes', filters.hasNotes.toString());
+      if (filters?.minRating) queryParams.append('minRating', filters.minRating.toString());
+  if (filters?.hasNotes) queryParams.append('hasNotes', filters.hasNotes.toString());
     
     const url = queryParams.toString() 
       ? `/evaluation/conversations/${conversationId}/tasks?${queryParams.toString()}`

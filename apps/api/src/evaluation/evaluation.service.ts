@@ -5,6 +5,7 @@ import {
   EnhancedMessageResponseDto,
 } from '../dto/llm-evaluation.dto';
 import { UserRatingScale } from '../types/llm-evaluation';
+import { mapLLMProviderFromDb, mapLLMModelFromDb } from '../utils/case-converter';
 
 interface EvaluationFilters {
   minRating?: number;
@@ -28,6 +29,33 @@ interface FeedbackExportOptions {
   startDate?: string;
   endDate?: string;
   includeContent?: boolean;
+}
+
+interface AllUserEvaluationsFilters {
+  page: number;
+  limit: number;
+  minRating?: number;
+  hasNotes?: boolean;
+  agentName?: string;
+}
+
+/**
+ * Format agent names for display by converting from database format to human-readable format
+ */
+function formatAgentNameForDisplay(agentName: string): string {
+  if (!agentName) return 'AI Assistant';
+  
+  // Handle already formatted names
+  if (agentName.includes(' ') && agentName !== 'Process Agent') {
+    return agentName;
+  }
+  
+  // Convert snake_case or lowercase names to Title Case
+  return agentName
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (l: string) => l.toUpperCase())
+    .replace(/\s+Agent$/, '') // Remove trailing "Agent" if present
+    .trim() + ' Agent';
 }
 
 @Injectable()
@@ -728,5 +756,337 @@ export class EvaluationService {
     }
 
     return tasks || [];
+  }
+
+  async getAllUserEvaluations(
+    userId: string,
+    filters: AllUserEvaluationsFilters,
+  ): Promise<{
+    evaluations: EnhancedMessageResponseDto[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }> {
+    console.log(`[EvaluationService] getAllUserEvaluations called for user: ${userId}, filters:`, filters);
+    
+    const client = this.supabaseService.getAnonClient();
+
+    // Query only tasks for evaluations (since that's where the data actually is)
+    const { data: tasks, error: tasksError } = await client
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .not('evaluation', 'is', null);
+
+    console.log(`[EvaluationService] Tasks result:`, tasks?.length || 0, 'items, error:', tasksError);
+
+    if (tasksError) {
+      throw new HttpException(
+        `Failed to fetch task evaluations: ${tasksError.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    // Filter out tasks that don't have actual evaluation ratings
+    const tasksWithEvaluations = (tasks || []).filter((task) => 
+      task.evaluation && 
+      (task.evaluation.user_rating || task.evaluation.speed_rating || task.evaluation.accuracy_rating)
+    );
+
+    console.log(`[EvaluationService] Tasks with actual evaluations: ${tasksWithEvaluations.length}`);
+
+    // Get unique provider and model IDs from tasks to fetch details
+    const providerIds = new Set<string>();
+    const modelIds = new Set<string>();
+    
+    tasksWithEvaluations.forEach(task => {
+      // Provider and model IDs are nested in originalLLMSelection
+      const providerId = task.llm_metadata?.originalLLMSelection?.providerId;
+      const modelId = task.llm_metadata?.originalLLMSelection?.modelId;
+      
+      console.log(`[EvaluationService] Extracting from task ${task.id}:`, {
+        hasLLMMetadata: !!task.llm_metadata,
+        hasOriginalSelection: !!task.llm_metadata?.originalLLMSelection,
+        providerId,
+        modelId
+      });
+      
+      if (providerId) {
+        providerIds.add(providerId);
+      }
+      if (modelId) {
+        modelIds.add(modelId);
+      }
+    });
+
+    // Fetch provider and model details
+    const providersMap = new Map();
+    const modelsMap = new Map();
+
+    console.log(`[EvaluationService] Provider IDs collected:`, Array.from(providerIds));
+    console.log(`[EvaluationService] Model IDs collected:`, Array.from(modelIds));
+    console.log(`[EvaluationService] Provider IDs size:`, providerIds.size);
+    console.log(`[EvaluationService] Model IDs size:`, modelIds.size);
+
+    // Fetch user email
+    console.log(`[EvaluationService] Fetching user email for userId: ${userId}`);
+    const { data: userProfile, error: userError } = await client
+      .from('profiles')
+      .select('email')
+      .eq('id', userId)
+      .single();
+    
+    console.log(`[EvaluationService] User profile result:`, userProfile, 'Error:', userError);
+    const userEmail = userProfile?.email || 'Unknown';
+
+    // Test direct query with known IDs
+    console.log(`[EvaluationService] Testing direct llm_provider query...`);
+    const { data: testProvider, error: testProviderError } = await client
+      .from('llm_providers')
+      .select('*')
+      .eq('id', '11111111-1111-1111-1111-111111111111');
+    console.log(`[EvaluationService] Direct llm_provider query result:`, testProvider, 'Error:', testProviderError);
+
+    console.log(`[EvaluationService] Testing direct llm_model query...`);
+    const { data: testModel, error: testModelError } = await client
+      .from('llm_models')
+      .select('*')
+      .eq('id', 'bb7bd9b6-f120-4847-807e-b0455bad6f31');
+    console.log(`[EvaluationService] Direct llm_model query result:`, testModel, 'Error:', testModelError);
+
+    if (providerIds.size > 0) {
+      console.log(`[EvaluationService] About to query llm_providers table...`);
+      const { data: providers, error: providerError } = await client
+        .from('llm_providers')
+        .select('*')
+        .in('id', Array.from(providerIds));
+      
+      console.log(`[EvaluationService] Providers query result:`, providers, 'Error:', providerError);
+      
+      if (providers) {
+        providers.forEach(provider => {
+          console.log(`[EvaluationService] Mapping llm_provider:`, provider.id, '->', provider.name || provider.provider_name);
+          console.log(`[EvaluationService] Full provider object:`, provider);
+          // Use the mapLLMProviderFromDb utility function for consistent mapping
+          const mappedProvider = mapLLMProviderFromDb(provider);
+          providersMap.set(provider.id, mappedProvider);
+        });
+      }
+    }
+
+    if (modelIds.size > 0) {
+      console.log(`[EvaluationService] About to query llm_models table...`);
+      const { data: models, error: modelError } = await client
+        .from('llm_models')
+        .select('*')
+        .in('id', Array.from(modelIds));
+      
+      console.log(`[EvaluationService] Models query result:`, models, 'Error:', modelError);
+      
+      if (models) {
+        models.forEach(model => {
+          console.log(`[EvaluationService] Mapping llm_model:`, model.id, '->', model.display_name || model.model_name || model.name);
+          console.log(`[EvaluationService] Full model object:`, model);
+          // Use the mapLLMModelFromDb utility function for consistent mapping
+          const mappedModel = mapLLMModelFromDb(model);
+          modelsMap.set(model.id, mappedModel);
+        });
+      }
+    }
+
+    // Transform task evaluations to the expected DTO format
+    const allEvaluations: EnhancedMessageResponseDto[] = tasksWithEvaluations.map((task) => {
+      // Debug: log all available task fields and data
+      console.log(`[EvaluationService] Task ${task.id} fields:`, Object.keys(task));
+      console.log(`[EvaluationService] Task actual data:`, {
+        method: task.method,
+        prompt: task.prompt ? task.prompt.substring(0, 100) + '...' : undefined,
+        response: task.response ? task.response.substring(0, 100) + '...' : undefined,
+        // Check alternative field names for response
+        result: task.result ? task.result.substring(0, 100) + '...' : undefined,
+        output: task.output ? task.output.substring(0, 100) + '...' : undefined,
+        answer: task.answer ? task.answer.substring(0, 100) + '...' : undefined,
+        response_metadata: task.response_metadata,
+        metadata: task.metadata,
+        llm_metadata: task.llm_metadata,
+        // Check if response is nested in llm_metadata
+        llm_response: task.llm_metadata?.response ? task.llm_metadata.response.substring(0, 100) + '...' : undefined,
+        llm_result: task.llm_metadata?.result ? task.llm_metadata.result.substring(0, 100) + '...' : undefined,
+        // Check deliverable fields
+        deliverable_type: task.deliverable_type,
+        deliverable_metadata: task.deliverable_metadata,
+        // Check status and completion
+        status: task.status,
+        completed_at: task.completed_at,
+        progress: task.progress,
+        // Check evaluation object for response data
+        evaluation_data: task.evaluation
+      });
+      
+      // Additional debug for missing response data
+      console.log(`[EvaluationService] Task ${task.id} response data check:`, {
+        hasPrompt: !!task.prompt,
+        hasResponse: !!task.response,
+        hasResponseMetadata: !!task.response_metadata,
+        responseMetadataKeys: task.response_metadata ? Object.keys(task.response_metadata) : [],
+        hasWorkflowSteps: !!task.response_metadata?.workflow_steps_completed,
+        workflowStepsCount: task.response_metadata?.workflow_steps_completed?.length || 0
+      });
+
+      // Create more meaningful content from task details
+      let taskContent = 'Task';
+      if (task.prompt) {
+        // Use the prompt as content, truncated for display
+        taskContent = task.prompt;
+      } else if (task.response) {
+        // Use the response as content if no prompt
+        taskContent = task.response;
+      } else if (task.method) {
+        // Use the method name as a fallback
+        taskContent = `${task.method} Task`;
+      }
+      
+      // Create more meaningful agent name from metadata
+      let agentName = 'Agent';
+      if (task.response_metadata?.agent_name) {
+        agentName = task.response_metadata.agent_name;
+      } else if (task.response_metadata?.agentName) {
+        // Check for camelCase version (used by function agents)
+        agentName = task.response_metadata.agentName;
+      } else if (task.metadata?.agent_name) {
+        agentName = task.metadata.agent_name;
+      } else if (task.metadata?.agentName) {
+        // Check for camelCase version
+        agentName = task.metadata.agentName;
+      } else if (task.llm_metadata?.agent_name) {
+        agentName = task.llm_metadata.agent_name;
+      } else if (task.llm_metadata?.agentName) {
+        // Check for camelCase version
+        agentName = task.llm_metadata.agentName;
+      } else if (task.method && task.method !== 'process') {
+        // Only use method as agent name if it's not the generic 'process' method
+        agentName = task.method.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) + ' Agent';
+      } else {
+        // Last resort: use a generic name instead of "Process Agent"
+        agentName = 'AI Assistant';
+      }
+
+      // Format the agent name for consistent display
+      const displayAgentName = formatAgentNameForDisplay(agentName);
+
+      console.log(`[EvaluationService] Task ${task.id}: "${taskContent}" by ${displayAgentName}`);
+
+      // Get provider and model from LLM metadata (nested in originalLLMSelection)
+      const providerId = task.llm_metadata?.originalLLMSelection?.providerId;
+      const modelId = task.llm_metadata?.originalLLMSelection?.modelId;
+      const provider = providerId ? providersMap.get(providerId) : undefined;
+      const model = modelId ? modelsMap.get(modelId) : undefined;
+
+      console.log(`[EvaluationService] Task ${task.id} - Provider ID: ${providerId}, Model ID: ${modelId}`);
+      console.log(`[EvaluationService] Task ${task.id} - Provider obj:`, provider ? (provider.name || provider.display_name) : 'not found');
+      console.log(`[EvaluationService] Task ${task.id} - Model obj:`, model ? (model.display_name || model.model_name) : 'not found');
+      console.log(`[EvaluationService] Task ${task.id} - Model lookup:`, { modelId, foundInMap: !!model, modelKeys: model ? Object.keys(model) : [] });
+
+      return {
+        id: task.id,
+        content: taskContent,
+        role: 'assistant' as const,
+        sessionId: task.agent_conversation_id || task.session_id,
+        userId: task.user_id,
+        timestamp: task.evaluation?.evaluation_timestamp || task.created_at || new Date().toISOString(),
+        order: 0,
+        // Store agent name in metadata for frontend (since it's not in DTO)
+        metadata: {
+          agentName: displayAgentName,
+          taskType: task.method,
+          status: task.status,
+          taskPrompt: task.prompt,
+          taskResponse: task.response,
+          responseMetadata: task.response_metadata,
+          llmMetadata: task.llm_metadata,
+          taskMetadata: task.metadata,
+          deliverableType: task.deliverable_type,
+          deliverableMetadata: task.deliverable_metadata,
+          progressMessage: task.progress_message,
+          workflowStepsCompleted: task.response_metadata?.workflow_steps_completed,
+        },
+        // Map evaluation fields directly to DTO (not nested)
+        userRating: task.evaluation?.user_rating,
+        speedRating: task.evaluation?.speed_rating,
+        accuracyRating: task.evaluation?.accuracy_rating, 
+        userNotes: task.evaluation?.user_notes,
+        evaluationTimestamp: task.evaluation?.evaluation_timestamp,
+        evaluationDetails: task.evaluation?.evaluation_details,
+        // Include provider and model details from LLM metadata
+        providerId: providerId,
+        modelId: modelId,
+        responseTimeMs: task.llm_metadata?.response_time_ms,
+        cost: task.llm_metadata?.total_cost,
+        provider: provider,
+        model: model,
+        // Include user email
+        userEmail: userEmail,
+      };
+    });
+
+    console.log(`[EvaluationService] Task evaluations count: ${allEvaluations.length}`);
+
+    // Apply filters using direct DTO fields
+    let filteredEvaluations = allEvaluations;
+
+    if (filters.minRating !== undefined) {
+      filteredEvaluations = filteredEvaluations.filter(
+        (evaluation) =>
+          evaluation.userRating &&
+          evaluation.userRating >= filters.minRating!,
+      );
+    }
+
+    if (filters.hasNotes) {
+      filteredEvaluations = filteredEvaluations.filter(
+        (evaluation) =>
+          evaluation.userNotes &&
+          evaluation.userNotes.trim().length > 0,
+      );
+    }
+
+    // Filter by agent name using metadata
+    if (filters.agentName) {
+      filteredEvaluations = filteredEvaluations.filter(
+        (evaluation) =>
+          evaluation.metadata?.agentName &&
+          evaluation.metadata.agentName.toLowerCase().includes(filters.agentName!.toLowerCase()),
+      );
+    }
+
+    // Sort by evaluation timestamp (most recent first)
+    filteredEvaluations.sort((a, b) => {
+      const timestampA = a.evaluationTimestamp || a.timestamp;
+      const timestampB = b.evaluationTimestamp || b.timestamp;
+      return new Date(timestampB).getTime() - new Date(timestampA).getTime();
+    });
+
+    // Apply pagination
+    const total = filteredEvaluations.length;
+    const totalPages = Math.ceil(total / filters.limit);
+    const offset = (filters.page - 1) * filters.limit;
+    const paginatedEvaluations = filteredEvaluations.slice(offset, offset + filters.limit);
+
+    console.log(`[EvaluationService] After filtering and pagination: ${paginatedEvaluations.length} items`);
+
+    const evaluations = paginatedEvaluations;
+
+    return {
+      evaluations,
+      pagination: {
+        page: filters.page,
+        limit: filters.limit,
+        total,
+        totalPages,
+      },
+    };
   }
 }

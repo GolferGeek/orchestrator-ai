@@ -100,8 +100,8 @@ export interface EnhancedMessage {
   metadata?: any;
   
   // LLM fields
-  provider_id?: string;
-  model_id?: string;
+  providerId?: string;
+  modelId?: string;
   input_tokens?: number;
   output_tokens?: number;
   total_cost?: number;

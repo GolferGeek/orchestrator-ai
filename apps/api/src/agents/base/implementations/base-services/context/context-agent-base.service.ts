@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { A2AAgentBaseService } from '../a2a-base/a2a-agent-base.service';
 import { LLMService } from '@/llms/llm.service';
@@ -9,6 +9,7 @@ import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { AgentContextService } from '../a2a-base/agent-context.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
+import { TasksService } from '@/tasks/tasks.service';
 
 /**
  * Context Agent Base Service that processes context-based requests using LLM
@@ -28,10 +29,12 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     loggingService?: LoggingService,
     authService?: AuthService,
     configurationService?: ConfigurationService,
+    protected readonly taskStatusService?: TaskStatusService,
+    protected readonly tasksService?: TasksService,
   ) {
     super(
       httpService,
-      undefined, // TaskStatusService will be injected automatically
+      taskStatusService, // Properly inject TaskStatusService
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,
@@ -141,12 +144,24 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       };
 
       // Report task completion to TaskStatusService for async execution modes
+      this.contextLogger.debug('Context agent executeTask completion check:', {
+        hasTaskId: !!params.taskId,
+        hasCurrentUser: !!params.currentUser,
+        hasTaskStatusService: !!this.taskStatusService,
+        hasTasksService: !!this.tasksService,
+        taskId: params.taskId,
+        userId: params.currentUser?.id
+      });
+
       if (params.taskId && params.currentUser?.id) {
         try {
           this.contextLogger.debug(
             `Reporting task completion for ${params.taskId}`,
           );
-          await this.completeTask(params.taskId, params.currentUser.id, result);
+          
+          // Use the same completion pattern as function agents
+          await this.saveContextTaskResult(params.taskId, params.currentUser.id, result);
+          
         } catch (error) {
           this.contextLogger.error(
             `Error reporting task completion for ${params.taskId}:`,
@@ -362,6 +377,37 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       );
     } catch (error) {
       this.contextLogger.error('Failed to initialize agent context:', error);
+    }
+  }
+
+  /**
+   * Save context task result using the same pattern as function agents
+   */
+  protected async saveContextTaskResult(taskId: string, userId: string, result: any): Promise<void> {
+    if (!this.tasksService) {
+      this.contextLogger.debug(`Cannot save result - TasksService not available`);
+      return;
+    }
+
+    try {
+      const updateData = {
+        status: 'completed' as const,
+        progress: 100,
+        response: typeof result === 'string' ? result : JSON.stringify(result),
+        responseMetadata: result.metadata || {},
+      };
+
+      this.contextLogger.debug(`Saving context task result to database:`, {
+        taskId,
+        userId,
+      });
+
+      await this.tasksService.updateTask(taskId, userId, updateData);
+
+      this.contextLogger.debug(`Task ${taskId} marked as completed in database`);
+    } catch (error) {
+      this.contextLogger.error(`Error saving task result for ${taskId}:`, error);
+      throw error;
     }
   }
 }
