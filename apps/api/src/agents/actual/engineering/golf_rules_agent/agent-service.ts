@@ -6,6 +6,8 @@ import { JsonRpcProtocolService } from '../../../base/sub-services/json-rpc-prot
 import { LoggingService } from '../../../base/sub-services/logging/logging.service';
 import { AuthService } from '../../../base/sub-services/auth/auth.service';
 import { ConfigurationService } from '../../../base/sub-services/configuration/configuration.service';
+import { TaskStatusService } from '@/tasks/task-status.service';
+import { TasksService } from '@/tasks/tasks.service';
 
 @Injectable()
 export class RulesOfGolfAgentService extends ApiAgentBaseService {
@@ -16,15 +18,27 @@ export class RulesOfGolfAgentService extends ApiAgentBaseService {
     loggingService?: LoggingService,
     authService?: AuthService,
     configurationService?: ConfigurationService,
+    taskStatusService?: TaskStatusService,
+    tasksService?: TasksService,
   ) {
     super(
       httpService,
+      taskStatusService,
+      tasksService,
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,
       authService,
       configurationService,
     );
+  }
+
+  getAgentName(): string {
+    return 'Rules Of Golf Agent';
+  }
+
+  getAgentType(): 'engineering' {
+    return 'engineering';
   }
 
   // Minimal implementation - base service handles API configuration from agent.yaml

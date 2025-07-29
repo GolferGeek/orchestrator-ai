@@ -30,6 +30,8 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   protected currentTaskId: string | null = null; // Store current task ID for progress tracking
   protected totalSteps: number = 1; // Default to 1 step, can be overridden by agents
   protected mcpClientService?: MCPClientService;
+  protected completedWorkflowSteps: string[] = []; // Track completed workflow steps
+  protected currentUserEmail: string | null = null; // Store current user email
 
   constructor(
     protected readonly httpService: HttpService,
@@ -51,7 +53,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   ) {
     super(
       httpService,
-      undefined, // TaskStatusService will be injected automatically
+      taskStatusService, // Pass TaskStatusService to parent A2AAgentBaseService
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,
@@ -82,8 +84,13 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     if (params.currentUser?.id) {
       this.currentUserId = params.currentUser.id;
     }
+    if (params.currentUser?.email) {
+      this.currentUserEmail = params.currentUser.email;
+    }
     if (params.taskId) {
       this.currentTaskId = params.taskId;
+      // Reset workflow steps for new task
+      this.completedWorkflowSteps = [];
     }
 
     try {
@@ -403,6 +410,14 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       return;
     }
 
+    // Track completed workflow steps
+    if (status === 'completed' && !this.completedWorkflowSteps.includes(stepName)) {
+      this.completedWorkflowSteps.push(stepName);
+      this.functionLogger.debug(
+        `Added completed workflow step: ${stepName} (${this.completedWorkflowSteps.length}/${this.totalSteps})`,
+      );
+    }
+
     // Store message in live cache for polling clients
     if (this.taskStatusService) {
       const messageContent = JSON.stringify({
@@ -495,16 +510,32 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     }
 
     try {
+      // Enhanced metadata like Python agents
+      const enhancedMetadata = {
+        ...(result.metadata || {}),
+        agentName: this.getAgentName(),
+        agentType: this.getAgentType(),
+        workflowStepsCompleted: [...this.completedWorkflowSteps],
+        totalSteps: this.totalSteps,
+        userEmail: this.currentUserEmail,
+        processedAt: new Date().toISOString(),
+        taskId: this.currentTaskId,
+        userId: this.currentUserId,
+      };
+
       const updateData = {
         status: 'completed' as const,
         progress: 100,
         response: JSON.stringify(result),
-        responseMetadata: result.metadata || {},
+        responseMetadata: enhancedMetadata,
       };
 
       this.functionLogger.debug(`Saving task result to database:`, {
         taskId: this.currentTaskId,
         userId: this.currentUserId,
+        userEmail: this.currentUserEmail,
+        workflowStepsCompleted: this.completedWorkflowSteps.length,
+        enhancedMetadataKeys: Object.keys(enhancedMetadata),
       });
 
       await this.tasksService.updateTask(
