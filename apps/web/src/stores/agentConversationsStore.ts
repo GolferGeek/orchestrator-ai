@@ -164,6 +164,41 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
       }
     },
 
+    // Add an existing conversation to the store (when created elsewhere)
+    addExistingConversation(conversationData: any) {
+      console.log('➕ addExistingConversation called:', conversationData.id, conversationData.agentName);
+      
+      const newConversation: AgentConversation = {
+        ...conversationData,
+        startedAt: new Date(conversationData.startedAt),
+        endedAt: conversationData.endedAt ? new Date(conversationData.endedAt) : undefined,
+        lastActiveAt: new Date(conversationData.lastActiveAt),
+        createdAt: new Date(conversationData.createdAt),
+        updatedAt: new Date(conversationData.updatedAt),
+        taskCount: conversationData.taskCount || 0,
+        completedTasks: conversationData.completedTasks || 0,
+        failedTasks: conversationData.failedTasks || 0,
+        activeTasks: conversationData.activeTasks || 0,
+      };
+
+      // Check if conversation already exists to avoid duplicates
+      const existingIndex = this.conversations.findIndex(conv => conv.id === newConversation.id);
+      console.log('➕ Existing conversation index:', existingIndex);
+      
+      if (existingIndex === -1) {
+        this.conversations.push(newConversation);
+        console.log('➕ Conversation added. Total conversations:', this.conversations.length);
+      } else {
+        // Update existing conversation
+        this.conversations[existingIndex] = newConversation;
+        console.log('➕ Conversation updated at index:', existingIndex);
+      }
+      
+      console.log('➕ Final conversation list:', this.conversations.map(c => ({ id: c.id, agentName: c.agentName, activeTasks: c.activeTasks })));
+
+      return newConversation;
+    },
+
     async endConversation(conversationId: string) {
       try {
         const conversationIndex = this.conversations.findIndex(conv => conv.id === conversationId);
@@ -189,14 +224,24 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
 
     // Update conversation task counts (called by websocket events)
     updateConversationTaskCounts(conversationId: string, taskCounts: Partial<Pick<AgentConversation, 'taskCount' | 'completedTasks' | 'failedTasks' | 'activeTasks'>>) {
+      console.log('📊 updateConversationTaskCounts:', conversationId, taskCounts);
       const conversationIndex = this.conversations.findIndex(conv => conv.id === conversationId);
+      
       if (conversationIndex !== -1) {
+        const oldActiveTasks = this.conversations[conversationIndex].activeTasks;
+        
         this.conversations[conversationIndex] = {
           ...this.conversations[conversationIndex],
           ...taskCounts,
           lastActiveAt: new Date(),
           updatedAt: new Date(),
         };
+        
+        const newActiveTasks = this.conversations[conversationIndex].activeTasks;
+        console.log(`📊 Task counts updated for ${conversationId}: activeTasks ${oldActiveTasks} -> ${newActiveTasks}`);
+      } else {
+        console.warn('📊 Conversation not found for task count update:', conversationId);
+        console.log('📊 Available conversation IDs:', this.conversations.map(c => c.id));
       }
     },
 

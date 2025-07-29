@@ -239,8 +239,8 @@ const handleSendMessage = async (text: string) => {
     // Check for response_message.parts
     if (taskResponse.response_message && taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0) {
       agentText = taskResponse.response_message.parts[0]?.text || 'No response text.';
-      if (taskResponse.response_message?.metadata?.responding_agent_name) {
-        agentMetadata.agentName = taskResponse.response_message.metadata.responding_agent_name;
+              if (taskResponse.response_message?.metadata?.respondingAgentName) {
+          agentMetadata.agentName = taskResponse.response_message.metadata.respondingAgentName;
       }
     }
     // Additional fallback - check for direct result field
@@ -267,8 +267,7 @@ const handleSendMessage = async (text: string) => {
         agentMetadata.agentName = taskResponse.metadata.delegatedTo || 
                                   taskResponse.metadata.originalAgent?.agentName ||
                                   taskResponse.metadata.agentName ||
-                                  taskResponse.metadata.responding_agent_name ||
-                                  taskResponse.metadata.respondingAgentName;
+                                                                      taskResponse.metadata.respondingAgentName;
       }
     }
 

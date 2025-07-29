@@ -42,3 +42,69 @@ export interface EvaluationResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface AllEvaluationsFilters {
+  page?: number;
+  limit?: number;
+  minRating?: UserRatingScale;
+  hasNotes?: boolean;
+  agentName?: string;
+}
+
+export interface EvaluationWithMessage {
+  id: string;
+  content: string;
+  role: string;
+  sessionId: string;
+  userId: string;
+  timestamp: string;
+  order: number;
+  // Evaluation fields (direct, not nested)
+  userRating?: UserRatingScale;
+  speedRating?: UserRatingScale;
+  accuracyRating?: UserRatingScale;
+  userNotes?: string;
+  evaluationTimestamp?: string;
+  evaluationDetails?: any;
+  // Metadata for task evaluations
+  metadata?: {
+    agentName?: string;
+    taskType?: string;
+    status?: string;
+    taskPrompt?: string;
+    taskResponse?: string;
+    responseMetadata?: any;
+    llmMetadata?: any;
+    taskMetadata?: any;
+    deliverableType?: string;
+    deliverableMetadata?: any;
+    progressMessage?: string;
+    workflowStepsCompleted?: string[];
+  };
+  // Optional fields
+  providerId?: string;
+  modelId?: string;
+  responseTimeMs?: number;
+  cost?: number;
+  provider?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  model?: {
+    id: string;
+    name: string;
+    description?: string;
+    providerId: string;
+  };
+}
+
+export interface AllEvaluationsResponse {
+  evaluations: EvaluationWithMessage[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}

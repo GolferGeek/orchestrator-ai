@@ -117,25 +117,118 @@ export class EvaluationController {
     });
   }
 
+  @Get('user/all')
+  @ApiOperation({ summary: 'Get all evaluations for the current user' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20, max: 100)',
+  })
+  @ApiQuery({
+    name: 'minRating',
+    required: false,
+    type: Number,
+    description: 'Filter by minimum user rating (1-5)',
+  })
+  @ApiQuery({
+    name: 'hasNotes',
+    required: false,
+    type: Boolean,
+    description: 'Filter evaluations with user notes',
+  })
+  @ApiQuery({
+    name: 'agentName',
+    required: false,
+    type: String,
+    description: 'Filter by agent name',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all user evaluations with pagination',
+    schema: {
+      type: 'object',
+      properties: {
+        evaluations: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/EnhancedMessageResponseDto' },
+        },
+        pagination: {
+          type: 'object',
+          properties: {
+            page: { type: 'number' },
+            limit: { type: 'number' },
+            total: { type: 'number' },
+            totalPages: { type: 'number' },
+          },
+        },
+      },
+    },
+  })
+  async getAllUserEvaluations(
+    @CurrentUser() user: any,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+    @Query('minRating') minRating?: number,
+    @Query('hasNotes') hasNotes?: boolean,
+    @Query('agentName') agentName?: string,
+  ): Promise<{
+    evaluations: EnhancedMessageResponseDto[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }> {
+    // Debug logging to see what filters are received
+    console.log('[EvaluationController] getAllUserEvaluations called with filters:', {
+      page,
+      limit,
+      minRating,
+      hasNotes,
+      agentName,
+      userId: user.id
+    });
+
+    // Ensure reasonable pagination limits
+    const sanitizedLimit = Math.min(Math.max(limit, 1), 100);
+    const sanitizedPage = Math.max(page, 1);
+
+    return this.evaluationService.getAllUserEvaluations(user.id, {
+      page: sanitizedPage,
+      limit: sanitizedLimit,
+      minRating,
+      hasNotes,
+      agentName,
+    });
+  }
+
   @Get('stats/summary')
   @ApiOperation({ summary: 'Get evaluation statistics summary for user' })
   @ApiQuery({
-    name: 'start_date',
+    name: 'startDate',
     required: false,
     description: 'Start date (YYYY-MM-DD)',
   })
   @ApiQuery({
-    name: 'end_date',
+    name: 'endDate',
     required: false,
     description: 'End date (YYYY-MM-DD)',
   })
   @ApiQuery({
-    name: 'provider_id',
+    name: 'providerId',
     required: false,
     description: 'Filter by provider UUID',
   })
   @ApiQuery({
-    name: 'model_id',
+    name: 'modelId',
     required: false,
     description: 'Filter by model UUID',
   })
@@ -175,10 +268,10 @@ export class EvaluationController {
   })
   async getEvaluationStats(
     @CurrentUser() user: any,
-    @Query('start_date') startDate?: string,
-    @Query('end_date') endDate?: string,
-    @Query('provider_id') providerId?: string,
-    @Query('model_id') modelId?: string,
+      @Query('startDate') startDate?: string,
+  @Query('endDate') endDate?: string,
+  @Query('providerId') providerId?: string,
+  @Query('modelId') modelId?: string,
   ): Promise<{
     totalEvaluations: number;
     averageOverallRating: number;
@@ -208,17 +301,17 @@ export class EvaluationController {
     description: 'Export format',
   })
   @ApiQuery({
-    name: 'start_date',
+    name: 'startDate',
     required: false,
     description: 'Start date (YYYY-MM-DD)',
   })
   @ApiQuery({
-    name: 'end_date',
+    name: 'endDate',
     required: false,
     description: 'End date (YYYY-MM-DD)',
   })
   @ApiQuery({
-    name: 'include_content',
+    name: 'includeContent',
     required: false,
     type: Boolean,
     description: 'Include message content in export',
@@ -242,9 +335,9 @@ export class EvaluationController {
   async exportFeedback(
     @CurrentUser() user: any,
     @Query('format') format: 'json' | 'csv' = 'json',
-    @Query('start_date') startDate?: string,
-    @Query('end_date') endDate?: string,
-    @Query('include_content') includeContent?: boolean,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('includeContent') includeContent?: boolean,
   ): Promise<any[] | string> {
     return this.evaluationService.exportUserFeedback(user.id, {
       format,
@@ -291,12 +384,12 @@ export class EvaluationController {
     description: 'Comma-separated list of model UUIDs to compare',
   })
   @ApiQuery({
-    name: 'start_date',
+    name: 'startDate',
     required: false,
     description: 'Start date (YYYY-MM-DD)',
   })
   @ApiQuery({
-    name: 'end_date',
+    name: 'endDate',
     required: false,
     description: 'End date (YYYY-MM-DD)',
   })
@@ -336,8 +429,8 @@ export class EvaluationController {
   async getModelComparison(
     @CurrentUser() user: any,
     @Query('models') models: string,
-    @Query('start_date') startDate?: string,
-    @Query('end_date') endDate?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ): Promise<{
     comparison: Array<{
       model: any;

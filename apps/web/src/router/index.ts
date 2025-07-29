@@ -3,6 +3,7 @@ import { RouteRecordRaw } from 'vue-router';
 import HomePage from '../views/HomePage.vue';
 import LoginPage from '../views/LoginPage.vue';
 import MCPDiscoveryPage from '../views/MCPDiscoveryPage.vue';
+import EvaluationsPage from '../views/EvaluationsPage.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -25,6 +26,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/mcp-discovery',
     name: 'MCPDiscovery',
     component: MCPDiscoveryPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/evaluations',
+    name: 'Evaluations',
+    component: EvaluationsPage,
     meta: { requiresAuth: true }
   },
   {

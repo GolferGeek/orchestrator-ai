@@ -586,6 +586,25 @@ export class OrchestratorService extends A2AAgentBaseService {
       );
     }
 
+    // Mark task as completed if we have the required context
+    const taskId = params.taskId || params.params?.taskId;
+    const taskUser = params.currentUser || params.params?.currentUser;
+    
+    if (taskId && taskUser?.id && response) {
+      try {
+        await this.completeTask(taskId, taskUser.id, response);
+        this.orchestratorLogger.debug(`Task ${taskId} marked as completed`);
+      } catch (error) {
+        this.orchestratorLogger.warn(`Failed to mark task ${taskId} as completed:`, error);
+      }
+    } else {
+      this.orchestratorLogger.debug('Missing taskId or currentUser context - cannot mark task as completed', {
+        hasTaskId: !!taskId,
+        hasCurrentUser: !!taskUser,
+        hasResponse: !!response
+      });
+    }
+
     return response;
   }
 

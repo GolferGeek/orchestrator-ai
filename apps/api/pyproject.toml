@@ -1,9 +1,10 @@
 [project]
-name = "orchestrator-ai-nestjs-python-agents"
+name = "api"
 version = "0.1.0"
-description = "Python agents for OrchAI NestJS API"
+description = "Default template for PDM package"
 authors = [
-    {name = "OrchAI Team"}
+    {name = "OrchAI Team"},
+    {name = "golfergeek", email = "golfergeet@gmail.com"},
 ]
 dependencies = [
     "langgraph>=0.2.0",
@@ -17,13 +18,9 @@ dependencies = [
     "pydantic>=2.0.0",
     "typing-extensions>=4.5.0",
 ]
-requires-python = ">=3.9"
+requires-python = "==3.13.*"
 readme = "README.md"
 license = {text = "MIT"}
-
-[build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
 
 [tool.pdm]
 distribution = false

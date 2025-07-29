@@ -182,7 +182,7 @@ class ApiService {
           respondingAgentName = result.metadata.delegatedTo || 
                               result.metadata.originalAgent?.agentName ||
                               result.metadata.agentName ||
-                              result.metadata.responding_agent_name ||
+                              result.metadata.respondingAgentName ||
                               'Agent';
         }
 
@@ -196,7 +196,7 @@ class ApiService {
           result: result.response || result.result || 'Success',
           metadata: {
             agentName: respondingAgentName,
-            responding_agent_name: respondingAgentName,
+            respondingAgentName: respondingAgentName,
             ...result.metadata
           },
           response_message: {
@@ -206,7 +206,7 @@ class ApiService {
               text: result.response || result.message || result.result || 'Task completed' 
             }],
             metadata: {
-              responding_agent_name: respondingAgentName
+              respondingAgentName: respondingAgentName
             }
           },
           created_at: new Date().toISOString(),

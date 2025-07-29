@@ -129,14 +129,13 @@ export const useMessagesStore = defineStore('messages', {
           agentName = taskResponse.metadata.delegatedTo || 
                       taskResponse.metadata.originalAgent?.agentName ||
                       taskResponse.metadata.agentName ||
-                      taskResponse.metadata.responding_agent_name ||
-                      taskResponse.metadata.respondingAgentName ||
+                                              taskResponse.metadata.respondingAgentName ||
                       'Agent';
           agentMetadata = { ...taskResponse.metadata };
         }
         
-        if (taskResponse.response_message?.metadata?.responding_agent_name) {
-          agentName = taskResponse.response_message.metadata.responding_agent_name;
+              if (taskResponse.response_message?.metadata?.respondingAgentName) {
+        agentName = taskResponse.response_message.metadata.respondingAgentName;
           agentMetadata = { ...agentMetadata, ...taskResponse.response_message.metadata };
         }
         
