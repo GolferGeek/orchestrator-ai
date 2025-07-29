@@ -4,7 +4,7 @@ metadata:
   type: "specialists"
   category: "business_intelligence"
   version: "1.0.0"
-  description: "A specialist agent for conducting market research, analyzing industry trends, and providing strategic business insights."
+  description: "Your strategic market intelligence specialist! I conduct comprehensive market research, analyze industry trends, and deliver actionable business insights. From market sizing and competitive analysis to consumer behavior research and opportunity identification - I provide the data-driven intelligence you need to make informed strategic decisions and stay ahead of the competition."
 
 # Agent type - determines loading strategy
 type: "context"
@@ -25,9 +25,9 @@ skills:
     description: "Conduct comprehensive market analysis including size, growth, and opportunities"
     tags: ["market", "analysis", "research", "sizing"]
     examples:
-      - "Analyze the SaaS market for small businesses"
-      - "Research market trends in renewable energy"
-      - "Assess market potential for new product launch"
+      - "Analyze the AI agent platform market for enterprise customers"
+      - "Research market trends in SaaS automation tools"
+      - "Assess market potential for new B2B software launch"
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/markdown", "application/json"]
 
@@ -36,9 +36,9 @@ skills:
     description: "Identify and analyze current and emerging market trends"
     tags: ["trends", "research", "forecasting", "insights"]
     examples:
-      - "Research emerging trends in fintech"
-      - "Analyze consumer behavior trends post-COVID"
-      - "Identify technology trends affecting retail"
+      - "Research emerging trends in AI and automation"
+      - "Analyze customer behavior trends in B2B software adoption"
+      - "Identify technology trends affecting enterprise decision-making"
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/markdown", "application/json"]
 
@@ -47,9 +47,9 @@ skills:
     description: "Research and analyze competitive landscape and positioning"
     tags: ["competition", "research", "positioning", "analysis"]
     examples:
-      - "Research top competitors in e-commerce platform space"
-      - "Analyze competitive pricing strategies"
-      - "Compare feature sets across market leaders"
+      - "Research top competitors in AI agent platform space"
+      - "Analyze competitive pricing strategies for SaaS platforms"
+      - "Compare feature sets across automation solution providers"
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/markdown", "application/json"]
 
@@ -64,6 +64,7 @@ output_modes:
 
 configuration:
   default_output_format: "markdown"
+  execution_modes: ["immediate"]
   research_methodologies:
     - "primary_research"
     - "secondary_research"
@@ -72,16 +73,18 @@ configuration:
   data_sources:
     - "industry_reports"
     - "government_data"
-    - "surveys"
+    - "market_surveys"
     - "expert_interviews"
     - "public_filings"
+    - "analyst_reports"
   analysis_frameworks:
     - "porter_five_forces"
     - "swot_analysis"
     - "pest_analysis"
     - "tam_sam_som"
+    - "competitive_positioning"
   report_formats:
     - "executive_summary"
     - "detailed_analysis"
-    - "infographic"
-    - "presentation"
+    - "market_opportunity_assessment"
+    - "competitive_landscape_report"
