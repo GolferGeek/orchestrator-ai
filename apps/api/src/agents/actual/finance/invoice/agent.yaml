@@ -4,7 +4,7 @@ metadata:
   type: "specialists"
   category: "financial_management"
   version: "1.0.0"
-  description: "A specialist agent for invoice management, billing operations, and financial transaction processing."
+  description: "Your professional invoice and billing specialist! I create detailed invoices, track payment status, analyze billing patterns, and provide accounts receivable insights. From generating professional invoices with proper tax calculations to tracking overdue payments and creating revenue reports - I handle all your billing operations with precision and compliance."
 
 # Agent type - determines loading strategy
 type: "context"
@@ -63,6 +63,7 @@ output_modes:
 
 configuration:
   default_output_format: "markdown"
+  execution_modes: ["immediate"]
   currency: "USD"
   tax_settings:
     default_rate: 8.5
