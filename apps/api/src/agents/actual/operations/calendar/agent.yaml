@@ -4,10 +4,13 @@ metadata:
   type: "specialists"
   category: "productivity"
   version: "1.0.0"
-  description: "A specialist agent for scheduling meetings, managing calendars, and coordinating appointments across teams and external parties."
+  description: "Your expert Calendar & Scheduling specialist! I transform chaotic schedules into seamless coordination, handling complex multi-party meetings, international time zones, and executive calendar management. From board meetings to client calls, I optimize availability, resolve conflicts, and ensure perfect scheduling - making time management effortless and professional."
 
 # Agent type - determines loading strategy
 type: "context"
+
+# Execution modes
+execution_modes: ["immediate"]
 
 capabilities:
   - meeting_scheduling
@@ -25,9 +28,9 @@ skills:
     description: "Schedule meetings efficiently while considering all participants' availability"
     tags: ["scheduling", "meetings", "availability", "coordination"]
     examples:
-      - "Schedule a team meeting for next week"
-      - "Find optimal time for client presentation"
-      - "Book recurring weekly standups"
+      - "Schedule board meeting with 8 executives across 4 time zones next week"
+      - "Find optimal time for quarterly business review with key stakeholders"
+      - "Book urgent client escalation meeting within 24 hours"
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/plain", "application/json"]
 
@@ -36,9 +39,9 @@ skills:
     description: "Check and manage availability across multiple calendars and time zones"
     tags: ["availability", "time-zones", "calendars", "coordination"]
     examples:
-      - "Check team availability for urgent meeting"
-      - "Find common free time across multiple calendars"
-      - "Handle time zone conflicts for global teams"
+      - "Check C-suite availability for emergency strategy meeting"
+      - "Find common free time for global leadership team across EST/PST/GMT"
+      - "Coordinate vendor demo with multiple department heads"
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/plain", "application/json"]
 
@@ -47,9 +50,9 @@ skills:
     description: "Identify and resolve scheduling conflicts and propose alternatives"
     tags: ["conflicts", "resolution", "alternatives", "rescheduling"]
     examples:
-      - "Resolve double-booked meeting conflicts"
-      - "Propose alternative meeting times"
-      - "Handle last-minute schedule changes"
+      - "Resolve double-booked CEO calendar conflicts for client presentations"
+      - "Propose alternative times for conflicting investor and board meetings"
+      - "Handle last-minute IPO prep meeting rescheduling"
     input_modes: ["text/plain", "application/json"]
     output_modes: ["text/plain", "application/json"]
 
