@@ -4,10 +4,13 @@ metadata:
   type: "specialists"
   category: "communication_management"
   version: "1.0.0"
-  description: "A specialist agent for email classification, prioritization, and automated response routing."
+  description: "Your expert Email Management & Triage specialist! I transform overwhelming email chaos into streamlined communication workflows. From executive inbox management to customer support automation, I classify, prioritize, and route thousands of emails with precision - ensuring VIP messages reach leadership instantly while automating routine responses for maximum efficiency."
 
 # Agent type - determines loading strategy
 type: "context"
+
+# Execution modes
+execution_modes: ["immediate"]
 
 capabilities:
   - email_classification
@@ -24,9 +27,9 @@ skills:
     description: "Automatically classify incoming emails by type, department, and priority level"
     tags: ["classification", "categorization", "automation", "email-processing"]
     examples:
-      - "Classify customer support emails by issue type"
-      - "Route sales inquiries to appropriate team members"
-      - "Identify billing and technical support requests"
+      - "Classify 500+ daily customer support emails by urgency and department"
+      - "Route enterprise sales inquiries to senior account executives"
+      - "Identify and escalate C-level communications immediately"
     input_modes: ["text/plain", "text/email", "application/json"]
     output_modes: ["application/json", "text/plain"]
 
@@ -35,9 +38,9 @@ skills:
     description: "Evaluate email urgency and importance for proper prioritization"
     tags: ["priority", "urgency", "assessment", "ranking"]
     examples:
-      - "Identify high-priority customer escalations"
-      - "Flag urgent technical issues"
-      - "Prioritize VIP customer communications"
+      - "Flag critical system outage reports from enterprise clients"
+      - "Prioritize investor communications during funding rounds"
+      - "Identify contract renewal deadlines and revenue-critical emails"
     input_modes: ["text/plain", "text/email", "application/json"]
     output_modes: ["application/json", "text/plain"]
 
@@ -46,9 +49,9 @@ skills:
     description: "Route emails to appropriate departments and team members"
     tags: ["routing", "automation", "assignment", "workflow"]
     examples:
-      - "Route billing questions to finance team"
-      - "Send technical issues to engineering support"
-      - "Assign sales leads to available representatives"
+      - "Route million-dollar deal negotiations to VP Sales with CEO copy"
+      - "Escalate security breach reports to CISO and emergency response team"
+      - "Direct compliance inquiries to legal with appropriate stakeholder notifications"
     input_modes: ["text/plain", "text/email", "application/json"]
     output_modes: ["application/json", "text/plain"]
 
@@ -57,9 +60,9 @@ skills:
     description: "Generate appropriate response templates and auto-replies"
     tags: ["responses", "templates", "automation", "communication"]
     examples:
-      - "Draft acknowledgment responses for support tickets"
-      - "Create out-of-office routing messages"
-      - "Generate follow-up email templates"
+      - "Draft executive-level acknowledgments for board member communications"
+      - "Generate professional auto-responses for high-value customer inquiries"
+      - "Create escalation notifications with detailed context and next steps"
     input_modes: ["text/plain", "text/email", "application/json"]
     output_modes: ["text/email", "text/plain", "application/json"]
 
