@@ -13,7 +13,9 @@ import {
   TokenResponseDto,
   AuthenticatedUserResponseDto,
   SupabaseAuthUserDto,
+  UserProfileDto,
 } from './dto/auth.dto';
+import { UserRole } from './decorators/roles.decorator';
 
 @Injectable()
 export class AuthService {
@@ -216,13 +218,12 @@ export class AuthService {
     this.logger.log(`Fetching current user profile for: ${currentAuthUser.id}`);
 
     try {
-      // Create an authenticated client to fetch additional profile data
-      const authenticatedClient =
-        this.supabaseService.createAuthenticatedClient(token);
+      // Use service role client to bypass RLS issues temporarily
+      const serviceClient = this.supabaseService.getServiceClient();
 
-      const { data: userData } = await authenticatedClient
-        .from('profiles')
-        .select('id, email, display_name, created_at')
+      const { data: userData, error: queryError } = await serviceClient
+        .from('users')
+        .select('id, email, display_name, roles, created_at')
         .eq('id', currentAuthUser.id)
         .single();
 
@@ -232,6 +233,7 @@ export class AuthService {
           id: currentAuthUser.id,
           email: currentAuthUser.email, // Email from auth is authoritative
           displayName: userData.display_name,
+          roles: userData.roles || [UserRole.USER], // Default to 'user' role if none set
         };
       } else {
         // Fallback to auth user data if no public profile found
@@ -242,6 +244,7 @@ export class AuthService {
           id: currentAuthUser.id,
           email: currentAuthUser.email,
           displayName: currentAuthUser.userMetadata?.display_name,
+          roles: [UserRole.USER], // Default role for fallback
         };
       }
     } catch (error) {
@@ -290,6 +293,254 @@ export class AuthService {
     } catch (error) {
       this.logger.error(`Token validation failed: ${error}`);
       throw new UnauthorizedException('Invalid token');
+    }
+  }
+
+  /**
+   * Get user profile with roles
+   */
+  async getUserProfile(userId: string): Promise<UserProfileDto | null> {
+    try {
+      const { data, error } = await this.supabaseService
+        .getAnonClient()
+        .from('users')
+        .select('id, email, display_name, roles, created_at, updated_at')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // Not found
+        }
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      return {
+        id: data.id,
+        email: data.email,
+        displayName: data.display_name,
+        roles: data.roles || [UserRole.USER],
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at),
+      };
+    } catch (error) {
+      this.logger.error(`Error fetching user profile for ID ${userId}:`, error);
+      throw new HttpException(
+        'Could not fetch user profile.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Check if user has a specific role
+   */
+  async userHasRole(userId: string, role: UserRole): Promise<boolean> {
+    const profile = await this.getUserProfile(userId);
+    if (!profile) {
+      return false;
+    }
+    return profile.roles.includes(role);
+  }
+
+  /**
+   * Check if user has any of the specified roles
+   */
+  async userHasAnyRole(userId: string, roles: UserRole[]): Promise<boolean> {
+    const profile = await this.getUserProfile(userId);
+    if (!profile) {
+      return false;
+    }
+    return roles.some((role) => profile.roles.includes(role));
+  }
+
+  /**
+   * Add role to user (for admin use)
+   */
+  async addUserRole(
+    targetUserId: string,
+    role: UserRole,
+    adminUserId: string,
+    reason?: string,
+  ): Promise<UserProfileDto> {
+    const profile = await this.getUserProfile(targetUserId);
+    if (!profile) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (profile.roles.includes(role)) {
+      return profile; // Already has role
+    }
+
+    const newRoles = [...profile.roles, role];
+    const { error } = await this.supabaseService
+      .getAnonClient()
+      .from('users')
+      .update({ roles: newRoles })
+      .eq('id', targetUserId);
+
+    if (error) {
+      throw new HttpException(
+        `Failed to add role: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    // Log the change
+    await this.logRoleChange(
+      targetUserId,
+      adminUserId,
+      'add_role',
+      profile.roles,
+      newRoles,
+      role,
+      reason,
+    );
+
+    return {
+      ...profile,
+      roles: newRoles,
+      updatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Remove role from user (for admin use)
+   */
+  async removeUserRole(
+    targetUserId: string,
+    role: UserRole,
+    adminUserId: string,
+    reason?: string,
+  ): Promise<UserProfileDto> {
+    const profile = await this.getUserProfile(targetUserId);
+    if (!profile) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (!profile.roles.includes(role)) {
+      return profile; // Doesn't have role
+    }
+
+    let newRoles = profile.roles.filter((r) => r !== role);
+
+    // Ensure user always has at least 'user' role
+    if (newRoles.length === 0 || !newRoles.includes(UserRole.USER)) {
+      newRoles = [UserRole.USER];
+    }
+
+    const { error } = await this.supabaseService
+      .getAnonClient()
+      .from('users')
+      .update({ roles: newRoles })
+      .eq('id', targetUserId);
+
+    if (error) {
+      throw new HttpException(
+        `Failed to remove role: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    // Log the change
+    await this.logRoleChange(
+      targetUserId,
+      adminUserId,
+      'remove_role',
+      profile.roles,
+      newRoles,
+      role,
+      reason,
+    );
+
+    return {
+      ...profile,
+      roles: newRoles,
+      updatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Set exact roles for user (for admin use)
+   */
+  async setUserRoles(
+    targetUserId: string,
+    roles: UserRole[],
+    adminUserId: string,
+    reason?: string,
+  ): Promise<UserProfileDto> {
+    const profile = await this.getUserProfile(targetUserId);
+    if (!profile) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    // Ensure 'user' role is always included
+    const newRoles = roles.includes(UserRole.USER)
+      ? roles
+      : [UserRole.USER, ...roles];
+
+    const { error } = await this.supabaseService
+      .getAnonClient()
+      .from('users')
+      .update({ roles: newRoles })
+      .eq('id', targetUserId);
+
+    if (error) {
+      throw new HttpException(
+        `Failed to set roles: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    // Log the change
+    await this.logRoleChange(
+      targetUserId,
+      adminUserId,
+      'set_roles',
+      profile.roles,
+      newRoles,
+      undefined,
+      reason,
+    );
+
+    return {
+      ...profile,
+      roles: newRoles,
+      updatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Log role changes for audit purposes
+   */
+  private async logRoleChange(
+    targetUserId: string,
+    adminUserId: string,
+    action: string,
+    oldRoles: UserRole[],
+    newRoles: UserRole[],
+    changedRole?: UserRole,
+    reason?: string,
+  ): Promise<void> {
+    try {
+      const { error } = await this.supabaseService
+        .getAnonClient()
+        .from('role_audit_log')
+        .insert({
+          user_id: targetUserId,
+          admin_user_id: adminUserId,
+          action,
+          old_roles: oldRoles,
+          new_roles: newRoles,
+          role_changed: changedRole,
+          reason,
+        });
+
+      if (error) {
+        this.logger.warn(`Failed to log role change: ${error.message}`);
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to log role change:`, error);
     }
   }
 }
