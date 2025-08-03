@@ -5,7 +5,7 @@ import { LLMService } from '../../../../llms/llm.service';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
-import { MCPClientService } from '@/mcp/client/mcp-client.service';
+// MCPClientService removed - using LangChain.js services instead
 
 @Injectable()
 export class RequirementsWriterService extends PythonFunctionAgentBaseService {
@@ -18,7 +18,7 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
     tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
-    mcpClientService: MCPClientService | undefined,
+    // mcpClientService removed
   ) {
     super(
       httpService,
@@ -26,7 +26,7 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
       taskProgressGateway,
       tasksService,
       taskStatusService,
-      mcpClientService,
+      undefined, // mcpClientService removed
       undefined,
       undefined,
       undefined,

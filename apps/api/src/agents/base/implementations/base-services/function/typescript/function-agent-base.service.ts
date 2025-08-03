@@ -17,7 +17,7 @@ import { AgentFunctionParams } from '../../a2a-base/interfaces';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
-import { MCPClientService } from '@/mcp/client/mcp-client.service';
+// MCPClientService removed - using LangChain.js services instead
 
 export interface AgentFunctionResponse {
   response: string;
@@ -35,7 +35,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   private currentUserId: string | null = null; // Store current user ID for task completion
   protected currentTaskId: string | null = null; // Store current task ID for progress tracking
   protected totalSteps: number = 1; // Default to 1 step, can be overridden by agents
-  protected mcpClientService?: MCPClientService;
+  protected mcpClientService?: any; // MCPClientService removed
   protected completedWorkflowSteps: string[] = []; // Track completed workflow steps
   protected currentUserEmail: string | null = null; // Store current user email
 
@@ -49,8 +49,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     @Inject(forwardRef(() => TaskStatusService))
     protected readonly taskStatusService: TaskStatusService | undefined,
     @Optional()
-    @Inject(MCPClientService)
-    mcpClientService?: MCPClientService,
+    mcpClientService?: any, // MCPClientService removed
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,

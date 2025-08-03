@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -12,7 +12,8 @@ import { AgentRegistrationService } from './agents/base/sub-services/agent-regis
 import { TaskProgressGateway } from './websocket/task-progress.gateway';
 import { TasksService } from './tasks/tasks.service';
 import { TaskStatusService } from './tasks/task-status.service';
-import { MCPClientService } from './mcp/client/mcp-client.service';
+import { SupabaseToolsService } from '@/langchain/services/supabase-tools.service';
+// Note: MCPClientService removed - replaced with LangChain.js services
 
 export interface DiscoveredAgent {
   name: string;
@@ -66,7 +67,9 @@ export class AgentFactoryService {
     private readonly taskProgressGateway: TaskProgressGateway,
     private readonly tasksService: TasksService,
     private readonly taskStatusService: TaskStatusService,
-    private readonly mcpClientService: MCPClientService,
+    @Inject(SupabaseToolsService)
+    private readonly supabaseToolsService: SupabaseToolsService,
+    // mcpClientService removed - using LangChain.js services instead
   ) {
     this.logger.log('🏭 AgentFactoryService initialized');
   }
@@ -253,7 +256,7 @@ export class AgentFactoryService {
             this.taskProgressGateway,
             this.tasksService,
             this.taskStatusService,
-            this.mcpClientService,
+            this.supabaseToolsService, // LangChain SupabaseToolsService
             this.agentRegistrationService,
             undefined, // jsonRpcProtocolService
             undefined, // loggingService

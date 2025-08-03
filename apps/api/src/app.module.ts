@@ -25,7 +25,7 @@ import { AgentConversationsModule } from './agent-conversations/agent-conversati
 import { TasksModule } from './tasks/tasks.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { MCPModule } from './mcp/mcp.module';
+import { LangChainModule } from './langchain/langchain.module';
 import supabaseConfig from './supabase/supabase.config';
 
 @Module({
@@ -74,7 +74,7 @@ import supabaseConfig from './supabase/supabase.config';
     AgentConversationsModule, // Agent conversation tracking
     TasksModule, // Task lifecycle management
     WebSocketModule, // Real-time WebSocket updates
-    MCPModule, // Model Context Protocol servers and clients
+    LangChainModule, // LangChain.js integration for agents
   ],
   controllers: [AppController, DynamicAgentsController],
   providers: [

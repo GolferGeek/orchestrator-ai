@@ -10,7 +10,7 @@ import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-proto
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
-import { MCPClientService } from '@/mcp/client/mcp-client.service';
+// MCPClientService removed - using LangChain.js services instead
 
 @Injectable()
 export class MarketingSwarmService extends FunctionAgentBaseService {
@@ -23,7 +23,7 @@ export class MarketingSwarmService extends FunctionAgentBaseService {
     tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
-    mcpClientService: MCPClientService | undefined,
+    // mcpClientService removed
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -36,7 +36,7 @@ export class MarketingSwarmService extends FunctionAgentBaseService {
       taskProgressGateway,
       tasksService,
       taskStatusService,
-      mcpClientService,
+      undefined, // mcpClientService removed
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,

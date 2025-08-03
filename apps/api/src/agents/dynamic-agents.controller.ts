@@ -15,10 +15,12 @@ import { AgentDiscoveryService } from '../agent-discovery.service';
 import { AppService } from '../app.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
 import { SessionsService } from '../sessions/sessions.service';
 import { TasksService } from '../tasks/tasks.service';
 import { TaskStatusService } from '../tasks/task-status.service';
+import { SupabaseToolsService } from '../langchain/services/supabase-tools.service';
 import {
   CreateTaskDto,
   AgentType,
@@ -34,6 +36,7 @@ export class DynamicAgentsController {
     private readonly sessionsService: SessionsService,
     private readonly tasksService: TasksService,
     private readonly taskStatusService: TaskStatusService,
+    private readonly supabaseTools: SupabaseToolsService,
   ) {}
 
   /**
