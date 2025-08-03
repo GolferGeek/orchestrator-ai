@@ -27,12 +27,6 @@
                 </ion-item>
               </ion-menu-toggle>
               <ion-menu-toggle :auto-hide="false">
-                <ion-item router-direction="root" router-link="/mcp-discovery" lines="none" :detail="false">
-                  <ion-icon aria-hidden="true" :icon="layersOutline" slot="start"></ion-icon>
-                  <ion-label>MCP Discovery</ion-label>
-                </ion-item>
-              </ion-menu-toggle>
-              <ion-menu-toggle :auto-hide="false">
                 <ion-item router-direction="root" router-link="/evaluations" lines="none" :detail="false">
                   <ion-icon aria-hidden="true" :icon="starOutline" slot="start"></ion-icon>
                   <ion-label>Evaluations</ion-label>
@@ -71,7 +65,7 @@ import { computed } from 'vue';
 import { 
   IonApp, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle 
 } from '@ionic/vue';
-import { logInOutline, logOutOutline, homeOutline, layersOutline, starOutline } from 'ionicons/icons';
+import { logInOutline, logOutOutline, homeOutline, starOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'vue-router';
 import SessionSidebar from '@/components/SessionSidebar.vue';
