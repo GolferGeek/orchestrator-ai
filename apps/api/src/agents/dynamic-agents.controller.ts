@@ -46,7 +46,7 @@ export class DynamicAgentsController {
   async handleTasks(
     @Param('agentType') agentType: string,
     @Param('agentName') agentName: string,
-    @Body() taskRequest: CreateTaskDto,
+    @Body() taskRequest: any, // Change from CreateTaskDto to any to handle both formats
     @CurrentUser() currentUser: SupabaseAuthUserDto,
     @Request() req: any,
   ) {
@@ -54,8 +54,38 @@ export class DynamicAgentsController {
       `Processing task for ${agentType}/${agentName} for user ${currentUser.id}`,
     );
 
+    // Check if this is a JSON-RPC request and convert it to CreateTaskDto format
+    let normalizedTaskRequest: CreateTaskDto;
+    
+    if (taskRequest && taskRequest.jsonrpc === '2.0' && taskRequest.method) {
+      // This is a JSON-RPC request - convert to CreateTaskDto format
+      this.logger.debug('Converting JSON-RPC request to CreateTaskDto format');
+      
+      const params = taskRequest.params || {};
+      normalizedTaskRequest = {
+        method: taskRequest.method,
+        prompt: params.message || params.userMessage || params.prompt || 'No message provided',
+        params: {
+          ...params,
+          // Preserve the original JSON-RPC structure for the agent
+          jsonrpc: taskRequest.jsonrpc,
+          jsonrpcId: taskRequest.id,
+          jsonrpcMethod: taskRequest.method,
+        },
+        conversationId: params.conversationId || params.session_id,
+        taskId: params.taskId,
+        timeoutSeconds: params.timeoutSeconds,
+        llmSelection: params.llmSelection,
+        executionMode: params.executionMode,
+        conversationHistory: params.conversation_history || params.conversationHistory || [],
+      };
+    } else {
+      // This is already in CreateTaskDto format
+      normalizedTaskRequest = taskRequest as CreateTaskDto;
+    }
+
     // Validate required fields
-    if (!taskRequest.method || !taskRequest.prompt) {
+    if (!normalizedTaskRequest.method || !normalizedTaskRequest.prompt) {
       throw new Error('Method and prompt are required');
     }
 
@@ -75,7 +105,7 @@ export class DynamicAgentsController {
 
     // Create task with agent-specific timeout
     const taskRequestWithTimeout = {
-      ...taskRequest,
+      ...normalizedTaskRequest,
       timeoutSeconds: agentTimeout,
     };
 
@@ -96,14 +126,14 @@ export class DynamicAgentsController {
 
       // Prepare request for agent with task context
       const authenticatedTaskRequest = {
-        ...taskRequest.params,
-        method: taskRequest.method,
-        prompt: taskRequest.prompt,
+        ...normalizedTaskRequest.params,
+        method: normalizedTaskRequest.method,
+        prompt: normalizedTaskRequest.prompt,
         taskId: task.id,
         currentUser,
         authToken: token,
-        llmSelection: taskRequest.llmSelection,
-        conversationHistory: taskRequest.conversationHistory || [],
+        llmSelection: normalizedTaskRequest.llmSelection,
+        conversationHistory: normalizedTaskRequest.conversationHistory || [],
       };
 
       this.logger.debug(
@@ -111,8 +141,8 @@ export class DynamicAgentsController {
       );
 
       // Determine processing mode based on execution mode and pre-generated task ID
-      const executionMode = taskRequest.executionMode;
-      const hasPreGeneratedTaskId = taskRequest.taskId;
+      const executionMode = normalizedTaskRequest.executionMode;
+      const hasPreGeneratedTaskId = normalizedTaskRequest.taskId;
       const shouldProcessAsync =
         executionMode === 'websocket' || executionMode === 'polling';
 

@@ -152,11 +152,11 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         }),
       );
 
-      if (response.data?.access_token) {
-        this.accessToken = response.data.access_token;
+      if (response.data?.accessToken) {
+        this.accessToken = response.data.accessToken;
         // Token expires in 1 hour (3600 seconds)
         this.tokenExpiry =
-          Date.now() + (response.data.expires_in || 3600) * 1000;
+          Date.now() + (response.data.expiresIn || 3600) * 1000;
         this.logger.log('✅ Successfully authenticated with Hiverarchy');
       } else {
         throw new Error('No access token received from Hiverarchy');
@@ -210,21 +210,22 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         throw new Error('External endpoint not configured in YAML');
       }
 
+      // Use the exact format expected by the external hierarchy agent
       const requestBody = {
         jsonrpc: '2.0',
-        id: `external-hiverarchy-${Date.now()}`,
-        method: 'handle_request',
+        method: 'processTask',
         params: {
-          message:
-            params.userMessage || params.message || 'No message provided',
+          message: params.userMessage || params.message || 'No message provided',
+          userMessage: params.userMessage || params.message || 'No message provided',
           sessionId: `external-session-${Date.now()}`,
+          authToken: this.accessToken,
           conversation_history: [],
-          authToken: this.accessToken, // Pass our auth token like frontend does
-          currentUser: null, // External call, no specific user
         },
+        id: `external-hiverarchy-${Date.now()}`,
       };
 
-      this.logger.debug(`🚀 Sending request to Hiverarchy: ${endpoint}`);
+      this.logger.debug(`🚀 Sending A2A request to Hiverarchy: ${endpoint}`);
+      this.logger.debug(`Request body:`, JSON.stringify(requestBody, null, 2));
 
       const response = await firstValueFrom(
         this.customHttpService.post(endpoint, requestBody, {
@@ -236,33 +237,60 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         }),
       );
 
+      this.logger.debug(`📥 Received response from Hiverarchy:`, JSON.stringify(response.data, null, 2));
+
       if (response.status >= 200 && response.status < 300) {
         this.logger.log('✅ Successfully received response from Hiverarchy');
 
-        // Extract the actual response text from the JSON-RPC wrapper
+        // Handle the exact response format from external agent
         let actualResponse = response.data;
-        if (response.data?.result?.response) {
-          // JSON-RPC format response
-          actualResponse = response.data.result.response;
+        let metadata: any = {
+          delegatedTo: 'Hiverarchy AI Orchestrator',
+          statusCode: response.status,
+          timestamp: new Date().toISOString(),
+          isExternalAgent: true,
+          responseFormat: 'unknown',
+        };
+
+        if (response.data?.result) {
+          // JSON-RPC 2.0 format response
+          const result = response.data.result;
+          actualResponse = result.response || result;
+          metadata.responseFormat = 'jsonrpc';
+          
+          // Extract metadata from the result
+          if (result.metadata) {
+            metadata = { ...metadata, ...result.metadata };
+          }
+        } else if (response.data?.error) {
+          // JSON-RPC error response
+          throw new Error(`External agent error: ${response.data.error.message || 'Unknown error'}`);
         } else if (response.data?.response) {
           // Direct response format
           actualResponse = response.data.response;
+          metadata.responseFormat = 'direct';
+        } else if (response.data?.statusCode === 500) {
+          // Handle 500 error responses
+          throw new Error(`External agent error: ${response.data.message || 'Internal server error'}`);
         }
 
         return {
           success: true,
           response: actualResponse,
-          metadata: {
-            delegatedTo: 'Hiverarchy AI Orchestrator',
-            statusCode: response.status,
-            timestamp: new Date().toISOString(),
-          },
+          metadata,
         };
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('❌ Failed to execute task with Hiverarchy:', error);
+      
+      // Log more details about the error
+      if (error.response) {
+        this.logger.error(`Response status: ${error.response.status}`);
+        this.logger.error(`Response data:`, error.response.data);
+      }
+      
       throw error;
     }
   }

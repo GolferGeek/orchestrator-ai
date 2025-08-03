@@ -1248,23 +1248,17 @@ export class EvaluationService {
       .select('*', { count: 'exact' })
       .not('evaluation', 'is', null);
 
-    // Apply filters
-    if (filters.startDate) {
-      tasksQuery = tasksQuery.gte('created_at', filters.startDate);
-    }
-    if (filters.endDate) {
-      tasksQuery = tasksQuery.lte('created_at', filters.endDate);
-    }
+    // Note: Date filtering will be applied after fetching tasks
+    // since evaluation_timestamp is stored in JSONB and requires
+    // special handling for date comparisons
     if (filters.minRating) {
       // Note: This requires filtering in memory since evaluation is JSON
       // For performance, consider adding computed columns for ratings
     }
 
-    // Apply pagination
-    const offset = (filters.page! - 1) * filters.limit!;
-    tasksQuery = tasksQuery
-      .order('created_at', { ascending: false })
-      .range(offset, offset + filters.limit! - 1);
+    // Note: Pagination will be applied after filtering since we need to
+    // filter by evaluation timestamp which is stored in JSONB
+    tasksQuery = tasksQuery.order('created_at', { ascending: false });
 
     const { data: tasks, error: tasksError, count } = await tasksQuery;
 
@@ -1322,6 +1316,24 @@ export class EvaluationService {
             task.llm_metadata.originalLLMSelection.cidafmOptions
               .responseModifiers?.length > 0);
         if (filters.hasConstraints !== hasConstraints) {
+          return false;
+        }
+      }
+
+      // Apply date filters
+      if (filters.startDate && task.evaluation?.evaluation_timestamp) {
+        const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+        const startDate = new Date(filters.startDate);
+        if (evaluationDate < startDate) {
+          return false;
+        }
+      }
+      if (filters.endDate && task.evaluation?.evaluation_timestamp) {
+        const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+        const endDate = new Date(filters.endDate);
+        // Set end date to end of day for inclusive filtering
+        endDate.setHours(23, 59, 59, 999);
+        if (evaluationDate > endDate) {
           return false;
         }
       }
@@ -1436,11 +1448,17 @@ export class EvaluationService {
         new Date(a.evaluation.evaluationTimestamp).getTime(),
     );
 
+    // Apply pagination after filtering and sorting
     const total = enhancedEvaluations.length;
     const totalPages = Math.ceil(total / filters.limit!);
+    const offset = (filters.page! - 1) * filters.limit!;
+    const paginatedEvaluations = enhancedEvaluations.slice(
+      offset,
+      offset + filters.limit!,
+    );
 
     return {
-      evaluations: enhancedEvaluations,
+      evaluations: paginatedEvaluations,
       pagination: {
         page: filters.page!,
         limit: filters.limit!,
@@ -1461,12 +1479,8 @@ export class EvaluationService {
     // Build query for tasks with evaluations
     let query = client.from('tasks').select('*').not('evaluation', 'is', null);
 
-    if (filters.startDate) {
-      query = query.gte('created_at', filters.startDate);
-    }
-    if (filters.endDate) {
-      query = query.lte('created_at', filters.endDate);
-    }
+    // Note: Date filtering will be applied after fetching tasks
+    // since evaluation_timestamp is stored in JSONB
 
     const { data: tasks, error } = await query;
 
@@ -1477,13 +1491,37 @@ export class EvaluationService {
       );
     }
 
-    // Filter tasks with actual evaluations
+    // Filter tasks with actual evaluations and apply date filters
     const evaluatedTasks = (tasks || []).filter(
-      (task) =>
-        task.evaluation &&
-        (task.evaluation.user_rating ||
-          task.evaluation.speed_rating ||
-          task.evaluation.accuracy_rating),
+      (task) => {
+        const hasRating =
+          task.evaluation &&
+          (task.evaluation.user_rating ||
+            task.evaluation.speed_rating ||
+            task.evaluation.accuracy_rating);
+
+        if (!hasRating) return false;
+
+        // Apply date filters
+        if (filters.startDate && task.evaluation?.evaluation_timestamp) {
+          const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+          const startDate = new Date(filters.startDate);
+          if (evaluationDate < startDate) {
+            return false;
+          }
+        }
+        if (filters.endDate && task.evaluation?.evaluation_timestamp) {
+          const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+          const endDate = new Date(filters.endDate);
+          // Set end date to end of day for inclusive filtering
+          endDate.setHours(23, 59, 59, 999);
+          if (evaluationDate > endDate) {
+            return false;
+          }
+        }
+
+        return true;
+      }
     );
 
     // Calculate analytics
@@ -1697,12 +1735,8 @@ export class EvaluationService {
       .not('evaluation', 'is', null)
       .not('llm_metadata', 'is', null);
 
-    if (filters.startDate) {
-      query = query.gte('created_at', filters.startDate);
-    }
-    if (filters.endDate) {
-      query = query.lte('created_at', filters.endDate);
-    }
+    // Note: Date filtering will be applied after fetching tasks
+    // since evaluation_timestamp is stored in JSONB
 
     const { data: tasks, error } = await query;
 
@@ -1714,11 +1748,35 @@ export class EvaluationService {
     }
 
     const evaluatedTasks = (tasks || []).filter(
-      (task) =>
-        task.evaluation &&
-        (task.evaluation.user_rating ||
-          task.evaluation.speed_rating ||
-          task.evaluation.accuracy_rating),
+      (task) => {
+        const hasRating =
+          task.evaluation &&
+          (task.evaluation.user_rating ||
+            task.evaluation.speed_rating ||
+            task.evaluation.accuracy_rating);
+
+        if (!hasRating) return false;
+
+        // Apply date filters
+        if (filters.startDate && task.evaluation?.evaluation_timestamp) {
+          const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+          const startDate = new Date(filters.startDate);
+          if (evaluationDate < startDate) {
+            return false;
+          }
+        }
+        if (filters.endDate && task.evaluation?.evaluation_timestamp) {
+          const evaluationDate = new Date(task.evaluation.evaluation_timestamp);
+          const endDate = new Date(filters.endDate);
+          // Set end date to end of day for inclusive filtering
+          endDate.setHours(23, 59, 59, 999);
+          if (evaluationDate > endDate) {
+            return false;
+          }
+        }
+
+        return true;
+      }
     );
 
     const constraintUsage = this.calculateConstraintUsageStats(evaluatedTasks);

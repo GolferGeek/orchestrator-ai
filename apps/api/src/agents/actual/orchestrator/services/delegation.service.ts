@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { LLMService } from '../../../../llms/llm.service';
 import { SystemOperationType } from '../../../../types/llm-evaluation';
+import { ExternalA2AAgentBaseService } from '@agents/base/implementations/base-services/external/external-a2a-agent-base.service';
 
 interface AvailableAgent {
   name: string;
@@ -654,6 +655,7 @@ Select the most appropriate action and provide reasoning.`;
         sessionId,
         authToken,
         userLLMPreferences,
+        agent.url, // Pass the agent URL for external agent detection
       );
 
       this.logger.log(
@@ -661,29 +663,40 @@ Select the most appropriate action and provide reasoning.`;
         JSON.stringify(payload, null, 2),
       );
 
-      // Make the request to the agent
+      // Make the HTTP request
       const response = await this.httpService.axiosRef.post(
-        agent.url,
+        `${agent.url}/tasks`,
         payload,
         {
           headers: {
             'Content-Type': 'application/json',
             ...(authToken && { Authorization: `Bearer ${authToken}` }),
           },
-          timeout: 30000,
+          timeout: 30000, // 30 second timeout
         },
       );
 
-      this.logger.log(`Response from ${agent.name}:`, response.status);
-
-      // Process the response with delegation context
-      return this.processAgentResponse(
-        response.data,
-        agent,
-        userLLMPreferences?.delegationContext,
+      this.logger.log(
+        `Received response from ${agent.name}:`,
+        JSON.stringify(response.data, null, 2),
       );
-    } catch (error) {
+
+      // Process the response
+      return this.processAgentResponse(response.data, agent);
+    } catch (error: any) {
       this.logger.error(`Error delegating to ${agent.name}:`, error);
+      
+      // Log more details about the error
+      if (error.response) {
+        this.logger.error(`Response status: ${error.response.status}`);
+        this.logger.error(`Response data:`, error.response.data);
+        this.logger.error(`Response headers:`, error.response.headers);
+      } else if (error.request) {
+        this.logger.error(`No response received from ${agent.name}`);
+      } else {
+        this.logger.error(`Error setting up request to ${agent.name}:`, error.message);
+      }
+      
       return this.createErrorResponse(agent, error);
     }
   }
@@ -751,23 +764,32 @@ Select the most appropriate action and provide reasoning.`;
     // Extract LLM options/metadata from the delegated agent's response
     let llmOptions = null;
 
+    // Check for different response formats
     if (responseData?.result) {
-      // JSON-RPC format
+      // JSON-RPC format - handle both internal and external agent responses
+      const result = responseData.result;
+      
       // Check for LLM metadata in various possible locations
       llmOptions =
-        responseData.result.metadata?.llmOptions ||
-        responseData.result.metadata?.llmMetadata ||
-        responseData.result.llmOptions ||
-        responseData.result.llmMetadata;
+        result.metadata?.llmOptions ||
+        result.metadata?.llmMetadata ||
+        result.llmOptions ||
+        result.llmMetadata;
 
+      // Handle nested result structure from external agents
+      const actualResponse = result.response || result.result || result;
+      
       processedResponse = {
         success: true,
-        response: responseData.result.response || responseData.result,
+        response: actualResponse,
         metadata: {
-          ...responseData.result.metadata,
+          ...result.metadata,
           ...baseMetadata,
           // Include LLM options if found
           ...(llmOptions && { llmOptions }),
+          // Mark as external agent response
+          isExternalAgent: this.isExternalAgent(agent.url),
+          responseFormat: 'jsonrpc',
         },
       };
     } else if (responseData?.response) {
@@ -787,6 +809,20 @@ Select the most appropriate action and provide reasoning.`;
           ...baseMetadata,
           // Include LLM options if found
           ...(llmOptions && { llmOptions }),
+          responseFormat: 'direct',
+        },
+      };
+    } else if (responseData?.statusCode === 500) {
+      // Handle 500 error responses from external agents
+      processedResponse = {
+        success: false,
+        response: `The ${agent.name} service is currently experiencing issues. Please try again later.`,
+        metadata: {
+          ...baseMetadata,
+          error: responseData.message || 'Internal server error',
+          statusCode: 500,
+          delegationFailed: true,
+          isExternalAgent: this.isExternalAgent(agent.url),
         },
       };
     } else if (typeof responseData === 'string') {
@@ -883,22 +919,81 @@ Select the most appropriate action and provide reasoning.`;
     sessionId?: string,
     authToken?: string,
     userLLMPreferences?: any,
+    agentUrl?: string,
   ): any {
-    return {
-      jsonrpc: '2.0',
-      method: 'processTask',
-      params: {
-        message: request,
-        userMessage: request,
-        sessionId: sessionId,
-        authToken: authToken,
-        ...(userLLMPreferences && {
-          providerId: userLLMPreferences.providerId,
-          modelId: userLLMPreferences.modelId,
-          cidafmOptions: userLLMPreferences.cidafmOptions,
-        }),
-      },
-      id: `orchestrator-delegation-${Date.now()}`,
-    };
+    // Check if this is an external agent (different port or domain)
+    const isExternalAgent = this.isExternalAgent(agentUrl);
+    
+    if (isExternalAgent) {
+      // For external agents, use proper JSON-RPC 2.0 format for A2A protocol compliance
+      return {
+        jsonrpc: '2.0',
+        method: 'processTask',
+        params: {
+          method: 'handle_request',
+          params: {
+            message: request,
+            userMessage: request,
+            sessionId: sessionId,
+            authToken: authToken,
+            conversation_history: [],
+            ...(userLLMPreferences && {
+              providerId: userLLMPreferences.providerId,
+              modelId: userLLMPreferences.modelId,
+              cidafmOptions: userLLMPreferences.cidafmOptions,
+            }),
+          },
+        },
+        id: `orchestrator-delegation-${Date.now()}`,
+      };
+    } else {
+      // For internal agents, use JSON-RPC format
+      return {
+        jsonrpc: '2.0',
+        method: 'processTask',
+        params: {
+          message: request,
+          userMessage: request,
+          sessionId: sessionId,
+          authToken: authToken,
+          ...(userLLMPreferences && {
+            providerId: userLLMPreferences.providerId,
+            modelId: userLLMPreferences.modelId,
+            cidafmOptions: userLLMPreferences.cidafmOptions,
+          }),
+        },
+        id: `orchestrator-delegation-${Date.now()}`,
+      };
+    }
+  }
+
+  /**
+   * Check if the agent is external (different port or domain)
+   */
+  private isExternalAgent(agentUrl?: string): boolean {
+    if (!agentUrl) {
+      return false;
+    }
+    
+    try {
+      const url = new URL(agentUrl);
+      const currentPort = '4000'; // Orchestrator runs on port 4000
+      
+      // Check if it's a different port (external agent)
+      if (url.port && url.port !== currentPort) {
+        return true;
+      }
+      
+      // Check if it's a different hostname (external agent)
+      if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      // If URL parsing fails, assume it's external to be safe
+      this.logger.warn(`Failed to parse agent URL: ${agentUrl}`, error);
+      return true;
+    }
   }
 }

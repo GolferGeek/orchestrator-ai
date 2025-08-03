@@ -257,7 +257,7 @@
                   :color="getStepStatusColor(step.status)" 
                   size="small"
                 >
-                  {{ step.status }}
+                  {{ step.status || 'Unknown' }}
                 </ion-chip>
               </ion-item>
             </ion-list>
@@ -531,7 +531,11 @@ function getStatusColor(status: string): string {
   }
 }
 
-function getStepStatusColor(status: string): string {
+function getStepStatusColor(status: string | undefined): string {
+  if (!status) {
+    return 'medium'; // Default color for undefined/null status
+  }
+  
   switch (status.toLowerCase()) {
     case 'completed':
     case 'success':

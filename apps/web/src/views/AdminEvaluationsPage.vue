@@ -7,8 +7,11 @@
         </ion-buttons>
         <ion-title>Admin Evaluations</ion-title>
         <ion-buttons slot="end">
-          <ion-button fill="clear" @click="refreshData" :disabled="isLoading">
+          <ion-button fill="clear" @click="toggleAutoRefresh" :color="autoRefreshEnabled ? 'primary' : 'medium'">
             <ion-icon :icon="refreshOutline" slot="icon-only"></ion-icon>
+          </ion-button>
+          <ion-button fill="clear" @click="manualRefresh" :disabled="isLoading">
+            <ion-icon :icon="refreshOutline" slot="icon-only" :class="{ 'rotating': isLoading }"></ion-icon>
           </ion-button>
           <ion-button fill="clear" @click="showExportModal = true">
             <ion-icon :icon="downloadOutline" slot="icon-only"></ion-icon>
@@ -18,6 +21,17 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="ion-padding">
+      <!-- Last Refresh Indicator -->
+      <ion-item lines="none" class="refresh-indicator">
+        <ion-icon :icon="refreshOutline" slot="start" size="small" color="medium"></ion-icon>
+        <ion-label>
+          <small>Last updated: {{ formatLastRefreshTime() }}</small>
+        </ion-label>
+        <ion-note slot="end" color="medium">
+          <small>{{ autoRefreshEnabled ? 'Auto-refresh every 30s' : 'Auto-refresh disabled' }}</small>
+        </ion-note>
+      </ion-item>
+
       <!-- Tab Navigation -->
       <ion-segment v-model="activeTab" @ionChange="onTabChange">
         <ion-segment-button value="overview">
@@ -100,7 +114,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, reactive } from 'vue';
+import { onMounted, onUnmounted, ref, reactive, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
   IonHeader,
@@ -116,7 +131,9 @@ import {
   IonLabel,
   IonCard,
   IonCardContent,
-  IonText
+  IonText,
+  IonItem,
+  IonNote
 } from '@ionic/vue';
 import {
   refreshOutline,
@@ -134,9 +151,14 @@ import AdminExportModal from '@/components/Admin/AdminExportModal.vue';
 import { useAdminEvaluationStore } from '@/stores/adminEvaluationStore';
 
 const adminStore = useAdminEvaluationStore();
+const route = useRoute();
+const router = useRouter();
 
 // Reactive state
 const activeTab = ref('overview');
+const refreshInterval = ref<NodeJS.Timeout | null>(null);
+const lastRefreshTime = ref<Date>(new Date());
+const autoRefreshEnabled = ref(true);
 const showExportModal = ref(false);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
@@ -165,7 +187,83 @@ const filters = reactive({
 
 onMounted(async () => {
   await refreshData();
+  startAutoRefresh();
+  setupFocusRefresh();
 });
+
+onUnmounted(() => {
+  stopAutoRefresh();
+  cleanupFocusRefresh();
+});
+
+// Watch for route changes to refresh data when navigating to this page
+watch(() => route.path, async (newPath) => {
+  if (newPath === '/admin/evaluations') {
+    await refreshData();
+  }
+}, { immediate: true });
+
+// Auto-refresh functionality
+function startAutoRefresh() {
+  // Refresh every 30 seconds
+  refreshInterval.value = setInterval(async () => {
+    if (!isLoading.value && autoRefreshEnabled.value) {
+      await refreshData();
+      lastRefreshTime.value = new Date();
+    }
+  }, 30000); // 30 seconds
+}
+
+function stopAutoRefresh() {
+  if (refreshInterval.value) {
+    clearInterval(refreshInterval.value);
+    refreshInterval.value = null;
+  }
+}
+
+// Focus-based refresh functionality
+function setupFocusRefresh() {
+  // Refresh when window/tab becomes visible
+  const handleVisibilityChange = () => {
+    if (!document.hidden && !isLoading.value && autoRefreshEnabled.value) {
+      // Only refresh if it's been more than 10 seconds since last refresh
+      const timeSinceLastRefresh = Date.now() - lastRefreshTime.value.getTime();
+      if (timeSinceLastRefresh > 10000) {
+        refreshData();
+      }
+    }
+  };
+
+  // Refresh when window/tab gains focus
+  const handleFocus = () => {
+    if (!isLoading.value && autoRefreshEnabled.value) {
+      // Only refresh if it's been more than 30 seconds since last refresh
+      const timeSinceLastRefresh = Date.now() - lastRefreshTime.value.getTime();
+      if (timeSinceLastRefresh > 30000) {
+        refreshData();
+      }
+    }
+  };
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('focus', handleFocus);
+
+  // Store cleanup functions
+  const cleanupFunctions = () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('focus', handleFocus);
+  };
+
+  // Store cleanup function for onUnmounted
+  (window as any).__adminEvaluationsCleanup = cleanupFunctions;
+}
+
+function cleanupFocusRefresh() {
+  if ((window as any).__adminEvaluationsCleanup) {
+    (window as any).__adminEvaluationsCleanup();
+    delete (window as any).__adminEvaluationsCleanup;
+  }
+}
 
 async function refreshData() {
   isLoading.value = true;
@@ -187,11 +285,47 @@ async function refreshData() {
         await loadWorkflowData();
         break;
     }
+    lastRefreshTime.value = new Date();
   } catch (err: any) {
     error.value = err.message || 'Failed to load admin data';
     console.error('Admin data loading error:', err);
   } finally {
     isLoading.value = false;
+  }
+}
+
+async function manualRefresh() {
+  // Stop auto-refresh temporarily to avoid conflicts
+  stopAutoRefresh();
+  await refreshData();
+  // Restart auto-refresh
+  startAutoRefresh();
+}
+
+function formatLastRefreshTime(): string {
+  if (!lastRefreshTime.value) return 'Never';
+  
+  const now = new Date();
+  const diffMs = now.getTime() - lastRefreshTime.value.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  
+  if (diffSeconds < 60) {
+    return `${diffSeconds} seconds ago`;
+  } else if (diffSeconds < 3600) {
+    const minutes = Math.floor(diffSeconds / 60);
+    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  } else {
+    const hours = Math.floor(diffSeconds / 3600);
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  }
+}
+
+function toggleAutoRefresh() {
+  autoRefreshEnabled.value = !autoRefreshEnabled.value;
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh();
+  } else {
+    stopAutoRefresh();
   }
 }
 
@@ -260,5 +394,23 @@ ion-segment {
 
 .error-card {
   margin: 20px 0;
+}
+
+.refresh-indicator {
+  --background: transparent;
+  margin-bottom: 8px;
+}
+
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
