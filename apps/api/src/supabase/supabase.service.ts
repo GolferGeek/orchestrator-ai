@@ -45,7 +45,16 @@ export class SupabaseService implements OnModuleInit {
         this.logger.log(
           `Attempting to create Supabase anon client for URL: ${url.substring(0, 20)}...`,
         );
-        this.anonClient = createClient(url, anonKey);
+        this.anonClient = createClient(url, anonKey, {
+          global: {
+            fetch: (url, options = {}) => {
+              return fetch(url, {
+                ...options,
+                signal: AbortSignal.timeout(60000), // 60 second timeout
+              });
+            },
+          },
+        });
         this.logger.log('Supabase anon client created successfully');
       } catch (error) {
         const errorMessage =
@@ -69,7 +78,16 @@ export class SupabaseService implements OnModuleInit {
         this.logger.log(
           `Attempting to create Supabase service client for URL: ${url.substring(0, 20)}...`,
         );
-        this.serviceClient = createClient(url, serviceKey);
+        this.serviceClient = createClient(url, serviceKey, {
+          global: {
+            fetch: (url, options = {}) => {
+              return fetch(url, {
+                ...options,
+                signal: AbortSignal.timeout(60000), // 60 second timeout
+              });
+            },
+          },
+        });
         this.logger.log('Supabase service client created successfully');
       } catch (error) {
         const errorMessage =

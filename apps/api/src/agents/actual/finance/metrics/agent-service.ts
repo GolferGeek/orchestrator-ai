@@ -10,7 +10,8 @@ import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-proto
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
-import { MCPClientService } from '@/mcp/client/mcp-client.service';
+import { SupabaseToolsService } from '@/langchain/services/supabase-tools.service';
+import { AgentFunctionParams, AgentFunctionResponse } from '@agents/base/implementations/base-services/a2a-base/interfaces';
 
 @Injectable()
 export class MetricsAgentService extends FunctionAgentBaseService {
@@ -23,9 +24,7 @@ export class MetricsAgentService extends FunctionAgentBaseService {
     tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
-    @Optional()
-    @Inject(MCPClientService)
-    mcpClientService: MCPClientService | undefined,
+    private readonly supabaseTools: SupabaseToolsService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -38,7 +37,7 @@ export class MetricsAgentService extends FunctionAgentBaseService {
       taskProgressGateway,
       tasksService,
       taskStatusService,
-      mcpClientService,
+      undefined, // No longer using MCP client service
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,
@@ -46,15 +45,17 @@ export class MetricsAgentService extends FunctionAgentBaseService {
       configurationService,
     );
 
-    // Set total steps for Metrics Agent workflow
-    this.setTotalSteps(4);
+    // Set total steps for Enhanced Metrics Agent workflow
+    this.setTotalSteps(5);
   }
 
   getAgentName(): string {
-    return 'Metrics Agent';
+    return 'Enhanced Metrics Agent';
   }
 
   getAgentType(): 'finance' {
     return 'finance';
   }
+
+
 }
