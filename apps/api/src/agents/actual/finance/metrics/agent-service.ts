@@ -1,4 +1,4 @@
-import { Injectable, Inject, forwardRef, Optional } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { FunctionAgentBaseService } from '@agents/base/implementations/base-services/function';
 import { LLMService } from '@/llms/llm.service';
@@ -10,8 +10,6 @@ import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-proto
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
-import { SupabaseToolsService } from '@/langchain/services/supabase-tools.service';
-import { AgentFunctionParams, AgentFunctionResponse } from '@agents/base/implementations/base-services/a2a-base/interfaces';
 
 @Injectable()
 export class MetricsAgentService extends FunctionAgentBaseService {
@@ -24,7 +22,6 @@ export class MetricsAgentService extends FunctionAgentBaseService {
     tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
-    private readonly supabaseTools: SupabaseToolsService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -56,6 +53,5 @@ export class MetricsAgentService extends FunctionAgentBaseService {
   getAgentType(): 'finance' {
     return 'finance';
   }
-
 
 }

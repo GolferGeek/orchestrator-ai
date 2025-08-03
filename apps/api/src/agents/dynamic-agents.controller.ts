@@ -20,7 +20,6 @@ import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
 import { SessionsService } from '../sessions/sessions.service';
 import { TasksService } from '../tasks/tasks.service';
 import { TaskStatusService } from '../tasks/task-status.service';
-import { SupabaseToolsService } from '../langchain/services/supabase-tools.service';
 import {
   CreateTaskDto,
   AgentType,
@@ -36,7 +35,6 @@ export class DynamicAgentsController {
     private readonly sessionsService: SessionsService,
     private readonly tasksService: TasksService,
     private readonly taskStatusService: TaskStatusService,
-    private readonly supabaseTools: SupabaseToolsService,
   ) {}
 
   /**
