@@ -4,7 +4,6 @@ import { SupabaseModule } from '@/supabase/supabase.module';
 import { LLMModule } from '@/llms/llm.module';
 
 // Core LangChain services
-import { SupabaseToolsService } from './services/supabase-tools.service';
 import { LangChainNotionService } from './services/notion-tools.service';
 import { LangChainClientService } from './services/langchain-client.service';
 
@@ -26,12 +25,10 @@ import { LangChainClientService } from './services/langchain-client.service';
     LLMModule,       // For language model access
   ],
   providers: [
-    SupabaseToolsService,
     LangChainNotionService,
     LangChainClientService,
   ],
   exports: [
-    SupabaseToolsService,
     LangChainNotionService,
     LangChainClientService,
   ],

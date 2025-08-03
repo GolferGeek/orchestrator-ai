@@ -2,21 +2,25 @@ import {
   AgentFunctionParams,
   AgentFunctionResponse,
 } from '@agents/base/implementations/base-services/a2a-base/interfaces';
-import { SupabaseToolsService } from '@/langchain/services/supabase-tools.service';
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from '@/app.module';
+import { 
+  initializeForAgent, 
+  executeSQL, 
+  getDatabaseSchemaInfo,
+  generateAndExecuteSQL 
+} from '@/supabase/utils/supabase-tools';
 
 /**
- * Metrics Agent Function - LangChain.js implementation with Supabase Tools
+ * Metrics Agent Function - Direct utility functions with Supabase Tools
  *
  * This agent provides comprehensive business metrics analysis, KPI tracking, and data-driven insights
- * using natural language to SQL conversion with LangChain.js and Supabase.
+ * using natural language to SQL conversion with LangChain.js and Supabase utility functions.
  *
  * Key capabilities:
- * - Natural language to SQL query generation
- * - Real-time database analysis from Supabase
+ * - Natural language to SQL query generation using utility functions
+ * - Real-time database analysis from Supabase via direct client access
  * - Performance tracking and trend analysis
  * - Data-driven insights and reporting
+ * - No dependency injection - uses global state with lazy initialization
  */
 export async function execute(
   params: AgentFunctionParams,
@@ -28,63 +32,50 @@ export async function execute(
   console.log('🔧 LLM Service available:', !!llmService);
   console.log('📊 Metadata:', JSON.stringify(metadata, null, 2));
 
-  // This agent now uses the service class's built-in SupabaseToolsService instead of MCP
-  console.log('✅ Using LangChain.js Supabase Tools integration');
+  // This agent now uses utility functions with global state instead of NestJS services
+  console.log('✅ Using LangChain.js Supabase Tools utility functions');
 
   try {
-    // Get the NestJS application context to access SupabaseToolsService
-    const app = await NestFactory.createApplicationContext(AppModule, {
-      logger: false, // Disable logging during service resolution
-    });
-    const supabaseTools = app.get(SupabaseToolsService);
-    
-    if (!supabaseTools) {
-      console.log('❌ SupabaseToolsService is not available');
-      progressCallback?.(
-        'Database connection',
-        0,
-        'failed',
-        'SupabaseToolsService not available - LangChain SQL generation unavailable',
-      );
-      throw new Error(
-        'SupabaseToolsService is required for Metrics Agent. Database access not available.',
-      );
-    }
-
-    console.log('✅ SupabaseToolsService is available, proceeding with LangChain operations');
-
-    // Step 1: Initialize database connection and validate schema
+    // Step 1: Initialize database connection with Metrics Agent scope
     progressCallback?.(
       'Database connection',
       0,
       'in_progress',
-      'Connecting to Supabase via LangChain.js...',
+      'Initializing Metrics Agent with KPI & Analytics domain scope...',
     );
 
-    // Initialize the Supabase Tools service
-    console.log('🔄 Initializing LangChain Supabase Tools...');
-    await supabaseTools.initialize();
+    // Initialize the Supabase Tools utilities with agent-specific scope
+    await initializeForAgent({
+      includeDomains: ['KPI & Analytics'],
+      agentName: 'Enhanced Metrics Agent'
+    });
+    
+    console.log('✅ Metrics Agent initialized with KPI & Analytics domain scope using utility functions');
 
     const schemaResult = { success: true, data: { validated: true } };
 
     console.log('📊 Schema initialized with LangChain.js');
     console.log('✅ Database connection established');
 
-    // Step 1.5: Validate database access with simple query
-    console.log('🔍 VALIDATING: Testing database connectivity...');
+    // Step 1.5: Validate database access with KPI-focused query
+    console.log('🔍 VALIDATING: Testing KPI database connectivity...');
     const requiredTables = [
-      'users', 'tasks', 'conversations', 'agents', 'providers',
+      'companies', 'departments', 'kpi_data', 'kpi_metrics', 'kpi_goals',
     ];
 
     try {
-      // Test basic connectivity with a simple query
-      const testResult = await supabaseTools.generateAndExecuteSQL(
-        'Show me the count of users in the database',
+      // Test basic connectivity with a KPI-focused query
+      const testResult = await generateAndExecuteSQL(
+        'Show me the count of companies in the database',
         {
           executeQuery: true,
           maxRows: 1,
           provider: 'openai',
           model: 'gpt-4',
+          config: {
+            includeDomains: ['KPI & Analytics'],
+            agentName: 'Enhanced Metrics Agent'
+          }
         }
       );
 
@@ -195,11 +186,15 @@ Respond with JSON only:
       'Generating SQL from natural language...',
     );
 
-    const userQueryResult = await supabaseTools.generateAndExecuteSQL(userMessage, {
+    const userQueryResult = await generateAndExecuteSQL(userMessage, {
       executeQuery: true,
       maxRows: 100,
       provider: 'openai',
       model: 'gpt-4',
+      config: {
+        includeDomains: ['KPI & Analytics'],
+        agentName: 'Enhanced Metrics Agent'
+      }
     });
 
     if (userQueryResult.error) {
@@ -296,7 +291,7 @@ Answer the user's specific question directly and provide insights from the data.
             : Date.now()),
         toolsUsed: [
           'LangChain.js',
-          'SupabaseToolsService',
+          'Supabase Tools Utilities',
           'PostgreSQL',
           'Natural Language to SQL',
         ],
@@ -387,7 +382,7 @@ ${errorMessage}
             : Date.now()),
         toolsUsed: [
           'LangChain.js (Failed)',
-          'SupabaseToolsService (Failed)',
+          'Supabase Tools Utilities (Failed)',
         ],
         responseType: 'error',
         langchainEnabled: false,

@@ -12,7 +12,6 @@ import { AgentRegistrationService } from './agents/base/sub-services/agent-regis
 import { TaskProgressGateway } from './websocket/task-progress.gateway';
 import { TasksService } from './tasks/tasks.service';
 import { TaskStatusService } from './tasks/task-status.service';
-import { SupabaseToolsService } from '@/langchain/services/supabase-tools.service';
 // Note: MCPClientService removed - replaced with LangChain.js services
 
 export interface DiscoveredAgent {
@@ -67,9 +66,8 @@ export class AgentFactoryService {
     private readonly taskProgressGateway: TaskProgressGateway,
     private readonly tasksService: TasksService,
     private readonly taskStatusService: TaskStatusService,
-    @Inject(SupabaseToolsService)
-    private readonly supabaseToolsService: SupabaseToolsService,
     // mcpClientService removed - using LangChain.js services instead
+    // supabaseToolsService removed - using utility functions instead
   ) {
     this.logger.log('🏭 AgentFactoryService initialized');
   }
@@ -256,7 +254,6 @@ export class AgentFactoryService {
             this.taskProgressGateway,
             this.tasksService,
             this.taskStatusService,
-            this.supabaseToolsService, // LangChain SupabaseToolsService
             this.agentRegistrationService,
             undefined, // jsonRpcProtocolService
             undefined, // loggingService
