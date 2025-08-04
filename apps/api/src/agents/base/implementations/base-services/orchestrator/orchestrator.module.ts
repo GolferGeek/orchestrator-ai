@@ -12,6 +12,7 @@ import { AgentConversationsModule } from '../../../../../agent-conversations/age
 import { CIDAFMModule } from '../../../../../cidafm/cidafm.module';
 import { AgentDiscoveryService } from '../../../../../agent-discovery.service';
 import { AgentFactoryService } from '../../../../../agent-factory.service';
+import { AgentPoolModule } from '../../../../../agent-pool/agent-pool.module';
 
 // Orchestrator services
 import { OrchestratorAgentBaseService } from './orchestrator-agent-base.service';
@@ -19,11 +20,12 @@ import { IntentRecognitionService } from './intent-recognition.service';
 import { PlanningService } from './planning.service';
 import { PlanExecutionService } from './plan-execution.service';
 import { DelegationService } from './delegation.service';
+import { SubprojectManagementService } from './subproject-management.service';
 import { OrchestratorFacadeService } from './orchestrator-facade.service';
 
 /**
  * Orchestrator Module - Wires together all orchestrator services
- * 
+ *
  * Provides the complete orchestrator infrastructure following the
  * conversation + tasks paradigm with project enhancements.
  */
@@ -38,6 +40,7 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     AuthModule, // Required for AgentFactoryService
     AgentConversationsModule, // Required for AgentFactoryService
     CIDAFMModule, // Required for AgentFactoryService
+    AgentPoolModule, // Required for SubprojectManagementService
   ],
   providers: [
     // Core services
@@ -45,16 +48,17 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     PlanningService,
     PlanExecutionService,
     DelegationService,
+    SubprojectManagementService,
     AgentDiscoveryService, // Required for planning and delegation services
     AgentFactoryService, // Required for delegation service
-    
+
     // Facade service (main coordinator)
     OrchestratorFacadeService,
     {
       provide: 'IOrchestratorFacadeService',
       useExisting: OrchestratorFacadeService,
     },
-    
+
     // Service interfaces for dependency injection
     {
       provide: 'IIntentRecognitionService',
@@ -72,6 +76,10 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
       provide: 'IDelegationService',
       useExisting: DelegationService,
     },
+    {
+      provide: 'ISubprojectManagementService',
+      useExisting: SubprojectManagementService,
+    },
   ],
   exports: [
     // Export services for external use
@@ -79,14 +87,16 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     PlanningService,
     PlanExecutionService,
     DelegationService,
+    SubprojectManagementService,
     OrchestratorFacadeService,
-    
+
     // Export interface tokens
     'IOrchestratorFacadeService',
     'IIntentRecognitionService',
     'IPlanningService',
     'IPlanExecutionService',
     'IDelegationService',
+    'ISubprojectManagementService',
   ],
 })
 export class OrchestratorModule {}
