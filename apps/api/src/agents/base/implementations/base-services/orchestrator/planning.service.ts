@@ -180,7 +180,8 @@ Provide your analysis in the required JSON format.`;
         {
           temperature: 0.3, // Moderate creativity for planning
           maxTokens: 600,
-          provider: 'anthropic' // Use direct Anthropic path to avoid Supabase dependency
+          provider: 'anthropic', // Use direct Anthropic path to avoid Supabase dependency
+          model: 'claude-3-5-sonnet-20241022' // Use current model, not modelId to avoid enhanced routing
         }
       );
 
@@ -264,7 +265,8 @@ Create 3-5 steps using the available agents. Return only the JSON structure.`;
         {
           temperature: 0.4,
           maxTokens: 1200,
-          provider: 'anthropic'
+          provider: 'anthropic',
+          model: 'claude-3-5-sonnet-20241022'
         }
       );
 
@@ -316,7 +318,8 @@ Return the improved plan in the same JSON format.`;
         {
           temperature: 0.2, // Low temperature for validation
           maxTokens: 1200,
-          provider: 'anthropic'
+          provider: 'anthropic',
+          model: 'claude-3-5-sonnet-20241022'
         }
       );
 
@@ -363,7 +366,8 @@ What changes is the user requesting?`;
         {
           temperature: 0.2,
           maxTokens: 400,
-          provider: 'anthropic'
+          provider: 'anthropic',
+          model: 'claude-3-5-sonnet-20241022'
         }
       );
 
@@ -420,7 +424,8 @@ Return the expanded plan with all original steps PLUS new steps for the requeste
         {
           temperature: 0.3,
           maxTokens: 1500,
-          provider: 'anthropic'
+          provider: 'anthropic',
+          model: 'claude-3-5-sonnet-20241022'
         }
       );
 
@@ -463,7 +468,8 @@ Create an engaging, clear presentation that helps the user understand and approv
         {
           temperature: 0.4,
           maxTokens: 800,
-          provider: 'anthropic'
+          provider: 'anthropic',
+          model: 'claude-3-5-sonnet-20241022'
         }
       );
 

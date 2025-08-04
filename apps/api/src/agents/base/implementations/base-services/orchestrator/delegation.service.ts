@@ -624,7 +624,7 @@ Can the ${agentName} agent handle this request?`;
           temperature: 0.1, // Low temperature for consistent assessment
           maxTokens: 200, // Keep responses brief
           provider: queryLLMProvider,
-          modelId: queryLLMModel,
+          model: queryLLMModel,
         },
       );
 
