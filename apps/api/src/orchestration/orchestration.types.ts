@@ -46,11 +46,14 @@ export interface OrchestratorInput {
  * Uses LLM calls to classify user intent, not logic trees
  */
 export interface IntentDirective {
-  action: 'CREATE_PROJECT' | 'RESUME_PROJECT' | 'DELEGATE' | 'CONVERSE' | 'CONTINUE_DELEGATION';
+  action: 'CREATE_PROJECT' | 'RESUME_PROJECT' | 'DELEGATE' | 'CONVERSE' | 'CONTINUE_DELEGATION' | 'CLARIFY';
   agentName?: string;            // For delegation actions
   projectId?: string;            // For project actions
   reasoning: string;             // LLM reasoning for transparency
   confidence: number;            // Classification confidence (0-1)
+  // For CLARIFY actions - present user with choices
+  suggestedAgent?: string;       // Recommended agent for delegation option
+  projectOutline?: string;       // Brief description of project approach
 }
 
 /**
@@ -70,6 +73,18 @@ export interface OrchestratorResponse {
   conversationId?: string;       // Conversation context
   userId?: string;               // User context
   sessionId?: string;            // Session context
+  // For clarification responses
+  requiresUserChoice?: boolean;  // If true, user must make a choice
+  options?: {                    // Available options for user
+    delegate?: {
+      agentName: string;
+      description: string;
+    };
+    project?: {
+      outline: string;
+      description: string;
+    };
+  };
   metadata?: {
     agentType: 'orchestrator';
     agentName: string;
@@ -197,7 +212,7 @@ export interface ConversationMessage {
  * Intent Recognition Service - LLM-based classification
  */
 export interface IIntentRecognitionService {
-  classifyIntent(input: OrchestratorInput): Promise<IntentDirective>;
+  classifyIntent(input: OrchestratorInput, delegationContext?: string): Promise<IntentDirective>;
 }
 
 /**
@@ -237,7 +252,7 @@ export interface IDelegationService {
  * Routes through single A2A entry point
  */
 export interface IOrchestratorFacadeService {
-  processRequest(method: OrchestratorA2AMethod, input: OrchestratorInput): Promise<OrchestratorResponse>;
+  processRequest(method: OrchestratorA2AMethod, input: OrchestratorInput, delegationContext?: string): Promise<OrchestratorResponse>;
 }
 
 // ============================================================================
