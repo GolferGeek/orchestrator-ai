@@ -62,23 +62,26 @@ export class PlanningService implements IPlanningService {
    * 
    * Continues the collaborative planning conversation with iterative improvements.
    */
-  async refinePlan(planId: string, feedback: string, input: OrchestratorInput): Promise<PlanDefinition> {
+  async refinePlan(planId: string, feedback: string, input: OrchestratorInput, originalPlan?: PlanDefinition): Promise<PlanDefinition> {
     this.logger.log(`Refining plan ${planId} with feedback: "${feedback.substring(0, 100)}..."`);
     
     try {
-      // TODO: Load existing plan from database first
-      // For now, create a new plan incorporating the feedback
+      // For testing, use the original plan if provided
+      // In production, this would load from database using planId
+      if (!originalPlan) {
+        // Create a basic plan as fallback (for when no original plan is available)
+        const goalAnalysis = await this.analyzeGoalRequirements(input);
+        const availableAgents = await this.getAvailableAgents();
+        originalPlan = await this.generatePlanStructure(input, goalAnalysis, availableAgents);
+      }
       
-      // Analyze the feedback to understand requested changes
-      const feedbackAnalysis = await this.analyzeFeedback(feedback, input);
-      
-      // Get available agents again (might have changed)
+      // Get available agents
       const availableAgents = await this.getAvailableAgents();
       
-      // Incorporate feedback into new plan
-      const refinedPlan = await this.incorporateFeedback(feedbackAnalysis, input, availableAgents);
+      // Incorporate feedback into existing plan
+      const refinedPlan = await this.incorporateFeedback(feedback, input, availableAgents, originalPlan);
       
-      this.logger.log(`Refined plan with ${refinedPlan.steps.length} steps based on feedback`);
+      this.logger.log(`Refined plan with ${refinedPlan.steps.length} steps (was ${originalPlan.steps.length}) based on feedback`);
       return refinedPlan;
       
     } catch (error) {
@@ -132,14 +135,32 @@ Your job is to understand:
 3. What types of skills/agents will be needed
 4. Rough timeline and number of steps
 
-RESPONSE FORMAT: Return a JSON object with:
+CRITICAL JSON FORMATTING REQUIREMENTS:
+- You MUST respond with valid JSON only
+- No markdown formatting, no code blocks, no extra text
+- Ensure all strings are properly quoted
+- Ensure all arrays and objects are properly closed
+- Double-check for trailing commas or missing commas
+
+RESPONSE FORMAT: Return ONLY a JSON object with:
 - projectName: Concise, professional project name (max 50 chars)
 - description: Clear goal statement
 - scope: Brief scope description
 - complexity: "simple" (1-3 steps), "moderate" (4-7 steps), or "complex" (8+ steps)
 - estimatedSteps: Number estimate
 - requiredSkills: Array of skill types needed
-- timeline: Rough time estimate (e.g., "2-3 days", "1-2 weeks")`;
+- timeline: Rough time estimate (e.g., "2-3 days", "1-2 weeks")
+
+EXAMPLE VALID JSON:
+{
+  "projectName": "Product Launch Campaign",
+  "description": "Comprehensive marketing campaign for new AI product",
+  "scope": "Multi-channel marketing with research, content, and promotion",
+  "complexity": "complex",
+  "estimatedSteps": 8,
+  "requiredSkills": ["market_research", "content_creation", "social_media", "competitive_analysis"],
+  "timeline": "4-6 weeks"
+}`;
 
     const userMessage = `ANALYZE THIS PROJECT GOAL:
 "${input.prompt}"
@@ -159,8 +180,7 @@ Provide your analysis in the required JSON format.`;
         {
           temperature: 0.3, // Moderate creativity for planning
           maxTokens: 600,
-          providerId: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022'
+          provider: 'anthropic' // Use direct Anthropic path to avoid Supabase dependency
         }
       );
 
@@ -191,15 +211,8 @@ Provide your analysis in the required JSON format.`;
         description: agent.metadata?.description
       }));
     } catch (error) {
-      this.logger.warn('Failed to get agents, using fallback list:', error);
-      
-      // Fallback agent list if discovery fails
-      return [
-        { name: 'research_agent', type: 'research', displayName: 'Research Agent' },
-        { name: 'marketing_swarm', type: 'marketing', displayName: 'Marketing Swarm' },
-        { name: 'blog_post_writer', type: 'marketing', displayName: 'Blog Post Writer' },
-        { name: 'content_writer', type: 'marketing', displayName: 'Content Writer' },
-      ];
+      this.logger.error('Agent discovery failed:', error);
+      throw new Error(`Failed to discover agents for planning: ${error instanceof Error ? error.message : 'Unknown error'}. Agent discovery must work for planning to function.`);
     }
   }
 
@@ -211,57 +224,53 @@ Provide your analysis in the required JSON format.`;
     goalAnalysis: any,
     availableAgents: any[]
   ): Promise<PlanDefinition> {
-    const systemPrompt = `You are a project planner. Create detailed execution plans with specific agent assignments.
+    const systemPrompt = `You are a project planner. Create marketing campaign plans.
 
-AVAILABLE AGENTS:
-${availableAgents.map(agent => `- ${agent.displayName} (${agent.type}): ${agent.description || 'General ' + agent.type + ' tasks'}`).join('\n')}
+CRITICAL: Respond with ONLY valid JSON. No markdown, no explanations, no extra text.
 
-PLAN STRUCTURE:
-Create a step-by-step plan where each step is either:
-1. agent_step: Task for a specific agent
-2. human_approval: User review/approval point
+AVAILABLE AGENTS: marketing_swarm, blog_post_writer, content_writer, market_research, competitors
 
-STEP GUIDELINES:
-- Use specific agent names from the available list
-- Make prompts clear and actionable
-- Include user approval steps for major milestones
-- Steps should be 15-60 minutes of work each
-- Consider logical sequencing and dependencies
+JSON STRUCTURE REQUIRED:
+{
+  "projectName": "string",
+  "description": "string", 
+  "steps": [
+    {
+      "stepId": "step-1",
+      "stepName": "string",
+      "stepType": "agent_step",
+      "agentName": "string",
+      "prompt": "string",
+      "dependencies": [],
+      "status": "pending"
+    }
+  ],
+  "metadata": {}
+}`;
 
-RESPONSE FORMAT: JSON object with:
-- projectName: From analysis
-- description: From analysis  
-- steps: Array of step objects with:
-  - stepId: Unique ID (step_1, step_2, etc.)
-  - stepName: Human-readable name
-  - stepType: "agent_step" or "human_approval"
-  - agentName: Specific agent name (for agent_step only)
-  - prompt: Clear instruction for the step
-  - dependencies: Array of stepIds this depends on
-  - metadata: Additional context`;
+    const userMessage = `Create a marketing campaign plan for: ${input.prompt}
 
-    const userMessage = `CREATE EXECUTION PLAN FOR:
-
-GOAL ANALYSIS:
-${JSON.stringify(goalAnalysis, null, 2)}
-
-ORIGINAL REQUEST:
-"${input.prompt}"
-
-Generate a detailed plan with ${goalAnalysis.estimatedSteps} steps (approximately).
-Focus on practical execution with the available agents.`;
+Create 3-5 steps using the available agents. Return only the JSON structure.`;
 
     try {
+      this.logger.log(`=== PLAN GENERATION DEBUG ===`);
+      this.logger.log(`System prompt length: ${systemPrompt.length}`);
+      this.logger.log(`User message length: ${userMessage.length}`);
+      this.logger.log(`Available agents: ${JSON.stringify(availableAgents, null, 2)}`);
+      
       const response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
         {
           temperature: 0.4,
           maxTokens: 1200,
-          providerId: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022'
+          provider: 'anthropic'
         }
       );
+
+      this.logger.log(`LLM response length: ${response.length}`);
+      this.logger.log(`LLM response (first 500 chars): ${response.substring(0, 500)}`);
+      this.logger.log(`LLM response (last 500 chars): ${response.substring(Math.max(0, response.length - 500))}`);
 
       return this.parsePlanStructure(response, input);
     } catch (error) {
@@ -307,15 +316,14 @@ Return the improved plan in the same JSON format.`;
         {
           temperature: 0.2, // Low temperature for validation
           maxTokens: 1200,
-          providerId: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022'
+          provider: 'anthropic'
         }
       );
 
-      return this.parseValidatedPlan(response, planStructure);
+      return this.parseValidatedPlan(response);
     } catch (error) {
-      this.logger.warn('Plan validation failed, using original plan:', error);
-      return planStructure; // Return original if validation fails
+      this.logger.error('Plan validation failed:', error);
+      throw new Error(`Plan validation failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM must be able to validate and optimize plans.`);
     }
   }
 
@@ -355,8 +363,7 @@ What changes is the user requesting?`;
         {
           temperature: 0.2,
           maxTokens: 400,
-          providerId: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022'
+          provider: 'anthropic'
         }
       );
 
@@ -371,18 +378,57 @@ What changes is the user requesting?`;
    * Incorporate feedback into a refined plan
    */
   private async incorporateFeedback(
-    feedbackAnalysis: any,
+    feedback: string,
     input: OrchestratorInput,
-    availableAgents: any[]
+    availableAgents: any[],
+    originalPlan: PlanDefinition
   ): Promise<PlanDefinition> {
-    // For now, create a new plan with feedback context
-    const modifiedInput = {
-      ...input,
-      prompt: `${input.prompt}\n\nUser feedback to incorporate: ${feedbackAnalysis.specificChanges.join(', ')}`
-    };
+    const systemPrompt = `You are a project plan refinement specialist. Your job is to take an EXISTING plan and EXPAND it based on user feedback.
 
-    const goalAnalysis = await this.analyzeGoalRequirements(modifiedInput);
-    return await this.generatePlanStructure(modifiedInput, goalAnalysis, availableAgents);
+CRITICAL: Return ONLY valid JSON. No markdown, no explanations.
+
+AVAILABLE AGENTS: marketing_swarm, blog_post_writer, content_writer, market_research, competitors
+
+INSTRUCTIONS:
+1. Keep ALL original steps from the existing plan
+2. Add NEW steps based on the user feedback
+3. Update dependencies appropriately
+4. The refined plan should have MORE steps than the original
+
+JSON STRUCTURE:
+{
+  "projectName": "string",
+  "description": "string",
+  "steps": [array of step objects],
+  "metadata": {}
+}`;
+
+    const userMessage = `EXPAND THIS EXISTING PLAN:
+
+ORIGINAL PLAN:
+${JSON.stringify(originalPlan, null, 2)}
+
+USER FEEDBACK TO INCORPORATE:
+"${feedback}"
+
+Return the expanded plan with all original steps PLUS new steps for the requested additions. The refined plan should have at least ${originalPlan.steps.length + 2} steps.`;
+
+    try {
+      const response = await this.llmService.generateResponse(
+        systemPrompt,
+        userMessage,
+        {
+          temperature: 0.3,
+          maxTokens: 1500,
+          provider: 'anthropic'
+        }
+      );
+
+      return this.parsePlanStructure(response, input);
+    } catch (error) {
+      this.logger.error('Feedback incorporation failed:', error);
+      throw new Error(`Failed to incorporate feedback: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   // ============================================================================
@@ -417,8 +463,7 @@ Create an engaging, clear presentation that helps the user understand and approv
         {
           temperature: 0.4,
           maxTokens: 800,
-          providerId: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022'
+          provider: 'anthropic'
         }
       );
 
@@ -480,10 +525,22 @@ Create an engaging, clear presentation that helps the user understand and approv
 
   private parsePlanStructure(response: string, input: OrchestratorInput): PlanDefinition {
     try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found in response');
+      // Clean the response and try to extract JSON
+      const cleanedResponse = response.replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        this.logger.warn('No JSON found in LLM plan response, trying full response as JSON');
+        this.logger.debug(`Response content: ${response.substring(0, 500)}...`);
+        throw new Error('No JSON found in response');
+      }
       
-      const parsed = JSON.parse(jsonMatch[0]);
+      let jsonString = jsonMatch[0];
+      // Additional cleaning for common JSON issues
+      jsonString = jsonString.replace(/[\n\r\t]/g, ' '); // Replace newlines/tabs with spaces
+      jsonString = jsonString.replace(/\s+/g, ' '); // Normalize whitespace
+      
+      this.logger.debug(`Attempting to parse plan JSON: ${jsonString.substring(0, 200)}...`);
+      const parsed = JSON.parse(jsonString);
       
       // Validate and enhance the plan
       const plan: PlanDefinition = {
@@ -501,20 +558,27 @@ Create an engaging, clear presentation that helps the user understand and approv
       return plan;
     } catch (error) {
       this.logger.error('Failed to parse plan structure:', error);
-      throw new Error(`Plan parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.debug(`Raw LLM response causing parse failure: ${response.substring(0, 1000)}...`);
+      throw new Error(`Plan parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM generated malformed JSON that cannot be parsed.`);
     }
   }
 
-  private parseValidatedPlan(response: string, fallback: PlanDefinition): PlanDefinition {
+  private parseValidatedPlan(response: string): PlanDefinition {
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return fallback;
+      if (!jsonMatch) {
+        this.logger.error('No JSON found in plan validation response');
+        throw new Error('Plan validation response contained no JSON');
+      }
       
       const parsed = JSON.parse(jsonMatch[0]);
-      return parsed.projectName ? parsed : fallback;
+      if (!parsed.projectName) {
+        throw new Error('Plan validation response missing required projectName field');
+      }
+      return parsed;
     } catch (error) {
-      this.logger.warn('Validation parsing failed, using fallback:', error);
-      return fallback;
+      this.logger.error('Plan validation parsing failed:', error);
+      throw new Error(`Plan validation parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM must generate valid JSON.`);
     }
   }
 
