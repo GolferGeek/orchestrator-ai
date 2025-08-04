@@ -38,6 +38,47 @@ export class DynamicAgentsController {
   ) {}
 
   /**
+   * Get agent hierarchy
+   * Route: GET /agents/.well-known/hierarchy
+   */
+  @Get('.well-known/hierarchy')
+  @Public()  
+  async getAgentHierarchy() {
+    this.logger.debug('Getting agent hierarchy');
+    
+    try {
+      // Ensure agents are discovered and hierarchy is built
+      await this.agentDiscovery.discoverAgents();
+      
+      const hierarchy = this.agentDiscovery.getAgentHierarchy();
+      
+      return {
+        success: true,
+        data: hierarchy,
+        metadata: {
+          totalAgents: this.agentDiscovery.getDiscoveredAgents().length,
+          rootNodes: hierarchy.length,
+          timestamp: new Date().toISOString(),
+        }
+      };
+    } catch (error) {
+      this.logger.error('Failed to get agent hierarchy:', error);
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        data: [],
+        metadata: {
+          totalAgents: 0,
+          rootNodes: 0,
+          timestamp: new Date().toISOString(),
+        }
+      };
+    }
+  }
+
+
+  /**
    * Handle tasks for any discovered agent
    * Route: POST /agents/:agentType/:agentName/tasks
    */

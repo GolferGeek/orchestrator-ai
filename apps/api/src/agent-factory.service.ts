@@ -212,38 +212,9 @@ export class AgentFactoryService {
     try {
       switch (config.type) {
         case 'orchestrator': {
-          this.logger.debug(`🎯 Creating orchestrator agent`);
-          // Import and create the modular services for orchestrator
-          const { ConversationContextService } = await import(
-            './agents/actual/orchestrator/services/conversation-context.service'
-          );
-          const { DelegationService } = await import(
-            './agents/actual/orchestrator/services/delegation.service'
-          );
-          const { ResponseGenerationService } = await import(
-            './agents/actual/orchestrator/services/response-generation.service'
-          );
-
-          // Create instances of the modular services
-          const conversationContextService = new ConversationContextService();
-          const delegationService = new DelegationService(
-            this.httpService,
-            this.llmService,
-          );
-          const responseGenerationService = new ResponseGenerationService(
-            this.llmService,
-          );
-
-          return new ServiceClass(
-            this.httpService,
-            this.llmService,
-            this.sessionsService,
-            this.supabaseService,
-            // Add the modular services
-            conversationContextService,
-            delegationService,
-            responseGenerationService,
-          );
+          this.logger.debug(`🎯 Creating orchestrator agent - temporarily disabled during hierarchy implementation`);
+          // TODO: Implement orchestrator agent creation once infrastructure is complete
+          throw new Error('Orchestrator agents are being rebuilt with new infrastructure');
         }
 
         case 'function': {
