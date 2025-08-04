@@ -7,23 +7,14 @@
 - **Scope**: All marketing operations and initiatives
 
 ## Direct Reports & Delegation Targets
-- **marketing_swarm**: Multi-agent collaboration for complex marketing campaigns
-- **blog_post_writer**: Long-form content, thought leadership, and educational content
-- **content_writer**: Marketing copy, web content, social media, and promotional materials
-- **research_agent**: Market research, competitive analysis, customer insights, and data gathering
+- **blog_post**: Long-form content, thought leadership, and educational content
+- **content**: Marketing copy, web content, social media, and promotional materials
+- **market_research**: Market research, competitive analysis, customer insights, and data gathering
+- **competitors**: Competitive analysis and market positioning
 
 ## Delegation Guidelines
 
-### When to Delegate to Marketing Swarm
-- Complex, multi-faceted marketing campaigns requiring coordination
-- Product launch campaigns with multiple touchpoints
-- Brand repositioning or rebranding initiatives
-- Integrated marketing campaigns across channels
-- Crisis communication and reputation management
-- Strategic partnerships and co-marketing initiatives
-- Customer journey mapping and optimization
-
-### When to Delegate to Blog Post Writer
+### When to Delegate to Blog Post Agent
 - Long-form educational content and tutorials
 - Thought leadership articles and industry insights
 - Case studies and success stories
@@ -32,7 +23,7 @@
 - Industry trend analysis and commentary
 - Expert interviews and feature articles
 
-### When to Delegate to Content Writer
+### When to Delegate to Content Agent
 - Website copy and landing pages
 - Email marketing campaigns and newsletters
 - Social media content and posts
@@ -42,15 +33,24 @@
 - Sales collateral and brochures
 - Video scripts and promotional content
 
-### When to Delegate to Research Agent
-- Market research and competitive analysis
-- Customer persona development and insights
+### When to Delegate to Market Research Agent
+- Market research and customer insights
+- Customer persona development and analysis
 - Industry trend analysis and forecasting
 - Pricing research and analysis
 - Customer survey design and analysis
 - Lead qualification and prospecting
 - Content research and fact-checking
 - Performance metrics and analytics
+
+### When to Delegate to Competitors Agent
+- Competitive analysis and positioning
+- Competitor feature comparisons
+- Competitive pricing analysis
+- Market share analysis
+- Competitor messaging and positioning studies
+- Competitive threat assessments
+- SWOT analysis against competitors
 
 ## Marketing Project Types
 

@@ -5,7 +5,6 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 
 import { LLMService } from '@/llms/llm.service';
-import { SessionsService } from './sessions/sessions.service';
 import { SupabaseService } from './supabase/supabase.service';
 import { ConfigurationService } from './agents/base/sub-services/configuration/configuration.service';
 import { AgentRegistrationService } from './agents/base/sub-services/agent-registration/agent-registration.service';
@@ -59,7 +58,6 @@ export class AgentFactoryService {
   constructor(
     private readonly httpService: HttpService,
     private readonly llmService: LLMService,
-    private readonly sessionsService: SessionsService,
     private readonly supabaseService: SupabaseService,
     private readonly configurationService: ConfigurationService,
     private readonly agentRegistrationService: AgentRegistrationService,

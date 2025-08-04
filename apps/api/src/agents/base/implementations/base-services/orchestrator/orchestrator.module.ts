@@ -5,6 +5,11 @@ import { HttpModule } from '@nestjs/axios';
 import { BaseSubServicesModule } from '../../../sub-services/base-sub-services.module';
 import { LLMModule } from '../../../../../llms/llm.module';
 import { SupabaseModule } from '../../../../../supabase/supabase.module';
+import { TasksModule } from '../../../../../tasks/tasks.module';
+import { WebSocketModule } from '../../../../../websocket/websocket.module';
+import { AuthModule } from '../../../../../auth/auth.module';
+import { AgentConversationsModule } from '../../../../../agent-conversations/agent-conversations.module';
+import { CIDAFMModule } from '../../../../../cidafm/cidafm.module';
 import { AgentDiscoveryService } from '../../../../../agent-discovery.service';
 import { AgentFactoryService } from '../../../../../agent-factory.service';
 
@@ -28,6 +33,11 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     BaseSubServicesModule, // Common agent services
     LLMModule, // For LLM service access
     SupabaseModule, // For database access
+    TasksModule, // Required for AgentFactoryService
+    WebSocketModule, // Required for AgentFactoryService
+    AuthModule, // Required for AgentFactoryService
+    AgentConversationsModule, // Required for AgentFactoryService
+    CIDAFMModule, // Required for AgentFactoryService
   ],
   providers: [
     // Core services
