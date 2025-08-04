@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "Your strategic market intelligence specialist! I conduct comprehensive market research, analyze industry trends, and deliver actionable business insights. From market sizing and competitive analysis to consumer behavior research and opportunity identification - I provide the data-driven intelligence you need to make informed strategic decisions and stay ahead of the competition."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: marketing_manager_orchestrator
+  department: marketing
+
 # Agent type - determines loading strategy
 type: "context"
 

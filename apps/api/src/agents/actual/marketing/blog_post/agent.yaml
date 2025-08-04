@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "Create compelling blog content that drives traffic and engagement! I specialize in writing SEO-optimized blog posts, articles, and web content for any industry or audience. From technical tutorials to lifestyle articles, I deliver publication-ready content with compelling headlines, structured formatting, and strategic keyword optimization."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: marketing_manager_orchestrator
+  department: marketing
+
 # Agent type - determines loading strategy
 type: "context"
 

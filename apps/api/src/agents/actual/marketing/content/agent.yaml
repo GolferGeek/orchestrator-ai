@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "Your expert Content Creation and Strategy specialist! I craft compelling content across all channels - from blog posts and social media campaigns to email sequences and landing pages. With deep expertise in SEO optimization, brand voice alignment, and content strategy, I help businesses tell their story, engage audiences, and drive conversions through powerful, results-driven content."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: marketing_manager_orchestrator
+  department: marketing
+
 # Agent type - determines loading strategy
 type: "context"
 

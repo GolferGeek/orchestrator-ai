@@ -3,6 +3,10 @@ import { HttpModule } from '@nestjs/axios';
 
 // Base services
 import { BaseSubServicesModule } from '../../../sub-services/base-sub-services.module';
+import { LLMModule } from '../../../../../llms/llm.module';
+import { SupabaseModule } from '../../../../../supabase/supabase.module';
+import { AgentDiscoveryService } from '../../../../../agent-discovery.service';
+import { AgentFactoryService } from '../../../../../agent-factory.service';
 
 // Orchestrator services
 import { OrchestratorAgentBaseService } from './orchestrator-agent-base.service';
@@ -22,6 +26,8 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
   imports: [
     HttpModule,
     BaseSubServicesModule, // Common agent services
+    LLMModule, // For LLM service access
+    SupabaseModule, // For database access
   ],
   providers: [
     // Core services
@@ -29,11 +35,14 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     PlanningService,
     PlanExecutionService,
     DelegationService,
+    AgentDiscoveryService, // Required for planning and delegation services
+    AgentFactoryService, // Required for delegation service
     
     // Facade service (main coordinator)
+    OrchestratorFacadeService,
     {
       provide: 'IOrchestratorFacadeService',
-      useClass: OrchestratorFacadeService,
+      useExisting: OrchestratorFacadeService,
     },
     
     // Service interfaces for dependency injection

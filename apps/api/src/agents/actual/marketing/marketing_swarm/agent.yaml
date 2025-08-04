@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "Your complete marketing content creation powerhouse! I coordinate multiple specialist agents to create comprehensive marketing campaigns including blog posts, social media content, email campaigns, and promotional materials. From strategy to execution, I deliver ready-to-use marketing content optimized for maximum impact."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: marketing_manager_orchestrator
+  department: marketing
+
 # Agent type - determines loading strategy
 type: "function"
 

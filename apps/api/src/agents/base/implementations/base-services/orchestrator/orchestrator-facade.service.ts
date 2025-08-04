@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { 
   IOrchestratorFacadeService,
   OrchestratorA2AMethod,
@@ -7,8 +7,12 @@ import {
   IIntentRecognitionService,
   IPlanningService,
   IDelegationService,
-  IPlanExecutionService
+  IPlanExecutionService,
+  Project,
+  PlanDefinition
 } from '../../../../../orchestration/orchestration.types';
+import { SupabaseService } from '../../../../../supabase/supabase.service';
+import { LLMService } from '../../../../../llms/llm.service';
 
 /**
  * Orchestrator Facade Service - Main coordinator
@@ -22,10 +26,16 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
   private readonly logger = new Logger(OrchestratorFacadeService.name);
 
   constructor(
+    @Inject('IIntentRecognitionService')
     private readonly intentRecognitionService: IIntentRecognitionService,
+    @Inject('IPlanningService')
     private readonly planningService: IPlanningService,
+    @Inject('IDelegationService')
     private readonly delegationService: IDelegationService,
+    @Inject('IPlanExecutionService')
     private readonly planExecutionService: IPlanExecutionService,
+    private readonly supabaseService: SupabaseService,
+    private readonly llmService: LLMService,
   ) {}
 
   /**
@@ -93,17 +103,45 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
    * Handle project creation - Start of "Plan-Approve-Act" lifecycle
    */
   private async handleCreateProject(input: OrchestratorInput): Promise<OrchestratorResponse> {
-    this.logger.log('Handling project creation request');
+    this.logger.log(`Handling project creation request: "${input.prompt.substring(0, 100)}..."`);
     
     try {
-      // TODO: Implement project creation
-      // 1. Create project record in database
-      // 2. Start planning phase with PlanningService
-      // 3. Return project ID and planning status
+      // Step 1: Create project plan using PlanningService
+      const plan = await this.planningService.createPlan(input);
       
-      throw new Error('Project creation not yet implemented');
+      // Step 2: Create project record in database
+      const projectId = await this.createProjectRecord(plan, input);
+      
+      // Step 3: Create project steps in database
+      await this.createProjectSteps(projectId, plan);
+      
+      // Step 4: Format plan for human review
+      const humanReadablePlan = await this.planningService.formatPlanForHuman(plan);
+      
+      this.logger.log(`Project created successfully: ${projectId}`);
+      
+      return {
+        success: true,
+        message: `Project "${plan.projectName}" created successfully! Please review the plan below and approve it to begin execution.`,
+        response: humanReadablePlan,
+        action: 'CREATE_PROJECT',
+        projectId,
+        planId: projectId, // Same as project ID for now
+        metadata: {
+          agentType: 'orchestrator',
+          agentName: 'Orchestrator',
+          processedAt: new Date().toISOString(),
+          projectName: plan.projectName,
+          stepsCount: plan.steps.length,
+          status: 'pending_approval'
+        },
+        conversationId: input.conversationId,
+        userId: input.userId,
+        sessionId: input.sessionId
+      };
       
     } catch (error) {
+      this.logger.error('Project creation failed:', error);
       throw new Error(`Project creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -115,10 +153,53 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
     this.logger.log(`Handling plan update for project: ${input.projectId}`);
     
     try {
-      // TODO: Implement plan updates
-      throw new Error('Plan updates not yet implemented');
+      if (!input.projectId) {
+        throw new Error('Project ID required for plan updates');
+      }
+
+      // Load existing project
+      const project = await this.loadProject(input.projectId);
+      if (!project) {
+        throw new Error(`Project ${input.projectId} not found`);
+      }
+
+      // Use feedback from input.prompt to refine the plan
+      const refinedPlan = await this.planningService.refinePlan(
+        input.projectId,
+        input.prompt,
+        input
+      );
+
+      // Update project record with new plan
+      await this.updateProjectPlan(input.projectId, refinedPlan);
+
+      // Update project steps
+      await this.updateProjectSteps(input.projectId, refinedPlan);
+
+      // Format updated plan for review
+      const humanReadablePlan = await this.planningService.formatPlanForHuman(refinedPlan);
+
+      return {
+        success: true,
+        message: `Project plan updated successfully! Please review the revised plan below.`,
+        response: humanReadablePlan,
+        action: 'UPDATE_PLAN',
+        projectId: input.projectId,
+        metadata: {
+          agentType: 'orchestrator',
+          agentName: 'Orchestrator',
+          processedAt: new Date().toISOString(),
+          projectName: refinedPlan.projectName,
+          stepsCount: refinedPlan.steps.length,
+          status: 'pending_approval'
+        },
+        conversationId: input.conversationId,
+        userId: input.userId,
+        sessionId: input.sessionId
+      };
       
     } catch (error) {
+      this.logger.error('Plan update failed:', error);
       throw new Error(`Plan update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -130,14 +211,49 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
     this.logger.log(`Handling plan approval for project: ${input.projectId}`);
     
     try {
-      // TODO: Implement plan approval
-      // 1. Update project status to 'running'
-      // 2. Start plan execution with PlanExecutionService
-      // 3. Return execution started confirmation
-      
-      throw new Error('Plan approval not yet implemented');
+      if (!input.projectId) {
+        throw new Error('Project ID required for plan approval');
+      }
+
+      // Load project to ensure it exists
+      const project = await this.loadProject(input.projectId);
+      if (!project) {
+        throw new Error(`Project ${input.projectId} not found`);
+      }
+
+      if (project.status !== 'pending_approval') {
+        throw new Error(`Project ${input.projectId} is not pending approval (current status: ${project.status})`);
+      }
+
+      // Update project status to approved and start execution
+      await this.updateProjectStatus(input.projectId, 'running', {
+        approvedAt: new Date().toISOString(),
+        approvedBy: input.userId
+      });
+
+      // Start plan execution
+      await this.planExecutionService.startProject(project);
+
+      return {
+        success: true,
+        message: `Project "${project.metadata?.projectName || 'Unnamed Project'}" approved and execution started! I'll keep you updated on progress.`,
+        action: 'APPROVE_PLAN',
+        projectId: input.projectId,
+        metadata: {
+          agentType: 'orchestrator',
+          agentName: 'Orchestrator',
+          processedAt: new Date().toISOString(),
+          projectName: project.metadata?.projectName,
+          status: 'running',
+          approvedAt: new Date().toISOString()
+        },
+        conversationId: input.conversationId,
+        userId: input.userId,
+        sessionId: input.sessionId
+      };
       
     } catch (error) {
+      this.logger.error('Plan approval failed:', error);
       throw new Error(`Plan approval failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -323,6 +439,200 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
       
       // Fallback to conversation
       return await this.handleConverse(input);
+    }
+  }
+
+  // ============================================================================
+  // DATABASE HELPER METHODS - Project persistence and management
+  // ============================================================================
+
+  /**
+   * Create project record in database
+   */
+  private async createProjectRecord(plan: PlanDefinition, input: OrchestratorInput): Promise<string> {
+    try {
+      const projectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const { error } = await this.supabaseService.getServiceClient()
+        .from('projects')
+        .insert([{
+          id: projectId,
+          conversation_id: input.conversationId,
+          user_id: input.userId,
+          project_name: plan.projectName,
+          description: plan.description,
+          status: 'pending_approval',
+          plan_json: plan,
+          metadata: {
+            ...plan.metadata,
+            createdAt: new Date().toISOString(),
+            createdBy: input.userId,
+            stepsCount: plan.steps.length
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }]);
+
+      if (error) {
+        throw new Error(`Database insert failed: ${error.message}`);
+      }
+
+      return projectId;
+      
+    } catch (error) {
+      this.logger.error('Failed to create project record:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create project steps in database
+   */
+  private async createProjectSteps(projectId: string, plan: PlanDefinition): Promise<void> {
+    try {
+      const stepRecords = plan.steps.map(step => ({
+        project_id: projectId,
+        step_id: step.stepId,
+        step_name: step.stepName,
+        step_type: step.stepType,
+        agent_name: step.agentName || null,
+        prompt: step.prompt,
+        dependencies: step.dependencies || [],
+        status: 'pending',
+        metadata: step.metadata || {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+
+      const { error } = await this.supabaseService.getServiceClient()
+        .from('project_steps')
+        .insert(stepRecords);
+
+      if (error) {
+        throw new Error(`Database insert failed: ${error.message}`);
+      }
+      
+    } catch (error) {
+      this.logger.error('Failed to create project steps:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load project from database
+   */
+  private async loadProject(projectId: string): Promise<Project | null> {
+    try {
+      const { data, error } = await this.supabaseService.getServiceClient()
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // Project not found
+        }
+        throw new Error(`Database query failed: ${error.message}`);
+      }
+
+      return data;
+      
+    } catch (error) {
+      this.logger.error(`Failed to load project ${projectId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Update project plan in database
+   */
+  private async updateProjectPlan(projectId: string, plan: PlanDefinition): Promise<void> {
+    try {
+      const { error } = await this.supabaseService.getServiceClient()
+        .from('projects')
+        .update({
+          project_name: plan.projectName,
+          description: plan.description,
+          plan_json: plan,
+          metadata: {
+            ...plan.metadata,
+            updatedAt: new Date().toISOString(),
+            stepsCount: plan.steps.length
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', projectId);
+
+      if (error) {
+        throw new Error(`Database update failed: ${error.message}`);
+      }
+      
+    } catch (error) {
+      this.logger.error(`Failed to update project plan for ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update project steps in database (replace existing steps)
+   */
+  private async updateProjectSteps(projectId: string, plan: PlanDefinition): Promise<void> {
+    try {
+      // Delete existing steps
+      const { error: deleteError } = await this.supabaseService.getServiceClient()
+        .from('project_steps')
+        .delete()
+        .eq('project_id', projectId);
+
+      if (deleteError) {
+        throw new Error(`Failed to delete existing steps: ${deleteError.message}`);
+      }
+
+      // Create new steps
+      await this.createProjectSteps(projectId, plan);
+      
+    } catch (error) {
+      this.logger.error(`Failed to update project steps for ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update project status in database
+   */
+  private async updateProjectStatus(
+    projectId: string, 
+    status: string, 
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    try {
+      const updateData: any = {
+        status,
+        updated_at: new Date().toISOString()
+      };
+
+      if (metadata) {
+        // Load existing metadata and merge
+        const existingProject = await this.loadProject(projectId);
+        updateData.metadata = {
+          ...existingProject?.metadata,
+          ...metadata
+        };
+      }
+
+      const { error } = await this.supabaseService.getServiceClient()
+        .from('projects')
+        .update(updateData)
+        .eq('id', projectId);
+
+      if (error) {
+        throw new Error(`Database update failed: ${error.message}`);
+      }
+      
+    } catch (error) {
+      this.logger.error(`Failed to update project status for ${projectId}:`, error);
+      throw error;
     }
   }
 }

@@ -33,8 +33,9 @@ export interface OrchestratorInput {
   prompt: string;
   userId: string;
   conversationId: string;
+  sessionId?: string;            // Session identifier
   delegationContext?: string;    // From delegation.context.md files
-  conversationHistory: ConversationMessage[];
+  conversationHistory?: ConversationMessage[];
   projectId?: string;            // For project-related operations
   stepId?: string;               // For step-specific operations
   metadata?: Record<string, any>;
@@ -59,8 +60,16 @@ export interface IntentDirective {
 export interface OrchestratorResponse {
   success: boolean;
   message?: string;
+  response?: string;             // Main response content
+  action?: string;               // Action taken
+  agentName?: string;            // Target agent for delegation
   delegationTaskId?: string;     // If delegated to another agent
   projectId?: string;            // If project created/updated
+  planId?: string;               // If plan created/updated
+  tasks?: any[];                 // Task results
+  conversationId?: string;       // Conversation context
+  userId?: string;               // User context
+  sessionId?: string;            // Session context
   metadata?: {
     agentType: 'orchestrator';
     agentName: string;
@@ -79,8 +88,9 @@ export interface OrchestratorResponse {
  */
 export type ProjectStatus = 
   | 'planning'           // Interactive planning phase
+  | 'pending_approval'   // Plan created, awaiting user approval
   | 'running'            // Steps executing
-  | 'paused_for_human'   // Waiting for user input
+  | 'paused_for_approval'// Waiting for user input during execution
   | 'paused_on_error'    // Error occurred, recovery needed
   | 'completed'          // All steps finished successfully
   | 'aborted';           // Terminated by user
@@ -93,6 +103,7 @@ export type ProjectStepStatus =
   | 'running'            // Currently executing
   | 'completed'          // Finished successfully
   | 'failed'             // Failed execution
+  | 'pending_approval'   // Waiting for human approval
   | 'skipped';           // Skipped due to dependencies
 
 /**
