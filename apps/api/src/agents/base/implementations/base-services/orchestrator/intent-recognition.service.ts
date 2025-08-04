@@ -30,7 +30,7 @@ export class IntentRecognitionService implements IIntentRecognitionService {
    * - CONTINUE_DELEGATION: Continue with previous agent
    * - RESUME_PROJECT: Continue existing project
    */
-  async classifyIntent(input: OrchestratorInput): Promise<IntentDirective> {
+  async classifyIntent(input: OrchestratorInput, delegationContext?: string): Promise<IntentDirective> {
     this.logger.log(`Classifying intent for prompt: "${input.prompt.substring(0, 100)}..."`);
     
     try {
@@ -44,11 +44,17 @@ export class IntentRecognitionService implements IIntentRecognitionService {
         };
       }
 
+      // Check for clarification response first
+      const clarificationResponse = await this.checkForClarificationResponse(input);
+      if (clarificationResponse) {
+        return clarificationResponse;
+      }
+
       // Analyze conversation history for context
       const conversationContext = await this.analyzeConversationContext(input);
       
       // Use LLM to classify the intent with full context
-      const classification = await this.performLLMIntentClassification(input, conversationContext);
+      const classification = await this.performLLMIntentClassification(input, conversationContext, delegationContext);
       
       this.logger.log(`Intent classified as: ${classification.action} (confidence: ${classification.confidence})`);
       return classification;
@@ -63,6 +69,63 @@ export class IntentRecognitionService implements IIntentRecognitionService {
         confidence: 0.1
       };
     }
+  }
+
+  /**
+   * Check if user is responding to a clarification request
+   */
+  private async checkForClarificationResponse(input: OrchestratorInput): Promise<IntentDirective | null> {
+    const history = input.conversationHistory || [];
+    if (history.length === 0) return null;
+
+    // Look for recent clarification from orchestrator
+    const lastMessage = history[history.length - 1];
+    if (lastMessage?.metadata?.action === 'CLARIFY' && lastMessage?.metadata?.requiresUserChoice) {
+      const userChoice = input.prompt.trim().toLowerCase();
+      
+      if (userChoice === 'a' || userChoice.includes('option a') || userChoice.includes('delegation')) {
+        // User chose delegation - extract suggested agent from the clarification
+        const suggestedAgent = this.extractSuggestedAgent(history);
+        return {
+          action: 'DELEGATE',
+          agentName: suggestedAgent,
+          reasoning: 'User chose delegation option from clarification',
+          confidence: 0.95
+        };
+      }
+      
+      if (userChoice === 'b' || userChoice.includes('option b') || userChoice.includes('project')) {
+        // User chose project creation
+        return {
+          action: 'CREATE_PROJECT',
+          reasoning: 'User chose project creation option from clarification',
+          confidence: 0.95
+        };
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Extract suggested agent from clarification conversation history
+   */
+  private extractSuggestedAgent(history: any[]): string {
+    // Look through recent messages for clarification metadata
+    for (let i = history.length - 1; i >= Math.max(0, history.length - 3); i--) {
+      const message = history[i];
+      if (message?.metadata?.action === 'CLARIFY') {
+        // Try to extract agent name from the clarification message content
+        const content = message.content || '';
+        const agentMatch = content.match(/delegate.*?to.*?the.*?\*\*([^*]+)\*\*.*?agent/i);
+        if (agentMatch && agentMatch[1]) {
+          return agentMatch[1].toLowerCase().trim();
+        }
+      }
+    }
+    
+    // Default fallback - could be improved by storing clarification choices in metadata
+    return 'content'; // Safe default that should exist
   }
 
   /**
@@ -110,9 +173,10 @@ export class IntentRecognitionService implements IIntentRecognitionService {
    */
   private async performLLMIntentClassification(
     input: OrchestratorInput, 
-    context: any
+    context: any,
+    delegationContext?: string
   ): Promise<IntentDirective> {
-    const systemPrompt = this.buildIntentClassificationPrompt(context);
+    const systemPrompt = await this.buildIntentClassificationPrompt(context, delegationContext);
     const userMessage = this.buildUserAnalysisMessage(input, context);
     
     try {
@@ -137,22 +201,46 @@ export class IntentRecognitionService implements IIntentRecognitionService {
   /**
    * Build system prompt for intent classification
    */
-  private buildIntentClassificationPrompt(context: any): string {
+  private async buildIntentClassificationPrompt(context: any, delegationContext?: string): Promise<string> {
+    // Extract available agents from delegation context
+    let availableAgents: string[] = [];
+    if (delegationContext) {
+      this.logger.log(`🔍 Delegation context received: ${delegationContext.substring(0, 200)}...`);
+      // Parse delegation context to extract agent names
+      const agentMatches = delegationContext.match(/\*\*([^*]+)\*\*:/g);
+      if (agentMatches) {
+        availableAgents = agentMatches
+          .map(match => match.replace(/\*\*/g, '').replace(':', ''))
+          .filter(name => !name.includes(' ') && name.toLowerCase() !== name.toUpperCase());
+      }
+      this.logger.log(`🔍 Extracted agents: ${availableAgents.join(', ')}`);
+    } else {
+      this.logger.warn('🔍 No delegation context provided to intent recognition');
+    }
+
     return `You are an orchestrator intent classifier. Your job is to analyze user requests and classify them into one of these actions:
 
-1. CREATE_PROJECT - Complex requests requiring multiple steps, coordination, or long-term planning
-   Examples: "Create a marketing campaign", "Launch a new product", "Develop a business strategy"
+1. CREATE_PROJECT - ONLY when user explicitly requests project creation
+   Examples: "I'd like to create a project to...", "Please start a new project for...", "Create a structured project that..."
+   MUST contain explicit project language - never assume user wants a project
 
 2. DELEGATE - Simple, focused tasks that can be handled by a specialist agent
    Examples: "Write a blog post", "Analyze financial data", "Schedule a meeting"
 
-3. CONVERSE - Direct questions to the orchestrator or general conversation
+3. CLARIFY - Complex requests that could benefit from multi-step coordination OR simple delegation
+   Use this when you think a project approach might be valuable but user didn't explicitly request one
+   Examples: "Help with competitive analysis strategy", "Create content for product launch", "Launch marketing campaign"
+
+4. CONVERSE - Direct questions to the orchestrator or general conversation
    Examples: "What can you do?", "How does this work?", "Tell me about the team"
 
-4. CONTINUE_DELEGATION - Continue working with a previously active agent
+5. CONTINUE_DELEGATION - Continue working with a previously active agent
    Only use this when there's clear context of an ongoing conversation with a specific agent
 
-5. RESUME_PROJECT - Continue an existing project (handled automatically when projectId is present)
+6. RESUME_PROJECT - Continue an existing project (handled automatically when projectId is present)
+
+AVAILABLE AGENTS FOR DELEGATION:
+${availableAgents.length > 0 ? availableAgents.map(agent => `- ${agent}`).join('\n') : 'No delegation context available'}
 
 CONTEXT INFORMATION:
 ${context.contextSummary}
@@ -160,16 +248,19 @@ ${context.shouldContinueWithAgent ? `Active agent: ${context.currentAgent}` : 'N
 
 RESPONSE FORMAT:
 You must respond with a JSON object containing:
-- action: One of the 5 actions above
-- agentName: (only for DELEGATE/CONTINUE_DELEGATION actions) the specific agent name
+- action: One of the 6 actions above
+- agentName: (only for DELEGATE/CONTINUE_DELEGATION actions) MUST be one of the available agents listed above
 - reasoning: Clear explanation of your classification decision
 - confidence: Number between 0.0 and 1.0
+- suggestedAgent: (only for CLARIFY actions) Which agent would handle the delegation option
+- projectOutline: (only for CLARIFY actions) Brief description of what a project approach would involve
 
-Be decisive but honest about confidence. Consider:
-- Complexity and scope of the request
-- Conversation context and history
-- Whether this requires coordination vs. specialist expertise
-- User's apparent intent and goals`;
+IMPORTANT GUIDELINES:
+- DEFAULT to DELEGATE for most requests - let specialists handle tasks
+- Only use CREATE_PROJECT if user explicitly asks for project creation with clear project language
+- Use CLARIFY when complex requests could benefit from project coordination but user didn't explicitly request it
+- When in doubt, choose DELEGATE over CREATE_PROJECT
+- Never assume user wants a project unless they explicitly say so`;
   }
 
   /**
@@ -229,7 +320,7 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
       }
       
       // Validate action type
-      const validActions = ['CREATE_PROJECT', 'DELEGATE', 'CONVERSE', 'CONTINUE_DELEGATION', 'RESUME_PROJECT'];
+      const validActions = ['CREATE_PROJECT', 'DELEGATE', 'CONVERSE', 'CONTINUE_DELEGATION', 'RESUME_PROJECT', 'CLARIFY'];
       if (!validActions.includes(parsed.action)) {
         throw new Error(`Invalid action: ${parsed.action}`);
       }
@@ -239,7 +330,9 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
         agentName: parsed.agentName,
         projectId: parsed.projectId,
         reasoning: parsed.reasoning,
-        confidence: Math.max(0, Math.min(1, parsed.confidence)) // Clamp between 0 and 1
+        confidence: Math.max(0, Math.min(1, parsed.confidence)), // Clamp between 0 and 1
+        suggestedAgent: parsed.suggestedAgent,
+        projectOutline: parsed.projectOutline
       };
       
     } catch (error) {
