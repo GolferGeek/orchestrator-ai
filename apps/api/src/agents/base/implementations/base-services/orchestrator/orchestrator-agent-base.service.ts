@@ -48,7 +48,8 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
       // Route through facade service (maintains single entry point principle)
       const response = await this.orchestratorFacadeService.processRequest(
         method as OrchestratorA2AMethod, 
-        input
+        input,
+        this.delegationContext
       );
 
       this.orchestratorLogger.log(`Orchestrator completed task: ${method}`);
@@ -80,7 +81,7 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
     
     try {
       await this.loadDelegationContext();
-      this.orchestratorLogger.log(`Orchestrator ${this.getAgentName()} initialized with delegation context`);
+      this.orchestratorLogger.log(`🔍 Orchestrator ${this.getAgentName()} initialized with delegation context: ${this.delegationContext ? 'LOADED' : 'NOT LOADED'}`);
     } catch (error) {
       this.orchestratorLogger.warn(`Failed to load delegation context: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

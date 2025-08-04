@@ -233,7 +233,7 @@ export class DelegationService implements IDelegationService {
       this.logger.log(`Executing A2A delegation with method: ${taskPayload.method}`);
       
       // Call the agent's executeTask method (A2A protocol)
-      const result = await agentInstance.executeTask(taskPayload.params);
+      const result = await agentInstance.executeTask(taskPayload.method, taskPayload.params);
       
       this.logger.log(`A2A delegation completed successfully`);
       return result;
