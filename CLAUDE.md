@@ -45,3 +45,16 @@
 
 ## Remember: 
 **It's better to have 0 working features that are real than 100 "working" features that are fake.**
+
+# ORCHESTRATOR ARCHITECTURE PRINCIPLE
+
+## Core Paradigm: Conversation + Tasks Pattern
+
+**The orchestrator follows the proven conversation + tasks paradigm that already works, enhanced with:**
+
+- **Delegation & Pass-through**: Understands existing delegated agents and routes accordingly
+- **Project Capabilities**: Can create and manage multi-step projects as enhanced task workflows  
+- **Same Frontend Patterns**: Conversations with orchestrator work like conversations with any other agent
+- **A2A Compliance**: Tasks flow through normally, orchestrator just adds project orchestration on top
+
+**Key Insight**: The orchestrator isn't a special case - it's **a regular agent that happens to coordinate other agents and manage projects**. It should work exactly like the existing conversation + tasks system that's proven to work, just with added orchestration intelligence.

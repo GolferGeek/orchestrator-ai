@@ -90,7 +90,6 @@ The data model establishes a flexible hierarchy that maintains A2A protocol comp
 
 *   A new **`projects`** table will be created to store the state of long-running workflows, with:
     *   `conversation_id` foreign key linking to the originating conversation
-    *   `task_id` foreign key linking to the parent A2A task that created the project
 *   A new **`project_steps`** table will be created to store the individual execution steps within projects, with:
     *   `project_id` foreign key linking to the parent project
     *   Step metadata (step_id, status, agent assignments, etc.)
@@ -137,16 +136,17 @@ Projects operate within the A2A protocol boundary by wrapping all project operat
     }
     ```
 
-*   **Data Model Relationship:** Projects have a `task_id` foreign key linking to their parent A2A task, maintaining protocol compliance while enabling rich project functionality.
+*   **Data Model Relationship:** Projects exist within conversation context and are managed through A2A task operations, maintaining protocol compliance while enabling rich project functionality.
 
 ### 6.3. Service-Oriented Design
 
-The orchestrator's logic will be decomposed into a set of specialized, composable services:
-*   **`OrchestratorService`:** The main public-facing coordinator.
-*   **`IntentRecognitionService`:** Classifies user intent (Converse, Delegate, Plan).
+The orchestrator's logic will be decomposed into a set of specialized, composable services, each making LLM calls rather than using complex logic trees:
+
+*   **`OrchestratorFacadeService`:** The main coordinator that routes requests through the single A2A entry point.
+*   **`IntentRecognitionService`:** Uses LLM calls to classify user intent (Converse, Delegate, Plan) based on conversation context.
 *   **`DelegationService`:** Manages single-task delegations, including proxying real-time WebSocket updates from the specialist agent.
-*   **`PlanningService`:** Manages the interactive, conversational loop to generate a `PlanDefinition` JSON.
-*   **`PlanExecutionService`:** The LangGraph-based engine that executes an approved plan.
+*   **`PlanningService`:** Manages the interactive, iterative conversational loop with multiple LLM calls to collaboratively generate a `PlanDefinition` JSON with the user.
+*   **`PlanExecutionService`:** The LangGraph-based engine that executes an approved plan, potentially using ReAct patterns for reasoning and action-taking.
 
 ### 6.4. Core Engine Architecture
 
@@ -201,7 +201,7 @@ Project failures are not terminal states but opportunities for user-guided recov
 
 ### 7.3. Main Content Views
 
-*   **Orchestrator Workspace:** The main view when an orchestrator is selected. This is where the interactive plan-building and approval process occurs.
+*   **Orchestrator Workspace:** The main view when an orchestrator is selected. This is the primary interface for all orchestrator interactions including conversations, simple task delegations, and the interactive plan-building and approval process for complex projects.
 *   **Project Detail Page:** A dedicated view for a single project (`/projects/:projectId`), featuring a visual plan, a live log stream, and prompts for human-in-the-loop and error recovery actions.
 
 ### 7.4. Project UI Flow Details
