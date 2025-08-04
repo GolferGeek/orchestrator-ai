@@ -1,8 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MarketingManagerOrchestratorService } from './agent-service';
 import { OrchestratorModule } from '../../../base/implementations/base-services/orchestrator/orchestrator.module';
 import { BaseSubServicesModule } from '../../../base/sub-services/base-sub-services.module';
+import { SupabaseModule } from '../../../../supabase/supabase.module';
+import { LLMModule } from '../../../../llms/llm.module';
+import { CIDAFMModule } from '../../../../cidafm/cidafm.module';
+import { AuthModule } from '../../../../auth/auth.module';
+import { SessionsModule } from '../../../../sessions/sessions.module';
+import { TasksModule } from '../../../../tasks/tasks.module';
+import { WebSocketModule } from '../../../../websocket/websocket.module';
+import { AgentConversationsModule } from '../../../../agent-conversations/agent-conversations.module';
 import { OrchestratorInput, OrchestratorResponse } from '../../../../orchestration/orchestration.types';
 
 /**
@@ -22,8 +32,25 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          envFilePath: [
+            '/Users/golfergeek/projects/golfergeek/orchestrator-ai/.env',
+            '../../.env',
+            '.env'
+          ],
+        }),
+        EventEmitterModule.forRoot(),
         HttpModule,
         BaseSubServicesModule,
+        SupabaseModule,
+        LLMModule,
+        CIDAFMModule,
+        AuthModule,
+        SessionsModule,
+        TasksModule,
+        WebSocketModule,
+        AgentConversationsModule,
         OrchestratorModule
       ],
       providers: [MarketingManagerOrchestratorService]
@@ -384,7 +411,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
             ...scenario,
             actualDecision: 'error',
             correct: false,
-            error: error.message
+            error: error instanceof Error ? error.message : 'Unknown error'
           });
         }
       }

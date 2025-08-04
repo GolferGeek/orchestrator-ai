@@ -64,9 +64,6 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     },
   ],
   exports: [
-    // Export base class for orchestrator agents
-    OrchestratorAgentBaseService,
-    
     // Export services for external use
     IntentRecognitionService,
     PlanningService,

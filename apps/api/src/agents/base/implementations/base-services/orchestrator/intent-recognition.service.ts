@@ -122,7 +122,7 @@ export class IntentRecognitionService implements IIntentRecognitionService {
         {
           temperature: 0.1, // Low temperature for consistent classification
           maxTokens: 500,
-          provider: 'anthropic' // Use Claude for better reasoning - avoid enhanced path
+          provider: 'anthropic' // Use direct path for now - will move to enhanced when local DB is ready
         }
       );
       
@@ -207,13 +207,21 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
    */
   private parseIntentResponse(response: string): IntentDirective {
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      // Clean the response and try to extract JSON
+      const cleanedResponse = response.replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
+        this.logger.warn('No JSON found in LLM response, trying full response as JSON');
+        this.logger.debug(`Response content: ${response.substring(0, 500)}...`);
         throw new Error('No JSON found in response');
       }
       
-      const parsed = JSON.parse(jsonMatch[0]);
+      let jsonString = jsonMatch[0];
+      // Additional cleaning for common JSON issues
+      jsonString = jsonString.replace(/[\n\r\t]/g, ' '); // Replace newlines/tabs with spaces
+      jsonString = jsonString.replace(/\s+/g, ' '); // Normalize whitespace
+      
+      const parsed = JSON.parse(jsonString);
       
       // Validate required fields
       if (!parsed.action || !parsed.reasoning || typeof parsed.confidence !== 'number') {
