@@ -52,7 +52,10 @@ export interface IntentDirective {
     | 'DELEGATE'
     | 'CONVERSE'
     | 'CONTINUE_DELEGATION'
-    | 'CLARIFY';
+    | 'CLARIFY'
+    | 'BUILD_AGENT' // Create new permanent agent for capability gap
+    | 'IMPROVE_AGENT' // Enhance existing agent performance
+    | 'CREATE_SUBPROJECT'; // Create child project managed by different orchestrator
   agentName?: string; // For delegation actions
   projectId?: string; // For project actions
   reasoning: string; // LLM reasoning for transparency
@@ -60,6 +63,18 @@ export interface IntentDirective {
   // For CLARIFY actions - present user with choices
   suggestedAgent?: string; // Recommended agent for delegation option
   projectOutline?: string; // Brief description of project approach
+  // For enterprise workforce development
+  capabilityGap?: {
+    description: string; // What capability is missing
+    department: string; // Which department needs this capability
+    agentType: 'context_driven' | 'function_based'; // Type of agent to build
+    priority: 'low' | 'medium' | 'high'; // Business priority
+  };
+  subprojectScope?: {
+    department: string; // Which department should handle this
+    orchestrator: string; // Which orchestrator to assign
+    estimatedDuration: string; // Timeline estimate (days/weeks)
+  };
 }
 
 /**
@@ -265,6 +280,45 @@ export interface IDelegationService {
     shouldContinue: boolean;
     confidence: number;
     reasoning: string;
+  }>;
+}
+
+/**
+ * Subproject Management Service - Hierarchical coordination
+ */
+export interface ISubprojectManagementService {
+  analyzeForSubprojects(
+    projectDescription: string,
+    input: OrchestratorInput,
+  ): Promise<{
+    requiresDecomposition: boolean;
+    suggestedSubprojects: any[];
+    reasoning: string;
+    complexity: 'low' | 'medium' | 'high';
+  }>;
+  createSubprojects(
+    parentProjectId: string,
+    parentPlan: PlanDefinition,
+    subprojectScopes: any[],
+    input: OrchestratorInput,
+  ): Promise<any[]>;
+  delegateSubproject(
+    subproject: any,
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse>;
+  aggregateSubprojectProgress(
+    parentProjectId: string,
+    subprojects: any[],
+  ): Promise<{
+    overallProgress: number;
+    completedSubprojects: number;
+    blockedSubprojects: any[];
+    upcomingMilestones: any[];
+    riskAssessment: {
+      level: 'low' | 'medium' | 'high';
+      risks: string[];
+      mitigationActions: string[];
+    };
   }>;
 }
 
