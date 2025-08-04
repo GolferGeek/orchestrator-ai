@@ -107,7 +107,7 @@ export class DelegationService implements IDelegationService {
 
       // First, do quick metadata analysis for efficiency
       const quickAnalysis = this.performQuickContextAnalysis(conversationHistory);
-      if (quickAnalysis.confidence >= 0.8) {
+      if (quickAnalysis.confidence >= 0.7) {
         return quickAnalysis;
       }
 
@@ -412,27 +412,26 @@ Provide your analysis in the required JSON format.`;
         {
           temperature: 0.2,
           maxTokens: 400,
-          providerId: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022'
+          provider: 'anthropic'
         }
       );
 
-      return this.parseContextAnalysis(response, quickAnalysis);
+      return this.parseContextAnalysis(response);
     } catch (error) {
       this.logger.error('LLM context analysis failed:', error);
-      return quickAnalysis; // Fallback to quick analysis
+      throw new Error(`LLM context analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}. Context analysis must work for agent delegation.`);
     }
   }
 
   /**
    * Parse LLM context analysis response
    */
-  private parseContextAnalysis(response: string, fallback: any): any {
+  private parseContextAnalysis(response: string): any {
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        this.logger.warn('No JSON found in LLM context analysis response');
-        return fallback;
+        this.logger.error('No JSON found in LLM context analysis response');
+        throw new Error('LLM context analysis returned no JSON');
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
@@ -441,8 +440,7 @@ Provide your analysis in the required JSON format.`;
       if (typeof parsed.shouldContinue !== 'boolean' || 
           typeof parsed.confidence !== 'number' ||
           !parsed.reasoning) {
-        this.logger.warn('Invalid LLM context analysis format');
-        return fallback;
+        throw new Error('LLM context analysis missing required fields: shouldContinue (boolean), confidence (number), reasoning (string)');
       }
 
       return {
@@ -454,7 +452,7 @@ Provide your analysis in the required JSON format.`;
       
     } catch (error) {
       this.logger.error('Failed to parse LLM context analysis:', error);
-      return fallback;
+      throw new Error(`LLM context analysis parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}. LLM must generate valid JSON.`);
     }
   }
 }
