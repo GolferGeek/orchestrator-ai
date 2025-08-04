@@ -13,6 +13,7 @@ import { LLMModule } from '@/llms/llm.module';
 import { AgentDiscoveryService } from './agent-discovery.service';
 import { AgentFactoryService } from './agent-factory.service';
 import { DynamicAgentsController } from './agents/dynamic-agents.controller';
+import { HierarchySimpleController } from './hierarchy-simple.controller';
 import { BaseSubServicesModule } from './agents/base/sub-services/base-sub-services.module';
 import { ConfigurationService } from './agents/base/sub-services/configuration/configuration.service';
 import { AgentRegistrationService } from './agents/base/sub-services/agent-registration/agent-registration.service';
@@ -20,12 +21,13 @@ import { ProvidersModule } from './providers/providers.module';
 import { CIDAFMModule } from './cidafm/cidafm.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
 import { UsageModule } from './usage/usage.module';
-import { OrchestratorModule } from './agents/actual/orchestrator/agent.module';
+// import { OrchestratorModule } from './agents/actual/orchestrator/agent.module'; // TODO: Create when orchestrator agents are built
 import { AgentConversationsModule } from './agent-conversations/agent-conversations.module';
 import { TasksModule } from './tasks/tasks.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { LangChainModule } from './langchain/langchain.module';
+import { HierarchyModule } from './hierarchy/hierarchy.module';
 import supabaseConfig from './supabase/supabase.config';
 
 @Module({
@@ -68,15 +70,16 @@ import supabaseConfig from './supabase/supabase.config';
     EvaluationModule, // Message evaluation and feedback
     UsageModule, // Usage analytics and cost tracking
     // Agent Modules
-    OrchestratorModule, // Orchestrator agent with UI endpoints
+    // OrchestratorModule, // TODO: Add when orchestrator agents are built
     // Direct Agent Access Modules
     EventEmitterModule.forRoot(), // Event system for real-time updates
     AgentConversationsModule, // Agent conversation tracking
     TasksModule, // Task lifecycle management
     WebSocketModule, // Real-time WebSocket updates
     LangChainModule, // LangChain.js integration for agents
+    HierarchyModule, // Agent hierarchy and discovery endpoints
   ],
-  controllers: [AppController, DynamicAgentsController],
+  controllers: [AppController, DynamicAgentsController, HierarchySimpleController],
   providers: [
     AppService,
     AgentDiscoveryService,
