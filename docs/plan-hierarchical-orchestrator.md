@@ -15,7 +15,6 @@ This phase focuses on establishing the foundational database structures, agent c
     1.  Create a new Supabase migration script.
     2.  Define the `projects` table with:
         *   `conversation_id` foreign key linking to the originating conversation
-        *   `task_id` foreign key linking to the parent A2A task that created the project
         *   Status field with values: `'planning'`, `'running'`, `'paused_for_human'`, `'paused_on_error'`, `'completed'`, and `'aborted'`
     3.  Create a new `project_steps` table with:
         *   `project_id` foreign key linking to the parent project
@@ -43,21 +42,6 @@ This phase focuses on establishing the foundational database structures, agent c
     2.  Create stub files for each service, implementing the interfaces from Task 1.2.
     3.  Wire the services together in `orchestrator.module.ts`.
 
-### **Task 1.4: Update Agent Configurations**
-
-*   **Objective:** Update existing agent configurations to support the new hierarchical model.
-*   **Actions:**
-    1.  **Update YAML Files:** Update marketing-related agents to add `reportsTo: marketing_manager` and update `marketing_manager` to add `reportsTo: ceo_orchestrator` to establish the hierarchy.
-    2.  **Create Delegation Contexts:** Create `delegation.context.md` files for both CEO and Marketing Manager orchestrators, defining their explicit subordinate relationships for the backend.
-
-### **Task 1.5: Create Orchestrator Agent Implementations**
-
-*   **Objective:** Build the actual orchestrator agent implementations that will manage the hierarchy.
-*   **Actions:**
-    1.  **Create CEO Orchestrator:** Create directory structure and implementation for `ceo_orchestrator` agent with broad delegation authority.
-    2.  **Create Marketing Manager Orchestrator:** Create directory structure and implementation for `marketing_manager` agent to manage marketing specialists.
-    3.  **Create Agent Configuration Files:** Create `agent.yaml` files for both orchestrators with appropriate metadata and reporting relationships.
-    4.  **Register in Agent Factory:** Update the agent discovery and factory systems to recognize and instantiate the new orchestrator agents.
 
 ## **Phase 2: Backend Implementation - Agent Integration & Discovery**
 
@@ -92,34 +76,52 @@ This phase implements the "brain" of the orchestrator.
 
 ### **Task 3.2: Implement `PlanningService`**
 
-*   **Objective:** Create the interactive planning loop.
+*   **Objective:** Create the interactive, iterative planning loop with multiple LLM calls.
 *   **Actions:**
-    1.  Implement the `createPlan` method to manage the conversational loop with the LLM.
-    2.  Implement the `PlanFormatterService` to translate the plan JSON into a human-readable format.
-    3.  Implement the service-level error handling.
+    1.  Implement the `createPlan` method to manage the back-and-forth conversational loop with multiple LLM calls for collaborative planning.
+    2.  Implement iterative plan refinement based on user feedback and requests for changes.
+    3.  Implement the `PlanFormatterService` to translate the plan JSON into a human-readable format.
+    4.  Implement the service-level error handling for LLM call failures.
 
 ### **Task 3.3: Implement `PlanExecutionService` with LangGraph**
 
-*   **Objective:** Build the engine that executes project plans.
+*   **Objective:** Build the engine that executes project plans, potentially using ReAct patterns.
 *   **Actions:**
     1.  **Setup Checkpointer:** Compile the `StateGraph` with a `PostgresSaver` checkpointer.
     2.  **Implement Dynamic Graph Builder:** Create the logic to build the graph from a `PlanDefinition`.
     3.  **Implement Core Nodes & Edges:** Implement the logic for `human_approval` (interrupts), `agent_step` nodes, and the conditional edges for "go back" functionality.
-    4.  **Implement Message Proxying:** Ensure the `agent_step` node subscribes to and re-emits messages from sub-steps.
-    5.  **Implement Project-Level Error Handling:** Implement the `try...catch` block around agent invocations and the logic to transition the project state to `paused_on_error`.
+    4.  **Implement ReAct Pattern:** Consider using LangGraph's ReAct functionality for reasoning and action-taking within the execution engine.
+    5.  **Implement Message Proxying:** Ensure the `agent_step` node subscribes to and re-emits messages from sub-steps.
+    6.  **Implement Project-Level Error Handling:** Implement the `try...catch` block around agent invocations and the logic to transition the project state to `paused_on_error`.
 
 ### **Task 3.4: Implement `DelegationService` & `OrchestratorFacadeService`**
 
-*   **Objective:** Implement the final logic services.
+*   **Objective:** Implement the final logic services with single A2A entry point architecture.
 *   **Actions:**
     1.  Implement the `DelegationService`, including its real-time message proxying.
-    2.  Implement the `OrchestratorFacadeService` to coordinate the full "Plan-Approve-Act" lifecycle and tie all other services together.
+    2.  Implement the `OrchestratorFacadeService` as the main coordinator that routes all requests through the single A2A entry point and coordinates the full "Plan-Approve-Act" lifecycle.
 
-## **Phase 4: API Endpoints & Frontend Implementation**
+## **Phase 4: Orchestrator Agent Creation & API Implementation**
 
-This phase focuses on building the user interface.
+This phase creates the actual orchestrator agents and builds the user interface.
 
-### **Task 4.1: Implement All Backend API Endpoints**
+### **Task 4.1: Create Orchestrator Agent Implementations**
+
+*   **Objective:** Build the actual orchestrator agent implementations that will manage the hierarchy.
+*   **Actions:**
+    1.  **Create CEO Orchestrator:** Create directory structure and implementation at `apps/api/src/agents/actual/orchestrator/ceo_orchestrator/` with broad delegation authority.
+    2.  **Create Marketing Manager Orchestrator:** Create directory structure and implementation at `apps/api/src/agents/actual/orchestrator/marketing_manager/` to manage marketing specialists.
+    3.  **Create Agent Configuration Files:** Create `agent.yaml` files for both orchestrators with appropriate metadata and reporting relationships.
+    4.  **Register in Agent Factory:** Update the agent discovery and factory systems to recognize and instantiate the new orchestrator agents.
+
+### **Task 4.2: Update Agent Configurations**
+
+*   **Objective:** Update existing agent configurations to support the new hierarchical model.
+*   **Actions:**
+    1.  **Update YAML Files:** Update marketing-related agents to add `reportsTo: marketing_manager` and update `marketing_manager` to add `reportsTo: ceo_orchestrator` to establish the hierarchy.
+    2.  **Create Delegation Contexts:** Create `delegation.context.md` files for both CEO and Marketing Manager orchestrators, defining their explicit subordinate relationships for the backend.
+
+### **Task 4.3: Implement All Backend API Endpoints**
 
 *   **Objective:** Create all the necessary API endpoints to support the frontend UI and A2A project operations.
 *   **Actions:**
@@ -132,30 +134,31 @@ This phase focuses on building the user interface.
         *   Internal project step events (`project.step.started`, `project.step.completed`, `project.step.failed`)
     4.  Create WebSocket rooms for project-specific subscriptions (`project:{projectId}`, `user:{userId}:projects`).
 
-### **Task 4.2: Implement Core Frontend Layout**
+### **Task 4.4: Implement Core Frontend Layout**
 
 *   **Objective:** Overhaul the main application layout to include the new tabbed navigation.
 *   **Actions:**
     1.  Modify the root layout component (`App.vue` or similar).
     2.  Create the `TabbedSideNav.vue` component containing the "Organization" and "Projects" tabs.
 
-### **Task 4.3: Implement "Organization" & "Projects" Tabs**
+### **Task 4.5: Implement "Organization" & "Projects" Tabs**
 
 *   **Objective:** Create the interactive org chart and the project dashboard.
 *   **Actions:**
     1.  Create the `OrganizationChart.vue` component with click-to-delegate functionality, fetching data from the hierarchy API.
     2.  Create the `ProjectsList.vue` component for the project dashboard with status filtering and sorting.
 
-### **Task 4.4: Implement Orchestrator Workspace (Planning Phase UI)**
+### **Task 4.6: Implement Orchestrator Workspace (All Interactions UI)**
 
-*   **Objective:** Build the interactive planning interface where users collaborate with orchestrators.
+*   **Objective:** Build the comprehensive interface for all orchestrator interactions including conversations, simple delegations, and project planning.
 *   **Actions:**
-    1.  Create the `OrchestratorWorkspace.vue` component as the main content area for orchestrator interactions.
-    2.  Implement conversational planning interface with message history and real-time updates.
-    3.  Create plan presentation component with structured, human-readable format.
-    4.  Implement approval interface with approve/modify buttons and plan modification flow.
+    1.  Create the `OrchestratorWorkspace.vue` component as the main content area for all orchestrator interactions.
+    2.  Implement conversational interface for simple chat and task delegations.
+    3.  Implement interactive planning interface with message history and real-time updates for complex projects.
+    4.  Create plan presentation component with structured, human-readable format.
+    5.  Implement approval interface with approve/modify buttons and plan modification flow.
 
-### **Task 4.5: Implement Project Detail Page (Monitoring & Recovery UI)**
+### **Task 4.7: Implement Project Detail Page (Monitoring & Recovery UI)**
 
 *   **Objective:** Build the comprehensive project management dashboard.
 *   **Actions:**
