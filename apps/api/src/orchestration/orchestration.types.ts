@@ -1,6 +1,6 @@
 /**
  * Orchestration Types - Service Contracts & DTOs
- * 
+ *
  * Following the conversation + tasks paradigm:
  * - All project operations flow through A2A tasks
  * - Projects enhance conversations with multi-step workflows
@@ -11,15 +11,15 @@
 // A2A METHOD TYPES - Project operations wrapped as A2A tasks
 // ============================================================================
 
-export type OrchestratorA2AMethod = 
-  | 'create_project'           // Start new project planning
-  | 'update_project_plan'      // Collaborative planning iterations  
-  | 'approve_project_plan'     // User approves/rejects plan
-  | 'resume_project'           // Continue paused project
-  | 'retry_project_step'       // Retry failed step
-  | 'abort_project'            // Terminate project
-  | 'delegate_task'            // Simple task delegation
-  | 'converse';                // Direct conversation
+export type OrchestratorA2AMethod =
+  | 'create_project' // Start new project planning
+  | 'update_project_plan' // Collaborative planning iterations
+  | 'approve_project_plan' // User approves/rejects plan
+  | 'resume_project' // Continue paused project
+  | 'retry_project_step' // Retry failed step
+  | 'abort_project' // Terminate project
+  | 'delegate_task' // Simple task delegation
+  | 'converse'; // Direct conversation
 
 // ============================================================================
 // CORE DTOs - Following conversation + tasks patterns
@@ -33,11 +33,11 @@ export interface OrchestratorInput {
   prompt: string;
   userId: string;
   conversationId: string;
-  sessionId?: string;            // Session identifier
-  delegationContext?: string;    // From delegation.context.md files
+  sessionId?: string; // Session identifier
+  delegationContext?: string; // From delegation.context.md files
   conversationHistory?: ConversationMessage[];
-  projectId?: string;            // For project-related operations
-  stepId?: string;               // For step-specific operations
+  projectId?: string; // For project-related operations
+  stepId?: string; // For step-specific operations
   metadata?: Record<string, any>;
 }
 
@@ -46,14 +46,20 @@ export interface OrchestratorInput {
  * Uses LLM calls to classify user intent, not logic trees
  */
 export interface IntentDirective {
-  action: 'CREATE_PROJECT' | 'RESUME_PROJECT' | 'DELEGATE' | 'CONVERSE' | 'CONTINUE_DELEGATION' | 'CLARIFY';
-  agentName?: string;            // For delegation actions
-  projectId?: string;            // For project actions
-  reasoning: string;             // LLM reasoning for transparency
-  confidence: number;            // Classification confidence (0-1)
+  action:
+    | 'CREATE_PROJECT'
+    | 'RESUME_PROJECT'
+    | 'DELEGATE'
+    | 'CONVERSE'
+    | 'CONTINUE_DELEGATION'
+    | 'CLARIFY';
+  agentName?: string; // For delegation actions
+  projectId?: string; // For project actions
+  reasoning: string; // LLM reasoning for transparency
+  confidence: number; // Classification confidence (0-1)
   // For CLARIFY actions - present user with choices
-  suggestedAgent?: string;       // Recommended agent for delegation option
-  projectOutline?: string;       // Brief description of project approach
+  suggestedAgent?: string; // Recommended agent for delegation option
+  projectOutline?: string; // Brief description of project approach
 }
 
 /**
@@ -63,19 +69,20 @@ export interface IntentDirective {
 export interface OrchestratorResponse {
   success: boolean;
   message?: string;
-  response?: string;             // Main response content
-  action?: string;               // Action taken
-  agentName?: string;            // Target agent for delegation
-  delegationTaskId?: string;     // If delegated to another agent
-  projectId?: string;            // If project created/updated
-  planId?: string;               // If plan created/updated
-  tasks?: any[];                 // Task results
-  conversationId?: string;       // Conversation context
-  userId?: string;               // User context
-  sessionId?: string;            // Session context
+  response?: string; // Main response content
+  action?: string; // Action taken
+  agentName?: string; // Target agent for delegation
+  delegationTaskId?: string; // If delegated to another agent
+  projectId?: string; // If project created/updated
+  planId?: string; // If plan created/updated
+  tasks?: any[]; // Task results
+  conversationId?: string; // Conversation context
+  userId?: string; // User context
+  sessionId?: string; // Session context
   // For clarification responses
-  requiresUserChoice?: boolean;  // If true, user must make a choice
-  options?: {                    // Available options for user
+  requiresUserChoice?: boolean; // If true, user must make a choice
+  options?: {
+    // Available options for user
     delegate?: {
       agentName: string;
       description: string;
@@ -101,32 +108,32 @@ export interface OrchestratorResponse {
 /**
  * Project states - mirrors database enum
  */
-export type ProjectStatus = 
-  | 'planning'           // Interactive planning phase
-  | 'pending_approval'   // Plan created, awaiting user approval
-  | 'running'            // Steps executing
-  | 'paused_for_approval'// Waiting for user input during execution
-  | 'paused_on_error'    // Error occurred, recovery needed
-  | 'completed'          // All steps finished successfully
-  | 'aborted';           // Terminated by user
+export type ProjectStatus =
+  | 'planning' // Interactive planning phase
+  | 'pending_approval' // Plan created, awaiting user approval
+  | 'running' // Steps executing
+  | 'paused_for_approval' // Waiting for user input during execution
+  | 'paused_on_error' // Error occurred, recovery needed
+  | 'completed' // All steps finished successfully
+  | 'aborted'; // Terminated by user
 
 /**
  * Project step states
  */
 export type ProjectStepStatus =
-  | 'pending'            // Not yet started
-  | 'running'            // Currently executing
-  | 'completed'          // Finished successfully
-  | 'failed'             // Failed execution
-  | 'pending_approval'   // Waiting for human approval
-  | 'skipped';           // Skipped due to dependencies
+  | 'pending' // Not yet started
+  | 'running' // Currently executing
+  | 'completed' // Finished successfully
+  | 'failed' // Failed execution
+  | 'pending_approval' // Waiting for human approval
+  | 'skipped'; // Skipped due to dependencies
 
 /**
  * Project step types - aligned with LangGraph node types
  */
-export type ProjectStepType = 
-  | 'agent_step'         // Delegate to agent
-  | 'human_approval';    // Wait for user input (interrupt)
+export type ProjectStepType =
+  | 'agent_step' // Delegate to agent
+  | 'human_approval'; // Wait for user input (interrupt)
 
 /**
  * Plan definition - structured JSON for project execution
@@ -140,12 +147,12 @@ export interface PlanDefinition {
 }
 
 export interface PlanStep {
-  stepId: string;                // Unique within project
-  stepName: string;              // Human-readable name
+  stepId: string; // Unique within project
+  stepName: string; // Human-readable name
   stepType: ProjectStepType;
-  agentName?: string;            // For agent_step type
-  prompt: string;                // Instruction for this step
-  dependencies: string[];        // stepIds this depends on
+  agentName?: string; // For agent_step type
+  prompt: string; // Instruction for this step
+  dependencies: string[]; // stepIds this depends on
   metadata?: Record<string, any>;
 }
 
@@ -212,7 +219,10 @@ export interface ConversationMessage {
  * Intent Recognition Service - LLM-based classification
  */
 export interface IIntentRecognitionService {
-  classifyIntent(input: OrchestratorInput, delegationContext?: string): Promise<IntentDirective>;
+  classifyIntent(
+    input: OrchestratorInput,
+    delegationContext?: string,
+  ): Promise<IntentDirective>;
 }
 
 /**
@@ -220,7 +230,11 @@ export interface IIntentRecognitionService {
  */
 export interface IPlanningService {
   createPlan(input: OrchestratorInput): Promise<PlanDefinition>;
-  refinePlan(planId: string, feedback: string, input: OrchestratorInput): Promise<PlanDefinition>;
+  refinePlan(
+    planId: string,
+    feedback: string,
+    input: OrchestratorInput,
+  ): Promise<PlanDefinition>;
   formatPlanForHuman(plan: PlanDefinition): Promise<string>;
 }
 
@@ -238,8 +252,15 @@ export interface IPlanExecutionService {
  * Delegation Service - Enhanced agent delegation
  */
 export interface IDelegationService {
-  delegateToAgent(agentName: string, prompt: string, input: OrchestratorInput): Promise<OrchestratorResponse>;
-  analyzeAgentContext(conversationHistory: ConversationMessage[]): Promise<{
+  delegateToAgent(
+    agentName: string,
+    prompt: string,
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse>;
+  analyzeAgentContext(
+    conversationHistory: ConversationMessage[],
+    currentPrompt?: string,
+  ): Promise<{
     currentAgent?: string;
     shouldContinue: boolean;
     confidence: number;
@@ -252,7 +273,11 @@ export interface IDelegationService {
  * Routes through single A2A entry point
  */
 export interface IOrchestratorFacadeService {
-  processRequest(method: OrchestratorA2AMethod, input: OrchestratorInput, delegationContext?: string): Promise<OrchestratorResponse>;
+  processRequest(
+    method: OrchestratorA2AMethod,
+    input: OrchestratorInput,
+    delegationContext?: string,
+  ): Promise<OrchestratorResponse>;
 }
 
 // ============================================================================
@@ -268,7 +293,10 @@ export interface ProjectStatusMessage {
 }
 
 export interface ProjectStepMessage {
-  type: 'project.step.started' | 'project.step.completed' | 'project.step.failed';
+  type:
+    | 'project.step.started'
+    | 'project.step.completed'
+    | 'project.step.failed';
   projectId: string;
   stepId: string;
   stepName: string;
@@ -285,9 +313,9 @@ export interface ProjectPlanMessage {
   timestamp: string;
 }
 
-export type ProjectWebSocketMessage = 
-  | ProjectStatusMessage 
-  | ProjectStepMessage 
+export type ProjectWebSocketMessage =
+  | ProjectStatusMessage
+  | ProjectStepMessage
   | ProjectPlanMessage;
 
 // ============================================================================
@@ -298,7 +326,7 @@ export class OrchestratorError extends Error {
   constructor(
     message: string,
     public code: string,
-    public context?: Record<string, any>
+    public context?: Record<string, any>,
   ) {
     super(message);
     this.name = 'OrchestratorError';
@@ -310,9 +338,13 @@ export class ProjectExecutionError extends OrchestratorError {
     message: string,
     public projectId: string,
     public stepId?: string,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ) {
-    super(message, 'PROJECT_EXECUTION_ERROR', { projectId, stepId, ...context });
+    super(message, 'PROJECT_EXECUTION_ERROR', {
+      projectId,
+      stepId,
+      ...context,
+    });
     this.name = 'ProjectExecutionError';
   }
 }
@@ -321,7 +353,7 @@ export class DelegationError extends OrchestratorError {
   constructor(
     message: string,
     public agentName: string,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ) {
     super(message, 'DELEGATION_ERROR', { agentName, ...context });
     this.name = 'DelegationError';
