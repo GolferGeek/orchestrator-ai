@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "Your strategic competitive intelligence specialist! I conduct comprehensive competitor analysis, track market positioning, and deliver actionable competitive insights. From detailed feature comparisons and pricing analysis to strategic SWOT assessments and market opportunity identification - I provide the competitive intelligence you need to outmaneuver the competition and win in your market."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: marketing_manager_orchestrator
+  department: marketing
+
 # Agent type - determines loading strategy
 type: "context"
 

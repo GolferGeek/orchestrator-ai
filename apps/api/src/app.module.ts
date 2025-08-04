@@ -14,6 +14,7 @@ import { AgentDiscoveryService } from './agent-discovery.service';
 import { AgentFactoryService } from './agent-factory.service';
 import { DynamicAgentsController } from './agents/dynamic-agents.controller';
 import { HierarchySimpleController } from './hierarchy-simple.controller';
+import { IntentRecognitionService } from './agents/base/implementations/base-services/orchestrator/intent-recognition.service';
 import { BaseSubServicesModule } from './agents/base/sub-services/base-sub-services.module';
 import { ConfigurationService } from './agents/base/sub-services/configuration/configuration.service';
 import { AgentRegistrationService } from './agents/base/sub-services/agent-registration/agent-registration.service';
@@ -84,6 +85,7 @@ import supabaseConfig from './supabase/supabase.config';
     AppService,
     AgentDiscoveryService,
     AgentFactoryService,
+    IntentRecognitionService, // Orchestrator service for testing
     ConfigurationService,
     AgentRegistrationService,
     // TODO: Dynamic agents will be instantiated via discovery service + factory
