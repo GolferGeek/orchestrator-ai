@@ -47,16 +47,7 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     }
 
     try {
-      // Quick checks for explicit context before LLM call
-      if (input.projectId) {
-        return {
-          action: 'RESUME_PROJECT',
-          projectId: input.projectId,
-          reasoning:
-            'User message includes project ID, continuing existing project',
-          confidence: 0.95,
-        };
-      }
+      // NOTE: projectId handling moved to explicit UI actions - no longer inferred from conversation
 
       // Check for clarification response first
       const clarificationResponse =
@@ -68,15 +59,7 @@ export class IntentRecognitionService implements IIntentRecognitionService {
       // Analyze conversation history for context
       const conversationContext = await this.analyzeConversationContext(input);
 
-      // Check for enterprise workforce development opportunities
-      const enterpriseClassification = await this.checkEnterpriseCapabilities(
-        input,
-        conversationContext,
-        delegationContext,
-      );
-      if (enterpriseClassification) {
-        return enterpriseClassification;
-      }
+      // NOTE: BUILD_AGENT is now explicit UI action only - removed from natural language classification
 
       // Use LLM to classify the intent with full context
       const classification = await this.performLLMIntentClassification(
@@ -110,7 +93,7 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     const history = input.conversationHistory || [];
     if (history.length === 0) return null;
 
-    // Look for recent clarification from orchestrator
+    // Look for recent clarification from orchestrator (legacy support)
     const lastMessage = history[history.length - 1];
     if (
       lastMessage?.metadata?.action === 'CLARIFY' &&
@@ -158,119 +141,6 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     return null;
   }
 
-  /**
-   * Check for enterprise workforce development opportunities
-   * Detects when requests indicate agent capability gaps or cross-departmental needs
-   */
-  private async checkEnterpriseCapabilities(
-    input: OrchestratorInput,
-    context: any,
-    delegationContext?: string,
-  ): Promise<IntentDirective | null> {
-    try {
-      const systemPrompt = `You are an enterprise capability analyst. Analyze user requests to identify:
-
-1. CAPABILITY GAPS - When user needs something no current agent can handle well
-2. AGENT IMPROVEMENT - When user is unsatisfied with existing agent performance
-3. CROSS-DEPARTMENTAL NEEDS - When request requires coordination across multiple departments
-
-AVAILABLE AGENTS: ${this.extractAvailableAgents(delegationContext).join(', ')}
-
-RESPONSE RULES:
-- Only respond if you detect a clear enterprise opportunity
-- For capability gaps, suggest BUILD_AGENT action
-- For performance issues, suggest IMPROVE_AGENT action  
-- For cross-department work, suggest CREATE_SUBPROJECT action
-- If no enterprise opportunity, respond with "NO_ENTERPRISE_ACTION"
-
-Response format (JSON):
-{
-  "action": "BUILD_AGENT" | "IMPROVE_AGENT" | "CREATE_SUBPROJECT" | "NO_ENTERPRISE_ACTION",
-  "reasoning": "clear explanation",
-  "confidence": 0.0-1.0,
-  "capabilityGap": { // only for BUILD_AGENT
-    "description": "what capability is missing",
-    "department": "marketing|engineering|operations|finance|hr", 
-    "agentType": "context_driven|function_based",
-    "priority": "low|medium|high"
-  },
-  "subprojectScope": { // only for CREATE_SUBPROJECT
-    "department": "which department should handle this",
-    "orchestrator": "cto_orchestrator|cmo_orchestrator|cfo_orchestrator",
-    "estimatedDuration": "timeline in days/weeks"
-  }
-}`;
-
-      const userMessage = `ANALYZE THIS REQUEST:
-"${input.prompt}"
-
-CONTEXT: ${context.contextSummary}
-
-Determine if this indicates an enterprise workforce development opportunity.`;
-
-      const response = await this.llmService.generateResponse(
-        systemPrompt,
-        userMessage,
-        {
-          temperature: 0.2,
-          maxTokens: 400,
-          provider: 'anthropic',
-        },
-      );
-
-      const parsed = this.parseEnterpriseResponse(response);
-      if (parsed) {
-        this.logger.log(`🏢 Enterprise opportunity detected: ${parsed.action}`);
-        return parsed;
-      }
-
-      return null;
-    } catch (error) {
-      this.logger.warn('Enterprise capability check failed:', error);
-      return null; // Non-critical failure, continue with normal classification
-    }
-  }
-
-  /**
-   * Extract available agents from delegation context
-   */
-  private extractAvailableAgents(delegationContext?: string): string[] {
-    if (!delegationContext) return [];
-
-    const agentMatches = delegationContext.match(/\*\*([^*]+)\*\*:/g);
-    if (!agentMatches) return [];
-
-    return agentMatches
-      .map((match) => match.replace(/\*\*/g, '').replace(':', ''))
-      .filter(
-        (name) =>
-          !name.includes(' ') && name.toLowerCase() !== name.toUpperCase(),
-      );
-  }
-
-  /**
-   * Parse enterprise capability response
-   */
-  private parseEnterpriseResponse(response: string): IntentDirective | null {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return null;
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (parsed.action === 'NO_ENTERPRISE_ACTION') return null;
-
-      return {
-        action: parsed.action,
-        reasoning: parsed.reasoning,
-        confidence: parsed.confidence,
-        capabilityGap: parsed.capabilityGap,
-        subprojectScope: parsed.subprojectScope,
-      };
-    } catch (error) {
-      this.logger.warn('Failed to parse enterprise response:', error);
-      return null;
-    }
-  }
 
   /**
    * Extract suggested agent from clarification conversation history
@@ -440,22 +310,8 @@ Classify user requests into one of these actions:
 3. CONTINUE_DELEGATION - Continue working with a previously active agent
    Only use this when there's clear context of an ongoing conversation with a specific agent
 
-4. RESUME_PROJECT - Continue an existing project (handled automatically when projectId is present)
-
-5. BUILD_AGENT - Create new permanent agent for enterprise capability gap
-   Examples: "We need an agent for social media scheduling", "Build me a specialized customer support agent"
-   ONLY use when user explicitly wants to create a new agent
-
-6. IMPROVE_AGENT - Enhance existing agent performance based on feedback
-   Examples: "The marketing agent needs to be better at X", "Can we improve how the content agent handles Y"
-   ONLY use when user explicitly mentions improving existing agent performance
-
-7. CREATE_SUBPROJECT - Create child project for cross-departmental coordination
-   Examples: "This needs both marketing and engineering teams", "Coordinate this across departments"
-   ONLY use when user explicitly requests cross-departmental work
-
-NOTE: CREATE_PROJECT has been removed from natural language classification. 
-Project creation is now handled through explicit UI actions, not language inference.
+NOTE: All project and management actions (CREATE_PROJECT, RESUME_PROJECT, BUILD_AGENT, IMPROVE_AGENT, CREATE_SUBPROJECT, UPDATE_PROJECT_PLAN, APPROVE_PROJECT_PLAN) have been removed from natural language classification. 
+These are now handled through explicit UI actions, not language inference.
 
 AVAILABLE AGENTS FOR DELEGATION:
 ${availableAgents.length > 0 ? availableAgents.map((agent) => `- ${agent}`).join('\n') : 'No delegation context available'}
@@ -466,12 +322,10 @@ ${context.shouldContinueWithAgent ? `Active agent: ${context.currentAgent}` : 'N
 
 RESPONSE FORMAT:
 You must respond with a JSON object containing:
-- action: One of the 7 actions above
+- action: One of the 3 actions above
 - agentName: (only for DELEGATE/CONTINUE_DELEGATION actions) MUST be one of the available agents listed above
 - reasoning: Clear explanation of your classification decision
 - confidence: Number between 0.0 and 1.0
-- capabilityGap: (only for BUILD_AGENT) Details about the missing capability
-- subprojectScope: (only for CREATE_SUBPROJECT) Cross-departmental coordination details
 
 CRITICAL GUIDELINES - READ CAREFULLY:
 - START with DELEGATE as your default assumption
@@ -492,7 +346,7 @@ DECISION TREE:
 
 CRITICAL RULE: If you're not 100% certain it's something else, choose DELEGATE
 
-REMOVED: CREATE_PROJECT and CLARIFY actions - projects are now created through explicit UI actions`;
+NOTE: All management actions have been removed from natural language classification - they are now explicit UI actions`;
   }
 
   /**
@@ -567,10 +421,6 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
         'DELEGATE',
         'CONVERSE',
         'CONTINUE_DELEGATION',
-        'RESUME_PROJECT',
-        'BUILD_AGENT',
-        'IMPROVE_AGENT',
-        'CREATE_SUBPROJECT',
       ];
       if (!validActions.includes(parsed.action)) {
         throw new Error(`Invalid action: ${parsed.action}`);
