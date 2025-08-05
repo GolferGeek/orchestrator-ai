@@ -13,6 +13,16 @@ import { TasksService } from './tasks/tasks.service';
 import { TaskStatusService } from './tasks/task-status.service';
 import { MarketingManagerOrchestratorService } from './agents/actual/marketing/marketing_manager_orchestrator/agent-service';
 import { CEOOrchestratorService } from './agents/actual/orchestrator/ceo_orchestrator/agent-service';
+import { EngineeringManagerOrchestratorService } from './agents/actual/engineering/engineering_manager_orchestrator/agent-service';
+import { OperationsManagerOrchestratorService } from './agents/actual/operations/operations_manager_orchestrator/agent-service';
+import { FinanceManagerOrchestratorService } from './agents/actual/finance/finance_manager_orchestrator/agent-service';
+import { HRManagerOrchestratorService } from './agents/actual/hr/hr_manager_orchestrator/agent-service';
+import { SalesManagerOrchestratorService } from './agents/actual/sales/sales_manager_orchestrator/agent-service';
+import { ProductManagerOrchestratorService } from './agents/actual/product/product_manager_orchestrator/agent-service';
+import { ResearchManagerOrchestratorService } from './agents/actual/research/research_manager_orchestrator/agent-service';
+import { SpecialistsManagerOrchestratorService } from './agents/actual/specialists/specialists_manager_orchestrator/agent-service';
+import { LegalManagerOrchestratorService } from './agents/actual/legal/legal_manager_orchestrator/agent-service';
+import { ProductivityManagerOrchestratorService } from './agents/actual/productivity/productivity_manager_orchestrator/agent-service';
 // Note: MCPClientService removed - replaced with LangChain.js services
 
 export interface DiscoveredAgent {
@@ -68,12 +78,32 @@ export class AgentFactoryService {
     private readonly taskStatusService: TaskStatusService,
     @Optional() private readonly marketingManagerOrchestratorService?: MarketingManagerOrchestratorService,
     @Optional() private readonly ceoOrchestratorService?: CEOOrchestratorService,
+    @Optional() private readonly engineeringManagerOrchestratorService?: EngineeringManagerOrchestratorService,
+    @Optional() private readonly operationsManagerOrchestratorService?: OperationsManagerOrchestratorService,
+    @Optional() private readonly financeManagerOrchestratorService?: FinanceManagerOrchestratorService,
+    @Optional() private readonly hrManagerOrchestratorService?: HRManagerOrchestratorService,
+    @Optional() private readonly salesManagerOrchestratorService?: SalesManagerOrchestratorService,
+    @Optional() private readonly productManagerOrchestratorService?: ProductManagerOrchestratorService,
+    @Optional() private readonly researchManagerOrchestratorService?: ResearchManagerOrchestratorService,
+    @Optional() private readonly specialistsManagerOrchestratorService?: SpecialistsManagerOrchestratorService,
+    @Optional() private readonly legalManagerOrchestratorService?: LegalManagerOrchestratorService,
+    @Optional() private readonly productivityManagerOrchestratorService?: ProductivityManagerOrchestratorService,
     // mcpClientService removed - using LangChain.js services instead
     // supabaseToolsService removed - using utility functions instead
   ) {
     this.logger.log('🏭 AgentFactoryService initialized');
     this.logger.log(`🎯 Marketing Orchestrator available: ${!!this.marketingManagerOrchestratorService}`);
     this.logger.log(`🎯 CEO Orchestrator available: ${!!this.ceoOrchestratorService}`);
+    this.logger.log(`🎯 Engineering Manager Orchestrator available: ${!!this.engineeringManagerOrchestratorService}`);
+    this.logger.log(`🎯 Operations Manager Orchestrator available: ${!!this.operationsManagerOrchestratorService}`);
+    this.logger.log(`🎯 Finance Manager Orchestrator available: ${!!this.financeManagerOrchestratorService}`);
+    this.logger.log(`🎯 HR Manager Orchestrator available: ${!!this.hrManagerOrchestratorService}`);
+    this.logger.log(`🎯 Sales Manager Orchestrator available: ${!!this.salesManagerOrchestratorService}`);
+    this.logger.log(`🎯 Product Manager Orchestrator available: ${!!this.productManagerOrchestratorService}`);
+    this.logger.log(`🎯 Research Manager Orchestrator available: ${!!this.researchManagerOrchestratorService}`);
+    this.logger.log(`🎯 Specialists Manager Orchestrator available: ${!!this.specialistsManagerOrchestratorService}`);
+    this.logger.log(`🎯 Legal Manager Orchestrator available: ${!!this.legalManagerOrchestratorService}`);
+    this.logger.log(`🎯 Productivity Manager Orchestrator available: ${!!this.productivityManagerOrchestratorService}`);
   }
 
   /**
@@ -173,13 +203,50 @@ export class AgentFactoryService {
     discoveredAgent: DiscoveredAgent,
   ): Promise<ServiceClass | null> {
     try {
-      const relativePath = discoveredAgent.servicePath
-        .replace(process.cwd() + '/src/', './')
-        .replace('.ts', '');
+      // Handle both development (source) and production (compiled) paths
+      const servicePath = discoveredAgent.servicePath;
+      let importPath: string;
 
-      this.logger.debug(`📦 Importing service from: ${relativePath}`);
+      // Check if we're running in a compiled environment (dist exists)
+      const isCompiled = servicePath.includes('/dist/') || require.resolve('./app.module').includes('/dist/');
 
-      const serviceModule = await import(relativePath);
+      if (isCompiled) {
+        // Production/compiled environment: import from compiled JS files
+        if (servicePath.includes('/dist/')) {
+          // Path already points to dist, just remove .js extension if present
+          importPath = servicePath.replace(/\.js$/, '');
+        } else {
+          // Source path but running compiled - convert to compiled path
+          // /Users/.../apps/api/src/agents/... -> ./agents/...
+          const srcIndex = servicePath.indexOf('/src/');
+          if (srcIndex !== -1) {
+            const relativePath = servicePath.substring(srcIndex + 5); // Remove "/src/"
+            importPath = './' + relativePath.replace('.ts', '');
+          } else {
+            throw new Error(`Cannot find /src/ in path: ${servicePath}`);
+          }
+        }
+      } else {
+        // Development environment: import from source files
+        if (process.cwd().includes('/apps/api')) {
+          // Monorepo: convert /Users/.../apps/api/src/... to ./src/...
+          const srcIndex = servicePath.indexOf('/src/');
+          if (srcIndex !== -1) {
+            importPath = '.' + servicePath.substring(srcIndex).replace('.ts', '');
+          } else {
+            throw new Error(`Cannot find /src/ in path: ${servicePath}`);
+          }
+        } else {
+          // Standalone: convert /Users/.../src/... to ./...
+          importPath = servicePath
+            .replace(process.cwd() + '/src/', './')
+            .replace('.ts', '');
+        }
+      }
+
+      this.logger.debug(`📦 Importing service from: ${importPath} (original: ${servicePath}, compiled: ${isCompiled})`);
+
+      const serviceModule = await import(importPath);
 
       // Find the exported service class
       const ServiceClass = Object.values(serviceModule).find(
@@ -196,6 +263,9 @@ export class AgentFactoryService {
         `Failed to import service class for ${discoveredAgent.name}:`,
         error.message,
       );
+      this.logger.error(`Service path: ${discoveredAgent.servicePath}`);
+      this.logger.error(`Process CWD: ${process.cwd()}`);
+      this.logger.error(`__dirname: ${__dirname}`);
       return null;
     }
   }
@@ -219,23 +289,94 @@ export class AgentFactoryService {
           this.logger.debug(`🎯 Getting orchestrator agent from DI container: ${serviceName}`);
           
           // Return the properly injected orchestrator instance from NestJS DI container
-          if (serviceName === 'MarketingManagerOrchestratorService') {
-            if (!this.marketingManagerOrchestratorService) {
-              throw new Error(`MarketingManagerOrchestratorService not available in DI container. Is MarketingManagerOrchestratorModule imported in AppModule?`);
-            }
-            this.logger.debug(`✅ Returning MarketingManagerOrchestratorService from DI`);
-            return this.marketingManagerOrchestratorService;
+          switch (serviceName) {
+            case 'MarketingManagerOrchestratorService':
+              if (!this.marketingManagerOrchestratorService) {
+                throw new Error(`MarketingManagerOrchestratorService not available in DI container. Is MarketingManagerOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning MarketingManagerOrchestratorService from DI`);
+              return this.marketingManagerOrchestratorService;
+
+            case 'CEOOrchestratorService':
+              if (!this.ceoOrchestratorService) {
+                throw new Error(`CEOOrchestratorService not available in DI container. Is CEOOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning CEOOrchestratorService from DI`);
+              return this.ceoOrchestratorService;
+
+            case 'EngineeringManagerOrchestratorService':
+              if (!this.engineeringManagerOrchestratorService) {
+                throw new Error(`EngineeringManagerOrchestratorService not available in DI container. Is EngineeringManagerOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning EngineeringManagerOrchestratorService from DI`);
+              return this.engineeringManagerOrchestratorService;
+
+            case 'OperationsManagerOrchestratorService':
+              if (!this.operationsManagerOrchestratorService) {
+                throw new Error(`OperationsManagerOrchestratorService not available in DI container. Is OperationsManagerOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning OperationsManagerOrchestratorService from DI`);
+              return this.operationsManagerOrchestratorService;
+
+            case 'FinanceManagerOrchestratorService':
+              if (!this.financeManagerOrchestratorService) {
+                throw new Error(`FinanceManagerOrchestratorService not available in DI container. Is FinanceManagerOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning FinanceManagerOrchestratorService from DI`);
+              return this.financeManagerOrchestratorService;
+
+            case 'HRManagerOrchestratorService':
+              if (!this.hrManagerOrchestratorService) {
+                throw new Error(`HRManagerOrchestratorService not available in DI container. Is HRManagerOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning HRManagerOrchestratorService from DI`);
+              return this.hrManagerOrchestratorService;
+
+            case 'SalesManagerOrchestratorService':
+              if (!this.salesManagerOrchestratorService) {
+                throw new Error(`SalesManagerOrchestratorService not available in DI container. Is SalesManagerOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning SalesManagerOrchestratorService from DI`);
+              return this.salesManagerOrchestratorService;
+
+            case 'ProductManagerOrchestratorService':
+              if (!this.productManagerOrchestratorService) {
+                throw new Error(`ProductManagerOrchestratorService not available in DI container. Is ProductManagerOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning ProductManagerOrchestratorService from DI`);
+              return this.productManagerOrchestratorService;
+
+            case 'ResearchManagerOrchestratorService':
+              if (!this.researchManagerOrchestratorService) {
+                throw new Error(`ResearchManagerOrchestratorService not available in DI container. Is ResearchManagerOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning ResearchManagerOrchestratorService from DI`);
+              return this.researchManagerOrchestratorService;
+
+            case 'SpecialistsManagerOrchestratorService':
+              if (!this.specialistsManagerOrchestratorService) {
+                throw new Error(`SpecialistsManagerOrchestratorService not available in DI container. Is SpecialistsManagerOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning SpecialistsManagerOrchestratorService from DI`);
+              return this.specialistsManagerOrchestratorService;
+
+            case 'LegalManagerOrchestratorService':
+              if (!this.legalManagerOrchestratorService) {
+                throw new Error(`LegalManagerOrchestratorService not available in DI container. Is LegalManagerOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning LegalManagerOrchestratorService from DI`);
+              return this.legalManagerOrchestratorService;
+
+            case 'ProductivityManagerOrchestratorService':
+              if (!this.productivityManagerOrchestratorService) {
+                throw new Error(`ProductivityManagerOrchestratorService not available in DI container. Is ProductivityManagerOrchestratorModule imported in AppModule?`);
+              }
+              this.logger.debug(`✅ Returning ProductivityManagerOrchestratorService from DI`);
+              return this.productivityManagerOrchestratorService;
+
+            default:
+              throw new Error(`Unknown orchestrator service: ${serviceName}. Check if the corresponding module is imported in AppModule.`);
           }
-          
-          if (serviceName === 'CEOOrchestratorService') {
-            if (!this.ceoOrchestratorService) {
-              throw new Error(`CEOOrchestratorService not available in DI container. Is CEOOrchestratorModule imported in AppModule?`);
-            }
-            this.logger.debug(`✅ Returning CEOOrchestratorService from DI`);
-            return this.ceoOrchestratorService;
-          }
-          
-          throw new Error(`Unknown orchestrator service: ${serviceName}. Available: MarketingManagerOrchestratorService, CEOOrchestratorService`);
         }
 
         case 'function': {

@@ -9,6 +9,7 @@ import {
 import { LLMService } from '../../../../../llms/llm.service';
 import { AgentDiscoveryService } from '../../../../../agent-discovery.service';
 import { AgentFactoryService } from '../../../../../agent-factory.service';
+import { AgentNameFormatter } from '../../../../../common/formatters/agent-name.formatter';
 
 /**
  * Delegation Service - Enhanced agent delegation with context awareness
@@ -24,6 +25,7 @@ export class DelegationService implements IDelegationService {
     private readonly llmService: LLMService,
     private readonly agentDiscoveryService: AgentDiscoveryService,
     private readonly agentFactoryService: AgentFactoryService,
+    private readonly agentNameFormatter: AgentNameFormatter,
   ) {}
 
   /**
@@ -320,9 +322,15 @@ export class DelegationService implements IDelegationService {
       // Extract content from the delegation result
       const content = delegationResult.response || delegationResult.message || 'Task completed';
       
+      // Format agent name for display using the formatter service
+      const displayName = this.agentNameFormatter.formatDisplayName(agentName);
+      
+      // Add agent name at the top of the response
+      const formattedMessage = `**${displayName}**\n\n${content}`;
+      
       const response: OrchestratorResponse = {
         success: true,
-        message: content,  // Use 'message' field for orchestrator format consistency
+        message: formattedMessage,  // Include agent name at the top
         action: 'DELEGATE',
         agentName,
         metadata: {
@@ -687,4 +695,5 @@ Can the ${agentName} agent handle this request?`;
       };
     }
   }
+
 }

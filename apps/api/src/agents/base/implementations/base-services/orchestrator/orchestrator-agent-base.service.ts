@@ -127,7 +127,33 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
       // Try to infer from agent name for orchestrators
       const agentName = this.getAgentName();
       if (agentName.includes('orchestrator')) {
-        agentPath = `orchestrator/${agentName}`;
+        // Map department manager orchestrators to their proper departments
+        if (agentName.includes('marketing_manager')) {
+          agentPath = `marketing/${agentName}`;
+        } else if (agentName.includes('engineering_manager')) {
+          agentPath = `engineering/${agentName}`;
+        } else if (agentName.includes('operations_manager')) {
+          agentPath = `operations/${agentName}`;
+        } else if (agentName.includes('finance_manager')) {
+          agentPath = `finance/${agentName}`;
+        } else if (agentName.includes('hr_manager')) {
+          agentPath = `hr/${agentName}`;
+        } else if (agentName.includes('sales_manager')) {
+          agentPath = `sales/${agentName}`;
+        } else if (agentName.includes('product_manager')) {
+          agentPath = `product/${agentName}`;
+        } else if (agentName.includes('research_manager')) {
+          agentPath = `research/${agentName}`;
+        } else if (agentName.includes('legal_manager')) {
+          agentPath = `legal/${agentName}`;
+        } else if (agentName.includes('productivity_manager')) {
+          agentPath = `productivity/${agentName}`;
+        } else if (agentName.includes('specialists_manager')) {
+          agentPath = `specialists/${agentName}`;
+        } else {
+          // Default to orchestrator for CEO and other top-level orchestrators
+          agentPath = `orchestrator/${agentName}`;
+        }
         this.orchestratorLogger.log(`🔍 Inferred agent path for testing: ${agentPath}`);
       }
     }
