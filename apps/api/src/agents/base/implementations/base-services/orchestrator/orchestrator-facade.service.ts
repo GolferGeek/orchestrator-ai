@@ -13,6 +13,7 @@ import {
 } from '../../../../../orchestration/orchestration.types';
 import { SupabaseService } from '../../../../../supabase/supabase.service';
 import { LLMService } from '../../../../../llms/llm.service';
+import { AgentNameFormatter } from '../../../../../common/formatters/agent-name.formatter';
 
 /**
  * Orchestrator Facade Service - Main coordinator
@@ -36,6 +37,7 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
     private readonly planExecutionService: IPlanExecutionService,
     private readonly supabaseService: SupabaseService,
     private readonly llmService: LLMService,
+    private readonly agentNameFormatter: AgentNameFormatter,
   ) {}
 
   /**
@@ -405,78 +407,7 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
     }
   }
 
-  /**
-   * Handle clarification request - present user with delegation vs project options
-   */
-  private async handleClarifyRequest(
-    intent: any,
-    input: OrchestratorInput,
-  ): Promise<OrchestratorResponse> {
-    this.logger.log(`Handling clarification request for ambiguous intent`);
-
-    try {
-      const agentOption = intent.suggestedAgent || 'available agent';
-      const projectOption =
-        intent.projectOutline || 'multi-step project with coordination';
-
-      const clarificationMessage = `I can handle your request in two ways:
-
-🤖 **Option A: Direct Agent Delegation**
-→ I can delegate this directly to the **${agentOption}** agent
-→ Quick, focused response from a specialist
-→ Best for straightforward, single-task requests
-
-📋 **Option B: Structured Project**
-→ I can create a multi-step project: ${projectOption}
-→ Coordinated workflow with planning and tracking
-→ Best for complex initiatives requiring multiple steps
-
-Which approach would you prefer? Just let me know **A** for delegation or **B** for project creation.`;
-
-      return {
-        success: true,
-        response: clarificationMessage,
-        action: 'CLARIFY',
-        requiresUserChoice: true,
-        options: {
-          delegate: {
-            agentName: intent.suggestedAgent || 'specialist',
-            description: `Direct delegation to ${intent.suggestedAgent || 'available agent'}`,
-          },
-          project: {
-            outline: intent.projectOutline || 'structured multi-step approach',
-            description:
-              'Create coordinated project with planning and tracking',
-          },
-        },
-        metadata: {
-          agentType: 'orchestrator',
-          agentName: 'Orchestrator',
-          processedAt: new Date().toISOString(),
-          action: 'CLARIFY',
-          intentConfidence: intent.confidence,
-          reasoning: intent.reasoning,
-        },
-        conversationId: input.conversationId,
-        userId: input.userId,
-        sessionId: input.sessionId,
-      };
-    } catch (error) {
-      this.logger.error('Clarification handling failed:', error);
-
-      return {
-        success: false,
-        response: `I encountered an issue while preparing options for your request. Let me try to help you directly instead.`,
-        metadata: {
-          agentType: 'orchestrator',
-          agentName: 'Orchestrator',
-          processedAt: new Date().toISOString(),
-          action: 'CLARIFY_ERROR',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-      };
-    }
-  }
+  // NOTE: handleClarifyRequest method removed - orchestrator now delegates directly instead of asking for permission
 
   /**
    * Handle direct conversation
@@ -638,7 +569,20 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
           }
 
         case 'CLARIFY':
-          return await this.handleClarifyRequest(intent, input);
+          // CLARIFY removed - treat as delegation request instead
+          this.logger.log('CLARIFY action detected but removed - converting to DELEGATE');
+          if (intent.agentName || intent.suggestedAgent) {
+            const targetAgent = intent.agentName || intent.suggestedAgent;
+            if (targetAgent) {
+              return await this.delegationService.delegateToAgent(
+                targetAgent,
+                input.prompt,
+                input,
+              );
+            }
+          }
+          // No specific agent suggested, fall back to conversation
+          return await this.handleConverse(input);
 
         case 'CONTINUE_DELEGATION':
           // TODO: Implement delegation continuation

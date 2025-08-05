@@ -13,6 +13,7 @@ import { CIDAFMModule } from '../../../../../cidafm/cidafm.module';
 import { AgentDiscoveryService } from '../../../../../agent-discovery.service';
 import { AgentFactoryService } from '../../../../../agent-factory.service';
 import { AgentPoolModule } from '../../../../../agent-pool/agent-pool.module';
+import { FormattersModule } from '../../../../../common/formatters/formatters.module';
 
 // Orchestrator services
 import { OrchestratorAgentBaseService } from './orchestrator-agent-base.service';
@@ -42,6 +43,7 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     AgentConversationsModule, // Required for AgentFactoryService
     CIDAFMModule, // Required for AgentFactoryService
     AgentPoolModule, // Required for SubprojectManagementService
+    FormattersModule, // For agent name formatting
   ],
   providers: [
     // Core services

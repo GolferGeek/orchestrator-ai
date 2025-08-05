@@ -53,7 +53,10 @@ export class AgentDiscoveryService {
   async discoverAgents(): Promise<DiscoveredAgent[]> {
     this.logger.log('🔍 Starting agent discovery...');
 
-    const agentsBasePath = join(process.cwd(), 'src', 'agents', 'actual');
+    // Handle both monorepo (apps/api/src) and standalone (src) structures
+    const agentsBasePath = process.cwd().includes('/apps/api') 
+      ? join(process.cwd(), 'src', 'agents', 'actual')
+      : join(process.cwd(), 'apps', 'api', 'src', 'agents', 'actual');
     this.discoveredAgents = [];
 
     await this.traverseDirectory(agentsBasePath);
