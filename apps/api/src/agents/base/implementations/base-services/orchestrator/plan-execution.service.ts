@@ -7,23 +7,24 @@ import {
   ProjectStatus,
   ProjectStepStatus,
   IDelegationService,
+  ILangGraphStateManagementService,
   OrchestratorInput,
 } from '../../../../../orchestration/orchestration.types';
 import { LLMService } from '../../../../../llms/llm.service';
 import { SupabaseService } from '../../../../../supabase/supabase.service';
 
 /**
- * Plan Execution Service - Real Implementation
+ * Plan Execution Service - Enhanced with LangGraph StateGraph
  * 
- * Executes project plans by orchestrating step-by-step execution.
- * Handles agent delegation, dependency resolution, and state management.
+ * Executes project plans using LangGraph StateGraph for advanced workflow orchestration.
+ * Provides stateful execution with proper checkpointing and recovery capabilities.
  * 
- * Instead of complex LangGraph integration, uses direct orchestration approach:
- * 1. Load project steps from database
- * 2. Resolve dependencies and execute steps in order
- * 3. Delegate agent_step types to appropriate agents
- * 4. Handle human_approval interrupts
- * 5. Update project and step statuses in database
+ * Enhanced architecture:
+ * 1. Initialize LangGraph state with 3-tier architecture (Plan/Step/Metadata)
+ * 2. Use StateGraph for dependency resolution and execution flow
+ * 3. Delegate agent_step types through state management service
+ * 4. Handle human_approval interrupts with proper state persistence
+ * 5. Maintain database consistency with real-time state updates
  */
 @Injectable()
 export class PlanExecutionService implements IPlanExecutionService {
@@ -34,12 +35,14 @@ export class PlanExecutionService implements IPlanExecutionService {
     private readonly supabaseService: SupabaseService,
     @Inject('IDelegationService')
     private readonly delegationService: IDelegationService,
+    @Inject('ILangGraphStateManagementService')
+    private readonly stateManagementService: ILangGraphStateManagementService,
   ) {
-    this.logger.log('PlanExecutionService initialized with real orchestration engine');
+    this.logger.log('PlanExecutionService initialized with LangGraph StateGraph integration');
   }
 
   async startProject(project: Project): Promise<void> {
-    this.logger.log(`Starting project execution: ${project.id}`);
+    this.logger.log(`Starting project execution with LangGraph StateGraph: ${project.id}`);
 
     try {
       // Validate project has a plan
@@ -47,19 +50,34 @@ export class PlanExecutionService implements IPlanExecutionService {
         throw new Error(`Project ${project.id} missing planJson - cannot execute without plan`);
       }
 
+      // Initialize LangGraph state with 3-tier architecture
+      this.logger.log(`Initializing LangGraph state for project ${project.id}`);
+      const orchestratorInput: OrchestratorInput = {
+        prompt: `Execute project: ${project.name}`,
+        userId: project.metadata.createdBy || 'system',
+        conversationId: project.conversationId,
+        projectId: project.id,
+        metadata: project.metadata,
+      };
+
+      await this.stateManagementService.initializeProjectState(
+        project.planJson,
+        orchestratorInput,
+      );
+
+      // Update project status to running
+      await this.updateProjectStatus(project.id, 'running');
+
       // Load project steps from database
       const steps = await this.loadProjectSteps(project.id);
       if (steps.length === 0) {
         throw new Error(`Project ${project.id} has no steps - cannot execute empty project`);
       }
 
-      // Update project status to running
-      await this.updateProjectStatus(project.id, 'running');
+      // Start executing steps through StateGraph
+      await this.executeNextReadyStepsWithStateGraph(project.id, steps, orchestratorInput);
 
-      // Start executing steps
-      await this.executeNextReadySteps(project.id, steps);
-
-      this.logger.log(`Project ${project.id} execution started successfully`);
+      this.logger.log(`Project ${project.id} execution started successfully with StateGraph`);
     } catch (error) {
       this.logger.error(`Failed to start project ${project.id}:`, error);
       
@@ -74,7 +92,7 @@ export class PlanExecutionService implements IPlanExecutionService {
   }
 
   async resumeProject(projectId: string): Promise<void> {
-    this.logger.log(`Resuming project execution: ${projectId}`);
+    this.logger.log(`Resuming project execution with StateGraph: ${projectId}`);
 
     try {
       // Load project and steps
@@ -90,10 +108,19 @@ export class PlanExecutionService implements IPlanExecutionService {
         await this.updateProjectStatus(projectId, 'running');
       }
 
-      // Continue executing ready steps
-      await this.executeNextReadySteps(projectId, steps);
+      // Resume workflow through StateGraph
+      const orchestratorInput: OrchestratorInput = {
+        prompt: `Resume project: ${project.name}`,
+        userId: project.metadata.createdBy || 'system',
+        conversationId: project.conversation_id,
+        projectId: project.id,
+        metadata: project.metadata,
+      };
 
-      this.logger.log(`Project ${projectId} resumed successfully`);
+      // Use StateGraph to resume execution
+      await this.executeNextReadyStepsWithStateGraph(projectId, steps, orchestratorInput);
+
+      this.logger.log(`Project ${projectId} resumed successfully with StateGraph`);
     } catch (error) {
       this.logger.error(`Failed to resume project ${projectId}:`, error);
       throw error;
@@ -101,7 +128,7 @@ export class PlanExecutionService implements IPlanExecutionService {
   }
 
   async retryStep(projectId: string, stepId: string): Promise<void> {
-    this.logger.log(`Retrying step ${stepId} in project ${projectId}`);
+    this.logger.log(`Retrying step ${stepId} in project ${projectId} with StateGraph`);
 
     try {
       // Reset step status to pending
@@ -115,10 +142,29 @@ export class PlanExecutionService implements IPlanExecutionService {
         throw new Error(`Step ${stepId} not found in project ${projectId}`);
       }
 
-      // Execute the specific step
-      await this.executeStep(projectId, step);
+      // Get project for orchestrator input
+      const project = await this.loadProject(projectId);
+      const orchestratorInput: OrchestratorInput = {
+        prompt: `Retry step: ${step.stepName}`,
+        userId: project.metadata.createdBy || 'system',
+        conversationId: project.conversation_id,
+        projectId: projectId,
+        stepId: stepId,
+        metadata: {
+          ...project.metadata,
+          retryAttempt: true,
+          stepName: step.stepName,
+        },
+      };
 
-      this.logger.log(`Step ${stepId} retry completed`);
+      // Execute the specific step through StateGraph
+      await this.stateManagementService.executeWorkflowStep(
+        projectId,
+        stepId,
+        orchestratorInput,
+      );
+
+      this.logger.log(`Step ${stepId} retry completed with StateGraph`);
     } catch (error) {
       this.logger.error(`Failed to retry step ${stepId}:`, error);
       throw error;
@@ -194,6 +240,72 @@ export class PlanExecutionService implements IPlanExecutionService {
       } catch (error) {
         this.logger.error(`Step ${step.stepId} execution failed:`, error);
         // Continue with other steps, handle error appropriately
+        await this.updateStepStatus(projectId, step.stepId, 'failed', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          failedAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    // Check if project is complete
+    await this.checkProjectCompletion(projectId, steps);
+  }
+
+  /**
+   * Enhanced execution method using LangGraph StateGraph
+   * Provides stateful workflow execution with proper checkpointing
+   */
+  private async executeNextReadyStepsWithStateGraph(
+    projectId: string, 
+    steps: any[], 
+    orchestratorInput: OrchestratorInput
+  ): Promise<void> {
+    // Find steps that are ready to execute (dependencies completed, status pending)
+    const readySteps = steps.filter(step => 
+      step.status === 'pending' && this.areDependenciesCompleted(step, steps)
+    );
+
+    this.logger.log(`Found ${readySteps.length} ready steps to execute with StateGraph`);
+
+    // Execute ready steps through StateGraph workflow
+    for (const step of readySteps) {
+      try {
+        this.logger.log(`Executing step ${step.stepId} through StateGraph: ${step.stepName}`);
+        
+        // Execute step through StateGraph state management
+        await this.stateManagementService.executeWorkflowStep(
+          projectId,
+          step.stepId,
+          {
+            ...orchestratorInput,
+            stepId: step.stepId,
+            prompt: step.prompt,
+            metadata: {
+              ...orchestratorInput.metadata,
+              stepName: step.stepName,
+              stepType: step.stepType,
+              agentName: step.agentName,
+            },
+          }
+        );
+
+        this.logger.log(`Step ${step.stepId} executed successfully through StateGraph`);
+      } catch (error) {
+        this.logger.error(`Step ${step.stepId} execution failed through StateGraph:`, error);
+        
+        // Handle workflow interrupts for error recovery
+        await this.stateManagementService.handleWorkflowInterrupt(
+          projectId,
+          step.stepId,
+          'error_recovery',
+          {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            failedAt: new Date().toISOString(),
+            stepName: step.stepName,
+          }
+        );
+
+        // Update step status in database
         await this.updateStepStatus(projectId, step.stepId, 'failed', {
           error: error instanceof Error ? error.message : 'Unknown error',
           failedAt: new Date().toISOString(),
