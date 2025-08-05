@@ -55,7 +55,7 @@ export class ProjectsService {
    * Create a new project
    */
   async createProject(params: CreateProjectParams): Promise<Project> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
     
     try {
       const projectData = {
@@ -112,7 +112,7 @@ export class ProjectsService {
     limit: number;
     offset: number;
   }> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
     
     try {
       let query = client
@@ -154,7 +154,7 @@ export class ProjectsService {
    * Get a specific project by ID
    */
   async getProject(projectId: string): Promise<Project | null> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
     
     try {
       const { data, error } = await client
@@ -185,7 +185,7 @@ export class ProjectsService {
     projectId: string,
     params: UpdateProjectParams,
   ): Promise<Project> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
     
     try {
       const updateData: any = {
@@ -237,7 +237,7 @@ export class ProjectsService {
    * Delete a project
    */
   async deleteProject(projectId: string): Promise<void> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
     
     try {
       const { error } = await client
@@ -261,7 +261,7 @@ export class ProjectsService {
    * Check if user has access to a project
    */
   async hasProjectAccess(projectId: string, userId: string): Promise<boolean> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
     
     try {
       const { data, error } = await client
@@ -286,7 +286,7 @@ export class ProjectsService {
    * Get project steps
    */
   async getProjectSteps(projectId: string): Promise<ProjectStep[]> {
-    const client = this.supabaseService.getClient();
+    const client = this.supabaseService.getServiceClient();
     
     try {
       const { data, error } = await client
@@ -407,7 +407,7 @@ export class ProjectsService {
     try {
       await this.updateProject(projectId, {
         status: 'running',
-        errorDetails: null,
+        errorDetails: undefined,
         metadata: {
           resumedAt: new Date().toISOString(),
           resumeReason: params.reason || 'Manual resume',
@@ -441,7 +441,7 @@ export class ProjectsService {
       await this.updateProject(projectId, {
         status: 'running',
         currentStepId: targetStepId,
-        errorDetails: null,
+        errorDetails: undefined,
         metadata: {
           retriedAt: new Date().toISOString(),
           retryReason: params.reason || 'Manual retry',

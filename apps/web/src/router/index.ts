@@ -7,7 +7,7 @@ import EvaluationsPage from '../views/EvaluationsPage.vue';
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
-    redirect: '/home'
+    redirect: '/organization'
   },
   {
     path: '/home',
@@ -34,9 +34,33 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, requiresRole: ['admin', 'evaluation-monitor'] }
   },
   {
-    path: '/login',
+    path: '/login', 
     name: 'Login',
     component: LoginPage
+  },
+  {
+    path: '/projects',
+    name: 'Projects',
+    component: () => import('../views/ProjectsListPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/projects/new',
+    name: 'NewProject',
+    component: () => import('../views/NewProjectPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/projects/:id',
+    name: 'ProjectDetail',
+    component: () => import('../views/ProjectDetailPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/organization',
+    name: 'Organization',
+    component: () => import('../views/OrganizationPage.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 

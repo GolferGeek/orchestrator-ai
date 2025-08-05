@@ -162,8 +162,20 @@ const sendMessage = async () => {
   const text = messageText.value.trim();
   messageText.value = '';
 
-  // Emit the message to parent component to handle
-  emit('send-message', text);
+  try {
+    // Send message directly through the agent chat store
+    const activeConversation = agentChatStore.getActiveConversation();
+    if (activeConversation && currentAgent.value) {
+      await agentChatStore.sendMessage(text);
+    } else {
+      console.warn('No active conversation or agent available for sending message');
+    }
+  } catch (error) {
+    console.error('Failed to send message:', error);
+    // Re-populate the input if there was an error
+    messageText.value = text;
+  }
+  
   scrollToBottom();
 };
 

@@ -102,8 +102,8 @@
 
               <!-- Agent Content - Only show if expanded -->
               <div v-if="isAgentExpanded(agent)" class="conversations-content">
-                <!-- Add new conversation button at the top -->
-                <div class="new-conversation-button">
+                <!-- Action buttons at the top -->
+                <div class="agent-actions">
                   <ion-button 
                     fill="clear" 
                     size="small"
@@ -112,6 +112,19 @@
                   >
                     <ion-icon :icon="addOutline" slot="start" />
                     New {{ getConversationLabel(agent) }}
+                  </ion-button>
+                  
+                  <!-- Create Project button for orchestrator agents -->
+                  <ion-button 
+                    v-if="agent.type === 'orchestrator'"
+                    fill="clear" 
+                    size="small"
+                    color="secondary"
+                    @click.stop="createNewProject(agent)"
+                    class="create-project-btn"
+                  >
+                    <ion-icon :icon="folderOutline" slot="start" />
+                    Create Project
                   </ion-button>
                 </div>
                 
@@ -220,12 +233,14 @@ import {
   scaleOutline,
   chevronDownOutline,
   chevronForwardOutline,
+  folderOutline,
 } from 'ionicons/icons';
 import { agentConversationsService } from '@/services/agentConversationsService';
 import { formatAgentName } from '@/utils/caseConverter';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
 import { websocketService } from '@/services/websocketService';
+import { useRouter } from 'vue-router';
 // TaskDetailsModal import removed - conversations now load in main window
 
 interface Agent {
@@ -275,6 +290,7 @@ const selectedConversation = ref<Conversation | null>(null);
 // Stores
 const agentsStore = useAgentsStore();
 const conversationsStore = useAgentConversationsStore();
+const router = useRouter();
 
 // Computed
 const filteredAgentTypes = computed(() => {
@@ -377,6 +393,21 @@ const createNewConversation = async (agent: Agent) => {
     // In a full implementation, this would transition to a chat interface
     
   } catch (err) {
+  }
+};
+
+const createNewProject = async (agent: Agent) => {
+  try {
+    // Navigate to project creation page with pre-selected orchestrator
+    await router.push({
+      path: '/projects/new',
+      query: {
+        orchestrator: agent.name,
+        orchestratorType: agent.type
+      }
+    });
+  } catch (err) {
+    console.error('Failed to navigate to project creation:', err);
   }
 };
 
@@ -961,10 +992,13 @@ watch(() => websocketService.connected.value, (connected) => {
     min-width: 18px;
   }
   
-  /* New conversation button */
-  .new-conversation-button {
+  /* Agent actions */
+  .agent-actions {
     padding: 8px 16px;
     border-bottom: 1px solid var(--ion-color-light);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
   
   .start-conversation-btn {
@@ -972,9 +1006,19 @@ watch(() => websocketService.connected.value, (connected) => {
     font-size: 0.9em;
     text-transform: none;
     font-weight: 500;
+    justify-content: flex-start;
   }
   
-  .agent-tree-view.compact-mode .start-conversation-btn {
+  .create-project-btn {
+    --color: var(--ion-color-secondary);
+    font-size: 0.9em;
+    text-transform: none;
+    font-weight: 500;
+    justify-content: flex-start;
+  }
+  
+  .agent-tree-view.compact-mode .start-conversation-btn,
+  .agent-tree-view.compact-mode .create-project-btn {
     font-size: 0.8em;
   }
 

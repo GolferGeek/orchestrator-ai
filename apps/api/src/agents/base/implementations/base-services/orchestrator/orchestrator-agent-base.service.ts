@@ -62,6 +62,21 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
       );
 
       this.orchestratorLogger.log(`🔍 DEBUG - Orchestrator completed task: ${method}`);
+      
+      // Debug: Log the raw response structure being sent to frontend
+      this.orchestratorLogger.log(`🔍 DEBUG - Raw facade response from executeTask: ${JSON.stringify(response, null, 2)}`);
+      
+      // Enhance response with orchestrator metadata if needed
+      if (response && typeof response === 'object' && !response.metadata?.agentType) {
+        response.metadata = {
+          ...response.metadata,
+          agentType: 'orchestrator' as const,
+          agentName: this.getAgentName(),
+          processedAt: new Date().toISOString(),
+        };
+        this.orchestratorLogger.log(`🔍 DEBUG - Enhanced response with orchestrator metadata: ${JSON.stringify(response, null, 2)}`);
+      }
+      
       return response;
     } catch (error) {
       this.orchestratorLogger.error(
@@ -243,7 +258,7 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
       this.orchestratorLogger.log(`🔍 DEBUG - Facade processRequest completed, response received`);
 
       // Debug: Log the raw response before enhancement
-      this.orchestratorLogger.debug(`Raw facade response: ${JSON.stringify(response, null, 2)}`);
+      this.orchestratorLogger.log(`🔍 DEBUG - Raw facade response: ${JSON.stringify(response, null, 2)}`);
 
       // Enhance response with orchestrator-specific metadata
       const enhancedResponse: OrchestratorResponse = {
@@ -258,7 +273,7 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
         },
       };
 
-      this.orchestratorLogger.debug(`Enhanced response: ${JSON.stringify(enhancedResponse, null, 2)}`);
+      this.orchestratorLogger.log(`🔍 DEBUG - Enhanced response: ${JSON.stringify(enhancedResponse, null, 2)}`);
       return enhancedResponse;
     } catch (error) {
       this.orchestratorLogger.error('Orchestrator task execution failed:', error);

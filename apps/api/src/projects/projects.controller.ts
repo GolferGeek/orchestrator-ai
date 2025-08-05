@@ -13,8 +13,8 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { CurrentUser } from '@/auth/current-user.decorator';
-import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
+import { CurrentUser } from '@/auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { ProjectsService } from './projects.service';
 import {
   Project,

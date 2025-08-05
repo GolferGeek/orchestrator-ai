@@ -209,11 +209,24 @@ export class DynamicAgentsController {
         };
       }
 
+      this.logger.debug(`🔍 DEBUG - Using immediate/synchronous mode for task ${task.id}`);
+      this.logger.debug(`🔍 DEBUG - About to call agentInstance.processTask`);
+
       // For synchronous processing, await the result
       const result = await agentInstance.processTask(authenticatedTaskRequest);
 
-      // Agent should have completed the task via TaskStatusService
-      // Just return the result
+      this.logger.debug(`🔍 DEBUG - Task ${task.id} completed with result: ${JSON.stringify(result, null, 2)}`);
+
+      // Store the result in the task record so frontend can access it
+      await this.taskStatusService.completeTask(
+        task.id,
+        currentUser.id,
+        result, // This is the orchestrator response with message field
+      );
+
+      this.logger.debug(`🔍 DEBUG - Task ${task.id} marked as completed in database`);
+
+      // Return the result for immediate response
       return {
         taskId: task.id,
         conversationId: task.agentConversationId,
