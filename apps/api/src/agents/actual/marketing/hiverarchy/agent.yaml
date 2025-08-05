@@ -41,6 +41,12 @@ external_a2a_configuration:
     interval: 300000  # 5 minutes
     endpoint: "/.well-known/agent.json"
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: marketing_manager_orchestrator
+  department: marketing
+
 # Metadata for local registration
 metadata:
   category: "external"

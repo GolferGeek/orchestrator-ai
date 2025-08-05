@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "Your dedicated new hire onboarding specialist! I guide employees through their entire onboarding journey - from pre-boarding preparation to 90-day integration. I provide personalized onboarding checklists, coordinate training schedules, facilitate team introductions, ensure system access setup, and track progress milestones to guarantee every new hire feels welcomed, prepared, and productive from day one."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: hr_manager_orchestrator  
+  department: hr
+
 type: "context"
 
 capabilities:

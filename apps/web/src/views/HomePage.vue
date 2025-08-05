@@ -25,7 +25,7 @@
 
       <!-- Agent Conversation View -->
       <div v-else-if="agentChatStore.hasActiveConversation" class="conversation-container">
-        <ConversationTabs @close="handleCloseAgentChat" />
+        <ConversationTabs />
       </div>
 
       <!-- Welcome/Empty State -->
@@ -33,20 +33,12 @@
         <div class="welcome-content">
           <ion-icon :icon="chatbubblesOutline" class="welcome-icon"></ion-icon>
           <h2>Welcome to Orchestrator AI</h2>
-          <p>Start a conversation with any agent from the Organization tab, or create a new project to begin orchestrated workflows.</p>
+          <p>Start a conversation with any agent from the sidebar, or create a new project to begin orchestrated workflows.</p>
           
           <div class="quick-nav">
             <ion-button 
-              @click="navigateToOrganization"
-              fill="solid"
-              size="large"
-            >
-              <ion-icon :icon="businessOutline" slot="start"></ion-icon>
-              View Organization
-            </ion-button>
-            <ion-button 
               @click="navigateToProjects"
-              fill="outline"
+              fill="solid"
               size="large"
             >
               <ion-icon :icon="folderOutline" slot="start"></ion-icon>
@@ -76,7 +68,6 @@ import {
 import {
   lockClosedOutline,
   chatbubblesOutline,
-  businessOutline,
   folderOutline,
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
@@ -98,20 +89,10 @@ const pageTitle = computed(() => {
 });
 
 // Methods
-const navigateToOrganization = () => {
-  router.push('/organization');
-};
-
 const navigateToProjects = () => {
   router.push('/projects');
 };
 
-const handleCloseAgentChat = () => {
-  const activeConversation = agentChatStore.getActiveConversation();
-  if (activeConversation) {
-    agentChatStore.closeConversation(activeConversation.id);
-  }
-};
 </script>
 
 <style scoped>

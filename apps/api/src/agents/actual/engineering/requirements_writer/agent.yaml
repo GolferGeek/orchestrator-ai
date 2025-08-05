@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "Transform your ideas into professional requirements documents! I create comprehensive PRDs, technical specs, user stories, and API documentation using advanced AI workflows. Perfect for product managers, developers, and business analysts who need clear, actionable requirements."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: engineering_manager_orchestrator
+  department: engineering
+
 # Agent Type: Python function-based agent with LangGraph workflow
 type: "python-function"
 

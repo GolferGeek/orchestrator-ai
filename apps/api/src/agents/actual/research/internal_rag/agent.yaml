@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "A specialist agent for retrieving and analyzing information from internal company knowledge bases, documents, and databases."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: research_manager_orchestrator
+  department: research
+
 # Agent type - determines loading strategy
 type: "context"
 

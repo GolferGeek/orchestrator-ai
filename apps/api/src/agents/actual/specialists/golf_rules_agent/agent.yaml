@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "A comprehensive Rules of Golf expert powered by an N8N workflow that provides authoritative answers based on official USGA and R&A Rules of Golf, including detailed explanations, rule citations, and penalty assessments."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: specialists_manager_orchestrator
+  department: specialists
+
 # Agent type - API agent that delegates to N8N RAG workflow
 type: "api"
 

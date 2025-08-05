@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "A specialist agent for launching products, features, and initiatives, coordinating cross-functional teams and ensuring successful rollouts."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: engineering_manager_orchestrator
+  department: engineering
+
 type: "context"
 
 capabilities:

@@ -11,7 +11,7 @@ import { AgentRegistrationService } from './agents/base/sub-services/agent-regis
 import { TaskProgressGateway } from './websocket/task-progress.gateway';
 import { TasksService } from './tasks/tasks.service';
 import { TaskStatusService } from './tasks/task-status.service';
-import { MarketingManagerOrchestratorService } from './agents/actual/orchestrator/marketing_manager_orchestrator/agent-service';
+import { MarketingManagerOrchestratorService } from './agents/actual/marketing/marketing_manager_orchestrator/agent-service';
 import { CEOOrchestratorService } from './agents/actual/orchestrator/ceo_orchestrator/agent-service';
 // Note: MCPClientService removed - replaced with LangChain.js services
 

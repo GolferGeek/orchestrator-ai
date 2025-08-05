@@ -5,6 +5,12 @@ version: "1.0.0"
 category: "productivity"
 subcategory: "notion"
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: productivity_manager_orchestrator
+  department: productivity
+
 capabilities:
   - "Create new Notion pages with titles and content"
   - "Query Notion databases for specific information"
