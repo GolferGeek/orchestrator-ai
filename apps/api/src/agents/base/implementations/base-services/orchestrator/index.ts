@@ -13,5 +13,6 @@ export * from './planning.service';
 export * from './plan-execution.service';
 export * from './delegation.service';
 export * from './subproject-management.service';
+export * from './langgraph-state-management.service';
 export * from './orchestrator-facade.service';
 export * from './orchestrator.module';

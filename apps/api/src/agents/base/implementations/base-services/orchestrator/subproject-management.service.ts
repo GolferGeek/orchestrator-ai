@@ -160,7 +160,7 @@ Respond in JSON format:
         input.userId,
         {
           temperature: 0.3,
-          max_tokens: 2000,
+          maxTokens: 2000,
         },
       );
 
@@ -279,7 +279,7 @@ Respond in JSON format:
         input.userId,
         {
           temperature: 0.2,
-          max_tokens: 1500,
+          maxTokens: 1500,
         },
       );
 
@@ -547,7 +547,7 @@ Original user request context: ${input.prompt}
     const now = new Date();
     const daysToAdd = currentLoad > 3 ? 7 : 0; // If overloaded, next slot is a week out
     const nextSlot = new Date(now.getTime() + (daysToAdd * 24 * 60 * 60 * 1000));
-    return nextSlot.toISOString().split('T')[0];
+    return nextSlot.toISOString().split('T')[0] || '';
   }
 
   /**
@@ -634,7 +634,7 @@ Original user request context: ${input.prompt}
       for (const dep of dependencies) {
         // Find the actual subproject ID that matches this dependency name
         const depNode = Array.from(dependencyGraph.keys()).find(key => 
-          key.includes(dep) || dep.includes(key.split('_')[1])
+          key.includes(dep) || dep.includes(key.split('_')[1] || '')
         );
         if (depNode && hasCycle(depNode)) {
           return true;

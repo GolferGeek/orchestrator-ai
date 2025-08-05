@@ -80,7 +80,11 @@ import supabaseConfig from './supabase/supabase.config';
     LangChainModule, // LangChain.js integration for agents
     HierarchyModule, // Agent hierarchy and discovery endpoints
   ],
-  controllers: [AppController, DynamicAgentsController, HierarchySimpleController],
+  controllers: [
+    AppController,
+    DynamicAgentsController,
+    HierarchySimpleController,
+  ],
   providers: [
     AppService,
     AgentDiscoveryService,

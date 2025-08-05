@@ -224,7 +224,7 @@ export class LLMService {
         options?.temperature || options?.maxTokens || options?.provider
           ? this.createCustomLangGraphLLM({
               provider: options?.provider || 'openai',
-              model: options?.model || options?.modelId,
+              model: options?.modelId,
               temperature: options?.temperature,
               maxTokens: options?.maxTokens,
             })

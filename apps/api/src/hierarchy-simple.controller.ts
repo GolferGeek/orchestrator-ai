@@ -1,8 +1,4 @@
-import {
-  Controller,
-  Get,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Get, Logger } from '@nestjs/common';
 import { Public } from './auth/decorators/public.decorator';
 
 @Controller('hierarchy')
@@ -14,8 +10,11 @@ export class HierarchySimpleController {
    * Route: GET /hierarchy/test
    */
   @Get('test')
-  @Public()  
+  @Public()
   async testHierarchy() {
-    return { message: 'Hierarchy controller working', timestamp: new Date().toISOString() };
+    return {
+      message: 'Hierarchy controller working',
+      timestamp: new Date().toISOString(),
+    };
   }
 }

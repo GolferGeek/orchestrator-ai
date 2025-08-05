@@ -1,5 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
-import { initializeDatabaseSchema, getSchemaContext, getTablesByDomain, getAllTableNames } from './database-schema';
+import {
+  initializeDatabaseSchema,
+  getSchemaContext,
+  getTablesByDomain,
+  getAllTableNames,
+} from './database-schema';
 import { getLLM, initializeLangChain } from './langchain-client';
 import { SqlDatabase } from 'langchain/sql_db';
 import { createSqlQueryChain } from 'langchain/chains/sql_db';
@@ -34,13 +39,16 @@ export interface SQLExecutionResult {
  */
 function getSupabaseClient() {
   if (!supabaseClient) {
-    const supabaseUrl = process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
+    const supabaseUrl =
+      process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
+
     if (!serviceKey) {
-      throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required');
+      throw new Error(
+        'SUPABASE_SERVICE_ROLE_KEY environment variable is required',
+      );
     }
-    
+
     supabaseClient = createClient(supabaseUrl, serviceKey);
     console.log('✅ Supabase client initialized for tools');
   }
@@ -50,18 +58,22 @@ function getSupabaseClient() {
 /**
  * Create SQL Database interface for LangChain
  */
-async function createSqlDatabase(config?: SupabaseToolsConfig): Promise<SqlDatabase> {
+async function createSqlDatabase(
+  config?: SupabaseToolsConfig,
+): Promise<SqlDatabase> {
   if (!sqlDatabase) {
     const client = getSupabaseClient();
-    
+
     // Create SQL Database interface using Supabase HTTP API
     sqlDatabase = {
       async run(query: string) {
         console.log('🔄 Executing SQL via Supabase RPC:', query);
-        
+
         try {
           // Use Supabase RPC function for SQL execution
-          const { data, error } = await client.rpc('exec_sql', { query: query });
+          const { data, error } = await client.rpc('exec_sql', {
+            query: query,
+          });
           if (error) {
             throw new Error(`SQL execution failed: ${error.message}`);
           }
@@ -69,28 +81,30 @@ async function createSqlDatabase(config?: SupabaseToolsConfig): Promise<SqlDatab
           return data;
         } catch (rpcError) {
           console.log('❌ SQL execution failed:', rpcError);
-          throw new Error(`SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`);
+          throw new Error(
+            `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
+          );
         }
       },
-      
+
       async getTableInfo() {
         // Get schema context from database schema utilities
         const schemaContext = await getDatabaseSchemaInfo(config);
         return schemaContext;
       },
-      
+
       get allTables() {
         // This needs to be synchronous for LangChain, so we'll implement a cached version
         // For now, return a promise that resolves to table info
-        return getTableNames(config).then(names => 
-          names.map(name => ({ tableName: name }))
+        return getTableNames(config).then((names) =>
+          names.map((name) => ({ tableName: name })),
         );
-      }
+      },
     } as any;
-    
+
     console.log('✅ SQL Database interface created for LangChain');
   }
-  
+
   // TypeScript assertion since we know sqlDatabase is not null after the if check
   return sqlDatabase!;
 }
@@ -98,34 +112,36 @@ async function createSqlDatabase(config?: SupabaseToolsConfig): Promise<SqlDatab
 /**
  * Initialize the SQL database connection for LangChain using Supabase HTTP API
  */
-export async function initializeSupabaseTools(config?: SupabaseToolsConfig): Promise<void> {
+export async function initializeSupabaseTools(
+  config?: SupabaseToolsConfig,
+): Promise<void> {
   if (initialized) {
     console.log('🔄 Supabase tools already initialized');
     return;
   }
 
   console.log('🚀 Initializing Supabase tools with LangChain SQL support...');
-  
+
   // Initialize database schema first
   await initializeDatabaseSchema();
-  
+
   // Initialize LangChain client
   initializeLangChain();
-  
+
   // Create SQL database interface
   await createSqlDatabase(config);
-  
+
   const client = getSupabaseClient();
   console.log('✅ Supabase client and LangChain ready for SQL execution');
-  
+
   if (config?.agentName) {
     console.log(`🤖 Initialized for agent: ${config.agentName}`);
   }
-  
+
   if (config?.includeDomains) {
     console.log(`📊 Including domains: ${config.includeDomains.join(', ')}`);
   }
-  
+
   if (config?.tableNames) {
     console.log(`📋 Including tables: ${config.tableNames.join(', ')}`);
   }
@@ -139,10 +155,10 @@ export async function initializeSupabaseTools(config?: SupabaseToolsConfig): Pro
  */
 export async function executeSQL(query: string): Promise<any> {
   await initializeSupabaseTools();
-  
+
   const client = getSupabaseClient();
   console.log('🔄 Executing SQL via Supabase RPC:', query);
-  
+
   try {
     const { data, error } = await client.rpc('exec_sql', { query });
     if (error) {
@@ -152,23 +168,27 @@ export async function executeSQL(query: string): Promise<any> {
     return data;
   } catch (rpcError) {
     console.log('❌ SQL execution failed:', rpcError);
-    throw new Error(`SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`);
+    throw new Error(
+      `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
+    );
   }
 }
 
 /**
  * Get database schema information with agent-specific filtering
  */
-export async function getDatabaseSchemaInfo(config?: SupabaseToolsConfig): Promise<string> {
+export async function getDatabaseSchemaInfo(
+  config?: SupabaseToolsConfig,
+): Promise<string> {
   await initializeDatabaseSchema();
-  
+
   const schemaContext = await getSchemaContext({
     tableNames: config?.tableNames,
     includeDomains: config?.includeDomains,
     includeRelationships: true,
     includeBusinessContext: true,
   });
-  
+
   const sqlRules = `
 SQL Syntax Rules:
 - NO semicolons in the middle of queries (semicolon only at the very end)
@@ -188,22 +208,24 @@ Query Optimization:
 /**
  * Get table names based on configuration
  */
-export async function getTableNames(config?: SupabaseToolsConfig): Promise<string[]> {
+export async function getTableNames(
+  config?: SupabaseToolsConfig,
+): Promise<string[]> {
   await initializeDatabaseSchema();
-  
+
   if (config?.tableNames) {
     return config.tableNames;
-  } 
-  
+  }
+
   if (config?.includeDomains) {
     const tables: string[] = [];
     for (const domain of config.includeDomains) {
       const domainTables = await getTablesByDomain(domain);
-      tables.push(...domainTables.map(t => t.name));
+      tables.push(...domainTables.map((t) => t.name));
     }
     return [...new Set(tables)]; // Remove duplicates
   }
-  
+
   return await getAllTableNames();
 }
 
@@ -253,7 +275,12 @@ export async function generateAndExecuteSQL(
     // Get LLM instance for SQL generation with 60 second timeout
     // Use GPT-3.5-turbo for SQL generation to avoid GPT-4 rate limits
     const sqlModel = model === 'gpt-4' ? 'gpt-3.5-turbo' : model;
-    const llm = getLLM({ provider, model: sqlModel, temperature: 0, timeout: 60000 });
+    const llm = getLLM({
+      provider,
+      model: sqlModel,
+      temperature: 0,
+      timeout: 60000,
+    });
 
     // Create SQL query chain
     const sqlQueryChain = await createSqlQueryChain({
@@ -266,7 +293,7 @@ export async function generateAndExecuteSQL(
     let sqlQuery: string = '';
     let retryCount = 0;
     const maxRetries = 3;
-    
+
     while (retryCount <= maxRetries) {
       try {
         sqlQuery = await sqlQueryChain.invoke({
@@ -274,22 +301,28 @@ export async function generateAndExecuteSQL(
         });
         break; // Success, exit retry loop
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+
         // Check if it's a rate limit error
-        if (errorMessage.includes('Rate limit') || errorMessage.includes('429')) {
+        if (
+          errorMessage.includes('Rate limit') ||
+          errorMessage.includes('429')
+        ) {
           retryCount++;
           if (retryCount <= maxRetries) {
             const waitTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
-            console.log(`Rate limit hit, waiting ${waitTime}ms before retry ${retryCount}/${maxRetries}`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
+            console.log(
+              `Rate limit hit, waiting ${waitTime}ms before retry ${retryCount}/${maxRetries}`,
+            );
+            await new Promise((resolve) => setTimeout(resolve, waitTime));
             continue;
           }
         }
         throw error; // Re-throw if not rate limit or max retries exceeded
       }
     }
-    
+
     if (!sqlQuery) {
       throw new Error('Failed to generate SQL after retries');
     }
@@ -307,7 +340,7 @@ export async function generateAndExecuteSQL(
         // Execute the generated SQL query
         console.log(`Executing SQL query...`);
         const queryResult: any = await sqlDb.run(sqlQuery);
-        
+
         // Handle different result formats from LangChain SQL execution
         if (typeof queryResult === 'string') {
           try {
@@ -344,7 +377,10 @@ export async function generateAndExecuteSQL(
 
         console.log(`Query executed successfully, returned ${rowCount} rows`);
       } catch (executionError) {
-        error = executionError instanceof Error ? executionError.message : 'Query execution failed';
+        error =
+          executionError instanceof Error
+            ? executionError.message
+            : 'Query execution failed';
         console.error('Query execution failed:', executionError);
       }
     }
@@ -384,13 +420,13 @@ export async function getSchemaInfo(config?: SupabaseToolsConfig): Promise<{
   schema: string;
 }> {
   await initializeSupabaseTools(config);
-  
+
   try {
     // Get SQL database interface and extract table info
     const sqlDb = await createSqlDatabase(config);
     const tables = await getTableNames(config);
     const schema = await sqlDb.getTableInfo();
-    
+
     return {
       tables,
       schema,
@@ -416,6 +452,8 @@ export async function initializeForAgent(agentOptions: {
   includeDomains?: string[];
   agentName?: string;
 }): Promise<void> {
-  console.log(`🤖 Initializing Supabase tools for agent: ${agentOptions.agentName || 'unnamed'}`);
+  console.log(
+    `🤖 Initializing Supabase tools for agent: ${agentOptions.agentName || 'unnamed'}`,
+  );
   await initializeSupabaseTools(agentOptions);
 }

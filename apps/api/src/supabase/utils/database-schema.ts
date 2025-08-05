@@ -38,7 +38,11 @@ export interface SchemaRelationship {
   fromColumn: string;
   toTable: string;
   toColumn: string;
-  relationshipType: 'one-to-many' | 'many-to-one' | 'one-to-one' | 'many-to-many';
+  relationshipType:
+    | 'one-to-many'
+    | 'many-to-one'
+    | 'one-to-one'
+    | 'many-to-many';
 }
 
 // Global state
@@ -56,13 +60,16 @@ let supabaseClient: any = null;
  */
 function getSupabaseClient() {
   if (!supabaseClient) {
-    const supabaseUrl = process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
+    const supabaseUrl =
+      process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
+
     if (!serviceKey) {
-      throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required');
+      throw new Error(
+        'SUPABASE_SERVICE_ROLE_KEY environment variable is required',
+      );
     }
-    
+
     supabaseClient = createClient(supabaseUrl, serviceKey);
     console.log('✅ Supabase client initialized');
   }
@@ -74,11 +81,12 @@ function getSupabaseClient() {
  */
 async function discoverFullSchema(): Promise<void> {
   const client = getSupabaseClient();
-  
+
   console.log('🔍 Discovering database schema...');
-  
+
   // Get all table information
-  const { data: tableInfoData, error: tableInfoError } = await client.rpc('get_table_info');
+  const { data: tableInfoData, error: tableInfoError } =
+    await client.rpc('get_table_info');
   if (tableInfoError) {
     throw new Error(`Failed to get table info: ${tableInfoError.message}`);
   }
@@ -102,18 +110,18 @@ async function discoverFullSchema(): Promise<void> {
     tablesInfo: new Map(),
     relationships,
     businessDomains: new Map(),
-    initialized: false
+    initialized: false,
   };
 
   // Process each table
   for (const [tableName, columns] of tableMap) {
     const tableInfo: TableInfo = {
       name: tableName,
-      columns: columns.map(col => processColumn(col, relationships)),
+      columns: columns.map((col) => processColumn(col, relationships)),
       primaryKeys: await discoverPrimaryKeys(tableName),
       foreignKeys: relationships
-        .filter(rel => rel.fromTable === tableName)
-        .map(rel => ({
+        .filter((rel) => rel.fromTable === tableName)
+        .map((rel) => ({
           column: rel.fromColumn,
           referencedTable: rel.toTable,
           referencedColumn: rel.toColumn,
@@ -127,7 +135,9 @@ async function discoverFullSchema(): Promise<void> {
   categorizeBusinessDomains();
 
   schemaCache.initialized = true;
-  console.log(`✅ Database schema discovery complete: ${schemaCache.tablesInfo.size} tables, ${schemaCache.relationships.length} relationships`);
+  console.log(
+    `✅ Database schema discovery complete: ${schemaCache.tablesInfo.size} tables, ${schemaCache.relationships.length} relationships`,
+  );
 }
 
 /**
@@ -154,11 +164,13 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
         WHERE tc.constraint_type = 'FOREIGN KEY'
           AND tc.table_schema = 'public'
         ORDER BY tc.table_name, kcu.column_name
-      `
+      `,
     });
 
     if (error) {
-      console.log('⚠️ Could not discover foreign keys, using naming conventions');
+      console.log(
+        '⚠️ Could not discover foreign keys, using naming conventions',
+      );
       return inferRelationshipsFromNaming();
     }
 
@@ -170,11 +182,15 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
       relationshipType: 'many-to-one' as const,
     }));
 
-    console.log(`🔗 Discovered ${relationships.length} foreign key relationships`);
+    console.log(
+      `🔗 Discovered ${relationships.length} foreign key relationships`,
+    );
     return relationships;
-
   } catch (error) {
-    console.log('⚠️ Error discovering foreign keys, using naming conventions:', error);
+    console.log(
+      '⚠️ Error discovering foreign keys, using naming conventions:',
+      error,
+    );
     return inferRelationshipsFromNaming();
   }
 }
@@ -184,10 +200,10 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
  */
 async function inferRelationshipsFromNaming(): Promise<SchemaRelationship[]> {
   const relationships: SchemaRelationship[] = [];
-  
+
   // This will be called after tables are processed, so we need to implement this later
   // For now, return empty array and we'll implement this after the main schema is loaded
-  
+
   console.log('🔗 Using naming convention inference for relationships');
   return relationships;
 }
@@ -210,7 +226,7 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
           AND tc.table_name = '${tableName}'
           AND tc.table_schema = 'public'
         ORDER BY kcu.ordinal_position
-      `
+      `,
     });
 
     if (error || !data.length) {
@@ -218,7 +234,6 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
     }
 
     return data.map((row: any) => row.column_name);
-
   } catch (error) {
     return ['id']; // Fallback
   }
@@ -227,9 +242,14 @@ async function discoverPrimaryKeys(tableName: string): Promise<string[]> {
 /**
  * Process column information and add relationship context
  */
-function processColumn(columnData: any, relationships: SchemaRelationship[]): TableColumn {
+function processColumn(
+  columnData: any,
+  relationships: SchemaRelationship[],
+): TableColumn {
   const fkRelation = relationships.find(
-    rel => rel.fromTable === columnData.table_name && rel.fromColumn === columnData.column_name
+    (rel) =>
+      rel.fromTable === columnData.table_name &&
+      rel.fromColumn === columnData.column_name,
   );
 
   return {
@@ -253,94 +273,151 @@ function categorizeBusinessDomains(): void {
   const domains: BusinessDomain[] = [
     {
       name: 'KPI & Analytics',
-      description: 'Key Performance Indicators, metrics, and business analytics',
-      tables: ['companies', 'departments', 'kpi_data', 'kpi_metrics', 'kpi_goals'],
+      description:
+        'Key Performance Indicators, metrics, and business analytics',
+      tables: [
+        'companies',
+        'departments',
+        'kpi_data',
+        'kpi_metrics',
+        'kpi_goals',
+      ],
       commonQueries: [
         'Revenue analysis by company and time period',
         'KPI performance tracking',
-        'Goal achievement analysis'
-      ]
+        'Goal achievement analysis',
+      ],
     },
     {
       name: 'User Management',
       description: 'User accounts, authentication, and user-related data',
-      tables: ['users', 'user_sessions', 'user_preferences', 'user_interactions', 'user_usage_stats', 'user_context', 'user_routing_patterns', 'user_privacy_settings', 'admin_users', 'user_audit_log', 'user_roles_summary'],
+      tables: [
+        'users',
+        'user_sessions',
+        'user_preferences',
+        'user_interactions',
+        'user_usage_stats',
+        'user_context',
+        'user_routing_patterns',
+        'user_privacy_settings',
+        'admin_users',
+        'user_audit_log',
+        'user_roles_summary',
+      ],
       commonQueries: [
         'User activity analysis',
         'Session tracking',
-        'User behavior patterns'
-      ]
+        'User behavior patterns',
+      ],
     },
     {
       name: 'Agent System',
       description: 'AI agents, their interactions, and performance metrics',
-      tables: ['agents', 'agent_conversations', 'agent_interactions', 'agent_relationships', 'agent_health_status', 'agent_hierarchy', 'organizational_agent_stats', 'agent_conversations_with_stats', 'agent_relationships_with_details'],
+      tables: [
+        'agents',
+        'agent_conversations',
+        'agent_interactions',
+        'agent_relationships',
+        'agent_health_status',
+        'agent_hierarchy',
+        'organizational_agent_stats',
+        'agent_conversations_with_stats',
+        'agent_relationships_with_details',
+      ],
       commonQueries: [
         'Agent performance analysis',
         'Conversation quality metrics',
-        'Agent utilization rates'
-      ]
+        'Agent utilization rates',
+      ],
     },
     {
       name: 'Task Management',
       description: 'Tasks, workflows, and task-related communications',
-      tables: ['tasks', 'task_messages', 'tasks_with_message_stats', 'human_inputs', 'human_inputs_with_task_context'],
+      tables: [
+        'tasks',
+        'task_messages',
+        'tasks_with_message_stats',
+        'human_inputs',
+        'human_inputs_with_task_context',
+      ],
       commonQueries: [
         'Task completion rates',
         'Workflow efficiency analysis',
-        'Human input requirements'
-      ]
+        'Human input requirements',
+      ],
     },
     {
       name: 'LLM & Providers',
       description: 'Language model providers, usage, and performance',
-      tables: ['providers', 'llm_providers', 'llm_models', 'llm_usage', 'models'],
+      tables: [
+        'providers',
+        'llm_providers',
+        'llm_models',
+        'llm_usage',
+        'models',
+      ],
       commonQueries: [
         'LLM cost analysis',
         'Provider performance comparison',
-        'Model usage patterns'
-      ]
+        'Model usage patterns',
+      ],
     },
     {
       name: 'System Operations',
       description: 'System monitoring, sessions, and operational data',
-      tables: ['sessions', 'messages', 'evaluation_monitor_users', 'role_audit_log'],
+      tables: [
+        'sessions',
+        'messages',
+        'evaluation_monitor_users',
+        'role_audit_log',
+      ],
       commonQueries: [
         'System health monitoring',
         'Message flow analysis',
-        'Audit trail tracking'
-      ]
+        'Audit trail tracking',
+      ],
     },
     {
       name: 'MCP & Tools',
       description: 'Model Context Protocol executions and tool usage',
-      tables: ['mcp_executions', 'mcp_execution_summary', 'mcp_tool_usage', 'mcp_usage_analytics', 'mcp_failures', 'mcp_feedback'],
+      tables: [
+        'mcp_executions',
+        'mcp_execution_summary',
+        'mcp_tool_usage',
+        'mcp_usage_analytics',
+        'mcp_failures',
+        'mcp_feedback',
+      ],
       commonQueries: [
         'Tool usage analytics',
         'MCP execution success rates',
-        'Integration performance metrics'
-      ]
+        'Integration performance metrics',
+      ],
     },
     {
       name: 'Commands & Controls',
       description: 'User commands and system controls',
-      tables: ['cidafm_commands', 'cidafm_commands_by_type', 'user_cidafm_commands'],
-      commonQueries: [
-        'Command usage patterns',
-        'User interaction analysis'
-      ]
-    }
+      tables: [
+        'cidafm_commands',
+        'cidafm_commands_by_type',
+        'user_cidafm_commands',
+      ],
+      commonQueries: ['Command usage patterns', 'User interaction analysis'],
+    },
   ];
 
-  domains.forEach(domain => {
+  domains.forEach((domain) => {
     schemaCache!.businessDomains.set(domain.name, domain);
-    
+
     // Add business domain to table info
-    domain.tables.forEach(tableName => {
+    domain.tables.forEach((tableName) => {
       const tableInfo = schemaCache!.tablesInfo.get(tableName);
       if (tableInfo) {
         tableInfo.businessDomain = domain.name;
-        tableInfo.description = generateTableDescription(tableName, domain.name);
+        tableInfo.description = generateTableDescription(
+          tableName,
+          domain.name,
+        );
       }
     });
   });
@@ -359,31 +436,35 @@ function generateTableDescription(tableName: string, domain: string): string {
     kpi_data: 'Time-series data for key performance indicators',
     kpi_metrics: 'Definitions and metadata for KPI measurements',
     kpi_goals: 'Target values and goals for KPI metrics',
-    
+
     // User Management
     users: 'User account information and profiles',
     user_sessions: 'User login sessions and activity tracking',
     user_preferences: 'User-specific settings and preferences',
     user_interactions: 'User interaction logs and behavior data',
-    
+
     // Agent System
     agents: 'AI agent definitions and configurations',
     agent_conversations: 'Conversations and interactions between agents',
     agent_interactions: 'Agent interaction logs and performance data',
-    
+
     // Task Management
     tasks: 'Work items and task definitions',
     task_messages: 'Communications related to specific tasks',
-    
+
     // LLM & Providers
     providers: 'LLM service providers and configurations',
     llm_usage: 'Language model usage tracking and costs',
-    
+
     // Default
-    [tableName]: `${domain} table: ${tableName}`
+    [tableName]: `${domain} table: ${tableName}`,
   };
 
-  return descriptions[tableName] || descriptions[tableName] || `Table in ${domain} domain`;
+  return (
+    descriptions[tableName] ||
+    descriptions[tableName] ||
+    `Table in ${domain} domain`
+  );
 }
 
 /**
@@ -398,15 +479,17 @@ export async function initializeDatabaseSchema(): Promise<void> {
 /**
  * Get schema information for specific tables
  */
-export async function getTablesInfo(tableNames?: string[]): Promise<TableInfo[]> {
+export async function getTablesInfo(
+  tableNames?: string[],
+): Promise<TableInfo[]> {
   await initializeDatabaseSchema();
-  
+
   if (!tableNames) {
     return Array.from(schemaCache!.tablesInfo.values());
   }
 
   return tableNames
-    .map(name => schemaCache!.tablesInfo.get(name))
+    .map((name) => schemaCache!.tablesInfo.get(name))
     .filter((table): table is TableInfo => table !== undefined);
 }
 
@@ -421,9 +504,11 @@ export async function getBusinessDomains(): Promise<BusinessDomain[]> {
 /**
  * Get tables for a specific business domain
  */
-export async function getTablesByDomain(domainName: string): Promise<TableInfo[]> {
+export async function getTablesByDomain(
+  domainName: string,
+): Promise<TableInfo[]> {
   await initializeDatabaseSchema();
-  
+
   const domain = schemaCache!.businessDomains.get(domainName);
   if (!domain) {
     return [];
@@ -435,15 +520,18 @@ export async function getTablesByDomain(domainName: string): Promise<TableInfo[]
 /**
  * Get relationships involving specific tables
  */
-export async function getRelationships(tableNames?: string[]): Promise<SchemaRelationship[]> {
+export async function getRelationships(
+  tableNames?: string[],
+): Promise<SchemaRelationship[]> {
   await initializeDatabaseSchema();
-  
+
   if (!tableNames) {
     return schemaCache!.relationships;
   }
 
-  return schemaCache!.relationships.filter(rel =>
-    tableNames.includes(rel.fromTable) || tableNames.includes(rel.toTable)
+  return schemaCache!.relationships.filter(
+    (rel) =>
+      tableNames.includes(rel.fromTable) || tableNames.includes(rel.toTable),
   );
 }
 
@@ -459,7 +547,7 @@ export async function getSchemaContext(options?: {
   const opts = {
     includeRelationships: true,
     includeBusinessContext: true,
-    ...options
+    ...options,
   };
 
   let tables: TableInfo[] = [];
@@ -478,19 +566,23 @@ export async function getSchemaContext(options?: {
   let context = '';
 
   // Add table structure
-  tables.forEach(table => {
+  tables.forEach((table) => {
     context += `Table: ${table.name}\n`;
     if (table.description) {
       context += `  Description: ${table.description}\n`;
     }
-    
-    table.columns.forEach(col => {
+
+    table.columns.forEach((col) => {
       const annotations = [];
       if (col.isPrimaryKey) annotations.push('PRIMARY KEY');
-      if (col.isForeignKey) annotations.push(`FK -> ${col.referencedTable}.${col.referencedColumn}`);
+      if (col.isForeignKey)
+        annotations.push(
+          `FK -> ${col.referencedTable}.${col.referencedColumn}`,
+        );
       if (!col.nullable) annotations.push('NOT NULL');
-      
-      const annotationStr = annotations.length > 0 ? ` (${annotations.join(', ')})` : '';
+
+      const annotationStr =
+        annotations.length > 0 ? ` (${annotations.join(', ')})` : '';
       context += `  - ${col.name} (${col.type}${annotationStr})\n`;
     });
     context += '\n';
@@ -498,10 +590,12 @@ export async function getSchemaContext(options?: {
 
   // Add relationships
   if (opts.includeRelationships) {
-    const relevantRelationships = await getRelationships(tables.map(t => t.name));
+    const relevantRelationships = await getRelationships(
+      tables.map((t) => t.name),
+    );
     if (relevantRelationships.length > 0) {
       context += 'Relationships:\n';
-      relevantRelationships.forEach(rel => {
+      relevantRelationships.forEach((rel) => {
         context += `- ${rel.fromTable}.${rel.fromColumn} → ${rel.toTable}.${rel.toColumn} (${rel.relationshipType})\n`;
       });
       context += '\n';
@@ -510,11 +604,13 @@ export async function getSchemaContext(options?: {
 
   // Add business context
   if (opts.includeBusinessContext) {
-    const domains = new Set(tables.map(t => t.businessDomain).filter(Boolean));
+    const domains = new Set(
+      tables.map((t) => t.businessDomain).filter(Boolean),
+    );
     const allDomains = await getBusinessDomains();
-    
-    domains.forEach(domainName => {
-      const domain = allDomains.find(d => d.name === domainName);
+
+    domains.forEach((domainName) => {
+      const domain = allDomains.find((d) => d.name === domainName);
       if (domain) {
         context += `Business Domain: ${domain.name}\n`;
         context += `  ${domain.description}\n`;

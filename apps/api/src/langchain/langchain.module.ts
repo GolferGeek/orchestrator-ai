@@ -9,28 +9,22 @@ import { LangChainClientService } from './services/langchain-client.service';
 
 /**
  * LangChain Module
- * 
+ *
  * Provides LangChain.js integration for agent-based workflows including:
  * - Supabase/PostgreSQL operations with natural language queries
  * - Notion API tool integration
  * - Core LangChain orchestration
- * 
+ *
  * Note: Database-specific services (SupabaseToolsService) are separate from
  * the main app services to allow for multiple database type support.
  */
 @Module({
   imports: [
-    HttpModule,      // For HTTP-based tools and integrations
-    SupabaseModule,  // For database connectivity
-    LLMModule,       // For language model access
+    HttpModule, // For HTTP-based tools and integrations
+    SupabaseModule, // For database connectivity
+    LLMModule, // For language model access
   ],
-  providers: [
-    LangChainNotionService,
-    LangChainClientService,
-  ],
-  exports: [
-    LangChainNotionService,
-    LangChainClientService,
-  ],
+  providers: [LangChainNotionService, LangChainClientService],
+  exports: [LangChainNotionService, LangChainClientService],
 })
 export class LangChainModule {}

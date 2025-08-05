@@ -21,6 +21,7 @@ import { PlanningService } from './planning.service';
 import { PlanExecutionService } from './plan-execution.service';
 import { DelegationService } from './delegation.service';
 import { SubprojectManagementService } from './subproject-management.service';
+import { LangGraphStateManagementService } from './langgraph-state-management.service';
 import { OrchestratorFacadeService } from './orchestrator-facade.service';
 
 /**
@@ -49,6 +50,7 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     PlanExecutionService,
     DelegationService,
     SubprojectManagementService,
+    LangGraphStateManagementService,
     AgentDiscoveryService, // Required for planning and delegation services
     AgentFactoryService, // Required for delegation service
 
@@ -80,6 +82,10 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
       provide: 'ISubprojectManagementService',
       useExisting: SubprojectManagementService,
     },
+    {
+      provide: 'ILangGraphStateManagementService',
+      useExisting: LangGraphStateManagementService,
+    },
   ],
   exports: [
     // Export services for external use
@@ -88,6 +94,7 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     PlanExecutionService,
     DelegationService,
     SubprojectManagementService,
+    LangGraphStateManagementService,
     OrchestratorFacadeService,
 
     // Export interface tokens
@@ -97,6 +104,7 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     'IPlanExecutionService',
     'IDelegationService',
     'ISubprojectManagementService',
+    'ILangGraphStateManagementService',
   ],
 })
 export class OrchestratorModule {}

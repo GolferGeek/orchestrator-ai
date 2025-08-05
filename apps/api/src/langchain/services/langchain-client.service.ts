@@ -6,7 +6,7 @@ import { LLMService } from '@/llms/llm.service';
 
 /**
  * LangChain Client Service
- * 
+ *
  * Core orchestration service for LangChain.js operations.
  * Provides centralized LLM access and configuration management.
  */
@@ -48,7 +48,9 @@ export class LangChainClientService {
     }
 
     // Fallback to OpenAI
-    this.logger.warn(`Provider ${provider} not supported, falling back to OpenAI`);
+    this.logger.warn(
+      `Provider ${provider} not supported, falling back to OpenAI`,
+    );
     return new ChatOpenAI({
       modelName: 'gpt-4',
       temperature,
@@ -95,9 +97,11 @@ export class LangChainClientService {
    */
   isConfigured(): boolean {
     const hasOpenAIKey = !!this.configService.get<string>('OPENAI_API_KEY');
-    
+
     if (!hasOpenAIKey) {
-      this.logger.warn('OpenAI API key not configured - LangChain functionality will be limited');
+      this.logger.warn(
+        'OpenAI API key not configured - LangChain functionality will be limited',
+      );
     }
 
     return hasOpenAIKey;
@@ -108,7 +112,7 @@ export class LangChainClientService {
    */
   getAvailableProviders(): string[] {
     const providers = ['openai'];
-    
+
     // Could add more providers based on available API keys
     // if (this.configService.get<string>('ANTHROPIC_API_KEY')) {
     //   providers.push('anthropic');

@@ -42,16 +42,16 @@ export class DynamicAgentsController {
    * Route: GET /agents/.well-known/hierarchy
    */
   @Get('.well-known/hierarchy')
-  @Public()  
+  @Public()
   async getAgentHierarchy() {
     this.logger.debug('Getting agent hierarchy');
-    
+
     try {
       // Ensure agents are discovered and hierarchy is built
       await this.agentDiscovery.discoverAgents();
-      
+
       const hierarchy = this.agentDiscovery.getAgentHierarchy();
-      
+
       return {
         success: true,
         data: hierarchy,
@@ -59,11 +59,11 @@ export class DynamicAgentsController {
           totalAgents: this.agentDiscovery.getDiscoveredAgents().length,
           rootNodes: hierarchy.length,
           timestamp: new Date().toISOString(),
-        }
+        },
       };
     } catch (error) {
       this.logger.error('Failed to get agent hierarchy:', error);
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -72,11 +72,10 @@ export class DynamicAgentsController {
           totalAgents: 0,
           rootNodes: 0,
           timestamp: new Date().toISOString(),
-        }
+        },
       };
     }
   }
-
 
   /**
    * Handle tasks for any discovered agent
@@ -98,15 +97,19 @@ export class DynamicAgentsController {
 
     // Check if this is a JSON-RPC request and convert it to CreateTaskDto format
     let normalizedTaskRequest: CreateTaskDto;
-    
+
     if (taskRequest && taskRequest.jsonrpc === '2.0' && taskRequest.method) {
       // This is a JSON-RPC request - convert to CreateTaskDto format
       this.logger.debug('Converting JSON-RPC request to CreateTaskDto format');
-      
+
       const params = taskRequest.params || {};
       normalizedTaskRequest = {
         method: taskRequest.method,
-        prompt: params.message || params.userMessage || params.prompt || 'No message provided',
+        prompt:
+          params.message ||
+          params.userMessage ||
+          params.prompt ||
+          'No message provided',
         params: {
           ...params,
           // Preserve the original JSON-RPC structure for the agent
@@ -119,7 +122,8 @@ export class DynamicAgentsController {
         timeoutSeconds: params.timeoutSeconds,
         llmSelection: params.llmSelection,
         executionMode: params.executionMode,
-        conversationHistory: params.conversation_history || params.conversationHistory || [],
+        conversationHistory:
+          params.conversation_history || params.conversationHistory || [],
       };
     } else {
       // This is already in CreateTaskDto format

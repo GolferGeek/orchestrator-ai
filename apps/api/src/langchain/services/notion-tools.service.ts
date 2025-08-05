@@ -7,7 +7,7 @@ import { firstValueFrom } from 'rxjs';
 
 /**
  * LangChain Notion Tools Service
- * 
+ *
  * Provides LangChain.js tool integration for Notion operations.
  * Creates tools that can be used by LangChain agents for Notion interactions.
  */
@@ -102,7 +102,9 @@ export class LangChainNotionService {
             hasMore: false,
           };
 
-          this.logger.log(`✅ Mock Notion query completed for database: ${databaseId}`);
+          this.logger.log(
+            `✅ Mock Notion query completed for database: ${databaseId}`,
+          );
           return JSON.stringify(mockResponse);
         } catch (error) {
           this.logger.error('Failed to query Notion database:', error);
@@ -203,7 +205,7 @@ Respond with JSON containing:
 
       // Parse LLM response
       const parsed = JSON.parse(llmResponse);
-      
+
       return {
         intent: parsed.intent || 'Unknown intent',
         action: parsed.action || 'unknown',
@@ -255,7 +257,9 @@ Respond with JSON containing:
     } catch (error) {
       return {
         status: 'unhealthy',
-        details: { error: error instanceof Error ? error.message : 'Unknown error' },
+        details: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
       };
     }
   }

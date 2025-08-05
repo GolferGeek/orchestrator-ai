@@ -323,6 +323,57 @@ export interface ISubprojectManagementService {
 }
 
 /**
+ * LangGraph State Management Service - 3-tier state architecture
+ */
+export interface ILangGraphStateManagementService {
+  initializeProjectState(
+    projectDefinition: PlanDefinition,
+    input: OrchestratorInput,
+  ): Promise<any>; // LangGraphState
+  updateStepState(
+    projectId: string,
+    stepId: string,
+    update: any,
+    trigger?: string,
+  ): Promise<any>; // StepResultsState
+  getState(projectId: string): Promise<any>; // LangGraphState
+  executeWorkflowStep(
+    projectId: string,
+    stepId: string,
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse>;
+  handleWorkflowInterrupt(
+    projectId: string,
+    stepId: string,
+    interruptType: 'approval_required' | 'user_input_needed' | 'error_recovery',
+    context: Record<string, any>,
+  ): Promise<void>;
+  resumeWorkflow(
+    projectId: string,
+    stepId: string,
+    resolution: 'approved' | 'rejected' | 'modified',
+    resolutionData?: Record<string, any>,
+  ): Promise<void>;
+  rollbackState(
+    projectId: string,
+    targetVersion: number,
+    reason: string,
+  ): Promise<any>; // LangGraphState
+  getWorkflowAnalytics(projectId: string): Promise<{
+    overallProgress: number;
+    stepProgress: any[];
+    performance: {
+      avgStepDuration: number;
+      totalDuration: number;
+      errorRate: number;
+      throughput: number;
+    };
+    bottlenecks: any[];
+    recommendations: string[];
+  }>;
+}
+
+/**
  * Orchestrator Facade Service - Main coordinator
  * Routes through single A2A entry point
  */

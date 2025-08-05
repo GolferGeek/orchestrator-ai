@@ -11,11 +11,14 @@ import { LoggingService } from '@agents/base/sub-services/logging/logging.servic
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { LangChainNotionService } from '@/langchain/services/notion-tools.service';
-import { AgentFunctionParams, AgentFunctionResponse } from '@agents/base/implementations/base-services/a2a-base/interfaces';
+import {
+  AgentFunctionParams,
+  AgentFunctionResponse,
+} from '@agents/base/implementations/base-services/a2a-base/interfaces';
 
 /**
  * Notion Agent Service
- * 
+ *
  * Handles Notion workspace operations using LangChain.js tools.
  * Supports creating pages, updating content, querying databases, and organizing information.
  */
@@ -87,7 +90,7 @@ export class NotionAgentService extends FunctionAgentBaseService {
     } catch (error) {
       this.logger.error('Error in Notion agent execution:', error);
       await this.updateProgress(4, 'Processing failed', 'error');
-      
+
       return {
         success: false,
         response: `I encountered an error while processing your Notion request: ${
@@ -113,10 +116,13 @@ export class NotionAgentService extends FunctionAgentBaseService {
       await this.updateProgress(2, 'Understanding your Notion request...');
 
       // Parse the user intent using LangChain
-      const intentAnalysis = await this.langchainNotion!.processNotionRequest(userMessage, {
-        provider: 'openai',
-        model: 'gpt-4',
-      });
+      const intentAnalysis = await this.langchainNotion!.processNotionRequest(
+        userMessage,
+        {
+          provider: 'openai',
+          model: 'gpt-4',
+        },
+      );
 
       await this.updateProgress(3, `Executing ${intentAnalysis.action}...`);
 
@@ -126,10 +132,12 @@ export class NotionAgentService extends FunctionAgentBaseService {
 
       switch (intentAnalysis.action) {
         case 'create-page':
-          const createTool = tools.find(t => t.name === 'notion-create-page');
+          const createTool = tools.find((t) => t.name === 'notion-create-page');
           if (createTool) {
             const createParams = {
-              title: intentAnalysis.parameters.title || this.extractTitleFromMessage(userMessage),
+              title:
+                intentAnalysis.parameters.title ||
+                this.extractTitleFromMessage(userMessage),
               content: intentAnalysis.parameters.content || userMessage,
               databaseId: intentAnalysis.parameters.databaseId,
             };
@@ -138,7 +146,9 @@ export class NotionAgentService extends FunctionAgentBaseService {
           break;
 
         case 'query-database':
-          const queryTool = tools.find(t => t.name === 'notion-query-database');
+          const queryTool = tools.find(
+            (t) => t.name === 'notion-query-database',
+          );
           if (queryTool) {
             const queryParams = {
               databaseId: intentAnalysis.parameters.databaseId || 'default-db',
@@ -150,11 +160,13 @@ export class NotionAgentService extends FunctionAgentBaseService {
           break;
 
         case 'update-page':
-          const updateTool = tools.find(t => t.name === 'notion-update-page');
+          const updateTool = tools.find((t) => t.name === 'notion-update-page');
           if (updateTool) {
             const updateParams = {
               pageId: intentAnalysis.parameters.pageId,
-              updates: intentAnalysis.parameters.updates || { content: userMessage },
+              updates: intentAnalysis.parameters.updates || {
+                content: userMessage,
+              },
             };
             actionResult = await updateTool.func(JSON.stringify(updateParams));
           }
@@ -207,7 +219,7 @@ export class NotionAgentService extends FunctionAgentBaseService {
 
     try {
       const parsedResult = JSON.parse(actionResult);
-      
+
       if (parsedResult.success) {
         switch (intentAnalysis.action) {
           case 'create-page':
@@ -261,14 +273,21 @@ export class NotionAgentService extends FunctionAgentBaseService {
     }
 
     // Look for "create page" patterns
-    const createPageMatch = message.match(/create (?:a )?page (?:called|named|titled) "?([^"]+)"?/i);
+    const createPageMatch = message.match(
+      /create (?:a )?page (?:called|named|titled) "?([^"]+)"?/i,
+    );
     if (createPageMatch && createPageMatch[1]) {
       return createPageMatch[1];
     }
 
     // Fallback: use first few words
     const words = message.split(' ').slice(0, 5);
-    return words.join(' ').replace(/[^\w\s]/g, '').trim() || 'New Page';
+    return (
+      words
+        .join(' ')
+        .replace(/[^\w\s]/g, '')
+        .trim() || 'New Page'
+    );
   }
 
   /**

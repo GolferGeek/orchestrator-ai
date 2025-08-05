@@ -14,7 +14,9 @@ let langchainInitialized = false;
 function getOpenAIApiKey(): string {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is required for LangChain functionality');
+    throw new Error(
+      'OPENAI_API_KEY environment variable is required for LangChain functionality',
+    );
   }
   return apiKey;
 }
@@ -121,7 +123,9 @@ export function isLangChainConfigured(): boolean {
     getOpenAIApiKey();
     return true;
   } catch {
-    console.warn('OpenAI API key not configured - LangChain functionality will be limited');
+    console.warn(
+      'OpenAI API key not configured - LangChain functionality will be limited',
+    );
     return false;
   }
 }
@@ -131,7 +135,7 @@ export function isLangChainConfigured(): boolean {
  */
 export function getAvailableProviders(): string[] {
   const providers = ['openai'];
-  
+
   // Could add more providers based on available API keys
   // if (process.env.ANTHROPIC_API_KEY) {
   //   providers.push('anthropic');
