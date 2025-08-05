@@ -12,7 +12,7 @@
 // ============================================================================
 
 export type OrchestratorA2AMethod =
-  | 'create_project' // Start new project planning
+  | 'explicit_create_project' // UI-driven project creation (new architectural approach)
   | 'update_project_plan' // Collaborative planning iterations
   | 'approve_project_plan' // User approves/rejects plan
   | 'resume_project' // Continue paused project

@@ -248,7 +248,6 @@ Detect enterprise characteristics and provide complete analysis in the required 
           temperature: 0.3,
           maxTokens: 800,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
         },
       );
 
@@ -339,7 +338,6 @@ Identify capability gaps and workforce development needs.`;
           temperature: 0.2,
           maxTokens: 800,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
         },
       );
 
@@ -434,7 +432,6 @@ Determine if this complex request should be decomposed into subprojects managed 
           temperature: 0.3,
           maxTokens: 800,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
         },
       );
 
@@ -526,7 +523,6 @@ Return the complete plan structure in JSON format.`;
           temperature: 0.4,
           maxTokens: 1500,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
         },
       );
 
@@ -581,7 +577,6 @@ Add appropriate human expert assignments to steps that need oversight or approva
           temperature: 0.3,
           maxTokens: 1200,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
         },
       );
 
@@ -645,7 +640,6 @@ Return the improved plan in the same JSON format.`;
           temperature: 0.2,
           maxTokens: 1500,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
         },
       );
 
@@ -841,7 +835,6 @@ Create 3-5 steps using the available agents. Return only the JSON structure.`;
           temperature: 0.4,
           maxTokens: 1200,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
         },
       );
 
@@ -900,7 +893,6 @@ Return the improved plan in the same JSON format.`;
           temperature: 0.2, // Low temperature for validation
           maxTokens: 1200,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
         },
       );
 
@@ -958,7 +950,6 @@ What changes is the user requesting?`;
           temperature: 0.2,
           maxTokens: 400,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
         },
       );
 
@@ -1018,7 +1009,6 @@ Return the expanded plan with all original steps PLUS new steps for the requeste
           temperature: 0.3,
           maxTokens: 1500,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
         },
       );
 
@@ -1066,7 +1056,6 @@ Create an engaging, clear presentation that helps the user understand and approv
           temperature: 0.4,
           maxTokens: 800,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
         },
       );
 

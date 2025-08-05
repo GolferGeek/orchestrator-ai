@@ -43,6 +43,9 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
    *
    * This method routes all orchestrator operations while maintaining
    * A2A compliance and the conversation + tasks pattern.
+   * 
+   * ARCHITECTURAL NOTE: Project creation is now primarily explicit (UI-driven)
+   * rather than inferred from natural language to eliminate classification errors.
    */
   async processRequest(
     method: OrchestratorA2AMethod,
@@ -54,7 +57,7 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
     try {
       // Route based on A2A method (explicit operations)
       switch (method) {
-        case 'create_project':
+        case 'explicit_create_project': // UI-driven project creation
           return await this.handleCreateProject(input);
 
         case 'update_project_plan':
@@ -514,15 +517,16 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
     input: OrchestratorInput,
     delegationContext?: string,
   ): Promise<OrchestratorResponse> {
-    this.logger.log('Using intelligent routing for request');
-    this.logger.debug(`🔍 Delegation context received in facade: ${delegationContext ? 'YES' : 'NO'}`);
+    this.logger.log('🔍 DEBUG - Using intelligent routing for request');
+    this.logger.log(`🔍 DEBUG - Delegation context received in facade: ${delegationContext ? 'YES' : 'NO'}`);
     if (delegationContext) {
       this.logger.debug(`🔍 Delegation context preview: ${delegationContext.substring(0, 200)}...`);
     }
     
 
     try {
-      this.logger.log('🔍 About to call intent recognition service...');
+      this.logger.log('🔍 DEBUG - About to call intent recognition service...');
+      this.logger.log(`🔍 DEBUG - Intent recognition service available: ${!!this.intentRecognitionService}`);
       // Use intent recognition to determine action
       const intent = await this.intentRecognitionService.classifyIntent(
         input,
@@ -536,8 +540,7 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
 
       // Route based on classified intent
       switch (intent.action) {
-        case 'CREATE_PROJECT':
-          return await this.handleCreateProject(input);
+        // NOTE: CREATE_PROJECT removed - now handled only through explicit UI actions
 
         case 'CREATE_SUBPROJECT':
           // For subprojects, determine if we can delegate to a single agent instead
