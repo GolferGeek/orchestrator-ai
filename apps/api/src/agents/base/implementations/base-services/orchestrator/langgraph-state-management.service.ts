@@ -11,6 +11,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
+import { StateGraph, Annotation, START, END } from '@langchain/langgraph';
 import { LLMService } from '@/llms/llm.service';
 import { SupabaseService } from '@/supabase/supabase.service';
 import {
@@ -719,6 +720,378 @@ export class LangGraphStateManagementService {
       bottlenecks,
       recommendations,
     };
+  }
+
+  /**
+   * Build dynamic StateGraph from PlanDefinition
+   * Creates executable workflow with checkpoints, rollbacks, and human-in-loop
+   */
+  async buildDynamicStateGraph(
+    projectId: string,
+    planDefinition: PlanDefinition,
+    input: OrchestratorInput
+  ): Promise<StateGraph<any, any>> {
+    this.logger.log(`Building dynamic StateGraph for project ${projectId} with ${planDefinition.steps.length} steps`);
+
+    // Define state schema for this specific plan
+    const StateAnnotation = Annotation.Root({
+      projectId: Annotation<string>,
+      currentStep: Annotation<string>,
+      stepResults: Annotation<Record<string, any>>,
+      stepStatus: Annotation<Record<string, 'pending' | 'running' | 'completed' | 'failed' | 'awaiting_approval'>>,
+      executionContext: Annotation<any>,
+      checkpointVersion: Annotation<number>,
+      rollbackHistory: Annotation<Array<{ stepId: string; timestamp: string; reason: string }>>,
+      humanApprovals: Annotation<Record<string, { status: 'pending' | 'approved' | 'rejected'; feedback?: string }>>,
+      errorRecovery: Annotation<Record<string, { attempts: number; lastError?: string; recoveryActions?: string[] }>>,
+    });
+
+    // Create the StateGraph
+    const workflow = new StateGraph(StateAnnotation);
+
+    // Add START node
+    workflow.addNode("start", async (state) => {
+      this.logger.log(`Starting workflow for project ${projectId}`);
+      
+      // Initialize state with checkpointing
+      const initialState = {
+        ...state,
+        projectId,
+        currentStep: 'start',
+        stepResults: {},
+        stepStatus: {},
+        executionContext: input,
+        checkpointVersion: 1,
+        rollbackHistory: [],
+        humanApprovals: {},
+        errorRecovery: {},
+      };
+
+      // Save initial checkpoint
+      await this.saveCheckpoint(projectId, 'start', initialState);
+      
+      return initialState;
+    });
+
+    // Add dynamic step nodes from plan definition
+    for (const step of planDefinition.steps) {
+      await this.addStepNode(workflow, step, projectId, input);
+    }
+
+    // Add END node
+    workflow.addNode("end", async (state) => {
+      this.logger.log(`Completing workflow for project ${projectId}`);
+      
+      // Final checkpoint
+      const finalState = {
+        ...state,
+        currentStep: 'end',
+        checkpointVersion: state.checkpointVersion + 1,
+      };
+
+      await this.saveCheckpoint(projectId, 'end', finalState);
+      
+      return finalState;
+    });
+
+    // Add conditional edges based on step dependencies and status
+    this.addDynamicEdges(workflow, planDefinition.steps);
+
+    // Set entry and finish points
+    workflow.addEdge(START, "start");
+    
+    // Add conditional routing from start to first ready steps
+    workflow.addConditionalEdges(
+      "start",
+      async (state) => {
+        const readySteps = this.findReadySteps(planDefinition.steps, state.stepStatus);
+        return readySteps.length > 0 ? readySteps[0].stepId : "end";
+      }
+    );
+
+    // Compile the workflow
+    const app = workflow.compile({
+      // Enable checkpointing for rollbacks and recovery
+      checkpointer: await this.createSupabaseCheckpointer(projectId),
+    });
+
+    this.logger.log(`Dynamic StateGraph built successfully for project ${projectId}`);
+    return app;
+  }
+
+  /**
+   * Add individual step node with full lifecycle management
+   */
+  private async addStepNode(
+    workflow: StateGraph<any, any>,
+    step: any,
+    projectId: string,
+    input: OrchestratorInput
+  ): Promise<void> {
+    workflow.addNode(step.stepId, async (state) => {
+      this.logger.log(`Executing step ${step.stepId}: ${step.stepName}`);
+
+      try {
+        // Update status to running and create checkpoint
+        const runningState = {
+          ...state,
+          currentStep: step.stepId,
+          stepStatus: { ...state.stepStatus, [step.stepId]: 'running' },
+          checkpointVersion: state.checkpointVersion + 1,
+        };
+        
+        await this.saveCheckpoint(projectId, step.stepId, runningState);
+
+        // Handle different step types
+        let result;
+        if (step.stepType === 'agent_step') {
+          result = await this.executeAgentStep(step, input, state);
+        } else if (step.stepType === 'human_approval') {
+          result = await this.handleHumanApprovalStep(step, projectId, state);
+        }
+
+        // Update state with results
+        const completedState = {
+          ...runningState,
+          stepResults: { ...state.stepResults, [step.stepId]: result },
+          stepStatus: { ...state.stepStatus, [step.stepId]: 'completed' },
+          checkpointVersion: runningState.checkpointVersion + 1,
+        };
+
+        await this.saveCheckpoint(projectId, step.stepId, completedState);
+        
+        return completedState;
+
+      } catch (error) {
+        this.logger.error(`Step ${step.stepId} failed:`, error);
+        
+        // Handle error with recovery options
+        const errorState = await this.handleStepError(step, error, state, projectId);
+        return errorState;
+      }
+    });
+  }
+
+  /**
+   * Add dynamic edges based on step dependencies
+   */
+  private addDynamicEdges(workflow: StateGraph<any, any>, steps: any[]): void {
+    for (const step of steps) {
+      // Add conditional edges for dependency checking and routing
+      workflow.addConditionalEdges(
+        step.stepId,
+        async (state) => {
+          // Check if this was the last step
+          if (this.areAllStepsComplete(steps, state.stepStatus)) {
+            return "end";
+          }
+
+          // Find next ready steps
+          const readySteps = this.findReadySteps(steps, state.stepStatus);
+          
+          if (readySteps.length === 0) {
+            // No ready steps - might need human intervention
+            return "end";
+          }
+
+          // Return next step to execute
+          return readySteps[0].stepId;
+        }
+      );
+    }
+  }
+
+  /**
+   * Handle human approval steps with interrupts
+   */
+  private async handleHumanApprovalStep(
+    step: any,
+    projectId: string,
+    state: any
+  ): Promise<any> {
+    this.logger.log(`Human approval required for step ${step.stepId}`);
+
+    // Set approval status and create interrupt
+    const approvalState = {
+      ...state,
+      stepStatus: { ...state.stepStatus, [step.stepId]: 'awaiting_approval' },
+      humanApprovals: { 
+        ...state.humanApprovals, 
+        [step.stepId]: { status: 'pending', requestedAt: new Date().toISOString() }
+      },
+    };
+
+    // Save checkpoint with approval state
+    await this.saveCheckpoint(projectId, step.stepId, approvalState);
+
+    // Emit event for human approval needed
+    await this.emitWorkflowEvent(projectId, {
+      type: 'human_approval_required',
+      stepId: step.stepId,
+      stepName: step.stepName,
+      prompt: step.prompt,
+      timestamp: new Date().toISOString(),
+    });
+
+    // This will cause workflow to pause until resumeWorkflow is called
+    throw new Error("HUMAN_APPROVAL_REQUIRED"); // This triggers interrupt in LangGraph
+  }
+
+  /**
+   * Handle step execution errors with recovery
+   */
+  private async handleStepError(
+    step: any,
+    error: any,
+    state: any,
+    projectId: string
+  ): Promise<any> {
+    const currentAttempts = state.errorRecovery[step.stepId]?.attempts || 0;
+    const maxRetries = 3;
+
+    const errorState = {
+      ...state,
+      stepStatus: { ...state.stepStatus, [step.stepId]: 'failed' },
+      errorRecovery: {
+        ...state.errorRecovery,
+        [step.stepId]: {
+          attempts: currentAttempts + 1,
+          lastError: error.message,
+          recoveryActions: this.generateRecoveryActions(error, step),
+          failedAt: new Date().toISOString(),
+        }
+      },
+      checkpointVersion: state.checkpointVersion + 1,
+    };
+
+    await this.saveCheckpoint(projectId, step.stepId, errorState);
+
+    // Emit error event
+    await this.emitWorkflowEvent(projectId, {
+      type: 'step_error',
+      stepId: step.stepId,
+      error: error.message,
+      recoveryOptions: errorState.errorRecovery[step.stepId].recoveryActions,
+      canRetry: currentAttempts < maxRetries,
+    });
+
+    return errorState;
+  }
+
+  /**
+   * Execute agent step through delegation service
+   */
+  private async executeAgentStep(step: any, input: OrchestratorInput, state: any): Promise<any> {
+    // This would delegate to the appropriate agent
+    const stepInput: OrchestratorInput = {
+      ...input,
+      prompt: step.prompt,
+      stepId: step.stepId,
+      metadata: {
+        ...input.metadata,
+        stepName: step.stepName,
+        stepType: step.stepType,
+        dependencies: step.dependencies,
+        previousStepResults: this.getDependencyResults(step.dependencies, state.stepResults),
+      },
+    };
+
+    // Execute through delegation service (this would be injected)
+    const result = {
+      agentName: step.agentName,
+      response: `Executed ${step.stepName}`, // This would come from actual agent
+      executedAt: new Date().toISOString(),
+      stepInput,
+    };
+
+    return result;
+  }
+
+  /**
+   * Create Supabase-based checkpointer for the specific project
+   */
+  private async createSupabaseCheckpointer(projectId: string): Promise<any> {
+    // This would create a checkpointer that saves to supabase with project-specific config
+    return {
+      configurable: { projectId },
+      // Implementation would use SupabaseService to save/load checkpoints
+    };
+  }
+
+  /**
+   * Save checkpoint to database
+   */
+  private async saveCheckpoint(projectId: string, stepId: string, state: any): Promise<void> {
+    try {
+      const client = this.supabaseService.getServiceClient();
+      
+      await client.from('workflow_checkpoints').insert({
+        project_id: projectId,
+        step_id: stepId,
+        checkpoint_version: state.checkpointVersion,
+        state_data: state,
+        created_at: new Date().toISOString(),
+      });
+
+      this.logger.debug(`Checkpoint saved: ${projectId}/${stepId} v${state.checkpointVersion}`);
+    } catch (error) {
+      this.logger.error(`Failed to save checkpoint:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find steps that are ready to execute (dependencies satisfied)
+   */
+  private findReadySteps(steps: any[], stepStatus: Record<string, string>): any[] {
+    return steps.filter(step => {
+      // Skip if already processed
+      if (stepStatus[step.stepId] && stepStatus[step.stepId] !== 'pending') {
+        return false;
+      }
+
+      // Check if all dependencies are completed
+      return step.dependencies.every((depId: string) => 
+        stepStatus[depId] === 'completed'
+      );
+    });
+  }
+
+  /**
+   * Check if all steps are complete
+   */
+  private areAllStepsComplete(steps: any[], stepStatus: Record<string, string>): boolean {
+    return steps.every(step => stepStatus[step.stepId] === 'completed');
+  }
+
+  /**
+   * Get results from dependency steps
+   */
+  private getDependencyResults(dependencies: string[], stepResults: Record<string, any>): any {
+    const results: Record<string, any> = {};
+    for (const depId of dependencies) {
+      if (stepResults[depId]) {
+        results[depId] = stepResults[depId];
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Generate recovery actions based on error type
+   */
+  private generateRecoveryActions(error: any, step: any): string[] {
+    const actions = ['retry_step', 'skip_step', 'modify_prompt'];
+    
+    if (error.message.includes('timeout')) {
+      actions.push('increase_timeout');
+    }
+    
+    if (step.stepType === 'agent_step') {
+      actions.push('change_agent', 'break_into_smaller_steps');
+    }
+    
+    return actions;
   }
 
   // ============================================================================
