@@ -549,20 +549,7 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
           if (subprojectScope.subprojectScope?.involvedAgents?.length > 0) {
             const involvedAgents = subprojectScope.subprojectScope.involvedAgents;
             
-            // Look for blog_post agent first (most specific for blog requests)
-            const blogAgent = involvedAgents.find((agent: string) => 
-              agent.includes('blog_post')
-            );
-            if (blogAgent) {
-              this.logger.debug('Subproject over-thinking detected, delegating directly to blog_post');
-              return await this.delegationService.delegateToAgent(
-                'blog_post',
-                input.prompt,
-                input,
-              );
-            }
-            
-            // Otherwise, use the first suggested agent
+            // Use the first suggested agent (no hardcoded preferences)
             const firstAgent = involvedAgents[0];
             const agentMatch = firstAgent.match(/^(\w+):/);
             if (agentMatch) {

@@ -288,7 +288,11 @@ export class DynamicAgentsController {
 
     // Match the agent by path logic (e.g., "specialists/blog_post" or "orchestrator/orchestrator")
     const expectedPath = `${agentType}/${agentName}`;
-    const agentIndex = discoveredAgents.findIndex((a) => {
+    let agentIndex = discoveredAgents.findIndex((a) => {
+      if (!a.path) {
+        // Fallback for agents with null path - match by type and name
+        return a.type === agentType && a.name === agentName;
+      }
       const normalizedAgentPath = this.normalizeAgentName(a.path);
       const normalizedExpectedPath = this.normalizeAgentName(expectedPath);
       return normalizedAgentPath === normalizedExpectedPath;
@@ -298,7 +302,7 @@ export class DynamicAgentsController {
       this.logger.debug(`Agent not found. Looking for: ${expectedPath}`);
       this.logger.debug(
         `Available agents:`,
-        discoveredAgents.map((a) => a.path),
+        discoveredAgents.map((a) => a.path || `${a.type}/${a.name}`),
       );
       this.logger.debug(
         `Available agent types and names:`,

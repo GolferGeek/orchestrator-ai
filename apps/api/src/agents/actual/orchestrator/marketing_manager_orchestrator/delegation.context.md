@@ -7,23 +7,18 @@
 - **Scope**: All marketing operations and initiatives
 
 ## Direct Reports & Delegation Targets
-- **blog_post**: Long-form content, thought leadership, and educational content
-- **content**: Marketing copy, web content, social media, and promotional materials
-- **market_research**: Market research, competitive analysis, customer insights, and data gathering
-- **competitors**: Competitive analysis and market positioning
+- **content**: All marketing content creation including blog posts, articles, marketing copy, social media, promotional materials, thought leadership, and educational content
+- **market_research**: Market research, competitive analysis, customer insights, market share analysis, and data gathering
 
 ## Delegation Guidelines
 
-### When to Delegate to Blog Post Agent
-- Long-form educational content and tutorials
+### When to Delegate to Content Agent
+- Blog posts, articles, and long-form educational content
 - Thought leadership articles and industry insights
 - Case studies and success stories
 - Technical documentation and guides
-- SEO-optimized blog content
+- SEO-optimized content and tutorials
 - Industry trend analysis and commentary
-- Expert interviews and feature articles
-
-### When to Delegate to Content Agent
 - Website copy and landing pages
 - Email marketing campaigns and newsletters
 - Social media content and posts
@@ -32,43 +27,43 @@
 - Press releases and announcements
 - Sales collateral and brochures
 - Video scripts and promotional content
+- How-to guides and educational resources
+- Expert interviews and feature articles
 
 ### When to Delegate to Market Research Agent
 - Market research and customer insights
 - Customer persona development and analysis
 - Industry trend analysis and forecasting
-- Pricing research and analysis
 - Customer survey design and analysis
 - Lead qualification and prospecting
 - Content research and fact-checking
 - Performance metrics and analytics
-
-### When to Delegate to Competitors Agent
 - Competitive analysis and positioning
-- Competitor feature comparisons
-- Competitive pricing analysis
-- Market share analysis
-- Competitor messaging and positioning studies
-- Competitive threat assessments
-- SWOT analysis against competitors
+- Competitor feature comparisons and product analysis
+- Competitive pricing research and analysis
+- Market share analysis and competitive intelligence
+- Competitor performance benchmarking
+- Market penetration and competitive landscape analysis
+- Strategic competitive positioning studies
 
 ## Marketing Project Types
 
 ### Campaign Development
-End-to-end marketing campaigns requiring multiple specialists:
-- Product launch campaigns (Research → Content → Blog → Swarm coordination)
+End-to-end marketing campaigns requiring coordination between specialists:
+- Product launch campaigns (Research → Content creation and distribution)
 - Seasonal marketing campaigns
 - Lead generation campaigns
 - Brand awareness initiatives
 - Customer retention programs
 
 ### Content Marketing Initiatives
-Coordinated content creation across channels:
+Comprehensive content creation across all formats:
 - Editorial calendar development and execution
-- Content series and themed campaigns
-- SEO content strategies
+- Content series and themed campaigns (blogs, social, email)
+- SEO content strategies and optimization
 - Social media content campaigns
 - Video marketing initiatives
+- Thought leadership and educational content programs
 
 ### Strategic Marketing Projects
 High-level marketing strategy implementation:

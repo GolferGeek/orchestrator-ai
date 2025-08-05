@@ -20,10 +20,8 @@ import { OrchestratorModule } from '../../../base/implementations/base-services/
  *
  * Tests the Marketing Manager's ability to intelligently coordinate all marketing agents:
  * - blog_post: Blog post creation and publishing
- * - competitors: Competitive analysis and positioning
  * - content: General content creation and strategy
- * - market_research: Market analysis and customer insights
- * - marketing_swarm: Coordinated multi-channel campaigns
+ * - market_research: Market analysis, customer insights, and competitive intelligence
  *
  * Validates real LLM decision-making for specialist agent selection and task coordination.
  */
@@ -136,8 +134,8 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
       console.log(`✅ Delegated to: ${result.agentName}`);
       console.log(`📊 Analysis: ${result.response?.substring(0, 200)}...`);
 
-      // Validate LLM chose competitors or market_research agent
-      expect(['competitors', 'market_research']).toContain(result.agentName);
+      // Validate LLM chose market_research agent for competitive analysis
+      expect(['market_research']).toContain(result.agentName);
     }, 90000);
 
     /**
@@ -179,13 +177,13 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
       }
 
       // Validate LLM chose market research specialist (or flag if conversation fallback)
-      if (result.agentName && !['market_research', 'competitors'].includes(result.agentName)) {
+      if (result.agentName && !['market_research'].includes(result.agentName)) {
         console.log(`⚠️ Unexpected agent: ${result.agentName}`);
       }
       
       // Allow test to continue for debugging even if conversation fallback
       if (result.agentName) {
-        expect(['market_research', 'competitors', 'Orchestrator']).toContain(result.agentName);
+        expect(['market_research', 'Orchestrator']).toContain(result.agentName);
       }
     }, 90000);
 
@@ -236,7 +234,7 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
         },
         {
           prompt: 'Analyze our top 3 competitors and their pricing strategies',
-          expectedAgents: ['competitors'],
+          expectedAgents: ['market_research'],
         },
         {
           prompt: 'Create website copy for our new AI tool landing page',
@@ -797,11 +795,11 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
       console.log(`📊 Agent Sequence: ${agentSequence.join(' → ')}`);
 
       // Validate intelligent context switching
-      expect(agentSequence[0]).toMatch(/(market_research|competitors)/); // Research question
-      expect(agentSequence[1]).toMatch(/(competitors|market_research)/); // Competitive question
+      expect(agentSequence[0]).toMatch(/(market_research)/); // Research question
+      expect(agentSequence[1]).toMatch(/(market_research)/); // Competitive question
       expect(agentSequence[2]).toMatch(/(content|blog_post)/); // Content creation
       expect(agentSequence[3]).toMatch(
-        /(content|blog_post|market_research|competitors)/,
+        /(content|blog_post|market_research)/,
       ); // Campaign coordination
 
       console.log(
@@ -896,7 +894,6 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
       expect([
         'content',
         'blog_post',
-        'competitors',
         'market_research',
       ]).toContain(delegationResult.agentName);
 
