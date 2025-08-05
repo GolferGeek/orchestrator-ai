@@ -519,8 +519,10 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
     if (delegationContext) {
       this.logger.debug(`🔍 Delegation context preview: ${delegationContext.substring(0, 200)}...`);
     }
+    
 
     try {
+      this.logger.log('🔍 About to call intent recognition service...');
       // Use intent recognition to determine action
       const intent = await this.intentRecognitionService.classifyIntent(
         input,
@@ -530,23 +532,71 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
       this.logger.log(
         `Intent classified as: ${intent.action} (confidence: ${intent.confidence})`,
       );
+      this.logger.log(`🔍 Full intent result: ${JSON.stringify(intent, null, 2)}`);
 
       // Route based on classified intent
       switch (intent.action) {
         case 'CREATE_PROJECT':
           return await this.handleCreateProject(input);
 
+        case 'CREATE_SUBPROJECT':
+          // For subprojects, determine if we can delegate to a single agent instead
+          // This handles LLM over-thinking simple requests
+          const subprojectScope = intent as any; // Handle dynamic LLM response structure
+          if (subprojectScope.subprojectScope?.involvedAgents?.length > 0) {
+            const involvedAgents = subprojectScope.subprojectScope.involvedAgents;
+            
+            // Look for blog_post agent first (most specific for blog requests)
+            const blogAgent = involvedAgents.find((agent: string) => 
+              agent.includes('blog_post')
+            );
+            if (blogAgent) {
+              this.logger.debug('Subproject over-thinking detected, delegating directly to blog_post');
+              return await this.delegationService.delegateToAgent(
+                'blog_post',
+                input.prompt,
+                input,
+              );
+            }
+            
+            // Otherwise, use the first suggested agent
+            const firstAgent = involvedAgents[0];
+            const agentMatch = firstAgent.match(/^(\w+):/);
+            if (agentMatch) {
+              const primaryAgent = agentMatch[1];
+              this.logger.debug(`Subproject requested, delegating to primary agent: ${primaryAgent}`);
+              return await this.delegationService.delegateToAgent(
+                primaryAgent,
+                input.prompt,
+                input,
+              );
+            }
+          }
+          // Fallback to project creation if no clear primary agent
+          return await this.handleCreateProject(input);
+
         case 'RESUME_PROJECT':
           return await this.handleResumeProject(input);
 
         case 'DELEGATE':
+          this.logger.log(`🔍 DELEGATE case triggered with agentName: ${intent.agentName}`);
+          this.logger.log(`🔍 DelegationService available: ${!!this.delegationService}`);
           if (intent.agentName) {
-            return await this.delegationService.delegateToAgent(
-              intent.agentName,
-              input.prompt,
-              input,
-            );
+            this.logger.log(`🔍 About to call delegationService.delegateToAgent with agent: ${intent.agentName}`);
+            try {
+              const delegationResult = await this.delegationService.delegateToAgent(
+                intent.agentName,
+                input.prompt,
+                input,
+              );
+              this.logger.log(`🔍 Delegation succeeded: ${JSON.stringify(delegationResult, null, 2)}`);
+              return delegationResult;
+            } catch (delegationError) {
+              this.logger.error(`🔍 Delegation failed: ${delegationError}`);
+              throw delegationError;
+            }
           } else {
+            this.logger.log(`🔍 No agentName provided, falling back to conversation`);
             return await this.handleConverse(input);
           }
 

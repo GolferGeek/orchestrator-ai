@@ -384,6 +384,7 @@ Determine if this indicates an enterprise workforce development opportunity.`;
       );
       // Parse delegation context to extract agent names
       const agentMatches = delegationContext.match(/\*\*([^*]+)\*\*:/g);
+      this.logger.log(`🔍 Raw agent matches: ${JSON.stringify(agentMatches)}`);
       if (agentMatches) {
         availableAgents = agentMatches
           .map((match) => match.replace(/\*\*/g, '').replace(':', ''))
