@@ -6,21 +6,17 @@ import { MarketingManagerOrchestratorService } from './agent-service';
 
 /**
  * Marketing Manager Orchestrator Module
- * 
+ *
  * Provides the Marketing Manager Orchestrator agent with access to the full
  * orchestrator infrastructure for marketing campaign planning and delegation.
  */
 @Module({
   imports: [
-    HttpModule,            // Required for HTTP service
+    HttpModule, // Required for HTTP service
     BaseSubServicesModule, // Common agent services
-    OrchestratorModule,    // Complete orchestrator infrastructure
+    OrchestratorModule, // Complete orchestrator infrastructure
   ],
-  providers: [
-    MarketingManagerOrchestratorService,
-  ],
-  exports: [
-    MarketingManagerOrchestratorService,
-  ],
+  providers: [MarketingManagerOrchestratorService],
+  exports: [MarketingManagerOrchestratorService],
 })
 export class MarketingManagerOrchestratorModule {}

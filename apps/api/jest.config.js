@@ -5,19 +5,16 @@ module.exports = {
   rootDir: 'src',
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    '^.+\\.(t|j)s$': ['ts-jest', {
-      tsconfig: 'tsconfig.json',
-      isolatedModules: true
-    }],
+    '^.+\\.ts$': 'ts-jest',
   },
+  transformIgnorePatterns: [
+    'node_modules/'  
+  ],
   collectCoverageFrom: [
     '**/*.(t|j)s',
   ],
   coverageDirectory: '../coverage',
-  testTimeout: 30000,
-  transformIgnorePatterns: [
-    'node_modules/(?!(quick-lru)/)'
-  ],
+  testTimeout: 120000,
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^@agents/(.*)$': '<rootDir>/agents/$1',

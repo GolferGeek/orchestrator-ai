@@ -2,11 +2,11 @@ import {
   AgentFunctionParams,
   AgentFunctionResponse,
 } from '@agents/base/implementations/base-services/a2a-base/interfaces';
-import { 
-  initializeForAgent, 
-  executeSQL, 
+import {
+  initializeForAgent,
+  executeSQL,
   getDatabaseSchemaInfo,
-  generateAndExecuteSQL 
+  generateAndExecuteSQL,
 } from '@/supabase/utils/supabase-tools';
 
 /**
@@ -47,10 +47,12 @@ export async function execute(
     // Initialize the Supabase Tools utilities with agent-specific scope
     await initializeForAgent({
       includeDomains: ['KPI & Analytics'],
-      agentName: 'Enhanced Metrics Agent'
+      agentName: 'Enhanced Metrics Agent',
     });
-    
-    console.log('✅ Metrics Agent initialized with KPI & Analytics domain scope using utility functions');
+
+    console.log(
+      '✅ Metrics Agent initialized with KPI & Analytics domain scope using utility functions',
+    );
 
     const schemaResult = { success: true, data: { validated: true } };
 
@@ -60,7 +62,11 @@ export async function execute(
     // Step 1.5: Validate database access with KPI-focused query
     console.log('🔍 VALIDATING: Testing KPI database connectivity...');
     const requiredTables = [
-      'companies', 'departments', 'kpi_data', 'kpi_metrics', 'kpi_goals',
+      'companies',
+      'departments',
+      'kpi_data',
+      'kpi_metrics',
+      'kpi_goals',
     ];
 
     try {
@@ -74,13 +80,15 @@ export async function execute(
           model: 'gpt-4',
           config: {
             includeDomains: ['KPI & Analytics'],
-            agentName: 'Enhanced Metrics Agent'
-          }
-        }
+            agentName: 'Enhanced Metrics Agent',
+          },
+        },
       );
 
       if (testResult.error) {
-        throw new Error(`Database connectivity test failed: ${testResult.error}`);
+        throw new Error(
+          `Database connectivity test failed: ${testResult.error}`,
+        );
       }
 
       console.log('✅ Database connectivity validated');
@@ -193,8 +201,8 @@ Respond with JSON only:
       model: 'gpt-4',
       config: {
         includeDomains: ['KPI & Analytics'],
-        agentName: 'Enhanced Metrics Agent'
-      }
+        agentName: 'Enhanced Metrics Agent',
+      },
     });
 
     if (userQueryResult.error) {
@@ -207,8 +215,12 @@ Respond with JSON only:
       );
     } else {
       console.log('📄 Generated SQL:', userQueryResult.sql);
-      console.log('📊 Query results:', userQueryResult.result?.length || 0, 'rows');
-      
+      console.log(
+        '📊 Query results:',
+        userQueryResult.result?.length || 0,
+        'rows',
+      );
+
       progressCallback?.(
         'SQL Generation',
         2.5,
@@ -244,9 +256,11 @@ ${userQueryResult.sql || 'No SQL was generated'}
 \`\`\`
 
 ## Query Results
-${userQueryResult.result && userQueryResult.result.length > 0 ? 
-  `Found ${userQueryResult.result.length} results:\n${JSON.stringify(userQueryResult.result, null, 2)}` : 
-  'No results returned from the SQL execution'}
+${
+  userQueryResult.result && userQueryResult.result.length > 0
+    ? `Found ${userQueryResult.result.length} results:\n${JSON.stringify(userQueryResult.result, null, 2)}`
+    : 'No results returned from the SQL execution'
+}
 
 ## Analysis
 Based on your query about: ${analysis.intent}
@@ -315,10 +329,12 @@ Answer the user's specific question directly and provide insights from the data.
 
     // Create a user-friendly error response with helpful information
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const isConnectionError = errorMessage.includes('ENOTFOUND') || errorMessage.includes('Tenant or user not found');
-    
+    const isConnectionError =
+      errorMessage.includes('ENOTFOUND') ||
+      errorMessage.includes('Tenant or user not found');
+
     let userFriendlyResponse = '';
-    
+
     if (isConnectionError) {
       userFriendlyResponse = `## Database Connection Issue
 

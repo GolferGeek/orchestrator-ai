@@ -53,5 +53,4 @@ export class MetricsAgentService extends FunctionAgentBaseService {
   getAgentType(): 'finance' {
     return 'finance';
   }
-
 }

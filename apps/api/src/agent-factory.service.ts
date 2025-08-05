@@ -210,9 +210,13 @@ export class AgentFactoryService {
     try {
       switch (config.type) {
         case 'orchestrator': {
-          this.logger.debug(`🎯 Creating orchestrator agent - temporarily disabled during hierarchy implementation`);
+          this.logger.debug(
+            `🎯 Creating orchestrator agent - temporarily disabled during hierarchy implementation`,
+          );
           // TODO: Implement orchestrator agent creation once infrastructure is complete
-          throw new Error('Orchestrator agents are being rebuilt with new infrastructure');
+          throw new Error(
+            'Orchestrator agents are being rebuilt with new infrastructure',
+          );
         }
 
         case 'function': {

@@ -1,8 +1,4 @@
-import {
-  Controller,
-  Get,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Get, Logger } from '@nestjs/common';
 import { AgentDiscoveryService } from '../agent-discovery.service';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -10,18 +6,19 @@ import { Public } from '../auth/decorators/public.decorator';
 export class HierarchyController {
   private readonly logger = new Logger(HierarchyController.name);
 
-  constructor(
-    private readonly agentDiscovery: AgentDiscoveryService,
-  ) {}
+  constructor(private readonly agentDiscovery: AgentDiscoveryService) {}
 
   /**
    * Test endpoint
    * Route: GET /hierarchy/test
    */
   @Get('test')
-  @Public()  
+  @Public()
   async testHierarchy() {
-    return { message: 'Hierarchy controller working', timestamp: new Date().toISOString() };
+    return {
+      message: 'Hierarchy controller working',
+      timestamp: new Date().toISOString(),
+    };
   }
 
   /**
@@ -29,16 +26,16 @@ export class HierarchyController {
    * Route: GET /hierarchy/agents
    */
   @Get('agents')
-  @Public()  
+  @Public()
   async getAgentHierarchy() {
     this.logger.debug('Getting agent hierarchy');
-    
+
     try {
       // Ensure agents are discovered and hierarchy is built
       await this.agentDiscovery.discoverAgents();
-      
+
       const hierarchy = this.agentDiscovery.getAgentHierarchy();
-      
+
       return {
         success: true,
         data: hierarchy,
@@ -46,11 +43,11 @@ export class HierarchyController {
           totalAgents: this.agentDiscovery.getDiscoveredAgents().length,
           rootNodes: hierarchy.length,
           timestamp: new Date().toISOString(),
-        }
+        },
       };
     } catch (error) {
       this.logger.error('Failed to get agent hierarchy:', error);
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -59,7 +56,7 @@ export class HierarchyController {
           totalAgents: 0,
           rootNodes: 0,
           timestamp: new Date().toISOString(),
-        }
+        },
       };
     }
   }

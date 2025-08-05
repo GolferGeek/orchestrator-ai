@@ -215,8 +215,10 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         jsonrpc: '2.0',
         method: 'processTask',
         params: {
-          message: params.userMessage || params.message || 'No message provided',
-          userMessage: params.userMessage || params.message || 'No message provided',
+          message:
+            params.userMessage || params.message || 'No message provided',
+          userMessage:
+            params.userMessage || params.message || 'No message provided',
           sessionId: `external-session-${Date.now()}`,
           authToken: this.accessToken,
           conversation_history: [],
@@ -237,7 +239,10 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         }),
       );
 
-      this.logger.debug(`📥 Received response from Hiverarchy:`, JSON.stringify(response.data, null, 2));
+      this.logger.debug(
+        `📥 Received response from Hiverarchy:`,
+        JSON.stringify(response.data, null, 2),
+      );
 
       if (response.status >= 200 && response.status < 300) {
         this.logger.log('✅ Successfully received response from Hiverarchy');
@@ -257,21 +262,25 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
           const result = response.data.result;
           actualResponse = result.response || result;
           metadata.responseFormat = 'jsonrpc';
-          
+
           // Extract metadata from the result
           if (result.metadata) {
             metadata = { ...metadata, ...result.metadata };
           }
         } else if (response.data?.error) {
           // JSON-RPC error response
-          throw new Error(`External agent error: ${response.data.error.message || 'Unknown error'}`);
+          throw new Error(
+            `External agent error: ${response.data.error.message || 'Unknown error'}`,
+          );
         } else if (response.data?.response) {
           // Direct response format
           actualResponse = response.data.response;
           metadata.responseFormat = 'direct';
         } else if (response.data?.statusCode === 500) {
           // Handle 500 error responses
-          throw new Error(`External agent error: ${response.data.message || 'Internal server error'}`);
+          throw new Error(
+            `External agent error: ${response.data.message || 'Internal server error'}`,
+          );
         }
 
         return {
@@ -284,13 +293,13 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       }
     } catch (error: any) {
       this.logger.error('❌ Failed to execute task with Hiverarchy:', error);
-      
+
       // Log more details about the error
       if (error.response) {
         this.logger.error(`Response status: ${error.response.status}`);
         this.logger.error(`Response data:`, error.response.data);
       }
-      
+
       throw error;
     }
   }

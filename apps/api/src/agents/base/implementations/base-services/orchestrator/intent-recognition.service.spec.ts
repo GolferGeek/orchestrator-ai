@@ -4,16 +4,19 @@ import { IntentRecognitionService } from './intent-recognition.service';
 import { SupabaseModule } from '../../../../../supabase/supabase.module';
 import { LLMModule } from '../../../../../llms/llm.module';
 import { CIDAFMModule } from '../../../../../cidafm/cidafm.module';
-import { OrchestratorInput, IntentDirective } from '../../../../../orchestration/orchestration.types';
+import {
+  OrchestratorInput,
+  IntentDirective,
+} from '../../../../../orchestration/orchestration.types';
 
 /**
  * Intent Recognition Service - Real LLM Intelligence Tests
- * 
+ *
  * These tests validate the core LLM decision-making capabilities:
  * - Can it distinguish between delegation, conversation, and project creation?
  * - Does it correctly identify agent names for delegation?
  * - Can it analyze conversation context for sticky behavior?
- * 
+ *
  * NO MOCKING - These test real LLM intelligence!
  */
 describe('IntentRecognitionService - Real LLM Tests', () => {
@@ -27,16 +30,14 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
           envFilePath: [
             '/Users/golfergeek/projects/golfergeek/orchestrator-ai/.env',
             '../../.env',
-            '.env'
+            '.env',
           ],
         }),
         SupabaseModule,
         LLMModule,
-        CIDAFMModule
+        CIDAFMModule,
       ],
-      providers: [
-        IntentRecognitionService
-      ],
+      providers: [IntentRecognitionService],
     }).compile();
 
     service = module.get<IntentRecognitionService>(IntentRecognitionService);
@@ -48,10 +49,11 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
      */
     it('should classify clear delegation requests as DELEGATE with high confidence', async () => {
       const input: OrchestratorInput = {
-        prompt: "I need the marketing team to create a blog post about AI trends for our tech blog",
-        userId: "test-user",
-        conversationId: "test-conv",
-        conversationHistory: []
+        prompt:
+          'I need the marketing team to create a blog post about AI trends for our tech blog',
+        userId: 'test-user',
+        conversationId: 'test-conv',
+        conversationHistory: [],
       };
 
       // Using real LLM service - no mocking!
@@ -64,7 +66,9 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
         expect(result.agentName).toBeDefined();
       }
       expect(result.reasoning).toBeDefined();
-      console.log(`✅ Intent Classification Result: ${result.action} (confidence: ${result.confidence})`);
+      console.log(
+        `✅ Intent Classification Result: ${result.action} (confidence: ${result.confidence})`,
+      );
     });
 
     /**
@@ -72,18 +76,23 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
      */
     it('should classify project creation requests as CREATE_PROJECT', async () => {
       const input: OrchestratorInput = {
-        prompt: "I want to launch a comprehensive marketing campaign for our new product launch. This will need blog posts, social media content, email sequences, and paid ads coordinated over 3 months.",
-        userId: "test-user",
-        conversationId: "test-conv",
-        conversationHistory: []
+        prompt:
+          'I want to launch a comprehensive marketing campaign for our new product launch. This will need blog posts, social media content, email sequences, and paid ads coordinated over 3 months.',
+        userId: 'test-user',
+        conversationId: 'test-conv',
+        conversationHistory: [],
       };
 
       const result: IntentDirective = await service.classifyIntent(input);
 
-      expect(['CREATE_PROJECT', 'DELEGATE', 'CLARIFY']).toContain(result.action);
+      expect(['CREATE_PROJECT', 'DELEGATE', 'CLARIFY']).toContain(
+        result.action,
+      );
       expect(result.confidence).toBeGreaterThan(0.5);
       expect(result.reasoning).toBeDefined();
-      console.log(`✅ Project Creation Result: ${result.action} (confidence: ${result.confidence})`);
+      console.log(
+        `✅ Project Creation Result: ${result.action} (confidence: ${result.confidence})`,
+      );
     });
 
     /**
@@ -91,10 +100,11 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
      */
     it('should classify questions and discussions as CONVERSE', async () => {
       const input: OrchestratorInput = {
-        prompt: "What are the current marketing trends in our industry? I'm trying to understand the competitive landscape.",
-        userId: "test-user",
-        conversationId: "test-conv",
-        conversationHistory: []
+        prompt:
+          "What are the current marketing trends in our industry? I'm trying to understand the competitive landscape.",
+        userId: 'test-user',
+        conversationId: 'test-conv',
+        conversationHistory: [],
       };
 
       const result: IntentDirective = await service.classifyIntent(input);
@@ -102,7 +112,9 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
       expect(['CONVERSE', 'DELEGATE', 'CLARIFY']).toContain(result.action);
       expect(result.confidence).toBeGreaterThan(0.3);
       expect(result.reasoning).toBeDefined();
-      console.log(`✅ Conversation Result: ${result.action} (confidence: ${result.confidence})`);
+      console.log(
+        `✅ Conversation Result: ${result.action} (confidence: ${result.confidence})`,
+      );
     });
 
     /**
@@ -110,11 +122,11 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
      */
     it('should classify project continuation as RESUME_PROJECT when projectId provided', async () => {
       const input: OrchestratorInput = {
-        prompt: "How is the marketing campaign progressing?",
-        userId: "test-user",
-        conversationId: "test-conv",
-        projectId: "proj_123_marketing_campaign",
-        conversationHistory: []
+        prompt: 'How is the marketing campaign progressing?',
+        userId: 'test-user',
+        conversationId: 'test-conv',
+        projectId: 'proj_123_marketing_campaign',
+        conversationHistory: [],
       };
 
       const result: IntentDirective = await service.classifyIntent(input);
@@ -131,22 +143,24 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
      */
     it('should classify continuation of existing agent conversation as CONTINUE_DELEGATION', async () => {
       const input: OrchestratorInput = {
-        prompt: "That blog post looks great! Can you also create a social media version of it?",
-        userId: "test-user",
-        conversationId: "test-conv",
+        prompt:
+          'That blog post looks great! Can you also create a social media version of it?',
+        userId: 'test-user',
+        conversationId: 'test-conv',
         conversationHistory: [
           {
             role: 'user',
             content: 'Create a blog post about AI trends',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           },
           {
-            role: 'assistant', 
-            content: 'I\'ve created a comprehensive blog post about AI trends...',
+            role: 'assistant',
+            content:
+              "I've created a comprehensive blog post about AI trends...",
             timestamp: new Date().toISOString(),
-            metadata: { agentName: 'blog_post_writer' }
-          }
-        ]
+            metadata: { agentName: 'blog_post_writer' },
+          },
+        ],
       };
 
       const result: IntentDirective = await service.classifyIntent(input);
@@ -161,22 +175,22 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
      */
     it('should detect context switches requiring new agent assignment', async () => {
       const input: OrchestratorInput = {
-        prompt: "Actually, I need market research on our competitors instead",
-        userId: "test-user",
-        conversationId: "test-conv", 
+        prompt: 'Actually, I need market research on our competitors instead',
+        userId: 'test-user',
+        conversationId: 'test-conv',
         conversationHistory: [
           {
             role: 'user',
             content: 'Create a blog post about AI trends',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           },
           {
             role: 'assistant',
-            content: 'I\'ve created a comprehensive blog post...',
+            content: "I've created a comprehensive blog post...",
             timestamp: new Date().toISOString(),
-            metadata: { agentName: 'blog_post_writer' }
-          }
-        ]
+            metadata: { agentName: 'blog_post_writer' },
+          },
+        ],
       };
 
       const result: IntentDirective = await service.classifyIntent(input);
@@ -195,10 +209,10 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
      */
     it('should handle ambiguous requests with reasonable confidence', async () => {
       const input: OrchestratorInput = {
-        prompt: "Marketing stuff",
-        userId: "test-user", 
-        conversationId: "test-conv",
-        conversationHistory: []
+        prompt: 'Marketing stuff',
+        userId: 'test-user',
+        conversationId: 'test-conv',
+        conversationHistory: [],
       };
 
       const result: IntentDirective = await service.classifyIntent(input);
@@ -213,10 +227,10 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
      */
     it('should handle empty prompts gracefully', async () => {
       const input: OrchestratorInput = {
-        prompt: "",
-        userId: "test-user",
-        conversationId: "test-conv", 
-        conversationHistory: []
+        prompt: '',
+        userId: 'test-user',
+        conversationId: 'test-conv',
+        conversationHistory: [],
       };
 
       const result: IntentDirective = await service.classifyIntent(input);
@@ -234,31 +248,37 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
     it('should provide well-calibrated confidence scores', async () => {
       const testCases = [
         {
-          prompt: "Please delegate this to the blog writer: create a post about marketing",
-          expectedConfidence: { min: 0.5, max: 1.0 } // CLARIFY may have lower confidence
+          prompt:
+            'Please delegate this to the blog writer: create a post about marketing',
+          expectedConfidence: { min: 0.5, max: 1.0 }, // CLARIFY may have lower confidence
         },
         {
-          prompt: "Can you maybe help with some content stuff?",
-          expectedConfidence: { min: 0.3, max: 1.0 } // Wide range for ambiguous requests
+          prompt: 'Can you maybe help with some content stuff?',
+          expectedConfidence: { min: 0.3, max: 1.0 }, // Wide range for ambiguous requests
         },
         {
-          prompt: "I want to start a huge marketing campaign with multiple phases",
-          expectedConfidence: { min: 0.5, max: 1.0 } // Complex requests may trigger CLARIFY
-        }
+          prompt:
+            'I want to start a huge marketing campaign with multiple phases',
+          expectedConfidence: { min: 0.5, max: 1.0 }, // Complex requests may trigger CLARIFY
+        },
       ];
 
       for (const testCase of testCases) {
         const input: OrchestratorInput = {
           prompt: testCase.prompt,
-          userId: "test-user",
-          conversationId: "test-conv",
-          conversationHistory: []
+          userId: 'test-user',
+          conversationId: 'test-conv',
+          conversationHistory: [],
         };
 
         const result = await service.classifyIntent(input);
-        
-        expect(result.confidence).toBeGreaterThanOrEqual(testCase.expectedConfidence.min);
-        expect(result.confidence).toBeLessThanOrEqual(testCase.expectedConfidence.max);
+
+        expect(result.confidence).toBeGreaterThanOrEqual(
+          testCase.expectedConfidence.min,
+        );
+        expect(result.confidence).toBeLessThanOrEqual(
+          testCase.expectedConfidence.max,
+        );
       }
     });
   });

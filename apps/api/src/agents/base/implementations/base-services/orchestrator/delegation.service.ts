@@ -588,7 +588,8 @@ Provide your analysis in the required JSON format.`;
       }
 
       // Use configured query LLM (defaults to Anthropic, can be Ollama for performance)
-      const queryLLMProvider = (process.env.AGENT_QUERY_LLM_PROVIDER || 'anthropic') as 'openai' | 'anthropic' | 'google' | 'ollama';
+      const queryLLMProvider = (process.env.AGENT_QUERY_LLM_PROVIDER ||
+        'anthropic') as 'openai' | 'anthropic' | 'google' | 'ollama';
       const queryLLMModel =
         process.env.AGENT_QUERY_LLM_MODEL || 'claude-3-haiku-20240307';
 
@@ -624,7 +625,7 @@ Can the ${agentName} agent handle this request?`;
           temperature: 0.1, // Low temperature for consistent assessment
           maxTokens: 200, // Keep responses brief
           provider: queryLLMProvider,
-          model: queryLLMModel,
+          modelId: queryLLMModel,
         },
       );
 

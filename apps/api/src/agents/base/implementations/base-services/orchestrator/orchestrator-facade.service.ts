@@ -1,5 +1,5 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { 
+import {
   IOrchestratorFacadeService,
   OrchestratorA2AMethod,
   OrchestratorInput,
@@ -9,14 +9,14 @@ import {
   IDelegationService,
   IPlanExecutionService,
   Project,
-  PlanDefinition
+  PlanDefinition,
 } from '../../../../../orchestration/orchestration.types';
 import { SupabaseService } from '../../../../../supabase/supabase.service';
 import { LLMService } from '../../../../../llms/llm.service';
 
 /**
  * Orchestrator Facade Service - Main coordinator
- * 
+ *
  * Routes all requests through the single A2A entry point and coordinates
  * the full "Plan-Approve-Act" lifecycle. This is the brain of the orchestrator
  * that maintains the conversation + tasks paradigm while adding project capabilities.
@@ -40,52 +40,51 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
 
   /**
    * Process orchestrator request - Single coordination point
-   * 
+   *
    * This method routes all orchestrator operations while maintaining
    * A2A compliance and the conversation + tasks pattern.
    */
   async processRequest(
-    method: OrchestratorA2AMethod, 
+    method: OrchestratorA2AMethod,
     input: OrchestratorInput,
-    delegationContext?: string
+    delegationContext?: string,
   ): Promise<OrchestratorResponse> {
     this.logger.log(`Processing orchestrator request: ${method}`);
-    
+
     try {
       // Route based on A2A method (explicit operations)
       switch (method) {
         case 'create_project':
           return await this.handleCreateProject(input);
-          
+
         case 'update_project_plan':
           return await this.handleUpdateProjectPlan(input);
-          
+
         case 'approve_project_plan':
           return await this.handleApproveProjectPlan(input);
-          
+
         case 'resume_project':
           return await this.handleResumeProject(input);
-          
+
         case 'retry_project_step':
           return await this.handleRetryProjectStep(input);
-          
+
         case 'abort_project':
           return await this.handleAbortProject(input);
-          
+
         case 'delegate_task':
           return await this.handleDelegateTask(input);
-          
+
         case 'converse':
           return await this.handleConverse(input);
-          
+
         default:
           // For unknown methods, use intent recognition (conversation + tasks pattern)
           return await this.handleIntelligentRouting(input, delegationContext);
       }
-      
     } catch (error) {
       this.logger.error(`Orchestrator request failed: ${method}`, error);
-      
+
       return {
         success: false,
         message: `Request processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -95,7 +94,7 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           processedAt: new Date().toISOString(),
           method,
           error: true,
-        }
+        },
       };
     }
   }
@@ -103,24 +102,29 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
   /**
    * Handle project creation - Start of "Plan-Approve-Act" lifecycle
    */
-  private async handleCreateProject(input: OrchestratorInput): Promise<OrchestratorResponse> {
-    this.logger.log(`Handling project creation request: "${input.prompt.substring(0, 100)}..."`);
-    
+  private async handleCreateProject(
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse> {
+    this.logger.log(
+      `Handling project creation request: "${input.prompt.substring(0, 100)}..."`,
+    );
+
     try {
       // Step 1: Create project plan using PlanningService
       const plan = await this.planningService.createPlan(input);
-      
+
       // Step 2: Create project record in database
       const projectId = await this.createProjectRecord(plan, input);
-      
+
       // Step 3: Create project steps in database
       await this.createProjectSteps(projectId, plan);
-      
+
       // Step 4: Format plan for human review
-      const humanReadablePlan = await this.planningService.formatPlanForHuman(plan);
-      
+      const humanReadablePlan =
+        await this.planningService.formatPlanForHuman(plan);
+
       this.logger.log(`Project created successfully: ${projectId}`);
-      
+
       return {
         success: true,
         message: `Project "${plan.projectName}" created successfully! Please review the plan below and approve it to begin execution.`,
@@ -134,25 +138,28 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           processedAt: new Date().toISOString(),
           projectName: plan.projectName,
           stepsCount: plan.steps.length,
-          status: 'pending_approval'
+          status: 'pending_approval',
         },
         conversationId: input.conversationId,
         userId: input.userId,
-        sessionId: input.sessionId
+        sessionId: input.sessionId,
       };
-      
     } catch (error) {
       this.logger.error('Project creation failed:', error);
-      throw new Error(`Project creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Project creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   /**
    * Handle plan updates - Collaborative planning phase
    */
-  private async handleUpdateProjectPlan(input: OrchestratorInput): Promise<OrchestratorResponse> {
+  private async handleUpdateProjectPlan(
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse> {
     this.logger.log(`Handling plan update for project: ${input.projectId}`);
-    
+
     try {
       if (!input.projectId) {
         throw new Error('Project ID required for plan updates');
@@ -168,7 +175,7 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
       const refinedPlan = await this.planningService.refinePlan(
         input.projectId,
         input.prompt,
-        input
+        input,
       );
 
       // Update project record with new plan
@@ -178,7 +185,8 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
       await this.updateProjectSteps(input.projectId, refinedPlan);
 
       // Format updated plan for review
-      const humanReadablePlan = await this.planningService.formatPlanForHuman(refinedPlan);
+      const humanReadablePlan =
+        await this.planningService.formatPlanForHuman(refinedPlan);
 
       return {
         success: true,
@@ -192,25 +200,28 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           processedAt: new Date().toISOString(),
           projectName: refinedPlan.projectName,
           stepsCount: refinedPlan.steps.length,
-          status: 'pending_approval'
+          status: 'pending_approval',
         },
         conversationId: input.conversationId,
         userId: input.userId,
-        sessionId: input.sessionId
+        sessionId: input.sessionId,
       };
-      
     } catch (error) {
       this.logger.error('Plan update failed:', error);
-      throw new Error(`Plan update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Plan update failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   /**
    * Handle plan approval - Transition to "Act" phase
    */
-  private async handleApproveProjectPlan(input: OrchestratorInput): Promise<OrchestratorResponse> {
+  private async handleApproveProjectPlan(
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse> {
     this.logger.log(`Handling plan approval for project: ${input.projectId}`);
-    
+
     try {
       if (!input.projectId) {
         throw new Error('Project ID required for plan approval');
@@ -223,13 +234,15 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
       }
 
       if (project.status !== 'pending_approval') {
-        throw new Error(`Project ${input.projectId} is not pending approval (current status: ${project.status})`);
+        throw new Error(
+          `Project ${input.projectId} is not pending approval (current status: ${project.status})`,
+        );
       }
 
       // Update project status to approved and start execution
       await this.updateProjectStatus(input.projectId, 'running', {
         approvedAt: new Date().toISOString(),
-        approvedBy: input.userId
+        approvedBy: input.userId,
       });
 
       // Start plan execution
@@ -246,32 +259,35 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           processedAt: new Date().toISOString(),
           projectName: project.metadata?.projectName,
           status: 'running',
-          approvedAt: new Date().toISOString()
+          approvedAt: new Date().toISOString(),
         },
         conversationId: input.conversationId,
         userId: input.userId,
-        sessionId: input.sessionId
+        sessionId: input.sessionId,
       };
-      
     } catch (error) {
       this.logger.error('Plan approval failed:', error);
-      throw new Error(`Plan approval failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Plan approval failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   /**
    * Handle project resumption
    */
-  private async handleResumeProject(input: OrchestratorInput): Promise<OrchestratorResponse> {
+  private async handleResumeProject(
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse> {
     this.logger.log(`Handling project resumption: ${input.projectId}`);
-    
+
     try {
       if (!input.projectId) {
         throw new Error('Project ID required for resumption');
       }
-      
+
       await this.planExecutionService.resumeProject(input.projectId);
-      
+
       return {
         success: true,
         message: 'Project resumed successfully',
@@ -281,27 +297,32 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           agentName: 'Orchestrator',
           processedAt: new Date().toISOString(),
           action: 'resume_project',
-        }
+        },
       };
-      
     } catch (error) {
-      throw new Error(`Project resumption failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Project resumption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   /**
    * Handle step retry
    */
-  private async handleRetryProjectStep(input: OrchestratorInput): Promise<OrchestratorResponse> {
-    this.logger.log(`Handling step retry: ${input.stepId} in project ${input.projectId}`);
-    
+  private async handleRetryProjectStep(
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse> {
+    this.logger.log(
+      `Handling step retry: ${input.stepId} in project ${input.projectId}`,
+    );
+
     try {
       if (!input.projectId || !input.stepId) {
         throw new Error('Project ID and Step ID required for retry');
       }
-      
+
       await this.planExecutionService.retryStep(input.projectId, input.stepId);
-      
+
       return {
         success: true,
         message: 'Step retry initiated successfully',
@@ -312,27 +333,30 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           processedAt: new Date().toISOString(),
           action: 'retry_step',
           stepId: input.stepId,
-        }
+        },
       };
-      
     } catch (error) {
-      throw new Error(`Step retry failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Step retry failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   /**
    * Handle project abortion
    */
-  private async handleAbortProject(input: OrchestratorInput): Promise<OrchestratorResponse> {
+  private async handleAbortProject(
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse> {
     this.logger.log(`Handling project abortion: ${input.projectId}`);
-    
+
     try {
       if (!input.projectId) {
         throw new Error('Project ID required for abortion');
       }
-      
+
       await this.planExecutionService.abortProject(input.projectId);
-      
+
       return {
         success: true,
         message: 'Project aborted successfully',
@@ -342,44 +366,56 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
           agentName: 'Orchestrator',
           processedAt: new Date().toISOString(),
           action: 'abort_project',
-        }
+        },
       };
-      
     } catch (error) {
-      throw new Error(`Project abortion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Project abortion failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   /**
    * Handle direct task delegation
    */
-  private async handleDelegateTask(input: OrchestratorInput): Promise<OrchestratorResponse> {
+  private async handleDelegateTask(
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse> {
     this.logger.log('Handling direct task delegation');
-    
+
     try {
       // TODO: Extract agent name from input or metadata
       const agentName = input.metadata?.agentName;
       if (!agentName) {
         throw new Error('Agent name required for delegation');
       }
-      
-      return await this.delegationService.delegateToAgent(agentName, input.prompt, input);
-      
+
+      return await this.delegationService.delegateToAgent(
+        agentName,
+        input.prompt,
+        input,
+      );
     } catch (error) {
-      throw new Error(`Task delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Task delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   /**
    * Handle clarification request - present user with delegation vs project options
    */
-  private async handleClarifyRequest(intent: any, input: OrchestratorInput): Promise<OrchestratorResponse> {
+  private async handleClarifyRequest(
+    intent: any,
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse> {
     this.logger.log(`Handling clarification request for ambiguous intent`);
-    
+
     try {
       const agentOption = intent.suggestedAgent || 'available agent';
-      const projectOption = intent.projectOutline || 'multi-step project with coordination';
-      
+      const projectOption =
+        intent.projectOutline || 'multi-step project with coordination';
+
       const clarificationMessage = `I can handle your request in two ways:
 
 🤖 **Option A: Direct Agent Delegation**
@@ -402,12 +438,13 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
         options: {
           delegate: {
             agentName: intent.suggestedAgent || 'specialist',
-            description: `Direct delegation to ${intent.suggestedAgent || 'available agent'}`
+            description: `Direct delegation to ${intent.suggestedAgent || 'available agent'}`,
           },
           project: {
             outline: intent.projectOutline || 'structured multi-step approach',
-            description: 'Create coordinated project with planning and tracking'
-          }
+            description:
+              'Create coordinated project with planning and tracking',
+          },
         },
         metadata: {
           agentType: 'orchestrator',
@@ -415,16 +452,15 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
           processedAt: new Date().toISOString(),
           action: 'CLARIFY',
           intentConfidence: intent.confidence,
-          reasoning: intent.reasoning
+          reasoning: intent.reasoning,
         },
         conversationId: input.conversationId,
         userId: input.userId,
-        sessionId: input.sessionId
+        sessionId: input.sessionId,
       };
-      
     } catch (error) {
       this.logger.error('Clarification handling failed:', error);
-      
+
       return {
         success: false,
         response: `I encountered an issue while preparing options for your request. Let me try to help you directly instead.`,
@@ -433,8 +469,8 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
           agentName: 'Orchestrator',
           processedAt: new Date().toISOString(),
           action: 'CLARIFY_ERROR',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        }
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
       };
     }
   }
@@ -442,13 +478,15 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
   /**
    * Handle direct conversation
    */
-  private async handleConverse(input: OrchestratorInput): Promise<OrchestratorResponse> {
+  private async handleConverse(
+    input: OrchestratorInput,
+  ): Promise<OrchestratorResponse> {
     this.logger.log('Handling direct conversation');
-    
+
     try {
       // TODO: Implement direct conversation handling
       // This would use LLM to generate orchestrator responses
-      
+
       return {
         success: true,
         message: `I'm the orchestrator. I can help you coordinate complex projects and delegate tasks to specialist agents. What would you like to accomplish?`,
@@ -457,59 +495,75 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
           agentName: 'Orchestrator',
           processedAt: new Date().toISOString(),
           action: 'converse',
-        }
+        },
       };
-      
     } catch (error) {
-      throw new Error(`Conversation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Conversation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   /**
    * Handle intelligent routing using intent recognition
-   * 
+   *
    * This follows the conversation + tasks pattern - when method is unclear,
    * use LLM to determine the appropriate action.
    */
-  private async handleIntelligentRouting(input: OrchestratorInput, delegationContext?: string): Promise<OrchestratorResponse> {
+  private async handleIntelligentRouting(
+    input: OrchestratorInput,
+    delegationContext?: string,
+  ): Promise<OrchestratorResponse> {
     this.logger.log('Using intelligent routing for request');
-    
+    this.logger.debug(`🔍 Delegation context received in facade: ${delegationContext ? 'YES' : 'NO'}`);
+    if (delegationContext) {
+      this.logger.debug(`🔍 Delegation context preview: ${delegationContext.substring(0, 200)}...`);
+    }
+
     try {
       // Use intent recognition to determine action
-      const intent = await this.intentRecognitionService.classifyIntent(input, delegationContext);
-      
-      this.logger.log(`Intent classified as: ${intent.action} (confidence: ${intent.confidence})`);
-      
+      const intent = await this.intentRecognitionService.classifyIntent(
+        input,
+        delegationContext,
+      );
+
+      this.logger.log(
+        `Intent classified as: ${intent.action} (confidence: ${intent.confidence})`,
+      );
+
       // Route based on classified intent
       switch (intent.action) {
         case 'CREATE_PROJECT':
           return await this.handleCreateProject(input);
-          
+
         case 'RESUME_PROJECT':
           return await this.handleResumeProject(input);
-          
+
         case 'DELEGATE':
           if (intent.agentName) {
-            return await this.delegationService.delegateToAgent(intent.agentName, input.prompt, input);
+            return await this.delegationService.delegateToAgent(
+              intent.agentName,
+              input.prompt,
+              input,
+            );
           } else {
             return await this.handleConverse(input);
           }
-          
+
         case 'CLARIFY':
           return await this.handleClarifyRequest(intent, input);
-          
+
         case 'CONTINUE_DELEGATION':
           // TODO: Implement delegation continuation
           return await this.handleConverse(input);
-          
+
         case 'CONVERSE':
         default:
           return await this.handleConverse(input);
       }
-      
     } catch (error) {
       this.logger.error('Intelligent routing failed:', error);
-      
+
       // Fallback to conversation
       return await this.handleConverse(input);
     }
@@ -522,36 +576,41 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
   /**
    * Create project record in database
    */
-  private async createProjectRecord(plan: PlanDefinition, input: OrchestratorInput): Promise<string> {
+  private async createProjectRecord(
+    plan: PlanDefinition,
+    input: OrchestratorInput,
+  ): Promise<string> {
     try {
       const projectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const { error } = await this.supabaseService.getServiceClient()
+
+      const { error } = await this.supabaseService
+        .getServiceClient()
         .from('projects')
-        .insert([{
-          id: projectId,
-          conversation_id: input.conversationId,
-          user_id: input.userId,
-          project_name: plan.projectName,
-          description: plan.description,
-          status: 'pending_approval',
-          plan_json: plan,
-          metadata: {
-            ...plan.metadata,
-            createdAt: new Date().toISOString(),
-            createdBy: input.userId,
-            stepsCount: plan.steps.length
+        .insert([
+          {
+            id: projectId,
+            conversation_id: input.conversationId,
+            user_id: input.userId,
+            project_name: plan.projectName,
+            description: plan.description,
+            status: 'pending_approval',
+            plan_json: plan,
+            metadata: {
+              ...plan.metadata,
+              createdAt: new Date().toISOString(),
+              createdBy: input.userId,
+              stepsCount: plan.steps.length,
+            },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }]);
+        ]);
 
       if (error) {
         throw new Error(`Database insert failed: ${error.message}`);
       }
 
       return projectId;
-      
     } catch (error) {
       this.logger.error('Failed to create project record:', error);
       throw error;
@@ -561,9 +620,12 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
   /**
    * Create project steps in database
    */
-  private async createProjectSteps(projectId: string, plan: PlanDefinition): Promise<void> {
+  private async createProjectSteps(
+    projectId: string,
+    plan: PlanDefinition,
+  ): Promise<void> {
     try {
-      const stepRecords = plan.steps.map(step => ({
+      const stepRecords = plan.steps.map((step) => ({
         project_id: projectId,
         step_id: step.stepId,
         step_name: step.stepName,
@@ -574,17 +636,17 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
         status: 'pending',
         metadata: step.metadata || {},
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }));
 
-      const { error } = await this.supabaseService.getServiceClient()
+      const { error } = await this.supabaseService
+        .getServiceClient()
         .from('project_steps')
         .insert(stepRecords);
 
       if (error) {
         throw new Error(`Database insert failed: ${error.message}`);
       }
-      
     } catch (error) {
       this.logger.error('Failed to create project steps:', error);
       throw error;
@@ -596,7 +658,8 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
    */
   private async loadProject(projectId: string): Promise<Project | null> {
     try {
-      const { data, error } = await this.supabaseService.getServiceClient()
+      const { data, error } = await this.supabaseService
+        .getServiceClient()
         .from('projects')
         .select('*')
         .eq('id', projectId)
@@ -610,7 +673,6 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
       }
 
       return data;
-      
     } catch (error) {
       this.logger.error(`Failed to load project ${projectId}:`, error);
       return null;
@@ -620,9 +682,13 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
   /**
    * Update project plan in database
    */
-  private async updateProjectPlan(projectId: string, plan: PlanDefinition): Promise<void> {
+  private async updateProjectPlan(
+    projectId: string,
+    plan: PlanDefinition,
+  ): Promise<void> {
     try {
-      const { error } = await this.supabaseService.getServiceClient()
+      const { error } = await this.supabaseService
+        .getServiceClient()
         .from('projects')
         .update({
           project_name: plan.projectName,
@@ -631,18 +697,20 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
           metadata: {
             ...plan.metadata,
             updatedAt: new Date().toISOString(),
-            stepsCount: plan.steps.length
+            stepsCount: plan.steps.length,
           },
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', projectId);
 
       if (error) {
         throw new Error(`Database update failed: ${error.message}`);
       }
-      
     } catch (error) {
-      this.logger.error(`Failed to update project plan for ${projectId}:`, error);
+      this.logger.error(
+        `Failed to update project plan for ${projectId}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -650,23 +718,31 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
   /**
    * Update project steps in database (replace existing steps)
    */
-  private async updateProjectSteps(projectId: string, plan: PlanDefinition): Promise<void> {
+  private async updateProjectSteps(
+    projectId: string,
+    plan: PlanDefinition,
+  ): Promise<void> {
     try {
       // Delete existing steps
-      const { error: deleteError } = await this.supabaseService.getServiceClient()
+      const { error: deleteError } = await this.supabaseService
+        .getServiceClient()
         .from('project_steps')
         .delete()
         .eq('project_id', projectId);
 
       if (deleteError) {
-        throw new Error(`Failed to delete existing steps: ${deleteError.message}`);
+        throw new Error(
+          `Failed to delete existing steps: ${deleteError.message}`,
+        );
       }
 
       // Create new steps
       await this.createProjectSteps(projectId, plan);
-      
     } catch (error) {
-      this.logger.error(`Failed to update project steps for ${projectId}:`, error);
+      this.logger.error(
+        `Failed to update project steps for ${projectId}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -675,14 +751,14 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
    * Update project status in database
    */
   private async updateProjectStatus(
-    projectId: string, 
-    status: string, 
-    metadata?: Record<string, any>
+    projectId: string,
+    status: string,
+    metadata?: Record<string, any>,
   ): Promise<void> {
     try {
       const updateData: any = {
         status,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       if (metadata) {
@@ -690,11 +766,12 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
         const existingProject = await this.loadProject(projectId);
         updateData.metadata = {
           ...existingProject?.metadata,
-          ...metadata
+          ...metadata,
         };
       }
 
-      const { error } = await this.supabaseService.getServiceClient()
+      const { error } = await this.supabaseService
+        .getServiceClient()
         .from('projects')
         .update(updateData)
         .eq('id', projectId);
@@ -702,9 +779,11 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
       if (error) {
         throw new Error(`Database update failed: ${error.message}`);
       }
-      
     } catch (error) {
-      this.logger.error(`Failed to update project status for ${projectId}:`, error);
+      this.logger.error(
+        `Failed to update project status for ${projectId}:`,
+        error,
+      );
       throw error;
     }
   }

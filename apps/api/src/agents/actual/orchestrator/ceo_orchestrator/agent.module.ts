@@ -6,21 +6,17 @@ import { CEOOrchestratorService } from './agent-service';
 
 /**
  * CEO Orchestrator Module
- * 
+ *
  * Provides the CEO Orchestrator agent with access to the full
  * orchestrator infrastructure for strategic planning and delegation.
  */
 @Module({
   imports: [
-    HttpModule,            // Required for HTTP service
+    HttpModule, // Required for HTTP service
     BaseSubServicesModule, // Common agent services
-    OrchestratorModule,    // Complete orchestrator infrastructure
+    OrchestratorModule, // Complete orchestrator infrastructure
   ],
-  providers: [
-    CEOOrchestratorService,
-  ],
-  exports: [
-    CEOOrchestratorService,
-  ],
+  providers: [CEOOrchestratorService],
+  exports: [CEOOrchestratorService],
 })
 export class CEOOrchestratorModule {}
