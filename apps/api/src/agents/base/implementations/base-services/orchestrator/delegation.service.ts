@@ -297,6 +297,7 @@ export class DelegationService implements IDelegationService {
         taskPayload.params,
       );
 
+      this.logger.log(`🔍 DEBUG - Delegation result from agent: ${JSON.stringify(result, null, 2)}`);
       this.logger.log(`A2A delegation completed successfully`);
       return result;
     } catch (error) {
@@ -314,12 +315,14 @@ export class DelegationService implements IDelegationService {
     input: OrchestratorInput,
   ): OrchestratorResponse {
     try {
+      this.logger.log(`🔍 DEBUG - Processing delegation result: ${JSON.stringify(delegationResult, null, 2)}`);
+      
+      // Extract content from the delegation result
+      const content = delegationResult.response || delegationResult.message || 'Task completed';
+      
       const response: OrchestratorResponse = {
         success: true,
-        response:
-          delegationResult.response ||
-          delegationResult.message ||
-          'Task completed',
+        message: content,  // Use 'message' field for orchestrator format consistency
         action: 'DELEGATE',
         agentName,
         metadata: {
@@ -344,6 +347,7 @@ export class DelegationService implements IDelegationService {
         response.projectId = delegationResult.projectId;
       }
 
+      this.logger.log(`🔍 DEBUG - Final orchestrator response: ${JSON.stringify(response, null, 2)}`);
       return response;
     } catch (error) {
       this.logger.error('Failed to process delegation result:', error);

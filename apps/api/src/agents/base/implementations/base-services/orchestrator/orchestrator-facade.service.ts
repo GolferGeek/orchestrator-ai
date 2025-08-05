@@ -487,23 +487,70 @@ Which approach would you prefer? Just let me know **A** for delegation or **B** 
     this.logger.log('Handling direct conversation');
 
     try {
-      // TODO: Implement direct conversation handling
-      // This would use LLM to generate orchestrator responses
+      // Use LLM to generate orchestrator responses based on the user's message
+      const systemPrompt = `You are an intelligent orchestrator agent that helps coordinate complex projects and delegate tasks to specialist agents. 
 
+You have access to multiple specialist agents and can:
+- Coordinate multi-step projects with planning and execution
+- Delegate specific tasks to specialist agents
+- Provide strategic guidance and oversight
+- Help break down complex requests into manageable steps
+
+Respond naturally to the user's message, offering helpful suggestions about how you can assist them. Be concise but helpful.
+
+Available delegation context:
+${input.delegationContext || 'No specific agents listed - you can work with various specialist agents as needed.'}`;
+
+      const userMessage = input.prompt;
+      
+      // Generate response using LLM with conversation history
+      const conversationHistory = (input.conversationHistory || []).map(msg => ({
+        role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+        content: msg.content || ''
+      }));
+
+      const llmResponse = await this.llmService.generateResponseWithHistory(
+        systemPrompt,
+        conversationHistory,
+        userMessage
+      );
+
+      const response = {
+        success: true,
+        message: llmResponse.trim(),
+        metadata: {
+          agentType: 'orchestrator' as const,
+          agentName: 'Orchestrator',
+          processedAt: new Date().toISOString(),
+          action: 'converse',
+        },
+        conversationId: input.conversationId,
+        userId: input.userId,
+        sessionId: input.sessionId,
+      };
+
+      this.logger.log(`🔍 DEBUG - handleConverse response: ${JSON.stringify(response, null, 2)}`);
+      return response;
+    } catch (error) {
+      this.logger.error('Conversation failed:', error);
+      
+      // Fallback to a helpful static message if LLM fails
       return {
         success: true,
-        message: `I'm the orchestrator. I can help you coordinate complex projects and delegate tasks to specialist agents. What would you like to accomplish?`,
+        message: `I'm the orchestrator. I can help you coordinate complex projects and delegate tasks to specialist agents. What would you like to accomplish?
+
+(Note: I'm currently experiencing some technical difficulties with my response generation, but I'm still here to help!)`,
         metadata: {
           agentType: 'orchestrator',
           agentName: 'Orchestrator',
           processedAt: new Date().toISOString(),
           action: 'converse',
+          error: error instanceof Error ? error.message : 'Unknown error',
         },
+        conversationId: input.conversationId,
+        userId: input.userId,
+        sessionId: input.sessionId,
       };
-    } catch (error) {
-      throw new Error(
-        `Conversation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
     }
   }
 

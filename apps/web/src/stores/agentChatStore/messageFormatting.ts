@@ -16,16 +16,29 @@ export class MessageFormattingService {
       responsePreview: typeof task.response === 'string' ? task.response.substring(0, 200) : task.response ? JSON.stringify(task.response).substring(0, 200) : 'undefined'
     });
     
+    // Debug: Log the entire task structure to see what fields are available
+    console.log(`🔍 DEBUG - Full task object structure for ${task.taskId}:`, {
+      taskKeys: Object.keys(task),
+      taskId: task.taskId,
+      status: task.status,
+      hasResponse: 'response' in task,
+      responseValue: task.response,
+      taskSample: JSON.stringify(task).substring(0, 500) + '...'
+    });
+    
     let responseContent = 'Task completed successfully.';
     let responseMetadata = {};
     
-    if (task.response) {
+    // Check both task.response (database field) and task.result (immediate mode field)
+    const responseData = task.response || task.result;
+    
+    if (responseData) {
       try {
         // Try to parse JSON if it's a string
         let parsedResult;
-        if (typeof task.response === 'string') {
+        if (typeof responseData === 'string') {
           try {
-            parsedResult = JSON.parse(task.response);
+            parsedResult = JSON.parse(responseData);
             console.log('📄 Parsed JSON response structure:', {
               type: typeof parsedResult,
               hasSuccess: 'success' in parsedResult,
@@ -35,21 +48,31 @@ export class MessageFormattingService {
           } catch {
             // Not JSON, use as plain text
             console.log('📄 Response is plain text, using directly');
-            responseContent = task.response;
+            responseContent = responseData;
             parsedResult = null;
           }
         } else {
-          parsedResult = task.response;
+          parsedResult = responseData;
           console.log('📄 Response is object:', Object.keys(parsedResult));
         }
         
         // Extract content from various possible formats
         if (parsedResult) {
-          if (parsedResult.success && parsedResult.response) {
+          if (parsedResult.success && parsedResult.message) {
+            // Format: { success: true, message: "content", metadata: {...} } (orchestrator format)
+            responseContent = String(parsedResult.message);
+            responseMetadata = parsedResult.metadata || {};
+            console.log('📄 Using success.message format (orchestrator)');
+          } else if (parsedResult.success && parsedResult.response) {
             // Format: { success: true, response: "content", metadata: {...} }
             responseContent = String(parsedResult.response);
             responseMetadata = parsedResult.metadata || {};
             console.log('📄 Using success.response format');
+          } else if (parsedResult.message) {
+            // Format: { message: "content" }
+            responseContent = String(parsedResult.message);
+            responseMetadata = parsedResult.metadata || {};
+            console.log('📄 Using message field');
           } else if (parsedResult.response) {
             // Format: { response: "content" }
             responseContent = String(parsedResult.response);
@@ -88,7 +111,7 @@ export class MessageFormattingService {
         }
       } catch {
         // If parsing fails, use the raw response
-        responseContent = String(task.response);
+        responseContent = String(responseData);
         console.log('📄 Raw response content:', responseContent.substring(0, 200) + '...');
         
         // Also check raw content for embedded document
@@ -162,13 +185,16 @@ export class MessageFormattingService {
     
     let finalContent = '';
     
-    if (task.response) {
+    // Check both task.response (database field) and task.result (immediate mode field)
+    const responseData = task.response || task.result;
+    
+    if (responseData) {
       try {
         // Try to parse JSON if it's a string
         let parsedResult;
-        if (typeof task.response === 'string') {
+        if (typeof responseData === 'string') {
           try {
-            parsedResult = JSON.parse(task.response);
+            parsedResult = JSON.parse(responseData);
             console.log('🔄 Parsed JSON completion response structure:', {
               type: typeof parsedResult,
               hasSuccess: 'success' in parsedResult,
@@ -178,20 +204,28 @@ export class MessageFormattingService {
           } catch {
             // Not JSON, use as plain text
             console.log('🔄 Completion response is plain text, using directly');
-            finalContent = task.response;
+            finalContent = responseData;
             parsedResult = null;
           }
         } else {
-          parsedResult = task.response;
+          parsedResult = responseData;
           console.log('🔄 Completion response is object:', Object.keys(parsedResult));
         }
         
         // Extract content from various possible formats
         if (parsedResult) {
-          if (parsedResult.success && parsedResult.response) {
+          if (parsedResult.success && parsedResult.message) {
+            // Format: { success: true, message: "content", metadata: {...} } (orchestrator format)
+            finalContent = String(parsedResult.message);
+            console.log('🔄 Using success.message format for completion (orchestrator)');
+          } else if (parsedResult.success && parsedResult.response) {
             // Format: { success: true, response: "content", metadata: {...} }
             finalContent = String(parsedResult.response);
             console.log('🔄 Using success.response format for completion');
+          } else if (parsedResult.message) {
+            // Format: { message: "content" }
+            finalContent = String(parsedResult.message);
+            console.log('🔄 Using message field for completion');
           } else if (parsedResult.response) {
             // Format: { response: "content" }
             finalContent = String(parsedResult.response);
@@ -216,7 +250,7 @@ export class MessageFormattingService {
         }
       } catch (error) {
         console.error('🔄 Error parsing completion response:', error);
-        finalContent = String(task.response);
+        finalContent = String(responseData);
       }
     }
     

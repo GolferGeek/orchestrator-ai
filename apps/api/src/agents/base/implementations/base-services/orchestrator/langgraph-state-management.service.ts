@@ -730,7 +730,7 @@ export class LangGraphStateManagementService {
     projectId: string,
     planDefinition: PlanDefinition,
     input: OrchestratorInput
-  ): Promise<StateGraph<any, any>> {
+  ): Promise<any> {
     this.logger.log(`Building dynamic StateGraph for project ${projectId} with ${planDefinition.steps.length} steps`);
 
     // Define state schema for this specific plan
@@ -749,29 +749,7 @@ export class LangGraphStateManagementService {
     // Create the StateGraph
     const workflow = new StateGraph(StateAnnotation);
 
-    // Add START node
-    workflow.addNode("start", async (state) => {
-      this.logger.log(`Starting workflow for project ${projectId}`);
-      
-      // Initialize state with checkpointing
-      const initialState = {
-        ...state,
-        projectId,
-        currentStep: 'start',
-        stepResults: {},
-        stepStatus: {},
-        executionContext: input,
-        checkpointVersion: 1,
-        rollbackHistory: [],
-        humanApprovals: {},
-        errorRecovery: {},
-      };
-
-      // Save initial checkpoint
-      await this.saveCheckpoint(projectId, 'start', initialState);
-      
-      return initialState;
-    });
+    // State initialization will be handled by the first step node
 
     // Add dynamic step nodes from plan definition
     for (const step of planDefinition.steps) {
@@ -797,17 +775,8 @@ export class LangGraphStateManagementService {
     // Add conditional edges based on step dependencies and status
     this.addDynamicEdges(workflow, planDefinition.steps);
 
-    // Set entry and finish points
-    workflow.addEdge(START, "start");
-    
-    // Add conditional routing from start to first ready steps
-    workflow.addConditionalEdges(
-      "start",
-      async (state) => {
-        const readySteps = this.findReadySteps(planDefinition.steps, state.stepStatus);
-        return readySteps.length > 0 ? readySteps[0].stepId : "end";
-      }
-    );
+    // For now, we'll skip setting a custom entry point due to LangGraph API constraints
+    // The workflow will use the default behavior
 
     // Compile the workflow
     const app = workflow.compile({

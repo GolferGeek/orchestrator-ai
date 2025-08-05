@@ -20,10 +20,18 @@
             <!-- Navigation -->
             <ion-list>
               <ion-list-header>Navigation</ion-list-header>
+              
+              <!-- Direct Navigation Items - Projects and Evaluations at top -->
               <ion-menu-toggle :auto-hide="false">
-                <ion-item router-direction="root" router-link="/home" lines="none" :detail="false">
-                  <ion-icon aria-hidden="true" :icon="homeOutline" slot="start"></ion-icon>
-                  <ion-label>Home</ion-label>
+                <ion-item 
+                  router-direction="root" 
+                  router-link="/projects" 
+                  lines="none" 
+                  :detail="false"
+                  :class="{ 'selected': $route.path.startsWith('/projects') }"
+                >
+                  <ion-icon aria-hidden="true" :icon="folderOutline" slot="start"></ion-icon>
+                  <ion-label>Projects</ion-label>
                 </ion-item>
               </ion-menu-toggle>
               <ion-menu-toggle :auto-hide="false">
@@ -32,15 +40,24 @@
                   <ion-label>Evaluations</ion-label>
                 </ion-item>
               </ion-menu-toggle>
+              
+              <!-- Agents & Conversations Accordion - Takes remaining space -->
+              <ion-accordion-group :value="agentsExpanded ? 'agents' : undefined">
+                <ion-accordion value="agents">
+                  <ion-item slot="header" color="none">
+                    <ion-icon aria-hidden="true" :icon="chatbubblesOutline" slot="start"></ion-icon>
+                    <ion-label>Agents & Conversations</ion-label>
+                  </ion-item>
+                  <div slot="content" class="agents-content">
+                    <AgentTreeView 
+                      @conversation-selected="handleConversationSelected"
+                      @agent-selected="handleAgentSelected"
+                      :compact-mode="true"
+                    />
+                  </div>
+                </ion-accordion>
+              </ion-accordion-group>
             </ion-list>
-            
-            <hr/>
-            
-            <!-- Session sidebar -->
-            <SessionSidebar 
-              @agent-chat-started="handleAgentChatStarted" 
-              @agent-conversation-selected="handleAgentConversationSelected"
-            />
           </div>
           <div v-else>
             <ion-list>
@@ -61,23 +78,27 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { 
-  IonApp, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle 
+  IonApp, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup
 } from '@ionic/vue';
-import { logInOutline, logOutOutline, homeOutline, starOutline } from 'ionicons/icons';
+import { logInOutline, logOutOutline, starOutline, businessOutline, folderOutline, chatbubblesOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
-import { useRouter } from 'vue-router';
-import SessionSidebar from '@/components/SessionSidebar.vue';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useRouter, useRoute } from 'vue-router';
+import AgentTreeView from '@/components/AgentTreeView.vue';
 
 const auth = useAuthStore();
-const router = useRouter();
 const agentChatStore = useAgentChatStore();
+const router = useRouter();
+const route = useRoute();
+
+// State for accordion
+const agentsExpanded = ref(true);
 
 // Dynamic titles based on current route
 const menuTitle = computed(() => {
-      return 'Orchestrator AI';
+  return 'Orchestrator AI';
 });
 
 const handleLogout = async () => {
@@ -85,15 +106,22 @@ const handleLogout = async () => {
   router.push('/login');
 };
 
-const handleAgentChatStarted = (_agent: any) => {
-  // Navigate to homepage where we'll show the agent chat
-  router.push('/');
+const handleConversationSelected = async (conversation: any) => {
+  try {
+    await agentChatStore.openExistingConversation(conversation.id);
+    router.push('/');
+  } catch (error) {
+    console.error('Failed to open conversation:', error);
+  }
 };
 
-const handleAgentConversationSelected = (_conversation: any) => {
-  // Navigate to homepage where we'll show the agent conversation
-  router.push('/');
-  // The agentChatStore.loadConversation is already called in SessionSidebar
+const handleAgentSelected = async (agent: any) => {
+  try {
+    await agentChatStore.startNewConversation(agent);
+    router.push('/');
+  } catch (error) {
+    console.error('Failed to start conversation:', error);
+  }
 };
 </script>
 
@@ -112,6 +140,14 @@ hr {
   margin: 8px 0;
 }
 
+/* Navigation item selected state */
+ion-item.selected {
+  --background: var(--ion-color-primary-tint, #e3f2fd);
+  --color: var(--ion-color-primary, #1976d2);
+  font-weight: 500;
+  border-left: 3px solid var(--ion-color-primary, #1976d2);
+}
+
 /* Increase sidebar width for better space utilization */
 ion-menu {
   --width: 356px; /* Increased by ~36px (half inch) */
@@ -120,6 +156,46 @@ ion-menu {
 @media (max-width: 768px) {
   ion-menu {
     --width: 300px; /* Also increased mobile width proportionally */
+  }
+}
+
+/* Agents & Conversations accordion content */
+.agents-content {
+  padding: 0;
+  max-height: 50vh; /* Use viewport height to take remaining space */
+  overflow-y: auto;
+}
+
+/* Compact styles for tree view in menu */
+.agents-content :deep(.agent-tree-container) {
+  padding: 0;
+  background: transparent;
+}
+
+.agents-content :deep(.department-section) {
+  margin-bottom: 0.5rem;
+}
+
+.agents-content :deep(.department-header) {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.agents-content :deep(.agent-item) {
+  padding: 0.5rem 1.5rem;
+  font-size: 0.85rem;
+}
+
+/* Dark theme support for navigation */
+@media (prefers-color-scheme: dark) {
+  ion-item.selected {
+    --background: #1e3a8a;
+    --color: #3b82f6;
+    border-left-color: #3b82f6;
+  }
+  
+  .agents-content {
+    background: var(--ion-color-step-50);
   }
 }
 </style>
