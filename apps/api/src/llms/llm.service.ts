@@ -602,7 +602,7 @@ export class LLMService {
         case 'anthropic':
           llm = new ChatAnthropic({
             apiKey: process.env.ANTHROPIC_API_KEY,
-            model: process.env.ANTHROPIC_MODEL || 'claude-3-sonnet-20240229',
+            model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
             temperature: parseFloat(process.env.ANTHROPIC_TEMPERATURE || '0.7'),
             maxTokens: parseInt(process.env.ANTHROPIC_MAX_TOKENS || '2000'),
           });
@@ -679,7 +679,7 @@ export class LLMService {
             model:
               config.model ||
               process.env.ANTHROPIC_MODEL ||
-              'claude-3-sonnet-20240229',
+              'claude-3-5-sonnet-20241022',
             temperature:
               config.temperature ??
               parseFloat(process.env.ANTHROPIC_TEMPERATURE || '0.7'),

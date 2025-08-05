@@ -125,12 +125,20 @@ export class IntentRecognitionService implements IIntentRecognitionService {
       ) {
         // User chose delegation - extract suggested agent from the clarification
         const suggestedAgent = this.extractSuggestedAgent(history);
-        return {
-          action: 'DELEGATE',
-          agentName: suggestedAgent,
-          reasoning: 'User chose delegation option from clarification',
-          confidence: 0.95,
-        };
+        if (suggestedAgent) {
+          return {
+            action: 'DELEGATE',
+            agentName: suggestedAgent,
+            reasoning: 'User chose delegation option from clarification',
+            confidence: 0.95,
+          };
+        } else {
+          return {
+            action: 'CONVERSE',
+            reasoning: 'No specific agent found in clarification history, falling back to conversation',
+            confidence: 0.5,
+          };
+        }
       }
 
       if (
@@ -267,7 +275,7 @@ Determine if this indicates an enterprise workforce development opportunity.`;
   /**
    * Extract suggested agent from clarification conversation history
    */
-  private extractSuggestedAgent(history: any[]): string {
+  private extractSuggestedAgent(history: any[]): string | null {
     // Look through recent messages for clarification metadata
     for (
       let i = history.length - 1;
@@ -287,8 +295,8 @@ Determine if this indicates an enterprise workforce development opportunity.`;
       }
     }
 
-    // Default fallback - could be improved by storing clarification choices in metadata
-    return 'content'; // Safe default that should exist
+    // Default fallback - return null to indicate no specific agent preference
+    return null; // No hardcoded agent assumptions
   }
 
   /**

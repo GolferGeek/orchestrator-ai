@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -11,6 +11,8 @@ import { AgentRegistrationService } from './agents/base/sub-services/agent-regis
 import { TaskProgressGateway } from './websocket/task-progress.gateway';
 import { TasksService } from './tasks/tasks.service';
 import { TaskStatusService } from './tasks/task-status.service';
+import { MarketingManagerOrchestratorService } from './agents/actual/orchestrator/marketing_manager_orchestrator/agent-service';
+import { CEOOrchestratorService } from './agents/actual/orchestrator/ceo_orchestrator/agent-service';
 // Note: MCPClientService removed - replaced with LangChain.js services
 
 export interface DiscoveredAgent {
@@ -64,10 +66,14 @@ export class AgentFactoryService {
     private readonly taskProgressGateway: TaskProgressGateway,
     private readonly tasksService: TasksService,
     private readonly taskStatusService: TaskStatusService,
+    @Optional() private readonly marketingManagerOrchestratorService?: MarketingManagerOrchestratorService,
+    @Optional() private readonly ceoOrchestratorService?: CEOOrchestratorService,
     // mcpClientService removed - using LangChain.js services instead
     // supabaseToolsService removed - using utility functions instead
   ) {
     this.logger.log('🏭 AgentFactoryService initialized');
+    this.logger.log(`🎯 Marketing Orchestrator available: ${!!this.marketingManagerOrchestratorService}`);
+    this.logger.log(`🎯 CEO Orchestrator available: ${!!this.ceoOrchestratorService}`);
   }
 
   /**
@@ -210,13 +216,26 @@ export class AgentFactoryService {
     try {
       switch (config.type) {
         case 'orchestrator': {
-          this.logger.debug(
-            `🎯 Creating orchestrator agent - temporarily disabled during hierarchy implementation`,
-          );
-          // TODO: Implement orchestrator agent creation once infrastructure is complete
-          throw new Error(
-            'Orchestrator agents are being rebuilt with new infrastructure',
-          );
+          this.logger.debug(`🎯 Getting orchestrator agent from DI container: ${serviceName}`);
+          
+          // Return the properly injected orchestrator instance from NestJS DI container
+          if (serviceName === 'MarketingManagerOrchestratorService') {
+            if (!this.marketingManagerOrchestratorService) {
+              throw new Error(`MarketingManagerOrchestratorService not available in DI container. Is MarketingManagerOrchestratorModule imported in AppModule?`);
+            }
+            this.logger.debug(`✅ Returning MarketingManagerOrchestratorService from DI`);
+            return this.marketingManagerOrchestratorService;
+          }
+          
+          if (serviceName === 'CEOOrchestratorService') {
+            if (!this.ceoOrchestratorService) {
+              throw new Error(`CEOOrchestratorService not available in DI container. Is CEOOrchestratorModule imported in AppModule?`);
+            }
+            this.logger.debug(`✅ Returning CEOOrchestratorService from DI`);
+            return this.ceoOrchestratorService;
+          }
+          
+          throw new Error(`Unknown orchestrator service: ${serviceName}. Available: MarketingManagerOrchestratorService, CEOOrchestratorService`);
         }
 
         case 'function': {

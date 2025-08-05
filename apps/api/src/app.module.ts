@@ -15,6 +15,10 @@ import { AgentFactoryService } from './agent-factory.service';
 import { DynamicAgentsController } from './agents/dynamic-agents.controller';
 import { HierarchySimpleController } from './hierarchy-simple.controller';
 import { IntentRecognitionService } from './agents/base/implementations/base-services/orchestrator/intent-recognition.service';
+import { MarketingManagerOrchestratorModule } from './agents/actual/orchestrator/marketing_manager_orchestrator/agent.module';
+import { CEOOrchestratorModule } from './agents/actual/orchestrator/ceo_orchestrator/agent.module';
+import { MarketingManagerOrchestratorService } from './agents/actual/orchestrator/marketing_manager_orchestrator/agent-service';
+import { CEOOrchestratorService } from './agents/actual/orchestrator/ceo_orchestrator/agent-service';
 import { BaseSubServicesModule } from './agents/base/sub-services/base-sub-services.module';
 import { ConfigurationService } from './agents/base/sub-services/configuration/configuration.service';
 import { AgentRegistrationService } from './agents/base/sub-services/agent-registration/agent-registration.service';
@@ -72,6 +76,8 @@ import supabaseConfig from './supabase/supabase.config';
     UsageModule, // Usage analytics and cost tracking
     // Agent Modules
     // OrchestratorModule, // TODO: Add when orchestrator agents are built
+    MarketingManagerOrchestratorModule, // Marketing orchestrator with full DI
+    CEOOrchestratorModule, // CEO orchestrator with full DI
     // Direct Agent Access Modules
     EventEmitterModule.forRoot(), // Event system for real-time updates
     AgentConversationsModule, // Agent conversation tracking
