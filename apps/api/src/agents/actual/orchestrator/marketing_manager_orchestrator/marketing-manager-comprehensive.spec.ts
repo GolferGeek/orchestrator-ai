@@ -96,8 +96,6 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
         blogRequest,
       );
 
-      console.log(`🔍 Debug result:`, JSON.stringify(result, null, 2));
-
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
       expect(result.response).toBeDefined();
@@ -120,7 +118,7 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
 
       const competitorRequest = {
         prompt:
-          'Analyze our main competitors in the AI automation space. Focus on their pricing strategies, feature positioning, and market messaging. Provide a SWOT analysis comparing us to the top 3 competitors.',
+          'Analyze our top 3 competitors in the AI automation space. Compare their pricing strategies and key features against our product.',
         userId: 'test-marketing-competitors',
         conversationId: 'test-conv-competitors',
         conversationHistory: [],
