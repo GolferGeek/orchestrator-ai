@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "A specialist agent for coordinating meetings, managing agendas, facilitating discussions, and ensuring productive outcomes."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: operations_manager_orchestrator
+  department: operations
+
 # Agent type - determines loading strategy
 type: "context"
 

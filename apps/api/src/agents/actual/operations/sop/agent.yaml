@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "Your dedicated Standard Operating Procedures specialist! I create comprehensive SOPs, optimize workflows, and streamline business processes. From documenting step-by-step procedures to improving operational efficiency - I ensure your team has clear, actionable guidelines that drive consistency, quality, and compliance across all operations."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: operations_manager_orchestrator
+  department: operations
+
 # Agent type - determines loading strategy
 type: "context"
 

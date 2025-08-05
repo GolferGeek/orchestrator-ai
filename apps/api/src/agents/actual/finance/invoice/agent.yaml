@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "Your professional invoice and billing specialist! I create detailed invoices, track payment status, analyze billing patterns, and provide accounts receivable insights. From generating professional invoices with proper tax calculations to tracking overdue payments and creating revenue reports - I handle all your billing operations with precision and compliance."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: finance_manager_orchestrator
+  department: finance
+
 # Agent type - determines loading strategy
 type: "context"
 

@@ -1,23 +1,8 @@
 <template>
   <div class="agent-chat-view">
-    <!-- Header -->
-    <div class="chat-header">
-      <div class="agent-info">
-        <ion-icon :icon="getAgentIcon()" :color="getAgentColor()" />
-        <div class="agent-details">
-          <h3>{{ formatAgentName(currentAgent?.name || '') }}</h3>
-          <p v-if="currentAgent?.description">
-            {{ currentAgent.description }}
-          </p>
-          <p v-else>{{ getAgentTypeLabel() }}</p>
-        </div>
-      </div>
-      <div class="header-actions">
-        <TaskExecutionControls />
-        <ion-button fill="clear" @click="$emit('close')">
-          <ion-icon :icon="closeOutline" />
-        </ion-button>
-      </div>
+    <!-- Task Execution Controls Bar -->
+    <div class="controls-header">
+      <TaskExecutionControls />
     </div>
 
     <!-- Loading State -->
@@ -73,7 +58,7 @@
     <!-- Typing Indicator -->
     <div v-if="isSendingMessage" class="typing-indicator">
       <ion-spinner size="small" />
-      <span>{{ formatAgentName(currentAgent?.name || '') }} is thinking...</span>
+      <span>Agent is thinking...</span>
     </div>
   </div>
 </template>
@@ -88,25 +73,10 @@ import {
   IonSpinner,
 } from '@ionic/vue';
 import {
-  closeOutline,
   alertCircleOutline,
   sendOutline,
-  personOutline,
-  serverOutline,
-  cloudOutline,
-  codeSlashOutline,
-  megaphoneOutline,
-  callOutline,
-  businessOutline,
-  settingsOutline,
-  cardOutline,
-  constructOutline,
-  searchOutline,
-  cubeOutline,
-  scaleOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
-import { formatAgentName } from '@/utils/caseConverter';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
@@ -118,10 +88,6 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const emit = defineEmits<{
-  'close': [];
-  'send-message': [content: string];
-}>();
 
 // Store
 const agentChatStore = useAgentChatStore();
@@ -194,63 +160,7 @@ const scrollToBottom = async () => {
   }
 };
 
-const formatTime = (timestamp: Date) => {
-  return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-};
 
-const getAgentIcon = () => {
-  const type = currentAgent.value?.type;
-  const icons: Record<string, any> = {
-    orchestrator: serverOutline,
-    specialist: personOutline,
-    marketing: megaphoneOutline,
-    sales: callOutline,
-    hr: businessOutline,
-    operations: settingsOutline,
-    finance: cardOutline,
-    engineering: constructOutline,
-    research: searchOutline,
-    product: cubeOutline,
-    legal: scaleOutline,
-  };
-  return icons[type!] || personOutline;
-};
-
-const getAgentColor = () => {
-  const type = currentAgent.value?.type;
-  const colors: Record<string, string> = {
-    orchestrator: 'success',
-    specialist: 'primary',
-    marketing: 'secondary',
-    sales: 'tertiary',
-    hr: 'warning',
-    operations: 'dark',
-    finance: 'success',
-    engineering: 'danger',
-    research: 'medium',
-    product: 'light',
-    legal: 'primary',
-  };
-  return colors[type!] || 'medium';
-};
-
-const getAgentTypeLabel = () => {
-  const type = currentAgent.value?.type;
-  const labels: Record<string, string> = {
-    specialist: 'Specialist Agent',
-    orchestrator: 'Orchestrator Agent',
-    marketing: 'Marketing Agent',
-    sales: 'Sales Agent',
-    hr: 'HR Agent',
-    operations: 'Operations Agent',
-    finance: 'Finance Agent',
-    engineering: 'Engineering Agent',
-    research: 'Research Agent',
-    product: 'Product Agent',
-    legal: 'Legal Agent',
-  };
-  return labels[type!] || 'Agent';
-};
 
 // Watch for new messages to auto-scroll
 watch(() => messages.value.length, () => {
@@ -266,31 +176,14 @@ watch(() => messages.value.length, () => {
   background: var(--ion-background-color);
 }
 
-.chat-header {
+.controls-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  padding: 16px;
-  background: var(--ion-color-step-50);
-  border-bottom: 1px solid var(--ion-color-step-150);
-}
-
-.agent-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.agent-details h3 {
-  margin: 0;
-  font-size: 1.1em;
-  font-weight: 600;
-}
-
-.agent-details p {
-  margin: 0;
-  font-size: 0.9em;
-  color: var(--ion-color-medium);
+  padding: 8px 16px;
+  background: var(--ion-color-step-25);
+  border-bottom: 1px solid var(--ion-color-step-100);
+  min-height: 48px;
 }
 
 .loading-state,

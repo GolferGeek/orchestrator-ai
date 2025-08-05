@@ -233,6 +233,15 @@ class ApiService {
     }
   }
 
+  async getAgentHierarchy(): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get('/agents/.well-known/hierarchy');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   /**
    * Health check for NestJS API
    */

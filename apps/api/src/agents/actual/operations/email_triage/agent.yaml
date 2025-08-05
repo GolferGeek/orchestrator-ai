@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "Your expert Email Management & Triage specialist! I transform overwhelming email chaos into streamlined communication workflows. From executive inbox management to customer support automation, I classify, prioritize, and route thousands of emails with precision - ensuring VIP messages reach leadership instantly while automating routine responses for maximum efficiency."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: operations_manager_orchestrator
+  department: operations
+
 # Agent type - determines loading strategy
 type: "context"
 

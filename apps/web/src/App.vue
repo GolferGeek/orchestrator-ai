@@ -49,10 +49,32 @@
                     <ion-label>Agents & Conversations</ion-label>
                   </ion-item>
                   <div slot="content" class="agents-content">
+                    <!-- Search and Refresh Controls -->
+                    <div class="agents-controls">
+                      <ion-searchbar
+                        v-model="searchQuery"
+                        placeholder="Search agents..."
+                        :debounce="300"
+                        @input="handleSearch"
+                        class="compact-searchbar"
+                      />
+                      <ion-button
+                        fill="clear"
+                        size="small"
+                        @click="handleRefresh"
+                        :disabled="isRefreshing"
+                        class="refresh-btn"
+                      >
+                        <ion-icon :icon="refreshOutline" />
+                      </ion-button>
+                    </div>
+                    
+                    <!-- Agent Tree -->
                     <AgentTreeView 
                       @conversation-selected="handleConversationSelected"
                       @agent-selected="handleAgentSelected"
                       :compact-mode="true"
+                      :search-query="searchQuery"
                     />
                   </div>
                 </ion-accordion>
@@ -80,9 +102,9 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { 
-  IonApp, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup
+  IonApp, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup, IonSearchbar, IonButton
 } from '@ionic/vue';
-import { logInOutline, logOutOutline, starOutline, businessOutline, folderOutline, chatbubblesOutline } from 'ionicons/icons';
+import { logInOutline, logOutOutline, starOutline, businessOutline, folderOutline, chatbubblesOutline, refreshOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useRouter, useRoute } from 'vue-router';
@@ -93,8 +115,10 @@ const agentChatStore = useAgentChatStore();
 const router = useRouter();
 const route = useRoute();
 
-// State for accordion
+// State for accordion and search
 const agentsExpanded = ref(true);
+const searchQuery = ref('');
+const isRefreshing = ref(false);
 
 // Dynamic titles based on current route
 const menuTitle = computed(() => {
@@ -121,6 +145,24 @@ const handleAgentSelected = async (agent: any) => {
     router.push('/');
   } catch (error) {
     console.error('Failed to start conversation:', error);
+  }
+};
+
+const handleSearch = () => {
+  // The search query is passed as a prop to AgentTreeView
+  // The component will handle the actual filtering
+};
+
+const handleRefresh = async () => {
+  try {
+    isRefreshing.value = true;
+    // You can add refresh logic here if needed
+    // For now, we'll let the AgentTreeView handle its own refresh
+    await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for UX
+  } catch (error) {
+    console.error('Failed to refresh:', error);
+  } finally {
+    isRefreshing.value = false;
   }
 };
 </script>
@@ -162,8 +204,32 @@ ion-menu {
 /* Agents & Conversations accordion content */
 .agents-content {
   padding: 0;
-  max-height: 50vh; /* Use viewport height to take remaining space */
+  flex: 1;
+  min-height: 0; /* Allow flex child to shrink */
   overflow-y: auto;
+}
+
+/* Controls at top of agents accordion */
+.agents-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--ion-color-step-50);
+  border-bottom: 1px solid var(--ion-color-step-150);
+}
+
+.compact-searchbar {
+  flex: 1;
+  --border-radius: 8px;
+  --box-shadow: none;
+  --background: var(--ion-color-step-100);
+}
+
+.refresh-btn {
+  --padding-start: 8px;
+  --padding-end: 8px;
+  min-width: 40px;
 }
 
 /* Compact styles for tree view in menu */
@@ -196,6 +262,11 @@ ion-menu {
   
   .agents-content {
     background: var(--ion-color-step-50);
+  }
+  
+  .agents-controls {
+    background: var(--ion-color-step-100);
+    border-bottom-color: var(--ion-color-step-200);
   }
 }
 </style>

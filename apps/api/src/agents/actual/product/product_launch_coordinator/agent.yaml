@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "A product launch coordination specialist that provides guidance on launch planning, market analysis, and strategic decision-making for product launches."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: product_manager_orchestrator
+  department: product
+
 # Agent type - determines loading strategy
 type: "context"
 

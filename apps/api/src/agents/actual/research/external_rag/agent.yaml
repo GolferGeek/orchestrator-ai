@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "A specialist agent for retrieval-augmented generation using external knowledge bases and data sources."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: research_manager_orchestrator
+  department: research
+
 # Agent type - determines loading strategy
 type: "context"
 

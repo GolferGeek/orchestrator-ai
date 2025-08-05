@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "A specialist agent for managing, qualifying, and nurturing sales leads through the customer acquisition pipeline."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: sales_manager_orchestrator
+  department: sales
+
 # Agent type - determines loading strategy
 type: "context"
 

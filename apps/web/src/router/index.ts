@@ -7,7 +7,7 @@ import EvaluationsPage from '../views/EvaluationsPage.vue';
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
-    redirect: '/organization'
+    redirect: '/home'
   },
   {
     path: '/home',

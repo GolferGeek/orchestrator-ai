@@ -43,7 +43,7 @@
           :key="agentType.type"
           :value="agentType.type"
         >
-          <ion-item slot="header" class="organization-header">
+          <ion-item slot="header" class="organization-header" :data-hierarchy-level="agentType.level || 0">
             <ion-icon
               :icon="getAgentTypeIcon(agentType.type)"
               slot="start"
@@ -51,7 +51,7 @@
               class="organization-icon"
             />
             <ion-label>
-              <h3 class="organization-title">{{ formatAgentTypeName(agentType.type) }}</h3>
+              <h3 class="organization-title">{{ formatAgentTypeName(agentType) }}</h3>
               <p class="organization-subtitle">{{ agentType.agents.length }} specialist{{ agentType.agents.length !== 1 ? 's' : '' }}</p>
             </ion-label>
             <ion-badge slot="end" :color="getAgentTypeColor(agentType.type)" class="conversation-count">
@@ -77,8 +77,7 @@
                   color="medium"
                 />
                 <div class="agent-info">
-                  <h3 class="agent-name">{{ formatAgentName(agent.name) }}</h3>
-                  <p class="agent-subtitle">AI Specialist</p>
+                  <h3 class="agent-name">{{ cleanAgentName(agent.name) }}</h3>
                 </div>
                 <div class="agent-badges">
                   <ion-badge
@@ -271,15 +270,19 @@ interface AgentType {
   type: string;
   agents: Agent[];
   totalConversations: number;
+  isHierarchyNode?: boolean;
+  level?: number;
+  hierarchyData?: any;
 }
 
 // Props
 const props = defineProps<{
   compactMode?: boolean;
+  searchQuery?: string;
 }>();
 
 // Reactive state
-const searchQuery = ref('');
+const searchQuery = ref(props.searchQuery || '');
 const expandedGroups = ref<string[]>([]); // Start with all accordions closed
 const expandedAgents = ref<string[]>([]); // Track manually expanded agents
 const selectedConversation = ref<Conversation | null>(null);
@@ -292,59 +295,227 @@ const agentsStore = useAgentsStore();
 const conversationsStore = useAgentConversationsStore();
 const router = useRouter();
 
-// Computed
+// Computed - now using hierarchy instead of type grouping
 const filteredAgentTypes = computed(() => {
-  const types = new Map<string, AgentType>();
-  
-  // Get agents from store instead of local ref
+  const hierarchy = agentsStore.getAgentHierarchy;
   const availableAgents = agentsStore.getAvailableAgents;
   
-  const filteredAgents = availableAgents.filter((agent: any) => {
-    const matchesSearch = !searchQuery.value || 
-      agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      agent.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
-    return matchesSearch;
-  });
+  if (!hierarchy) {
+    // Fallback to original type-based grouping if hierarchy not available
+    const types = new Map<string, AgentType>();
+    
+    const filteredAgents = availableAgents.filter((agent: any) => {
+      const matchesSearch = !searchQuery.value || 
+        agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        agent.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
+      return matchesSearch;
+    });
 
-  filteredAgents.forEach((agent: any) => {
-    if (!types.has(agent.type)) {
-      types.set(agent.type, {
+    filteredAgents.forEach((agent: any) => {
+      if (!types.has(agent.type)) {
+        types.set(agent.type, {
+          type: agent.type,
+          agents: [],
+          totalConversations: 0,
+        });
+      }
+      
+      // Get conversations from store
+      const agentConversations = conversationsStore.getConversationsByAgent(agent.name, agent.type);
+      
+      const agentType = types.get(agent.type)!;
+      agentType.agents.push({
+        name: agent.name,
         type: agent.type,
-        agents: [],
-        totalConversations: 0,
+        description: agent.description,
+        execution_modes: agent.execution_modes,
+        conversations: agentConversations,
+        activeConversations: agentConversations.filter(c => !c.endedAt).length,
+        totalConversations: agentConversations.length,
+      });
+      agentType.totalConversations += agentConversations.length;
+    });
+
+    return Array.from(types.values()).sort((a, b) => {
+      const order = ['orchestrator', 'marketing', 'sales', 'operations', 'engineering', 'research', 'finance', 'hr', 'specialist', 'product', 'legal'];
+      return order.indexOf(a.type) - order.indexOf(b.type);
+    });
+  }
+
+  // Convert hierarchy to display format
+  const buildHierarchyGroups = (node: any, level: number = 0): AgentType[] => {
+    const groups: AgentType[] = [];
+    
+    console.log('🔍 BuildHierarchyGroups - Processing node:', {
+      nodeName: node.name,
+      nodeAgent: node.agent,
+      level: level,
+      hasChildren: node.children && node.children.length > 0
+    });
+    
+    // Check if this node represents an agent (either has node.agent or is an agent itself)
+    const agentData = node.agent || (node.name && node.type ? node : null);
+    
+    if (agentData) {
+      // This is an actual agent node
+      const agent = availableAgents.find(a => a.name === agentData.name);
+      console.log('🔍 BuildHierarchyGroups - Looking for agent:', agentData.name, 'Found:', !!agent);
+      if (!agent) {
+        // If not found in availableAgents, create from hierarchy data
+        const hierarchyAgent = {
+          name: agentData.name,
+          type: agentData.type || 'specialist',
+          description: agentData.metadata?.description || agentData.description || '',
+          execution_modes: []
+        };
+        console.log('🔍 BuildHierarchyGroups - Using hierarchy data for agent:', hierarchyAgent.name);
+        
+        // Apply search filter
+        const matchesSearch = !searchQuery.value || 
+          hierarchyAgent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+          hierarchyAgent.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
+        
+        if (matchesSearch) {
+          const agentConversations = conversationsStore.getConversationsByAgent(hierarchyAgent.name, hierarchyAgent.type);
+          
+          const agentGroup: AgentType = {
+            type: `${hierarchyAgent.name}_hierarchy_${level}`, // Unique identifier
+            agents: [{
+              name: hierarchyAgent.name,
+              type: hierarchyAgent.type,
+              description: hierarchyAgent.description,
+              execution_modes: hierarchyAgent.execution_modes,
+              conversations: agentConversations,
+              activeConversations: agentConversations.filter(c => !c.endedAt).length,
+              totalConversations: agentConversations.length,
+            }],
+            totalConversations: agentConversations.length,
+            isHierarchyNode: true,
+            level: level,
+            hierarchyData: agentData
+          };
+          
+          groups.push(agentGroup);
+        }
+        return groups;
+      }
+      
+      // Apply search filter for found agent
+      const matchesSearch = !searchQuery.value || 
+        agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        agent.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
+      
+      if (matchesSearch) {
+        const agentConversations = conversationsStore.getConversationsByAgent(agent.name, agent.type || 'specialist');
+        
+        const agentGroup: AgentType = {
+          type: `${agent.name}_hierarchy_${level}`, // Unique identifier
+          agents: [{
+            name: agent.name,
+            type: agent.type || 'specialist',
+            description: agent.description || '',
+            execution_modes: agent.execution_modes,
+            conversations: agentConversations,
+            activeConversations: agentConversations.filter(c => !c.endedAt).length,
+            totalConversations: agentConversations.length,
+          }],
+          totalConversations: agentConversations.length,
+          isHierarchyNode: true,
+          level: level,
+          hierarchyData: agentData
+        };
+        
+        groups.push(agentGroup);
+      }
+    }
+    
+    // Process children
+    if (node.children && node.children.length > 0) {
+      node.children.forEach((child: any) => {
+        groups.push(...buildHierarchyGroups(child, level + 1));
       });
     }
     
-    // Get conversations from store
-    const agentConversations = conversationsStore.getConversationsByAgent(agent.name, agent.type);
-    
-    const agentType = types.get(agent.type)!;
-    agentType.agents.push({
-      name: agent.name,
-      type: agent.type,
-      description: agent.description,
-      execution_modes: agent.execution_modes,
-      conversations: agentConversations,
-      activeConversations: agentConversations.filter(c => !c.endedAt).length,
-      totalConversations: agentConversations.length,
-    });
-    agentType.totalConversations += agentConversations.length;
-  });
+    return groups;
+  };
 
-  return Array.from(types.values()).sort((a, b) => {
-    const order = ['orchestrator', 'marketing', 'sales', 'operations', 'engineering', 'research', 'finance', 'hr', 'specialist', 'product', 'legal'];
-    return order.indexOf(a.type) - order.indexOf(b.type);
-  });
+  // Start from top-level agents (those with no parent)
+  const hierarchyGroups: AgentType[] = [];
+  const topLevelAgents = hierarchy.data || hierarchy.topLevel || [];
+  if (topLevelAgents && topLevelAgents.length > 0) {
+    // Since the hierarchy is coming as a flat list, let's group by department type
+    const departmentGroups = new Map<string, any[]>();
+    
+    topLevelAgents.forEach((agent: any) => {
+      const department = agent.type || 'specialist';
+      if (!departmentGroups.has(department)) {
+        departmentGroups.set(department, []);
+      }
+      departmentGroups.get(department)!.push(agent);
+    });
+    
+    // Convert each department group to AgentType format
+    departmentGroups.forEach((agents, department) => {
+      // Apply search filter
+      const filteredAgents = agents.filter((agent: any) => {
+        const matchesSearch = !searchQuery.value || 
+          agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+          agent.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
+        return matchesSearch;
+      });
+      
+      if (filteredAgents.length > 0) {
+        const agentItems = filteredAgents
+          .map((agent: any) => {
+            const agentConversations = conversationsStore.getConversationsByAgent(agent.name, agent.type);
+            return {
+              name: agent.name,
+              type: agent.type || 'specialist',
+              description: agent.metadata?.description || agent.description || '',
+              execution_modes: [],
+              conversations: agentConversations,
+              activeConversations: agentConversations.filter(c => !c.endedAt).length,
+              totalConversations: agentConversations.length,
+            };
+          })
+          .sort((a, b) => {
+            // Put managers first (agents with "manager" or "orchestrator" in name)
+            const aIsManager = a.name.toLowerCase().includes('manager') || a.name.toLowerCase().includes('orchestrator');
+            const bIsManager = b.name.toLowerCase().includes('manager') || b.name.toLowerCase().includes('orchestrator');
+            
+            if (aIsManager && !bIsManager) return -1;
+            if (!aIsManager && bIsManager) return 1;
+            
+            // If both are managers or both are not managers, sort alphabetically
+            return a.name.localeCompare(b.name);
+          });
+        
+        const departmentGroup: AgentType = {
+          type: department,
+          agents: agentItems,
+          totalConversations: agentItems.reduce((sum, agent) => sum + agent.totalConversations, 0),
+          isHierarchyNode: false,
+          level: 0,
+        };
+        
+        hierarchyGroups.push(departmentGroup);
+      }
+    });
+  }
+  
+  return hierarchyGroups;
 });
 
 // Methods
 
 const refreshData = async () => {
   try {
-    // Force refresh both stores
+    // Force refresh both stores and hierarchy
     await agentsStore.fetchAvailableAgents();
+    await agentsStore.fetchAgentHierarchy();
     await conversationsStore.fetchConversations(true); // Force refresh
   } catch (err) {
+    console.error('Error during refresh:', err);
   }
 };
 
@@ -523,7 +694,24 @@ const getConversationPluralLabel = (agent: Agent) => {
   return agent.type === 'orchestrator' ? 'Sessions' : 'Conversations';
 };
 
-const formatAgentTypeName = (type: string) => {
+const cleanAgentName = (name: string) => {
+  // Remove 'orchestrator' suffix and clean up names for better UX
+  return formatAgentName(name)
+    .replace(/\s*Orchestrator$/i, '')  // Remove 'Orchestrator' at the end
+    .replace(/\s*Manager\s*Orchestrator$/i, ' Manager')  // Replace 'Manager Orchestrator' with just 'Manager'
+    .replace(/\s*Ceo\s*Orchestrator$/i, 'CEO')  // Replace 'Ceo Orchestrator' with 'CEO'
+    .trim();
+};
+
+const formatAgentTypeName = (agentType: AgentType) => {
+  // For hierarchy nodes, use the cleaned agent name
+  if (agentType.isHierarchyNode && agentType.agents.length > 0) {
+    const agent = agentType.agents[0];
+    return cleanAgentName(agent.name);
+  }
+  
+  // Fallback to original type-based naming
+  const type = agentType.type;
   const names = {
     orchestrator: 'Orchestrator',
     specialist: 'Cross-Functional',
@@ -684,6 +872,11 @@ watch(() => websocketService.connected.value, (connected) => {
     // This will be handled automatically by the websocket service
   }
 });
+
+// Watch for changes to the search query prop
+watch(() => props.searchQuery, (newSearchQuery) => {
+  searchQuery.value = newSearchQuery || '';
+});
 </script>
 
 <style scoped>
@@ -697,6 +890,22 @@ watch(() => websocketService.connected.value, (connected) => {
 .organization-header {
   --background: var(--ion-color-step-25);
   border-bottom: 1px solid var(--ion-color-step-100);
+}
+
+/* Hierarchy Level Styling */
+.organization-header[data-hierarchy-level="1"] {
+  --padding-start: 32px;
+  --background: var(--ion-color-step-50);
+}
+
+.organization-header[data-hierarchy-level="2"] {
+  --padding-start: 48px;
+  --background: var(--ion-color-step-75);
+}
+
+.organization-header[data-hierarchy-level="3"] {
+  --padding-start: 64px;
+  --background: var(--ion-color-step-100);
 }
 
 .organization-icon {

@@ -15,10 +15,30 @@ import { AgentFactoryService } from './agent-factory.service';
 import { DynamicAgentsController } from './agents/dynamic-agents.controller';
 import { HierarchySimpleController } from './hierarchy-simple.controller';
 import { IntentRecognitionService } from './agents/base/implementations/base-services/orchestrator/intent-recognition.service';
-import { MarketingManagerOrchestratorModule } from './agents/actual/orchestrator/marketing_manager_orchestrator/agent.module';
+import { MarketingManagerOrchestratorModule } from './agents/actual/marketing/marketing_manager_orchestrator/agent.module';
 import { CEOOrchestratorModule } from './agents/actual/orchestrator/ceo_orchestrator/agent.module';
-import { MarketingManagerOrchestratorService } from './agents/actual/orchestrator/marketing_manager_orchestrator/agent-service';
+import { EngineeringManagerOrchestratorModule } from './agents/actual/engineering/engineering_manager_orchestrator/agent.module';
+import { OperationsManagerOrchestratorModule } from './agents/actual/operations/operations_manager_orchestrator/agent.module';
+import { FinanceManagerOrchestratorModule } from './agents/actual/finance/finance_manager_orchestrator/agent.module';
+import { HRManagerOrchestratorModule } from './agents/actual/hr/hr_manager_orchestrator/agent.module';
+import { SalesManagerOrchestratorModule } from './agents/actual/sales/sales_manager_orchestrator/agent.module';
+import { ProductManagerOrchestratorModule } from './agents/actual/product/product_manager_orchestrator/agent.module';
+import { ResearchManagerOrchestratorModule } from './agents/actual/research/research_manager_orchestrator/agent.module';
+import { SpecialistsManagerOrchestratorModule } from './agents/actual/specialists/specialists_manager_orchestrator/agent.module';
+import { LegalManagerOrchestratorModule } from './agents/actual/legal/legal_manager_orchestrator/agent.module';
+import { ProductivityManagerOrchestratorModule } from './agents/actual/productivity/productivity_manager_orchestrator/agent.module';
+import { MarketingManagerOrchestratorService } from './agents/actual/marketing/marketing_manager_orchestrator/agent-service';
 import { CEOOrchestratorService } from './agents/actual/orchestrator/ceo_orchestrator/agent-service';
+import { EngineeringManagerOrchestratorService } from './agents/actual/engineering/engineering_manager_orchestrator/agent-service';
+import { OperationsManagerOrchestratorService } from './agents/actual/operations/operations_manager_orchestrator/agent-service';
+import { FinanceManagerOrchestratorService } from './agents/actual/finance/finance_manager_orchestrator/agent-service';
+import { HRManagerOrchestratorService } from './agents/actual/hr/hr_manager_orchestrator/agent-service';
+import { SalesManagerOrchestratorService } from './agents/actual/sales/sales_manager_orchestrator/agent-service';
+import { ProductManagerOrchestratorService } from './agents/actual/product/product_manager_orchestrator/agent-service';
+import { ResearchManagerOrchestratorService } from './agents/actual/research/research_manager_orchestrator/agent-service';
+import { SpecialistsManagerOrchestratorService } from './agents/actual/specialists/specialists_manager_orchestrator/agent-service';
+import { LegalManagerOrchestratorService } from './agents/actual/legal/legal_manager_orchestrator/agent-service';
+import { ProductivityManagerOrchestratorService } from './agents/actual/productivity/productivity_manager_orchestrator/agent-service';
 import { BaseSubServicesModule } from './agents/base/sub-services/base-sub-services.module';
 import { ConfigurationService } from './agents/base/sub-services/configuration/configuration.service';
 import { AgentRegistrationService } from './agents/base/sub-services/agent-registration/agent-registration.service';
@@ -79,6 +99,16 @@ import supabaseConfig from './supabase/supabase.config';
     // OrchestratorModule, // TODO: Add when orchestrator agents are built
     MarketingManagerOrchestratorModule, // Marketing orchestrator with full DI
     CEOOrchestratorModule, // CEO orchestrator with full DI
+    EngineeringManagerOrchestratorModule, // Engineering manager orchestrator
+    OperationsManagerOrchestratorModule, // Operations manager orchestrator
+    FinanceManagerOrchestratorModule, // Finance manager orchestrator
+    HRManagerOrchestratorModule, // HR manager orchestrator
+    SalesManagerOrchestratorModule, // Sales manager orchestrator
+    ProductManagerOrchestratorModule, // Product manager orchestrator
+    ResearchManagerOrchestratorModule, // Research manager orchestrator
+    SpecialistsManagerOrchestratorModule, // Specialists manager orchestrator
+    LegalManagerOrchestratorModule, // Legal manager orchestrator
+    ProductivityManagerOrchestratorModule, // Productivity manager orchestrator
     // Direct Agent Access Modules
     EventEmitterModule.forRoot(), // Event system for real-time updates
     AgentConversationsModule, // Agent conversation tracking

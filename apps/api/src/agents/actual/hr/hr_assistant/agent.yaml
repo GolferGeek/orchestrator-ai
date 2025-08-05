@@ -6,6 +6,12 @@ metadata:
   version: "1.0.0"
   description: "Your personal HR expert at your fingertips! I provide comprehensive support for benefits enrollment, leave policies, performance reviews, payroll questions, and workplace guidance. No more waiting for HR callbacks - get immediate, professional answers to all your employee questions and concerns."
 
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: hr_manager_orchestrator
+  department: hr
+
 # Agent Type: Function-based agent with LangGraph workflow
 type: "function"
 
