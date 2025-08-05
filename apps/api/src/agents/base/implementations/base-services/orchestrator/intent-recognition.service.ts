@@ -20,17 +20,18 @@ export class IntentRecognitionService implements IIntentRecognitionService {
   constructor(private readonly llmService: LLMService) {}
 
   /**
-   * Classify user intent using LLM calls - Enhanced for enterprise operations
+   * Classify user intent using LLM calls - Simplified for reliable delegation
    *
    * Analyzes conversation context to determine whether to:
-   * - CREATE_PROJECT: Complex, multi-step request requiring coordination
-   * - DELEGATE: Simple task for specialist agent
-   * - CONVERSE: Direct orchestrator response
+   * - DELEGATE: Task for specialist agent (PRIMARY PATH - 95% of requests)
+   * - CONVERSE: Direct orchestrator response (questions about orchestrator)
    * - CONTINUE_DELEGATION: Continue with previous agent
-   * - RESUME_PROJECT: Continue existing project
+   * - RESUME_PROJECT: Continue existing project (when projectId present)
    * - BUILD_AGENT: Create new permanent agent for capability gap
    * - IMPROVE_AGENT: Enhance existing agent performance
    * - CREATE_SUBPROJECT: Cross-departmental coordination needed
+   *
+   * NOTE: CREATE_PROJECT removed from classification - now explicit UI action
    */
   async classifyIntent(
     input: OrchestratorInput,
@@ -39,6 +40,11 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     this.logger.log(
       `Classifying intent for prompt: "${input.prompt.substring(0, 100)}..."`,
     );
+    this.logger.log(`🔍 DEBUG - Delegation context provided: ${!!delegationContext}`);
+    if (delegationContext) {
+      this.logger.log(`🔍 DEBUG - Delegation context length: ${delegationContext.length}`);
+      this.logger.log(`🔍 DEBUG - Delegation context preview: ${delegationContext.substring(0, 500)}...`);
+    }
 
     try {
       // Quick checks for explicit context before LLM call
@@ -132,10 +138,10 @@ export class IntentRecognitionService implements IIntentRecognitionService {
         userChoice.includes('option b') ||
         userChoice.includes('project')
       ) {
-        // User chose project creation
+        // User chose project creation - redirect to UI
         return {
-          action: 'CREATE_PROJECT',
-          reasoning: 'User chose project creation option from clarification',
+          action: 'CONVERSE',
+          reasoning: 'Project creation now requires explicit UI action - redirecting user',
           confidence: 0.95,
         };
       }
@@ -347,6 +353,9 @@ Determine if this indicates an enterprise workforce development opportunity.`;
     const userMessage = this.buildUserAnalysisMessage(input, context);
 
     try {
+      this.logger.log(`🔍 DEBUG - About to call LLM with system prompt containing: ${systemPrompt.substring(0, 300)}...`);
+      this.logger.log(`🔍 DEBUG - User message: ${userMessage.substring(0, 500)}...`);
+
       const response = await this.llmService.generateResponse(
         systemPrompt,
         userMessage,
@@ -357,6 +366,7 @@ Determine if this indicates an enterprise workforce development opportunity.`;
         },
       );
 
+      this.logger.log(`🔍 DEBUG - LLM response received: ${response.substring(0, 500)}...`);
       this.logger.debug(`Intent classification request: ${userMessage.substring(0, 200)}...`);
       this.logger.debug(`Intent classification response: ${response.substring(0, 300)}...`);
 
@@ -400,42 +410,44 @@ Determine if this indicates an enterprise workforce development opportunity.`;
       );
     }
 
-    return `You are an enterprise orchestrator intent classifier. Your job is to analyze user requests and classify them into one of these actions:
+    return `You are an enterprise orchestrator intent classifier. Your PRIMARY job is to identify task requests and DELEGATE them to specialist agents.
 
-1. DELEGATE - When user requests a specific deliverable or task that can be handled by a specialist agent
-   Examples: "Write a blog post", "I need a blog post about...", "Create an email campaign", "Analyze financial data", "Write promotional copy"
-   PRIORITY: If user asks for ANY specific content, analysis, or deliverable - choose DELEGATE
-   
-2. CREATE_PROJECT - ONLY when user explicitly requests project creation or multi-step coordination
-   Examples: "I'd like to create a project to...", "Please start a new project for...", "Create a structured project that..."
-   Must contain explicit project language
+CRITICAL INSTRUCTION: 95% of requests should be classified as DELEGATE. This is the primary path for user requests.
 
-3. CLARIFY - When the request is ambiguous and could be either delegation OR project creation
-   Use sparingly - only when genuinely unclear between delegation and project
-   Examples: "Help with launch strategy" (could be content OR project), "Support with competitive analysis" (could be research OR project)
+Classify user requests into one of these actions:
 
-4. CONVERSE - ONLY for direct questions about the orchestrator itself or general conversation
-   Examples: "What can you do?", "How does this work?", "Tell me about the team"
-   DO NOT use for any content or task requests
+1. DELEGATE - DEFAULT choice for ALL task requests, content creation, analysis, or deliverables
+   Examples: "Write a blog post", "Create an email campaign", "Analyze financial data", "Research market trends", "Write marketing copy", "Conduct research", "Analyze competitors", "Create content", "Generate reports", "Develop strategies"
+   ALWAYS DELEGATE if request contains:
+   - Action verbs (Write, Create, Analyze, Research, Conduct, Generate, Develop, Build, Design, Make, Produce)
+   - Deliverable requests (blog post, analysis, report, copy, content, strategy, plan, research)
+   - Task descriptions (help with X, need Y, want Z)
+   - ANY specific work request - users want results delivered by specialists
+   RULE: When in doubt, choose DELEGATE - users want specialists to do the work
 
-5. CONTINUE_DELEGATION - Continue working with a previously active agent
+2. CONVERSE - ONLY for direct questions about the orchestrator itself, capabilities, or pure conversation with NO deliverable requested
+   Examples: "What can you do?", "How does this work?", "Tell me about the team", "Hello", "Help me understand your role"
+   NEVER USE for any content creation, analysis, or task requests - those are ALWAYS DELEGATE
+
+3. CONTINUE_DELEGATION - Continue working with a previously active agent
    Only use this when there's clear context of an ongoing conversation with a specific agent
 
-CRITICAL: Default to DELEGATE for any specific task or content request. The user wants results, not conversation.
+4. RESUME_PROJECT - Continue an existing project (handled automatically when projectId is present)
 
-6. RESUME_PROJECT - Continue an existing project (handled automatically when projectId is present)
-
-7. BUILD_AGENT - Create new permanent agent for enterprise capability gap
+5. BUILD_AGENT - Create new permanent agent for enterprise capability gap
    Examples: "We need an agent for social media scheduling", "Build me a specialized customer support agent"
    ONLY use when user explicitly wants to create a new agent
 
-8. IMPROVE_AGENT - Enhance existing agent performance based on feedback
+6. IMPROVE_AGENT - Enhance existing agent performance based on feedback
    Examples: "The marketing agent needs to be better at X", "Can we improve how the content agent handles Y"
    ONLY use when user explicitly mentions improving existing agent performance
 
-9. CREATE_SUBPROJECT - Create child project for cross-departmental coordination
+7. CREATE_SUBPROJECT - Create child project for cross-departmental coordination
    Examples: "This needs both marketing and engineering teams", "Coordinate this across departments"
    ONLY use when user explicitly requests cross-departmental work
+
+NOTE: CREATE_PROJECT has been removed from natural language classification. 
+Project creation is now handled through explicit UI actions, not language inference.
 
 AVAILABLE AGENTS FOR DELEGATION:
 ${availableAgents.length > 0 ? availableAgents.map((agent) => `- ${agent}`).join('\n') : 'No delegation context available'}
@@ -446,23 +458,33 @@ ${context.shouldContinueWithAgent ? `Active agent: ${context.currentAgent}` : 'N
 
 RESPONSE FORMAT:
 You must respond with a JSON object containing:
-- action: One of the 9 actions above
+- action: One of the 7 actions above
 - agentName: (only for DELEGATE/CONTINUE_DELEGATION actions) MUST be one of the available agents listed above
 - reasoning: Clear explanation of your classification decision
 - confidence: Number between 0.0 and 1.0
-- suggestedAgent: (only for CLARIFY actions) Which agent would handle the delegation option
-- projectOutline: (only for CLARIFY actions) Brief description of what a project approach would involve
 - capabilityGap: (only for BUILD_AGENT) Details about the missing capability
 - subprojectScope: (only for CREATE_SUBPROJECT) Cross-departmental coordination details
 
-IMPORTANT GUIDELINES:
-- DEFAULT to DELEGATE for most requests - let specialists handle tasks
-- Only use CREATE_PROJECT if user explicitly asks for project creation with clear project language
-- Use CLARIFY when complex requests could benefit from project coordination but user didn't explicitly request it
-- Only use BUILD_AGENT/IMPROVE_AGENT/CREATE_SUBPROJECT when user explicitly requests these enterprise actions
-- When in doubt, choose DELEGATE over CREATE_PROJECT
-- Never assume user wants a project unless they explicitly say so
-- Enterprise actions (BUILD_AGENT, IMPROVE_AGENT, CREATE_SUBPROJECT) require explicit user intent`;
+CRITICAL GUIDELINES - READ CAREFULLY:
+- START with DELEGATE as your default assumption
+- 95% of user requests want tasks completed → DELEGATE
+- Action verbs (Write, Create, Analyze, Research, Conduct, Generate, etc.) → ALWAYS DELEGATE
+- Deliverable requests (content, analysis, reports, copy, etc.) → ALWAYS DELEGATE  
+- Task descriptions (help with, need, want) → ALWAYS DELEGATE
+- NEVER choose CONVERSE for task requests - users want results, not conversation
+- When uncertain between DELEGATE and anything else → choose DELEGATE
+- Only use non-DELEGATE actions in very specific, obvious cases
+
+DECISION TREE:
+1. Does user want something created, analyzed, researched, or written? → DELEGATE
+2. Does user ask for help with a task? → DELEGATE  
+3. Does user want a deliverable? → DELEGATE
+4. Is it a question about orchestrator capabilities? → CONVERSE
+5. When in doubt? → DELEGATE
+
+CRITICAL RULE: If you're not 100% certain it's something else, choose DELEGATE
+
+REMOVED: CREATE_PROJECT and CLARIFY actions - projects are now created through explicit UI actions`;
   }
 
   /**
@@ -534,12 +556,10 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
 
       // Validate action type
       const validActions = [
-        'CREATE_PROJECT',
         'DELEGATE',
         'CONVERSE',
         'CONTINUE_DELEGATION',
         'RESUME_PROJECT',
-        'CLARIFY',
         'BUILD_AGENT',
         'IMPROVE_AGENT',
         'CREATE_SUBPROJECT',

@@ -41,25 +41,27 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
    * A2A compliance while enabling rich project orchestration capabilities.
    */
   public async executeTask(method: string, params: any): Promise<any> {
-    this.orchestratorLogger.log(`Orchestrator processing A2A task: ${method}`);
+    this.orchestratorLogger.log(`🔍 DEBUG - Orchestrator processing A2A task: ${method}`);
+    this.orchestratorLogger.log(`🔍 DEBUG - Facade service available: ${!!this.orchestratorFacadeService}`);
 
     try {
       // Adapt A2A request to OrchestratorInput (conversation + tasks pattern)
       const input = await this.adaptA2AToOrchestratorInput(method, params);
 
       // Route through facade service (maintains single entry point principle)
-      this.orchestratorLogger.debug(`🔍 Passing delegation context to facade: ${this.delegationContext ? 'YES' : 'NO'}`);
+      this.orchestratorLogger.log(`🔍 DEBUG - Passing delegation context to facade: ${this.delegationContext ? 'YES' : 'NO'}`);
       if (this.delegationContext) {
-        this.orchestratorLogger.debug(`🔍 Delegation context preview: ${this.delegationContext.substring(0, 200)}...`);
+        this.orchestratorLogger.log(`🔍 DEBUG - Delegation context preview: ${this.delegationContext.substring(0, 200)}...`);
       }
       
+      this.orchestratorLogger.log(`🔍 DEBUG - About to call facade processRequest with method: ${method}`);
       const response = await this.orchestratorFacadeService.processRequest(
         method as OrchestratorA2AMethod,
         input,
         this.delegationContext,
       );
 
-      this.orchestratorLogger.log(`Orchestrator completed task: ${method}`);
+      this.orchestratorLogger.log(`🔍 DEBUG - Orchestrator completed task: ${method}`);
       return response;
     } catch (error) {
       this.orchestratorLogger.error(
@@ -207,8 +209,9 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
     this.orchestratorLogger.log(
-      `${this.getAgentName()} executing task: "${input.prompt.substring(0, 100)}..."`,
+      `🔍 DEBUG - ${this.getAgentName()} executing task: "${input.prompt.substring(0, 100)}..."`,
     );
+    this.orchestratorLogger.log(`🔍 DEBUG - Orchestrator facade service available: ${!!this.orchestratorFacadeService}`);
 
     try {
       // Add orchestrator-specific context to the input
@@ -226,11 +229,18 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
 
       // Route through the orchestrator facade with intelligent handling
       // Use an invalid method to trigger handleIntelligentRouting (default case)
+      this.orchestratorLogger.log(`🔍 DEBUG - About to call facade processRequest with delegation context: ${!!this.delegationContext}`);
+      if (this.delegationContext) {
+        this.orchestratorLogger.log(`🔍 DEBUG - Delegation context length: ${this.delegationContext.length}`);
+      }
+      
       const response = await this.orchestratorFacadeService.processRequest(
         'intelligent_routing' as OrchestratorA2AMethod, // This will trigger handleIntelligentRouting via default case
         orchestratorInput,
         this.delegationContext, // Pass the delegation context so LLM knows available agents
       );
+      
+      this.orchestratorLogger.log(`🔍 DEBUG - Facade processRequest completed, response received`);
 
       // Debug: Log the raw response before enhancement
       this.orchestratorLogger.debug(`Raw facade response: ${JSON.stringify(response, null, 2)}`);
@@ -286,7 +296,7 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
     };
 
     return await this.orchestratorFacadeService.processRequest(
-      'create_project',
+      'explicit_create_project',
       strategicInput,
     );
   }
