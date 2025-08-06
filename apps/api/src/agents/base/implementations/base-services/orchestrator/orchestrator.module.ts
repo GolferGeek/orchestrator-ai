@@ -16,6 +16,13 @@ import { AgentFactoryService } from '../../../../../agent-factory.service';
 import { AgentPoolModule } from '../../../../../agent-pool/agent-pool.module';
 import { FormattersModule } from '../../../../../common/formatters/formatters.module';
 
+// Agent service context modules - needed for AgentFactoryService to create different agent types
+import { AgentServicesContextModule } from '../../../services/agent-services-context.module';
+import { FunctionAgentServicesContextModule } from '../../../services/function-agent-services-context.module';
+import { ApiAgentServicesContextModule } from '../../../services/api-agent-services-context.module';
+import { PythonFunctionAgentServicesContextModule } from '../../../services/python-function-agent-services-context.module';
+import { ExternalAgentServicesContextModule } from '../../../services/external-agent-services-context.module';
+
 // Orchestrator services
 import { OrchestratorAgentBaseService } from './orchestrator-agent-base.service';
 import { IntentRecognitionService } from './intent-recognition.service';
@@ -46,6 +53,13 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     DeliverablesModule, // Required for AgentFactoryService
     AgentPoolModule, // Required for SubprojectManagementService
     FormattersModule, // For agent name formatting
+    
+    // Agent service context modules - required for AgentFactoryService to create different agent types
+    AgentServicesContextModule, // For context agents like 'content'
+    FunctionAgentServicesContextModule, // For function agents
+    ApiAgentServicesContextModule, // For API agents
+    PythonFunctionAgentServicesContextModule, // For Python function agents
+    ExternalAgentServicesContextModule, // For external agents
   ],
   providers: [
     // Core services

@@ -4,6 +4,10 @@ import {
   IOrchestratorFacadeService,
   ISubprojectManagementService,
   ILangGraphStateManagementService,
+  IIntentRecognitionService,
+  IPlanningService,
+  IPlanExecutionService,
+  IDelegationService,
 } from '../../../../../orchestration/orchestration.types';
 
 /**
@@ -19,6 +23,12 @@ export class OrchestratorAgentServicesContext {
     // Core services that every orchestrator agent needs
     public readonly httpService: HttpService,
     @Inject('IOrchestratorFacadeService') public readonly orchestratorFacadeService: IOrchestratorFacadeService,
+    
+    // Core orchestrator services that the facade depends on
+    @Inject('IIntentRecognitionService') public readonly intentRecognitionService: IIntentRecognitionService,
+    @Inject('IPlanningService') public readonly planningService: IPlanningService,
+    @Inject('IPlanExecutionService') public readonly planExecutionService: IPlanExecutionService,
+    @Inject('IDelegationService') public readonly delegationService: IDelegationService,
     
     // Optional orchestrator services
     @Optional() @Inject('ISubprojectManagementService') public readonly subprojectManagementService?: ISubprojectManagementService,
