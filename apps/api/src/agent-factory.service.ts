@@ -14,6 +14,10 @@ import { TaskStatusService } from './tasks/task-status.service';
 import { DeliverablesService } from './deliverables/deliverables.service';
 import { AgentServicesContext } from './agents/base/services/agent-services-context';
 import { FunctionAgentServicesContext } from './agents/base/services/function-agent-services-context';
+import { ApiAgentServicesContext } from './agents/base/services/api-agent-services-context';
+import { PythonFunctionAgentServicesContext } from './agents/base/services/python-function-agent-services-context';
+import { ExternalAgentServicesContext } from './agents/base/services/external-agent-services-context';
+import { OrchestratorAgentServicesContext } from './agents/base/implementations/base-services/orchestrator/orchestrator-agent-services.context';
 import { MarketingManagerOrchestratorService } from './agents/actual/marketing/marketing_manager_orchestrator/agent-service';
 import { CEOOrchestratorService } from './agents/actual/orchestrator/ceo_orchestrator/agent-service';
 import { EngineeringManagerOrchestratorService } from './agents/actual/engineering/engineering_manager_orchestrator/agent-service';
@@ -82,6 +86,10 @@ export class AgentFactoryService {
     private readonly deliverablesService: DeliverablesService,
     @Optional() private readonly agentServicesContext?: AgentServicesContext,
     @Optional() private readonly functionAgentServicesContext?: FunctionAgentServicesContext,
+    @Optional() private readonly apiAgentServicesContext?: ApiAgentServicesContext,
+    @Optional() private readonly pythonFunctionAgentServicesContext?: PythonFunctionAgentServicesContext,
+    @Optional() private readonly externalAgentServicesContext?: ExternalAgentServicesContext,
+    @Optional() private readonly orchestratorAgentServicesContext?: OrchestratorAgentServicesContext,
     @Optional() private readonly marketingManagerOrchestratorService?: MarketingManagerOrchestratorService,
     @Optional() private readonly ceoOrchestratorService?: CEOOrchestratorService,
     @Optional() private readonly engineeringManagerOrchestratorService?: EngineeringManagerOrchestratorService,
@@ -292,97 +300,16 @@ export class AgentFactoryService {
     try {
       switch (config.type) {
         case 'orchestrator': {
-          this.logger.debug(`🎯 Getting orchestrator agent from DI container: ${serviceName}`);
+          this.logger.debug(`🎯 Creating orchestrator agent with service container: ${serviceName}`);
+          this.logger.debug(
+            `🎯 Orchestrator service container available: ${!!this.orchestratorAgentServicesContext}`,
+          );
           
-          // Return the properly injected orchestrator instance from NestJS DI container
-          switch (serviceName) {
-            case 'MarketingManagerOrchestratorService':
-              if (!this.marketingManagerOrchestratorService) {
-                throw new Error(`MarketingManagerOrchestratorService not available in DI container. Is MarketingManagerOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning MarketingManagerOrchestratorService from DI`);
-              return this.marketingManagerOrchestratorService;
-
-            case 'CEOOrchestratorService':
-              if (!this.ceoOrchestratorService) {
-                throw new Error(`CEOOrchestratorService not available in DI container. Is CEOOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning CEOOrchestratorService from DI`);
-              return this.ceoOrchestratorService;
-
-            case 'EngineeringManagerOrchestratorService':
-              if (!this.engineeringManagerOrchestratorService) {
-                throw new Error(`EngineeringManagerOrchestratorService not available in DI container. Is EngineeringManagerOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning EngineeringManagerOrchestratorService from DI`);
-              return this.engineeringManagerOrchestratorService;
-
-            case 'OperationsManagerOrchestratorService':
-              if (!this.operationsManagerOrchestratorService) {
-                throw new Error(`OperationsManagerOrchestratorService not available in DI container. Is OperationsManagerOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning OperationsManagerOrchestratorService from DI`);
-              return this.operationsManagerOrchestratorService;
-
-            case 'FinanceManagerOrchestratorService':
-              if (!this.financeManagerOrchestratorService) {
-                throw new Error(`FinanceManagerOrchestratorService not available in DI container. Is FinanceManagerOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning FinanceManagerOrchestratorService from DI`);
-              return this.financeManagerOrchestratorService;
-
-            case 'HRManagerOrchestratorService':
-              if (!this.hrManagerOrchestratorService) {
-                throw new Error(`HRManagerOrchestratorService not available in DI container. Is HRManagerOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning HRManagerOrchestratorService from DI`);
-              return this.hrManagerOrchestratorService;
-
-            case 'SalesManagerOrchestratorService':
-              if (!this.salesManagerOrchestratorService) {
-                throw new Error(`SalesManagerOrchestratorService not available in DI container. Is SalesManagerOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning SalesManagerOrchestratorService from DI`);
-              return this.salesManagerOrchestratorService;
-
-            case 'ProductManagerOrchestratorService':
-              if (!this.productManagerOrchestratorService) {
-                throw new Error(`ProductManagerOrchestratorService not available in DI container. Is ProductManagerOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning ProductManagerOrchestratorService from DI`);
-              return this.productManagerOrchestratorService;
-
-            case 'ResearchManagerOrchestratorService':
-              if (!this.researchManagerOrchestratorService) {
-                throw new Error(`ResearchManagerOrchestratorService not available in DI container. Is ResearchManagerOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning ResearchManagerOrchestratorService from DI`);
-              return this.researchManagerOrchestratorService;
-
-            case 'SpecialistsManagerOrchestratorService':
-              if (!this.specialistsManagerOrchestratorService) {
-                throw new Error(`SpecialistsManagerOrchestratorService not available in DI container. Is SpecialistsManagerOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning SpecialistsManagerOrchestratorService from DI`);
-              return this.specialistsManagerOrchestratorService;
-
-            case 'LegalManagerOrchestratorService':
-              if (!this.legalManagerOrchestratorService) {
-                throw new Error(`LegalManagerOrchestratorService not available in DI container. Is LegalManagerOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning LegalManagerOrchestratorService from DI`);
-              return this.legalManagerOrchestratorService;
-
-            case 'ProductivityManagerOrchestratorService':
-              if (!this.productivityManagerOrchestratorService) {
-                throw new Error(`ProductivityManagerOrchestratorService not available in DI container. Is ProductivityManagerOrchestratorModule imported in AppModule?`);
-              }
-              this.logger.debug(`✅ Returning ProductivityManagerOrchestratorService from DI`);
-              return this.productivityManagerOrchestratorService;
-
-            default:
-              throw new Error(`Unknown orchestrator service: ${serviceName}. Check if the corresponding module is imported in AppModule.`);
+          if (!this.orchestratorAgentServicesContext) {
+            throw new Error('OrchestratorAgentServicesContext not available - required for orchestrator agents. Please ensure OrchestratorAgentServicesContextModule is imported.');
           }
+          
+          return new ServiceClass(this.orchestratorAgentServicesContext);
         }
 
         case 'function': {
@@ -399,14 +326,16 @@ export class AgentFactoryService {
         }
 
         case 'python-function': {
-          this.logger.debug(`🐍 Creating Python function agent`);
-          return new ServiceClass(
-            this.httpService,
-            this.llmService,
-            this.taskProgressGateway,
-            this.tasksService,
-            this.taskStatusService,
+          this.logger.debug(`🐍 Creating Python function agent with service container`);
+          this.logger.debug(
+            `🐍 Python function service container available: ${!!this.pythonFunctionAgentServicesContext}`,
           );
+          
+          if (!this.pythonFunctionAgentServicesContext) {
+            throw new Error('PythonFunctionAgentServicesContext not available - required for Python function agents. Please ensure PythonFunctionAgentServicesContextModule is imported.');
+          }
+          
+          return new ServiceClass(this.pythonFunctionAgentServicesContext);
         }
 
         case 'context': {
@@ -423,29 +352,25 @@ export class AgentFactoryService {
         }
 
         case 'api': {
-          this.logger.debug(`🌐 Creating API agent`);
+          this.logger.debug(`🌐 Creating API agent with service container`);
           this.logger.debug(
-            `🌐 Injecting services: taskStatusService=${!!this.taskStatusService}, tasksService=${!!this.tasksService}`,
+            `🌐 API service container available: ${!!this.apiAgentServicesContext}`,
           );
-          return new ServiceClass(
-            this.httpService,
-            undefined, // agentRegistrationService
-            undefined, // jsonRpcProtocolService
-            undefined, // loggingService
-            undefined, // authService
-            this.configurationService,
-            this.taskStatusService,
-            this.tasksService,
-          );
+          
+          if (!this.apiAgentServicesContext) {
+            throw new Error('ApiAgentServicesContext not available - required for API agents. Please ensure ApiAgentServicesContextModule is imported.');
+          }
+          
+          return new ServiceClass(this.apiAgentServicesContext);
         }
 
         case 'external': {
           this.logger.debug(`🔗 Creating external A2A agent`);
-          return new ServiceClass(
-            this.httpService,
-            this.configurationService,
-            this.agentRegistrationService,
-          );
+          if (!this.externalAgentServicesContext) {
+            throw new Error('ExternalAgentServicesContext not available');
+          }
+          
+          return new ServiceClass(this.externalAgentServicesContext);
         }
 
         default: {

@@ -1,20 +1,10 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
+import { Injectable, Logger } from '@nestjs/common';
 import { A2AAgentBaseService } from '../../a2a-base/a2a-agent-base.service';
-import { LLMService } from '@/llms/llm.service';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
-import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
-import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
-import { AuthService } from '@agents/base/sub-services/auth/auth.service';
-import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { AgentFunctionParams } from '../../a2a-base/interfaces';
-import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
-import { TasksService } from '@/tasks/tasks.service';
-import { TaskStatusService } from '@/tasks/task-status.service';
-// MCPClientService removed - using LangChain.js services instead
+import { PythonFunctionAgentServicesContext } from '../../../../services/python-function-agent-services-context';
 
 export interface AgentFunctionResponse {
   response: string;
@@ -36,30 +26,18 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
   private currentUserId: string | null = null; // Store current user ID for task completion
 
   constructor(
-    protected readonly httpService: HttpService,
-    protected readonly llmService: LLMService,
-    @Inject(forwardRef(() => TaskProgressGateway))
-    protected readonly taskProgressGateway: TaskProgressGateway | undefined,
-    @Inject(forwardRef(() => TasksService))
-    protected readonly tasksService: TasksService | undefined,
-    @Inject(forwardRef(() => TaskStatusService))
-    protected readonly taskStatusService: TaskStatusService | undefined,
-    protected readonly mcpClientService: any | undefined, // MCPClientService removed
-    agentRegistrationService?: AgentRegistrationService,
-    jsonRpcProtocolService?: JsonRpcProtocolService,
-    loggingService?: LoggingService,
-    authService?: AuthService,
-    configurationService?: ConfigurationService,
+    // Pure service container pattern - only accepts PythonFunctionAgentServicesContext
+    private readonly services: PythonFunctionAgentServicesContext,
   ) {
     super(
-      httpService,
-      undefined, // TaskStatusService will be injected automatically
-      undefined, // No deliverablesService for Python function agents
-      agentRegistrationService,
-      jsonRpcProtocolService,
-      loggingService,
-      authService,
-      configurationService,
+      services.httpService,
+      services.taskStatusService,
+      services.deliverablesService,
+      services.agentRegistrationService,
+      services.jsonRpcProtocolService,
+      services.loggingService,
+      services.authService,
+      services.configurationService,
     );
   }
 
@@ -282,8 +260,8 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
               }
 
               // Broadcast workflow step progress via WebSocket
-              if (this.taskProgressGateway) {
-                this.taskProgressGateway.broadcastWorkflowStepProgress(
+              if (this.services.taskProgressGateway) {
+                this.services.taskProgressGateway.broadcastWorkflowStepProgress(
                   progressEvent.taskId,
                   progressEvent.stepName,
                   progressEvent.stepIndex,
@@ -314,8 +292,8 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
               const completionEvent = JSON.parse(completionJson);
 
               // Update task status in database and broadcast completion via WebSocket
-              if (this.taskProgressGateway) {
-                this.taskProgressGateway.broadcastTaskCompletion(
+              if (this.services.taskProgressGateway) {
+                this.services.taskProgressGateway.broadcastTaskCompletion(
                   completionEvent.taskId,
                   completionEvent.status,
                   completionEvent.message,
@@ -379,7 +357,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
             `🔍 Checking if we can save result to database:`,
           );
           this.pythonLogger.debug(
-            `  - tasksService available: ${!!this.tasksService}`,
+            `  - tasksService available: ${!!this.services.tasksService}`,
           );
           this.pythonLogger.debug(
             `  - currentUserId available: ${!!this.currentUserId}`,
@@ -394,7 +372,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           this.pythonLogger.debug(`🔍 About to attempt database save...`);
 
           const taskId = params.metadata?.taskId;
-          if (this.tasksService && this.currentUserId && taskId) {
+          if (this.services.tasksService && this.currentUserId && taskId) {
             try {
               const updateData = {
                 status: 'completed' as const,
@@ -409,7 +387,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                 updateData: updateData,
               });
 
-              const updateResult = await this.tasksService.updateTask(
+              const updateResult = await this.services.tasksService.updateTask(
                 taskId,
                 this.currentUserId,
                 updateData,
@@ -433,10 +411,10 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
             this.pythonLogger.warn(
               `❌ Cannot save result - missing requirements:`,
               {
-                tasksService: !!this.tasksService,
+                tasksService: !!this.services.tasksService,
                 currentUserId: this.currentUserId,
                 taskId: taskId,
-                hasTasksService: !!this.tasksService,
+                hasTasksService: !!this.services.tasksService,
                 hasCurrentUserId: !!this.currentUserId,
                 hasTaskId: !!taskId,
               },
@@ -450,9 +428,9 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
 
           // Save raw result to database for async tasks
           const taskId = params.metadata?.taskId;
-          if (this.tasksService && this.currentUserId && taskId) {
+          if (this.services.tasksService && this.currentUserId && taskId) {
             try {
-              await this.tasksService.updateTask(taskId, this.currentUserId, {
+              await this.services.tasksService.updateTask(taskId, this.currentUserId, {
                 status: 'completed' as const,
                 progress: 100,
                 response: stdout.trim(),

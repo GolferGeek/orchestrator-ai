@@ -57,6 +57,11 @@ import { ProjectsModule } from './projects/projects.module';
 import { DeliverablesModule } from './deliverables/deliverables.module';
 import { AgentServicesContextModule } from './agents/base/services/agent-services-context.module';
 import { FunctionAgentServicesContextModule } from './agents/base/services/function-agent-services-context.module';
+import { ApiAgentServicesContextModule } from './agents/base/services/api-agent-services-context.module';
+import { PythonFunctionAgentServicesContextModule } from './agents/base/services/python-function-agent-services-context.module';
+import { ExternalAgentServicesContextModule } from './agents/base/services/external-agent-services-context.module';
+import { OrchestratorAgentServicesContextModule } from './agents/base/implementations/base-services/orchestrator/orchestrator-agent-services-context.module';
+import { UniversalAgentServicesContextModule } from './agents/base/services/universal-agent-services-context.module';
 import supabaseConfig from './supabase/supabase.config';
 
 @Module({
@@ -123,6 +128,11 @@ import supabaseConfig from './supabase/supabase.config';
     DeliverablesModule, // Deliverables persistence and management
     AgentServicesContextModule, // Service container for simplified context agent DI
     FunctionAgentServicesContextModule, // Service container for simplified function agent DI
+    ApiAgentServicesContextModule, // Service container for simplified API agent DI
+    PythonFunctionAgentServicesContextModule, // Service container for simplified Python function agent DI
+    ExternalAgentServicesContextModule, // Service container for simplified external agent DI
+    OrchestratorAgentServicesContextModule, // Service container for simplified orchestrator agent DI
+    UniversalAgentServicesContextModule, // Universal service container for all agent types
   ],
   controllers: [
     AppController,

@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { ExternalA2AAgentBaseService } from '@agents/base/implementations/base-services';
-import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
-import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
-import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
-import { EvaluationWrapperService } from '@agents/base/sub-services/evaluation-wrapper/evaluation-wrapper.service';
+import { ExternalAgentServicesContext } from '@agents/base/services/external-agent-services-context';
 
 /**
  * Hiverarchy AI Orchestrator External A2A Agent Service
@@ -26,23 +23,11 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
   private tokenExpiry: number | null = null;
   private readonly customHttpService: HttpService;
 
-  constructor(
-    httpService: HttpService,
-    configurationService: ConfigurationService,
-    agentRegistrationService: AgentRegistrationService,
-    loggingService?: LoggingService,
-    evaluationService?: EvaluationWrapperService,
-  ) {
-    super(
-      httpService,
-      configurationService,
-      agentRegistrationService,
-      loggingService,
-      evaluationService,
-    );
+  constructor(services: ExternalAgentServicesContext) {
+    super(services);
 
     // Keep our own reference for custom authentication
-    this.customHttpService = httpService;
+    this.customHttpService = services.httpService;
 
     this.logger.log(
       '🔗 Hiverarchy AI Orchestrator Agent Service initialized with dynamic auth',

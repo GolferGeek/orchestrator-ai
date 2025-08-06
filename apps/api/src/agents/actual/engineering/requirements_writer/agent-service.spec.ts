@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RequirementsWriterService } from './agent-service';
-import { LLMService } from '@/llms/llm.service';
-import { HttpService } from '@nestjs/axios';
+import { PythonFunctionAgentServicesContextModule } from '@agents/base/services/python-function-agent-services-context.module';
 import * as fs from 'fs';
 
 // Mock fs to control file existence
@@ -12,33 +11,10 @@ describe('RequirementsWriterService', () => {
   let service: RequirementsWriterService;
 
   beforeEach(async () => {
-    const mockLLMService = {
-      generateResponse: jest.fn().mockResolvedValue('Mock LLM response'),
-      generateResponseWithHistory: jest
-        .fn()
-        .mockResolvedValue('Mock LLM response with history'),
-      getLangGraphLLM: jest.fn(),
-    };
-
-    const mockHttpService = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-    };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        RequirementsWriterService,
-        {
-          provide: LLMService,
-          useValue: mockLLMService,
-        },
-        {
-          provide: HttpService,
-          useValue: mockHttpService,
-        },
-      ],
+      imports: [PythonFunctionAgentServicesContextModule],
+      providers: [RequirementsWriterService],
     }).compile();
 
     service = module.get<RequirementsWriterService>(RequirementsWriterService);
@@ -179,9 +155,13 @@ describe('RequirementsWriterService', () => {
     });
 
     it('should have access to required dependencies', () => {
-      // Verify that all required dependencies are available
-      expect(service['llmService']).toBeDefined();
-      // httpService and contextService are optional, so they might be undefined
+      // Verify that all required dependencies are available through the service container
+      expect(service['services'].llmService).toBeDefined();
+      expect(service['services'].httpService).toBeDefined();
+      expect(service['services'].taskProgressGateway).toBeDefined();
+      expect(service['services'].tasksService).toBeDefined();
+      expect(service['services'].taskStatusService).toBeDefined();
+      expect(service['services'].deliverablesService).toBeDefined();
     });
   });
 });
