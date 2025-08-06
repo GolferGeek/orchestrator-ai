@@ -45,24 +45,24 @@ export class TasksService {
     agentName: string,
     agentType: AgentType,
     dto: CreateTaskDto,
+    taskType: 'ephemeral' | 'long_running' | 'swarm' = 'long_running',
   ): Promise<Task> {
     try {
-      // Handle conversation - create only if needed
+      // Handle conversation - always ensure it exists
       let conversationId: string | null = dto.conversationId || null;
 
-      // Only create conversation if this is the first task (no conversationId provided)
-      if (!conversationId) {
-        const conversation =
-          await this.agentConversationsService.getOrCreateConversation(
-            userId,
-            agentName,
-            agentType,
-          );
-        conversationId = conversation.id;
-        this.logger.debug(
-          `Created new conversation ${conversationId} for first task`,
+      // Always validate/create conversation to avoid foreign key violations
+      const conversation =
+        await this.agentConversationsService.getOrCreateConversation(
+          userId,
+          agentName,
+          agentType,
+          conversationId, // Pass existing ID for validation/reuse
         );
-      }
+      conversationId = conversation.id;
+      this.logger.debug(
+        `Using conversation ${conversationId} for task`,
+      );
 
       // Create task in database
       const taskData: any = {
@@ -111,7 +111,7 @@ export class TasksService {
       await this.taskStatusService.createTask(
         data.id,
         userId,
-        'long_running', // Default to long_running for async tasks
+        taskType, // Use provided task type
         {
           status: 'pending',
           progress: 0,

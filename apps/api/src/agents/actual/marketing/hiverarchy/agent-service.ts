@@ -220,7 +220,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.accessToken}`,
           },
-          timeout: 30000,
+          timeout: 60000,
         }),
       );
 

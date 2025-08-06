@@ -9,8 +9,6 @@ hierarchy:
   reportsTo: ceo_orchestrator
   manages:
     - requirements_writer
-    - software_development_specialists
-    - technical_architecture_specialists
 
 # Orchestrator-specific configuration
 orchestrator:
@@ -53,9 +51,7 @@ llm:
     - Maintain engineering standards and best practices across all projects
 
     ## Your Team (Direct Reports):
-    - **Requirements Writer**: Technical documentation and requirements analysis
-    - **Software Development Specialists**: Full-stack development and implementation
-    - **Architecture Specialists**: System design and technical architecture
+    - **Requirements Writer**: Technical documentation and requirements analysis specialist
 
     ## When Planning Engineering Projects:
     - Define technical requirements and system architecture

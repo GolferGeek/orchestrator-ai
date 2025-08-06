@@ -397,6 +397,20 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                 `✅ Task ${taskId} result saved to database successfully. Update result:`,
                 updateResult,
               );
+
+              // Broadcast final response to WebSocket clients
+              if (this.services.taskProgressGateway) {
+                this.services.taskProgressGateway.broadcastTaskCompletionWithResponse(
+                  taskId,
+                  'completed',
+                  'Task completed successfully with response',
+                  result.response || result, // Include the actual response content
+                  result.metadata || {}
+                );
+                this.pythonLogger.debug(
+                  `✅ Broadcast final response to WebSocket clients for task ${taskId}`,
+                );
+              }
             } catch (error) {
               this.pythonLogger.error(
                 `❌ Failed to save task ${taskId} result:`,
@@ -439,6 +453,20 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
               this.pythonLogger.debug(
                 `✅ Task ${taskId} raw result saved to database`,
               );
+
+              // Broadcast final response to WebSocket clients for raw result
+              if (this.services.taskProgressGateway) {
+                this.services.taskProgressGateway.broadcastTaskCompletionWithResponse(
+                  taskId,
+                  'completed',
+                  'Task completed successfully with raw response',
+                  rawResult.response,
+                  {}
+                );
+                this.pythonLogger.debug(
+                  `✅ Broadcast raw response to WebSocket clients for task ${taskId}`,
+                );
+              }
             } catch (error) {
               this.pythonLogger.error(
                 `❌ Failed to save task ${taskId} raw result:`,
@@ -467,7 +495,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           pythonProcess.kill();
           reject(new Error('Python script execution timed out'));
         }
-      }, 30000); // 30 second timeout
+      }, 60000); // 60 second timeout
     });
   }
 

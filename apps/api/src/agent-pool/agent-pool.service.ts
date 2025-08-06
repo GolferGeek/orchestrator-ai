@@ -10,8 +10,8 @@ import {
 export class AgentPoolService implements OnModuleDestroy {
   private readonly logger = new Logger(AgentPoolService.name);
   private readonly agents = new Map<string, AgentRegistration>();
-  private readonly heartbeatInterval = 30000; // 30 seconds
-  private readonly heartbeatTimeout = 90000; // 90 seconds (3 missed heartbeats = offline)
+  private readonly heartbeatInterval = 60000; // 60 seconds
+  private readonly heartbeatTimeout = 180000; // 180 seconds (3 missed heartbeats = offline)
 
   constructor() {
     this.logger.log('Agent Pool Service initialized');

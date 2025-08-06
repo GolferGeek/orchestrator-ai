@@ -271,15 +271,20 @@ export class IntentRecognitionService implements IIntentRecognitionService {
         `🔍 Delegation context received: ${delegationContext.substring(0, 200)}...`,
       );
       // Parse delegation context to extract agent names
-      const agentMatches = delegationContext.match(/\*\*([^*]+)\*\*:/g);
-      this.logger.log(`🔍 Raw agent matches: ${JSON.stringify(agentMatches)}`);
-      if (agentMatches) {
-        availableAgents = agentMatches
-          .map((match) => match.replace(/\*\*/g, '').replace(':', ''))
-          .filter(
-            (name) =>
-              !name.includes(' ') && name.toLowerCase() !== name.toUpperCase(),
-          );
+      // Look for lines starting with agent_name: (new simple format)
+      const lines = delegationContext.split('\n');
+      const agentLines = lines.filter(line => 
+        line.match(/^[a-z_]+:\s+/) && !line.includes('##') && !line.includes('Authority') && !line.includes('Role')
+      );
+      this.logger.log(`🔍 Agent lines found: ${JSON.stringify(agentLines)}`);
+      
+      if (agentLines.length > 0) {
+        availableAgents = agentLines
+          .map(line => {
+            const match = line.match(/^([a-z_]+):/);
+            return match ? match[1] : null;
+          })
+          .filter((name): name is string => name !== null);
       }
       this.logger.log(`🔍 Extracted agents: ${availableAgents.join(', ')}`);
     } else {

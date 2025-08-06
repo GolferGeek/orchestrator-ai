@@ -49,7 +49,7 @@ describe('RequirementsWriterService', () => {
     });
 
     it('should return correct agent type', () => {
-      expect(service['getAgentType']()).toBe('python');
+      expect(service['getAgentType']()).toBe('engineering');
     });
   });
 

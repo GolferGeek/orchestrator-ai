@@ -594,8 +594,30 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
       }
     } catch (error) {
       this.logger.error('Intelligent routing failed:', error);
+      this.logger.error('Error type:', typeof error);
+      this.logger.error('Error message:', error instanceof Error ? error.message : String(error));
+      this.logger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
 
-      // Fallback to conversation
+      // If it's a delegation error, provide a more specific response instead of generic conversation fallback
+      if (error instanceof Error && (error.message.includes('delegation') || error.message.includes('DelegationError') || error.message.includes('agent'))) {
+        return {
+          success: false,
+          message: `I encountered an error while trying to delegate your request: ${error.message}. Please try again or contact support if the issue persists.`,
+          metadata: {
+            agentType: 'orchestrator' as const,
+            agentName: 'Orchestrator',
+            processedAt: new Date().toISOString(),
+            error: true,
+            errorType: 'delegation_failed',
+            originalError: error.message,
+          },
+          conversationId: input.conversationId,
+          userId: input.userId,
+          sessionId: input.sessionId,
+        };
+      }
+
+      // Fallback to conversation for other types of errors
       return await this.handleConverse(input);
     }
   }

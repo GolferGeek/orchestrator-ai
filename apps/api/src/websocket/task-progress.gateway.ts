@@ -330,6 +330,54 @@ export class TaskProgressGateway
   }
 
   /**
+   * Broadcast task completion with full response content
+   */
+  broadcastTaskCompletionWithResponse(
+    taskId: string, 
+    status: string, 
+    message?: string,
+    response?: string,
+    metadata?: any
+  ) {
+    const event = {
+      taskId,
+      status,
+      message,
+      response,
+      metadata,
+      timestamp: new Date().toISOString(),
+    };
+
+    this.logger.log(
+      `🎯 broadcastTaskCompletionWithResponse called for task ${taskId}: ${status} - ${message}`,
+    );
+
+    // Check how many clients are in the room (with null safety)
+    let clientCount = 0;
+    try {
+      const roomClients = this.server?.sockets?.adapter?.rooms?.get(
+        `task:${taskId}`,
+      );
+      clientCount = roomClients ? roomClients.size : 0;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to check room clients: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    this.logger.debug(
+      `📢 Broadcasting task_completed_with_response to ${clientCount} clients in room: task:${taskId}`,
+    );
+
+    // Broadcast to all clients subscribed to this task with full response
+    this.server.to(`task:${taskId}`).emit('task_completed_with_response', event);
+
+    this.logger.debug(
+      `📤 Emitted task_completed_with_response event for task ${taskId}, response length: ${response ? response.length : 0}`,
+    );
+  }
+
+  /**
    * Handle task creation events
    */
   @OnEvent('task.created')

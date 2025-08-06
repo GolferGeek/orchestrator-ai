@@ -92,7 +92,7 @@ output_modes:
 api_configuration:
   endpoint: "https://golfergeek.app.n8n.cloud/webhook/8218497e-a07f-4516-a2cd-00044c8f9211"
   method: "POST"
-  timeout: 30000
+  timeout: 60000
   headers:
     Content-Type: "application/json"
   authentication: null
