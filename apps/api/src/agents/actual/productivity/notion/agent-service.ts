@@ -5,6 +5,7 @@ import { LLMService } from '@/llms/llm.service';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
+import { DeliverablesService } from '@/deliverables/deliverables.service';
 import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
@@ -33,6 +34,7 @@ export class NotionAgentService extends FunctionAgentBaseService {
     tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
+    deliverablesService?: DeliverablesService,
     @Optional()
     private readonly langchainNotion?: LangChainNotionService,
     agentRegistrationService?: AgentRegistrationService,
@@ -47,7 +49,8 @@ export class NotionAgentService extends FunctionAgentBaseService {
       taskProgressGateway,
       tasksService,
       taskStatusService,
-      undefined, // No MCP client service
+      deliverablesService,
+      undefined, // mcpClientService (removed)
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,

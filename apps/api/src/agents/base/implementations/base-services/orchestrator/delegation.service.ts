@@ -355,6 +355,7 @@ export class DelegationService implements IDelegationService {
         response.projectId = delegationResult.projectId;
       }
 
+
       this.logger.log(`🔍 DEBUG - Final orchestrator response: ${JSON.stringify(response, null, 2)}`);
       return response;
     } catch (error) {

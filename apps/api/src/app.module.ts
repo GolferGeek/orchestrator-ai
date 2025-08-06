@@ -54,6 +54,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { LangChainModule } from './langchain/langchain.module';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
 import { ProjectsModule } from './projects/projects.module';
+import { DeliverablesModule } from './deliverables/deliverables.module';
 import supabaseConfig from './supabase/supabase.config';
 
 @Module({
@@ -117,6 +118,7 @@ import supabaseConfig from './supabase/supabase.config';
     LangChainModule, // LangChain.js integration for agents
     HierarchyModule, // Agent hierarchy and discovery endpoints
     ProjectsModule, // Project lifecycle management and recovery
+    DeliverablesModule, // Deliverables persistence and management
   ],
   controllers: [
     AppController,

@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { LLMService } from '@/llms/llm.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
 import { TasksService } from '@/tasks/tasks.service';
+import { DeliverablesService } from '@/deliverables/deliverables.service';
 import { ContextAgentBaseService } from '@agents/base/implementations/base-services/context/context-agent-base.service';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class ContentAgentService extends ContextAgentBaseService {
     configurationService?: any,
     taskStatusService?: TaskStatusService,
     tasksService?: TasksService,
+    deliverablesService?: DeliverablesService,
   ) {
     super(
       httpService,
@@ -28,6 +30,7 @@ export class ContentAgentService extends ContextAgentBaseService {
       configurationService,
       taskStatusService,
       tasksService,
+      deliverablesService,
     );
   }
 

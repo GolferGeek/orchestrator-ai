@@ -35,6 +35,18 @@
                 </ion-item>
               </ion-menu-toggle>
               <ion-menu-toggle :auto-hide="false">
+                <ion-item 
+                  router-direction="root" 
+                  router-link="/deliverables" 
+                  lines="none" 
+                  :detail="false"
+                  :class="{ 'selected': $route.path.startsWith('/deliverables') }"
+                >
+                  <ion-icon aria-hidden="true" :icon="documentTextOutline" slot="start"></ion-icon>
+                  <ion-label>Deliverables</ion-label>
+                </ion-item>
+              </ion-menu-toggle>
+              <ion-menu-toggle :auto-hide="false">
                 <ion-item router-direction="root" router-link="/evaluations" lines="none" :detail="false">
                   <ion-icon aria-hidden="true" :icon="starOutline" slot="start"></ion-icon>
                   <ion-label>Evaluations</ion-label>
@@ -104,7 +116,7 @@ import { computed, ref } from 'vue';
 import { 
   IonApp, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup, IonSearchbar, IonButton
 } from '@ionic/vue';
-import { logInOutline, logOutOutline, starOutline, businessOutline, folderOutline, chatbubblesOutline, refreshOutline } from 'ionicons/icons';
+import { logInOutline, logOutOutline, starOutline, businessOutline, folderOutline, chatbubblesOutline, refreshOutline, documentTextOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useRouter, useRoute } from 'vue-router';

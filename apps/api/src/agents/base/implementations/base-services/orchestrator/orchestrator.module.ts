@@ -10,6 +10,7 @@ import { WebSocketModule } from '../../../../../websocket/websocket.module';
 import { AuthModule } from '../../../../../auth/auth.module';
 import { AgentConversationsModule } from '../../../../../agent-conversations/agent-conversations.module';
 import { CIDAFMModule } from '../../../../../cidafm/cidafm.module';
+import { DeliverablesModule } from '../../../../../deliverables/deliverables.module';
 import { AgentDiscoveryService } from '../../../../../agent-discovery.service';
 import { AgentFactoryService } from '../../../../../agent-factory.service';
 import { AgentPoolModule } from '../../../../../agent-pool/agent-pool.module';
@@ -42,6 +43,7 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     AuthModule, // Required for AgentFactoryService
     AgentConversationsModule, // Required for AgentFactoryService
     CIDAFMModule, // Required for AgentFactoryService
+    DeliverablesModule, // Required for AgentFactoryService
     AgentPoolModule, // Required for SubprojectManagementService
     FormattersModule, // For agent name formatting
   ],

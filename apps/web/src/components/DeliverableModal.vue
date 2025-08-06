@@ -2,9 +2,26 @@
   <ion-modal :is-open="isOpen" @will-dismiss="$emit('close')">
     <ion-header>
       <ion-toolbar>
-        <ion-title>{{ deliverable?.title || 'Deliverable' }}</ion-title>
+        <ion-title>{{ displayTitle }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="$emit('close')">
+          <ion-button 
+            v-if="isEditing"
+            @click="saveChanges"
+            :disabled="!hasChanges"
+            fill="solid"
+            color="primary"
+          >
+            <ion-icon :icon="saveOutline" slot="start" />
+            Save
+          </ion-button>
+          <ion-button 
+            v-if="!isEditing && canEdit"
+            @click="startEditing" 
+            fill="clear"
+          >
+            <ion-icon :icon="createOutline" />
+          </ion-button>
+          <ion-button @click="handleClose">
             <ion-icon :icon="closeOutline" />
           </ion-button>
         </ion-buttons>
@@ -12,26 +29,70 @@
     </ion-header>
 
     <ion-content class="ion-padding">
-      <div v-if="deliverable" class="deliverable-content">
+      <!-- Edit Mode -->
+      <div v-if="isEditing" class="deliverable-edit">
+        <ion-item>
+          <ion-label position="stacked">Title</ion-label>
+          <ion-input 
+            v-model="editForm.title" 
+            placeholder="Enter deliverable title"
+          ></ion-input>
+        </ion-item>
+        
+        <ion-item v-if="canEdit">
+          <ion-label position="stacked">Description</ion-label>
+          <ion-textarea 
+            v-model="editForm.description" 
+            placeholder="Optional description"
+            :rows="2"
+          ></ion-textarea>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Content</ion-label>
+          <ion-textarea 
+            v-model="editForm.content" 
+            placeholder="Enter content"
+            :rows="15"
+            class="content-textarea"
+          ></ion-textarea>
+        </ion-item>
+
+        <div v-if="canEdit" class="edit-actions">
+          <ion-button @click="cancelEditing" fill="outline" color="medium">
+            Cancel
+          </ion-button>
+          <ion-button @click="saveChanges" :disabled="!hasChanges" fill="solid">
+            Save Changes
+          </ion-button>
+        </div>
+      </div>
+
+      <!-- View Mode -->
+      <div v-else-if="displayDeliverable" class="deliverable-content">
         <div class="deliverable-header">
           <div class="deliverable-meta">
-            <ion-chip :color="getTypeColor(deliverable.deliverableType)">
-              <ion-icon :icon="getTypeIcon(deliverable.deliverableType)" />
-              <ion-label>{{ deliverable.deliverableType.toUpperCase() }}</ion-label>
+            <ion-chip :color="getTypeColor(getDeliverableType(displayDeliverable))">
+              <ion-icon :icon="getTypeIcon(getDeliverableType(displayDeliverable))" />
+              <ion-label>{{ getDeliverableType(displayDeliverable).toUpperCase() }}</ion-label>
             </ion-chip>
             <ion-chip color="medium">
               <ion-icon :icon="documentOutline" />
-              <ion-label>{{ deliverable.format.toUpperCase() }}</ion-label>
+              <ion-label>{{ (displayDeliverable.format).toUpperCase() }}</ion-label>
             </ion-chip>
             <ion-chip color="light">
               <ion-icon :icon="timeOutline" />
-              <ion-label>{{ formatDate(deliverable.timestamp) }}</ion-label>
+              <ion-label>{{ formatDate(getDeliverableDate(displayDeliverable)) }}</ion-label>
+            </ion-chip>
+            <ion-chip v-if="getVersionNumber(displayDeliverable) > 1" color="secondary">
+              <ion-icon :icon="gitBranchOutline" />
+              <ion-label>v{{ getVersionNumber(displayDeliverable) }}</ion-label>
             </ion-chip>
           </div>
           
           <div class="deliverable-actions">
             <ion-button 
-              v-if="deliverable.downloadable" 
+              v-if="isDownloadable(displayDeliverable)" 
               fill="outline" 
               @click="downloadDeliverable"
             >
@@ -42,35 +103,60 @@
               <ion-icon :icon="copyOutline" slot="start" />
               Copy
             </ion-button>
+            <ion-button 
+              v-if="canEdit && hasId(displayDeliverable)"
+              fill="outline" 
+              @click="enhanceDeliverable"
+              color="success"
+            >
+              <ion-icon :icon="sparklesOutline" slot="start" />
+              Enhance
+            </ion-button>
           </div>
         </div>
 
         <div class="deliverable-body">
           <div 
-            v-if="deliverable.format === 'markdown'" 
+            v-if="displayDeliverable.format === 'markdown'" 
             class="markdown-content"
             v-html="renderedMarkdown"
           ></div>
           <div 
-            v-else-if="deliverable.format === 'html'" 
+            v-else-if="displayDeliverable.format === 'html'" 
             class="html-content"
-            v-html="deliverable.content"
+            v-html="displayDeliverable.content"
           ></div>
           <pre 
-            v-else-if="deliverable.format === 'json'" 
+            v-else-if="displayDeliverable.format === 'json'" 
             class="json-content"
           >{{ formattedJson }}</pre>
           <div 
             v-else 
             class="text-content"
-          >{{ deliverable.content }}</div>
+          >{{ displayDeliverable.content }}</div>
         </div>
 
-        <div v-if="deliverable.metadata && Object.keys(deliverable.metadata).length > 0" class="deliverable-metadata">
+        <!-- Tags -->
+        <div v-if="getTags(displayDeliverable).length > 0" class="deliverable-tags">
+          <h4>Tags</h4>
+          <div class="tags-container">
+            <ion-chip 
+              v-for="tag in getTags(displayDeliverable)" 
+              :key="tag"
+              color="primary"
+              outline
+            >
+              <ion-label>{{ tag }}</ion-label>
+            </ion-chip>
+          </div>
+        </div>
+
+        <!-- Metadata -->
+        <div v-if="displayDeliverable.metadata && Object.keys(displayDeliverable.metadata).length > 0" class="deliverable-metadata">
           <h4>Metadata</h4>
           <div class="metadata-grid">
             <div 
-              v-for="(value, key) in deliverable.metadata" 
+              v-for="(value, key) in displayDeliverable.metadata" 
               :key="key"
               class="metadata-item"
             >
@@ -85,7 +171,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineProps, defineEmits } from 'vue';
+import { computed, defineProps, defineEmits, ref, watch } from 'vue';
 import { marked } from 'marked';
 import { 
   IonModal, 
@@ -98,6 +184,9 @@ import {
   IonContent,
   IonChip,
   IonLabel,
+  IonItem,
+  IonInput,
+  IonTextarea,
   toastController
 } from '@ionic/vue';
 import { 
@@ -110,10 +199,18 @@ import {
   analyticsOutline,
   clipboardOutline,
   constructOutline,
-  listOutline
+  listOutline,
+  createOutline,
+  saveOutline,
+  sparklesOutline,
+  gitBranchOutline
 } from 'ionicons/icons';
+import { useDeliverables } from '@/composables/useDeliverables';
+import type { Deliverable } from '@/types/deliverables';
 
+// Legacy interface for backward compatibility
 interface WorkflowDeliverable {
+  id?: string;
   title: string;
   content: string;
   deliverableType: 'document' | 'analysis' | 'report' | 'plan' | 'requirements';
@@ -121,32 +218,168 @@ interface WorkflowDeliverable {
   metadata?: Record<string, any>;
   downloadable?: boolean;
   timestamp: Date;
+  tags?: string[];
+  version?: number;
+  created_at?: string;
 }
+
+// Union type for both new and legacy deliverables
+type DeliverableItem = Deliverable | WorkflowDeliverable;
 
 const props = defineProps<{
   isOpen: boolean;
-  deliverable?: WorkflowDeliverable;
+  deliverable?: DeliverableItem;
+  mode?: 'view' | 'edit' | 'create';
 }>();
 
 const emit = defineEmits<{
   close: [];
-  download: [deliverable: WorkflowDeliverable];
+  download: [deliverable: DeliverableItem];
+  save: [deliverable: Partial<Deliverable>];
+  enhance: [deliverable: Deliverable];
 }>();
 
+const deliverables = useDeliverables();
+
+// Edit state
+const isEditing = ref(false);
+const editForm = ref({
+  title: '',
+  content: '',
+  description: ''
+});
+
+// Computed properties
+const displayDeliverable = computed(() => props.deliverable);
+const displayTitle = computed(() => {
+  if (isEditing.value) {
+    return editForm.value.title || 'Edit Deliverable';
+  }
+  return displayDeliverable.value?.title || 'Deliverable';
+});
+
+const canEdit = computed(() => {
+  // Can edit if it's a new Deliverable (has id) or if we're creating
+  return !!(displayDeliverable.value && hasId(displayDeliverable.value)) || props.mode === 'create';
+});
+
+const hasChanges = computed(() => {
+  if (!displayDeliverable.value) return false;
+  return editForm.value.title !== displayDeliverable.value.title ||
+         editForm.value.content !== displayDeliverable.value.content ||
+         editForm.value.description !== (displayDeliverable.value as Deliverable).description;
+});
+
 const renderedMarkdown = computed(() => {
-  if (!props.deliverable || props.deliverable.format !== 'markdown') return '';
-  return marked.parse(props.deliverable.content, { breaks: true, gfm: true });
+  const content = isEditing.value ? editForm.value.content : displayDeliverable.value?.content;
+  const format = displayDeliverable.value?.format;
+  if (!content || format !== 'markdown') return '';
+  return marked.parse(content, { breaks: true, gfm: true });
 });
 
 const formattedJson = computed(() => {
-  if (!props.deliverable || props.deliverable.format !== 'json') return '';
+  const content = isEditing.value ? editForm.value.content : displayDeliverable.value?.content;
+  const format = displayDeliverable.value?.format;
+  if (!content || format !== 'json') return '';
   try {
-    const parsed = JSON.parse(props.deliverable.content);
+    const parsed = JSON.parse(content);
     return JSON.stringify(parsed, null, 2);
   } catch {
-    return props.deliverable.content;
+    return content;
   }
 });
+
+// Watchers
+watch(() => props.deliverable, (newDeliverable) => {
+  if (newDeliverable) {
+    resetEditForm();
+  }
+});
+
+watch(() => props.mode, (newMode) => {
+  if (newMode === 'edit' || newMode === 'create') {
+    startEditing();
+  } else {
+    isEditing.value = false;
+  }
+});
+
+// Methods
+const resetEditForm = () => {
+  if (displayDeliverable.value) {
+    editForm.value = {
+      title: displayDeliverable.value.title || '',
+      content: displayDeliverable.value.content || '',
+      description: 'description' in displayDeliverable.value ? displayDeliverable.value.description || '' : ''
+    };
+  }
+};
+
+const startEditing = () => {
+  resetEditForm();
+  isEditing.value = true;
+};
+
+const cancelEditing = () => {
+  resetEditForm();
+  isEditing.value = false;
+};
+
+const handleClose = () => {
+  if (isEditing.value && hasChanges.value) {
+    // Show confirmation dialog
+    const confirmClose = confirm('You have unsaved changes. Are you sure you want to close?');
+    if (!confirmClose) return;
+  }
+  
+  isEditing.value = false;
+  emit('close');
+};
+
+const saveChanges = async () => {
+  if (!hasChanges.value || !displayDeliverable.value) return;
+  
+  try {
+    const updates = {
+      title: editForm.value.title,
+      content: editForm.value.content,
+      description: editForm.value.description
+    };
+    
+    if ('id' in displayDeliverable.value && displayDeliverable.value.id) {
+      // Update existing deliverable
+      await deliverables.store.updateDeliverable(displayDeliverable.value.id, updates);
+      
+      const toast = await toastController.create({
+        message: 'Deliverable updated successfully',
+        duration: 2000,
+        position: 'bottom',
+        color: 'success'
+      });
+      await toast.present();
+    } else if (props.mode === 'create') {
+      // Create new deliverable
+      emit('save', updates);
+    }
+    
+    isEditing.value = false;
+  } catch (error) {
+    const toast = await toastController.create({
+      message: 'Failed to save deliverable',
+      duration: 2000,
+      position: 'bottom',
+      color: 'danger'
+    });
+    await toast.present();
+  }
+};
+
+const enhanceDeliverable = () => {
+  if (displayDeliverable.value && 'id' in displayDeliverable.value) {
+    emit('enhance', displayDeliverable.value as Deliverable);
+    emit('close');
+  }
+};
 
 const getTypeColor = (type: string): string => {
   switch (type) {
@@ -182,8 +415,9 @@ const getTypeIcon = (type: string) => {
   }
 };
 
-const formatDate = (timestamp: Date): string => {
-  return new Date(timestamp).toLocaleString();
+const formatDate = (timestamp: Date | string): string => {
+  const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+  return date.toLocaleString();
 };
 
 const formatMetadataKey = (key: string): string => {
@@ -206,28 +440,33 @@ const formatMetadataValue = (value: any): string => {
 };
 
 const downloadDeliverable = () => {
-  if (!props.deliverable) return;
+  if (!displayDeliverable.value) return;
   
-  const blob = new Blob([props.deliverable.content], { 
-    type: getContentType(props.deliverable.format) 
+  const content = isEditing.value ? editForm.value.content : displayDeliverable.value.content;
+  const title = isEditing.value ? editForm.value.title : displayDeliverable.value.title;
+  
+  const blob = new Blob([content], { 
+    type: getContentType(displayDeliverable.value.format) 
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${props.deliverable.title}.${getFileExtension(props.deliverable.format)}`;
+  a.download = `${title}.${getFileExtension(displayDeliverable.value.format)}`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   
-  emit('download', props.deliverable);
+  emit('download', displayDeliverable.value);
 };
 
 const copyToClipboard = async () => {
-  if (!props.deliverable) return;
+  if (!displayDeliverable.value) return;
+  
+  const content = isEditing.value ? editForm.value.content : displayDeliverable.value.content;
   
   try {
-    await navigator.clipboard.writeText(props.deliverable.content);
+    await navigator.clipboard.writeText(content);
     const toast = await toastController.create({
       message: 'Content copied to clipboard',
       duration: 2000,
@@ -269,6 +508,37 @@ const getFileExtension = (format: string): string => {
     default:
       return 'txt';
   }
+};
+
+// Helper functions for type compatibility
+const getDeliverableType = (deliverable: DeliverableItem): string => {
+  return ('deliverable_type' in deliverable) 
+    ? deliverable.deliverable_type 
+    : deliverable.deliverableType;
+};
+
+const getDeliverableDate = (deliverable: DeliverableItem): Date | string => {
+  return ('created_at' in deliverable) 
+    ? deliverable.created_at || new Date()
+    : deliverable.timestamp;
+};
+
+const getVersionNumber = (deliverable: DeliverableItem): number => {
+  return deliverable.version || 1;
+};
+
+const isDownloadable = (deliverable: DeliverableItem): boolean => {
+  return ('downloadable' in deliverable) 
+    ? deliverable.downloadable !== false
+    : true; // New deliverables are downloadable by default
+};
+
+const hasId = (deliverable: DeliverableItem): boolean => {
+  return !!deliverable.id;
+};
+
+const getTags = (deliverable: DeliverableItem): string[] => {
+  return deliverable.tags || [];
 };
 </script>
 
@@ -440,6 +710,59 @@ const getFileExtension = (format: string): string => {
   
   .metadata-value {
     text-align: left;
+  }
+}
+
+/* Edit Mode Styles */
+.deliverable-edit {
+  padding: 0;
+}
+
+.deliverable-edit ion-item {
+  --padding-start: 0;
+  --padding-end: 0;
+  margin-bottom: 1rem;
+}
+
+.content-textarea {
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ion-color-step-150);
+}
+
+.deliverable-tags {
+  margin-bottom: 1.5rem;
+}
+
+.deliverable-tags h4 {
+  margin: 0 0 0.75rem 0;
+  color: var(--ion-color-primary);
+  font-size: 1.1em;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Enhanced responsive design */
+@media (max-width: 768px) {
+  .edit-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .tags-container {
+    justify-content: flex-start;
   }
 }
 </style>

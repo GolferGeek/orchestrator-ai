@@ -10,6 +10,7 @@ import { ConfigurationService } from '@agents/base/sub-services/configuration/co
 import { AgentContextService } from '../a2a-base/agent-context.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
 import { TasksService } from '@/tasks/tasks.service';
+import { DeliverablesService } from '@/deliverables/deliverables.service';
 
 /**
  * Context Agent Base Service that processes context-based requests using LLM
@@ -31,10 +32,12 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     configurationService?: ConfigurationService,
     protected readonly taskStatusService?: TaskStatusService,
     protected readonly tasksService?: TasksService,
+    protected readonly deliverablesService?: DeliverablesService,
   ) {
     super(
       httpService,
       taskStatusService, // Properly inject TaskStatusService
+      deliverablesService, // Now properly inject DeliverablesService for context agents
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,

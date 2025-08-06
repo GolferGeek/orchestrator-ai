@@ -84,6 +84,7 @@ export class ApiAgentBaseService
     super(
       httpService,
       taskStatusService, // Pass TaskStatusService to parent
+      undefined, // No deliverablesService for API agents
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,
