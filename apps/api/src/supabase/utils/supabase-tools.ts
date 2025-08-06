@@ -196,6 +196,13 @@ SQL Syntax Rules:
 - Correct format: SELECT ... FROM ... WHERE ... GROUP BY ... ORDER BY ... LIMIT N;
 - NEVER use semicolon before LIMIT: FROM table; LIMIT N is INVALID
 
+Column Name Rules:
+- ALWAYS use table aliases when joining multiple tables (e.g., c, d, kd, km)
+- ALWAYS prefix column names with table aliases to avoid ambiguity (e.g., c.name, km.name)
+- NEVER use bare column names like "name" when multiple tables have the same column
+- Include all non-aggregate columns in GROUP BY clause
+- Example: SELECT c.name, SUM(kd.value) FROM companies c JOIN ... GROUP BY c.id, c.name
+
 Query Optimization:
 - Always use LIMIT to prevent timeouts
 - Use indexes when available (most tables have id, created_at indexes)
@@ -238,6 +245,12 @@ function cleanSQL(sqlQuery: string): string {
     .replace(/;\s*ORDER\s+BY/gi, ' ORDER BY') // Fix semicolon before ORDER BY
     .replace(/;\s*GROUP\s+BY/gi, ' GROUP BY') // Fix semicolon before GROUP BY
     .replace(/;\s*WHERE/gi, ' WHERE') // Fix semicolon before WHERE
+    // Fix ambiguous "name" column when companies table is aliased as 'c'
+    .replace(/SELECT\s+"name"/gi, 'SELECT c.name')
+    .replace(/SELECT\s+name\b/gi, 'SELECT c.name')
+    // Fix GROUP BY when using company name
+    .replace(/GROUP BY c\.id(\s+ORDER)/gi, 'GROUP BY c.id, c.name$1')
+    .replace(/GROUP BY c\.id\s*$/gi, 'GROUP BY c.id, c.name')
     .trim();
 }
 
@@ -289,6 +302,15 @@ export async function generateAndExecuteSQL(
       dialect: 'postgres',
     });
 
+    // Enhance the query with explicit instructions for column disambiguation
+    const enhancedQuery = `${naturalLanguageQuery}
+
+CRITICAL SQL REQUIREMENTS:
+- When joining companies table (aliased as 'c'), ALWAYS use c.name for company names
+- NEVER use bare "name" or name without table prefix when multiple tables have name columns
+- Include all selected non-aggregate columns in GROUP BY clause
+- Use table aliases: companies c, departments d, kpi_data kd, kpi_metrics km`;
+
     // Generate SQL query with retry logic for rate limits
     let sqlQuery: string = '';
     let retryCount = 0;
@@ -297,7 +319,7 @@ export async function generateAndExecuteSQL(
     while (retryCount <= maxRetries) {
       try {
         sqlQuery = await sqlQueryChain.invoke({
-          question: naturalLanguageQuery,
+          question: enhancedQuery,
         });
         break; // Success, exit retry loop
       } catch (error) {
