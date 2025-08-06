@@ -55,6 +55,8 @@ import { LangChainModule } from './langchain/langchain.module';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
 import { ProjectsModule } from './projects/projects.module';
 import { DeliverablesModule } from './deliverables/deliverables.module';
+import { AgentServicesContextModule } from './agents/base/services/agent-services-context.module';
+import { FunctionAgentServicesContextModule } from './agents/base/services/function-agent-services-context.module';
 import supabaseConfig from './supabase/supabase.config';
 
 @Module({
@@ -119,6 +121,8 @@ import supabaseConfig from './supabase/supabase.config';
     HierarchyModule, // Agent hierarchy and discovery endpoints
     ProjectsModule, // Project lifecycle management and recovery
     DeliverablesModule, // Deliverables persistence and management
+    AgentServicesContextModule, // Service container for simplified context agent DI
+    FunctionAgentServicesContextModule, // Service container for simplified function agent DI
   ],
   controllers: [
     AppController,

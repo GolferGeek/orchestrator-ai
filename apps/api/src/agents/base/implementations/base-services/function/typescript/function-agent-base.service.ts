@@ -18,6 +18,7 @@ import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
 import { DeliverablesService } from '@/deliverables/deliverables.service';
+import { FunctionAgentServicesContext } from '@agents/base/services/function-agent-services-context';
 // MCPClientService removed - using LangChain.js services instead
 
 export interface AgentFunctionResponse {
@@ -41,34 +42,22 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   protected currentUserEmail: string | null = null; // Store current user email
 
   constructor(
-    protected readonly httpService: HttpService,
-    protected readonly llmService: LLMService,
-    @Inject(forwardRef(() => TaskProgressGateway))
-    protected readonly taskProgressGateway: TaskProgressGateway | undefined,
-    @Inject(forwardRef(() => TasksService))
-    protected readonly tasksService: TasksService | undefined,
-    @Inject(forwardRef(() => TaskStatusService))
-    protected readonly taskStatusService: TaskStatusService | undefined,
-    deliverablesService?: DeliverablesService,
-    mcpClientService?: any, // Legacy MCP client service (removed but keeping parameter for compatibility)
-    agentRegistrationService?: AgentRegistrationService,
-    jsonRpcProtocolService?: JsonRpcProtocolService,
-    loggingService?: LoggingService,
-    authService?: AuthService,
-    configurationService?: ConfigurationService,
+    // Pure service container pattern - only accepts FunctionAgentServicesContext
+    private readonly services: FunctionAgentServicesContext,
   ) {
     super(
-      httpService,
-      taskStatusService, // Pass TaskStatusService to parent A2AAgentBaseService
-      deliverablesService, // Pass DeliverablesService to parent A2AAgentBaseService
-      agentRegistrationService,
-      jsonRpcProtocolService,
-      loggingService,
-      authService,
-      configurationService,
+      services.httpService,
+      services.taskStatusService,
+      services.deliverablesService,
+      services.agentRegistrationService,
+      services.jsonRpcProtocolService,
+      services.loggingService,
+      services.authService,
+      services.configurationService,
     );
 
-    this.mcpClientService = mcpClientService;
+    // MCPClientService is no longer needed - using LangChain.js services
+    this.mcpClientService = undefined;
   }
 
   /**
@@ -117,7 +106,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       };
 
       const wrappedLLMService = {
-        ...this.llmService,
+        ...this.services.llmService,
         generateResponse: async (
           systemPrompt: string,
           userMessage: string,
@@ -135,7 +124,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
             sessionId: params.sessionId || options?.sessionId,
           };
 
-          const result = await this.llmService.generateResponse(
+          const result = await this.services.llmService.generateResponse(
             systemPrompt,
             userMessage,
             mergedOptions,
@@ -495,7 +484,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     }
 
     // Store message in live cache for polling clients
-    if (this.taskStatusService) {
+    if (this.services.taskStatusService) {
       const messageContent = JSON.stringify({
         stepName,
         stepIndex,
@@ -504,7 +493,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         message,
       });
 
-      this.taskStatusService.addTaskMessage(
+      this.services.taskStatusService.addTaskMessage(
         this.currentTaskId,
         messageContent,
         'progress',
@@ -523,8 +512,8 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     }
 
     // Broadcast workflow step progress via WebSocket
-    if (this.taskProgressGateway) {
-      this.taskProgressGateway.broadcastWorkflowStepProgress(
+    if (this.services.taskProgressGateway) {
+      this.services.taskProgressGateway.broadcastWorkflowStepProgress(
         this.currentTaskId,
         stepName,
         stepIndex,
@@ -556,8 +545,8 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       return;
     }
 
-    if (this.taskProgressGateway) {
-      this.taskProgressGateway.broadcastTaskCompletion(
+    if (this.services.taskProgressGateway) {
+      this.services.taskProgressGateway.broadcastTaskCompletion(
         this.currentTaskId,
         status,
         message,
@@ -576,9 +565,9 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    * Save task result to database (matching Python pattern)
    */
   protected async saveTaskResult(result: any): Promise<void> {
-    if (!this.tasksService || !this.currentUserId || !this.currentTaskId) {
+    if (!this.services.tasksService || !this.currentUserId || !this.currentTaskId) {
       this.functionLogger.debug(`Cannot save result - missing requirements:`, {
-        tasksService: !!this.tasksService,
+        tasksService: !!this.services.tasksService,
         currentUserId: this.currentUserId,
         taskId: this.currentTaskId,
       });
@@ -614,7 +603,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         enhancedMetadataKeys: Object.keys(enhancedMetadata),
       });
 
-      await this.tasksService.updateTask(
+      await this.services.tasksService.updateTask(
         this.currentTaskId,
         this.currentUserId,
         updateData,

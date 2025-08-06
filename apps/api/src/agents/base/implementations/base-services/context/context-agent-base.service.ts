@@ -11,6 +11,7 @@ import { AgentContextService } from '../a2a-base/agent-context.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
 import { TasksService } from '@/tasks/tasks.service';
 import { DeliverablesService } from '@/deliverables/deliverables.service';
+import { AgentServicesContext } from '@agents/base/services/agent-services-context';
 
 /**
  * Context Agent Base Service that processes context-based requests using LLM
@@ -23,26 +24,18 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   protected readonly agentContextService = new AgentContextService();
 
   constructor(
-    protected readonly httpService: HttpService,
-    protected readonly llmService: LLMService,
-    agentRegistrationService?: AgentRegistrationService,
-    jsonRpcProtocolService?: JsonRpcProtocolService,
-    loggingService?: LoggingService,
-    authService?: AuthService,
-    configurationService?: ConfigurationService,
-    protected readonly taskStatusService?: TaskStatusService,
-    protected readonly tasksService?: TasksService,
-    protected readonly deliverablesService?: DeliverablesService,
+    // Pure service container pattern - only accepts AgentServicesContext
+    private readonly services: AgentServicesContext,
   ) {
     super(
-      httpService,
-      taskStatusService, // Properly inject TaskStatusService
-      deliverablesService, // Now properly inject DeliverablesService for context agents
-      agentRegistrationService,
-      jsonRpcProtocolService,
-      loggingService,
-      authService,
-      configurationService,
+      services.httpService,
+      services.taskStatusService,
+      services.deliverablesService,
+      services.agentRegistrationService,
+      services.jsonRpcProtocolService,
+      services.loggingService,
+      services.authService,
+      services.configurationService,
     );
   }
 
@@ -105,14 +98,14 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           `Processing with ${conversationHistory.length} conversation history messages`,
         );
 
-        llmResult = await this.llmService.generateResponseWithHistory(
+        llmResult = await this.services.llmService.generateResponseWithHistory(
           systemPrompt,
           formattedHistory,
           userMessage,
         );
       } else {
         // Use standard LLM processing for first message
-        llmResult = await this.llmService.generateResponse(
+        llmResult = await this.services.llmService.generateResponse(
           systemPrompt,
           userMessage,
           params, // Pass all params including LLM preferences
@@ -150,8 +143,8 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       this.contextLogger.debug('Context agent executeTask completion check:', {
         hasTaskId: !!params.taskId,
         hasCurrentUser: !!params.currentUser,
-        hasTaskStatusService: !!this.taskStatusService,
-        hasTasksService: !!this.tasksService,
+        hasTaskStatusService: !!this.services.taskStatusService,
+        hasTasksService: !!this.services.tasksService,
         taskId: params.taskId,
         userId: params.currentUser?.id,
       });
@@ -394,7 +387,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     userId: string,
     result: any,
   ): Promise<void> {
-    if (!this.tasksService) {
+    if (!this.services.tasksService) {
       this.contextLogger.debug(
         `Cannot save result - TasksService not available`,
       );
@@ -414,7 +407,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         userId,
       });
 
-      await this.tasksService.updateTask(taskId, userId, updateData);
+      await this.services.tasksService.updateTask(taskId, userId, updateData);
 
       this.contextLogger.debug(
         `Task ${taskId} marked as completed in database`,

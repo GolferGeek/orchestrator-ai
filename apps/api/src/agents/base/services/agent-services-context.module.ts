@@ -4,7 +4,7 @@ import { AgentServicesContext } from './agent-services-context';
 import { LLMModule } from '@/llms/llm.module';
 import { TasksModule } from '@/tasks/tasks.module';
 import { DeliverablesModule } from '@/deliverables/deliverables.module';
-import { TaskProgressModule } from '@/websocket/task-progress.module';
+import { WebSocketModule } from '@/websocket/websocket.module';
 import { BaseSubServicesModule } from '@agents/base/sub-services/base-sub-services.module';
 
 /**
@@ -16,7 +16,7 @@ import { BaseSubServicesModule } from '@agents/base/sub-services/base-sub-servic
     LLMModule,
     TasksModule,
     DeliverablesModule,
-    TaskProgressModule,
+    WebSocketModule,
     BaseSubServicesModule,
   ],
   providers: [AgentServicesContext],
