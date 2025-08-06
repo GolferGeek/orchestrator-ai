@@ -4,17 +4,13 @@ import {
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as path from 'path';
 
-import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import {
-  AgentRegistrationService,
   AgentInfo,
 } from '@agents/base/sub-services/agent-registration/agent-registration.service';
-import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
-import { EvaluationWrapperService } from '@agents/base/sub-services/evaluation-wrapper/evaluation-wrapper.service';
+import { ExternalAgentServicesContext } from '../../../services/external-agent-services-context';
 
 export interface ExternalA2AConfiguration {
   endpoint: string;
@@ -88,11 +84,8 @@ export class ExternalA2AAgentBaseService
   private registrationResult: any = null;
 
   constructor(
-    private readonly httpService: HttpService,
-    private readonly configurationService: ConfigurationService,
-    private readonly agentRegistrationService: AgentRegistrationService,
-    private readonly loggingService?: LoggingService,
-    private readonly evaluationService?: EvaluationWrapperService,
+    // Pure service container pattern - only accepts ExternalAgentServicesContext
+    private readonly services: ExternalAgentServicesContext,
   ) {}
 
   /**
@@ -151,7 +144,7 @@ export class ExternalA2AAgentBaseService
   async onModuleDestroy() {
     if (this.registrationResult?.success) {
       try {
-        await this.agentRegistrationService.unregisterAgent(this.getAgentId());
+        await this.services.agentRegistrationService.unregisterAgent(this.getAgentId());
         this.logger.log(`Unregistered external A2A agent: ${this.agentName}`);
       } catch (error) {
         this.logger.warn(`Failed to unregister external A2A agent:`, error);
@@ -181,7 +174,7 @@ export class ExternalA2AAgentBaseService
    * Get the agent ID
    */
   getAgentId(): string {
-    return this.agentRegistrationService.generateAgentId(
+    return this.services.agentRegistrationService.generateAgentId(
       this.getAgentName(),
       'external',
     );
@@ -226,8 +219,8 @@ export class ExternalA2AAgentBaseService
 
     try {
       // Log the request if logging service is available
-      if (this.loggingService) {
-        this.loggingService.logRequest(method, requestParams, {
+      if (this.services.loggingService) {
+        this.services.loggingService.logRequest(method, requestParams, {
           agentName: this.getAgentName(),
           agentType: 'external-a2a',
           requestId: Date.now().toString(),
@@ -235,8 +228,8 @@ export class ExternalA2AAgentBaseService
       }
 
       // Record task start for evaluation metrics
-      if (this.evaluationService) {
-        this.evaluationService.recordTaskStart(Date.now().toString(), method);
+      if (this.services.evaluationService) {
+        this.services.evaluationService.recordTaskStart(Date.now().toString(), method);
       }
 
       const startTime = Date.now();
@@ -247,8 +240,8 @@ export class ExternalA2AAgentBaseService
       const responseTime = Date.now() - startTime;
 
       // Log the response if logging service is available
-      if (this.loggingService) {
-        this.loggingService.logResponse(
+      if (this.services.loggingService) {
+        this.services.loggingService.logResponse(
           method,
           response.success,
           responseTime,
@@ -261,8 +254,8 @@ export class ExternalA2AAgentBaseService
       }
 
       // Record task completion for evaluation metrics
-      if (this.evaluationService) {
-        this.evaluationService.recordTaskCompletion(
+      if (this.services.evaluationService) {
+        this.services.evaluationService.recordTaskCompletion(
           Date.now().toString(),
           method,
           responseTime,
@@ -276,8 +269,8 @@ export class ExternalA2AAgentBaseService
       this.logger.error(`Error executing task on external A2A agent:`, error);
 
       // Log the error if logging service is available
-      if (this.loggingService) {
-        this.loggingService.logError(
+      if (this.services.loggingService) {
+        this.services.loggingService.logError(
           error instanceof Error ? error : String(error),
           {
             agentName: this.getAgentName(),
@@ -346,7 +339,7 @@ export class ExternalA2AAgentBaseService
 
       this.logger.debug(`Looking for agent.yaml at: ${yamlPath}`);
 
-      const configResult = await this.configurationService.parseYamlFile<any>(
+      const configResult = await this.services.configurationService.parseYamlFile<any>(
         yamlPath,
         {
           substituteEnvVars: true,
@@ -391,7 +384,7 @@ export class ExternalA2AAgentBaseService
       this.logger.debug(`Fetching agent card from: ${wellKnownUrl}`);
 
       const response = await firstValueFrom(
-        this.httpService.get(wellKnownUrl, {
+        this.services.httpService.get(wellKnownUrl, {
           timeout: this.externalConfig!.timeout || 10000,
           headers: this.buildAuthHeaders(),
         }),
@@ -446,7 +439,7 @@ export class ExternalA2AAgentBaseService
       };
 
       this.registrationResult =
-        await this.agentRegistrationService.registerAgent(agentInfo);
+        await this.services.agentRegistrationService.registerAgent(agentInfo);
 
       if (!this.registrationResult.success) {
         throw new Error(
@@ -480,7 +473,7 @@ export class ExternalA2AAgentBaseService
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const response = await firstValueFrom(
-          this.httpService.post(
+          this.services.httpService.post(
             this.externalConfig!.endpoint,
             {
               method: params.method,

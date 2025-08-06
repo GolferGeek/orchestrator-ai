@@ -1,38 +1,14 @@
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
+import { Injectable } from '@nestjs/common';
 import { PythonFunctionAgentBaseService } from '@agents/base/implementations/base-services/function';
-import { LLMService } from '../../../../llms/llm.service';
-import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
-import { TasksService } from '@/tasks/tasks.service';
-import { TaskStatusService } from '@/tasks/task-status.service';
-// MCPClientService removed - using LangChain.js services instead
+import { PythonFunctionAgentServicesContext } from '@agents/base/services/python-function-agent-services-context';
 
 @Injectable()
 export class RequirementsWriterService extends PythonFunctionAgentBaseService {
   constructor(
-    httpService: HttpService,
-    llmService: LLMService,
-    @Inject(forwardRef(() => TaskProgressGateway))
-    taskProgressGateway: TaskProgressGateway | undefined,
-    @Inject(forwardRef(() => TasksService))
-    tasksService: TasksService | undefined,
-    @Inject(forwardRef(() => TaskStatusService))
-    taskStatusService: TaskStatusService | undefined,
-    // mcpClientService removed
+    // Pure service container pattern - only accepts PythonFunctionAgentServicesContext
+    services: PythonFunctionAgentServicesContext,
   ) {
-    super(
-      httpService,
-      llmService,
-      taskProgressGateway,
-      tasksService,
-      taskStatusService,
-      undefined, // mcpClientService removed
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-    );
+    super(services);
     // Python script path will be set by AgentDiscoveryService during discovery
   }
 

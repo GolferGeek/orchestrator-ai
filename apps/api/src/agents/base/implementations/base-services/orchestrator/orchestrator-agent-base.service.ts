@@ -8,6 +8,7 @@ import {
   ConversationMessage,
   IOrchestratorFacadeService,
 } from '../../../../../orchestration/orchestration.types';
+import { OrchestratorAgentServicesContext } from './orchestrator-agent-services.context';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -28,11 +29,14 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
   protected delegationContext?: string;
 
   constructor(
-    httpService: HttpService,
-    protected readonly orchestratorFacadeService: IOrchestratorFacadeService,
+    private readonly services: OrchestratorAgentServicesContext,
   ) {
-    super(httpService);
+    super(services.httpService);
+    this.orchestratorFacadeService = services.orchestratorFacadeService;
   }
+  
+  // Store orchestrator facade service for use in methods
+  protected readonly orchestratorFacadeService: IOrchestratorFacadeService;
 
   /**
    * A2A Entry Point - Single method that routes all orchestrator operations

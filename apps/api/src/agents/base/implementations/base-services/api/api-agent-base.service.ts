@@ -1,18 +1,11 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
 import { A2AAgentBaseService } from '../a2a-base/a2a-agent-base.service';
-import { AgentRegistrationService } from '../../../sub-services/agent-registration/agent-registration.service';
-import { JsonRpcProtocolService } from '../../../sub-services/json-rpc-protocol/json-rpc-protocol.service';
-import { LoggingService } from '../../../sub-services/logging/logging.service';
-import { AuthService } from '../../../sub-services/auth/auth.service';
-import { ConfigurationService } from '../../../sub-services/configuration/configuration.service';
 import { AgentContextService } from '../a2a-base/agent-context.service';
-import { TaskStatusService } from '@/tasks/task-status.service';
-import { TasksService } from '@/tasks/tasks.service';
+import { ApiAgentServicesContext } from '../../../services/api-agent-services-context';
 
 export interface ApiConfiguration {
   endpoint: string;
@@ -72,29 +65,24 @@ export class ApiAgentBaseService
   private currentTaskId: string | null = null; // Store current task ID for task completion
 
   constructor(
-    protected readonly httpService: HttpService,
-    protected readonly taskStatusService?: TaskStatusService,
-    protected readonly tasksService?: TasksService,
-    agentRegistrationService?: AgentRegistrationService,
-    jsonRpcProtocolService?: JsonRpcProtocolService,
-    loggingService?: LoggingService,
-    authService?: AuthService,
-    configurationService?: ConfigurationService,
+    // Pure service container pattern - only accepts ApiAgentServicesContext
+    private readonly services: ApiAgentServicesContext,
   ) {
     super(
-      httpService,
-      taskStatusService, // Pass TaskStatusService to parent
+      services.httpService,
+      services.taskStatusService,
       undefined, // No deliverablesService for API agents
-      agentRegistrationService,
-      jsonRpcProtocolService,
-      loggingService,
-      authService,
-      configurationService,
+      services.agentRegistrationService,
+      services.jsonRpcProtocolService,
+      services.loggingService,
+      services.authService,
+      services.configurationService,
     );
 
-    this.apiLogger.debug(`API Agent initialized with services:`, {
-      hasTaskStatusService: !!taskStatusService,
-      hasTasksService: !!tasksService,
+    this.apiLogger.debug(`API Agent initialized with service container:`, {
+      hasHttpService: !!services.httpService,
+      hasTaskStatusService: !!services.taskStatusService,
+      hasTasksService: !!services.tasksService,
     });
   }
 
@@ -226,9 +214,9 @@ export class ApiAgentBaseService
             );
 
             // Use ConfigurationService for environment variable substitution if available
-            if (this.configurationService) {
+            if (this.services.configurationService) {
               const substitutionResult =
-                this.configurationService.substituteEnvVars(
+                this.services.configurationService.substituteEnvVars(
                   config,
                   'API_',
                   false, // not strict mode
@@ -364,20 +352,20 @@ export class ApiAgentBaseService
     this.apiLogger.debug(`Task execution context:`, {
       taskId: this.currentTaskId,
       userId: this.currentUserId,
-      hasTasksService: !!this.tasksService,
-      hasTaskStatusService: !!this.taskStatusService,
+      hasTasksService: !!this.services.tasksService,
+      hasTaskStatusService: !!this.services.taskStatusService,
       agentName: this.getAgentName(),
     });
 
     // Log what services were injected during construction
     this.apiLogger.debug(`API Agent services status:`, {
-      hasTasksService: !!this.tasksService,
-      hasTaskStatusService: !!this.taskStatusService,
-      tasksServiceType: this.tasksService
-        ? this.tasksService.constructor.name
+      hasTasksService: !!this.services.tasksService,
+      hasTaskStatusService: !!this.services.taskStatusService,
+      tasksServiceType: this.services.tasksService
+        ? this.services.tasksService.constructor.name
         : 'undefined',
-      taskStatusServiceType: this.taskStatusService
-        ? this.taskStatusService.constructor.name
+      taskStatusServiceType: this.services.taskStatusService
+        ? this.services.taskStatusService.constructor.name
         : 'undefined',
     });
 
@@ -487,7 +475,7 @@ export class ApiAgentBaseService
 
         // Make the HTTP request
         const response = await firstValueFrom(
-          this.httpService.request({
+          this.services.httpService.request({
             method: config.method,
             url: config.endpoint,
             data: ['POST', 'PUT', 'PATCH'].includes(config.method)
@@ -928,7 +916,7 @@ export class ApiAgentBaseService
    * Save API task result to database (matching context agent pattern)
    */
   protected async saveApiTaskResult(result: any): Promise<void> {
-    if (!this.tasksService) {
+    if (!this.services.tasksService) {
       this.apiLogger.debug(`Cannot save result - TasksService not available`);
       return;
     }
@@ -963,7 +951,7 @@ export class ApiAgentBaseService
         agentName: this.getAgentName(),
       });
 
-      await this.tasksService.updateTask(
+      await this.services.tasksService.updateTask(
         this.currentTaskId,
         this.currentUserId,
         updateData,

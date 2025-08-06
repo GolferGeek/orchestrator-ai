@@ -1,9 +1,6 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
+import { Injectable, Logger } from '@nestjs/common';
 import { OrchestratorAgentBaseService } from '../../../base/implementations/base-services/orchestrator/orchestrator-agent-base.service';
-import {
-  IOrchestratorFacadeService,
-} from '../../../../orchestration/orchestration.types';
+import { OrchestratorAgentServicesContext } from '../../../base/implementations/base-services/orchestrator/orchestrator-agent-services.context';
 
 /**
  * Marketing Manager Orchestrator Service
@@ -18,11 +15,9 @@ export class MarketingManagerOrchestratorService extends OrchestratorAgentBaseSe
   );
 
   constructor(
-    httpService: HttpService,
-    @Inject('IOrchestratorFacadeService')
-    orchestratorFacadeService: IOrchestratorFacadeService,
+    services: OrchestratorAgentServicesContext,
   ) {
-    super(httpService, orchestratorFacadeService);
+    super(services);
   }
 
   /**
