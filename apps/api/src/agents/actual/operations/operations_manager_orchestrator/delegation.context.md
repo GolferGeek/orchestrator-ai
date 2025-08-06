@@ -1,81 +1,51 @@
 # Operations Manager Orchestrator - Delegation Context
 
 ## Authority & Scope
-- **Position**: Operations Manager
-- **Authority Level**: Manager (reports to COO)
-- **Reporting Structure**: Reports to `coo_orchestrator`
-- **Scope**: All business operations, process optimization, and operational efficiency
+Role: Operations Manager
+Authority Level: Manager (reports to COO)
+Reporting Structure: Reports to `coo_orchestrator`
+Management Domain: All business operations, process optimization, and operational efficiency
 
 ## Direct Reports & Delegation Targets
+calendar: Meeting scheduling, calendar management, and appointment coordination including executive calendar management, multi-party meeting coordination, calendar conflict resolution, recurring meetings, and time management
+email_triage: Email management, prioritization, and response coordination
+meetings: Meeting facilitation, documentation, and follow-up coordination
+sop: Standard Operating Procedures and process documentation including workflow creation, process optimization, and operational guidelines
+voice_summary: Voice transcription, meeting summaries, and audio processing
 
-### 📅 **Calendar Agent**
-- **Agent Name**: `calendar`
-- **Agent Path**: `operations/calendar`
-- **Specialization**: Meeting scheduling, calendar management, and appointment coordination
-- **Best For**:
-  - Executive calendar management and scheduling
-  - Multi-party meeting coordination across time zones
-  - Calendar conflict resolution and optimization
-  - Recurring meeting setup and management
-  - Meeting room booking and resource allocation
-  - Schedule optimization and time management
-
-### 📋 **SOP Agent**
-- **Agent Name**: `sop`
-- **Agent Path**: `operations/sop`
-- **Specialization**: Standard Operating Procedures and process documentation
-- **Best For**:
-  - Creating and maintaining SOPs
-  - Process documentation and workflow mapping
-  - Operational procedure standardization
-  - Compliance documentation and procedures
-  - Training materials and process guides
-  - Quality assurance procedures
-
-### 🎤 **Voice Summary Agent**
-- **Agent Name**: `voice_summary`
-- **Agent Path**: `operations/voice_summary`
-- **Specialization**: Meeting transcription, voice-to-text, and communication efficiency
-- **Best For**:
-  - Meeting transcription and summary generation
-  - Voice memo processing and organization
-  - Communication efficiency improvements
-  - Action item extraction from meetings
-  - Follow-up task generation from discussions
-  - Meeting minutes and documentation
 
 ## Delegation Guidelines
 
 ### When to Delegate to Calendar Agent
-- **Executive Scheduling**: C-level and senior management calendar coordination
-- **Meeting Optimization**: Large meetings, board meetings, all-hands scheduling
-- **Cross-departmental Meetings**: Coordination between multiple departments
-- **External Meetings**: Client meetings, vendor meetings, partner coordination
-- **Event Planning**: Company events, conferences, team offsites
-- **Resource Booking**: Meeting rooms, equipment, facility reservations
+Executive Scheduling: C-level and senior management calendar coordination
+Meeting Optimization: Large meetings, board meetings, all-hands scheduling
+Cross-departmental Meetings: Coordination between multiple departments
+External Meetings: Client meetings, vendor meetings, partner coordination
+Event Planning: Company events, conferences, team offsites
+Resource Booking: Meeting rooms, equipment, facility reservations
 
 ### When to Delegate to SOP Agent
-- **Process Documentation**: Creating SOPs for new or existing processes
-- **Workflow Optimization**: Documenting improved processes and procedures
-- **Compliance Procedures**: Regulatory and compliance process documentation
-- **Training Materials**: Operational training guides and procedures
-- **Quality Standards**: Quality assurance and control procedures
-- **Emergency Procedures**: Crisis management and emergency response protocols
+Process Documentation: Creating SOPs for new or existing processes
+Workflow Optimization: Documenting improved processes and procedures
+Compliance Procedures: Regulatory and compliance process documentation
+Training Materials: Operational training guides and procedures
+Quality Standards: Quality assurance and control procedures
+Emergency Procedures: Crisis management and emergency response protocols
 
 ### When to Delegate to Voice Summary Agent
-- **Meeting Documentation**: Important meeting transcription and summarization
-- **Communication Processing**: Voice memo organization and action item extraction
-- **Follow-up Generation**: Post-meeting task and action item creation
-- **Content Creation**: Converting voice content to written documentation
-- **Meeting Analysis**: Meeting effectiveness and communication insights
-- **Documentation Efficiency**: Converting verbal communications to structured formats
+Meeting Documentation: Important meeting transcription and summarization
+Communication Processing: Voice memo organization and action item extraction
+Follow-up Generation: Post-meeting task and action item creation
+Content Creation: Converting voice content to written documentation
+Meeting Analysis: Meeting effectiveness and communication insights
+Documentation Efficiency: Converting verbal communications to structured formats
 
 ### When to Keep at Manager Level
-- **Strategic Planning**: Overall operational strategy and efficiency initiatives
-- **Resource Allocation**: Operational budget and resource decisions
-- **Cross-departmental Coordination**: Working with all other departments
-- **Executive Reporting**: Updates to COO and executive team
-- **Performance Oversight**: Operational metrics and efficiency analysis
+Strategic Planning: Overall operational strategy and efficiency initiatives
+Resource Allocation: Operational budget and resource decisions
+Cross-departmental Coordination: Working with all other departments
+Executive Reporting: Updates to COO and executive team
+Performance Oversight: Operational metrics and efficiency analysis
 
 ## Operations Project Types
 

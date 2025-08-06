@@ -113,8 +113,31 @@ export class AgentConversationsService {
     userId: string,
     agentName: string,
     agentType: AgentType,
+    existingConversationId?: string | null,
   ): Promise<AgentConversation> {
     try {
+      // If a conversation ID was provided, validate it exists and belongs to the user
+      if (existingConversationId) {
+        const { data: existing } = await this.supabaseService
+          .getAnonClient()
+          .from('agent_conversations')
+          .select()
+          .eq('id', existingConversationId)
+          .eq('user_id', userId)
+          .eq('agent_name', agentName)
+          .eq('agent_type', agentType)
+          .single();
+
+        if (existing) {
+          return this.mapToAgentConversation(existing);
+        }
+
+        // If provided conversation ID doesn't exist or doesn't match, log warning and create new
+        this.logger.warn(
+          `Conversation ${existingConversationId} not found or doesn't match user/agent, creating new conversation`,
+        );
+      }
+
       // First try to find an active conversation
       const { data: existing } = await this.supabaseService
         .getAnonClient()

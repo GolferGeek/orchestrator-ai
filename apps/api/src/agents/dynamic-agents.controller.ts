@@ -148,6 +148,11 @@ export class DynamicAgentsController {
     // Get agent configuration for timeout and other settings
     const agentCard = await agentInstance.getAgentCard();
     const agentTimeout = agentCard.timeout || 300; // Default to 5 minutes if not specified
+    
+    // Get agent's preferred task type (if available)
+    const agentTaskType = (agentInstance as any).getTaskType ? 
+      (agentInstance as any).getTaskType() : 
+      'ephemeral'; // Default for dynamic agent requests
 
     // Create task with agent-specific timeout
     const taskRequestWithTimeout = {
@@ -160,16 +165,13 @@ export class DynamicAgentsController {
       agentName,
       agentType as AgentType,
       taskRequestWithTimeout,
+      agentTaskType, // Pass agent's preferred task type
     );
 
     try {
-      // Initialize task status in TaskStatusService (single source of truth)
-      await this.taskStatusService.createTask(
-        task.id,
-        currentUser.id,
-        'ephemeral', // Agent can override via getTaskType() in agent card
-      );
-
+      // Task status already initialized in TasksService.createTask()
+      // No need to duplicate TaskStatusService.createTask() call here
+      
       // Prepare request for agent with task context
       const authenticatedTaskRequest = {
         ...normalizedTaskRequest.params,

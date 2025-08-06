@@ -1,14 +1,14 @@
 # Marketing Manager Orchestrator - Delegation Context
 
 ## Authority & Scope
-- **Position**: Marketing Manager
-- **Authority Level**: Manager (reports to CEO)
-- **Reporting Structure**: Reports to `ceo_orchestrator`
-- **Scope**: All marketing operations and initiatives
+Role: Marketing Manager
+Authority Level: Manager (reports to CEO)
+Reporting Structure: Reports to `ceo_orchestrator`
+Management Domain: All marketing operations and initiatives
 
 ## Direct Reports & Delegation Targets
-- **content**: All marketing content creation including blog posts, articles, marketing copy, social media, promotional materials, thought leadership, and educational content
-- **market_research**: Market research, competitive analysis, customer insights, market share analysis, and data gathering
+content: All marketing content creation including blog posts, articles, marketing copy, social media, promotional materials, thought leadership, and educational content
+market_research: Market research, competitive analysis, customer insights, market share analysis, and data gathering
 
 ## Delegation Guidelines
 

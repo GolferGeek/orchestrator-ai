@@ -500,7 +500,7 @@ export class SessionsService {
         const orchestratorResponse = await this.httpService.axiosRef.post(
           orchestratorUrl,
           orchestratorPayload,
-          { headers, timeout: 30000 },
+          { headers, timeout: 60000 },
         );
 
         this.logger.log(

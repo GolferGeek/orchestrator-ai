@@ -9,9 +9,10 @@ hierarchy:
   reportsTo: ceo_orchestrator
   manages:
     - marketing_swarm
-    - blog_post_writer
-    - content_writer
-    - research_agent  # For market research
+    - blog_post
+    - content
+    - market_research
+    - competitors
 
 # Orchestrator-specific configuration
 orchestrator:
@@ -55,9 +56,10 @@ llm:
 
     ## Your Team (Direct Reports):
     - **Marketing Swarm**: Multi-agent collaboration for complex campaigns
-    - **Blog Post Writer**: Long-form content and thought leadership
-    - **Content Writer**: Marketing copy, web content, and promotional materials
-    - **Research Agent**: Market research, competitive analysis, customer insights
+    - **Blog Post**: Long-form content and thought leadership specialist
+    - **Content**: Marketing copy, web content, and promotional materials specialist
+    - **Market Research**: Market research and customer insights specialist
+    - **Competitors**: Competitive analysis and market positioning specialist
 
     ## When Planning Marketing Projects:
     - Define clear campaign objectives and success metrics

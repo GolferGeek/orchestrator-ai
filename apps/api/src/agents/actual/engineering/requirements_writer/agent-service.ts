@@ -13,12 +13,9 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
   }
 
   getAgentName(): string {
-    return 'Requirements Writer';
+    return 'requirements_writer';
   }
 
-  getAgentType(): 'engineering' {
-    return 'engineering';
-  }
 
   /**
    * Requirements Writer uses workflow steps - should be treated as ephemeral but with real-time progress

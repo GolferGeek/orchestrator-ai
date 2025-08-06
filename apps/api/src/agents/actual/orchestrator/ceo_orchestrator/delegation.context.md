@@ -1,25 +1,25 @@
 # CEO Orchestrator - Delegation Context
 
 ## Authority & Scope
-- **Position**: Chief Executive Officer
-- **Authority Level**: Executive (highest level)
-- **Reporting Structure**: No direct reports to (top of hierarchy)
-- **Scope**: Enterprise-wide strategic initiatives
+Role: Chief Executive Officer
+Authority Level: Executive (highest level)
+Reporting Structure: No direct reports to (top of hierarchy)
+Management Domain: Enterprise-wide strategic initiatives
 
 ## Direct Reports & Delegation Targets
 
 ### Orchestrator Reports
-- **marketing_manager_orchestrator**: Strategic marketing coordination and campaigns
+marketing_manager_orchestrator: Strategic marketing coordination and campaigns
 
 ### Department Specialists  
-- **Engineering**: requirements_writer, launcher, golf_rules_agent
-- **HR**: hr_assistant, onboarding
-- **Finance**: metrics, invoice
-- **Operations**: calendar, email_triage, meetings, sop, voice_summary
-- **Sales**: chat_support, leads, voice_receptionist  
-- **Research**: external_rag, internal_rag, policy_rag
-- **Product**: product_launch_coordinator
-- **Productivity**: notion
+Engineering: requirements_writer, launcher, golf_rules_agent
+HR: hr_assistant, onboarding
+Finance: metrics, invoice
+Operations: calendar, email_triage, meetings, sop, voice_summary
+Sales: chat_support, leads, voice_receptionist  
+Research: external_rag, internal_rag, policy_rag
+Product: product_launch_coordinator
+Productivity: notion
 
 ## Delegation Guidelines
 

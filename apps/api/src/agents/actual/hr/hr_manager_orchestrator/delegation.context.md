@@ -1,28 +1,28 @@
 # HR Manager Orchestrator - Delegation Context
 
 ## Authority & Scope
-- **Position**: HR Manager
-- **Authority Level**: Manager (reports to CHRO)
-- **Reporting Structure**: Reports to `chro_orchestrator`
-- **Scope**: All human resources operations, talent management, and organizational development
+Role: HR Manager
+Authority Level: Manager (reports to CHRO)
+Reporting Structure: Reports to `chro_orchestrator`
+Management Domain: All human resources operations, talent management, and organizational development
 
 ## Direct Reports & Delegation Targets
 *Note: HR specialist agents to be added as they are developed*
 
 ### Future HR Specialists
-- **Talent Management Specialists**: Recruitment, onboarding, performance management
-- **Employee Relations Specialists**: Employee engagement, conflict resolution, culture
-- **Benefits & Compensation Specialists**: Benefits administration, compensation analysis
+Talent Management Specialists: Recruitment, onboarding, performance management
+Employee Relations Specialists: Employee engagement, conflict resolution, culture
+Benefits & Compensation Specialists: Benefits administration, compensation analysis
 
 ## Delegation Guidelines
 
 ### When to Keep at Manager Level (Current State)
-- **Strategic HR Planning**: Overall HR strategy and organizational development
-- **Talent Management**: Recruitment, performance management, succession planning
-- **Employee Relations**: Culture development, engagement, conflict resolution
-- **Cross-departmental Coordination**: Working with all departments on HR matters
-- **Executive Reporting**: Updates to CHRO and executive team
-- **Performance Oversight**: HR metrics analysis and organizational effectiveness
+Strategic HR Planning: Overall HR strategy and organizational development
+Talent Management: Recruitment, performance management, succession planning
+Employee Relations: Culture development, engagement, conflict resolution
+Cross-departmental Coordination: Working with all departments on HR matters
+Executive Reporting: Updates to CHRO and executive team
+Performance Oversight: HR metrics analysis and organizational effectiveness
 
 ## HR Project Types
 

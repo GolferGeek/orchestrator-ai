@@ -11,7 +11,7 @@ external_a2a_configuration:
   protocol: "A2A"
   
   # Connection settings
-  timeout: 30000  # 30 seconds
+  timeout: 60000  # 60 seconds
   
   # Authentication configuration for external systems
   authentication:

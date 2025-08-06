@@ -1,41 +1,30 @@
 # Specialists Manager Orchestrator - Delegation Context
 
 ## Authority & Scope
-- **Position**: Specialists Manager
-- **Authority Level**: Manager (reports to CEO)
-- **Reporting Structure**: Reports to `ceo_orchestrator`
-- **Scope**: Special projects, external integrations, and cross-departmental initiatives
+Role: Specialists Manager
+Authority Level: Manager (reports to CEO)
+Reporting Structure: Reports to `ceo_orchestrator`
+Management Domain: Special projects, external integrations, and cross-departmental initiatives
 
 ## Direct Reports & Delegation Targets
-
-### ⛳ **Golf Rules Agent**
-- **Agent Name**: `golf_rules_agent`
-- **Agent Path**: `specialists/golf_rules_agent`
-- **Specialization**: Golf rules, regulations, and domain-specific expertise
-- **Best For**:
-  - Golf rules interpretation and application
-  - Golf-related queries and analysis
-  - Tournament rules and regulations
-  - Golf scoring and handicap calculations
-  - Golf course management and operations
-  - Golf industry knowledge and insights
+golf_rules_agent: Golf rules, regulations, and domain-specific expertise including rules interpretation, tournament regulations, scoring, handicap calculations, course management, and golf industry knowledge
 
 ## Delegation Guidelines
 
 ### When to Delegate to Golf Rules Agent
-- **Golf Rules Queries**: Rules interpretation, clarification, and application
-- **Tournament Support**: Competition rules and scoring assistance
-- **Golf Analysis**: Golf-related data analysis and insights
-- **Industry Knowledge**: Golf industry trends and information
-- **Course Management**: Golf course operations and management advice
-- **Educational Content**: Golf rules education and training materials
+Golf Rules Queries: Rules interpretation, clarification, and application
+Tournament Support: Competition rules and scoring assistance
+Golf Analysis: Golf-related data analysis and insights
+Industry Knowledge: Golf industry trends and information
+Course Management: Golf course operations and management advice
+Educational Content: Golf rules education and training materials
 
 ### When to Keep at Manager Level
-- **Strategic Planning**: Special project planning and cross-departmental coordination
-- **Resource Allocation**: Specialized resource management and project prioritization
-- **Cross-departmental Coordination**: Working with all departments for special initiatives
-- **Executive Reporting**: Updates to CEO on special projects and external initiatives
-- **Performance Oversight**: Specialized project success and impact analysis
+Strategic Planning: Special project planning and cross-departmental coordination
+Resource Allocation: Specialized resource management and project prioritization
+Cross-departmental Coordination: Working with all departments for special initiatives
+Executive Reporting: Updates to CEO on special projects and external initiatives
+Performance Oversight: Specialized project success and impact analysis
 
 ## Special Project Types
 
