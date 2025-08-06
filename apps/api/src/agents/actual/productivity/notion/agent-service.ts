@@ -1,16 +1,6 @@
-import { Injectable, Inject, forwardRef, Optional } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
+import { Injectable, Optional } from '@nestjs/common';
 import { FunctionAgentBaseService } from '@agents/base/implementations/base-services/function';
-import { LLMService } from '@/llms/llm.service';
-import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
-import { TasksService } from '@/tasks/tasks.service';
-import { TaskStatusService } from '@/tasks/task-status.service';
-import { DeliverablesService } from '@/deliverables/deliverables.service';
-import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
-import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
-import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
-import { AuthService } from '@agents/base/sub-services/auth/auth.service';
-import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
+import { FunctionAgentServicesContext } from '@agents/base/services/function-agent-services-context';
 import { LangChainNotionService } from '@/langchain/services/notion-tools.service';
 import {
   AgentFunctionParams,
@@ -26,37 +16,12 @@ import {
 @Injectable()
 export class NotionAgentService extends FunctionAgentBaseService {
   constructor(
-    httpService: HttpService,
-    llmService: LLMService,
-    @Inject(forwardRef(() => TaskProgressGateway))
-    taskProgressGateway: TaskProgressGateway | undefined,
-    @Inject(forwardRef(() => TasksService))
-    tasksService: TasksService | undefined,
-    @Inject(forwardRef(() => TaskStatusService))
-    taskStatusService: TaskStatusService | undefined,
-    deliverablesService?: DeliverablesService,
+    // Pure service container pattern - only accepts FunctionAgentServicesContext
+    services: FunctionAgentServicesContext,
     @Optional()
     private readonly langchainNotion?: LangChainNotionService,
-    agentRegistrationService?: AgentRegistrationService,
-    jsonRpcProtocolService?: JsonRpcProtocolService,
-    loggingService?: LoggingService,
-    authService?: AuthService,
-    configurationService?: ConfigurationService,
   ) {
-    super(
-      httpService,
-      llmService,
-      taskProgressGateway,
-      tasksService,
-      taskStatusService,
-      deliverablesService,
-      undefined, // mcpClientService (removed)
-      agentRegistrationService,
-      jsonRpcProtocolService,
-      loggingService,
-      authService,
-      configurationService,
-    );
+    super(services);
 
     // Set total steps for Notion Agent workflow
     this.setTotalSteps(4);

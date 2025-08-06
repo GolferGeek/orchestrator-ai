@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { LLMService } from '@/llms/llm.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
@@ -23,17 +23,17 @@ export class AgentServicesContext {
     public readonly llmService: LLMService,
     
     // Task and deliverable services
-    public readonly taskStatusService: TaskStatusService,
-    public readonly tasksService: TasksService,
-    public readonly deliverablesService: DeliverablesService,
-    public readonly taskProgressGateway: TaskProgressGateway,
+    @Optional() public readonly taskStatusService?: TaskStatusService,
+    @Optional() public readonly tasksService?: TasksService,
+    @Optional() public readonly deliverablesService?: DeliverablesService,
+    @Optional() public readonly taskProgressGateway?: TaskProgressGateway,
     
     // Agent framework services
-    public readonly agentRegistrationService: AgentRegistrationService,
-    public readonly jsonRpcProtocolService: JsonRpcProtocolService,
-    public readonly loggingService: LoggingService,
-    public readonly authService: AuthService,
-    public readonly configurationService: ConfigurationService,
+    @Optional() public readonly agentRegistrationService?: AgentRegistrationService,
+    @Optional() public readonly jsonRpcProtocolService?: JsonRpcProtocolService,
+    @Optional() public readonly loggingService?: LoggingService,
+    @Optional() public readonly authService?: AuthService,
+    @Optional() public readonly configurationService?: ConfigurationService,
   ) {}
 
   /**

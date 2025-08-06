@@ -12,6 +12,8 @@ import { TaskProgressGateway } from './websocket/task-progress.gateway';
 import { TasksService } from './tasks/tasks.service';
 import { TaskStatusService } from './tasks/task-status.service';
 import { DeliverablesService } from './deliverables/deliverables.service';
+import { AgentServicesContext } from './agents/base/services/agent-services-context';
+import { FunctionAgentServicesContext } from './agents/base/services/function-agent-services-context';
 import { MarketingManagerOrchestratorService } from './agents/actual/marketing/marketing_manager_orchestrator/agent-service';
 import { CEOOrchestratorService } from './agents/actual/orchestrator/ceo_orchestrator/agent-service';
 import { EngineeringManagerOrchestratorService } from './agents/actual/engineering/engineering_manager_orchestrator/agent-service';
@@ -78,6 +80,8 @@ export class AgentFactoryService {
     private readonly tasksService: TasksService,
     private readonly taskStatusService: TaskStatusService,
     private readonly deliverablesService: DeliverablesService,
+    @Optional() private readonly agentServicesContext?: AgentServicesContext,
+    @Optional() private readonly functionAgentServicesContext?: FunctionAgentServicesContext,
     @Optional() private readonly marketingManagerOrchestratorService?: MarketingManagerOrchestratorService,
     @Optional() private readonly ceoOrchestratorService?: CEOOrchestratorService,
     @Optional() private readonly engineeringManagerOrchestratorService?: EngineeringManagerOrchestratorService,
@@ -382,21 +386,16 @@ export class AgentFactoryService {
         }
 
         case 'function': {
-          this.logger.debug(`⚙️ Creating TypeScript function agent`);
-          return new ServiceClass(
-            this.httpService,
-            this.llmService,
-            this.taskProgressGateway,
-            this.tasksService,
-            this.taskStatusService,
-            this.deliverablesService, // Pass DeliverablesService
-            undefined, // mcpClientService (removed)
-            this.agentRegistrationService,
-            undefined, // jsonRpcProtocolService
-            undefined, // loggingService
-            undefined, // authService
-            this.configurationService,
+          this.logger.debug(`⚙️ Creating TypeScript function agent with service container`);
+          this.logger.debug(
+            `⚙️ Function service container available: ${!!this.functionAgentServicesContext}`,
           );
+          
+          if (!this.functionAgentServicesContext) {
+            throw new Error('FunctionAgentServicesContext not available - required for function agents. Please ensure FunctionAgentServicesContextModule is imported.');
+          }
+          
+          return new ServiceClass(this.functionAgentServicesContext);
         }
 
         case 'python-function': {
@@ -411,22 +410,16 @@ export class AgentFactoryService {
         }
 
         case 'context': {
-          this.logger.debug(`📝 Creating context agent`);
+          this.logger.debug(`📝 Creating context agent with service container`);
           this.logger.debug(
-            `📝 Injecting services: taskStatusService=${!!this.taskStatusService}, tasksService=${!!this.tasksService}, deliverablesService=${!!this.deliverablesService}`,
+            `📝 Service container available: ${!!this.agentServicesContext}`,
           );
-          return new ServiceClass(
-            this.httpService,
-            this.llmService,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            this.taskStatusService,
-            this.tasksService,
-            this.deliverablesService, // Now inject DeliverablesService for context agents
-          );
+          
+          if (!this.agentServicesContext) {
+            throw new Error('AgentServicesContext not available - required for context agents. Please ensure AgentServicesContextModule is imported.');
+          }
+          
+          return new ServiceClass(this.agentServicesContext);
         }
 
         case 'api': {

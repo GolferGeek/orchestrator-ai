@@ -1,34 +1,14 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { LLMService } from '@/llms/llm.service';
-import { TaskStatusService } from '@/tasks/task-status.service';
-import { TasksService } from '@/tasks/tasks.service';
+import { Injectable } from '@nestjs/common';
 import { ContextAgentBaseService } from '@agents/base/implementations/base-services/context/context-agent-base.service';
+import { AgentServicesContext } from '@agents/base/services/agent-services-context';
 
 @Injectable()
 export class CompetitorsAgentService extends ContextAgentBaseService {
   constructor(
-    httpService: HttpService,
-    llmService: LLMService,
-    agentRegistrationService?: any,
-    jsonRpcProtocolService?: any,
-    loggingService?: any,
-    authService?: any,
-    configurationService?: any,
-    taskStatusService?: TaskStatusService,
-    tasksService?: TasksService,
+    // Pure service container pattern - only accepts AgentServicesContext
+    services: AgentServicesContext,
   ) {
-    super(
-      httpService,
-      llmService,
-      agentRegistrationService,
-      jsonRpcProtocolService,
-      loggingService,
-      authService,
-      configurationService,
-      taskStatusService,
-      tasksService,
-    );
+    super(services);
   }
 
   /**
