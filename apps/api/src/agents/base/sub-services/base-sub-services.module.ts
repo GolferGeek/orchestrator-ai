@@ -9,6 +9,7 @@ import { EvaluationWrapperService } from './evaluation-wrapper/evaluation-wrappe
 import { HealthService } from './health/health.service';
 import { LoggingService } from './logging/logging.service';
 import { AuthService } from './auth/auth.service';
+import { DeliverablesModule } from '../../../deliverables/deliverables.module';
 // MCPModule removed - replaced with LangChain module
 
 /**
@@ -17,7 +18,7 @@ import { AuthService } from './auth/auth.service';
  * agent registration, and other utility operations.
  */
 @Module({
-  imports: [HttpModule],
+  imports: [HttpModule, DeliverablesModule],
   providers: [
     ConfigurationService,
     AgentRegistrationService,

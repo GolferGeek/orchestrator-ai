@@ -17,6 +17,7 @@ import { AgentFunctionParams } from '../../a2a-base/interfaces';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
+import { DeliverablesService } from '@/deliverables/deliverables.service';
 // MCPClientService removed - using LangChain.js services instead
 
 export interface AgentFunctionResponse {
@@ -48,8 +49,8 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     protected readonly tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     protected readonly taskStatusService: TaskStatusService | undefined,
-    @Optional()
-    mcpClientService?: any, // MCPClientService removed
+    deliverablesService?: DeliverablesService,
+    mcpClientService?: any, // Legacy MCP client service (removed but keeping parameter for compatibility)
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -59,6 +60,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     super(
       httpService,
       taskStatusService, // Pass TaskStatusService to parent A2AAgentBaseService
+      deliverablesService, // Pass DeliverablesService to parent A2AAgentBaseService
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,

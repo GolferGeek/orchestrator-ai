@@ -30,6 +30,8 @@ import {
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { TaskStatusService } from '../../../../../tasks/task-status.service';
+import { DeliverablesService } from '../../../../../deliverables/deliverables.service';
+import { DeliverableType, DeliverableFormat } from '../../../../../deliverables/dto';
 
 /**
  * Minimal A2A Agent Base Service
@@ -55,12 +57,16 @@ export abstract class A2AAgentBaseService
   protected authService: AuthService;
   protected configurationService: ConfigurationService;
   protected taskStatusService?: TaskStatusService;
+  protected deliverablesService?: DeliverablesService;
 
   constructor(
     protected readonly httpService: HttpService,
     @Optional()
     @Inject(TaskStatusService)
     taskStatusService?: TaskStatusService,
+    @Optional()
+    @Inject(DeliverablesService)
+    deliverablesService?: DeliverablesService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -77,6 +83,7 @@ export abstract class A2AAgentBaseService
     this.configurationService =
       configurationService || new ConfigurationService();
     this.taskStatusService = taskStatusService;
+    this.deliverablesService = deliverablesService;
   }
 
   // ============================================================================
@@ -544,7 +551,7 @@ export abstract class A2AAgentBaseService
   }
 
   /**
-   * Mark task as completed
+   * Mark task as completed with optional deliverable enhancement context
    * This is the ONLY way tasks should be marked as completed
    */
   protected async completeTask(
@@ -552,12 +559,27 @@ export abstract class A2AAgentBaseService
     userId: string,
     result: any,
     additionalData?: Record<string, any>,
+    enhanceDeliverableId?: string,
   ): Promise<void> {
     if (!this.taskStatusService) {
       this.logger.warn(
         'TaskStatusService not available - task completion not tracked',
       );
       return;
+    }
+
+    // Auto-persist deliverable if result contains deliverable content
+    // This must happen BEFORE marking task complete so we can attach deliverable ID
+    const deliverableId = await this.persistDeliverableIfPresent(result, userId, taskId, enhanceDeliverableId);
+
+    // If deliverable was created, attach ID to the result
+    if (deliverableId && typeof result === 'object' && result !== null) {
+      result.deliverableId = deliverableId;
+      
+      // If this was an enhancement, also include the original deliverable ID
+      if (enhanceDeliverableId) {
+        result.enhancedFrom = enhanceDeliverableId;
+      }
     }
 
     await this.taskStatusService.completeTask(taskId, userId, result);
@@ -570,7 +592,7 @@ export abstract class A2AAgentBaseService
       );
     }
 
-    this.logger.debug(`Task ${taskId} marked as completed`);
+    this.logger.debug(`Task ${taskId} marked as completed${deliverableId ? ` with deliverable ${deliverableId}` : ''}${enhanceDeliverableId ? ` (enhanced from ${enhanceDeliverableId})` : ''}`);
   }
 
   /**
@@ -620,6 +642,317 @@ export abstract class A2AAgentBaseService
     }
 
     await this.taskStatusService.updateTaskStatus(taskId, userId, statusUpdate);
+  }
+
+  // ============================================================================
+  // DELIVERABLE AUTO-PERSISTENCE - All agents can create deliverables
+  // ============================================================================
+
+  /**
+   * Auto-persist deliverable if content contains deliverable markers
+   * This runs for ALL agents when they complete tasks
+   * @returns deliverable ID if created, null otherwise
+   */
+  private async persistDeliverableIfPresent(
+    result: any,
+    userId: string,
+    taskId?: string,
+    enhanceDeliverableId?: string,
+  ): Promise<string | null> {
+    if (!this.deliverablesService) {
+      this.logger.debug('DeliverablesService not available - skipping deliverable persistence');
+      return null;
+    }
+
+    try {
+      // Extract content from various result formats
+      const content = this.extractContentFromResult(result);
+      if (!content) {
+        return null;
+      }
+
+      // Check if content contains deliverable markers
+      if (!this.isDeliverableContent(content)) {
+        return null;
+      }
+
+      // Extract deliverable information
+      const deliverableData = this.extractDeliverableFromContent(content);
+      if (!deliverableData) {
+        return null;
+      }
+
+      // Create new deliverable or enhance existing one
+      let deliverable;
+      
+      if (enhanceDeliverableId) {
+        // Creating a new version of an existing deliverable
+        deliverable = await this.deliverablesService.createVersion(enhanceDeliverableId, {
+          title: deliverableData.title,
+          content: deliverableData.content,
+          metadata: {
+            agentName: this.getAgentName(),
+            agentType: this.getAgentType(),
+            taskId: taskId || 'unknown',
+            generatedAt: new Date().toISOString(),
+            enhancedFrom: enhanceDeliverableId,
+            ...deliverableData.metadata,
+          },
+          created_by_agent: this.getAgentName(),
+        }, userId);
+
+        this.logger.log(`📄 Deliverable enhanced: ${deliverable.title} (New ID: ${deliverable.id}, Enhanced from: ${enhanceDeliverableId})`);
+      } else {
+        // Creating a new deliverable
+        deliverable = await this.deliverablesService.create({
+          title: deliverableData.title,
+          content: deliverableData.content,
+          deliverable_type: deliverableData.type,
+          format: deliverableData.format,
+          description: deliverableData.description,
+          metadata: {
+            agentName: this.getAgentName(),
+            agentType: this.getAgentType(),
+            taskId: taskId || 'unknown',
+            generatedAt: new Date().toISOString(),
+            ...deliverableData.metadata,
+          },
+        }, userId);
+
+        this.logger.log(`📄 Deliverable auto-persisted: ${deliverable.title} (ID: ${deliverable.id})`);
+      }
+      
+      return deliverable.id;
+    } catch (error) {
+      this.logger.error('Failed to auto-persist deliverable:', error);
+      // Don't throw - deliverable persistence shouldn't break task completion
+      return null;
+    }
+  }
+
+  /**
+   * Extract content from various result formats
+   */
+  private extractContentFromResult(result: any): string | null {
+    if (!result) {
+      return null;
+    }
+
+    // Handle different result formats
+    if (typeof result === 'string') {
+      return result;
+    }
+
+    if (typeof result === 'object') {
+      // Try common response fields
+      const content = result.response || 
+                     result.message || 
+                     result.content || 
+                     result.data;
+      
+      if (typeof content === 'string') {
+        return content;
+      }
+
+      // If it's still an object, stringify it for analysis
+      if (typeof content === 'object') {
+        return JSON.stringify(content, null, 2);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if content contains deliverable markers
+   * Looks for common deliverable indicators like headers, sections, etc.
+   */
+  private isDeliverableContent(content: string): boolean {
+    // Look for deliverable markers
+    const deliverableMarkers = [
+      /^#\s+(.+)/m, // Markdown headers
+      /^##\s+(.+)/m,
+      /^\*\*(.+)\*\*$/m, // Bold titles
+      /DELIVERABLE:/i,
+      /DOCUMENT:/i,
+      /REPORT:/i,
+      /ANALYSIS:/i,
+      /PLAN:/i,
+      /REQUIREMENTS:/i,
+    ];
+
+    // Check for structured content (multiple sections, substantial length)
+    const hasStructure = content.includes('\n\n') && content.length > 500;
+    const hasMarkers = deliverableMarkers.some(marker => marker.test(content));
+
+    return hasStructure || hasMarkers;
+  }
+
+  /**
+   * Extract deliverable information from content
+   */
+  private extractDeliverableFromContent(content: string): {
+    title: string;
+    content: string;
+    type: DeliverableType;
+    format: DeliverableFormat;
+    description?: string;
+    metadata?: Record<string, any>;
+  } | null {
+    try {
+      // Extract title from first header or use agent name + timestamp
+      let title = this.extractTitleFromContent(content) || 
+                  `${this.getAgentName()} Output - ${new Date().toLocaleDateString()}`;
+
+      // Determine type based on content analysis
+      const type = this.determineDeliverableType(content);
+      
+      // Determine format (markdown if it has markdown syntax, otherwise text)
+      const format = this.hasMarkdownSyntax(content) ? DeliverableFormat.MARKDOWN : DeliverableFormat.TEXT;
+
+      // Generate description from first paragraph or truncated content
+      const description = this.extractDescriptionFromContent(content) || undefined;
+
+      return {
+        title,
+        content,
+        type,
+        format,
+        description,
+        metadata: {
+          autoGenerated: true,
+          originalLength: content.length,
+          extractedAt: new Date().toISOString(),
+        },
+      };
+    } catch (error) {
+      this.logger.error('Failed to extract deliverable from content:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Extract title from content (first header, bold text, etc.)
+   */
+  private extractTitleFromContent(content: string): string | null {
+    // Try markdown headers first
+    const headerMatch = content.match(/^#\s+(.+)$/m);
+    if (headerMatch && headerMatch[1]) {
+      return headerMatch[1].trim();
+    }
+
+    // Try second-level headers
+    const h2Match = content.match(/^##\s+(.+)$/m);
+    if (h2Match && h2Match[1]) {
+      return h2Match[1].trim();
+    }
+
+    // Try bold text at the beginning
+    const boldMatch = content.match(/^\*\*(.+?)\*\*/);
+    if (boldMatch && boldMatch[1]) {
+      return boldMatch[1].trim();
+    }
+
+    // Try deliverable markers
+    const deliverableMatch = content.match(/(?:DELIVERABLE|DOCUMENT|REPORT|ANALYSIS|PLAN|REQUIREMENTS):\s*(.+)/i);
+    if (deliverableMatch && deliverableMatch[1]) {
+      return deliverableMatch[1].trim();
+    }
+
+    return null;
+  }
+
+  /**
+   * Determine deliverable type based on content analysis
+   */
+  private determineDeliverableType(content: string): DeliverableType {
+    const lowerContent = content.toLowerCase();
+
+    if (lowerContent.includes('requirement') || lowerContent.includes('spec')) {
+      return DeliverableType.REQUIREMENTS;
+    }
+    if (lowerContent.includes('analysis') || lowerContent.includes('analyze')) {
+      return DeliverableType.ANALYSIS;
+    }
+    if (lowerContent.includes('plan') || lowerContent.includes('strategy')) {
+      return DeliverableType.PLAN;
+    }
+    if (lowerContent.includes('report') || lowerContent.includes('summary')) {
+      return DeliverableType.REPORT;
+    }
+
+    // Default to document
+    return DeliverableType.DOCUMENT;
+  }
+
+  /**
+   * Check if content has markdown syntax
+   */
+  private hasMarkdownSyntax(content: string): boolean {
+    const markdownPatterns = [
+      /^#+ /m, // Headers
+      /\*\*.*?\*\*/, // Bold
+      /\*.*?\*/, // Italic
+      /```/, // Code blocks
+      /^- |^\d+\. /m, // Lists
+    ];
+
+    return markdownPatterns.some(pattern => pattern.test(content));
+  }
+
+  /**
+   * Extract description from content (first paragraph or truncated)
+   */
+  private extractDescriptionFromContent(content: string): string | null {
+    // Remove title/header if present
+    const contentWithoutTitle = content.replace(/^#+ .+$/m, '').trim();
+    
+    // Get first paragraph
+    const firstParagraph = contentWithoutTitle.split('\n\n')[0];
+    
+    if (firstParagraph && firstParagraph.length > 20) {
+      // Truncate if too long
+      return firstParagraph.length > 200 
+        ? firstParagraph.substring(0, 197) + '...'
+        : firstParagraph;
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract deliverable ID from task parameters for enhancement workflows
+   */
+  protected extractDeliverableIdFromParams(params: any): string | null {
+    if (!params || typeof params !== 'object') {
+      return null;
+    }
+
+    // Check various parameter formats for deliverable ID
+    return params.deliverableId || 
+           params.enhance_deliverable_id || 
+           params.enhanceDeliverableId ||
+           params.metadata?.deliverableId ||
+           params.metadata?.enhance_deliverable_id ||
+           null;
+  }
+
+  /**
+   * Helper method for agents to complete tasks with deliverable enhancement context
+   * This should be used by agents in their executeTask implementations
+   */
+  protected async completeTaskWithDeliverableContext(
+    taskId: string,
+    userId: string,
+    result: any,
+    taskParams: any,
+    additionalData?: Record<string, any>,
+  ): Promise<void> {
+    // Extract deliverable ID from task parameters if present
+    const enhanceDeliverableId = this.extractDeliverableIdFromParams(taskParams) || undefined;
+    
+    // Complete task with deliverable context
+    await this.completeTask(taskId, userId, result, additionalData, enhanceDeliverableId);
   }
 
   private discoverAgentPath(): string {

@@ -11,6 +11,7 @@ import { AgentRegistrationService } from './agents/base/sub-services/agent-regis
 import { TaskProgressGateway } from './websocket/task-progress.gateway';
 import { TasksService } from './tasks/tasks.service';
 import { TaskStatusService } from './tasks/task-status.service';
+import { DeliverablesService } from './deliverables/deliverables.service';
 import { MarketingManagerOrchestratorService } from './agents/actual/marketing/marketing_manager_orchestrator/agent-service';
 import { CEOOrchestratorService } from './agents/actual/orchestrator/ceo_orchestrator/agent-service';
 import { EngineeringManagerOrchestratorService } from './agents/actual/engineering/engineering_manager_orchestrator/agent-service';
@@ -76,6 +77,7 @@ export class AgentFactoryService {
     private readonly taskProgressGateway: TaskProgressGateway,
     private readonly tasksService: TasksService,
     private readonly taskStatusService: TaskStatusService,
+    private readonly deliverablesService: DeliverablesService,
     @Optional() private readonly marketingManagerOrchestratorService?: MarketingManagerOrchestratorService,
     @Optional() private readonly ceoOrchestratorService?: CEOOrchestratorService,
     @Optional() private readonly engineeringManagerOrchestratorService?: EngineeringManagerOrchestratorService,
@@ -387,6 +389,8 @@ export class AgentFactoryService {
             this.taskProgressGateway,
             this.tasksService,
             this.taskStatusService,
+            this.deliverablesService, // Pass DeliverablesService
+            undefined, // mcpClientService (removed)
             this.agentRegistrationService,
             undefined, // jsonRpcProtocolService
             undefined, // loggingService
@@ -409,7 +413,7 @@ export class AgentFactoryService {
         case 'context': {
           this.logger.debug(`📝 Creating context agent`);
           this.logger.debug(
-            `📝 Injecting services: taskStatusService=${!!this.taskStatusService}, tasksService=${!!this.tasksService}`,
+            `📝 Injecting services: taskStatusService=${!!this.taskStatusService}, tasksService=${!!this.tasksService}, deliverablesService=${!!this.deliverablesService}`,
           );
           return new ServiceClass(
             this.httpService,
@@ -421,6 +425,7 @@ export class AgentFactoryService {
             undefined,
             this.taskStatusService,
             this.tasksService,
+            this.deliverablesService, // Now inject DeliverablesService for context agents
           );
         }
 

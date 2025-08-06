@@ -5,12 +5,12 @@ import { LLMService } from '@/llms/llm.service';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { TasksService } from '@/tasks/tasks.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
+import { DeliverablesService } from '@/deliverables/deliverables.service';
 import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
-// MCPClientService removed - using LangChain.js services instead
 
 @Injectable()
 export class MarketingSwarmService extends FunctionAgentBaseService {
@@ -23,7 +23,7 @@ export class MarketingSwarmService extends FunctionAgentBaseService {
     tasksService: TasksService | undefined,
     @Inject(forwardRef(() => TaskStatusService))
     taskStatusService: TaskStatusService | undefined,
-    // mcpClientService removed
+    deliverablesService?: DeliverablesService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -36,7 +36,8 @@ export class MarketingSwarmService extends FunctionAgentBaseService {
       taskProgressGateway,
       tasksService,
       taskStatusService,
-      undefined, // mcpClientService removed
+      deliverablesService,
+      undefined, // mcpClientService (removed)
       agentRegistrationService,
       jsonRpcProtocolService,
       loggingService,
