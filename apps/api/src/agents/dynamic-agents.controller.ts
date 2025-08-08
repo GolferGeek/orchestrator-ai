@@ -176,6 +176,18 @@ export class DynamicAgentsController {
     const taskRequestWithTimeout = {
       ...normalizedTaskRequest,
       conversationHistory: optimizedHistory,
+      llmMetadata: {
+        ...(normalizedTaskRequest as any).llmMetadata,
+        contextOptimization: optimizationEnabled
+          ? {
+              strategy: 'backend_intelligent',
+              originalMessageCount:
+                (normalizedTaskRequest.conversationHistory || []).length,
+              optimizedMessageCount: optimizedHistory.length,
+              workProductType: wp?.type,
+            }
+          : undefined,
+      },
       timeoutSeconds: agentTimeout,
     };
 

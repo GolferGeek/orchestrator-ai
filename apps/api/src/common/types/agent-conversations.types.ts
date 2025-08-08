@@ -102,6 +102,7 @@ export interface CreateTaskDto {
   taskId?: string; // Optional, pre-generated task ID from frontend to enable early WebSocket subscription
   timeoutSeconds?: number;
   llmSelection?: LLMSelection; // LLM and CIDAFM configuration
+  llmMetadata?: Record<string, any>; // Additional metadata such as context optimization details
   executionMode?: 'immediate' | 'polling' | 'websocket'; // Execution mode for backend processing
   conversationHistory?: Array<{
     role: string;
