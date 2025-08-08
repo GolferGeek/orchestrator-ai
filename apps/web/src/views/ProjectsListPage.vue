@@ -156,7 +156,7 @@
                   </div>
                   <div class="meta-item">
                     <ion-icon :icon="calendarOutline"></ion-icon>
-                    <span>{{ formatDate(project.createdAt) }}</span>
+                    <span>{{ formatDate(new Date(project.createdAt)) }}</span>
                   </div>
                   <div class="meta-item">
                     <ion-icon :icon="timeOutline"></ion-icon>
@@ -279,8 +279,15 @@ import { projectsService, type Project } from '@/services/projectsService';
 
 const router = useRouter();
 
+// Display interface for projects with converted dates
+interface DisplayProject extends Omit<Project, 'createdAt' | 'updatedAt'> {
+  createdAt: Date;
+  updatedAt: Date;
+  displayStatus: string;
+}
+
 // Reactive state
-const projects = ref<Project[]>([]);
+const projects = ref<DisplayProject[]>([]);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 const statusFilter = ref('all');
@@ -332,7 +339,7 @@ const mapSortValue = (sort: string) => {
 };
 
 // Helper functions for hierarchical display
-const buildHierarchicalProjects = (projectList: Project[]): Project[] => {
+const buildHierarchicalProjects = (projectList: DisplayProject[]): DisplayProject[] => {
   // Sort projects by hierarchy level first, then by creation date
   return projectList.sort((a, b) => {
     const aLevel = a.hierarchyLevel || 0;
@@ -407,11 +414,11 @@ const createNewProject = () => {
   router.push('/projects/new');
 };
 
-const openProject = (project: Project) => {
+const openProject = (project: DisplayProject) => {
   router.push(`/projects/${project.id}`);
 };
 
-const pauseProject = async (project: Project) => {
+const pauseProject = async (project: DisplayProject) => {
   const alert = await alertController.create({
     header: 'Pause Project',
     message: `Are you sure you want to pause "${project.name || 'this project'}"? All active tasks will be paused.`,
@@ -439,7 +446,7 @@ const pauseProject = async (project: Project) => {
   await alert.present();
 };
 
-const resumeProject = async (project: Project) => {
+const resumeProject = async (project: DisplayProject) => {
   const alert = await alertController.create({
     header: 'Resume Project',
     message: `Resume "${project.name || 'this project'}"? Paused tasks will continue execution.`,
@@ -481,7 +488,7 @@ const toggleViewMode = () => {
   fetchProjects();
 };
 
-const createSubproject = (parentProject: Project) => {
+const createSubproject = (parentProject: DisplayProject) => {
   router.push(`/projects/new?parentId=${parentProject.id}&parentName=${encodeURIComponent(parentProject.name || 'Unnamed Project')}`);
 };
 

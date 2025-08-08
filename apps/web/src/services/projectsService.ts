@@ -1,4 +1,4 @@
-import { apiClient } from './clients/apiClient';
+import { apiService } from './apiService';
 
 // Types matching the backend API
 export interface Project {
@@ -110,7 +110,7 @@ export class ProjectsService {
     
     const url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
     
-    const response = await apiClient.get(url);
+    const response = await apiService.get(url);
     return response.data;
   }
 
@@ -118,7 +118,7 @@ export class ProjectsService {
    * Get a specific project by ID
    */
   async getProject(projectId: string): Promise<Project> {
-    const response = await apiClient.get(`${this.baseUrl}/${projectId}`);
+    const response = await apiService.get(`${this.baseUrl}/${projectId}`);
     return response.data;
   }
 
@@ -126,7 +126,7 @@ export class ProjectsService {
    * Create a new project
    */
   async createProject(data: CreateProjectDto): Promise<Project> {
-    const response = await apiClient.post(this.baseUrl, data);
+    const response = await apiService.post(this.baseUrl, data);
     return response.data;
   }
 
@@ -134,7 +134,7 @@ export class ProjectsService {
    * Update a project
    */
   async updateProject(projectId: string, data: UpdateProjectDto): Promise<Project> {
-    const response = await apiClient.put(`${this.baseUrl}/${projectId}`, data);
+    const response = await apiService.put(`${this.baseUrl}/${projectId}`, data);
     return response.data;
   }
 
@@ -142,7 +142,7 @@ export class ProjectsService {
    * Delete a project
    */
   async deleteProject(projectId: string): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.delete(`${this.baseUrl}/${projectId}`);
+    const response = await apiService.delete(`${this.baseUrl}/${projectId}`);
     return response.data;
   }
 
@@ -150,7 +150,7 @@ export class ProjectsService {
    * Get project steps
    */
   async getProjectSteps(projectId: string): Promise<ProjectStep[]> {
-    const response = await apiClient.get(`${this.baseUrl}/${projectId}/steps`);
+    const response = await apiService.get(`${this.baseUrl}/${projectId}/steps`);
     return response.data;
   }
 
@@ -167,7 +167,7 @@ export class ProjectsService {
       details: Record<string, any>;
     }>;
   }> {
-    const response = await apiClient.get(`${this.baseUrl}/${projectId}/history`);
+    const response = await apiService.get(`${this.baseUrl}/${projectId}/history`);
     return response.data;
   }
 
@@ -179,7 +179,7 @@ export class ProjectsService {
     targetStepId?: string;
     metadata?: any;
   }): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.post(`${this.baseUrl}/${projectId}/resume`, options || {});
+    const response = await apiService.post(`${this.baseUrl}/${projectId}/resume`, options || {});
     return response.data;
   }
 
@@ -191,7 +191,7 @@ export class ProjectsService {
     targetStepId?: string;
     metadata?: any;
   }): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.post(`${this.baseUrl}/${projectId}/retry`, options || {});
+    const response = await apiService.post(`${this.baseUrl}/${projectId}/retry`, options || {});
     return response.data;
   }
 
@@ -204,7 +204,7 @@ export class ProjectsService {
     targetStepId?: string;
     metadata?: any;
   }): Promise<Project> {
-    const response = await apiClient.post(`${this.baseUrl}/${projectId}/fork`, options || {});
+    const response = await apiService.post(`${this.baseUrl}/${projectId}/fork`, options || {});
     return response.data;
   }
 
@@ -215,7 +215,7 @@ export class ProjectsService {
     reason?: string;
     metadata?: any;
   }): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.post(`${this.baseUrl}/${projectId}/abort`, options || {});
+    const response = await apiService.post(`${this.baseUrl}/${projectId}/abort`, options || {});
     return response.data;
   }
 
@@ -246,7 +246,7 @@ export class ProjectsService {
     }>;
     recommendations: string[];
   }> {
-    const response = await apiClient.get(`${this.baseUrl}/${projectId}/analytics`);
+    const response = await apiService.get(`${this.baseUrl}/${projectId}/analytics`);
     return response.data;
   }
 
@@ -276,7 +276,7 @@ export class ProjectsService {
    * Get project hierarchy path (breadcrumb trail)
    */
   async getProjectHierarchyPath(projectId: string): Promise<ProjectHierarchyNode[]> {
-    const response = await apiClient.get(`${this.baseUrl}/${projectId}/hierarchy-path`);
+    const response = await apiService.get(`${this.baseUrl}/${projectId}/hierarchy-path`);
     return response.data;
   }
 
@@ -284,7 +284,7 @@ export class ProjectsService {
    * Get project with full hierarchy context
    */
   async getProjectWithHierarchy(projectId: string): Promise<ProjectWithHierarchy> {
-    const response = await apiClient.get(`${this.baseUrl}/${projectId}/with-hierarchy`);
+    const response = await apiService.get(`${this.baseUrl}/${projectId}/with-hierarchy`);
     return response.data;
   }
 
@@ -302,7 +302,7 @@ export class ProjectsService {
    * Get project tree structure starting from a root project
    */
   async getProjectTree(rootProjectId: string): Promise<ProjectWithHierarchy> {
-    const response = await apiClient.get(`${this.baseUrl}/${rootProjectId}/tree`);
+    const response = await apiService.get(`${this.baseUrl}/${rootProjectId}/tree`);
     return response.data;
   }
 
@@ -310,7 +310,7 @@ export class ProjectsService {
    * Move project to different parent (reparent)
    */
   async moveProject(projectId: string, newParentProjectId?: string): Promise<Project> {
-    const response = await apiClient.put(`${this.baseUrl}/${projectId}/move`, {
+    const response = await apiService.put(`${this.baseUrl}/${projectId}/move`, {
       parentProjectId: newParentProjectId,
     });
     return response.data;
@@ -330,7 +330,7 @@ export class ProjectsService {
       failed: number;
     };
   }> {
-    const response = await apiClient.get(`${this.baseUrl}/${rootProjectId}/hierarchy-stats`);
+    const response = await apiService.get(`${this.baseUrl}/${rootProjectId}/hierarchy-stats`);
     return response.data;
   }
 }

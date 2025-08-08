@@ -8,7 +8,7 @@
         <ion-title>{{ project?.name || 'Project Details' }}</ion-title>
         <ion-buttons slot="end">
           <ion-button 
-            v-if="project?.status === 'active'"
+            v-if="project?.status === 'running'"
             fill="clear"
             color="warning"
             @click="pauseProject"
@@ -17,7 +17,7 @@
             Pause
           </ion-button>
           <ion-button 
-            v-if="project?.status === 'paused'"
+            v-if="project?.status === 'paused_for_human' || project?.status === 'paused_on_error'"
             fill="clear"
             color="success"
             @click="resumeProject"
@@ -111,10 +111,6 @@
                 <div class="meta-item" v-if="project.updatedAt">
                   <ion-icon :icon="timeOutline"></ion-icon>
                   <span><strong>Last Updated:</strong> {{ formatRelativeTime(project.updatedAt) }}</span>
-                </div>
-                <div class="meta-item" v-if="project.targetDate">
-                  <ion-icon :icon="flagOutline"></ion-icon>
-                  <span><strong>Target Date:</strong> {{ formatDate(project.targetDate) }}</span>
                 </div>
                 
                 <!-- Hierarchical information -->
@@ -275,7 +271,7 @@
                     </div>
                     <p class="subproject-description">{{ subproject.description || 'No description' }}</p>
                     <div class="subproject-meta">
-                      <span><strong>Created:</strong> {{ formatRelativeTime(subproject.createdAt) }}</span>
+                      <span><strong>Created:</strong> {{ formatRelativeTime(new Date(subproject.createdAt)) }}</span>
                       <span v-if="subproject.subprojectCount && subproject.subprojectCount > 0"><strong>Subprojects:</strong> {{ subproject.subprojectCount }}</span>
                     </div>
                   </div>
@@ -490,7 +486,7 @@ const fetchProject = async () => {
         id: step.id,
         name: step.stepName,
         description: step.prompt || 'No description available',
-        status: mapStepStatus(step.status),
+        status: mapStepStatus(step.status) as 'pending' | 'active' | 'completed' | 'failed',
         agentName: step.agentName || 'Unknown Agent',
         createdAt: new Date(step.createdAt),
         completedAt: step.completedAt ? new Date(step.completedAt) : undefined,
