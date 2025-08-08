@@ -111,6 +111,13 @@ export class ProjectsService {
     const url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
     
     const response = await apiService.get(url);
+    
+    // TEMPORARY FIX: If apiService.get is returning the projects data directly instead of response.data
+    if (response && response.projects && !response.data) {
+      console.log('DETECTED: apiService.get returned projects data directly instead of axios response');
+      return response; // Return the projects data directly
+    }
+    
     return response.data;
   }
 
@@ -118,16 +125,64 @@ export class ProjectsService {
    * Get a specific project by ID
    */
   async getProject(projectId: string): Promise<Project> {
-    const response = await apiService.get(`${this.baseUrl}/${projectId}`);
-    return response.data;
+    console.log('ProjectsService.getProject called with projectId:', projectId);
+    
+    try {
+      const response = await apiService.get(`${this.baseUrl}/${projectId}`);
+      console.log('Raw API response for getProject:', response);
+      console.log('Response data:', response.data);
+      console.log('Response data type:', typeof response.data);
+      
+      // TEMPORARY FIX: If apiService.get is returning the project directly instead of response.data
+      if (response && response.id && !response.data) {
+        console.log('DETECTED: apiService.get returned project directly instead of axios response');
+        return response; // Return the project object directly
+      }
+      
+      if (response.data) {
+        console.log('Response data keys:', Object.keys(response.data));
+        return response.data;
+      }
+      
+      console.error('No valid response data found for getProject:', response);
+      throw new Error('Invalid API response format for getProject');
+      
+    } catch (error) {
+      console.error('ProjectsService.getProject error:', error);
+      throw error;
+    }
   }
 
   /**
    * Create a new project
    */
   async createProject(data: CreateProjectDto): Promise<Project> {
-    const response = await apiService.post(this.baseUrl, data);
-    return response.data;
+    console.log('ProjectsService.createProject called with data:', data);
+    
+    try {
+      const response = await apiService.post(this.baseUrl, data);
+      console.log('Raw API response for createProject:', response);
+      console.log('Response data:', response.data);
+      console.log('Response data type:', typeof response.data);
+      
+      // TEMPORARY FIX: If apiService.post is returning the project directly instead of response.data
+      if (response && response.id && !response.data) {
+        console.log('DETECTED: apiService.post returned project directly instead of axios response');
+        return response; // Return the project object directly
+      }
+      
+      if (response.data) {
+        console.log('Response data keys:', Object.keys(response.data));
+        return response.data;
+      }
+      
+      console.error('No valid response data found:', response);
+      throw new Error('Invalid API response format');
+    
+    } catch (error) {
+      console.error('ProjectsService.createProject error:', error);
+      throw error;
+    }
   }
 
   /**

@@ -226,11 +226,11 @@
         </div>
 
         <!-- Subprojects Section -->
-        <div v-if="project && project.subprojectCount && project.subprojectCount > 0" class="subprojects-section">
+        <div v-if="project" class="subprojects-section">
           <ion-card>
             <ion-card-header>
               <div class="section-header">
-                <ion-card-title>Subprojects ({{ project.subprojectCount }})</ion-card-title>
+                <ion-card-title>Subprojects ({{ project.subprojectCount || 0 }})</ion-card-title>
                 <ion-button 
                   fill="clear" 
                   size="small"
@@ -247,9 +247,9 @@
                 <p>Loading subprojects...</p>
               </div>
               
-              <div v-else-if="subprojects.length === 0" class="empty-subprojects">
+              <div v-else-if="!project.subprojectCount || project.subprojectCount === 0" class="empty-subprojects">
                 <ion-icon :icon="folderOutline" class="empty-icon"></ion-icon>
-                <p>No subprojects found</p>
+                <p>No subprojects yet. Click "Add Subproject" to create one.</p>
               </div>
               
               <ion-list v-else>
