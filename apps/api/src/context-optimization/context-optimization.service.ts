@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AgentConversationsService } from '../agent-conversations/agent-conversations.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
 import { ProjectsService } from '../projects/projects.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export interface ConversationMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -18,6 +19,7 @@ export class ContextOptimizationService {
     private readonly agentConversationsService: AgentConversationsService,
     private readonly deliverablesService: DeliverablesService,
     private readonly projectsService: ProjectsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async optimizeContext(request: {
@@ -46,6 +48,18 @@ export class ContextOptimizationService {
     this.logger.log(
       `ContextOptimization: optimized ${fullHistory.length}→${optimized.length} messages in ${duration}ms (budget=${tokenBudget})`,
     );
+
+    // Emit metrics
+    try {
+      this.eventEmitter.emit('context_optimization.metrics', {
+        originalCount: fullHistory.length,
+        optimizedCount: optimized.length,
+        processingTimeMs: duration,
+        workProductType: request.workProductType,
+      });
+    } catch (e) {
+      this.logger.debug(`Failed to emit context metrics: ${e}`);
+    }
     return optimized;
   }
 
