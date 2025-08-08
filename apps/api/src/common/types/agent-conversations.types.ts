@@ -21,6 +21,7 @@ export interface AgentConversation {
   endedAt?: Date;
   lastActiveAt: Date;
   metadata?: Record<string, any>;
+  workProduct?: WorkProductContext; // Optional 1:1 bound work product
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,6 +69,7 @@ export interface CreateAgentConversationDto {
   agentName: string;
   agentType: AgentType;
   metadata?: Record<string, any>;
+  workProduct?: WorkProductContext;
 }
 
 export interface LLMSelection {
@@ -83,10 +85,19 @@ export interface LLMSelection {
   maxTokens?: number;
 }
 
+export interface WorkProductContext {
+  type: 'project' | 'deliverable';
+  id: string;
+  version?: number;
+  state?: any;
+}
+
 export interface CreateTaskDto {
   method: string;
   prompt: string;
-  params?: Record<string, any>;
+  params?: {
+    workProduct?: WorkProductContext;
+  } & Record<string, any>;
   conversationId?: string; // Optional, creates new conversation if not provided
   taskId?: string; // Optional, pre-generated task ID from frontend to enable early WebSocket subscription
   timeoutSeconds?: number;

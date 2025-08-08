@@ -18,6 +18,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
 import { SessionsService } from '../sessions/sessions.service';
+import { AgentConversationsService } from '../agent-conversations/agent-conversations.service';
 import { TasksService } from '../tasks/tasks.service';
 import { TaskStatusService } from '../tasks/task-status.service';
 import {
@@ -34,6 +35,7 @@ export class DynamicAgentsController {
     private readonly appService: AppService,
     private readonly sessionsService: SessionsService,
     private readonly tasksService: TasksService,
+    private readonly agentConversationsService: AgentConversationsService,
     private readonly taskStatusService: TaskStatusService,
   ) {}
 
@@ -172,6 +174,22 @@ export class DynamicAgentsController {
       // Task status already initialized in TasksService.createTask()
       // No need to duplicate TaskStatusService.createTask() call here
       
+      // If client provided workProduct, bind it immutably to the conversation once
+      const wp = normalizedTaskRequest.params?.workProduct;
+      if (wp && task.agentConversationId) {
+        try {
+          await this.agentConversationsService.setPrimaryWorkProduct(
+            task.agentConversationId,
+            currentUser.id,
+            { type: wp.type, id: wp.id },
+          );
+        } catch (e) {
+          this.logger.warn(
+            `Work product binding skipped for conversation ${task.agentConversationId}: ${e instanceof Error ? e.message : e}`,
+          );
+        }
+      }
+
       // Prepare request for agent with task context
       const authenticatedTaskRequest = {
         ...normalizedTaskRequest.params,
