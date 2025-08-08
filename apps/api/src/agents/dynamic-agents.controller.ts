@@ -17,7 +17,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
-import { SessionsService } from '../sessions/sessions.service';
 import { AgentConversationsService } from '../agent-conversations/agent-conversations.service';
 import { TasksService } from '../tasks/tasks.service';
 import { TaskStatusService } from '../tasks/task-status.service';
@@ -34,7 +33,6 @@ export class DynamicAgentsController {
   constructor(
     private readonly agentDiscovery: AgentDiscoveryService,
     private readonly appService: AppService,
-    private readonly sessionsService: SessionsService,
     private readonly tasksService: TasksService,
     private readonly agentConversationsService: AgentConversationsService,
     private readonly taskStatusService: TaskStatusService,
@@ -173,17 +171,23 @@ export class DynamicAgentsController {
         })
       : normalizedTaskRequest.conversationHistory || [];
 
+    const normalizedOptimizedHistory = (optimizedHistory || []).map((m: any) => ({
+      role: m.role,
+      content: m.content,
+      timestamp: m.timestamp || new Date().toISOString(),
+      ...(m.metadata ? { metadata: m.metadata } : {}),
+    }));
+
     const taskRequestWithTimeout = {
       ...normalizedTaskRequest,
-      conversationHistory: optimizedHistory,
+      conversationHistory: normalizedOptimizedHistory,
       llmMetadata: {
         ...(normalizedTaskRequest as any).llmMetadata,
         contextOptimization: optimizationEnabled
           ? {
               strategy: 'backend_intelligent',
-              originalMessageCount:
-                (normalizedTaskRequest.conversationHistory || []).length,
-              optimizedMessageCount: optimizedHistory.length,
+              originalMessageCount: (normalizedTaskRequest.conversationHistory || []).length,
+              optimizedMessageCount: normalizedOptimizedHistory.length,
               workProductType: wp?.type,
             }
           : undefined,
@@ -301,8 +305,10 @@ export class DynamicAgentsController {
       'gpt-4-turbo': 100000,
       default: 80000,
     };
-    const modelId = llmSelection?.modelId || 'default';
-    return budgets[modelId] ?? budgets.default;
+    const modelId: string = (llmSelection && (llmSelection as any).modelId) || 'default';
+    const hasKey = Object.prototype.hasOwnProperty.call(budgets, modelId);
+    const value: number = hasKey ? (budgets[modelId] as number) : (budgets['default'] as number);
+    return value;
   }
 
   /**

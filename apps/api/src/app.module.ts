@@ -6,7 +6,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SupabaseModule } from './supabase/supabase.module';
 import { AuthModule } from './auth/auth.module';
-import { SessionsModule } from './sessions/sessions.module';
 import { HealthModule } from './health/health.module';
 import { AgentPoolModule } from './agent-pool/agent-pool.module';
 import { LLMModule } from '@/llms/llm.module';
@@ -98,7 +97,6 @@ import supabaseConfig from './supabase/supabase.config';
     BaseSubServicesModule, // Add BaseSubServicesModule for agent sub-services
     SupabaseModule,
     AuthModule,
-    SessionsModule,
     HealthModule,
     AgentPoolModule,
     // LLM Evaluation Enhancement Modules

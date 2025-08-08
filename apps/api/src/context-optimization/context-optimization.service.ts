@@ -5,9 +5,9 @@ import { ProjectsService } from '../projects/projects.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export interface ConversationMessage {
-  role: 'user' | 'assistant' | 'system' | 'tool';
+  role: string;
   content: string;
-  timestamp?: string;
+  timestamp: string;
   metadata?: Record<string, any>;
 }
 
@@ -152,9 +152,11 @@ export class ContextOptimizationService {
     // Always try to include first and last user/assistant turns if possible
     const boundaryCandidates = [0, scored.length - 1].filter((x) => x >= 0);
     for (const idx of boundaryCandidates) {
-      if (!selectedIdx.has(idx) && used + scored[idx].tokens <= tokenBudget) {
+      const item = scored[idx];
+      if (!item) continue;
+      if (!selectedIdx.has(idx) && used + item.tokens <= tokenBudget) {
         selectedIdx.add(idx);
-        used += scored[idx].tokens;
+        used += item.tokens;
       }
     }
 

@@ -2,14 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { TaskProgressGateway } from '../websocket/task-progress.gateway';
 
-interface ContextMetricsEvent {
+export interface ContextMetricsEvent {
   originalCount: number;
   optimizedCount: number;
   processingTimeMs: number;
   workProductType?: 'project' | 'deliverable';
 }
 
-interface RollupMetrics {
+export interface RollupMetrics {
   events: number;
   optimizationRate: number; // % of requests optimized
   averageCompressionRatio: number; // optimizedCount / originalCount (avg)
