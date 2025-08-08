@@ -9,7 +9,6 @@ import { SupabaseModule } from '../../../../supabase/supabase.module';
 import { LLMModule } from '../../../../llms/llm.module';
 import { CIDAFMModule } from '../../../../cidafm/cidafm.module';
 import { AuthModule } from '../../../../auth/auth.module';
-import { SessionsModule } from '../../../../sessions/sessions.module';
 import { TasksModule } from '../../../../tasks/tasks.module';
 import { WebSocketModule } from '../../../../websocket/websocket.module';
 import { AgentConversationsModule } from '../../../../agent-conversations/agent-conversations.module';
@@ -50,7 +49,6 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
         LLMModule,
         CIDAFMModule,
         AuthModule,
-        SessionsModule,
         TasksModule,
         WebSocketModule,
         AgentConversationsModule,

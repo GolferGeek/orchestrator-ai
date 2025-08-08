@@ -7,7 +7,6 @@ import { SupabaseModule } from '../../../../../supabase/supabase.module';
 import { LLMModule } from '../../../../../llms/llm.module';
 import { CIDAFMModule } from '../../../../../cidafm/cidafm.module';
 import { HttpModule } from '@nestjs/axios';
-import { SessionsModule } from '../../../../../sessions/sessions.module';
 import { TasksModule } from '../../../../../tasks/tasks.module';
 import { WebSocketModule } from '../../../../../websocket/websocket.module';
 import { AuthModule } from '../../../../../auth/auth.module';
@@ -18,7 +17,6 @@ import { AgentFactoryService } from '../../../../../agent-factory.service';
 import { BaseSubServicesModule } from '../../../sub-services/base-sub-services.module';
 import {
   OrchestratorInput,
-  OrchestratorResponse,
   IntentDirective,
   PlanDefinition,
 } from '../../../../../orchestration/orchestration.types';
@@ -56,7 +54,6 @@ describe('Orchestrator Integration - Complete Real LLM Workflow', () => {
         LLMModule,
         CIDAFMModule,
         AuthModule,
-        SessionsModule,
         TasksModule,
         WebSocketModule,
         AgentConversationsModule,
