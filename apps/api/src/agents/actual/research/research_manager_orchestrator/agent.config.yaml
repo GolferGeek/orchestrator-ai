@@ -1,6 +1,6 @@
 name: research_manager_orchestrator
 type: orchestrator
-displayName: "Research Manager Orchestrator"
+displayName: "Research Manager"
 description: "Strategic research orchestrator for coordinating research initiatives, data analysis, and knowledge management. Reports to CTO and manages all research specialist agents with sophisticated research coordination capabilities."
 
 # Hierarchy Configuration

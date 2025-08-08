@@ -1,6 +1,6 @@
 name: engineering_manager_orchestrator
 type: orchestrator
-displayName: "Engineering Manager Orchestrator"
+displayName: "Engineering Manager"
 description: "Strategic engineering orchestrator for coordinating development projects, technical initiatives, and engineering operations. Reports to CTO and manages all engineering specialist agents with sophisticated project planning and technical oversight capabilities."
 
 # Hierarchy Configuration

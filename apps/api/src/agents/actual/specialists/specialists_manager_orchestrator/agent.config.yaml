@@ -1,6 +1,6 @@
 name: specialists_manager_orchestrator
 type: orchestrator
-displayName: "Specialists Manager Orchestrator"
+displayName: "Specialists Manager"
 description: "Strategic orchestrator for special projects, external integrations, and cross-departmental initiatives. Reports to CEO and manages specialized agents that operate outside normal departmental structure."
 
 # Hierarchy Configuration

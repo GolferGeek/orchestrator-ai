@@ -1,6 +1,6 @@
 name: product_manager_orchestrator
 type: orchestrator
-displayName: "Product Manager Orchestrator"
+displayName: "Product Manager"
 description: "Strategic product orchestrator for coordinating product development, launch coordination, and product lifecycle management. Reports to CTO and manages all product specialist agents with sophisticated product planning capabilities."
 
 # Hierarchy Configuration

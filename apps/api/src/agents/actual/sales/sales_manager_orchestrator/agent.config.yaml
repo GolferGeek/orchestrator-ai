@@ -1,6 +1,6 @@
 name: sales_manager_orchestrator
 type: orchestrator
-displayName: "Sales Manager Orchestrator"
+displayName: "Sales Manager"
 description: "Strategic sales orchestrator for coordinating sales operations, lead generation, customer acquisition, and revenue growth initiatives. Reports to COO and manages all sales specialist agents with sophisticated sales process optimization capabilities."
 
 # Hierarchy Configuration

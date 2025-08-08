@@ -1,6 +1,6 @@
 name: productivity_manager_orchestrator
 type: orchestrator
-displayName: "Productivity Manager Orchestrator"
+displayName: "Productivity Manager"
 description: "Strategic productivity orchestrator for coordinating productivity tools, efficiency systems, and workflow optimization. Reports to COO and manages all productivity specialist agents."
 
 hierarchy:
@@ -24,4 +24,3 @@ module:
     - ProductivityManagerOrchestratorService
   exports:
     - ProductivityManagerOrchestratorService
-EOF < /dev/null

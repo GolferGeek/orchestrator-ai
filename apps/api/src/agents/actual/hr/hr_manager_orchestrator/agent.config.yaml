@@ -1,6 +1,6 @@
 name: hr_manager_orchestrator
 type: orchestrator
-displayName: "HR Manager Orchestrator"
+displayName: "HR Manager"
 description: "Strategic HR orchestrator for coordinating human resources operations, talent management, and organizational development. Reports to CHRO and manages all HR specialist agents."
 
 # Hierarchy Configuration

@@ -310,8 +310,23 @@ export abstract class A2AAgentBaseService
     if (this.agentPath) {
       try {
         const yamlConfig = await this.loadAgentYamlConfig();
-        if (yamlConfig?.configuration) {
-          card.configuration = yamlConfig.configuration;
+        
+        
+        if (yamlConfig) {
+          // Use displayName from YAML if available
+          if (yamlConfig.displayName) {
+            card.name = yamlConfig.displayName;
+          }
+          
+          // Use description from YAML if available
+          if (yamlConfig.description) {
+            card.description = yamlConfig.description;
+          }
+          
+          // Keep configuration as well
+          if (yamlConfig.configuration) {
+            card.configuration = yamlConfig.configuration;
+          }
         }
       } catch (error) {
         this.logger.debug(
@@ -996,26 +1011,37 @@ export abstract class A2AAgentBaseService
   /**
    * Load agent YAML configuration
    */
+
   private async loadAgentYamlConfig(): Promise<any | null> {
     if (!this.agentPath || this.agentPath === 'unknown') {
       return null;
     }
 
-    // Construct the full path to agent.yaml
-    const agentsBasePath = path.join(process.cwd(), 'src', 'agents', 'actual');
-    const yamlPath = path.join(agentsBasePath, this.agentPath, 'agent.yaml');
+    // Construct the full path to agent.config.yaml
+    // Handle both monorepo (from root) and app-specific (from apps/api) working directories
+    let agentsBasePath = path.join(process.cwd(), 'src', 'agents', 'actual');
+    
+    // If running from monorepo root, adjust path to apps/api
+    if (!fs.existsSync(agentsBasePath)) {
+      agentsBasePath = path.join(process.cwd(), 'apps', 'api', 'src', 'agents', 'actual');
+    }
+    
+    const yamlPath = path.join(agentsBasePath, this.agentPath, 'agent.config.yaml');
+
 
     if (!fs.existsSync(yamlPath)) {
-      this.logger.debug(`No agent.yaml found at: ${yamlPath}`);
+      this.logger.debug(`No agent.config.yaml found at: ${yamlPath}`);
       return null;
     }
 
     try {
       const yamlContent = fs.readFileSync(yamlPath, 'utf8');
       const parsed = yaml.load(yamlContent) as any;
+      
+      
       return parsed;
     } catch (error) {
-      this.logger.warn(`Failed to parse agent.yaml at ${yamlPath}:`, error);
+      this.logger.warn(`Failed to parse agent.config.yaml at ${yamlPath}:`, error);
       return null;
     }
   }
