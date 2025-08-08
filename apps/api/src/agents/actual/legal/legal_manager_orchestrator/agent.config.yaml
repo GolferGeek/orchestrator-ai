@@ -1,6 +1,6 @@
 name: legal_manager_orchestrator
 type: orchestrator
-displayName: "Legal Manager Orchestrator"
+displayName: "Legal Manager"
 description: "Strategic legal orchestrator for coordinating legal operations, compliance, and risk management. Reports to CEO and manages all legal specialist agents."
 
 hierarchy:

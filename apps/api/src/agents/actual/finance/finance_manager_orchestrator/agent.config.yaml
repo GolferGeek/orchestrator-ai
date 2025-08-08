@@ -1,6 +1,6 @@
 name: finance_manager_orchestrator
 type: orchestrator
-displayName: "Finance Manager Orchestrator"
+displayName: "Finance Manager"
 description: "Strategic finance orchestrator for coordinating financial analysis, budgeting, reporting, and financial operations. Reports to CFO and manages all finance specialist agents with sophisticated financial planning and oversight capabilities."
 
 # Hierarchy Configuration

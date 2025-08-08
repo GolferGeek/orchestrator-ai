@@ -1,6 +1,6 @@
 name: operations_manager_orchestrator
 type: orchestrator
-displayName: "Operations Manager Orchestrator"
+displayName: "Operations Manager"
 description: "Strategic operations orchestrator for coordinating business processes, operational efficiency initiatives, and day-to-day business operations. Reports to COO and manages all operations specialist agents with sophisticated process optimization capabilities."
 
 # Hierarchy Configuration

@@ -214,7 +214,7 @@ export class AppService implements OnModuleInit {
 
         return {
           id: this.agentDiscovery.generateAgentId(agent.name, agent.path),
-          name: agent.name,
+          name: agentCard?.name || agent.name,
           type: agent.type,
           description:
             agentCard?.description ||

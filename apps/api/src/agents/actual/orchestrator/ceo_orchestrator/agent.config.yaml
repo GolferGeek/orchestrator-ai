@@ -1,6 +1,6 @@
 name: ceo_orchestrator
 type: orchestrator
-displayName: "CEO Orchestrator"
+displayName: "CEO"
 description: "Strategic orchestrator for executive-level planning and delegation. Coordinates high-level business initiatives across all departments through sophisticated project management and delegation capabilities."
 
 # Hierarchy Configuration

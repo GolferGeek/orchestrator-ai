@@ -1,6 +1,6 @@
 name: marketing_manager_orchestrator
 type: orchestrator
-displayName: "Marketing Manager Orchestrator"
+displayName: "Marketing Manager"
 description: "Strategic marketing orchestrator for coordinating campaigns, content, and brand initiatives. Reports to CEO and manages all marketing specialist agents with sophisticated project planning and execution capabilities."
 
 # Hierarchy Configuration
