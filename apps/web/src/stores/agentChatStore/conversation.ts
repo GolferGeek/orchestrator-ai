@@ -302,7 +302,7 @@ export class ConversationService {
    */
   createConversationObject(agent: Agent, createdAt: Date = new Date()): AgentConversation {
     return {
-      id: `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: crypto.randomUUID(),
       agent,
       messages: [],
       createdAt,

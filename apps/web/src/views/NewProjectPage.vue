@@ -97,10 +97,7 @@
                   :key="orchestrator.id"
                   :value="orchestrator.id"
                 >
-                  <div class="orchestrator-option">
-                    <strong>{{ orchestrator.name }}</strong>
-                    <div class="orchestrator-description">{{ orchestrator.description }}</div>
-                  </div>
+                  {{ orchestrator.name }}
                 </ion-select-option>
               </ion-select>
             </ion-item>
@@ -341,7 +338,12 @@ const availableTemplates: ProjectTemplate[] = [
 const availableOrchestrators = computed(() => {
   const agents = agentsStore.getAvailableAgents;
   return agents
-    .filter((agent: any) => agent.type === 'orchestrator')
+    .filter((agent: any) => 
+      agent.type === 'orchestrator' || 
+      agent.name.includes('_orchestrator') ||
+      agent.name.endsWith(' Manager') ||
+      agent.name === 'CEO'
+    )
     .map((agent: any) => ({
       id: `${agent.type}-${agent.name}`,
       name: agent.name,
@@ -417,6 +419,19 @@ const createProject = async () => {
     };
 
     const project = await projectsService.createProject(createProjectData);
+
+    console.log('Project creation API response:', project);
+    console.log('Project type:', typeof project);
+    console.log('Project keys:', project ? Object.keys(project) : 'project is null/undefined');
+    
+    if (!project) {
+      throw new Error('Project creation succeeded but returned undefined/null response');
+    }
+    
+    if (!project.id) {
+      console.error('Project object missing id field:', project);
+      throw new Error('Project creation succeeded but response is missing id field');
+    }
 
     console.log('Project created successfully:', project);
 

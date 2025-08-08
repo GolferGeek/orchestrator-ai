@@ -515,21 +515,53 @@ class ApiService {
    * Generic GET method
    */
   async get(url: string): Promise<any> {
-    // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
-    const response = await this.axiosInstance.get(url);
-    return response.data;
+    console.log(`ApiService.get: ${url}`);
+    
+    try {
+      // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
+      const response = await this.axiosInstance.get(url);
+      console.log(`ApiService.get response for ${url}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+        dataType: typeof response.data
+      });
+      
+      console.log('About to return response.data from GET:', response.data);
+      console.log('GET response.data is undefined:', response.data === undefined);
+      console.log('GET response.data is null:', response.data === null);
+      
+      return response.data;
+    } catch (error) {
+      console.error(`ApiService.get error for ${url}:`, error);
+      throw error;
+    }
   }
 
   /**
    * Generic POST method
    */
   async post(url: string, data?: any): Promise<any> {
+    console.log(`ApiService.post: ${url}`, data);
     
     try {
       // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
       const response = await this.axiosInstance.post(url, data);
+      console.log(`ApiService.post response for ${url}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+        dataType: typeof response.data
+      });
+      
+      console.log('About to return response.data:', response.data);
+      console.log('response.data is undefined:', response.data === undefined);
+      console.log('response.data is null:', response.data === null);
+      console.log('Full response object:', response);
+      
       return response.data;
     } catch (error) {
+      console.error(`ApiService.post error for ${url}:`, error);
       throw error;
     }
   }

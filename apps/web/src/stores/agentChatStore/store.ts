@@ -78,6 +78,18 @@ export const useAgentChatStore = defineStore('agentChat', {
       // Create conversation object
       const newConversation = conversation.createConversationObject(agent);
       
+      // Create conversation in backend first
+      try {
+        const backendConversationId = await conversation.createConversation(agent);
+        // Use the backend conversation ID instead of the local one
+        newConversation.id = backendConversationId;
+        console.log(`🔗 Backend conversation created: ${backendConversationId}`);
+      } catch (error) {
+        console.error('❌ Failed to create backend conversation:', error);
+        // Continue with local conversation ID as fallback, but this might cause issues
+        console.warn('⚠️ Continuing with local conversation ID, but project creation may fail');
+      }
+      
       // Add welcome message (matching original behavior)
       newConversation.messages.push({
         id: `welcome-${Date.now()}`,
