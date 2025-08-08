@@ -61,6 +61,10 @@ export class AgentConversationsService {
           agent_name: dto.agentName,
           agent_type: validatedAgentType,
           metadata: dto.metadata || {},
+          ...(dto.workProduct && {
+            primary_work_product_type: dto.workProduct.type,
+            primary_work_product_id: dto.workProduct.id,
+          }),
         })
         .select()
         .single();
@@ -355,6 +359,107 @@ export class AgentConversationsService {
   }
 
   /**
+   * Helper: Find conversation by work product binding
+   */
+  async findByWorkProduct(
+    userId: string,
+    workProduct: { type: 'deliverable' | 'project'; id: string },
+  ): Promise<AgentConversation | null> {
+    const { data, error } = await this.supabaseService
+      .getAnonClient()
+      .from('agent_conversations')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('primary_work_product_type', workProduct.type)
+      .eq('primary_work_product_id', workProduct.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      this.logger.error('Error finding conversation by work product:', error);
+      throw new Error(
+        `Failed to find conversation by work product: ${error.message}`,
+      );
+    }
+
+    return data ? this.mapToAgentConversation(data) : null;
+  }
+
+  /**
+   * Set the primary work product for a conversation exactly once.
+   * If already set to a different value, throw (immutability enforcement).
+   */
+  async setPrimaryWorkProduct(
+    conversationId: string,
+    userId: string,
+    workProduct: { type: 'deliverable' | 'project'; id: string },
+  ): Promise<void> {
+    const client = this.supabaseService.getAnonClient();
+
+    // Fetch existing values
+    const { data: existing, error: fetchError } = await client
+      .from('agent_conversations')
+      .select(
+        'id, user_id, primary_work_product_type, primary_work_product_id',
+      )
+      .eq('id', conversationId)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError || !existing) {
+      this.logger.warn(
+        `Conversation ${conversationId} not found for user ${userId} when setting work product`,
+      );
+      throw new Error('Conversation not found or access denied');
+    }
+
+    const existingType = existing.primary_work_product_type as
+      | 'deliverable'
+      | 'project'
+      | null;
+    const existingId = existing.primary_work_product_id as string | null;
+
+    if (
+      existingType &&
+      existingId &&
+      (existingType !== workProduct.type || existingId !== workProduct.id)
+    ) {
+      this.logger.warn(
+        `Immutable work product already set for conversation ${conversationId}. Existing ${existingType}:${existingId}, attempted ${workProduct.type}:${workProduct.id}`,
+      );
+      throw new Error('Primary work product is immutable once set');
+    }
+
+    if (
+      existingType === workProduct.type &&
+      existingId === workProduct.id &&
+      existingType !== null &&
+      existingId !== null
+    ) {
+      return; // no-op
+    }
+
+    const { error: updateError } = await client
+      .from('agent_conversations')
+      .update({
+        primary_work_product_type: workProduct.type,
+        primary_work_product_id: workProduct.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', conversationId)
+      .eq('user_id', userId);
+
+    if (updateError) {
+      this.logger.error(
+        `Failed to set primary work product for conversation ${conversationId}: ${updateError.message}`,
+      );
+      throw new Error(
+        updateError.message || 'Could not set primary work product',
+      );
+    }
+  }
+
+  /**
    * Map database record to AgentConversation type
    */
   private mapToAgentConversation(data: any): AgentConversation {
@@ -367,6 +472,13 @@ export class AgentConversationsService {
       endedAt: data.ended_at ? new Date(data.ended_at) : undefined,
       lastActiveAt: new Date(data.last_active_at),
       metadata: data.metadata,
+      workProduct:
+        data.primary_work_product_type && data.primary_work_product_id
+          ? {
+              type: data.primary_work_product_type,
+              id: data.primary_work_product_id,
+            }
+          : undefined,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
     };
