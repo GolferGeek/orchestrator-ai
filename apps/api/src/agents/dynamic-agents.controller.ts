@@ -25,6 +25,7 @@ import {
   CreateTaskDto,
   AgentType,
 } from '../common/types/agent-conversations.types';
+import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
 
 @Controller('agents')
 export class DynamicAgentsController {
@@ -37,6 +38,7 @@ export class DynamicAgentsController {
     private readonly tasksService: TasksService,
     private readonly agentConversationsService: AgentConversationsService,
     private readonly taskStatusService: TaskStatusService,
+    private readonly contextOptimizationService: ContextOptimizationService,
   ) {}
 
   /**
@@ -157,8 +159,19 @@ export class DynamicAgentsController {
       'ephemeral'; // Default for dynamic agent requests
 
     // Create task with agent-specific timeout
+    // Optimize context (backend-intelligent)
+    const wp = normalizedTaskRequest.params?.workProduct;
+    const optimizedHistory = await this.contextOptimizationService.optimizeContext({
+      fullHistory: normalizedTaskRequest.conversationHistory || [],
+      conversationId: normalizedTaskRequest.conversationId,
+      workProductType: wp?.type,
+      workProductId: wp?.id,
+      tokenBudget: this.getTokenBudget(normalizedTaskRequest.llmSelection),
+    });
+
     const taskRequestWithTimeout = {
       ...normalizedTaskRequest,
+      conversationHistory: optimizedHistory,
       timeoutSeconds: agentTimeout,
     };
 
@@ -175,7 +188,6 @@ export class DynamicAgentsController {
       // No need to duplicate TaskStatusService.createTask() call here
       
       // If client provided workProduct, bind it immutably to the conversation once
-      const wp = normalizedTaskRequest.params?.workProduct;
       if (wp && task.agentConversationId) {
         try {
           await this.agentConversationsService.setPrimaryWorkProduct(
@@ -264,6 +276,17 @@ export class DynamicAgentsController {
       this.logger.error(`Task ${task.id} failed:`, error);
       throw error;
     }
+  }
+
+  private getTokenBudget(llmSelection?: any): number {
+    const budgets: Record<string, number> = {
+      'claude-3-5-sonnet': 100000,
+      'claude-3-haiku': 150000,
+      'gpt-4-turbo': 100000,
+      default: 80000,
+    };
+    const modelId = llmSelection?.modelId || 'default';
+    return budgets[modelId] ?? budgets.default;
   }
 
   /**
