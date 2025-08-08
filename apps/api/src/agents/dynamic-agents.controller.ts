@@ -159,15 +159,19 @@ export class DynamicAgentsController {
       'ephemeral'; // Default for dynamic agent requests
 
     // Create task with agent-specific timeout
-    // Optimize context (backend-intelligent)
+    // Optimize context (backend-intelligent) with feature flag
     const wp = normalizedTaskRequest.params?.workProduct;
-    const optimizedHistory = await this.contextOptimizationService.optimizeContext({
-      fullHistory: normalizedTaskRequest.conversationHistory || [],
-      conversationId: normalizedTaskRequest.conversationId,
-      workProductType: wp?.type,
-      workProductId: wp?.id,
-      tokenBudget: this.getTokenBudget(normalizedTaskRequest.llmSelection),
-    });
+    const optimizationEnabled =
+      (process.env.CONTEXT_OPTIMIZATION_ENABLED ?? 'true') !== 'false';
+    const optimizedHistory = optimizationEnabled
+      ? await this.contextOptimizationService.optimizeContext({
+          fullHistory: normalizedTaskRequest.conversationHistory || [],
+          conversationId: normalizedTaskRequest.conversationId,
+          workProductType: wp?.type,
+          workProductId: wp?.id,
+          tokenBudget: this.getTokenBudget(normalizedTaskRequest.llmSelection),
+        })
+      : normalizedTaskRequest.conversationHistory || [];
 
     const taskRequestWithTimeout = {
       ...normalizedTaskRequest,
