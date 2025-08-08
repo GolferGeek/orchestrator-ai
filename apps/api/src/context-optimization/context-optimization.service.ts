@@ -29,14 +29,24 @@ export class ContextOptimizationService {
   }): Promise<ConversationMessage[]> {
     const { fullHistory, tokenBudget } = request;
 
+    const start = Date.now();
+
     // Fast-path: under 80% of budget → pass through
     const totalTokens = this.calculateTokens(fullHistory);
     if (totalTokens <= tokenBudget * 0.8) {
+      this.logger.debug(
+        `ContextOptimization: passthrough (tokens=${totalTokens}, budget=${tokenBudget})`,
+      );
       return fullHistory;
     }
 
     // Layered optimization
-    return this.performLayeredOptimization(request);
+    const optimized = await this.performLayeredOptimization(request);
+    const duration = Date.now() - start;
+    this.logger.log(
+      `ContextOptimization: optimized ${fullHistory.length}→${optimized.length} messages in ${duration}ms (budget=${tokenBudget})`,
+    );
+    return optimized;
   }
 
   private async performLayeredOptimization(request: {
