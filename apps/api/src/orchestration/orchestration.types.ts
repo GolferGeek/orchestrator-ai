@@ -186,6 +186,10 @@ export interface Project {
   metadata: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
+  // Hierarchical project support
+  parentProjectId?: string;
+  hierarchyLevel?: number;
+  subprojectCount?: number;
 }
 
 /**

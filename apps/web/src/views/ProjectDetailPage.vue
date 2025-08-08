@@ -63,6 +63,24 @@
       </div>
 
       <div v-if="project && !isLoading" class="project-detail-container">
+        <!-- Hierarchy Breadcrumb -->
+        <div v-if="hierarchyPath && hierarchyPath.length > 1" class="hierarchy-breadcrumb">
+          <ion-chip 
+            v-for="(node, index) in hierarchyPath" 
+            :key="node.id"
+            :outline="index !== hierarchyPath.length - 1"
+            @click="navigateToProject(node.id)"
+            :disabled="index === hierarchyPath.length - 1"
+          >
+            <ion-icon 
+              v-if="index === 0" 
+              :icon="homeOutline"
+              slot="start"
+            ></ion-icon>
+            {{ node.name || 'Unnamed Project' }}
+          </ion-chip>
+        </div>
+        
         <!-- Project Overview -->
         <div class="overview-section">
           <ion-card>
@@ -84,19 +102,29 @@
               <div class="project-meta">
                 <div class="meta-item">
                   <ion-icon :icon="personOutline"></ion-icon>
-                  <span><strong>Orchestrator:</strong> {{ project.orchestratorName }}</span>
+                  <span><strong>Orchestrator:</strong> {{ orchestratorName }}</span>
                 </div>
                 <div class="meta-item">
                   <ion-icon :icon="calendarOutline"></ion-icon>
                   <span><strong>Created:</strong> {{ formatDate(project.createdAt) }}</span>
                 </div>
-                <div class="meta-item" v-if="project.lastActiveAt">
+                <div class="meta-item" v-if="project.updatedAt">
                   <ion-icon :icon="timeOutline"></ion-icon>
-                  <span><strong>Last Active:</strong> {{ formatRelativeTime(project.lastActiveAt) }}</span>
+                  <span><strong>Last Updated:</strong> {{ formatRelativeTime(project.updatedAt) }}</span>
                 </div>
                 <div class="meta-item" v-if="project.targetDate">
                   <ion-icon :icon="flagOutline"></ion-icon>
                   <span><strong>Target Date:</strong> {{ formatDate(project.targetDate) }}</span>
+                </div>
+                
+                <!-- Hierarchical information -->
+                <div class="meta-item" v-if="project.hierarchyLevel && project.hierarchyLevel > 0">
+                  <ion-icon :icon="gitBranchOutline"></ion-icon>
+                  <span><strong>Hierarchy Level:</strong> {{ project.hierarchyLevel }}</span>
+                </div>
+                <div class="meta-item" v-if="project.subprojectCount && project.subprojectCount > 0">
+                  <ion-icon :icon="layersOutline"></ion-icon>
+                  <span><strong>Subprojects:</strong> {{ project.subprojectCount }}</span>
                 </div>
               </div>
             </ion-card-content>
@@ -112,31 +140,31 @@
             <ion-card-content>
               <div class="progress-stats">
                 <div class="stat-item">
-                  <div class="stat-number">{{ project.totalTasks }}</div>
+                  <div class="stat-number">{{ totalTasks }}</div>
                   <div class="stat-label">Total Tasks</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-number success">{{ project.completedTasks }}</div>
+                  <div class="stat-number success">{{ completedTasks }}</div>
                   <div class="stat-label">Completed</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-number primary">{{ project.activeTasks }}</div>
+                  <div class="stat-number primary">{{ activeTasks }}</div>
                   <div class="stat-label">Active</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-number danger">{{ project.failedTasks }}</div>
+                  <div class="stat-number danger">{{ failedTasks }}</div>
                   <div class="stat-label">Failed</div>
                 </div>
               </div>
               
-              <div class="progress-bar-section" v-if="project.totalTasks > 0">
+              <div class="progress-bar-section" v-if="totalTasks > 0">
                 <div class="progress-info">
                   <span class="progress-label">Overall Progress</span>
-                  <span class="progress-percentage">{{ Math.round((project.completedTasks / project.totalTasks) * 100) }}%</span>
+                  <span class="progress-percentage">{{ Math.round((completedTasks / totalTasks) * 100) }}%</span>
                 </div>
                 <ion-progress-bar 
-                  :value="project.completedTasks / project.totalTasks"
-                  :color="getProgressColor(project.completedTasks / project.totalTasks)"
+                  :value="completedTasks / totalTasks"
+                  :color="getProgressColor(completedTasks / totalTasks)"
                 ></ion-progress-bar>
               </div>
             </ion-card-content>
@@ -192,6 +220,63 @@
                       <span><strong>Agent:</strong> {{ task.agentName }}</span>
                       <span><strong>Created:</strong> {{ formatRelativeTime(task.createdAt) }}</span>
                       <span v-if="task.completedAt"><strong>Completed:</strong> {{ formatRelativeTime(task.completedAt) }}</span>
+                    </div>
+                  </div>
+                  <ion-icon :icon="chevronForwardOutline" slot="end"></ion-icon>
+                </ion-item>
+              </ion-list>
+            </ion-card-content>
+          </ion-card>
+        </div>
+
+        <!-- Subprojects Section -->
+        <div v-if="project && project.subprojectCount && project.subprojectCount > 0" class="subprojects-section">
+          <ion-card>
+            <ion-card-header>
+              <div class="section-header">
+                <ion-card-title>Subprojects ({{ project.subprojectCount }})</ion-card-title>
+                <ion-button 
+                  fill="clear" 
+                  size="small"
+                  @click="createSubproject"
+                >
+                  <ion-icon :icon="addOutline" slot="start"></ion-icon>
+                  Add Subproject
+                </ion-button>
+              </div>
+            </ion-card-header>
+            <ion-card-content>
+              <div v-if="isLoadingSubprojects" class="loading-subprojects">
+                <ion-spinner name="crescent"></ion-spinner>
+                <p>Loading subprojects...</p>
+              </div>
+              
+              <div v-else-if="subprojects.length === 0" class="empty-subprojects">
+                <ion-icon :icon="folderOutline" class="empty-icon"></ion-icon>
+                <p>No subprojects found</p>
+              </div>
+              
+              <ion-list v-else>
+                <ion-item 
+                  v-for="subproject in subprojects" 
+                  :key="subproject.id"
+                  @click="navigateToProject(subproject.id)"
+                  button
+                >
+                  <div class="subproject-content">
+                    <div class="subproject-header">
+                      <h3>{{ subproject.name }}</h3>
+                      <ion-badge 
+                        :color="getStatusColor(subproject.status)"
+                        class="status-badge"
+                      >
+                        {{ subproject.status }}
+                      </ion-badge>
+                    </div>
+                    <p class="subproject-description">{{ subproject.description || 'No description' }}</p>
+                    <div class="subproject-meta">
+                      <span><strong>Created:</strong> {{ formatRelativeTime(subproject.createdAt) }}</span>
+                      <span v-if="subproject.subprojectCount && subproject.subprojectCount > 0"><strong>Subprojects:</strong> {{ subproject.subprojectCount }}</span>
                     </div>
                   </div>
                   <ion-icon :icon="chevronForwardOutline" slot="end"></ion-icon>
@@ -269,6 +354,7 @@ import {
   IonList,
   IonItem,
   IonProgressBar,
+  IonChip,
   alertController,
   actionSheetController,
   toastController,
@@ -287,23 +373,34 @@ import {
   chatbubbleOutline,
   addOutline,
   downloadOutline,
+  // Hierarchical icons
+  homeOutline,
+  gitBranchOutline,
+  layersOutline,
+  folderOutline,
 } from 'ionicons/icons';
 import { useRoute, useRouter } from 'vue-router';
+import { projectsService, type Project, type UpdateProjectDto, type ProjectHierarchyNode } from '@/services/projectsService';
 
-interface Project {
+// Project interface is now imported from projectsService
+
+interface DisplayProject {
   id: string;
-  name: string;
-  description: string;
-  status: 'active' | 'completed' | 'paused' | 'failed';
-  orchestratorName: string;
-  orchestratorType: string;
+  name?: string;
+  description?: string;
+  status: Project['status'];
+  displayStatus: string;
   createdAt: Date;
-  lastActiveAt?: Date;
-  targetDate?: Date;
-  totalTasks: number;
-  completedTasks: number;
-  failedTasks: number;
-  activeTasks: number;
+  updatedAt: Date;
+  conversationId: string;
+  currentStepId?: string;
+  planJson?: any;
+  metadata?: any;
+  errorDetails?: any;
+  // Hierarchical support
+  parentProjectId?: string;
+  hierarchyLevel?: number;
+  subprojectCount?: number;
 }
 
 interface ProjectTask {
@@ -312,83 +409,32 @@ interface ProjectTask {
   description: string;
   status: 'pending' | 'active' | 'completed' | 'failed';
   agentName: string;
-  agentType: string;
   createdAt: Date;
   completedAt?: Date;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  estimatedDuration?: string;
+  errorMessage?: string;
 }
 
 const route = useRoute();
 const router = useRouter();
 
 // Reactive state
-const project = ref<Project | null>(null);
+const project = ref<DisplayProject | null>(null);
+const projectSteps = ref<any[]>([]);
 const tasks = ref<ProjectTask[]>([]);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 const taskFilter = ref('all');
 
-// Mock data
-const mockProject: Project = {
-  id: route.params.id as string,
-  name: 'Q1 Marketing Campaign',
-  description: 'Comprehensive marketing strategy for product launch',
-  status: 'active',
-  orchestratorName: 'Marketing Manager',
-  orchestratorType: 'orchestrator',
-  createdAt: new Date('2024-01-15'),
-  lastActiveAt: new Date('2024-01-20'),
-  targetDate: new Date('2024-03-31'),
-  totalTasks: 12,
-  completedTasks: 8,
-  failedTasks: 1,
-  activeTasks: 3,
-};
+// Hierarchical state
+const hierarchyPath = ref<ProjectHierarchyNode[]>([]);
+const subprojects = ref<Project[]>([]);
+const isLoadingSubprojects = ref(false);
 
-const mockTasks: ProjectTask[] = [
-  {
-    id: '1',
-    name: 'Market Research Analysis',
-    description: 'Analyze target market and competitor landscape',
-    status: 'completed',
-    agentName: 'Market Research Agent',
-    agentType: 'marketing',
-    createdAt: new Date('2024-01-15'),
-    completedAt: new Date('2024-01-16'),
-    priority: 'high',
-  },
-  {
-    id: '2',
-    name: 'Content Strategy Development',
-    description: 'Create comprehensive content strategy for campaign',
-    status: 'active',
-    agentName: 'Content Agent',
-    agentType: 'marketing',
-    createdAt: new Date('2024-01-16'),
-    priority: 'high',
-  },
-  {
-    id: '3',
-    name: 'Social Media Calendar',
-    description: 'Plan and schedule social media posts',
-    status: 'completed',
-    agentName: 'Social Media Agent',
-    agentType: 'marketing',
-    createdAt: new Date('2024-01-17'),
-    completedAt: new Date('2024-01-18'),
-    priority: 'medium',
-  },
-  {
-    id: '4',
-    name: 'Email Campaign Setup',
-    description: 'Set up automated email marketing sequences',
-    status: 'failed',
-    agentName: 'Email Marketing Agent',
-    agentType: 'marketing',
-    createdAt: new Date('2024-01-18'),
-    priority: 'medium',
-  },
-];
+// Mock data
+// Mock data removed - now using real API data
+
+// Mock tasks removed - now using real project steps data
 
 // Computed properties
 const filteredTasks = computed(() => {
@@ -398,16 +444,78 @@ const filteredTasks = computed(() => {
   return tasks.value.filter(task => task.status === taskFilter.value);
 });
 
+// Task statistics computed from real data
+const totalTasks = computed(() => tasks.value.length);
+const completedTasks = computed(() => tasks.value.filter(t => t.status === 'completed').length);
+const activeTasks = computed(() => tasks.value.filter(t => t.status === 'active').length);
+const failedTasks = computed(() => tasks.value.filter(t => t.status === 'failed').length);
+
+// Orchestrator name derived from conversation or project metadata
+const orchestratorName = computed(() => {
+  // Try to extract orchestrator name from project metadata or conversation
+  if (project.value?.metadata?.orchestratorName) {
+    return project.value.metadata.orchestratorName;
+  }
+  if (project.value?.metadata?.createdBy) {
+    return project.value.metadata.createdBy;
+  }
+  return 'CEO Orchestrator'; // Default fallback
+});
+
 // Methods
 const fetchProject = async () => {
   isLoading.value = true;
   error.value = null;
   
   try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    project.value = mockProject;
-    tasks.value = mockTasks;
+    const projectId = route.params.id as string;
+    
+    // Fetch project details
+    const projectData = await projectsService.getProject(projectId);
+    project.value = {
+      ...projectData,
+      createdAt: new Date(projectData.createdAt),
+      updatedAt: new Date(projectData.updatedAt),
+      // Map backend status to frontend display status
+      displayStatus: mapBackendStatus(projectData.status)
+    };
+    
+    // Fetch project steps
+    try {
+      const steps = await projectsService.getProjectSteps(projectId);
+      projectSteps.value = steps;
+      
+      // Convert steps to task format for display compatibility
+      tasks.value = steps.map(step => ({
+        id: step.id,
+        name: step.stepName,
+        description: step.prompt || 'No description available',
+        status: mapStepStatus(step.status),
+        agentName: step.agentName || 'Unknown Agent',
+        createdAt: new Date(step.createdAt),
+        completedAt: step.completedAt ? new Date(step.completedAt) : undefined,
+        estimatedDuration: 'Unknown duration',
+        errorMessage: step.errorDetails ? JSON.stringify(step.errorDetails) : undefined
+      }));
+    } catch (stepsErr) {
+      console.warn('Failed to load project steps:', stepsErr);
+      tasks.value = [];
+    }
+    
+    // Fetch hierarchical data (only if hierarchical fields are available)
+    try {
+      // Fetch hierarchy path for breadcrumbs
+      if (project.value.hierarchyLevel && project.value.hierarchyLevel > 0) {
+        await fetchHierarchyPath(projectId);
+      }
+      
+      // Fetch subprojects
+      if (project.value.subprojectCount && project.value.subprojectCount > 0) {
+        await fetchSubprojects(projectId);
+      }
+    } catch (hierarchyErr) {
+      console.warn('Failed to load hierarchical data (may not be available):', hierarchyErr);
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load project';
   } finally {
@@ -429,10 +537,14 @@ const pauseProject = async () => {
       {
         text: 'Pause',
         role: 'destructive',
-        handler: () => {
-          if (project.value) {
-            project.value.status = 'paused';
-            project.value.activeTasks = 0;
+        handler: async () => {
+          try {
+            if (project.value) {
+              await projectsService.updateProject(project.value.id, { status: 'paused_for_human' });
+              await fetchProject();
+            }
+          } catch (err) {
+            console.error('Failed to pause project:', err);
           }
         }
       }
@@ -449,10 +561,14 @@ const resumeProject = async () => {
       { text: 'Cancel', role: 'cancel' },
       {
         text: 'Resume',
-        handler: () => {
-          if (project.value) {
-            project.value.status = 'active';
-            project.value.lastActiveAt = new Date();
+        handler: async () => {
+          try {
+            if (project.value) {
+              await projectsService.updateProject(project.value.id, { status: 'running' });
+              await fetchProject();
+            }
+          } catch (err) {
+            console.error('Failed to resume project:', err);
           }
         }
       }
@@ -551,6 +667,65 @@ const exportProject = async () => {
     color: 'primary',
   });
   await toast.present();
+};
+
+// Hierarchical methods
+const fetchHierarchyPath = async (projectId: string) => {
+  try {
+    hierarchyPath.value = await projectsService.getProjectHierarchyPath(projectId);
+  } catch (err) {
+    console.error('Failed to fetch hierarchy path:', err);
+  }
+};
+
+const fetchSubprojects = async (projectId: string) => {
+  if (!project.value || !project.value.subprojectCount || project.value.subprojectCount === 0) {
+    return;
+  }
+  
+  isLoadingSubprojects.value = true;
+  try {
+    subprojects.value = await projectsService.getSubprojects(projectId);
+  } catch (err) {
+    console.error('Failed to fetch subprojects:', err);
+  } finally {
+    isLoadingSubprojects.value = false;
+  }
+};
+
+const navigateToProject = (projectId: string) => {
+  router.push(`/projects/${projectId}`);
+};
+
+const createSubproject = () => {
+  if (project.value) {
+    router.push(`/projects/new?parentId=${project.value.id}&parentName=${encodeURIComponent(project.value.name || 'Unnamed Project')}`);
+  }
+};
+
+// Map backend project status to frontend display status
+const mapBackendStatus = (status: Project['status']) => {
+  const statusMap: Record<Project['status'], string> = {
+    'planning': 'active',
+    'running': 'active', 
+    'paused_for_human': 'paused',
+    'paused_on_error': 'failed',
+    'completed': 'completed',
+    'aborted': 'failed'
+  };
+  return statusMap[status] || status;
+};
+
+// Map step status to task status
+const mapStepStatus = (status: string) => {
+  const statusMap: Record<string, string> = {
+    'pending': 'pending',
+    'running': 'active',
+    'completed': 'completed',
+    'failed': 'failed',
+    'skipped': 'pending'
+  };
+  return statusMap[status] || status;
 };
 
 const getStatusColor = (status: string) => {
