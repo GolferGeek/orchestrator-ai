@@ -55,6 +55,7 @@ import { LangChainModule } from './langchain/langchain.module';
 import { HierarchyModule } from './hierarchy/hierarchy.module';
 import { ProjectsModule } from './projects/projects.module';
 import { DeliverablesModule } from './deliverables/deliverables.module';
+import { ContextOptimizationService } from './context-optimization/context-optimization.service';
 import { AgentServicesContextModule } from './agents/base/services/agent-services-context.module';
 import { FunctionAgentServicesContextModule } from './agents/base/services/function-agent-services-context.module';
 import { ApiAgentServicesContextModule } from './agents/base/services/api-agent-services-context.module';
@@ -146,6 +147,7 @@ import supabaseConfig from './supabase/supabase.config';
     IntentRecognitionService, // Orchestrator service for testing
     ConfigurationService,
     AgentRegistrationService,
+    ContextOptimizationService,
     // TODO: Dynamic agents will be instantiated via discovery service + factory
     // No need for hardcoded agent imports - everything is discovered and created dynamically
   ],
