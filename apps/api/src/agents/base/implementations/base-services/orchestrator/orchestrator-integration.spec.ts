@@ -15,6 +15,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AgentDiscoveryService } from '../../../../../agent-discovery.service';
 import { AgentFactoryService } from '../../../../../agent-factory.service';
 import { BaseSubServicesModule } from '../../../sub-services/base-sub-services.module';
+import { FormattersModule } from '../../../../../common/formatters/formatters.module';
 import {
   OrchestratorInput,
   IntentDirective,
@@ -50,6 +51,7 @@ describe('Orchestrator Integration - Complete Real LLM Workflow', () => {
         EventEmitterModule.forRoot(),
         HttpModule,
         BaseSubServicesModule,
+        FormattersModule,
         SupabaseModule,
         LLMModule,
         CIDAFMModule,
