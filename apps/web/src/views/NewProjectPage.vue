@@ -5,7 +5,7 @@
         <ion-buttons slot="start">
           <ion-back-button default-href="/projects"></ion-back-button>
         </ion-buttons>
-        <ion-title>New Project</ion-title>
+        <ion-title>{{ isSubproject ? 'New Subproject' : 'New Project' }}</ion-title>
         <ion-buttons slot="end">
           <ion-button 
             @click="createProject"
@@ -22,7 +22,7 @@
     <ion-content :fullscreen="true">
       <ion-header collapse="condense">
         <ion-toolbar>
-          <ion-title size="large">New Project</ion-title>
+          <ion-title size="large">{{ isSubproject ? 'New Subproject' : 'New Project' }}</ion-title>
         </ion-toolbar>
       </ion-header>
 
@@ -51,6 +51,33 @@
                 :maxlength="500"
               ></ion-textarea>
             </ion-item>
+          </div>
+
+          <!-- Parent Project (for subprojects) -->
+          <div v-if="isSubproject" class="form-section">
+            <h3>Parent Project</h3>
+            
+            <ion-item>
+              <ion-label position="stacked">Parent Project *</ion-label>
+              <ion-input
+                :value="parentProjectName"
+                readonly
+                placeholder="Parent project name"
+              ></ion-input>
+            </ion-item>
+            
+            <div v-if="parentProjectName" class="parent-project-info">
+              <ion-card>
+                <ion-card-header>
+                  <ion-card-title>{{ parentProjectName }}</ion-card-title>
+                  <ion-card-subtitle>Parent Project</ion-card-subtitle>
+                </ion-card-header>
+                <ion-card-content>
+                  <p>This will be created as a subproject under "{{ parentProjectName }}"</p>
+                  <ion-badge color="primary">Subproject</ion-badge>
+                </ion-card-content>
+              </ion-card>
+            </div>
           </div>
 
           <!-- Orchestrator Selection -->
@@ -229,6 +256,8 @@ import {
 } from '@ionic/vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAgentsStore } from '@/stores/agentsStore';
+import { projectsService, type CreateProjectDto } from '@/services/projectsService';
+import { useAgentChatStore } from '@/stores/agentChatStore';
 
 interface CreateProjectForm {
   name: string;
@@ -239,6 +268,8 @@ interface CreateProjectForm {
   autoStart: boolean;
   templateId: string;
   initialInstructions: string;
+  // Hierarchical support
+  parentProjectId: string | null;
 }
 
 interface Orchestrator {
@@ -272,6 +303,8 @@ const formData = ref<CreateProjectForm>({
   autoStart: true,
   templateId: '',
   initialInstructions: '',
+  // Hierarchical support
+  parentProjectId: null,
 });
 
 const isCreating = ref(false);
@@ -334,6 +367,14 @@ const minDate = computed(() => {
   return new Date().toISOString().split('T')[0];
 });
 
+// Hierarchical support
+const parentProjectId = ref<string | null>(null);
+const parentProjectName = ref<string | null>(null);
+
+const isSubproject = computed(() => {
+  return parentProjectId.value !== null;
+});
+
 // Methods
 const createProject = async () => {
   if (!isFormValid.value) {
@@ -349,19 +390,38 @@ const createProject = async () => {
   isCreating.value = true;
 
   try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const chatStore = useAgentChatStore();
+    
+    // Create a conversation first for the project
+    const conversationResponse = await chatStore.createConversation({
+      agentName: selectedOrchestrator.value?.name || 'ceo_orchestrator',
+      initialMessage: formData.value.initialInstructions || `Create project: ${formData.value.name}`,
+      metadata: {
+        projectCreation: true,
+        projectName: formData.value.name,
+        description: formData.value.description
+      }
+    });
 
-    const projectData = {
-      ...formData.value,
-      orchestratorName: selectedOrchestrator.value?.name,
-      orchestratorType: selectedOrchestrator.value?.type,
-      templateName: selectedTemplate.value?.name,
-      createdAt: new Date(),
-      status: formData.value.autoStart ? 'active' : 'draft',
+    // Create project data for the API
+    const createProjectData: CreateProjectDto = {
+      name: formData.value.name,
+      description: formData.value.description,
+      conversationId: conversationResponse.conversationId,
+      planJson: selectedTemplate.value ? {
+        templateId: formData.value.templateId,
+        templateName: selectedTemplate.value.name,
+        priority: formData.value.priority,
+        targetDate: formData.value.targetDate,
+        autoStart: formData.value.autoStart
+      } : undefined,
+      // Hierarchical support
+      parentProjectId: parentProjectId.value
     };
 
-    console.log('Creating project:', projectData);
+    const project = await projectsService.createProject(createProjectData);
+
+    console.log('Project created successfully:', project);
 
     const toast = await toastController.create({
       message: `Project "${formData.value.name}" created successfully!`,
@@ -370,13 +430,14 @@ const createProject = async () => {
     });
     await toast.present();
 
-    // Navigate to projects list
-    router.push('/projects');
+    // Navigate to the project detail page
+    router.push(`/projects/${project.id}`);
 
   } catch (error) {
+    console.error('Failed to create project:', error);
     const toast = await toastController.create({
-      message: 'Failed to create project. Please try again.',
-      duration: 3000,
+      message: `Failed to create project: ${error instanceof Error ? error.message : 'Please try again.'}`,
+      duration: 4000,
       color: 'danger',
     });
     await toast.present();
@@ -389,6 +450,16 @@ const createProject = async () => {
 onMounted(async () => {
   // Load available agents
   await agentsStore.fetchAvailableAgents();
+
+  // Handle hierarchical project creation from query params
+  const parentId = route.query.parentId as string;
+  const parentName = route.query.parentName as string;
+  
+  if (parentId) {
+    parentProjectId.value = parentId;
+    parentProjectName.value = decodeURIComponent(parentName || 'Unknown Project');
+    formData.value.parentProjectId = parentId;
+  }
 
   // Pre-populate orchestrator if passed from route
   const orchestratorName = route.query.orchestrator as string;
@@ -438,7 +509,8 @@ onMounted(async () => {
 }
 
 .orchestrator-info,
-.template-preview {
+.template-preview,
+.parent-project-info {
   margin-top: 1rem;
 }
 

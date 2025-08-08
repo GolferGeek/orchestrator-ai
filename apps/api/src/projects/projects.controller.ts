@@ -29,6 +29,8 @@ export interface CreateProjectDto {
   description?: string;
   conversationId: string;
   planJson?: PlanDefinition;
+  // Hierarchical project support
+  parentProjectId?: string;
 }
 
 export interface UpdateProjectDto {

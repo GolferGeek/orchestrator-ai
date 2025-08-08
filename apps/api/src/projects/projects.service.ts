@@ -16,6 +16,8 @@ export interface CreateProjectParams {
   conversationId: string;
   userId: string;
   planJson?: PlanDefinition;
+  // Hierarchical project support
+  parentProjectId?: string;
 }
 
 export interface UpdateProjectParams {
@@ -58,7 +60,52 @@ export class ProjectsService {
     const client = this.supabaseService.getServiceClient();
     
     try {
-      const projectData = {
+      // Calculate hierarchy level if parent project exists
+      let hierarchyLevel = 0;
+      if (params.parentProjectId) {
+        try {
+          const { data: parentProject, error: parentError } = await client
+            .from('projects')
+            .select('hierarchy_level')
+            .eq('id', params.parentProjectId)
+            .single();
+            
+          if (parentError) {
+            this.logger.error('Failed to fetch parent project for hierarchy calculation:', parentError);
+            throw new Error(`Failed to create subproject: Parent project not found`);
+          }
+          
+          hierarchyLevel = (parentProject?.hierarchy_level || 0) + 1;
+          
+          // Update parent project's subproject count
+          // Only do this if the subproject_count column exists
+          try {
+            const { data: currentParent } = await client
+              .from('projects')
+              .select('subproject_count')
+              .eq('id', params.parentProjectId)
+              .single();
+              
+            if (currentParent && 'subproject_count' in currentParent) {
+              await client
+                .from('projects')
+                .update({ 
+                  subproject_count: (currentParent.subproject_count || 0) + 1
+                })
+                .eq('id', params.parentProjectId);
+            }
+          } catch (countError) {
+            // Ignore errors related to missing subproject_count column
+            this.logger.warn('Could not update subproject count (column may not exist):', countError);
+          }
+        } catch (hierarchyError) {
+          // If hierarchy fields don't exist, just log warning and continue
+          this.logger.warn('Could not calculate hierarchy level (columns may not exist):', hierarchyError);
+          hierarchyLevel = 1; // Default for subprojects
+        }
+      }
+
+      const projectData: any = {
         name: params.name || `Project ${new Date().toISOString().split('T')[0]}`,
         description: params.description,
         conversation_id: params.conversationId,
@@ -69,6 +116,14 @@ export class ProjectsService {
           createdAt: new Date().toISOString(),
         },
       };
+
+      // Add hierarchical fields only if parent project is specified
+      // This allows the app to work both with and without the migration
+      if (params.parentProjectId) {
+        projectData.parent_project_id = params.parentProjectId;
+        projectData.hierarchy_level = hierarchyLevel;
+        projectData.subproject_count = 0;
+      }
 
       const { data, error } = await client
         .from('projects')
@@ -666,6 +721,10 @@ export class ProjectsService {
       metadata: data.metadata || {},
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
+      // Hierarchical project support
+      parentProjectId: data.parent_project_id || undefined,
+      hierarchyLevel: data.hierarchy_level || 0,
+      subprojectCount: data.subproject_count || 0,
     };
   }
 
