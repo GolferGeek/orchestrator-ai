@@ -393,21 +393,18 @@ const createProject = async () => {
     const chatStore = useAgentChatStore();
     
     // Create a conversation first for the project
-    const conversationResponse = await chatStore.createConversation({
-      agentName: selectedOrchestrator.value?.name || 'ceo_orchestrator',
-      initialMessage: formData.value.initialInstructions || `Create project: ${formData.value.name}`,
-      metadata: {
-        projectCreation: true,
-        projectName: formData.value.name,
-        description: formData.value.description
-      }
-    });
+    const agent = {
+      name: selectedOrchestrator.value?.name || 'ceo_orchestrator',
+      type: 'orchestrator',
+      description: selectedOrchestrator.value?.description || 'Orchestrator for project management',
+    };
+    const conversationId = await chatStore.startNewConversation(agent);
 
     // Create project data for the API
     const createProjectData: CreateProjectDto = {
       name: formData.value.name,
       description: formData.value.description,
-      conversationId: conversationResponse.conversationId,
+      conversationId: conversationId,
       planJson: selectedTemplate.value ? {
         templateId: formData.value.templateId,
         templateName: selectedTemplate.value.name,
@@ -416,7 +413,7 @@ const createProject = async () => {
         autoStart: formData.value.autoStart
       } : undefined,
       // Hierarchical support
-      parentProjectId: parentProjectId.value
+      parentProjectId: parentProjectId.value || undefined
     };
 
     const project = await projectsService.createProject(createProjectData);
