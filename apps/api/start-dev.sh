@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Set PATH to include Python user bin directory for PDM
+export PATH="$HOME/Library/Python/3.9/bin:$PATH"
+
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -79,7 +82,7 @@ fi
 
 # Start NestJS development server in background
 echo -e "${BLUE}🔥 Starting NestJS development server...${NC}"
-pnpm run start:dev &
+npm run start:dev &
 NESTJS_PID=$!
 
 # Wait a moment for NestJS to start
