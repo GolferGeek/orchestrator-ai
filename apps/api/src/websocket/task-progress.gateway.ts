@@ -333,11 +333,11 @@ export class TaskProgressGateway
    * Broadcast task completion with full response content
    */
   broadcastTaskCompletionWithResponse(
-    taskId: string, 
-    status: string, 
+    taskId: string,
+    status: string,
     message?: string,
     response?: string,
-    metadata?: any
+    metadata?: any,
   ) {
     const event = {
       taskId,
@@ -370,7 +370,9 @@ export class TaskProgressGateway
     );
 
     // Broadcast to all clients subscribed to this task with full response
-    this.server.to(`task:${taskId}`).emit('task_completed_with_response', event);
+    this.server
+      .to(`task:${taskId}`)
+      .emit('task_completed_with_response', event);
 
     this.logger.debug(
       `📤 Emitted task_completed_with_response event for task ${taskId}, response length: ${response ? response.length : 0}`,

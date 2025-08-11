@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsObject, MinLength, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsObject,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateVersionDto {
@@ -13,16 +19,18 @@ export class CreateVersionDto {
   @MinLength(1)
   content!: string;
 
-  @ApiPropertyOptional({ 
-    description: 'Additional metadata for this version', 
+  @ApiPropertyOptional({
+    description: 'Additional metadata for this version',
     type: 'object',
-    additionalProperties: true
+    additionalProperties: true,
   })
   @IsOptional()
   @IsObject()
   metadata?: Record<string, any>;
 
-  @ApiPropertyOptional({ description: 'Name of the agent that created this version' })
+  @ApiPropertyOptional({
+    description: 'Name of the agent that created this version',
+  })
   @IsOptional()
   @IsString()
   created_by_agent?: string;

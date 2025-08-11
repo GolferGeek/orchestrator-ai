@@ -9,17 +9,28 @@ export class DeliverableFiltersDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ enum: DeliverableType, description: 'Filter by deliverable type' })
+  @ApiPropertyOptional({
+    enum: DeliverableType,
+    description: 'Filter by deliverable type',
+  })
   @IsOptional()
   @IsEnum(DeliverableType)
   type?: DeliverableType;
 
-  @ApiPropertyOptional({ enum: DeliverableFormat, description: 'Filter by format' })
+  @ApiPropertyOptional({
+    enum: DeliverableFormat,
+    description: 'Filter by format',
+  })
   @IsOptional()
   @IsEnum(DeliverableFormat)
   format?: DeliverableFormat;
 
-  @ApiPropertyOptional({ description: 'Number of results to return', default: 50, minimum: 1, maximum: 100 })
+  @ApiPropertyOptional({
+    description: 'Number of results to return',
+    default: 50,
+    minimum: 1,
+    maximum: 100,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -27,16 +38,20 @@ export class DeliverableFiltersDto {
   @Max(100)
   limit?: number = 50;
 
-  @ApiPropertyOptional({ description: 'Number of results to skip', default: 0, minimum: 0 })
+  @ApiPropertyOptional({
+    description: 'Number of results to skip',
+    default: 0,
+    minimum: 0,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
   offset?: number = 0;
 
-  @ApiPropertyOptional({ 
-    description: 'Show only latest versions (true) or all versions (false)', 
-    default: true 
+  @ApiPropertyOptional({
+    description: 'Show only latest versions (true) or all versions (false)',
+    default: true,
   })
   @IsOptional()
   @Transform(({ value }) => {

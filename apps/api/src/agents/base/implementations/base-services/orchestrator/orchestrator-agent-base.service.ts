@@ -28,13 +28,11 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
   );
   protected delegationContext?: string;
 
-  constructor(
-    private readonly services: OrchestratorAgentServicesContext,
-  ) {
+  constructor(private readonly services: OrchestratorAgentServicesContext) {
     super(services.httpService);
     this.orchestratorFacadeService = services.orchestratorFacadeService;
   }
-  
+
   // Store orchestrator facade service for use in methods
   protected readonly orchestratorFacadeService: IOrchestratorFacadeService;
 
@@ -45,42 +43,62 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
    * A2A compliance while enabling rich project orchestration capabilities.
    */
   public async executeTask(method: string, params: any): Promise<any> {
-    this.orchestratorLogger.log(`🔍 DEBUG - Orchestrator processing A2A task: ${method}`);
-    this.orchestratorLogger.log(`🔍 DEBUG - Facade service available: ${!!this.orchestratorFacadeService}`);
+    this.orchestratorLogger.log(
+      `🔍 DEBUG - Orchestrator processing A2A task: ${method}`,
+    );
+    this.orchestratorLogger.log(
+      `🔍 DEBUG - Facade service available: ${!!this.orchestratorFacadeService}`,
+    );
 
     try {
       // Adapt A2A request to OrchestratorInput (conversation + tasks pattern)
       const input = await this.adaptA2AToOrchestratorInput(method, params);
 
       // Route through facade service (maintains single entry point principle)
-      this.orchestratorLogger.log(`🔍 DEBUG - Passing delegation context to facade: ${this.delegationContext ? 'YES' : 'NO'}`);
+      this.orchestratorLogger.log(
+        `🔍 DEBUG - Passing delegation context to facade: ${this.delegationContext ? 'YES' : 'NO'}`,
+      );
       if (this.delegationContext) {
-        this.orchestratorLogger.log(`🔍 DEBUG - Delegation context preview: ${this.delegationContext.substring(0, 200)}...`);
+        this.orchestratorLogger.log(
+          `🔍 DEBUG - Delegation context preview: ${this.delegationContext.substring(0, 200)}...`,
+        );
       }
-      
-      this.orchestratorLogger.log(`🔍 DEBUG - About to call facade processRequest with method: ${method}`);
+
+      this.orchestratorLogger.log(
+        `🔍 DEBUG - About to call facade processRequest with method: ${method}`,
+      );
       const response = await this.orchestratorFacadeService.processRequest(
         method as OrchestratorA2AMethod,
         input,
         this.delegationContext,
       );
 
-      this.orchestratorLogger.log(`🔍 DEBUG - Orchestrator completed task: ${method}`);
-      
+      this.orchestratorLogger.log(
+        `🔍 DEBUG - Orchestrator completed task: ${method}`,
+      );
+
       // Debug: Log the raw response structure being sent to frontend
-      this.orchestratorLogger.log(`🔍 DEBUG - Raw facade response from executeTask: ${JSON.stringify(response, null, 2)}`);
-      
+      this.orchestratorLogger.log(
+        `🔍 DEBUG - Raw facade response from executeTask: ${JSON.stringify(response, null, 2)}`,
+      );
+
       // Enhance response with orchestrator metadata if needed
-      if (response && typeof response === 'object' && !response.metadata?.agentType) {
+      if (
+        response &&
+        typeof response === 'object' &&
+        !response.metadata?.agentType
+      ) {
         response.metadata = {
           ...response.metadata,
           agentType: 'orchestrator' as const,
           agentName: this.getAgentName(),
           processedAt: new Date().toISOString(),
         };
-        this.orchestratorLogger.log(`🔍 DEBUG - Enhanced response with orchestrator metadata: ${JSON.stringify(response, null, 2)}`);
+        this.orchestratorLogger.log(
+          `🔍 DEBUG - Enhanced response with orchestrator metadata: ${JSON.stringify(response, null, 2)}`,
+        );
       }
-      
+
       return response;
     } catch (error) {
       this.orchestratorLogger.error(
@@ -127,7 +145,11 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
   private async loadDelegationContext(): Promise<void> {
     // Special handling for orchestrators during testing
     let agentPath = this.agentPath;
-    if (!agentPath || agentPath === 'unknown' || agentPath.includes('.spec.ts')) {
+    if (
+      !agentPath ||
+      agentPath === 'unknown' ||
+      agentPath.includes('.spec.ts')
+    ) {
       // Try to infer from agent name for orchestrators
       const agentName = this.getAgentName();
       if (agentName.includes('orchestrator')) {
@@ -158,10 +180,12 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
           // Default to orchestrator for CEO and other top-level orchestrators
           agentPath = `orchestrator/${agentName}`;
         }
-        this.orchestratorLogger.log(`🔍 Inferred agent path for testing: ${agentPath}`);
+        this.orchestratorLogger.log(
+          `🔍 Inferred agent path for testing: ${agentPath}`,
+        );
       }
     }
-    
+
     if (!agentPath || agentPath === 'unknown') {
       this.orchestratorLogger.warn(
         'Agent path not available for delegation context loading',
@@ -177,8 +201,10 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
       agentPath,
       'delegation.context.md',
     );
-    
-    this.orchestratorLogger.log(`🔍 Attempting to load delegation context from: ${contextPath}`);
+
+    this.orchestratorLogger.log(
+      `🔍 Attempting to load delegation context from: ${contextPath}`,
+    );
 
     if (fs.existsSync(contextPath)) {
       this.delegationContext = fs.readFileSync(contextPath, 'utf8');
@@ -256,7 +282,9 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
     this.orchestratorLogger.log(
       `🔍 DEBUG - ${this.getAgentName()} executing task: "${input.prompt.substring(0, 100)}..."`,
     );
-    this.orchestratorLogger.log(`🔍 DEBUG - Orchestrator facade service available: ${!!this.orchestratorFacadeService}`);
+    this.orchestratorLogger.log(
+      `🔍 DEBUG - Orchestrator facade service available: ${!!this.orchestratorFacadeService}`,
+    );
 
     try {
       // Add orchestrator-specific context to the input
@@ -274,21 +302,29 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
 
       // Route through the orchestrator facade with intelligent handling
       // Use an invalid method to trigger handleIntelligentRouting (default case)
-      this.orchestratorLogger.log(`🔍 DEBUG - About to call facade processRequest with delegation context: ${!!this.delegationContext}`);
+      this.orchestratorLogger.log(
+        `🔍 DEBUG - About to call facade processRequest with delegation context: ${!!this.delegationContext}`,
+      );
       if (this.delegationContext) {
-        this.orchestratorLogger.log(`🔍 DEBUG - Delegation context length: ${this.delegationContext.length}`);
+        this.orchestratorLogger.log(
+          `🔍 DEBUG - Delegation context length: ${this.delegationContext.length}`,
+        );
       }
-      
+
       const response = await this.orchestratorFacadeService.processRequest(
         'intelligent_routing' as OrchestratorA2AMethod, // This will trigger handleIntelligentRouting via default case
         orchestratorInput,
         this.delegationContext, // Pass the delegation context so LLM knows available agents
       );
-      
-      this.orchestratorLogger.log(`🔍 DEBUG - Facade processRequest completed, response received`);
+
+      this.orchestratorLogger.log(
+        `🔍 DEBUG - Facade processRequest completed, response received`,
+      );
 
       // Debug: Log the raw response before enhancement
-      this.orchestratorLogger.log(`🔍 DEBUG - Raw facade response: ${JSON.stringify(response, null, 2)}`);
+      this.orchestratorLogger.log(
+        `🔍 DEBUG - Raw facade response: ${JSON.stringify(response, null, 2)}`,
+      );
 
       // Enhance response with orchestrator-specific metadata
       const enhancedResponse: OrchestratorResponse = {
@@ -303,10 +339,15 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
         },
       };
 
-      this.orchestratorLogger.log(`🔍 DEBUG - Enhanced response: ${JSON.stringify(enhancedResponse, null, 2)}`);
+      this.orchestratorLogger.log(
+        `🔍 DEBUG - Enhanced response: ${JSON.stringify(enhancedResponse, null, 2)}`,
+      );
       return enhancedResponse;
     } catch (error) {
-      this.orchestratorLogger.error('Orchestrator task execution failed:', error);
+      this.orchestratorLogger.error(
+        'Orchestrator task execution failed:',
+        error,
+      );
 
       return {
         success: false,
@@ -321,7 +362,6 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
       };
     }
   }
-
 
   /**
    * Handle strategic planning requests
@@ -382,7 +422,12 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
   protected getHierarchyLevel(): string {
     // Can be overridden by specific orchestrators, default based on agent name
     if (this.getAgentName().includes('ceo')) return 'executive';
-    if (this.getAgentName().includes('cto') || this.getAgentName().includes('cmo') || this.getAgentName().includes('cfo')) return 'executive';
+    if (
+      this.getAgentName().includes('cto') ||
+      this.getAgentName().includes('cmo') ||
+      this.getAgentName().includes('cfo')
+    )
+      return 'executive';
     if (this.getAgentName().includes('manager')) return 'manager';
     return 'specialist';
   }
@@ -408,7 +453,9 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
    * Get display name for responses
    */
   protected getAgentDisplayName(): string {
-    return this.getAgentName().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return this.getAgentName()
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   }
 
   /**
@@ -416,13 +463,28 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
    */
   protected getCapabilities(): string[] {
     const level = this.getHierarchyLevel();
-    const baseCapabilities = ['delegation', 'project_management', 'conversation'];
-    
+    const baseCapabilities = [
+      'delegation',
+      'project_management',
+      'conversation',
+    ];
+
     if (level === 'executive') {
-      return [...baseCapabilities, 'strategic_planning', 'cross_functional_coordination', 'resource_allocation', 'performance_oversight'];
+      return [
+        ...baseCapabilities,
+        'strategic_planning',
+        'cross_functional_coordination',
+        'resource_allocation',
+        'performance_oversight',
+      ];
     }
     if (level === 'manager') {
-      return [...baseCapabilities, 'team_coordination', 'tactical_planning', 'performance_monitoring'];
+      return [
+        ...baseCapabilities,
+        'team_coordination',
+        'tactical_planning',
+        'performance_monitoring',
+      ];
     }
     return baseCapabilities;
   }

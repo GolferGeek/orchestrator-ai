@@ -3,7 +3,7 @@ import { AgentServicesContext } from './agents/base/services/agent-services-cont
 
 /**
  * PURE Service Container Version - Agent Factory Service
- * 
+ *
  * This version demonstrates how the AgentFactoryService becomes much simpler
  * when using the pure service container approach.
  */
@@ -14,12 +14,14 @@ export class AgentFactoryServicePure {
   constructor(
     // Instead of injecting 15+ individual services, just inject the container
     private readonly agentServices: AgentServicesContext,
-    
+
     // Orchestrators still handled by NestJS DI (they have complex dependencies)
     // @Optional() private readonly marketingManagerOrchestratorService?: MarketingManagerOrchestratorService,
     // ... other orchestrators
   ) {
-    this.logger.log('🏭 Pure AgentFactoryService initialized with service container');
+    this.logger.log(
+      '🏭 Pure AgentFactoryService initialized with service container',
+    );
   }
 
   /**
@@ -27,13 +29,17 @@ export class AgentFactoryServicePure {
    */
   private async instantiateAgent(ServiceClass: any, config: any): Promise<any> {
     const serviceName = ServiceClass.name;
-    this.logger.debug(`🏗️ Instantiating ${serviceName} as type: ${config.type}`);
+    this.logger.debug(
+      `🏗️ Instantiating ${serviceName} as type: ${config.type}`,
+    );
 
     try {
       switch (config.type) {
         case 'orchestrator': {
           // Orchestrators still handled by NestJS DI (no change needed)
-          this.logger.debug(`🎯 Getting orchestrator agent from DI container: ${serviceName}`);
+          this.logger.debug(
+            `🎯 Getting orchestrator agent from DI container: ${serviceName}`,
+          );
           // ... orchestrator logic stays the same (return from DI container)
           break;
         }
@@ -45,8 +51,10 @@ export class AgentFactoryServicePure {
         }
 
         case 'context': {
-          this.logger.debug(`📝 Creating context agent with pure service container`);
-          
+          this.logger.debug(
+            `📝 Creating context agent with pure service container`,
+          );
+
           // 🎉 THE MAGIC: No matter how many services you add to AgentServicesContext,
           // this line never changes! All context agents get all services automatically.
           return new ServiceClass(this.agentServices);
@@ -80,7 +88,9 @@ export class AgentFactoryServicePure {
         }
 
         default: {
-          this.logger.warn(`❓ Unknown agent type: ${config.type}, using minimal dependencies`);
+          this.logger.warn(
+            `❓ Unknown agent type: ${config.type}, using minimal dependencies`,
+          );
           return new ServiceClass(this.agentServices.httpService);
         }
       }
@@ -93,7 +103,7 @@ export class AgentFactoryServicePure {
 
 /**
  * 🚀 BENEFIT DEMONSTRATION:
- * 
+ *
  * Current Problem (what you described):
  * When you add a new service, you need to modify:
  * ❌ AgentFactoryService constructor (add parameter)
@@ -104,12 +114,12 @@ export class AgentFactoryServicePure {
  * ❌ CompetitorsService constructor (add parameter)
  * ❌ MarketResearchService constructor (add parameter)
  * ❌ ... 15+ other context agents
- * 
+ *
  * Pure Service Container Solution:
  * When you add a new service, you modify:
  * ✅ AgentServicesContext constructor (add 1 line)
- * ✅ AgentServicesContext property (add 1 line)  
+ * ✅ AgentServicesContext property (add 1 line)
  * ✅ That's it! 🎉
- * 
+ *
  * All agents automatically get the new service with ZERO code changes!
  */

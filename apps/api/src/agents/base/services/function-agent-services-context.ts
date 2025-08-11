@@ -21,15 +21,16 @@ export class FunctionAgentServicesContext {
     // Core services that every function agent needs
     public readonly httpService: HttpService,
     public readonly llmService: LLMService,
-    
+
     // Task-related services (required for function agents)
     public readonly taskProgressGateway: TaskProgressGateway,
     public readonly tasksService: TasksService,
     public readonly taskStatusService: TaskStatusService,
     public readonly deliverablesService: DeliverablesService,
-    
+
     // Agent framework services (optional)
-    @Optional() public readonly agentRegistrationService?: AgentRegistrationService,
+    @Optional()
+    public readonly agentRegistrationService?: AgentRegistrationService,
     @Optional() public readonly jsonRpcProtocolService?: JsonRpcProtocolService,
     @Optional() public readonly loggingService?: LoggingService,
     @Optional() public readonly authService?: AuthService,

@@ -16,7 +16,6 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
     return 'requirements_writer';
   }
 
-
   /**
    * Requirements Writer uses workflow steps - should be treated as ephemeral but with real-time progress
    */

@@ -150,11 +150,11 @@ export class DynamicAgentsController {
     // Get agent configuration for timeout and other settings
     const agentCard = await agentInstance.getAgentCard();
     const agentTimeout = agentCard.timeout || 300; // Default to 5 minutes if not specified
-    
+
     // Get agent's preferred task type (if available)
-    const agentTaskType = (agentInstance as any).getTaskType ? 
-      (agentInstance as any).getTaskType() : 
-      'ephemeral'; // Default for dynamic agent requests
+    const agentTaskType = agentInstance.getTaskType
+      ? agentInstance.getTaskType()
+      : 'ephemeral'; // Default for dynamic agent requests
 
     // Create task with agent-specific timeout
     // Optimize context (backend-intelligent) with feature flag
@@ -171,12 +171,14 @@ export class DynamicAgentsController {
         })
       : normalizedTaskRequest.conversationHistory || [];
 
-    const normalizedOptimizedHistory = (optimizedHistory || []).map((m: any) => ({
-      role: m.role,
-      content: m.content,
-      timestamp: m.timestamp || new Date().toISOString(),
-      ...(m.metadata ? { metadata: m.metadata } : {}),
-    }));
+    const normalizedOptimizedHistory = (optimizedHistory || []).map(
+      (m: any) => ({
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp || new Date().toISOString(),
+        ...(m.metadata ? { metadata: m.metadata } : {}),
+      }),
+    );
 
     const taskRequestWithTimeout = {
       ...normalizedTaskRequest,
@@ -186,7 +188,9 @@ export class DynamicAgentsController {
         contextOptimization: optimizationEnabled
           ? {
               strategy: 'backend_intelligent',
-              originalMessageCount: (normalizedTaskRequest.conversationHistory || []).length,
+              originalMessageCount: (
+                normalizedTaskRequest.conversationHistory || []
+              ).length,
               optimizedMessageCount: normalizedOptimizedHistory.length,
               workProductType: wp?.type,
             }
@@ -206,7 +210,7 @@ export class DynamicAgentsController {
     try {
       // Task status already initialized in TasksService.createTask()
       // No need to duplicate TaskStatusService.createTask() call here
-      
+
       // If client provided workProduct, bind it immutably to the conversation once
       if (wp && task.agentConversationId) {
         try {
@@ -261,13 +265,17 @@ export class DynamicAgentsController {
         };
       }
 
-      this.logger.debug(`🔍 DEBUG - Using immediate/synchronous mode for task ${task.id}`);
+      this.logger.debug(
+        `🔍 DEBUG - Using immediate/synchronous mode for task ${task.id}`,
+      );
       this.logger.debug(`🔍 DEBUG - About to call agentInstance.processTask`);
 
       // For synchronous processing, await the result
       const result = await agentInstance.processTask(authenticatedTaskRequest);
 
-      this.logger.debug(`🔍 DEBUG - Task ${task.id} completed with result: ${JSON.stringify(result, null, 2)}`);
+      this.logger.debug(
+        `🔍 DEBUG - Task ${task.id} completed with result: ${JSON.stringify(result, null, 2)}`,
+      );
 
       // Store the result in the task record so frontend can access it
       await this.taskStatusService.completeTask(
@@ -276,7 +284,9 @@ export class DynamicAgentsController {
         result, // This is the orchestrator response with message field
       );
 
-      this.logger.debug(`🔍 DEBUG - Task ${task.id} marked as completed in database`);
+      this.logger.debug(
+        `🔍 DEBUG - Task ${task.id} marked as completed in database`,
+      );
 
       // Return the result for immediate response
       return {
@@ -305,9 +315,11 @@ export class DynamicAgentsController {
       'gpt-4-turbo': 100000,
       default: 80000,
     };
-    const modelId: string = (llmSelection && (llmSelection as any).modelId) || 'default';
+    const modelId: string = (llmSelection && llmSelection.modelId) || 'default';
     const hasKey = Object.prototype.hasOwnProperty.call(budgets, modelId);
-    const value: number = hasKey ? (budgets[modelId] as number) : (budgets['default'] as number);
+    const value: number = hasKey
+      ? (budgets[modelId] as number)
+      : (budgets['default'] as number);
     return value;
   }
 
@@ -366,7 +378,7 @@ export class DynamicAgentsController {
 
     // Match the agent by path logic (e.g., "specialists/blog_post" or "orchestrator/orchestrator")
     const expectedPath = `${agentType}/${agentName}`;
-    let agentIndex = discoveredAgents.findIndex((a) => {
+    const agentIndex = discoveredAgents.findIndex((a) => {
       if (!a.path) {
         // Fallback for agents with null path - match by type and name
         return a.type === agentType && a.name === agentName;

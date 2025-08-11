@@ -116,8 +116,8 @@ export class EvaluationService {
       .select(
         `
         *,
-        provider:providers(*),
-        model:models(*)
+        provider:llm_providers(*),
+        model:llm_models(*)
       `,
       )
       .single();
@@ -129,15 +129,8 @@ export class EvaluationService {
       );
     }
 
-    // Update usage statistics if ratings are provided
-    if (evaluationDto.userRating) {
-      await this.updateUsageStatsWithRating(
-        userId,
-        message.provider_id,
-        message.model_id,
-        evaluationDto.userRating,
-      );
-    }
+    // Note: Usage statistics tracking removed during database cleanup
+    // User rating is stored in the message evaluation data
 
     return updatedMessage;
   }
@@ -153,8 +146,8 @@ export class EvaluationService {
       .select(
         `
         *,
-        provider:providers(*),
-        model:models(*)
+        provider:llm_providers(*),
+        model:llm_models(*)
       `,
       )
       .eq('id', messageId)
@@ -186,8 +179,8 @@ export class EvaluationService {
       .select(
         `
         *,
-        provider:providers(*),
-        model:models(*)
+        provider:llm_providers(*),
+        model:llm_models(*)
       `,
       )
       .eq('user_id', userId)
@@ -242,7 +235,7 @@ export class EvaluationService {
         accuracy_rating,
         provider_id,
         model_id,
-        model:models(*),
+        model:llm_models(*),
         timestamp
       `,
       )
@@ -311,8 +304,8 @@ export class EvaluationService {
       'input_tokens',
       'output_tokens',
       'response_time_ms',
-      'provider:providers(name)',
-      'model:models(name, model_id)',
+      'provider:llm_providers(name)',
+      'model:llm_models(name, model_id)',
     ]
       .filter(Boolean)
       .join(', ');
@@ -377,7 +370,7 @@ export class EvaluationService {
         accuracy_rating,
         response_time_ms,
         total_cost,
-        model:models(*),
+        model:llm_models(*),
         timestamp
       `,
       )
@@ -412,40 +405,6 @@ export class EvaluationService {
   }
 
   // Helper methods
-  private async updateUsageStatsWithRating(
-    userId: string,
-    providerId: string,
-    modelId: string,
-    rating: UserRatingScale,
-  ): Promise<void> {
-    const client = this.supabaseService.getAnonClient();
-    const today = new Date().toISOString().split('T')[0];
-
-    // Get current stats for today
-    const { data: existingStats } = await client
-      .from('user_usage_stats')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('date', today)
-      .eq('provider_id', providerId)
-      .eq('model_id', modelId)
-      .single();
-
-    if (existingStats) {
-      // Update existing stats with new rating
-      const currentRating = existingStats.avg_user_rating || 0;
-      const ratingCount = existingStats.total_requests;
-      const newAvgRating =
-        (currentRating * ratingCount + rating) / (ratingCount + 1);
-
-      await client
-        .from('user_usage_stats')
-        .update({
-          avg_user_rating: newAvgRating,
-        })
-        .eq('id', existingStats.id);
-    }
-  }
 
   private calculateEvaluationStats(evaluations: any[]): {
     totalEvaluations: number;

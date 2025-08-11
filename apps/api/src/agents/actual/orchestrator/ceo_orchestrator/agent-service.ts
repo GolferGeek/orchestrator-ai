@@ -12,9 +12,7 @@ import { OrchestratorAgentServicesContext } from '../../../base/implementations/
 export class CEOOrchestratorService extends OrchestratorAgentBaseService {
   protected readonly logger = new Logger(CEOOrchestratorService.name);
 
-  constructor(
-    services: OrchestratorAgentServicesContext,
-  ) {
+  constructor(services: OrchestratorAgentServicesContext) {
     super(services);
   }
 

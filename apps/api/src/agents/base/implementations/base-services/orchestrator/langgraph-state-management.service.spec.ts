@@ -1,29 +1,29 @@
 /**
  * LangGraph State Management Service Tests
- * 
+ *
  * Tests the 3-tier state architecture including:
  * - Plan State (Tier 1): High-level project strategy and coordination
  * - Step Results State (Tier 2): Execution outcomes and deliverables
  * - Metadata State (Tier 3): Operational details and real-time metrics
- * 
+ *
  * Validates stateful workflow capabilities while preserving smart routing.
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { 
-  LangGraphStateManagementService, 
-  PlanState, 
-  StepResultsState, 
-  MetadataState, 
+import {
+  LangGraphStateManagementService,
+  PlanState,
+  StepResultsState,
+  MetadataState,
   LangGraphState,
   StateTransition,
 } from './langgraph-state-management.service';
 import { LLMService } from '@/llms/llm.service';
 import { SupabaseService } from '@/supabase/supabase.service';
-import { 
-  OrchestratorInput, 
-  PlanDefinition, 
-  ProjectStepStatus 
+import {
+  OrchestratorInput,
+  PlanDefinition,
+  ProjectStepStatus,
 } from '@/orchestration/orchestration.types';
 
 describe('LangGraphStateManagementService', () => {
@@ -65,10 +65,10 @@ describe('LangGraphStateManagementService', () => {
         dependencies: ['content-creation'],
       },
     ],
-    metadata: { 
-      complexity: 'high', 
+    metadata: {
+      complexity: 'high',
       estimatedDuration: '8 weeks',
-      departments: ['marketing', 'finance', 'product'] 
+      departments: ['marketing', 'finance', 'product'],
     },
   };
 
@@ -83,28 +83,28 @@ describe('LangGraphStateManagementService', () => {
       imports: [
         ConfigModule.forRoot({
           isGlobal: true,
-          envFilePath: [
-            '../../.env',
-            '.env',
-          ],
+          envFilePath: ['../../.env', '.env'],
           expandVariables: true,
           load: [supabaseConfig],
         }),
-        LLMModule,        // Real LLM service
-        SupabaseModule,   // Real Supabase service
+        LLMModule, // Real LLM service
+        SupabaseModule, // Real Supabase service
       ],
-      providers: [
-        LangGraphStateManagementService,
-      ],
+      providers: [LangGraphStateManagementService],
     }).compile();
 
-    service = module.get<LangGraphStateManagementService>(LangGraphStateManagementService);
+    service = module.get<LangGraphStateManagementService>(
+      LangGraphStateManagementService,
+    );
   });
 
   describe('State Initialization', () => {
     it('should initialize complete 3-tier LangGraph state with real LLM integration', async () => {
       // No mocking - test with real LLM service
-      const state = await service.initializeProjectState(testPlanDefinition, testInput);
+      const state = await service.initializeProjectState(
+        testPlanDefinition,
+        testInput,
+      );
 
       // Validate Tier 1: Plan State structure (real LLM response)
       expect(state.planState.projectName).toBe('Q4 Product Launch Campaign');
@@ -114,7 +114,9 @@ describe('LangGraphStateManagementService', () => {
       expect(state.planState.departments.length).toBeGreaterThan(0);
       expect(Array.isArray(state.planState.resourceAllocation)).toBe(true);
       expect(Array.isArray(state.planState.successCriteria)).toBe(true);
-      expect(['low', 'medium', 'high']).toContain(state.planState.riskAssessment.level);
+      expect(['low', 'medium', 'high']).toContain(
+        state.planState.riskAssessment.level,
+      );
       expect(Array.isArray(state.planState.approvalGates)).toBe(true);
       expect(state.planState.version).toBe(1);
       expect(state.planState.projectId).toBeDefined();
@@ -134,7 +136,9 @@ describe('LangGraphStateManagementService', () => {
       const contentCreationStep = state.stepResults.get('content-creation');
       expect(contentCreationStep).toBeDefined();
       expect(contentCreationStep?.dependencies).toHaveLength(1);
-      expect(contentCreationStep?.dependencies[0]?.stepId).toBe('market-research');
+      expect(contentCreationStep?.dependencies[0]?.stepId).toBe(
+        'market-research',
+      );
 
       // Validate Tier 3: Metadata State
       expect(state.metadata.projectId).toBe(state.planState.projectId);
@@ -143,7 +147,9 @@ describe('LangGraphStateManagementService', () => {
       expect(state.metadata.operationalData.queue.processingTasks).toBe(0);
       expect(state.metadata.operationalData.queue.completedTasks).toBe(0);
       expect(state.metadata.configuration.retryPolicy.maxRetries).toBe(3);
-      expect(state.metadata.configuration.monitoring.alertThresholds.errorRate).toBe(10);
+      expect(
+        state.metadata.configuration.monitoring.alertThresholds.errorRate,
+      ).toBe(10);
 
       // Validate overall state structure
       expect(state.stateVersion).toBe(1);
@@ -160,13 +166,18 @@ describe('LangGraphStateManagementService', () => {
       const invalidInput = { ...testInput, userId: '' };
 
       try {
-        const state = await service.initializeProjectState(testPlanDefinition, invalidInput);
-        
+        const state = await service.initializeProjectState(
+          testPlanDefinition,
+          invalidInput,
+        );
+
         // If it succeeds, verify fallback behavior works
         expect(state.planState.projectName).toBe('Q4 Product Launch Campaign');
         expect(state.planState.objectives.length).toBeGreaterThan(0);
         expect(state.planState.departments.length).toBeGreaterThan(0);
-        expect(['low', 'medium', 'high']).toContain(state.planState.riskAssessment.level);
+        expect(['low', 'medium', 'high']).toContain(
+          state.planState.riskAssessment.level,
+        );
         expect(state.stepResults.size).toBe(3);
       } catch (error) {
         // If it fails, that's also valid - we're testing real error handling
@@ -197,7 +208,10 @@ describe('LangGraphStateManagementService', () => {
         ],
       };
 
-      const state = await service.initializeProjectState(planWithSpecificAgents, testInput);
+      const state = await service.initializeProjectState(
+        planWithSpecificAgents,
+        testInput,
+      );
 
       const marketingStep = state.stepResults.get('marketing-step')!;
       expect(marketingStep.department).toBe('marketing');
@@ -212,7 +226,10 @@ describe('LangGraphStateManagementService', () => {
 
     beforeEach(async () => {
       // Initialize project state with real LLM service (no mocking)
-      initialState = await service.initializeProjectState(testPlanDefinition, testInput);
+      initialState = await service.initializeProjectState(
+        testPlanDefinition,
+        testInput,
+      );
     });
 
     it('should update step state and increment version', async () => {
@@ -222,11 +239,11 @@ describe('LangGraphStateManagementService', () => {
       const updatedStep = await service.updateStepState(
         projectId,
         stepId,
-        { 
+        {
           status: 'running',
           startedAt: new Date().toISOString(),
         },
-        'system_event'
+        'system_event',
       );
 
       expect(updatedStep.status).toBe('running');
@@ -237,7 +254,9 @@ describe('LangGraphStateManagementService', () => {
       const currentState = await service.getState(projectId);
       expect(currentState.stateVersion).toBe(2);
       expect(currentState.metadata.operationalData.queue.pendingTasks).toBe(2);
-      expect(currentState.metadata.operationalData.queue.processingTasks).toBe(1);
+      expect(currentState.metadata.operationalData.queue.processingTasks).toBe(
+        1,
+      );
     });
 
     it('should handle step completion with results', async () => {
@@ -257,7 +276,12 @@ describe('LangGraphStateManagementService', () => {
             },
           ],
           metrics: [
-            { name: 'Market Size', value: 50000000, unit: 'USD', target: 45000000 },
+            {
+              name: 'Market Size',
+              value: 50000000,
+              unit: 'USD',
+              target: 45000000,
+            },
             { name: 'Competition Level', value: 7, unit: 'scale_1_10' },
           ],
           feedback: [
@@ -277,7 +301,7 @@ describe('LangGraphStateManagementService', () => {
         projectId,
         stepId,
         completionResult,
-        'agent_completion'
+        'agent_completion',
       );
 
       expect(updatedStep.status).toBe('completed');
@@ -288,8 +312,12 @@ describe('LangGraphStateManagementService', () => {
 
       // Verify metadata queue updates
       const currentState = await service.getState(projectId);
-      expect(currentState.metadata.operationalData.queue.completedTasks).toBe(1);
-      expect(currentState.metadata.operationalData.queue.processingTasks).toBe(0);
+      expect(currentState.metadata.operationalData.queue.completedTasks).toBe(
+        1,
+      );
+      expect(currentState.metadata.operationalData.queue.processingTasks).toBe(
+        0,
+      );
     });
 
     it('should handle step failures with error details', async () => {
@@ -313,7 +341,7 @@ describe('LangGraphStateManagementService', () => {
         projectId,
         stepId,
         failureUpdate,
-        'system_event'
+        'system_event',
       );
 
       expect(updatedStep.status).toBe('failed');
@@ -330,7 +358,9 @@ describe('LangGraphStateManagementService', () => {
       const projectId = initialState.planState.projectId;
 
       await expect(
-        service.updateStepState(projectId, 'non-existent-step', { status: 'running' })
+        service.updateStepState(projectId, 'non-existent-step', {
+          status: 'running',
+        }),
       ).rejects.toThrow('Step non-existent-step not found in project');
     });
   });
@@ -340,7 +370,10 @@ describe('LangGraphStateManagementService', () => {
 
     beforeEach(async () => {
       // Initialize project state with real LLM service (no mocking)
-      initialState = await service.initializeProjectState(testPlanDefinition, testInput);
+      initialState = await service.initializeProjectState(
+        testPlanDefinition,
+        testInput,
+      );
     });
 
     it('should execute step with no dependencies', async () => {
@@ -349,7 +382,11 @@ describe('LangGraphStateManagementService', () => {
 
       // Note: delegateStepExecution uses real implementation (no mocking)
 
-      const result = await service.executeWorkflowStep(projectId, stepId, testInput);
+      const result = await service.executeWorkflowStep(
+        projectId,
+        stepId,
+        testInput,
+      );
 
       expect(result.success).toBe(true);
       expect(result.action).toBe('step_completed');
@@ -366,7 +403,11 @@ describe('LangGraphStateManagementService', () => {
       const projectId = initialState.planState.projectId;
       const stepId = 'content-creation'; // Depends on market-research
 
-      const result = await service.executeWorkflowStep(projectId, stepId, testInput);
+      const result = await service.executeWorkflowStep(
+        projectId,
+        stepId,
+        testInput,
+      );
 
       expect(result.success).toBe(false);
       expect(result.action).toBe('dependency_wait');
@@ -387,7 +428,7 @@ describe('LangGraphStateManagementService', () => {
 
       // This should result in a real error from the delegation process
       await expect(
-        service.executeWorkflowStep(projectId, stepId, invalidInput)
+        service.executeWorkflowStep(projectId, stepId, invalidInput),
       ).rejects.toThrow();
 
       // Verify step was marked as failed
@@ -405,8 +446,10 @@ describe('LangGraphStateManagementService', () => {
       await service.updateStepState(projectId, stepId, { status: 'running' });
 
       await expect(
-        service.executeWorkflowStep(projectId, stepId, testInput)
-      ).rejects.toThrow('Step market-research is not in pending state: running');
+        service.executeWorkflowStep(projectId, stepId, testInput),
+      ).rejects.toThrow(
+        'Step market-research is not in pending state: running',
+      );
     });
   });
 
@@ -415,7 +458,10 @@ describe('LangGraphStateManagementService', () => {
 
     beforeEach(async () => {
       // Initialize project state with real LLM service (no mocking)
-      initialState = await service.initializeProjectState(testPlanDefinition, testInput);
+      initialState = await service.initializeProjectState(
+        testPlanDefinition,
+        testInput,
+      );
     });
 
     it('should handle approval required interrupt', async () => {
@@ -428,7 +474,7 @@ describe('LangGraphStateManagementService', () => {
         projectId,
         stepId,
         'approval_required',
-        { phase: 'budget-approval', approvalAmount: 100000 }
+        { phase: 'budget-approval', approvalAmount: 100000 },
       );
 
       // Verify step status changed to pending approval
@@ -437,7 +483,9 @@ describe('LangGraphStateManagementService', () => {
       expect(stepState.status).toBe('pending_approval');
 
       // Verify approval gate status updated
-      const approvalGate = currentState.planState.approvalGates.find(gate => gate.phase === 'budget-approval');
+      const approvalGate = currentState.planState.approvalGates.find(
+        (gate) => gate.phase === 'budget-approval',
+      );
       expect(approvalGate?.status).toBe('pending');
 
       // Note: Event emission is tested through real implementation, not mocked
@@ -448,7 +496,12 @@ describe('LangGraphStateManagementService', () => {
       const stepId = 'budget-approval';
 
       // First interrupt the workflow
-      await service.handleWorkflowInterrupt(projectId, stepId, 'approval_required', {});
+      await service.handleWorkflowInterrupt(
+        projectId,
+        stepId,
+        'approval_required',
+        {},
+      );
 
       // Resume with approval
       await service.resumeWorkflow(projectId, stepId, 'approved');
@@ -465,7 +518,12 @@ describe('LangGraphStateManagementService', () => {
       const projectId = initialState.planState.projectId;
       const stepId = 'budget-approval';
 
-      await service.handleWorkflowInterrupt(projectId, stepId, 'approval_required', {});
+      await service.handleWorkflowInterrupt(
+        projectId,
+        stepId,
+        'approval_required',
+        {},
+      );
       await service.resumeWorkflow(projectId, stepId, 'rejected');
 
       const currentState = await service.getState(projectId);
@@ -477,14 +535,24 @@ describe('LangGraphStateManagementService', () => {
       const projectId = initialState.planState.projectId;
       const stepId = 'budget-approval';
 
-      await service.handleWorkflowInterrupt(projectId, stepId, 'approval_required', {});
-      
+      await service.handleWorkflowInterrupt(
+        projectId,
+        stepId,
+        'approval_required',
+        {},
+      );
+
       const modifications = {
         estimatedDuration: 5,
-        metadata: { modifiedBudget: 80000 }
+        metadata: { modifiedBudget: 80000 },
       };
 
-      await service.resumeWorkflow(projectId, stepId, 'modified', modifications);
+      await service.resumeWorkflow(
+        projectId,
+        stepId,
+        'modified',
+        modifications,
+      );
 
       const currentState = await service.getState(projectId);
       const stepState = currentState.stepResults.get(stepId)!;
@@ -498,7 +566,10 @@ describe('LangGraphStateManagementService', () => {
 
     beforeEach(async () => {
       // Initialize project state with real LLM service (no mocking)
-      initialState = await service.initializeProjectState(testPlanDefinition, testInput);
+      initialState = await service.initializeProjectState(
+        testPlanDefinition,
+        testInput,
+      );
     });
 
     it('should throw error when target version not found', async () => {
@@ -507,7 +578,7 @@ describe('LangGraphStateManagementService', () => {
       // Note: loadStateVersion uses real implementation (no mocking)
 
       await expect(
-        service.rollbackState(projectId, 99, 'Testing rollback')
+        service.rollbackState(projectId, 99, 'Testing rollback'),
       ).rejects.toThrow('State version 99 not found for project');
     });
 
@@ -527,10 +598,16 @@ describe('LangGraphStateManagementService', () => {
       // Note: This test will use real state versioning when implemented
 
       // First make some changes to current state
-      await service.updateStepState(projectId, 'market-research', { status: 'running' });
+      await service.updateStepState(projectId, 'market-research', {
+        status: 'running',
+      });
 
       // Now rollback
-      const rolledBackState = await service.rollbackState(projectId, 2, 'Error recovery');
+      const rolledBackState = await service.rollbackState(
+        projectId,
+        2,
+        'Error recovery',
+      );
 
       expect(rolledBackState.stateVersion).toBeGreaterThan(2); // Should increment from current
       expect(rolledBackState.planState.version).toBe(2); // Should match historical plan version
@@ -542,31 +619,48 @@ describe('LangGraphStateManagementService', () => {
 
     beforeEach(async () => {
       // Initialize project state with real LLM service (no mocking)
-      projectState = await service.initializeProjectState(testPlanDefinition, testInput);
+      projectState = await service.initializeProjectState(
+        testPlanDefinition,
+        testInput,
+      );
 
       // Complete one step and start another
-      await service.updateStepState(projectState.planState.projectId, 'market-research', {
-        status: 'completed',
-        actualDuration: 2.5,
-      });
+      await service.updateStepState(
+        projectState.planState.projectId,
+        'market-research',
+        {
+          status: 'completed',
+          actualDuration: 2.5,
+        },
+      );
 
-      await service.updateStepState(projectState.planState.projectId, 'content-creation', {
-        status: 'running',
-        startedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
-      });
+      await service.updateStepState(
+        projectState.planState.projectId,
+        'content-creation',
+        {
+          status: 'running',
+          startedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
+        },
+      );
     });
 
     it('should calculate correct workflow analytics', async () => {
-      const analytics = await service.getWorkflowAnalytics(projectState.planState.projectId);
+      const analytics = await service.getWorkflowAnalytics(
+        projectState.planState.projectId,
+      );
 
       expect(analytics.overallProgress).toBe(33); // 1 completed out of 3 steps
       expect(analytics.stepProgress).toHaveLength(3);
-      
-      const completedStep = analytics.stepProgress.find(s => s.stepId === 'market-research');
+
+      const completedStep = analytics.stepProgress.find(
+        (s) => s.stepId === 'market-research',
+      );
       expect(completedStep?.progress).toBe(100);
       expect(completedStep?.status).toBe('completed');
 
-      const runningStep = analytics.stepProgress.find(s => s.stepId === 'content-creation');
+      const runningStep = analytics.stepProgress.find(
+        (s) => s.stepId === 'content-creation',
+      );
       expect(runningStep?.progress).toBe(50);
       expect(runningStep?.status).toBe('running');
 
@@ -576,36 +670,56 @@ describe('LangGraphStateManagementService', () => {
     });
 
     it('should identify bottlenecks in long-running steps', async () => {
-      const longRunningStart = new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(); // 10 hours ago
-      
-      await service.updateStepState(projectState.planState.projectId, 'content-creation', {
-        startedAt: longRunningStart,
-        estimatedDuration: 4, // 4 hours estimated, but running for 10 hours
-      });
+      const longRunningStart = new Date(
+        Date.now() - 10 * 60 * 60 * 1000,
+      ).toISOString(); // 10 hours ago
 
-      const analytics = await service.getWorkflowAnalytics(projectState.planState.projectId);
+      await service.updateStepState(
+        projectState.planState.projectId,
+        'content-creation',
+        {
+          startedAt: longRunningStart,
+          estimatedDuration: 4, // 4 hours estimated, but running for 10 hours
+        },
+      );
+
+      const analytics = await service.getWorkflowAnalytics(
+        projectState.planState.projectId,
+      );
 
       expect(analytics.bottlenecks).toHaveLength(1);
       expect(analytics.bottlenecks[0]?.stepId).toBe('content-creation');
-      expect(analytics.bottlenecks[0]?.reason).toContain('Duration exceeded estimate');
+      expect(analytics.bottlenecks[0]?.reason).toContain(
+        'Duration exceeded estimate',
+      );
       expect(analytics.bottlenecks[0]?.impact).toBe('medium');
     });
 
     it('should generate appropriate recommendations', async () => {
       // Create scenario with high error rate
-      await service.updateStepState(projectState.planState.projectId, 'content-creation', {
-        status: 'failed',
-      });
+      await service.updateStepState(
+        projectState.planState.projectId,
+        'content-creation',
+        {
+          status: 'failed',
+        },
+      );
 
-      await service.updateStepState(projectState.planState.projectId, 'budget-approval', {
-        status: 'failed',
-      });
+      await service.updateStepState(
+        projectState.planState.projectId,
+        'budget-approval',
+        {
+          status: 'failed',
+        },
+      );
 
-      const analytics = await service.getWorkflowAnalytics(projectState.planState.projectId);
+      const analytics = await service.getWorkflowAnalytics(
+        projectState.planState.projectId,
+      );
 
       expect(analytics.performance.errorRate).toBeGreaterThan(10);
       expect(analytics.recommendations).toContainEqual(
-        expect.stringContaining('High error rate detected')
+        expect.stringContaining('High error rate detected'),
       );
     });
   });
@@ -613,12 +727,15 @@ describe('LangGraphStateManagementService', () => {
   describe('State Caching and Persistence', () => {
     it('should use cache for frequently accessed states', async () => {
       // Initialize project state with real LLM service (no mocking)
-      const state = await service.initializeProjectState(testPlanDefinition, testInput);
+      const state = await service.initializeProjectState(
+        testPlanDefinition,
+        testInput,
+      );
       const projectId = state.planState.projectId;
 
       // First call should hit database
       const state1 = await service.getState(projectId);
-      
+
       // Second call should use cache
       const state2 = await service.getState(projectId);
 
@@ -627,9 +744,9 @@ describe('LangGraphStateManagementService', () => {
 
     it('should handle missing state in database', async () => {
       // Test with a non-existent project ID (real database query)
-      await expect(
-        service.getState('non-existent-project-id')
-      ).rejects.toThrow('LangGraph state not found for project: non-existent-project-id');
+      await expect(service.getState('non-existent-project-id')).rejects.toThrow(
+        'LangGraph state not found for project: non-existent-project-id',
+      );
     });
   });
 
@@ -658,7 +775,10 @@ describe('LangGraphStateManagementService', () => {
 
     it('should limit transition history to prevent memory bloat', async () => {
       // Initialize project state with real LLM service (no mocking)
-      const state = await service.initializeProjectState(testPlanDefinition, testInput);
+      const state = await service.initializeProjectState(
+        testPlanDefinition,
+        testInput,
+      );
       const projectId = state.planState.projectId;
 
       // Make 150 state transitions (more than the 100 limit)
@@ -669,7 +789,9 @@ describe('LangGraphStateManagementService', () => {
       }
 
       // Access private transition history to verify limit
-      const transitionHistory = (service as any).transitionHistory.get(projectId);
+      const transitionHistory = (service as any).transitionHistory.get(
+        projectId,
+      );
       expect(transitionHistory.length).toBeLessThanOrEqual(100);
     });
   });

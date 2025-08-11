@@ -1,11 +1,11 @@
 /**
  * LangGraph State Management Service
- * 
+ *
  * Provides 3-tier state architecture for enterprise workflow orchestration:
  * - Tier 1 (Plan State): High-level project strategy and coordination
- * - Tier 2 (Step Results State): Execution outcomes and deliverables  
+ * - Tier 2 (Step Results State): Execution outcomes and deliverables
  * - Tier 3 (Metadata State): Operational details and real-time metrics
- * 
+ *
  * Enhances smart routing/delegation with stateful workflow capabilities
  * while preserving the conversation + tasks paradigm for simple requests.
  */
@@ -215,7 +215,12 @@ export interface WorkflowContext {
 export interface StateTransition {
   fromState: Partial<LangGraphState>;
   toState: Partial<LangGraphState>;
-  trigger: 'user_action' | 'agent_completion' | 'timeout' | 'error' | 'system_event';
+  trigger:
+    | 'user_action'
+    | 'agent_completion'
+    | 'timeout'
+    | 'error'
+    | 'system_event';
   timestamp: string;
   metadata: Record<string, any>;
 }
@@ -242,24 +247,31 @@ export class LangGraphStateManagementService {
     projectDefinition: PlanDefinition,
     input: OrchestratorInput,
   ): Promise<LangGraphState> {
-    this.logger.log(`Initializing LangGraph state for project: ${projectDefinition.projectName}`);
+    this.logger.log(
+      `Initializing LangGraph state for project: ${projectDefinition.projectName}`,
+    );
 
     // Create Tier 1: Plan State
-    const planState: PlanState = await this.createPlanState(projectDefinition, input);
+    const planState: PlanState = await this.createPlanState(
+      projectDefinition,
+      input,
+    );
 
     // Create Tier 2: Step Results State (empty initially)
     const stepResults = new Map<string, StepResultsState>();
-    
+
     // Initialize step states from plan definition
     for (const step of projectDefinition.steps) {
       const stepState: StepResultsState = {
         projectId: planState.projectId,
         stepId: step.stepId,
         stepName: step.stepName,
-        department: this.extractDepartmentFromAgent(step.agentName || 'general'),
+        department: this.extractDepartmentFromAgent(
+          step.agentName || 'general',
+        ),
         assignedOrchestrator: step.agentName || 'general_orchestrator',
         status: 'pending',
-        dependencies: step.dependencies.map(depId => ({
+        dependencies: step.dependencies.map((depId) => ({
           stepId: depId,
           type: 'sequential',
           status: 'pending',
@@ -334,11 +346,13 @@ export class LangGraphStateManagementService {
 
     // Persist to database
     await this.persistState(langGraphState);
-    
+
     // Cache in memory for fast access
     this.stateCache.set(planState.projectId, langGraphState);
 
-    this.logger.log(`LangGraph state initialized for project ${planState.projectId} with ${stepResults.size} steps`);
+    this.logger.log(
+      `LangGraph state initialized for project ${planState.projectId} with ${stepResults.size} steps`,
+    );
     return langGraphState;
   }
 
@@ -363,7 +377,9 @@ export class LangGraphStateManagementService {
     // Create state transition record
     const transition: StateTransition = {
       fromState: { stepResults: new Map([[stepId, { ...stepState }]]) },
-      toState: { stepResults: new Map([[stepId, { ...stepState, ...update }]]) },
+      toState: {
+        stepResults: new Map([[stepId, { ...stepState, ...update }]]),
+      },
       trigger,
       timestamp: new Date().toISOString(),
       metadata: { stepId, updateType: Object.keys(update).join(',') },
@@ -390,7 +406,9 @@ export class LangGraphStateManagementService {
     await this.persistState(currentState);
     this.stateCache.set(projectId, currentState);
 
-    this.logger.log(`Step state updated: ${stepId} -> ${update.status || 'partial_update'}`);
+    this.logger.log(
+      `Step state updated: ${stepId} -> ${update.status || 'partial_update'}`,
+    );
     return updatedStep;
   }
 
@@ -401,7 +419,7 @@ export class LangGraphStateManagementService {
     // Check cache first
     if (this.stateCache.has(projectId)) {
       const cached = this.stateCache.get(projectId)!;
-      
+
       // Verify cache freshness (5 minutes)
       const cacheAge = Date.now() - new Date(cached.lastSynchronized).getTime();
       if (cacheAge < 300000) {
@@ -433,24 +451,36 @@ export class LangGraphStateManagementService {
     }
 
     if (stepState.status !== 'pending') {
-      throw new Error(`Step ${stepId} is not in pending state: ${stepState.status}`);
+      throw new Error(
+        `Step ${stepId} is not in pending state: ${stepState.status}`,
+      );
     }
 
     try {
       // Mark step as running
-      await this.updateStepState(projectId, stepId, {
-        status: 'running',
-        startedAt: new Date().toISOString(),
-      }, 'system_event');
+      await this.updateStepState(
+        projectId,
+        stepId,
+        {
+          status: 'running',
+          startedAt: new Date().toISOString(),
+        },
+        'system_event',
+      );
 
       // Check dependencies
       const dependenciesReady = await this.checkStepDependencies(state, stepId);
       if (!dependenciesReady) {
-        await this.updateStepState(projectId, stepId, {
-          status: 'pending',
-          startedAt: undefined,
-        }, 'system_event');
-        
+        await this.updateStepState(
+          projectId,
+          stepId,
+          {
+            status: 'pending',
+            startedAt: undefined,
+          },
+          'system_event',
+        );
+
         return {
           success: false,
           message: `Step ${stepId} dependencies not satisfied`,
@@ -466,21 +496,34 @@ export class LangGraphStateManagementService {
       }
 
       // Execute step (delegate to appropriate orchestrator/agent)
-      const executionResult = await this.delegateStepExecution(stepState, input);
+      const executionResult = await this.delegateStepExecution(
+        stepState,
+        input,
+      );
 
       // Update step with results
-      await this.updateStepState(projectId, stepId, {
-        status: executionResult.success ? 'completed' : 'failed',
-        completedAt: new Date().toISOString(),
-        result: executionResult.result,
-        errorDetails: executionResult.success ? undefined : {
-          type: 'external',
-          message: executionResult.message || 'Step execution failed',
-          recoveryOptions: ['retry', 'skip', 'escalate'],
-          retryCount: 0,
+      await this.updateStepState(
+        projectId,
+        stepId,
+        {
+          status: executionResult.success ? 'completed' : 'failed',
+          completedAt: new Date().toISOString(),
+          result: executionResult.result,
+          errorDetails: executionResult.success
+            ? undefined
+            : {
+                type: 'external',
+                message: executionResult.message || 'Step execution failed',
+                recoveryOptions: ['retry', 'skip', 'escalate'],
+                retryCount: 0,
+              },
+          actualDuration: this.calculateStepDuration(
+            stepState.startedAt!,
+            new Date().toISOString(),
+          ),
         },
-        actualDuration: this.calculateStepDuration(stepState.startedAt!, new Date().toISOString()),
-      }, 'agent_completion');
+        'agent_completion',
+      );
 
       // Check if this step completion enables other steps
       await this.updateDependentSteps(state, stepId);
@@ -500,21 +543,25 @@ export class LangGraphStateManagementService {
           stepName: stepState.stepName,
         },
       };
-
     } catch (error) {
       this.logger.error(`Error executing step ${stepId}:`, error);
 
-      await this.updateStepState(projectId, stepId, {
-        status: 'failed',
-        completedAt: new Date().toISOString(),
-        errorDetails: {
-          type: 'external',
-          message: error instanceof Error ? error.message : 'Unknown error',
-          stackTrace: error instanceof Error ? error.stack : undefined,
-          recoveryOptions: ['retry', 'skip', 'escalate'],
-          retryCount: 0,
+      await this.updateStepState(
+        projectId,
+        stepId,
+        {
+          status: 'failed',
+          completedAt: new Date().toISOString(),
+          errorDetails: {
+            type: 'external',
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stackTrace: error instanceof Error ? error.stack : undefined,
+            recoveryOptions: ['retry', 'skip', 'escalate'],
+            retryCount: 0,
+          },
         },
-      }, 'system_event');
+        'system_event',
+      );
 
       throw error;
     }
@@ -529,23 +576,32 @@ export class LangGraphStateManagementService {
     interruptType: 'approval_required' | 'user_input_needed' | 'error_recovery',
     context: Record<string, any>,
   ): Promise<void> {
-    this.logger.log(`Handling workflow interrupt: ${projectId}/${stepId} - ${interruptType}`);
+    this.logger.log(
+      `Handling workflow interrupt: ${projectId}/${stepId} - ${interruptType}`,
+    );
 
-    await this.updateStepState(projectId, stepId, {
-      status: 'pending_approval',
-    }, 'system_event');
+    await this.updateStepState(
+      projectId,
+      stepId,
+      {
+        status: 'pending_approval',
+      },
+      'system_event',
+    );
 
     const state = await this.getState(projectId);
-    
+
     // Update plan state if this is a critical approval gate
     if (interruptType === 'approval_required') {
-      const approvalGate = state.planState.approvalGates.find(gate => 
-        gate.phase === stepId || context.phase === gate.phase
+      const approvalGate = state.planState.approvalGates.find(
+        (gate) => gate.phase === stepId || context.phase === gate.phase,
       );
-      
+
       if (approvalGate) {
         approvalGate.status = 'pending';
-        await this.updatePlanState(projectId, { approvalGates: state.planState.approvalGates });
+        await this.updatePlanState(projectId, {
+          approvalGates: state.planState.approvalGates,
+        });
       }
     }
 
@@ -568,22 +624,39 @@ export class LangGraphStateManagementService {
     resolution: 'approved' | 'rejected' | 'modified',
     resolutionData?: Record<string, any>,
   ): Promise<void> {
-    this.logger.log(`Resuming workflow: ${projectId}/${stepId} - ${resolution}`);
+    this.logger.log(
+      `Resuming workflow: ${projectId}/${stepId} - ${resolution}`,
+    );
 
     if (resolution === 'approved') {
-      await this.updateStepState(projectId, stepId, {
-        status: 'pending', // Ready to execute
-      }, 'user_action');
+      await this.updateStepState(
+        projectId,
+        stepId,
+        {
+          status: 'pending', // Ready to execute
+        },
+        'user_action',
+      );
     } else if (resolution === 'rejected') {
-      await this.updateStepState(projectId, stepId, {
-        status: 'skipped',
-      }, 'user_action');
+      await this.updateStepState(
+        projectId,
+        stepId,
+        {
+          status: 'skipped',
+        },
+        'user_action',
+      );
     } else if (resolution === 'modified') {
       // Apply modifications and set to pending
-      await this.updateStepState(projectId, stepId, {
-        status: 'pending',
-        ...resolutionData,
-      }, 'user_action');
+      await this.updateStepState(
+        projectId,
+        stepId,
+        {
+          status: 'pending',
+          ...resolutionData,
+        },
+        'user_action',
+      );
     }
 
     // Continue workflow execution
@@ -598,13 +671,20 @@ export class LangGraphStateManagementService {
     targetVersion: number,
     reason: string,
   ): Promise<LangGraphState> {
-    this.logger.log(`Rolling back state: ${projectId} to version ${targetVersion} - ${reason}`);
+    this.logger.log(
+      `Rolling back state: ${projectId} to version ${targetVersion} - ${reason}`,
+    );
 
     // Load historical state
-    const historicalState = await this.loadStateVersion(projectId, targetVersion);
-    
+    const historicalState = await this.loadStateVersion(
+      projectId,
+      targetVersion,
+    );
+
     if (!historicalState) {
-      throw new Error(`State version ${targetVersion} not found for project ${projectId}`);
+      throw new Error(
+        `State version ${targetVersion} not found for project ${projectId}`,
+      );
     }
 
     // Create rollback transition
@@ -628,7 +708,9 @@ export class LangGraphStateManagementService {
     await this.persistState(historicalState);
     this.stateCache.set(projectId, historicalState);
 
-    this.logger.log(`State rolled back successfully: ${projectId} -> version ${historicalState.stateVersion}`);
+    this.logger.log(
+      `State rolled back successfully: ${projectId} -> version ${historicalState.stateVersion}`,
+    );
     return historicalState;
   }
 
@@ -637,7 +719,11 @@ export class LangGraphStateManagementService {
    */
   async getWorkflowAnalytics(projectId: string): Promise<{
     overallProgress: number;
-    stepProgress: { stepId: string; progress: number; status: ProjectStepStatus }[];
+    stepProgress: {
+      stepId: string;
+      progress: number;
+      status: ProjectStepStatus;
+    }[];
     performance: {
       avgStepDuration: number;
       totalDuration: number;
@@ -655,42 +741,53 @@ export class LangGraphStateManagementService {
     const transitions = this.transitionHistory.get(projectId) || [];
 
     const totalSteps = state.stepResults.size;
-    const completedSteps = Array.from(state.stepResults.values())
-      .filter(step => step.status === 'completed').length;
-    
+    const completedSteps = Array.from(state.stepResults.values()).filter(
+      (step) => step.status === 'completed',
+    ).length;
+
     const overallProgress = Math.round((completedSteps / totalSteps) * 100);
 
-    const stepProgress = Array.from(state.stepResults.values()).map(step => ({
+    const stepProgress = Array.from(state.stepResults.values()).map((step) => ({
       stepId: step.stepId,
-      progress: step.status === 'completed' ? 100 : 
-                step.status === 'running' ? 50 : 0,
+      progress:
+        step.status === 'completed' ? 100 : step.status === 'running' ? 50 : 0,
       status: step.status,
     }));
 
     // Calculate performance metrics
-    const completedStepsWithDuration = Array.from(state.stepResults.values())
-      .filter(step => step.actualDuration !== undefined);
-    
-    const avgStepDuration = completedStepsWithDuration.length > 0 
-      ? completedStepsWithDuration.reduce((sum, step) => sum + step.actualDuration!, 0) / completedStepsWithDuration.length
-      : 0;
+    const completedStepsWithDuration = Array.from(
+      state.stepResults.values(),
+    ).filter((step) => step.actualDuration !== undefined);
 
-    const totalDuration = completedStepsWithDuration
-      .reduce((sum, step) => sum + step.actualDuration!, 0);
+    const avgStepDuration =
+      completedStepsWithDuration.length > 0
+        ? completedStepsWithDuration.reduce(
+            (sum, step) => sum + step.actualDuration!,
+            0,
+          ) / completedStepsWithDuration.length
+        : 0;
 
-    const failedSteps = Array.from(state.stepResults.values())
-      .filter(step => step.status === 'failed').length;
-    
+    const totalDuration = completedStepsWithDuration.reduce(
+      (sum, step) => sum + step.actualDuration!,
+      0,
+    );
+
+    const failedSteps = Array.from(state.stepResults.values()).filter(
+      (step) => step.status === 'failed',
+    ).length;
+
     const errorRate = totalSteps > 0 ? (failedSteps / totalSteps) * 100 : 0;
 
     // Identify bottlenecks
     const bottlenecks = Array.from(state.stepResults.values())
-      .filter(step => 
-        step.status === 'running' && 
-        step.startedAt && 
-        (Date.now() - new Date(step.startedAt).getTime()) > (step.estimatedDuration * 1000 * 1.5)
+      .filter(
+        (step) =>
+          step.status === 'running' &&
+          step.startedAt &&
+          Date.now() - new Date(step.startedAt).getTime() >
+            step.estimatedDuration * 1000 * 1.5,
       )
-      .map(step => ({
+      .map((step) => ({
         stepId: step.stepId,
         reason: 'Duration exceeded estimate by 50%',
         impact: 'medium' as const,
@@ -699,13 +796,19 @@ export class LangGraphStateManagementService {
     // Generate recommendations
     const recommendations: string[] = [];
     if (errorRate > 10) {
-      recommendations.push('High error rate detected - review failed steps and implement better error handling');
+      recommendations.push(
+        'High error rate detected - review failed steps and implement better error handling',
+      );
     }
     if (bottlenecks.length > 2) {
-      recommendations.push('Multiple bottlenecks identified - consider parallel execution or resource reallocation');
+      recommendations.push(
+        'Multiple bottlenecks identified - consider parallel execution or resource reallocation',
+      );
     }
     if (avgStepDuration > 3600) {
-      recommendations.push('Long average step duration - consider breaking down complex steps');
+      recommendations.push(
+        'Long average step duration - consider breaking down complex steps',
+      );
     }
 
     return {
@@ -729,21 +832,40 @@ export class LangGraphStateManagementService {
   async buildDynamicStateGraph(
     projectId: string,
     planDefinition: PlanDefinition,
-    input: OrchestratorInput
+    input: OrchestratorInput,
   ): Promise<any> {
-    this.logger.log(`Building dynamic StateGraph for project ${projectId} with ${planDefinition.steps.length} steps`);
+    this.logger.log(
+      `Building dynamic StateGraph for project ${projectId} with ${planDefinition.steps.length} steps`,
+    );
 
     // Define state schema for this specific plan
     const StateAnnotation = Annotation.Root({
       projectId: Annotation<string>,
       currentStep: Annotation<string>,
       stepResults: Annotation<Record<string, any>>,
-      stepStatus: Annotation<Record<string, 'pending' | 'running' | 'completed' | 'failed' | 'awaiting_approval'>>,
+      stepStatus: Annotation<
+        Record<
+          string,
+          'pending' | 'running' | 'completed' | 'failed' | 'awaiting_approval'
+        >
+      >,
       executionContext: Annotation<any>,
       checkpointVersion: Annotation<number>,
-      rollbackHistory: Annotation<Array<{ stepId: string; timestamp: string; reason: string }>>,
-      humanApprovals: Annotation<Record<string, { status: 'pending' | 'approved' | 'rejected'; feedback?: string }>>,
-      errorRecovery: Annotation<Record<string, { attempts: number; lastError?: string; recoveryActions?: string[] }>>,
+      rollbackHistory: Annotation<
+        Array<{ stepId: string; timestamp: string; reason: string }>
+      >,
+      humanApprovals: Annotation<
+        Record<
+          string,
+          { status: 'pending' | 'approved' | 'rejected'; feedback?: string }
+        >
+      >,
+      errorRecovery: Annotation<
+        Record<
+          string,
+          { attempts: number; lastError?: string; recoveryActions?: string[] }
+        >
+      >,
     });
 
     // Create the StateGraph
@@ -757,9 +879,9 @@ export class LangGraphStateManagementService {
     }
 
     // Add END node
-    workflow.addNode("end", async (state) => {
+    workflow.addNode('end', async (state) => {
       this.logger.log(`Completing workflow for project ${projectId}`);
-      
+
       // Final checkpoint
       const finalState = {
         ...state,
@@ -768,7 +890,7 @@ export class LangGraphStateManagementService {
       };
 
       await this.saveCheckpoint(projectId, 'end', finalState);
-      
+
       return finalState;
     });
 
@@ -784,7 +906,9 @@ export class LangGraphStateManagementService {
       checkpointer: await this.createSupabaseCheckpointer(projectId),
     });
 
-    this.logger.log(`Dynamic StateGraph built successfully for project ${projectId}`);
+    this.logger.log(
+      `Dynamic StateGraph built successfully for project ${projectId}`,
+    );
     return app;
   }
 
@@ -795,7 +919,7 @@ export class LangGraphStateManagementService {
     workflow: StateGraph<any, any>,
     step: any,
     projectId: string,
-    input: OrchestratorInput
+    input: OrchestratorInput,
   ): Promise<void> {
     workflow.addNode(step.stepId, async (state) => {
       this.logger.log(`Executing step ${step.stepId}: ${step.stepName}`);
@@ -808,7 +932,7 @@ export class LangGraphStateManagementService {
           stepStatus: { ...state.stepStatus, [step.stepId]: 'running' },
           checkpointVersion: state.checkpointVersion + 1,
         };
-        
+
         await this.saveCheckpoint(projectId, step.stepId, runningState);
 
         // Handle different step types
@@ -828,14 +952,18 @@ export class LangGraphStateManagementService {
         };
 
         await this.saveCheckpoint(projectId, step.stepId, completedState);
-        
-        return completedState;
 
+        return completedState;
       } catch (error) {
         this.logger.error(`Step ${step.stepId} failed:`, error);
-        
+
         // Handle error with recovery options
-        const errorState = await this.handleStepError(step, error, state, projectId);
+        const errorState = await this.handleStepError(
+          step,
+          error,
+          state,
+          projectId,
+        );
         return errorState;
       }
     });
@@ -847,26 +975,23 @@ export class LangGraphStateManagementService {
   private addDynamicEdges(workflow: StateGraph<any, any>, steps: any[]): void {
     for (const step of steps) {
       // Add conditional edges for dependency checking and routing
-      workflow.addConditionalEdges(
-        step.stepId,
-        async (state) => {
-          // Check if this was the last step
-          if (this.areAllStepsComplete(steps, state.stepStatus)) {
-            return "end";
-          }
-
-          // Find next ready steps
-          const readySteps = this.findReadySteps(steps, state.stepStatus);
-          
-          if (readySteps.length === 0) {
-            // No ready steps - might need human intervention
-            return "end";
-          }
-
-          // Return next step to execute
-          return readySteps[0].stepId;
+      workflow.addConditionalEdges(step.stepId, async (state) => {
+        // Check if this was the last step
+        if (this.areAllStepsComplete(steps, state.stepStatus)) {
+          return 'end';
         }
-      );
+
+        // Find next ready steps
+        const readySteps = this.findReadySteps(steps, state.stepStatus);
+
+        if (readySteps.length === 0) {
+          // No ready steps - might need human intervention
+          return 'end';
+        }
+
+        // Return next step to execute
+        return readySteps[0].stepId;
+      });
     }
   }
 
@@ -876,7 +1001,7 @@ export class LangGraphStateManagementService {
   private async handleHumanApprovalStep(
     step: any,
     projectId: string,
-    state: any
+    state: any,
   ): Promise<any> {
     this.logger.log(`Human approval required for step ${step.stepId}`);
 
@@ -884,9 +1009,12 @@ export class LangGraphStateManagementService {
     const approvalState = {
       ...state,
       stepStatus: { ...state.stepStatus, [step.stepId]: 'awaiting_approval' },
-      humanApprovals: { 
-        ...state.humanApprovals, 
-        [step.stepId]: { status: 'pending', requestedAt: new Date().toISOString() }
+      humanApprovals: {
+        ...state.humanApprovals,
+        [step.stepId]: {
+          status: 'pending',
+          requestedAt: new Date().toISOString(),
+        },
       },
     };
 
@@ -903,7 +1031,7 @@ export class LangGraphStateManagementService {
     });
 
     // This will cause workflow to pause until resumeWorkflow is called
-    throw new Error("HUMAN_APPROVAL_REQUIRED"); // This triggers interrupt in LangGraph
+    throw new Error('HUMAN_APPROVAL_REQUIRED'); // This triggers interrupt in LangGraph
   }
 
   /**
@@ -913,7 +1041,7 @@ export class LangGraphStateManagementService {
     step: any,
     error: any,
     state: any,
-    projectId: string
+    projectId: string,
   ): Promise<any> {
     const currentAttempts = state.errorRecovery[step.stepId]?.attempts || 0;
     const maxRetries = 3;
@@ -928,7 +1056,7 @@ export class LangGraphStateManagementService {
           lastError: error.message,
           recoveryActions: this.generateRecoveryActions(error, step),
           failedAt: new Date().toISOString(),
-        }
+        },
       },
       checkpointVersion: state.checkpointVersion + 1,
     };
@@ -950,7 +1078,11 @@ export class LangGraphStateManagementService {
   /**
    * Execute agent step through delegation service
    */
-  private async executeAgentStep(step: any, input: OrchestratorInput, state: any): Promise<any> {
+  private async executeAgentStep(
+    step: any,
+    input: OrchestratorInput,
+    state: any,
+  ): Promise<any> {
     // This would delegate to the appropriate agent
     const stepInput: OrchestratorInput = {
       ...input,
@@ -961,7 +1093,10 @@ export class LangGraphStateManagementService {
         stepName: step.stepName,
         stepType: step.stepType,
         dependencies: step.dependencies,
-        previousStepResults: this.getDependencyResults(step.dependencies, state.stepResults),
+        previousStepResults: this.getDependencyResults(
+          step.dependencies,
+          state.stepResults,
+        ),
       },
     };
 
@@ -990,10 +1125,14 @@ export class LangGraphStateManagementService {
   /**
    * Save checkpoint to database
    */
-  private async saveCheckpoint(projectId: string, stepId: string, state: any): Promise<void> {
+  private async saveCheckpoint(
+    projectId: string,
+    stepId: string,
+    state: any,
+  ): Promise<void> {
     try {
       const client = this.supabaseService.getServiceClient();
-      
+
       await client.from('workflow_checkpoints').insert({
         project_id: projectId,
         step_id: stepId,
@@ -1002,7 +1141,9 @@ export class LangGraphStateManagementService {
         created_at: new Date().toISOString(),
       });
 
-      this.logger.debug(`Checkpoint saved: ${projectId}/${stepId} v${state.checkpointVersion}`);
+      this.logger.debug(
+        `Checkpoint saved: ${projectId}/${stepId} v${state.checkpointVersion}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to save checkpoint:`, error);
       throw error;
@@ -1012,16 +1153,19 @@ export class LangGraphStateManagementService {
   /**
    * Find steps that are ready to execute (dependencies satisfied)
    */
-  private findReadySteps(steps: any[], stepStatus: Record<string, string>): any[] {
-    return steps.filter(step => {
+  private findReadySteps(
+    steps: any[],
+    stepStatus: Record<string, string>,
+  ): any[] {
+    return steps.filter((step) => {
       // Skip if already processed
       if (stepStatus[step.stepId] && stepStatus[step.stepId] !== 'pending') {
         return false;
       }
 
       // Check if all dependencies are completed
-      return step.dependencies.every((depId: string) => 
-        stepStatus[depId] === 'completed'
+      return step.dependencies.every(
+        (depId: string) => stepStatus[depId] === 'completed',
       );
     });
   }
@@ -1029,14 +1173,20 @@ export class LangGraphStateManagementService {
   /**
    * Check if all steps are complete
    */
-  private areAllStepsComplete(steps: any[], stepStatus: Record<string, string>): boolean {
-    return steps.every(step => stepStatus[step.stepId] === 'completed');
+  private areAllStepsComplete(
+    steps: any[],
+    stepStatus: Record<string, string>,
+  ): boolean {
+    return steps.every((step) => stepStatus[step.stepId] === 'completed');
   }
 
   /**
    * Get results from dependency steps
    */
-  private getDependencyResults(dependencies: string[], stepResults: Record<string, any>): any {
+  private getDependencyResults(
+    dependencies: string[],
+    stepResults: Record<string, any>,
+  ): any {
     const results: Record<string, any> = {};
     for (const depId of dependencies) {
       if (stepResults[depId]) {
@@ -1051,15 +1201,15 @@ export class LangGraphStateManagementService {
    */
   private generateRecoveryActions(error: any, step: any): string[] {
     const actions = ['retry_step', 'skip_step', 'modify_prompt'];
-    
+
     if (error.message.includes('timeout')) {
       actions.push('increase_timeout');
     }
-    
+
     if (step.stepType === 'agent_step') {
       actions.push('change_agent', 'break_into_smaller_steps');
     }
-    
+
     return actions;
   }
 
@@ -1108,19 +1258,19 @@ Respond in JSON format:
       const response = await this.llmService.generateResponse(
         enhancementPrompt,
         input.userId,
-        { 
-          temperature: 0.2, 
+        {
+          temperature: 0.2,
           maxTokens: 1500,
           provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022'
-        }
+          modelId: 'claude-3-5-sonnet-20241022',
+        },
       );
 
       // Extract JSON from markdown code blocks if present
       const cleanedResponse = response.replace(/```json\n?|\n?```/g, '').trim();
       const enhancement = JSON.parse(cleanedResponse);
       const now = new Date();
-      const estimatedEnd = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days default
+      const estimatedEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days default
 
       const planState: PlanState = {
         projectId,
@@ -1135,20 +1285,24 @@ Respond in JSON format:
         },
         resourceAllocation: enhancement.resourceAllocation || [],
         successCriteria: enhancement.successCriteria || [],
-        riskAssessment: enhancement.riskAssessment || { level: 'medium', factors: [], mitigations: [] },
-        approvalGates: enhancement.approvalGates.map((gate: any) => ({
-          ...gate,
-          status: 'pending',
-        })) || [],
+        riskAssessment: enhancement.riskAssessment || {
+          level: 'medium',
+          factors: [],
+          mitigations: [],
+        },
+        approvalGates:
+          enhancement.approvalGates.map((gate: any) => ({
+            ...gate,
+            status: 'pending',
+          })) || [],
         lastUpdated: now.toISOString(),
         version: 1,
       };
 
       return planState;
-
     } catch (error) {
       this.logger.error('Error enhancing plan state with LLM:', error);
-      
+
       // Fallback to basic plan state
       return {
         projectId,
@@ -1158,7 +1312,9 @@ Respond in JSON format:
         departments: ['general'],
         timeline: {
           startDate: new Date().toISOString(),
-          estimatedEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          estimatedEndDate: new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
           phases: [],
         },
         resourceAllocation: [],
@@ -1187,10 +1343,13 @@ Respond in JSON format:
     // Basic estimation logic - could be enhanced with ML
     const baseHours = 2;
     const complexity = step.dependencies?.length || 0;
-    return baseHours + (complexity * 0.5);
+    return baseHours + complexity * 0.5;
   }
 
-  private async checkStepDependencies(state: LangGraphState, stepId: string): Promise<boolean> {
+  private async checkStepDependencies(
+    state: LangGraphState,
+    stepId: string,
+  ): Promise<boolean> {
     const stepState = state.stepResults.get(stepId);
     if (!stepState) return false;
 
@@ -1223,18 +1382,31 @@ Respond in JSON format:
   }
 
   private calculateStepDuration(startTime: string, endTime: string): number {
-    return (new Date(endTime).getTime() - new Date(startTime).getTime()) / (1000 * 60 * 60);
+    return (
+      (new Date(endTime).getTime() - new Date(startTime).getTime()) /
+      (1000 * 60 * 60)
+    );
   }
 
-  private async updateDependentSteps(state: LangGraphState, completedStepId: string): Promise<void> {
+  private async updateDependentSteps(
+    state: LangGraphState,
+    completedStepId: string,
+  ): Promise<void> {
     // Find steps that depend on the completed step
     for (const [stepId, stepState] of Array.from(state.stepResults.entries())) {
-      const dependency = stepState.dependencies.find(dep => dep.stepId === completedStepId);
+      const dependency = stepState.dependencies.find(
+        (dep) => dep.stepId === completedStepId,
+      );
       if (dependency) {
         dependency.status = 'satisfied';
-        await this.updateStepState(state.planState.projectId, stepId, {
-          dependencies: stepState.dependencies,
-        }, 'system_event');
+        await this.updateStepState(
+          state.planState.projectId,
+          stepId,
+          {
+            dependencies: stepState.dependencies,
+          },
+          'system_event',
+        );
       }
     }
   }
@@ -1246,7 +1418,7 @@ Respond in JSON format:
   ): Promise<void> {
     if (newStatus) {
       const queue = state.metadata.operationalData.queue;
-      
+
       if (newStatus === 'running') {
         queue.pendingTasks--;
         queue.processingTasks++;
@@ -1262,14 +1434,17 @@ Respond in JSON format:
     }
   }
 
-  private recordTransition(projectId: string, transition: StateTransition): void {
+  private recordTransition(
+    projectId: string,
+    transition: StateTransition,
+  ): void {
     if (!this.transitionHistory.has(projectId)) {
       this.transitionHistory.set(projectId, []);
     }
-    
+
     const history = this.transitionHistory.get(projectId)!;
     history.push(transition);
-    
+
     // Keep only last 100 transitions to prevent memory bloat
     if (history.length > 100) {
       history.splice(0, history.length - 100);
@@ -1279,16 +1454,14 @@ Respond in JSON format:
   private async persistState(state: LangGraphState): Promise<void> {
     // Persist to Supabase using service client for system operations
     const client = this.supabaseService.getServiceClient();
-    const { data, error } = await client
-      .from('langgraph_states')
-      .upsert({
-        project_id: state.planState.projectId,
-        plan_state: state.planState,
-        step_results: Object.fromEntries(state.stepResults),
-        metadata: state.metadata,
-        state_version: state.stateVersion,
-        last_synchronized: state.lastSynchronized,
-      });
+    const { data, error } = await client.from('langgraph_states').upsert({
+      project_id: state.planState.projectId,
+      plan_state: state.planState,
+      step_results: Object.fromEntries(state.stepResults),
+      metadata: state.metadata,
+      state_version: state.stateVersion,
+      last_synchronized: state.lastSynchronized,
+    });
 
     if (error) {
       this.logger.error('Error persisting LangGraph state:', error);
@@ -1296,7 +1469,9 @@ Respond in JSON format:
     }
   }
 
-  private async loadStateFromDatabase(projectId: string): Promise<LangGraphState> {
+  private async loadStateFromDatabase(
+    projectId: string,
+  ): Promise<LangGraphState> {
     const client = this.supabaseService.getServiceClient();
     const { data, error } = await client
       .from('langgraph_states')
@@ -1317,18 +1492,24 @@ Respond in JSON format:
     };
   }
 
-  private async loadStateVersion(projectId: string, version: number): Promise<LangGraphState | null> {
+  private async loadStateVersion(
+    projectId: string,
+    version: number,
+  ): Promise<LangGraphState | null> {
     // Implementation would query historical state versions
     // For now, return null to indicate version not found
     return null;
   }
 
-  private async updatePlanState(projectId: string, updates: Partial<PlanState>): Promise<void> {
+  private async updatePlanState(
+    projectId: string,
+    updates: Partial<PlanState>,
+  ): Promise<void> {
     const state = await this.getState(projectId);
     Object.assign(state.planState, updates);
     state.planState.lastUpdated = new Date().toISOString();
     state.planState.version += 1;
-    
+
     await this.persistState(state);
     this.stateCache.set(projectId, state);
   }
@@ -1336,10 +1517,13 @@ Respond in JSON format:
   private async continueWorkflowExecution(projectId: string): Promise<void> {
     // Find next executable steps and trigger their execution
     const state = await this.getState(projectId);
-    
+
     for (const [stepId, stepState] of Array.from(state.stepResults.entries())) {
       if (stepState.status === 'pending') {
-        const dependenciesReady = await this.checkStepDependencies(state, stepId);
+        const dependenciesReady = await this.checkStepDependencies(
+          state,
+          stepId,
+        );
         if (dependenciesReady) {
           // Trigger step execution asynchronously
           setTimeout(() => {
@@ -1347,8 +1531,11 @@ Respond in JSON format:
               prompt: `Continue workflow execution: ${stepState.stepName}`,
               userId: 'system',
               conversationId: projectId,
-            }).catch(error => {
-              this.logger.error(`Error continuing workflow step ${stepId}:`, error);
+            }).catch((error) => {
+              this.logger.error(
+                `Error continuing workflow step ${stepId}:`,
+                error,
+              );
             });
           }, 100);
         }
@@ -1356,7 +1543,10 @@ Respond in JSON format:
     }
   }
 
-  private async emitWorkflowEvent(projectId: string, event: any): Promise<void> {
+  private async emitWorkflowEvent(
+    projectId: string,
+    event: any,
+  ): Promise<void> {
     // Emit events to WebSocket or other notification systems
     this.logger.log(`Workflow event: ${projectId} - ${event.type}`);
     // Implementation would integrate with WebSocket service

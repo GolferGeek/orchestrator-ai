@@ -77,4 +77,32 @@ export class HealthController {
       };
     }
   }
+
+  @Get('supabase/config')
+  @ApiOperation({ summary: 'Get current Supabase configuration' })
+  @ApiResponse({
+    status: 200,
+    description: 'Current Supabase configuration',
+    schema: {
+      type: 'object',
+      properties: {
+        mode: { type: 'string', example: 'local' },
+        url: { type: 'string', example: 'http://localhost:8000...' },
+        database: { type: 'string', example: 'orchestrator_ai' },
+        clientsAvailable: {
+          type: 'object',
+          properties: {
+            anon: { type: 'boolean', example: true },
+            service: { type: 'boolean', example: true },
+          },
+        },
+      },
+    },
+  })
+  async getSupabaseConfig() {
+    return {
+      ...this.supabaseService.getConfig(),
+      timestamp: new Date().toISOString(),
+    };
+  }
 }

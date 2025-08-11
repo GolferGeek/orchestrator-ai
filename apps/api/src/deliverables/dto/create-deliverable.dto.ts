@@ -1,4 +1,14 @@
-import { IsString, IsEnum, IsOptional, IsArray, IsObject, IsUUID, MaxLength, MinLength, ArrayMaxSize } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsArray,
+  IsObject,
+  IsUUID,
+  MaxLength,
+  MinLength,
+  ArrayMaxSize,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum DeliverableType {
@@ -32,44 +42,55 @@ export class CreateDeliverableDto {
   @IsEnum(DeliverableType)
   deliverable_type!: DeliverableType;
 
-  @ApiProperty({ enum: DeliverableFormat, description: 'Format of the content' })
+  @ApiProperty({
+    enum: DeliverableFormat,
+    description: 'Format of the content',
+  })
   @IsEnum(DeliverableFormat)
   format!: DeliverableFormat;
 
-  @ApiPropertyOptional({ description: 'Optional description of the deliverable' })
+  @ApiPropertyOptional({
+    description: 'Optional description of the deliverable',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(1000)
   description?: string;
 
-  @ApiPropertyOptional({ description: 'Conversation ID this deliverable belongs to' })
+  @ApiPropertyOptional({
+    description: 'Conversation ID this deliverable belongs to',
+  })
   @IsOptional()
   @IsUUID()
   conversation_id?: string;
 
-  @ApiPropertyOptional({ description: 'Message ID that generated this deliverable' })
+  @ApiPropertyOptional({
+    description: 'Message ID that generated this deliverable',
+  })
   @IsOptional()
   @IsUUID()
   message_id?: string;
 
-  @ApiPropertyOptional({ description: 'Name of the agent that created this deliverable' })
+  @ApiPropertyOptional({
+    description: 'Name of the agent that created this deliverable',
+  })
   @IsOptional()
   @IsString()
   created_by_agent?: string;
 
-  @ApiPropertyOptional({ 
-    description: 'Additional metadata', 
+  @ApiPropertyOptional({
+    description: 'Additional metadata',
     type: 'object',
-    additionalProperties: true
+    additionalProperties: true,
   })
   @IsOptional()
   @IsObject()
   metadata?: Record<string, any>;
 
-  @ApiPropertyOptional({ 
-    description: 'Tags for organization and searching', 
+  @ApiPropertyOptional({
+    description: 'Tags for organization and searching',
     type: [String],
-    maxItems: 10 
+    maxItems: 10,
   })
   @IsOptional()
   @IsArray()

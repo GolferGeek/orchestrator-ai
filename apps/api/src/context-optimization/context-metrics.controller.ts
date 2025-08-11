@@ -1,5 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
-import { ContextMetricsListener, RollupMetrics } from './context-metrics.listener';
+import {
+  ContextMetricsListener,
+  RollupMetrics,
+} from './context-metrics.listener';
 
 @Controller('metrics/context')
 export class ContextMetricsController {
@@ -10,5 +13,3 @@ export class ContextMetricsController {
     return this.listener.getRollup();
   }
 }
-
-

@@ -1,6 +1,6 @@
 /**
  * Plan Execution Service Tests - Real Functionality Validation
- * 
+ *
  * Tests the real plan execution service implementation with database integration
  * Following CLAUDE.md principles: Real functionality that works with actual data
  */
@@ -14,7 +14,10 @@ import { SupabaseModule } from '../../../../../supabase/supabase.module';
 import { CIDAFMModule } from '../../../../../cidafm/cidafm.module';
 import { OrchestratorModule } from './orchestrator.module';
 import supabaseConfig from '../../../../../supabase/supabase.config';
-import { Project, ProjectStatus } from '../../../../../orchestration/orchestration.types';
+import {
+  Project,
+  ProjectStatus,
+} from '../../../../../orchestration/orchestration.types';
 
 describe('PlanExecutionService - Real Functionality Tests', () => {
   let service: PlanExecutionService;
@@ -39,14 +42,14 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
           metadata: {},
         },
         {
-          stepId: 'step-2', 
+          stepId: 'step-2',
           stepName: 'Content Creation',
           stepType: 'agent_step',
           agentName: 'content',
           prompt: 'Create marketing content based on research',
           dependencies: ['step-1'],
           metadata: {},
-        }
+        },
       ],
       metadata: {
         createdAt: new Date().toISOString(),
@@ -74,8 +77,8 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
           expandVariables: true,
           load: [supabaseConfig],
         }),
-        SupabaseModule,   
-        CIDAFMModule,     
+        SupabaseModule,
+        CIDAFMModule,
         LLMModule,
         OrchestratorModule, // This provides IDelegationService
       ],
@@ -97,17 +100,17 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
     it('should validate project has required fields for execution', async () => {
       // Test project without planJson
       const invalidProject = { ...testProject, planJson: null };
-      
+
       await expect(service.startProject(invalidProject as any)).rejects.toThrow(
-        /missing planJson - cannot execute without plan/
+        /missing planJson - cannot execute without plan/,
       );
     });
 
     it('should handle project startup validation properly', async () => {
-      // Since we don't have real database in test environment, 
+      // Since we don't have real database in test environment,
       // this will fail at the database level, but should show proper validation
       await expect(service.startProject(testProject)).rejects.toThrow();
-      
+
       // The error should be a real database error, not a stub error
       try {
         await service.startProject(testProject);
@@ -120,7 +123,7 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
 
     it('should validate project ID for resume operations', async () => {
       await expect(service.resumeProject('')).rejects.toThrow();
-      
+
       try {
         await service.resumeProject('');
       } catch (error) {
@@ -131,7 +134,7 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
     it('should validate step retry requires both project and step ID', async () => {
       await expect(service.retryStep('', 'step-1')).rejects.toThrow();
       await expect(service.retryStep('project-1', '')).rejects.toThrow();
-      
+
       try {
         await service.retryStep('', 'step-1');
       } catch (error) {
@@ -141,7 +144,7 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
 
     it('should validate project ID for abort operations', async () => {
       await expect(service.abortProject('')).rejects.toThrow();
-      
+
       try {
         await service.abortProject('');
       } catch (error) {
@@ -161,8 +164,10 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
         const message = (error as Error).message;
         // Should be a real error, not a stub
         expect(message).not.toContain('Not implemented');
-        expect(message).not.toContain('LangGraph v0.3.6 integration requires complete rework');
-        
+        expect(message).not.toContain(
+          'LangGraph v0.3.6 integration requires complete rework',
+        );
+
         // Should be attempting real operations like database access
         // Database errors are acceptable since we don't have full test DB setup
       }
@@ -174,7 +179,9 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
       } catch (error) {
         const message = (error as Error).message;
         expect(message).not.toContain('Not implemented');
-        expect(message).not.toContain('Checkpoint system integration incomplete');
+        expect(message).not.toContain(
+          'Checkpoint system integration incomplete',
+        );
       }
     });
 
@@ -206,7 +213,7 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
         // Real implementation should give specific, actionable errors
         expect(message.length).toBeGreaterThan(10);
         expect(message).not.toBe('Not implemented');
-        
+
         // Should indicate what specifically went wrong
         // (database connection, missing table, validation error, etc.)
       }
@@ -218,7 +225,7 @@ describe('PlanExecutionService - Real Functionality Tests', () => {
       expect(typeof service.resumeProject).toBe('function');
       expect(typeof service.abortProject).toBe('function');
       expect(typeof service.retryStep).toBe('function');
-      
+
       // The methods should have real implementations
       const startProjectSource = service.startProject.toString();
       expect(startProjectSource).toContain('loadProjectSteps');

@@ -500,7 +500,11 @@ describe('DelegationService - Real LLM Agent Selection Tests', () => {
             input.prompt,
             input,
           );
-          const mockCalls = (agentFactoryService.createAgent as jest.MockedFunction<typeof agentFactoryService.createAgent>).mock.calls;
+          const mockCalls = (
+            agentFactoryService.createAgent as jest.MockedFunction<
+              typeof agentFactoryService.createAgent
+            >
+          ).mock.calls;
           const selectedAgent = mockCalls.slice(-1)[0]?.[0];
 
           results.push({

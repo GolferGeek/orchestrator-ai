@@ -240,18 +240,20 @@ export async function getTableNames(
  * Clean up common SQL syntax issues
  */
 function cleanSQL(sqlQuery: string): string {
-  return sqlQuery
-    .replace(/;\s*LIMIT/gi, ' LIMIT') // Fix semicolon before LIMIT
-    .replace(/;\s*ORDER\s+BY/gi, ' ORDER BY') // Fix semicolon before ORDER BY
-    .replace(/;\s*GROUP\s+BY/gi, ' GROUP BY') // Fix semicolon before GROUP BY
-    .replace(/;\s*WHERE/gi, ' WHERE') // Fix semicolon before WHERE
-    // Fix ambiguous "name" column when companies table is aliased as 'c'
-    .replace(/SELECT\s+"name"/gi, 'SELECT c.name')
-    .replace(/SELECT\s+name\b/gi, 'SELECT c.name')
-    // Fix GROUP BY when using company name
-    .replace(/GROUP BY c\.id(\s+ORDER)/gi, 'GROUP BY c.id, c.name$1')
-    .replace(/GROUP BY c\.id\s*$/gi, 'GROUP BY c.id, c.name')
-    .trim();
+  return (
+    sqlQuery
+      .replace(/;\s*LIMIT/gi, ' LIMIT') // Fix semicolon before LIMIT
+      .replace(/;\s*ORDER\s+BY/gi, ' ORDER BY') // Fix semicolon before ORDER BY
+      .replace(/;\s*GROUP\s+BY/gi, ' GROUP BY') // Fix semicolon before GROUP BY
+      .replace(/;\s*WHERE/gi, ' WHERE') // Fix semicolon before WHERE
+      // Fix ambiguous "name" column when companies table is aliased as 'c'
+      .replace(/SELECT\s+"name"/gi, 'SELECT c.name')
+      .replace(/SELECT\s+name\b/gi, 'SELECT c.name')
+      // Fix GROUP BY when using company name
+      .replace(/GROUP BY c\.id(\s+ORDER)/gi, 'GROUP BY c.id, c.name$1')
+      .replace(/GROUP BY c\.id\s*$/gi, 'GROUP BY c.id, c.name')
+      .trim()
+  );
 }
 
 /**

@@ -53,7 +53,7 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     DeliverablesModule, // Required for AgentFactoryService
     AgentPoolModule, // Required for SubprojectManagementService
     FormattersModule, // For agent name formatting
-    
+
     // Agent service context modules - required for AgentFactoryService to create different agent types
     AgentServicesContextModule, // For context agents like 'content'
     FunctionAgentServicesContextModule, // For function agents

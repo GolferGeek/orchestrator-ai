@@ -31,7 +31,10 @@ import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { TaskStatusService } from '../../../../../tasks/task-status.service';
 import { DeliverablesService } from '../../../../../deliverables/deliverables.service';
-import { DeliverableType, DeliverableFormat } from '../../../../../deliverables/dto';
+import {
+  DeliverableType,
+  DeliverableFormat,
+} from '../../../../../deliverables/dto';
 
 /**
  * Minimal A2A Agent Base Service
@@ -310,19 +313,18 @@ export abstract class A2AAgentBaseService
     if (this.agentPath) {
       try {
         const yamlConfig = await this.loadAgentYamlConfig();
-        
-        
+
         if (yamlConfig) {
           // Use displayName from YAML if available
           if (yamlConfig.displayName) {
             card.name = yamlConfig.displayName;
           }
-          
+
           // Use description from YAML if available
           if (yamlConfig.description) {
             card.description = yamlConfig.description;
           }
-          
+
           // Keep configuration as well
           if (yamlConfig.configuration) {
             card.configuration = yamlConfig.configuration;
@@ -585,12 +587,17 @@ export abstract class A2AAgentBaseService
 
     // Auto-persist deliverable if result contains deliverable content
     // This must happen BEFORE marking task complete so we can attach deliverable ID
-    const deliverableId = await this.persistDeliverableIfPresent(result, userId, taskId, enhanceDeliverableId);
+    const deliverableId = await this.persistDeliverableIfPresent(
+      result,
+      userId,
+      taskId,
+      enhanceDeliverableId,
+    );
 
     // If deliverable was created, attach ID to the result
     if (deliverableId && typeof result === 'object' && result !== null) {
       result.deliverableId = deliverableId;
-      
+
       // If this was an enhancement, also include the original deliverable ID
       if (enhanceDeliverableId) {
         result.enhancedFrom = enhanceDeliverableId;
@@ -607,7 +614,9 @@ export abstract class A2AAgentBaseService
       );
     }
 
-    this.logger.debug(`Task ${taskId} marked as completed${deliverableId ? ` with deliverable ${deliverableId}` : ''}${enhanceDeliverableId ? ` (enhanced from ${enhanceDeliverableId})` : ''}`);
+    this.logger.debug(
+      `Task ${taskId} marked as completed${deliverableId ? ` with deliverable ${deliverableId}` : ''}${enhanceDeliverableId ? ` (enhanced from ${enhanceDeliverableId})` : ''}`,
+    );
   }
 
   /**
@@ -675,7 +684,9 @@ export abstract class A2AAgentBaseService
     enhanceDeliverableId?: string,
   ): Promise<string | null> {
     if (!this.deliverablesService) {
-      this.logger.debug('DeliverablesService not available - skipping deliverable persistence');
+      this.logger.debug(
+        'DeliverablesService not available - skipping deliverable persistence',
+      );
       return null;
     }
 
@@ -699,44 +710,55 @@ export abstract class A2AAgentBaseService
 
       // Create new deliverable or enhance existing one
       let deliverable;
-      
+
       if (enhanceDeliverableId) {
         // Creating a new version of an existing deliverable
-        deliverable = await this.deliverablesService.createVersion(enhanceDeliverableId, {
-          title: deliverableData.title,
-          content: deliverableData.content,
-          metadata: {
-            agentName: this.getAgentName(),
-            agentType: this.getAgentType(),
-            taskId: taskId || 'unknown',
-            generatedAt: new Date().toISOString(),
-            enhancedFrom: enhanceDeliverableId,
-            ...deliverableData.metadata,
+        deliverable = await this.deliverablesService.createVersion(
+          enhanceDeliverableId,
+          {
+            title: deliverableData.title,
+            content: deliverableData.content,
+            metadata: {
+              agentName: this.getAgentName(),
+              agentType: this.getAgentType(),
+              taskId: taskId || 'unknown',
+              generatedAt: new Date().toISOString(),
+              enhancedFrom: enhanceDeliverableId,
+              ...deliverableData.metadata,
+            },
+            created_by_agent: this.getAgentName(),
           },
-          created_by_agent: this.getAgentName(),
-        }, userId);
+          userId,
+        );
 
-        this.logger.log(`📄 Deliverable enhanced: ${deliverable.title} (New ID: ${deliverable.id}, Enhanced from: ${enhanceDeliverableId})`);
+        this.logger.log(
+          `📄 Deliverable enhanced: ${deliverable.title} (New ID: ${deliverable.id}, Enhanced from: ${enhanceDeliverableId})`,
+        );
       } else {
         // Creating a new deliverable
-        deliverable = await this.deliverablesService.create({
-          title: deliverableData.title,
-          content: deliverableData.content,
-          deliverable_type: deliverableData.type,
-          format: deliverableData.format,
-          description: deliverableData.description,
-          metadata: {
-            agentName: this.getAgentName(),
-            agentType: this.getAgentType(),
-            taskId: taskId || 'unknown',
-            generatedAt: new Date().toISOString(),
-            ...deliverableData.metadata,
+        deliverable = await this.deliverablesService.create(
+          {
+            title: deliverableData.title,
+            content: deliverableData.content,
+            deliverable_type: deliverableData.type,
+            format: deliverableData.format,
+            description: deliverableData.description,
+            metadata: {
+              agentName: this.getAgentName(),
+              agentType: this.getAgentType(),
+              taskId: taskId || 'unknown',
+              generatedAt: new Date().toISOString(),
+              ...deliverableData.metadata,
+            },
           },
-        }, userId);
+          userId,
+        );
 
-        this.logger.log(`📄 Deliverable auto-persisted: ${deliverable.title} (ID: ${deliverable.id})`);
+        this.logger.log(
+          `📄 Deliverable auto-persisted: ${deliverable.title} (ID: ${deliverable.id})`,
+        );
       }
-      
+
       return deliverable.id;
     } catch (error) {
       this.logger.error('Failed to auto-persist deliverable:', error);
@@ -760,11 +782,9 @@ export abstract class A2AAgentBaseService
 
     if (typeof result === 'object') {
       // Try common response fields
-      const content = result.response || 
-                     result.message || 
-                     result.content || 
-                     result.data;
-      
+      const content =
+        result.response || result.message || result.content || result.data;
+
       if (typeof content === 'string') {
         return content;
       }
@@ -798,7 +818,9 @@ export abstract class A2AAgentBaseService
 
     // Check for structured content (multiple sections, substantial length)
     const hasStructure = content.includes('\n\n') && content.length > 500;
-    const hasMarkers = deliverableMarkers.some(marker => marker.test(content));
+    const hasMarkers = deliverableMarkers.some((marker) =>
+      marker.test(content),
+    );
 
     return hasStructure || hasMarkers;
   }
@@ -816,17 +838,21 @@ export abstract class A2AAgentBaseService
   } | null {
     try {
       // Extract title from first header or use agent name + timestamp
-      let title = this.extractTitleFromContent(content) || 
-                  `${this.getAgentName()} Output - ${new Date().toLocaleDateString()}`;
+      const title =
+        this.extractTitleFromContent(content) ||
+        `${this.getAgentName()} Output - ${new Date().toLocaleDateString()}`;
 
       // Determine type based on content analysis
       const type = this.determineDeliverableType(content);
-      
+
       // Determine format (markdown if it has markdown syntax, otherwise text)
-      const format = this.hasMarkdownSyntax(content) ? DeliverableFormat.MARKDOWN : DeliverableFormat.TEXT;
+      const format = this.hasMarkdownSyntax(content)
+        ? DeliverableFormat.MARKDOWN
+        : DeliverableFormat.TEXT;
 
       // Generate description from first paragraph or truncated content
-      const description = this.extractDescriptionFromContent(content) || undefined;
+      const description =
+        this.extractDescriptionFromContent(content) || undefined;
 
       return {
         title,
@@ -869,7 +895,9 @@ export abstract class A2AAgentBaseService
     }
 
     // Try deliverable markers
-    const deliverableMatch = content.match(/(?:DELIVERABLE|DOCUMENT|REPORT|ANALYSIS|PLAN|REQUIREMENTS):\s*(.+)/i);
+    const deliverableMatch = content.match(
+      /(?:DELIVERABLE|DOCUMENT|REPORT|ANALYSIS|PLAN|REQUIREMENTS):\s*(.+)/i,
+    );
     if (deliverableMatch && deliverableMatch[1]) {
       return deliverableMatch[1].trim();
     }
@@ -912,7 +940,7 @@ export abstract class A2AAgentBaseService
       /^- |^\d+\. /m, // Lists
     ];
 
-    return markdownPatterns.some(pattern => pattern.test(content));
+    return markdownPatterns.some((pattern) => pattern.test(content));
   }
 
   /**
@@ -921,13 +949,13 @@ export abstract class A2AAgentBaseService
   private extractDescriptionFromContent(content: string): string | null {
     // Remove title/header if present
     const contentWithoutTitle = content.replace(/^#+ .+$/m, '').trim();
-    
+
     // Get first paragraph
     const firstParagraph = contentWithoutTitle.split('\n\n')[0];
-    
+
     if (firstParagraph && firstParagraph.length > 20) {
       // Truncate if too long
-      return firstParagraph.length > 200 
+      return firstParagraph.length > 200
         ? firstParagraph.substring(0, 197) + '...'
         : firstParagraph;
     }
@@ -944,12 +972,14 @@ export abstract class A2AAgentBaseService
     }
 
     // Check various parameter formats for deliverable ID
-    return params.deliverableId || 
-           params.enhance_deliverable_id || 
-           params.enhanceDeliverableId ||
-           params.metadata?.deliverableId ||
-           params.metadata?.enhance_deliverable_id ||
-           null;
+    return (
+      params.deliverableId ||
+      params.enhance_deliverable_id ||
+      params.enhanceDeliverableId ||
+      params.metadata?.deliverableId ||
+      params.metadata?.enhance_deliverable_id ||
+      null
+    );
   }
 
   /**
@@ -964,10 +994,17 @@ export abstract class A2AAgentBaseService
     additionalData?: Record<string, any>,
   ): Promise<void> {
     // Extract deliverable ID from task parameters if present
-    const enhanceDeliverableId = this.extractDeliverableIdFromParams(taskParams) || undefined;
-    
+    const enhanceDeliverableId =
+      this.extractDeliverableIdFromParams(taskParams) || undefined;
+
     // Complete task with deliverable context
-    await this.completeTask(taskId, userId, result, additionalData, enhanceDeliverableId);
+    await this.completeTask(
+      taskId,
+      userId,
+      result,
+      additionalData,
+      enhanceDeliverableId,
+    );
   }
 
   private discoverAgentPath(): string {
@@ -1020,14 +1057,24 @@ export abstract class A2AAgentBaseService
     // Construct the full path to agent.config.yaml
     // Handle both monorepo (from root) and app-specific (from apps/api) working directories
     let agentsBasePath = path.join(process.cwd(), 'src', 'agents', 'actual');
-    
+
     // If running from monorepo root, adjust path to apps/api
     if (!fs.existsSync(agentsBasePath)) {
-      agentsBasePath = path.join(process.cwd(), 'apps', 'api', 'src', 'agents', 'actual');
+      agentsBasePath = path.join(
+        process.cwd(),
+        'apps',
+        'api',
+        'src',
+        'agents',
+        'actual',
+      );
     }
-    
-    const yamlPath = path.join(agentsBasePath, this.agentPath, 'agent.config.yaml');
 
+    const yamlPath = path.join(
+      agentsBasePath,
+      this.agentPath,
+      'agent.config.yaml',
+    );
 
     if (!fs.existsSync(yamlPath)) {
       this.logger.debug(`No agent.config.yaml found at: ${yamlPath}`);
@@ -1037,11 +1084,13 @@ export abstract class A2AAgentBaseService
     try {
       const yamlContent = fs.readFileSync(yamlPath, 'utf8');
       const parsed = yaml.load(yamlContent) as any;
-      
-      
+
       return parsed;
     } catch (error) {
-      this.logger.warn(`Failed to parse agent.config.yaml at ${yamlPath}:`, error);
+      this.logger.warn(
+        `Failed to parse agent.config.yaml at ${yamlPath}:`,
+        error,
+      );
       return null;
     }
   }

@@ -11,7 +11,6 @@ describe('RequirementsWriterService', () => {
   let service: RequirementsWriterService;
 
   beforeEach(async () => {
-
     const module: TestingModule = await Test.createTestingModule({
       imports: [PythonFunctionAgentServicesContextModule],
       providers: [RequirementsWriterService],

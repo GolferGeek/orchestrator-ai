@@ -1,10 +1,10 @@
 /**
  * Subproject Management Service
- * 
+ *
  * Handles hierarchical project coordination across different orchestrators and departments.
  * Enables complex enterprise projects to be decomposed into manageable subprojects
  * assigned to appropriate department orchestrators.
- * 
+ *
  * Key capabilities:
  * - Cross-departmental subproject creation
  * - Orchestrator-to-orchestrator delegation
@@ -115,10 +115,10 @@ PROJECT DESCRIPTION:
 ${projectDescription}
 
 AVAILABLE ORCHESTRATORS:
-${availableOrchestrators.map(o => `- ${o.name} (${o.department}): ${o.capabilities.join(', ')}`).join('\n')}
+${availableOrchestrators.map((o) => `- ${o.name} (${o.department}): ${o.capabilities.join(', ')}`).join('\n')}
 
 DEPARTMENT CAPACITIES:
-${departmentCapacities.map(d => `- ${d.department}: ${d.currentProjects}/${d.capacity} projects, next available: ${d.availability.nextAvailableSlot}`).join('\n')}
+${departmentCapacities.map((d) => `- ${d.department}: ${d.currentProjects}/${d.capacity} projects, next available: ${d.availability.nextAvailableSlot}`).join('\n')}
 
 ANALYSIS CRITERIA:
 1. Cross-departmental coordination required?
@@ -165,12 +165,16 @@ Respond in JSON format:
       );
 
       const analysis = JSON.parse(response);
-      this.logger.log(`Subproject analysis completed: ${analysis.requiresDecomposition ? 'Decomposition recommended' : 'Single project approach'}`);
-      
+      this.logger.log(
+        `Subproject analysis completed: ${analysis.requiresDecomposition ? 'Decomposition recommended' : 'Single project approach'}`,
+      );
+
       return analysis;
     } catch (error) {
       this.logger.error('Error analyzing project for subprojects:', error);
-      throw new Error(`Subproject analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Subproject analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -183,7 +187,9 @@ Respond in JSON format:
     subprojectScopes: SubprojectScope[],
     input: OrchestratorInput,
   ): Promise<SubprojectPlan[]> {
-    this.logger.log(`Creating ${subprojectScopes.length} subprojects for parent project ${parentProjectId}`);
+    this.logger.log(
+      `Creating ${subprojectScopes.length} subprojects for parent project ${parentProjectId}`,
+    );
 
     const subprojects: SubprojectPlan[] = [];
 
@@ -197,7 +203,10 @@ Respond in JSON format:
         );
         subprojects.push(subproject);
       } catch (error) {
-        this.logger.error(`Error creating subproject for ${scope.department}:`, error);
+        this.logger.error(
+          `Error creating subproject for ${scope.department}:`,
+          error,
+        );
         throw error;
       }
     }
@@ -302,7 +311,9 @@ Respond in JSON format:
       return subproject;
     } catch (error) {
       this.logger.error('Error creating subproject plan:', error);
-      throw new Error(`Subproject planning failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Subproject planning failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -313,7 +324,9 @@ Respond in JSON format:
     subproject: SubprojectPlan,
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-    this.logger.log(`Delegating subproject ${subproject.name} to ${subproject.assignedOrchestrator}`);
+    this.logger.log(
+      `Delegating subproject ${subproject.name} to ${subproject.assignedOrchestrator}`,
+    );
 
     // Prepare delegation context with subproject details
     const delegationPrompt = `
@@ -329,10 +342,10 @@ ESTIMATED DURATION: ${subproject.scope.estimatedDuration}
 TIMELINE:
 - Start Date: ${subproject.timeline.startDate}
 - End Date: ${subproject.timeline.estimatedEndDate}
-- Key Milestones: ${subproject.timeline.milestones.map(m => `${m.name} (${m.date})`).join(', ')}
+- Key Milestones: ${subproject.timeline.milestones.map((m) => `${m.name} (${m.date})`).join(', ')}
 
 DELIVERABLES:
-${subproject.deliverables.map(d => `- ${d.name}: ${d.description}`).join('\n')}
+${subproject.deliverables.map((d) => `- ${d.name}: ${d.description}`).join('\n')}
 
 DEPENDENCIES: ${subproject.scope.dependencies.length > 0 ? subproject.scope.dependencies.join(', ') : 'None'}
 
@@ -352,10 +365,14 @@ Original user request context: ${input.prompt}
 
     try {
       // Find the target orchestrator agent
-      const targetAgent = this.agentPoolService.getAgent(subproject.assignedOrchestrator);
-      
+      const targetAgent = this.agentPoolService.getAgent(
+        subproject.assignedOrchestrator,
+      );
+
       if (!targetAgent) {
-        throw new Error(`Target orchestrator ${subproject.assignedOrchestrator} not found in agent pool`);
+        throw new Error(
+          `Target orchestrator ${subproject.assignedOrchestrator} not found in agent pool`,
+        );
       }
 
       // Create delegation task for the orchestrator
@@ -372,7 +389,9 @@ Original user request context: ${input.prompt}
         },
       };
 
-      this.logger.log(`Subproject successfully delegated to ${subproject.assignedOrchestrator}`);
+      this.logger.log(
+        `Subproject successfully delegated to ${subproject.assignedOrchestrator}`,
+      );
 
       return {
         success: true,
@@ -394,7 +413,9 @@ Original user request context: ${input.prompt}
       };
     } catch (error) {
       this.logger.error('Error delegating subproject:', error);
-      throw new Error(`Subproject delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Subproject delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -420,39 +441,51 @@ Original user request context: ${input.prompt}
       mitigationActions: string[];
     };
   }> {
-    this.logger.log(`Aggregating progress for ${subprojects.length} subprojects`);
+    this.logger.log(
+      `Aggregating progress for ${subprojects.length} subprojects`,
+    );
 
     const now = new Date();
-    const completedSubprojects = subprojects.filter(sp => sp.status === 'completed').length;
-    const overallProgress = Math.round((completedSubprojects / subprojects.length) * 100);
+    const completedSubprojects = subprojects.filter(
+      (sp) => sp.status === 'completed',
+    ).length;
+    const overallProgress = Math.round(
+      (completedSubprojects / subprojects.length) * 100,
+    );
 
     // Find blocked subprojects
-    const blockedSubprojects = subprojects.filter(sp => 
-      sp.status === 'paused_on_error' || 
-      (sp.status === 'running' && this.isSubprojectDelayed(sp, now))
+    const blockedSubprojects = subprojects.filter(
+      (sp) =>
+        sp.status === 'paused_on_error' ||
+        (sp.status === 'running' && this.isSubprojectDelayed(sp, now)),
     );
 
     // Get upcoming milestones (next 14 days)
     const upcomingMilestones = subprojects
-      .flatMap(sp => 
+      .flatMap((sp) =>
         sp.timeline.milestones
-          .filter(m => !m.completed)
-          .map(m => {
+          .filter((m) => !m.completed)
+          .map((m) => {
             const milestoneDate = new Date(m.date);
-            const daysUntil = Math.ceil((milestoneDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            const daysUntil = Math.ceil(
+              (milestoneDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+            );
             return {
               subprojectId: sp.id,
               milestone: m.name,
               date: m.date,
               daysUntil,
             };
-          })
+          }),
       )
-      .filter(m => m.daysUntil <= 14 && m.daysUntil >= 0)
+      .filter((m) => m.daysUntil <= 14 && m.daysUntil >= 0)
       .sort((a, b) => a.daysUntil - b.daysUntil);
 
     // Risk assessment
-    const riskAssessment = this.assessSubprojectRisks(subprojects, blockedSubprojects);
+    const riskAssessment = this.assessSubprojectRisks(
+      subprojects,
+      blockedSubprojects,
+    );
 
     return {
       overallProgress,
@@ -473,10 +506,10 @@ Original user request context: ${input.prompt}
     currentLoad: number;
   }[] {
     const agents = this.agentPoolService.getOnlineAgents();
-    
+
     return agents
-      .filter(agent => agent.type === 'orchestrator')
-      .map(agent => ({
+      .filter((agent) => agent.type === 'orchestrator')
+      .map((agent) => ({
         name: agent.id,
         department: this.extractDepartmentFromAgent(agent.id),
         capabilities: agent.capabilities || [],
@@ -489,8 +522,8 @@ Original user request context: ${input.prompt}
    */
   private async analyzeDepartmentCapacities(): Promise<DepartmentCapacity[]> {
     const orchestrators = this.getAvailableOrchestrators();
-    
-    return orchestrators.map(orch => ({
+
+    return orchestrators.map((orch) => ({
       department: orch.department,
       orchestrator: orch.name,
       currentProjects: orch.currentLoad,
@@ -507,12 +540,14 @@ Original user request context: ${input.prompt}
   /**
    * Validate subproject coordination and dependencies
    */
-  private async validateSubprojectCoordination(subprojects: SubprojectPlan[]): Promise<void> {
+  private async validateSubprojectCoordination(
+    subprojects: SubprojectPlan[],
+  ): Promise<void> {
     this.logger.log('Validating subproject coordination');
 
     // Check for circular dependencies
     const dependencyGraph = new Map<string, string[]>();
-    subprojects.forEach(sp => {
+    subprojects.forEach((sp) => {
       dependencyGraph.set(sp.id, sp.scope.dependencies);
     });
 
@@ -546,7 +581,7 @@ Original user request context: ${input.prompt}
   private calculateNextAvailableSlot(currentLoad: number): string {
     const now = new Date();
     const daysToAdd = currentLoad > 3 ? 7 : 0; // If overloaded, next slot is a week out
-    const nextSlot = new Date(now.getTime() + (daysToAdd * 24 * 60 * 60 * 1000));
+    const nextSlot = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
     return nextSlot.toISOString().split('T')[0] || '';
   }
 
@@ -557,8 +592,11 @@ Original user request context: ${input.prompt}
     const estimatedEnd = new Date(subproject.timeline.estimatedEndDate);
     // Only consider it delayed if it's past the end date AND not completed
     // For running projects, only mark as delayed if significantly past due
-    return now > estimatedEnd && subproject.status !== 'completed' && 
-           (now.getTime() - estimatedEnd.getTime()) > (2 * 24 * 60 * 60 * 1000); // 2 days grace period
+    return (
+      now > estimatedEnd &&
+      subproject.status !== 'completed' &&
+      now.getTime() - estimatedEnd.getTime() > 2 * 24 * 60 * 60 * 1000
+    ); // 2 days grace period
   }
 
   /**
@@ -577,24 +615,31 @@ Original user request context: ${input.prompt}
 
     // Check for blocked subprojects
     if (blockedSubprojects.length > 0) {
-      risks.push(`${blockedSubprojects.length} subprojects are blocked or delayed`);
-      mitigationActions.push('Review blocked subprojects and provide additional resources');
+      risks.push(
+        `${blockedSubprojects.length} subprojects are blocked or delayed`,
+      );
+      mitigationActions.push(
+        'Review blocked subprojects and provide additional resources',
+      );
     }
 
     // Check for dependency bottlenecks
     const dependencyCounts = new Map<string, number>();
-    subprojects.forEach(sp => {
-      sp.scope.dependencies.forEach(dep => {
+    subprojects.forEach((sp) => {
+      sp.scope.dependencies.forEach((dep) => {
         dependencyCounts.set(dep, (dependencyCounts.get(dep) || 0) + 1);
       });
     });
 
-    const highDependencyProjects = Array.from(dependencyCounts.entries())
-      .filter(([_, count]) => count > 2);
+    const highDependencyProjects = Array.from(
+      dependencyCounts.entries(),
+    ).filter(([_, count]) => count > 2);
 
     if (highDependencyProjects.length > 0) {
       risks.push('Critical path dependencies identified');
-      mitigationActions.push('Monitor critical path projects closely and consider parallel alternatives');
+      mitigationActions.push(
+        'Monitor critical path projects closely and consider parallel alternatives',
+      );
     }
 
     // Determine overall risk level
@@ -615,13 +660,17 @@ Original user request context: ${input.prompt}
   /**
    * Detect circular dependencies in subprojects
    */
-  private detectCircularDependencies(dependencyGraph: Map<string, string[]>): void {
+  private detectCircularDependencies(
+    dependencyGraph: Map<string, string[]>,
+  ): void {
     const visited = new Set<string>();
     const recursionStack = new Set<string>();
 
     const hasCycle = (node: string): boolean => {
       if (recursionStack.has(node)) {
-        throw new Error(`Circular dependency detected involving subproject: ${node}`);
+        throw new Error(
+          `Circular dependency detected involving subproject: ${node}`,
+        );
       }
       if (visited.has(node)) {
         return false;
@@ -633,8 +682,8 @@ Original user request context: ${input.prompt}
       const dependencies = dependencyGraph.get(node) || [];
       for (const dep of dependencies) {
         // Find the actual subproject ID that matches this dependency name
-        const depNode = Array.from(dependencyGraph.keys()).find(key => 
-          key.includes(dep) || dep.includes(key.split('_')[1] || '')
+        const depNode = Array.from(dependencyGraph.keys()).find(
+          (key) => key.includes(dep) || dep.includes(key.split('_')[1] || ''),
         );
         if (depNode && hasCycle(depNode)) {
           return true;
@@ -658,22 +707,22 @@ Original user request context: ${input.prompt}
   private validateTimelineCoordination(subprojects: SubprojectPlan[]): void {
     // Check for timeline conflicts with dependencies
     const projectTimelines = new Map<string, { start: Date; end: Date }>();
-    
-    subprojects.forEach(sp => {
+
+    subprojects.forEach((sp) => {
       projectTimelines.set(sp.id, {
         start: new Date(sp.timeline.startDate),
         end: new Date(sp.timeline.estimatedEndDate),
       });
     });
 
-    subprojects.forEach(sp => {
+    subprojects.forEach((sp) => {
       const currentTimeline = projectTimelines.get(sp.id)!;
-      
-      sp.scope.dependencies.forEach(depId => {
+
+      sp.scope.dependencies.forEach((depId) => {
         const depTimeline = projectTimelines.get(depId);
         if (depTimeline && currentTimeline.start < depTimeline.end) {
           this.logger.warn(
-            `Timeline conflict: ${sp.id} starts before dependency ${depId} completes`
+            `Timeline conflict: ${sp.id} starts before dependency ${depId} completes`,
           );
         }
       });

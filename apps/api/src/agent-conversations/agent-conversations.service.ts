@@ -399,9 +399,7 @@ export class AgentConversationsService {
     // Fetch existing values
     const { data: existing, error: fetchError } = await client
       .from('agent_conversations')
-      .select(
-        'id, user_id, primary_work_product_type, primary_work_product_id',
-      )
+      .select('id, user_id, primary_work_product_type, primary_work_product_id')
       .eq('id', conversationId)
       .eq('user_id', userId)
       .single();

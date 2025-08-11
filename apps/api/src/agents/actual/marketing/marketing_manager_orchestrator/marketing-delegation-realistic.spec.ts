@@ -95,13 +95,16 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
 
         console.log(`✅ Routed to: ${result.agentName || 'CONVERSATION'}`);
         console.log(`🎯 Action: ${result.action || 'unknown'}`);
-        
-        if (result.response && result.response.includes("I'm the orchestrator")) {
+
+        if (
+          result.response &&
+          result.response.includes("I'm the orchestrator")
+        ) {
           console.log('❌ CONVERSATION FALLBACK - Should have delegated');
         }
 
         expect(result.success).toBe(true);
-        
+
         // Track what happened for analysis
         if (result.agentName === 'content') {
           console.log('🎉 SUCCESS: Correctly delegated to content');
@@ -139,13 +142,16 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
 
         console.log(`✅ Routed to: ${result.agentName || 'CONVERSATION'}`);
         console.log(`🎯 Action: ${result.action || 'unknown'}`);
-        
-        if (result.response && result.response.includes("I'm the orchestrator")) {
+
+        if (
+          result.response &&
+          result.response.includes("I'm the orchestrator")
+        ) {
           console.log('❌ CONVERSATION FALLBACK - Should have delegated');
         }
 
         expect(result.success).toBe(true);
-        
+
         // Track what happened for analysis
         if (result.agentName === 'content') {
           console.log('🎉 SUCCESS: Correctly delegated to content');
@@ -184,13 +190,16 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
 
         console.log(`✅ Routed to: ${result.agentName || 'CONVERSATION'}`);
         console.log(`🎯 Action: ${result.action || 'unknown'}`);
-        
-        if (result.response && result.response.includes("I'm the orchestrator")) {
+
+        if (
+          result.response &&
+          result.response.includes("I'm the orchestrator")
+        ) {
           console.log('❌ CONVERSATION FALLBACK - Should have delegated');
         }
 
         expect(result.success).toBe(true);
-        
+
         // Track what happened for analysis
         if (result.agentName === 'market_research') {
           console.log('🎉 SUCCESS: Correctly delegated to market_research');
@@ -209,35 +218,41 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
       {
         prompt: 'Write about our competitive advantages',
         reasonableAgents: ['content', 'market_research'],
-        description: 'Could be blog content, marketing copy, or competitive analysis'
+        description:
+          'Could be blog content, marketing copy, or competitive analysis',
       },
       {
         prompt: 'Create content about industry trends',
         reasonableAgents: ['content', 'market_research'],
-        description: 'Could be thought leadership, marketing content, or research analysis'
+        description:
+          'Could be thought leadership, marketing content, or research analysis',
       },
       {
         prompt: 'I need something about our target market',
         reasonableAgents: ['content', 'market_research'],
-        description: 'Could be marketing copy or market research'
+        description: 'Could be marketing copy or market research',
       },
       {
         prompt: 'Help me understand our positioning vs competitors',
         reasonableAgents: ['market_research', 'content'],
-        description: 'Could be competitive analysis or thought leadership'
+        description: 'Could be competitive analysis or thought leadership',
       },
       {
         prompt: 'Write something that shows we understand our customers',
         reasonableAgents: ['content', 'market_research'],
-        description: 'Very ambiguous - could go multiple ways'
-      }
+        description: 'Very ambiguous - could go multiple ways',
+      },
     ];
 
     ambiguousPrompts.forEach((testCase, index) => {
       it(`should handle ambiguous prompt ${index + 1}: "${testCase.prompt}"`, async () => {
-        console.log(`\n🤷 Testing Ambiguous Prompt ${index + 1}: ${testCase.prompt}`);
+        console.log(
+          `\n🤷 Testing Ambiguous Prompt ${index + 1}: ${testCase.prompt}`,
+        );
         console.log(`💭 ${testCase.description}`);
-        console.log(`✅ Reasonable agents: ${testCase.reasonableAgents.join(', ')}`);
+        console.log(
+          `✅ Reasonable agents: ${testCase.reasonableAgents.join(', ')}`,
+        );
 
         const result = await marketingManager.executeTask('executeTask', {
           prompt: testCase.prompt,
@@ -248,20 +263,34 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
 
         console.log(`✅ Routed to: ${result.agentName || 'CONVERSATION'}`);
         console.log(`🎯 Action: ${result.action || 'unknown'}`);
-        
-        if (result.response && result.response.includes("I'm the orchestrator")) {
-          console.log('❌ CONVERSATION FALLBACK - Should have delegated to someone');
+
+        if (
+          result.response &&
+          result.response.includes("I'm the orchestrator")
+        ) {
+          console.log(
+            '❌ CONVERSATION FALLBACK - Should have delegated to someone',
+          );
         }
 
         expect(result.success).toBe(true);
-        
+
         // For ambiguous prompts, any of the reasonable agents is acceptable
-        if (result.agentName && testCase.reasonableAgents.includes(result.agentName)) {
-          console.log(`🎉 REASONABLE: Delegated to ${result.agentName} (acceptable choice)`);
+        if (
+          result.agentName &&
+          testCase.reasonableAgents.includes(result.agentName)
+        ) {
+          console.log(
+            `🎉 REASONABLE: Delegated to ${result.agentName} (acceptable choice)`,
+          );
         } else if (result.agentName) {
-          console.log(`🤔 UNEXPECTED: Delegated to ${result.agentName} (not in expected list)`);
+          console.log(
+            `🤔 UNEXPECTED: Delegated to ${result.agentName} (not in expected list)`,
+          );
         } else {
-          console.log('❌ FAILED: Should have delegated to someone, got conversation fallback');
+          console.log(
+            '❌ FAILED: Should have delegated to someone, got conversation fallback',
+          );
         }
       }, 60000);
     });
@@ -275,20 +304,23 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
       // Test one clear case for each agent
       const testCases = [
         {
-          prompt: 'Write a comprehensive blog post about the future of AI in business',
+          prompt:
+            'Write a comprehensive blog post about the future of AI in business',
           expectedAgent: 'content',
-          type: 'Blog Content'
+          type: 'Blog Content',
         },
         {
-          prompt: 'Create compelling ad copy for our new product launch campaign',
-          expectedAgent: 'content', 
-          type: 'Marketing Copy'
+          prompt:
+            'Create compelling ad copy for our new product launch campaign',
+          expectedAgent: 'content',
+          type: 'Marketing Copy',
         },
         {
-          prompt: 'Research our top 5 competitors and analyze their market positioning',
+          prompt:
+            'Research our top 5 competitors and analyze their market positioning',
           expectedAgent: 'market_research',
-          type: 'Competitive Research'
-        }
+          type: 'Competitive Research',
+        },
       ];
 
       const results = [];
@@ -296,7 +328,7 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
       for (let i = 0; i < testCases.length; i++) {
         const testCase = testCases[i];
         if (!testCase) continue;
-        
+
         console.log(`📋 ${testCase.type}: "${testCase.prompt}"`);
 
         const result = await marketingManager.executeTask('executeTask', {
@@ -307,34 +339,46 @@ describe('Marketing Manager - Realistic User Prompt Tests', () => {
         });
 
         const success = result.agentName === testCase.expectedAgent;
-        console.log(`${success ? '✅' : '❌'} ${testCase.type} → ${result.agentName || 'CONVERSATION'} ${success ? '(CORRECT)' : '(EXPECTED: ' + testCase.expectedAgent + ')'}`);
-        
+        console.log(
+          `${success ? '✅' : '❌'} ${testCase.type} → ${result.agentName || 'CONVERSATION'} ${success ? '(CORRECT)' : '(EXPECTED: ' + testCase.expectedAgent + ')'}`,
+        );
+
         results.push({
           type: testCase.type,
           expected: testCase.expectedAgent,
           actual: result.agentName,
-          success: success
+          success: success,
         });
       }
 
       console.log('\n📊 DELEGATION INTELLIGENCE SUMMARY:');
-      const successCount = results.filter(r => r.success).length;
-      console.log(`🎯 Success Rate: ${successCount}/${results.length} (${Math.round(successCount/results.length*100)}%)`);
-      
-      results.forEach(r => {
-        console.log(`   ${r.success ? '✅' : '❌'} ${r.type}: ${r.actual || 'CONVERSATION'}`);
+      const successCount = results.filter((r) => r.success).length;
+      console.log(
+        `🎯 Success Rate: ${successCount}/${results.length} (${Math.round((successCount / results.length) * 100)}%)`,
+      );
+
+      results.forEach((r) => {
+        console.log(
+          `   ${r.success ? '✅' : '❌'} ${r.type}: ${r.actual || 'CONVERSATION'}`,
+        );
       });
 
       if (successCount === results.length) {
         console.log('\n🎉 PERFECT: All clear cases delegated correctly!');
       } else if (successCount >= results.length * 0.67) {
-        console.log('\n🤔 GOOD: Most cases working, some need delegation context refinement');
+        console.log(
+          '\n🤔 GOOD: Most cases working, some need delegation context refinement',
+        );
       } else {
-        console.log('\n❌ NEEDS WORK: Delegation context needs significant improvement');
+        console.log(
+          '\n❌ NEEDS WORK: Delegation context needs significant improvement',
+        );
       }
 
       // At least 2/3 should work for this to be considered passing
-      expect(successCount).toBeGreaterThanOrEqual(Math.ceil(results.length * 0.67));
+      expect(successCount).toBeGreaterThanOrEqual(
+        Math.ceil(results.length * 0.67),
+      );
     }, 180000);
   });
 });

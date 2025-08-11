@@ -77,7 +77,7 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
 
       // Explicitly trigger initialization to load delegation context
       await service.onModuleInit();
-      
+
       // This should be classified as delegation to blog_post agent
       const response: OrchestratorResponse = await service.executeTask(
         'executeTask',
@@ -85,7 +85,9 @@ describe('MarketingManagerOrchestratorService - Complete LLM Workflow Tests', ()
       );
 
       expect(response.success).toBe(true);
-      expect(response.action || response.metadata?.action).toMatch(/(DELEGATE|delegate)/i);
+      expect(response.action || response.metadata?.action).toMatch(
+        /(DELEGATE|delegate)/i,
+      );
       // Should have routed to a specific agent
       expect(
         response.agentName || response.metadata?.delegatedAgent,

@@ -1,22 +1,22 @@
 /**
  * LangGraph State Management Service Tests
- * 
+ *
  * Tests the 3-tier state architecture including:
  * - Plan State (Tier 1): High-level project strategy and coordination
  * - Step Results State (Tier 2): Execution outcomes and deliverables
  * - Metadata State (Tier 3): Operational details and real-time metrics
- * 
+ *
  * Validates stateful workflow capabilities while preserving smart routing.
  * Uses real services (no mocks) following CLAUDE.md principles.
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
-import { 
-  LangGraphStateManagementService, 
-  PlanState, 
-  StepResultsState, 
-  MetadataState, 
+import {
+  LangGraphStateManagementService,
+  PlanState,
+  StepResultsState,
+  MetadataState,
   LangGraphState,
   StateTransition,
 } from './langgraph-state-management.service';
@@ -24,10 +24,10 @@ import { LLMModule } from '@/llms/llm.module';
 import { SupabaseModule } from '@/supabase/supabase.module';
 import { CIDAFMModule } from '@/cidafm/cidafm.module';
 import supabaseConfig from '@/supabase/supabase.config';
-import { 
-  OrchestratorInput, 
-  PlanDefinition, 
-  ProjectStepStatus 
+import {
+  OrchestratorInput,
+  PlanDefinition,
+  ProjectStepStatus,
 } from '@/orchestration/orchestration.types';
 
 describe('LangGraphStateManagementService', () => {
@@ -69,10 +69,10 @@ describe('LangGraphStateManagementService', () => {
         dependencies: ['content-creation'],
       },
     ],
-    metadata: { 
-      complexity: 'high', 
+    metadata: {
+      complexity: 'high',
       estimatedDuration: '8 weeks',
-      departments: ['marketing', 'finance', 'product'] 
+      departments: ['marketing', 'finance', 'product'],
     },
   };
 
@@ -89,24 +89,27 @@ describe('LangGraphStateManagementService', () => {
           expandVariables: true,
           load: [supabaseConfig],
         }),
-        SupabaseModule,   
-        CIDAFMModule,     
-        LLMModule,        
+        SupabaseModule,
+        CIDAFMModule,
+        LLMModule,
       ],
-      providers: [
-        LangGraphStateManagementService,
-      ],
+      providers: [LangGraphStateManagementService],
     }).compile();
 
-    service = module.get<LangGraphStateManagementService>(LangGraphStateManagementService);
-    
+    service = module.get<LangGraphStateManagementService>(
+      LangGraphStateManagementService,
+    );
+
     // Wait for module initialization to complete
     await module.init();
   });
 
   describe('State Initialization', () => {
     it('should initialize complete 3-tier LangGraph state with real LLM integration', async () => {
-      const state = await service.initializeProjectState(mockPlanDefinition, mockInput);
+      const state = await service.initializeProjectState(
+        mockPlanDefinition,
+        mockInput,
+      );
 
       // Validate Tier 1: Plan State structure (real LLM response)
       expect(state.planState.projectName).toBe('Q4 Product Launch Campaign');
@@ -116,7 +119,9 @@ describe('LangGraphStateManagementService', () => {
       expect(state.planState.departments.length).toBeGreaterThan(0);
       expect(Array.isArray(state.planState.resourceAllocation)).toBe(true);
       expect(Array.isArray(state.planState.successCriteria)).toBe(true);
-      expect(['low', 'medium', 'high']).toContain(state.planState.riskAssessment.level);
+      expect(['low', 'medium', 'high']).toContain(
+        state.planState.riskAssessment.level,
+      );
       expect(Array.isArray(state.planState.approvalGates)).toBe(true);
       expect(state.planState.version).toBe(1);
       expect(state.planState.projectId).toBeDefined();
@@ -135,7 +140,9 @@ describe('LangGraphStateManagementService', () => {
 
       const contentCreationStep = state.stepResults.get('content-creation')!;
       expect(contentCreationStep.dependencies).toHaveLength(1);
-      expect(contentCreationStep.dependencies[0]?.stepId).toBe('market-research');
+      expect(contentCreationStep.dependencies[0]?.stepId).toBe(
+        'market-research',
+      );
 
       // Validate Tier 3: Metadata State
       expect(state.metadata.projectId).toBe(state.planState.projectId);
@@ -144,7 +151,9 @@ describe('LangGraphStateManagementService', () => {
       expect(state.metadata.operationalData.queue.processingTasks).toBe(0);
       expect(state.metadata.operationalData.queue.completedTasks).toBe(0);
       expect(state.metadata.configuration.retryPolicy.maxRetries).toBe(3);
-      expect(state.metadata.configuration.monitoring.alertThresholds.errorRate).toBe(10);
+      expect(
+        state.metadata.configuration.monitoring.alertThresholds.errorRate,
+      ).toBe(10);
 
       // Validate overall state structure
       expect(state.stateVersion).toBe(1);
@@ -161,13 +170,18 @@ describe('LangGraphStateManagementService', () => {
       const invalidInput = { ...mockInput, userId: '' };
 
       try {
-        const state = await service.initializeProjectState(mockPlanDefinition, invalidInput);
-        
+        const state = await service.initializeProjectState(
+          mockPlanDefinition,
+          invalidInput,
+        );
+
         // If it succeeds, verify fallback behavior works
         expect(state.planState.projectName).toBe('Q4 Product Launch Campaign');
         expect(state.planState.objectives.length).toBeGreaterThan(0);
         expect(state.planState.departments.length).toBeGreaterThan(0);
-        expect(['low', 'medium', 'high']).toContain(state.planState.riskAssessment.level);
+        expect(['low', 'medium', 'high']).toContain(
+          state.planState.riskAssessment.level,
+        );
         expect(state.stepResults.size).toBe(3);
       } catch (error) {
         // If it fails, that's also valid - we're testing real error handling
@@ -198,7 +212,10 @@ describe('LangGraphStateManagementService', () => {
         ],
       };
 
-      const state = await service.initializeProjectState(planWithSpecificAgents, mockInput);
+      const state = await service.initializeProjectState(
+        planWithSpecificAgents,
+        mockInput,
+      );
 
       const marketingStep = state.stepResults.get('marketing-step')!;
       expect(marketingStep.department).toBe('marketing');

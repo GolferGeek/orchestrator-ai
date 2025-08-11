@@ -95,7 +95,10 @@ export class ContextOptimizationService {
       }
       if (type === 'deliverable') {
         // Read-only context; implement as needed (userId required in real impl)
-        return await this.deliverablesService.findOne(id, '00000000-0000-0000-0000-000000000000');
+        return await this.deliverablesService.findOne(
+          id,
+          '00000000-0000-0000-0000-000000000000',
+        );
       }
     } catch (e) {
       this.logger.warn(
@@ -132,7 +135,11 @@ export class ContextOptimizationService {
   }
 
   private selectOptimalWindow(
-    scored: Array<{ message: ConversationMessage; score: number; tokens: number }>,
+    scored: Array<{
+      message: ConversationMessage;
+      score: number;
+      tokens: number;
+    }>,
     tokenBudget: number,
   ): ConversationMessage[] {
     // Sort by score desc, maintain order via stable mapping
@@ -175,8 +182,10 @@ export class ContextOptimizationService {
   private estimateTokens(m: ConversationMessage): number {
     // Cheap heuristics: ~4 chars per token
     const contentTokens = Math.ceil((m.content || '').length / 4);
-    const metaTokens = m.metadata ? Math.min(128, JSON.stringify(m.metadata).length / 8) : 0;
-    return contentTokens + Math.ceil(metaTokens as number);
+    const metaTokens = m.metadata
+      ? Math.min(128, JSON.stringify(m.metadata).length / 8)
+      : 0;
+    return contentTokens + Math.ceil(metaTokens);
   }
 
   private keywordOverlap(a: string, b: string): number {
@@ -199,5 +208,3 @@ export class ContextOptimizationService {
     return Math.min(3, overlap / 5); // cap contribution
   }
 }
-
-

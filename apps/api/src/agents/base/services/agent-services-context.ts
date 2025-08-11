@@ -21,15 +21,16 @@ export class AgentServicesContext {
     // Core services that every agent needs
     public readonly httpService: HttpService,
     public readonly llmService: LLMService,
-    
+
     // Task and deliverable services
     @Optional() public readonly taskStatusService?: TaskStatusService,
     @Optional() public readonly tasksService?: TasksService,
     @Optional() public readonly deliverablesService?: DeliverablesService,
     @Optional() public readonly taskProgressGateway?: TaskProgressGateway,
-    
+
     // Agent framework services
-    @Optional() public readonly agentRegistrationService?: AgentRegistrationService,
+    @Optional()
+    public readonly agentRegistrationService?: AgentRegistrationService,
     @Optional() public readonly jsonRpcProtocolService?: JsonRpcProtocolService,
     @Optional() public readonly loggingService?: LoggingService,
     @Optional() public readonly authService?: AuthService,
@@ -39,7 +40,9 @@ export class AgentServicesContext {
   /**
    * Create a partial context with only the services needed for a specific agent type
    */
-  createContextForAgentType(agentType: 'function' | 'context' | 'api' | 'external' | 'orchestrator'): Partial<AgentServicesContext> {
+  createContextForAgentType(
+    agentType: 'function' | 'context' | 'api' | 'external' | 'orchestrator',
+  ): Partial<AgentServicesContext> {
     const baseServices = {
       httpService: this.httpService,
       llmService: this.llmService,

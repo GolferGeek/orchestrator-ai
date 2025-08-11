@@ -26,7 +26,7 @@ export class AgentServicesContextModule {}
 
 /**
  * Usage in your main modules:
- * 
+ *
  * @Module({
  *   imports: [
  *     AgentServicesContextModule,  // Import this instead of all individual services

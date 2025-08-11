@@ -8,11 +8,11 @@ import { EvaluationWrapperService } from '@agents/base/sub-services/evaluation-w
 
 /**
  * Pure Service Container for External Agents
- * 
+ *
  * This service aggregates all dependencies needed by external agents into a single
  * injectable container, eliminating constructor parameter explosion and simplifying
  * dependency management.
- * 
+ *
  * Core Pattern: Instead of injecting 5+ individual services into each external agent,
  * we inject this single service container that contains all dependencies.
  */

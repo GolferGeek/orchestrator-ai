@@ -5,10 +5,8 @@ import { OrchestratorAgentServicesContext } from '../../../base/implementations/
 @Injectable()
 export class HRManagerOrchestratorService extends OrchestratorAgentBaseService {
   protected readonly logger = new Logger(HRManagerOrchestratorService.name);
-  
-  constructor(
-    services: OrchestratorAgentServicesContext,
-  ) {
+
+  constructor(services: OrchestratorAgentServicesContext) {
     super(services);
   }
 

@@ -15,10 +15,10 @@ import { DeliverablesService } from '../../../deliverables/deliverables.service'
 
 /**
  * Universal Service Container for All Agent Types
- * 
+ *
  * This service aggregates all core dependencies that any agent might need,
  * eliminating constructor parameter explosion across the entire agent system.
- * 
+ *
  * All services are optional except HttpService, allowing different agent types
  * to use only what they need while maintaining a consistent injection pattern.
  */
@@ -30,7 +30,8 @@ export class UniversalAgentServicesContext {
 
     // Core agent infrastructure services (optional)
     @Optional() public readonly configurationService?: ConfigurationService,
-    @Optional() public readonly agentRegistrationService?: AgentRegistrationService,
+    @Optional()
+    public readonly agentRegistrationService?: AgentRegistrationService,
     @Optional() public readonly loggingService?: LoggingService,
     @Optional() public readonly evaluationService?: EvaluationWrapperService,
     @Optional() public readonly jsonRpcProtocolService?: JsonRpcProtocolService,

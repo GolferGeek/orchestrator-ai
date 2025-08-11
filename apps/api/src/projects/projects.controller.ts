@@ -74,7 +74,7 @@ export class ProjectsController {
   ): Promise<Project> {
     try {
       this.logger.log(`Creating project for user ${user.id}`);
-      
+
       if (!createProjectDto.conversationId) {
         throw new BadRequestException('conversationId is required');
       }
@@ -107,9 +107,14 @@ export class ProjectsController {
   }> {
     try {
       this.logger.debug(`Getting projects for user ${user.id}`);
-      
-      const { limit = 20, offset = 0, sortBy = 'created_at', sortOrder = 'desc' } = query;
-      
+
+      const {
+        limit = 20,
+        offset = 0,
+        sortBy = 'created_at',
+        sortOrder = 'desc',
+      } = query;
+
       return await this.projectsService.getUserProjects(user.id, {
         status: query.status,
         limit: Math.min(limit, 100), // Cap at 100
@@ -133,9 +138,9 @@ export class ProjectsController {
   ): Promise<Project> {
     try {
       this.logger.debug(`Getting project ${projectId} for user ${user.id}`);
-      
+
       const project = await this.projectsService.getProject(projectId);
-      
+
       if (!project) {
         throw new NotFoundException(`Project ${projectId} not found`);
       }
@@ -166,13 +171,16 @@ export class ProjectsController {
   ): Promise<Project> {
     try {
       this.logger.log(`Updating project ${projectId} for user ${user.id}`);
-      
+
       // Check if user has access to this project
       if (!(await this.projectsService.hasProjectAccess(projectId, user.id))) {
         throw new NotFoundException(`Project ${projectId} not found`);
       }
 
-      return await this.projectsService.updateProject(projectId, updateProjectDto);
+      return await this.projectsService.updateProject(
+        projectId,
+        updateProjectDto,
+      );
     } catch (error) {
       this.logger.error(`Failed to update project ${projectId}:`, error);
       if (error instanceof NotFoundException) {
@@ -192,14 +200,14 @@ export class ProjectsController {
   ): Promise<{ success: boolean; message: string }> {
     try {
       this.logger.log(`Deleting project ${projectId} for user ${user.id}`);
-      
+
       // Check if user has access to this project
       if (!(await this.projectsService.hasProjectAccess(projectId, user.id))) {
         throw new NotFoundException(`Project ${projectId} not found`);
       }
 
       await this.projectsService.deleteProject(projectId);
-      
+
       return {
         success: true,
         message: `Project ${projectId} deleted successfully`,
@@ -223,7 +231,7 @@ export class ProjectsController {
   ): Promise<ProjectStep[]> {
     try {
       this.logger.debug(`Getting steps for project ${projectId}`);
-      
+
       // Check if user has access to this project
       if (!(await this.projectsService.hasProjectAccess(projectId, user.id))) {
         throw new NotFoundException(`Project ${projectId} not found`);
@@ -258,7 +266,7 @@ export class ProjectsController {
   }> {
     try {
       this.logger.debug(`Getting history for project ${projectId}`);
-      
+
       // Check if user has access to this project
       if (!(await this.projectsService.hasProjectAccess(projectId, user.id))) {
         throw new NotFoundException(`Project ${projectId} not found`);
@@ -266,7 +274,10 @@ export class ProjectsController {
 
       return await this.projectsService.getProjectHistory(projectId);
     } catch (error) {
-      this.logger.error(`Failed to get project history for ${projectId}:`, error);
+      this.logger.error(
+        `Failed to get project history for ${projectId}:`,
+        error,
+      );
       if (error instanceof NotFoundException) {
         throw error;
       }
@@ -285,14 +296,14 @@ export class ProjectsController {
   ): Promise<{ success: boolean; message: string }> {
     try {
       this.logger.log(`Resuming project ${projectId} for user ${user.id}`);
-      
+
       // Check if user has access to this project
       if (!(await this.projectsService.hasProjectAccess(projectId, user.id))) {
         throw new NotFoundException(`Project ${projectId} not found`);
       }
 
       await this.projectsService.resumeProject(projectId, recoveryDto);
-      
+
       return {
         success: true,
         message: `Project ${projectId} resumed successfully`,
@@ -317,14 +328,14 @@ export class ProjectsController {
   ): Promise<{ success: boolean; message: string }> {
     try {
       this.logger.log(`Retrying project ${projectId} for user ${user.id}`);
-      
+
       // Check if user has access to this project
       if (!(await this.projectsService.hasProjectAccess(projectId, user.id))) {
         throw new NotFoundException(`Project ${projectId} not found`);
       }
 
       await this.projectsService.retryProject(projectId, recoveryDto);
-      
+
       return {
         success: true,
         message: `Project ${projectId} retry initiated successfully`,
@@ -349,7 +360,7 @@ export class ProjectsController {
   ): Promise<Project> {
     try {
       this.logger.log(`Forking project ${projectId} for user ${user.id}`);
-      
+
       // Check if user has access to this project
       if (!(await this.projectsService.hasProjectAccess(projectId, user.id))) {
         throw new NotFoundException(`Project ${projectId} not found`);
@@ -376,14 +387,14 @@ export class ProjectsController {
   ): Promise<{ success: boolean; message: string }> {
     try {
       this.logger.log(`Aborting project ${projectId} for user ${user.id}`);
-      
+
       // Check if user has access to this project
       if (!(await this.projectsService.hasProjectAccess(projectId, user.id))) {
         throw new NotFoundException(`Project ${projectId} not found`);
       }
 
       await this.projectsService.abortProject(projectId, abortDto);
-      
+
       return {
         success: true,
         message: `Project ${projectId} aborted successfully`,
@@ -430,7 +441,7 @@ export class ProjectsController {
   }> {
     try {
       this.logger.debug(`Getting analytics for project ${projectId}`);
-      
+
       // Check if user has access to this project
       if (!(await this.projectsService.hasProjectAccess(projectId, user.id))) {
         throw new NotFoundException(`Project ${projectId} not found`);
@@ -438,7 +449,10 @@ export class ProjectsController {
 
       return await this.projectsService.getProjectAnalytics(projectId);
     } catch (error) {
-      this.logger.error(`Failed to get project analytics for ${projectId}:`, error);
+      this.logger.error(
+        `Failed to get project analytics for ${projectId}:`,
+        error,
+      );
       if (error instanceof NotFoundException) {
         throw error;
       }

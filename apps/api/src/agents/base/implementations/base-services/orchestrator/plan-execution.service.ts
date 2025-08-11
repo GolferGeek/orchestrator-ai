@@ -15,10 +15,10 @@ import { SupabaseService } from '../../../../../supabase/supabase.service';
 
 /**
  * Plan Execution Service - Enhanced with LangGraph StateGraph
- * 
+ *
  * Executes project plans using LangGraph StateGraph for advanced workflow orchestration.
  * Provides stateful execution with proper checkpointing and recovery capabilities.
- * 
+ *
  * Enhanced architecture:
  * 1. Initialize LangGraph state with 3-tier architecture (Plan/Step/Metadata)
  * 2. Use StateGraph for dependency resolution and execution flow
@@ -38,16 +38,22 @@ export class PlanExecutionService implements IPlanExecutionService {
     @Inject('ILangGraphStateManagementService')
     private readonly stateManagementService: ILangGraphStateManagementService,
   ) {
-    this.logger.log('PlanExecutionService initialized with LangGraph StateGraph integration');
+    this.logger.log(
+      'PlanExecutionService initialized with LangGraph StateGraph integration',
+    );
   }
 
   async startProject(project: Project): Promise<void> {
-    this.logger.log(`Starting project execution with LangGraph StateGraph: ${project.id}`);
+    this.logger.log(
+      `Starting project execution with LangGraph StateGraph: ${project.id}`,
+    );
 
     try {
       // Validate project has a plan
       if (!project.planJson) {
-        throw new Error(`Project ${project.id} missing planJson - cannot execute without plan`);
+        throw new Error(
+          `Project ${project.id} missing planJson - cannot execute without plan`,
+        );
       }
 
       // Initialize LangGraph state with 3-tier architecture
@@ -71,22 +77,30 @@ export class PlanExecutionService implements IPlanExecutionService {
       // Load project steps from database
       const steps = await this.loadProjectSteps(project.id);
       if (steps.length === 0) {
-        throw new Error(`Project ${project.id} has no steps - cannot execute empty project`);
+        throw new Error(
+          `Project ${project.id} has no steps - cannot execute empty project`,
+        );
       }
 
       // Start executing steps through StateGraph
-      await this.executeNextReadyStepsWithStateGraph(project.id, steps, orchestratorInput);
+      await this.executeNextReadyStepsWithStateGraph(
+        project.id,
+        steps,
+        orchestratorInput,
+      );
 
-      this.logger.log(`Project ${project.id} execution started successfully with StateGraph`);
+      this.logger.log(
+        `Project ${project.id} execution started successfully with StateGraph`,
+      );
     } catch (error) {
       this.logger.error(`Failed to start project ${project.id}:`, error);
-      
+
       // Update project status to error
       await this.updateProjectStatus(project.id, 'paused_on_error', {
         error: error instanceof Error ? error.message : 'Unknown error',
         errorOccurredAt: new Date().toISOString(),
       });
-      
+
       throw error;
     }
   }
@@ -102,9 +116,12 @@ export class PlanExecutionService implements IPlanExecutionService {
       }
 
       const steps = await this.loadProjectSteps(projectId);
-      
+
       // Update project status to running if paused
-      if (project.status === 'paused_for_approval' || project.status === 'paused_on_error') {
+      if (
+        project.status === 'paused_for_approval' ||
+        project.status === 'paused_on_error'
+      ) {
         await this.updateProjectStatus(projectId, 'running');
       }
 
@@ -118,9 +135,15 @@ export class PlanExecutionService implements IPlanExecutionService {
       };
 
       // Use StateGraph to resume execution
-      await this.executeNextReadyStepsWithStateGraph(projectId, steps, orchestratorInput);
+      await this.executeNextReadyStepsWithStateGraph(
+        projectId,
+        steps,
+        orchestratorInput,
+      );
 
-      this.logger.log(`Project ${projectId} resumed successfully with StateGraph`);
+      this.logger.log(
+        `Project ${projectId} resumed successfully with StateGraph`,
+      );
     } catch (error) {
       this.logger.error(`Failed to resume project ${projectId}:`, error);
       throw error;
@@ -128,16 +151,18 @@ export class PlanExecutionService implements IPlanExecutionService {
   }
 
   async retryStep(projectId: string, stepId: string): Promise<void> {
-    this.logger.log(`Retrying step ${stepId} in project ${projectId} with StateGraph`);
+    this.logger.log(
+      `Retrying step ${stepId} in project ${projectId} with StateGraph`,
+    );
 
     try {
       // Reset step status to pending
       await this.updateStepStatus(projectId, stepId, 'pending');
-      
+
       // Load all steps and try to execute this one
       const steps = await this.loadProjectSteps(projectId);
-      const step = steps.find(s => s.stepId === stepId);
-      
+      const step = steps.find((s) => s.stepId === stepId);
+
       if (!step) {
         throw new Error(`Step ${stepId} not found in project ${projectId}`);
       }
@@ -225,10 +250,14 @@ export class PlanExecutionService implements IPlanExecutionService {
     return data || [];
   }
 
-  private async executeNextReadySteps(projectId: string, steps: any[]): Promise<void> {
+  private async executeNextReadySteps(
+    projectId: string,
+    steps: any[],
+  ): Promise<void> {
     // Find steps that are ready to execute (dependencies completed, status pending)
-    const readySteps = steps.filter(step => 
-      step.status === 'pending' && this.areDependenciesCompleted(step, steps)
+    const readySteps = steps.filter(
+      (step) =>
+        step.status === 'pending' && this.areDependenciesCompleted(step, steps),
     );
 
     this.logger.log(`Found ${readySteps.length} ready steps to execute`);
@@ -256,22 +285,27 @@ export class PlanExecutionService implements IPlanExecutionService {
    * Provides stateful workflow execution with proper checkpointing
    */
   private async executeNextReadyStepsWithStateGraph(
-    projectId: string, 
-    steps: any[], 
-    orchestratorInput: OrchestratorInput
+    projectId: string,
+    steps: any[],
+    orchestratorInput: OrchestratorInput,
   ): Promise<void> {
     // Find steps that are ready to execute (dependencies completed, status pending)
-    const readySteps = steps.filter(step => 
-      step.status === 'pending' && this.areDependenciesCompleted(step, steps)
+    const readySteps = steps.filter(
+      (step) =>
+        step.status === 'pending' && this.areDependenciesCompleted(step, steps),
     );
 
-    this.logger.log(`Found ${readySteps.length} ready steps to execute with StateGraph`);
+    this.logger.log(
+      `Found ${readySteps.length} ready steps to execute with StateGraph`,
+    );
 
     // Execute ready steps through StateGraph workflow
     for (const step of readySteps) {
       try {
-        this.logger.log(`Executing step ${step.stepId} through StateGraph: ${step.stepName}`);
-        
+        this.logger.log(
+          `Executing step ${step.stepId} through StateGraph: ${step.stepName}`,
+        );
+
         // Execute step through StateGraph state management
         await this.stateManagementService.executeWorkflowStep(
           projectId,
@@ -286,13 +320,18 @@ export class PlanExecutionService implements IPlanExecutionService {
               stepType: step.stepType,
               agentName: step.agentName,
             },
-          }
+          },
         );
 
-        this.logger.log(`Step ${step.stepId} executed successfully through StateGraph`);
+        this.logger.log(
+          `Step ${step.stepId} executed successfully through StateGraph`,
+        );
       } catch (error) {
-        this.logger.error(`Step ${step.stepId} execution failed through StateGraph:`, error);
-        
+        this.logger.error(
+          `Step ${step.stepId} execution failed through StateGraph:`,
+          error,
+        );
+
         // Handle workflow interrupts for error recovery
         await this.stateManagementService.handleWorkflowInterrupt(
           projectId,
@@ -302,7 +341,7 @@ export class PlanExecutionService implements IPlanExecutionService {
             error: error instanceof Error ? error.message : 'Unknown error',
             failedAt: new Date().toISOString(),
             stepName: step.stepName,
-          }
+          },
         );
 
         // Update step status in database
@@ -324,7 +363,7 @@ export class PlanExecutionService implements IPlanExecutionService {
 
     // Check all dependencies are completed
     return step.dependencies.every((depStepId: string) => {
-      const depStep = allSteps.find(s => s.stepId === depStepId);
+      const depStep = allSteps.find((s) => s.stepId === depStepId);
       return depStep && depStep.status === 'completed';
     });
   }
@@ -363,7 +402,6 @@ export class PlanExecutionService implements IPlanExecutionService {
           step.prompt,
           orchestratorInput,
         );
-
       } else if (step.stepType === 'human_approval') {
         // Human approval step - pause project and wait
         await this.updateProjectStatus(projectId, 'paused_for_approval', {
@@ -372,11 +410,18 @@ export class PlanExecutionService implements IPlanExecutionService {
           pausedAt: new Date().toISOString(),
         });
 
-        await this.updateStepStatus(projectId, step.stepId, 'pending_approval', {
-          awaitingApprovalSince: new Date().toISOString(),
-        });
+        await this.updateStepStatus(
+          projectId,
+          step.stepId,
+          'pending_approval',
+          {
+            awaitingApprovalSince: new Date().toISOString(),
+          },
+        );
 
-        this.logger.log(`Project ${projectId} paused for human approval on step ${step.stepId}`);
+        this.logger.log(
+          `Project ${projectId} paused for human approval on step ${step.stepId}`,
+        );
         return; // Don't mark as completed, wait for approval
       }
 
@@ -387,7 +432,6 @@ export class PlanExecutionService implements IPlanExecutionService {
       });
 
       this.logger.log(`Step ${step.stepId} completed successfully`);
-
     } catch (error) {
       await this.updateStepStatus(projectId, step.stepId, 'failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -397,9 +441,15 @@ export class PlanExecutionService implements IPlanExecutionService {
     }
   }
 
-  private async checkProjectCompletion(projectId: string, steps: any[]): Promise<void> {
-    const pendingSteps = steps.filter(s => 
-      s.status === 'pending' || s.status === 'running' || s.status === 'pending_approval'
+  private async checkProjectCompletion(
+    projectId: string,
+    steps: any[],
+  ): Promise<void> {
+    const pendingSteps = steps.filter(
+      (s) =>
+        s.status === 'pending' ||
+        s.status === 'running' ||
+        s.status === 'pending_approval',
     );
 
     if (pendingSteps.length === 0) {
@@ -411,7 +461,11 @@ export class PlanExecutionService implements IPlanExecutionService {
     }
   }
 
-  private async updateProjectStatus(projectId: string, status: ProjectStatus, metadata?: any): Promise<void> {
+  private async updateProjectStatus(
+    projectId: string,
+    status: ProjectStatus,
+    metadata?: any,
+  ): Promise<void> {
     const updateData: any = {
       status,
       updated_at: new Date().toISOString(),
@@ -437,7 +491,12 @@ export class PlanExecutionService implements IPlanExecutionService {
     }
   }
 
-  private async updateStepStatus(projectId: string, stepId: string, status: ProjectStepStatus, metadata?: any): Promise<void> {
+  private async updateStepStatus(
+    projectId: string,
+    stepId: string,
+    status: ProjectStepStatus,
+    metadata?: any,
+  ): Promise<void> {
     const updateData: any = {
       status,
       updated_at: new Date().toISOString(),
