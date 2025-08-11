@@ -816,11 +816,10 @@ export abstract class A2AAgentBaseService
       /REQUIREMENTS:/i,
     ];
 
-    // Check for structured content (multiple sections, substantial length)
-    const hasStructure = content.includes('\n\n') && content.length > 500;
-    const hasMarkers = deliverableMarkers.some((marker) =>
-      marker.test(content),
-    );
+    // Check for structured content (multiple sections OR substantial length)
+    // Lowered threshold to catch more content as deliverables
+    const hasStructure = content.includes('\n\n') || content.length > 300;
+    const hasMarkers = deliverableMarkers.some(marker => marker.test(content));
 
     return hasStructure || hasMarkers;
   }
