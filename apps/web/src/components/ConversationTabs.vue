@@ -26,8 +26,15 @@
     <!-- Tab Content -->
     <div class="conversation-tab-content">
       <div v-if="activeConversation" class="active-conversation">
-        <!-- Agent Chat View for Active Conversation -->
+        <!-- Two-Pane Conversation View (shows deliverables/projects alongside chat) -->
+        <TwoPaneConversationView 
+          v-if="shouldUseTwoPaneView"
+          :conversation="activeConversation"
+        />
+        
+        <!-- Traditional Single-Pane Chat View -->
         <AgentChatView 
+          v-else
           :conversation="activeConversation"
           @send-message="handleSendMessage"
         />
@@ -50,6 +57,7 @@ import { IonButton, IonIcon } from '@ionic/vue';
 import { closeOutline, chatbubblesOutline } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import AgentChatView from './AgentChatView.vue';
+import TwoPaneConversationView from './TwoPaneConversationView.vue';
 
 const agentChatStore = useAgentChatStore();
 
@@ -58,22 +66,24 @@ const activeConversation = computed(() => {
   return agentChatStore.getActiveConversation();
 });
 
+const isOrchestratorConversation = computed(() => {
+  return activeConversation.value?.agent?.name?.toLowerCase().includes('orchestrator') || false;
+});
+
+const shouldUseTwoPaneView = computed(() => {
+  // Enable two-pane view for all conversations
+  // Regular agents: show deliverables in right pane
+  // Orchestrator agents: show deliverables AND projects in right pane
+  return true;
+});
+
 // Methods
 const switchToConversation = (conversationId: string) => {
   agentChatStore.switchToConversation(conversationId);
 };
 
 const closeConversation = (conversationId: string) => {
-  // Show confirmation for conversations with messages (excluding welcome message)
-  const conversation = agentChatStore.getConversationById(conversationId);
-  if (conversation && conversation.messages.length > 1) {
-    const userMessages = conversation.messages.filter(msg => msg.role === 'user');
-    if (userMessages.length > 0) {
-      const confirmed = confirm(`Close conversation with ${conversation.agent.name}? This will remove it from your tabs but won't delete the conversation.`);
-      if (!confirmed) return;
-    }
-  }
-  
+  // Close conversation without confirmation dialog
   agentChatStore.closeConversation(conversationId);
 };
 

@@ -27,10 +27,15 @@ export class MessageFormattingService {
     });
     
     let responseContent = 'Task completed successfully.';
-    let responseMetadata = {};
+    let responseMetadata: Record<string, any> = {};
     
     // Check both task.response (database field) and task.result (immediate mode field)
     const responseData = task.response || task.result;
+    
+    // Also check for deliverable ID directly on the task
+    if (task.deliverableId) {
+      responseMetadata.deliverable_id = task.deliverableId;
+    }
     
     if (responseData) {
       try {
@@ -62,31 +67,55 @@ export class MessageFormattingService {
             // Format: { success: true, message: "content", metadata: {...} } (orchestrator format)
             responseContent = String(parsedResult.message);
             responseMetadata = parsedResult.metadata || {};
+            // Extract deliverable ID if present
+            if (parsedResult.deliverableId) {
+              responseMetadata.deliverable_id = parsedResult.deliverableId;
+            }
             console.log('📄 Using success.message format (orchestrator)');
           } else if (parsedResult.success && parsedResult.response) {
             // Format: { success: true, response: "content", metadata: {...} }
             responseContent = String(parsedResult.response);
             responseMetadata = parsedResult.metadata || {};
+            // Extract deliverable ID if present
+            if (parsedResult.deliverableId) {
+              responseMetadata.deliverable_id = parsedResult.deliverableId;
+            }
             console.log('📄 Using success.response format');
           } else if (parsedResult.message) {
             // Format: { message: "content" }
             responseContent = String(parsedResult.message);
             responseMetadata = parsedResult.metadata || {};
+            // Extract deliverable ID if present
+            if (parsedResult.deliverableId) {
+              responseMetadata.deliverable_id = parsedResult.deliverableId;
+            }
             console.log('📄 Using message field');
           } else if (parsedResult.response) {
             // Format: { response: "content" }
             responseContent = String(parsedResult.response);
             responseMetadata = parsedResult.metadata || {};
+            // Extract deliverable ID if present
+            if (parsedResult.deliverableId) {
+              responseMetadata.deliverable_id = parsedResult.deliverableId;
+            }
             console.log('📄 Using response field');
           } else if (parsedResult.content) {
             // Format: { content: "content" }
             responseContent = String(parsedResult.content);
             responseMetadata = parsedResult.metadata || {};
+            // Extract deliverable ID if present
+            if (parsedResult.deliverableId) {
+              responseMetadata.deliverable_id = parsedResult.deliverableId;
+            }
             console.log('📄 Using content field');
           } else if (parsedResult.result) {
             // Format: { result: "content" }
             responseContent = String(parsedResult.result);
             responseMetadata = parsedResult.metadata || {};
+            // Extract deliverable ID if present
+            if (parsedResult.deliverableId) {
+              responseMetadata.deliverable_id = parsedResult.deliverableId;
+            }
             console.log('📄 Using result field');
           } else if (typeof parsedResult === 'string') {
             // Format: "content"
@@ -95,6 +124,10 @@ export class MessageFormattingService {
           } else {
             // Fallback: stringify the whole object
             responseContent = JSON.stringify(parsedResult, null, 2);
+            // Still check for deliverable ID even in fallback case
+            if (parsedResult.deliverableId) {
+              responseMetadata.deliverable_id = parsedResult.deliverableId;
+            }
             console.log('📄 Using stringified object as fallback');
           }
         }

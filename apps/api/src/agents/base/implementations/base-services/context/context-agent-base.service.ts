@@ -155,11 +155,12 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
             `Reporting task completion for ${params.taskId}`,
           );
 
-          // Use the same completion pattern as function agents
-          await this.saveContextTaskResult(
+          // Use completeTaskWithDeliverableContext to enable auto-deliverable creation
+          await this.completeTaskWithDeliverableContext(
             params.taskId,
             params.currentUser.id,
             result,
+            params,
           );
         } catch (error) {
           this.contextLogger.error(
