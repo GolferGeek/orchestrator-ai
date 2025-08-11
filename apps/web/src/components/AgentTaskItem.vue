@@ -23,6 +23,7 @@
           </ion-button>
         </div>
         
+
         <!-- Task text content -->
         <div class="task-text" v-if="message.content">
           <!-- Render markdown for assistant messages -->
@@ -78,13 +79,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { marked } from 'marked';
 import { IonAvatar, IonIcon, IonButton } from '@ionic/vue';
-import { personCircleOutline, cogOutline, informationCircleOutline } from 'ionicons/icons';
+import { personCircleOutline, cogOutline, informationCircleOutline, documentTextOutline, arrowForwardOutline } from 'ionicons/icons';
 import TaskRating from './TaskRating.vue';
 import TaskMetadataModal from './TaskMetadataModal.vue';
 import LLMInfo from './LLMInfo.vue';
+import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { useAuthStore } from '@/stores/authStore';
 
 export interface AgentTaskMessage {
   id: string;
@@ -93,17 +96,53 @@ export interface AgentTaskMessage {
   timestamp: Date;
   taskId?: string;
   metadata?: Record<string, any>;
+  deliverable_id?: string;
+  deliverableId?: string;
 }
 
 const props = defineProps<{
   message: AgentTaskMessage;
   agentName?: string;
+  conversationId?: string;
+  agent?: any;
 }>();
+
+const emit = defineEmits<{
+  'deliverable-created': [deliverable: any];
+  'deliverable-updated': [deliverable: any];
+}>();
+
+// Stores
+const deliverablesStore = useDeliverablesStore();
+const authStore = useAuthStore();
 
 // Reactive state
 const showMetadataModal = ref(false);
+const hasProcessedDeliverable = ref(false);
+const createdDeliverable = ref<any>(null);
 
 // Computed properties
+const hasBackendDeliverable = computed(() => {
+  return !!(props.message.deliverable_id || props.message.deliverableId || 
+           props.message.metadata?.deliverable_id || props.message.metadata?.deliverableId);
+});
+
+const backendDeliverableId = computed(() => {
+  return props.message.deliverable_id || 
+         props.message.deliverableId ||
+         props.message.metadata?.deliverable_id || 
+         props.message.metadata?.deliverableId;
+});
+
+const backendDeliverable = computed(() => {
+  const deliverableId = backendDeliverableId.value;
+  return deliverableId ? deliverablesStore.getDeliverableById(deliverableId) : null;
+});
+
+const displayedDeliverable = computed(() => {
+  return createdDeliverable.value || backendDeliverable.value;
+});
+
 const renderedContent = computed(() => {
   if (!props.message.content || props.message.role !== 'assistant') {
     return '';
@@ -204,6 +243,209 @@ const costCalculation = computed(() => {
     totalCost: metadata.costCalculation.totalCost || 0,
     currency: metadata.costCalculation.currency || 'USD'
   };
+});
+
+// Methods for deliverable detection and creation
+const isDeliverableContent = () => {
+  // User guidance: "if you're getting Markdown, then show it as a deliverable"
+  if (!props.message.content || props.message.role !== 'assistant') {
+    return false;
+  }
+  
+  // Debug: Check if task response already includes deliverable information
+  console.log('🎭 Checking task response for deliverable info:', {
+    taskId: props.message.taskId,
+    hasTaskId: !!props.message.taskId,
+    metadata: props.message.metadata,
+    hasDeliverableId: !!(props.message.deliverable_id || props.message.deliverableId || 
+                         props.message.metadata?.deliverable_id || props.message.metadata?.deliverableId)
+  });
+  
+  // First check: Does the backend already provide deliverable information?
+  if (props.message.deliverable_id || props.message.deliverableId || 
+      props.message.metadata?.deliverable_id || props.message.metadata?.deliverableId) {
+    console.log('🎭 Backend already provided deliverable ID - no need to detect');
+    return false; // Backend already handled deliverable creation
+  }
+  
+  // Simple rule: If content looks like markdown and is substantial, treat as deliverable
+  const content = props.message.content;
+  const hasMarkdownIndicators = 
+    content.includes('#') ||      // Headers
+    content.includes('**') ||     // Bold text
+    content.includes('*') ||      // Italic or lists  
+    content.includes('```') ||    // Code blocks
+    content.includes('\n\n');     // Multiple paragraphs
+  
+  const isSubstantial = content.length > 200; // More than just a quick answer
+  
+  console.log('🎭 Deliverable content check:', {
+    contentLength: content.length,
+    hasMarkdownIndicators,
+    isSubstantial,
+    shouldCreateDeliverable: hasMarkdownIndicators && isSubstantial
+  });
+  
+  return hasMarkdownIndicators && isSubstantial;
+};
+
+
+const extractDeliverableTitle = (content: string) => {
+  // Try to extract title from various patterns
+  const titlePatterns = [
+    /# (.+)\n/, // H1 markdown header
+    /## (.+)\n/, // H2 markdown header  
+    /\*\*(.+)\*\*/, // First bold text
+    /^(.+)\n={3,}/, // Underlined title
+    /^(.+)\n-{3,}/, // Underlined title with dashes
+  ];
+  
+  for (const pattern of titlePatterns) {
+    const match = content.match(pattern);
+    if (match && match[1] && match[1].trim().length > 0) {
+      return match[1].trim().substring(0, 100); // Limit title length
+    }
+  }
+  
+  // Fallback: use first line or a generic title
+  const firstLine = content.split('\n')[0].trim();
+  if (firstLine && firstLine.length > 10 && firstLine.length < 100) {
+    return firstLine;
+  }
+  
+  return 'Generated Content';
+};
+
+const getDeliverableType = () => {
+  // Simplified approach per user guidance: just use 'document' as default
+  // The backend can provide more specific type information if needed
+  return 'document';
+};
+
+const createDeliverable = async () => {
+  console.log('🎭 createDeliverable called:', {
+    hasContent: !!props.message.content,
+    role: props.message.role,
+    hasProcessed: hasProcessedDeliverable.value,
+    hasBackendDeliverable: hasBackendDeliverable.value,
+    contentLength: props.message.content?.length || 0
+  });
+  
+  if (!props.message.content || props.message.role !== 'assistant' || hasProcessedDeliverable.value || hasBackendDeliverable.value) {
+    console.log('🎭 createDeliverable early return - basic checks failed or backend deliverable exists');
+    return;
+  }
+  
+  // Check if this message should create a deliverable
+  const shouldCreateDeliverable = isDeliverableContent();
+  console.log('🎭 Should create deliverable:', shouldCreateDeliverable);
+  
+  if (!shouldCreateDeliverable) {
+    console.log('🎭 createDeliverable early return - not deliverable content');
+    return;
+  }
+  
+  try {
+    hasProcessedDeliverable.value = true;
+    
+    const title = extractDeliverableTitle(props.message.content);
+    const deliverableType = getDeliverableType();
+    
+    // Create deliverable via backend API
+    const authToken = authStore.token;
+    if (!authToken) {
+      console.log('No auth token available for deliverable creation');
+      return;
+    }
+    
+    const deliverableData = {
+      title,
+      content: props.message.content,
+      deliverable_type: deliverableType,
+      format: 'markdown',
+      conversation_id: props.conversationId,
+      message_id: props.message.id,
+      created_by_agent: props.agentName || 'unknown',
+      metadata: {
+        taskId: props.message.taskId,
+        originalMessageId: props.message.id,
+        createdFromTaskCompletion: true,
+      },
+    };
+    
+    // Use the proper deliverablesService instead of direct fetch
+    const { deliverablesService } = await import('@/services/deliverablesService');
+    const newDeliverable = await deliverablesService.createDeliverable(deliverableData);
+    console.log('✅ Deliverable created:', newDeliverable);
+    
+    // Store the created deliverable locally to show the indicator
+    createdDeliverable.value = newDeliverable;
+    
+    // Add to store
+    deliverablesStore.addDeliverable(newDeliverable);
+    
+    // Emit event for TwoPaneConversationView
+    emit('deliverable-created', newDeliverable);
+    
+  } catch (error) {
+    console.error('Failed to create deliverable:', error);
+    hasProcessedDeliverable.value = false; // Reset on error to allow retry
+  }
+};
+
+// Watch for message completion and create deliverable
+watch(
+  () => props.message.metadata?.isCompleted,
+  async (isCompleted) => {
+    if (isCompleted && !hasProcessedDeliverable.value) {
+      await createDeliverable();
+    }
+  },
+  { immediate: true }
+);
+
+// Watch for backend deliverable ID and fetch the deliverable
+watch(
+  () => backendDeliverableId.value,
+  async (deliverableId) => {
+    if (deliverableId && !hasProcessedDeliverable.value && !backendDeliverable.value) {
+      console.log('🎭 Backend provided deliverable ID, fetching deliverable:', deliverableId);
+      
+      try {
+        hasProcessedDeliverable.value = true;
+        
+        // Fetch the deliverable from the backend
+        const authToken = authStore.token;
+        if (!authToken) {
+          console.log('No auth token available for fetching backend deliverable');
+          return;
+        }
+        
+        // Use the proper deliverablesService instead of direct fetch
+        const { deliverablesService } = await import('@/services/deliverablesService');
+        const deliverable = await deliverablesService.getDeliverable(deliverableId);
+        console.log('✅ Fetched backend deliverable:', deliverable);
+        
+        // Add to store
+        deliverablesStore.addDeliverable(deliverable);
+        
+        // Emit event for TwoPaneConversationView
+        emit('deliverable-created', deliverable);
+        
+      } catch (error) {
+        console.error('Failed to fetch backend deliverable:', error);
+        hasProcessedDeliverable.value = false; // Reset on error to allow retry
+      }
+    }
+  },
+  { immediate: true }
+);
+
+// Also check on mount in case the message is already completed
+onMounted(async () => {
+  if (props.message.metadata?.isCompleted && !hasProcessedDeliverable.value) {
+    await createDeliverable();
+  }
 });
 </script>
 
@@ -386,6 +628,7 @@ const costCalculation = computed(() => {
 .metadata-button:hover {
   --color: var(--ion-color-primary);
 }
+
 
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
