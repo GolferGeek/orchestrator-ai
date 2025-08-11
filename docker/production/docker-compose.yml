@@ -1,0 +1,374 @@
+version: '3.8'
+
+services:
+  app-db:
+    image: supabase/postgres:15.1.0.117
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-orchestrator_ai}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGPORT: 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d/migrations:ro
+      - ./init-client-db.sh:/docker-entrypoint-initdb.d/01-init-client-db.sh:ro
+    command: >
+      postgres -c wal_level=logical
+      -c max_replication_slots=5
+      -c max_wal_senders=5
+      -c shared_preload_libraries=pg_stat_statements
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-orchestrator_ai}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  app-auth:
+    image: supabase/gotrue:v2.132.3
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-auth
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      GOTRUE_DB_DRIVER: postgres
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@app-db:5432/${DB_NAME:-orchestrator_ai}
+      GOTRUE_SITE_URL: https://${DOMAIN}
+      GOTRUE_URI_ALLOW_LIST: https://${DOMAIN}
+      GOTRUE_DISABLE_SIGNUP: ${GOTRUE_DISABLE_SIGNUP:-true}
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${GOTRUE_EXTERNAL_EMAIL_ENABLED:-false}
+      GOTRUE_MAILER_AUTOCONFIRM: ${GOTRUE_MAILER_AUTOCONFIRM:-true}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${ADMIN_EMAIL}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-mail}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${SMTP_USER}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS}
+      GOTRUE_SMTP_SENDER_NAME: ${COMPANY_NAME:-AI Assistant}
+    depends_on:
+      app-db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  app-rest:
+    image: postgrest/postgrest:v11.2.2
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-rest
+    environment:
+      PGRST_DB_URI: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@app-db:5432/${DB_NAME:-orchestrator_ai}
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_DB_MAX_ROWS: 1000
+    depends_on:
+      app-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  app-realtime:
+    image: supabase/realtime:v2.25.50
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-realtime
+    environment:
+      PORT: 4000
+      DB_HOST: app-db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-orchestrator_ai}
+      DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
+      DB_ENC_KEY: ${REALTIME_ENC_KEY:-supabaserealtime}
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${REALTIME_SECRET_KEY:-UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      ENABLE_TAILSCALE: "false"
+      DNS_NODES: "''"
+    depends_on:
+      app-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  app-storage:
+    image: supabase/storage-api:v0.46.4
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-storage
+    environment:
+      ANON_KEY: ${SUPABASE_ANON_KEY}
+      SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      POSTGREST_URL: http://app-rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@app-db:5432/${DB_NAME:-orchestrator_ai}
+      PGOPTIONS: -c search_path=storage,public
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: ${TENANT_ID:-stub}
+      REGION: ${REGION:-us-east-1}
+      GLOBAL_S3_BUCKET: ${S3_BUCKET:-stub}
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+    volumes:
+      - storage_data:/var/lib/storage
+    depends_on:
+      app-db:
+        condition: service_healthy
+      app-rest:
+        condition: service_started
+    restart: unless-stopped
+
+  app-kong:
+    image: kong:2.8-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+    volumes:
+      - ./kong.prod.yml:/var/lib/kong/kong.yml:ro
+    depends_on:
+      - app-auth
+      - app-rest
+      - app-realtime
+      - app-storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  app-api:
+    build:
+      context: ../..
+      dockerfile: docker/production/Dockerfile.api
+      args:
+        NODE_ENV: production
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-api
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@app-db:5432/${DB_NAME:-orchestrator_ai}
+      SUPABASE_URL: http://app-kong:8000
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY:-}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      JWT_SECRET: ${JWT_SECRET}
+      COMPANY_NAME: ${COMPANY_NAME:-AI Assistant}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      app-kong:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+        required: false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  app-web:
+    build:
+      context: ../..
+      dockerfile: docker/production/Dockerfile.web
+      args:
+        VITE_API_URL: https://${DOMAIN}/api
+        VITE_SUPABASE_URL: https://${DOMAIN}
+        VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+        VITE_COMPANY_NAME: ${COMPANY_NAME:-AI Assistant}
+        VITE_PRIMARY_COLOR: ${PRIMARY_COLOR:-#1e40af}
+        VITE_SECONDARY_COLOR: ${SECONDARY_COLOR:-#3b82f6}
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-web
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - certbot_data:/var/www/certbot
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - app-web
+      - app-api
+      - app-kong
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  certbot:
+    image: certbot/certbot
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-certbot
+    volumes:
+      - ./ssl:/etc/letsencrypt
+      - certbot_data:/var/www/certbot
+      - ./certbot-entrypoint.sh:/usr/local/bin/certbot-entrypoint.sh:ro
+    entrypoint: /usr/local/bin/certbot-entrypoint.sh
+    environment:
+      DOMAIN: ${DOMAIN}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+    profiles:
+      - ssl
+    restart: "no"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./ollama-models.sh:/usr/local/bin/ollama-models.sh:ro
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_MODELS: ${OLLAMA_MODELS:-llama3:8b,mistral:7b,codellama:7b}
+      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-1}
+      OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-1}
+    entrypoint: ["/usr/local/bin/ollama-models.sh"]
+    profiles:
+      - gpu
+      - ollama
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: ${OLLAMA_MEMORY_LIMIT:-16G}
+        reservations:
+          memory: 4G
+
+  redis:
+    image: redis:7-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-redis
+    command: redis-server --appendonly yes --replica-read-only no --maxmemory ${REDIS_MAX_MEMORY:-512mb} --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  monitoring:
+    image: grafana/grafana:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_SECURITY_SECRET_KEY: ${GRAFANA_SECRET_KEY}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/datasources:/etc/grafana/provisioning/datasources:ro
+    profiles:
+      - monitoring
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    profiles:
+      - monitoring
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backup:
+    image: postgres:15-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-client-ai}-backup
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-orchestrator_ai}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_HOST: app-db
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * *}
+      BACKUP_RETENTION: ${BACKUP_RETENTION:-7}
+      S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    volumes:
+      - backup_data:/backups
+      - ./backup-script.sh:/usr/local/bin/backup-script.sh:ro
+    entrypoint: ["/usr/local/bin/backup-script.sh"]
+    profiles:
+      - backup
+    restart: unless-stopped
+    depends_on:
+      app-db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
+  storage_data:
+    driver: local
+  ollama_data:
+    driver: local
+  redis_data:
+    driver: local
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  backup_data:
+    driver: local
+  certbot_data:
+    driver: local
+  nginx_logs:
+    driver: local
+
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME:-client-ai}-network
+    driver: bridge
