@@ -565,7 +565,11 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    * Save task result to database (matching Python pattern)
    */
   protected async saveTaskResult(result: any): Promise<void> {
-    if (!this.services.tasksService || !this.currentUserId || !this.currentTaskId) {
+    if (
+      !this.services.tasksService ||
+      !this.currentUserId ||
+      !this.currentTaskId
+    ) {
       this.functionLogger.debug(`Cannot save result - missing requirements:`, {
         tasksService: !!this.services.tasksService,
         currentUserId: this.currentUserId,

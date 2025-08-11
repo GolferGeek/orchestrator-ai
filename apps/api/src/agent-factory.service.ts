@@ -85,39 +85,80 @@ export class AgentFactoryService {
     private readonly taskStatusService: TaskStatusService,
     private readonly deliverablesService: DeliverablesService,
     @Optional() private readonly agentServicesContext?: AgentServicesContext,
-    @Optional() private readonly functionAgentServicesContext?: FunctionAgentServicesContext,
-    @Optional() private readonly apiAgentServicesContext?: ApiAgentServicesContext,
-    @Optional() private readonly pythonFunctionAgentServicesContext?: PythonFunctionAgentServicesContext,
-    @Optional() private readonly externalAgentServicesContext?: ExternalAgentServicesContext,
-    @Optional() private readonly orchestratorAgentServicesContext?: OrchestratorAgentServicesContext,
-    @Optional() private readonly marketingManagerOrchestratorService?: MarketingManagerOrchestratorService,
-    @Optional() private readonly ceoOrchestratorService?: CEOOrchestratorService,
-    @Optional() private readonly engineeringManagerOrchestratorService?: EngineeringManagerOrchestratorService,
-    @Optional() private readonly operationsManagerOrchestratorService?: OperationsManagerOrchestratorService,
-    @Optional() private readonly financeManagerOrchestratorService?: FinanceManagerOrchestratorService,
-    @Optional() private readonly hrManagerOrchestratorService?: HRManagerOrchestratorService,
-    @Optional() private readonly salesManagerOrchestratorService?: SalesManagerOrchestratorService,
-    @Optional() private readonly productManagerOrchestratorService?: ProductManagerOrchestratorService,
-    @Optional() private readonly researchManagerOrchestratorService?: ResearchManagerOrchestratorService,
-    @Optional() private readonly specialistsManagerOrchestratorService?: SpecialistsManagerOrchestratorService,
-    @Optional() private readonly legalManagerOrchestratorService?: LegalManagerOrchestratorService,
-    @Optional() private readonly productivityManagerOrchestratorService?: ProductivityManagerOrchestratorService,
+    @Optional()
+    private readonly functionAgentServicesContext?: FunctionAgentServicesContext,
+    @Optional()
+    private readonly apiAgentServicesContext?: ApiAgentServicesContext,
+    @Optional()
+    private readonly pythonFunctionAgentServicesContext?: PythonFunctionAgentServicesContext,
+    @Optional()
+    private readonly externalAgentServicesContext?: ExternalAgentServicesContext,
+    @Optional()
+    private readonly orchestratorAgentServicesContext?: OrchestratorAgentServicesContext,
+    @Optional()
+    private readonly marketingManagerOrchestratorService?: MarketingManagerOrchestratorService,
+    @Optional()
+    private readonly ceoOrchestratorService?: CEOOrchestratorService,
+    @Optional()
+    private readonly engineeringManagerOrchestratorService?: EngineeringManagerOrchestratorService,
+    @Optional()
+    private readonly operationsManagerOrchestratorService?: OperationsManagerOrchestratorService,
+    @Optional()
+    private readonly financeManagerOrchestratorService?: FinanceManagerOrchestratorService,
+    @Optional()
+    private readonly hrManagerOrchestratorService?: HRManagerOrchestratorService,
+    @Optional()
+    private readonly salesManagerOrchestratorService?: SalesManagerOrchestratorService,
+    @Optional()
+    private readonly productManagerOrchestratorService?: ProductManagerOrchestratorService,
+    @Optional()
+    private readonly researchManagerOrchestratorService?: ResearchManagerOrchestratorService,
+    @Optional()
+    private readonly specialistsManagerOrchestratorService?: SpecialistsManagerOrchestratorService,
+    @Optional()
+    private readonly legalManagerOrchestratorService?: LegalManagerOrchestratorService,
+    @Optional()
+    private readonly productivityManagerOrchestratorService?: ProductivityManagerOrchestratorService,
     // mcpClientService removed - using LangChain.js services instead
     // supabaseToolsService removed - using utility functions instead
   ) {
     this.logger.log('🏭 AgentFactoryService initialized');
-    this.logger.log(`🎯 Marketing Orchestrator available: ${!!this.marketingManagerOrchestratorService}`);
-    this.logger.log(`🎯 CEO Orchestrator available: ${!!this.ceoOrchestratorService}`);
-    this.logger.log(`🎯 Engineering Manager Orchestrator available: ${!!this.engineeringManagerOrchestratorService}`);
-    this.logger.log(`🎯 Operations Manager Orchestrator available: ${!!this.operationsManagerOrchestratorService}`);
-    this.logger.log(`🎯 Finance Manager Orchestrator available: ${!!this.financeManagerOrchestratorService}`);
-    this.logger.log(`🎯 HR Manager Orchestrator available: ${!!this.hrManagerOrchestratorService}`);
-    this.logger.log(`🎯 Sales Manager Orchestrator available: ${!!this.salesManagerOrchestratorService}`);
-    this.logger.log(`🎯 Product Manager Orchestrator available: ${!!this.productManagerOrchestratorService}`);
-    this.logger.log(`🎯 Research Manager Orchestrator available: ${!!this.researchManagerOrchestratorService}`);
-    this.logger.log(`🎯 Specialists Manager Orchestrator available: ${!!this.specialistsManagerOrchestratorService}`);
-    this.logger.log(`🎯 Legal Manager Orchestrator available: ${!!this.legalManagerOrchestratorService}`);
-    this.logger.log(`🎯 Productivity Manager Orchestrator available: ${!!this.productivityManagerOrchestratorService}`);
+    this.logger.log(
+      `🎯 Marketing Orchestrator available: ${!!this.marketingManagerOrchestratorService}`,
+    );
+    this.logger.log(
+      `🎯 CEO Orchestrator available: ${!!this.ceoOrchestratorService}`,
+    );
+    this.logger.log(
+      `🎯 Engineering Manager Orchestrator available: ${!!this.engineeringManagerOrchestratorService}`,
+    );
+    this.logger.log(
+      `🎯 Operations Manager Orchestrator available: ${!!this.operationsManagerOrchestratorService}`,
+    );
+    this.logger.log(
+      `🎯 Finance Manager Orchestrator available: ${!!this.financeManagerOrchestratorService}`,
+    );
+    this.logger.log(
+      `🎯 HR Manager Orchestrator available: ${!!this.hrManagerOrchestratorService}`,
+    );
+    this.logger.log(
+      `🎯 Sales Manager Orchestrator available: ${!!this.salesManagerOrchestratorService}`,
+    );
+    this.logger.log(
+      `🎯 Product Manager Orchestrator available: ${!!this.productManagerOrchestratorService}`,
+    );
+    this.logger.log(
+      `🎯 Research Manager Orchestrator available: ${!!this.researchManagerOrchestratorService}`,
+    );
+    this.logger.log(
+      `🎯 Specialists Manager Orchestrator available: ${!!this.specialistsManagerOrchestratorService}`,
+    );
+    this.logger.log(
+      `🎯 Legal Manager Orchestrator available: ${!!this.legalManagerOrchestratorService}`,
+    );
+    this.logger.log(
+      `🎯 Productivity Manager Orchestrator available: ${!!this.productivityManagerOrchestratorService}`,
+    );
   }
 
   /**
@@ -222,7 +263,9 @@ export class AgentFactoryService {
       let importPath: string;
 
       // Check if we're running in a compiled environment (dist exists)
-      const isCompiled = servicePath.includes('/dist/') || require.resolve('./app.module').includes('/dist/');
+      const isCompiled =
+        servicePath.includes('/dist/') ||
+        require.resolve('./app.module').includes('/dist/');
 
       if (isCompiled) {
         // Production/compiled environment: import from compiled JS files
@@ -246,7 +289,8 @@ export class AgentFactoryService {
           // Monorepo: convert /Users/.../apps/api/src/... to ./src/...
           const srcIndex = servicePath.indexOf('/src/');
           if (srcIndex !== -1) {
-            importPath = '.' + servicePath.substring(srcIndex).replace('.ts', '');
+            importPath =
+              '.' + servicePath.substring(srcIndex).replace('.ts', '');
           } else {
             throw new Error(`Cannot find /src/ in path: ${servicePath}`);
           }
@@ -258,7 +302,9 @@ export class AgentFactoryService {
         }
       }
 
-      this.logger.debug(`📦 Importing service from: ${importPath} (original: ${servicePath}, compiled: ${isCompiled})`);
+      this.logger.debug(
+        `📦 Importing service from: ${importPath} (original: ${servicePath}, compiled: ${isCompiled})`,
+      );
 
       const serviceModule = await import(importPath);
 
@@ -300,41 +346,53 @@ export class AgentFactoryService {
     try {
       switch (config.type) {
         case 'orchestrator': {
-          this.logger.debug(`🎯 Creating orchestrator agent with service container: ${serviceName}`);
+          this.logger.debug(
+            `🎯 Creating orchestrator agent with service container: ${serviceName}`,
+          );
           this.logger.debug(
             `🎯 Orchestrator service container available: ${!!this.orchestratorAgentServicesContext}`,
           );
-          
+
           if (!this.orchestratorAgentServicesContext) {
-            throw new Error('OrchestratorAgentServicesContext not available - required for orchestrator agents. Please ensure OrchestratorAgentServicesContextModule is imported.');
+            throw new Error(
+              'OrchestratorAgentServicesContext not available - required for orchestrator agents. Please ensure OrchestratorAgentServicesContextModule is imported.',
+            );
           }
-          
+
           return new ServiceClass(this.orchestratorAgentServicesContext);
         }
 
         case 'function': {
-          this.logger.debug(`⚙️ Creating TypeScript function agent with service container`);
+          this.logger.debug(
+            `⚙️ Creating TypeScript function agent with service container`,
+          );
           this.logger.debug(
             `⚙️ Function service container available: ${!!this.functionAgentServicesContext}`,
           );
-          
+
           if (!this.functionAgentServicesContext) {
-            throw new Error('FunctionAgentServicesContext not available - required for function agents. Please ensure FunctionAgentServicesContextModule is imported.');
+            throw new Error(
+              'FunctionAgentServicesContext not available - required for function agents. Please ensure FunctionAgentServicesContextModule is imported.',
+            );
           }
-          
+
           return new ServiceClass(this.functionAgentServicesContext);
         }
 
         case 'python-function': {
-          this.logger.debug(`🐍 Creating Python function agent with service container`);
+          this.logger.debug(
+            `🐍 Creating Python function agent with service container`,
+          );
           this.logger.debug(
             `🐍 Python function service container available: ${!!this.pythonFunctionAgentServicesContext}`,
           );
-          
+
           if (!this.pythonFunctionAgentServicesContext) {
-            throw new Error('PythonFunctionAgentServicesContext not available - required for Python function agents. Please ensure PythonFunctionAgentServicesContextModule is imported.');
+            throw new Error(
+              'PythonFunctionAgentServicesContext not available - required for Python function agents. Please ensure PythonFunctionAgentServicesContextModule is imported.',
+            );
           }
-          
+
           return new ServiceClass(this.pythonFunctionAgentServicesContext);
         }
 
@@ -343,11 +401,13 @@ export class AgentFactoryService {
           this.logger.debug(
             `📝 Service container available: ${!!this.agentServicesContext}`,
           );
-          
+
           if (!this.agentServicesContext) {
-            throw new Error('AgentServicesContext not available - required for context agents. Please ensure AgentServicesContextModule is imported.');
+            throw new Error(
+              'AgentServicesContext not available - required for context agents. Please ensure AgentServicesContextModule is imported.',
+            );
           }
-          
+
           return new ServiceClass(this.agentServicesContext);
         }
 
@@ -356,11 +416,13 @@ export class AgentFactoryService {
           this.logger.debug(
             `🌐 API service container available: ${!!this.apiAgentServicesContext}`,
           );
-          
+
           if (!this.apiAgentServicesContext) {
-            throw new Error('ApiAgentServicesContext not available - required for API agents. Please ensure ApiAgentServicesContextModule is imported.');
+            throw new Error(
+              'ApiAgentServicesContext not available - required for API agents. Please ensure ApiAgentServicesContextModule is imported.',
+            );
           }
-          
+
           return new ServiceClass(this.apiAgentServicesContext);
         }
 
@@ -369,7 +431,7 @@ export class AgentFactoryService {
           if (!this.externalAgentServicesContext) {
             throw new Error('ExternalAgentServicesContext not available');
           }
-          
+
           return new ServiceClass(this.externalAgentServicesContext);
         }
 

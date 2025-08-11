@@ -405,7 +405,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                   'completed',
                   'Task completed successfully with response',
                   result.response || result, // Include the actual response content
-                  result.metadata || {}
+                  result.metadata || {},
                 );
                 this.pythonLogger.debug(
                   `✅ Broadcast final response to WebSocket clients for task ${taskId}`,
@@ -444,11 +444,15 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           const taskId = params.metadata?.taskId;
           if (this.services.tasksService && this.currentUserId && taskId) {
             try {
-              await this.services.tasksService.updateTask(taskId, this.currentUserId, {
-                status: 'completed' as const,
-                progress: 100,
-                response: stdout.trim(),
-              });
+              await this.services.tasksService.updateTask(
+                taskId,
+                this.currentUserId,
+                {
+                  status: 'completed' as const,
+                  progress: 100,
+                  response: stdout.trim(),
+                },
+              );
 
               this.pythonLogger.debug(
                 `✅ Task ${taskId} raw result saved to database`,
@@ -461,7 +465,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                   'completed',
                   'Task completed successfully with raw response',
                   rawResult.response,
-                  {}
+                  {},
                 );
                 this.pythonLogger.debug(
                   `✅ Broadcast raw response to WebSocket clients for task ${taskId}`,

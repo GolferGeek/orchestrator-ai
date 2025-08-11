@@ -7,10 +7,10 @@ import { ExternalAgentServicesContext } from './external-agent-services-context'
 
 /**
  * External Agent Services Context Module
- * 
+ *
  * Provides the ExternalAgentServicesContext service container that aggregates
  * all dependencies needed by external agents.
- * 
+ *
  * This eliminates the need for external agents to import multiple individual
  * service modules and manage complex dependency chains.
  */

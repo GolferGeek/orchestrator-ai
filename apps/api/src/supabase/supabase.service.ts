@@ -21,7 +21,8 @@ export class SupabaseService implements OnModuleInit {
   }
 
   private initializeClients() {
-    // Try nested config first, then fallback to flat env variables
+    // Get configuration with mode support
+    const mode = this.configService.get<string>('supabase.mode') || 'cloud';
     const url =
       this.configService.get<string>('supabase.url') ||
       this.configService.get<string>('SUPABASE_URL');
@@ -31,6 +32,13 @@ export class SupabaseService implements OnModuleInit {
     const serviceKey =
       this.configService.get<string>('supabase.serviceKey') ||
       this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
+    const database = this.configService.get<string>('supabase.database');
+
+    // Log the configuration mode
+    this.logger.log(`🔧 Initializing Supabase in ${mode.toUpperCase()} mode`);
+    if (mode === 'local' && database) {
+      this.logger.log(`📊 Using local database: ${database}`);
+    }
 
     if (!url) {
       this.logger.warn(
@@ -215,6 +223,36 @@ export class SupabaseService implements OnModuleInit {
       );
       throw error;
     }
+  }
+
+  /**
+   * Get current Supabase configuration information
+   */
+  getConfig(): {
+    mode: string;
+    url: string;
+    database?: string;
+    clientsAvailable: {
+      anon: boolean;
+      service: boolean;
+    };
+  } {
+    const mode = this.configService.get<string>('supabase.mode') || 'cloud';
+    const url =
+      this.configService.get<string>('supabase.url') ||
+      this.configService.get<string>('SUPABASE_URL') ||
+      '';
+    const database = this.configService.get<string>('supabase.database');
+
+    return {
+      mode,
+      url: url.substring(0, 30) + '...', // Truncate for security
+      database,
+      clientsAvailable: {
+        anon: this.anonClient !== null,
+        service: this.serviceClient !== null,
+      },
+    };
   }
 
   /**

@@ -45,7 +45,7 @@ export class OrchestratorFacadeService implements IOrchestratorFacadeService {
    *
    * This method routes all orchestrator operations while maintaining
    * A2A compliance and the conversation + tasks pattern.
-   * 
+   *
    * ARCHITECTURAL NOTE: Project creation is now primarily explicit (UI-driven)
    * rather than inferred from natural language to eliminate classification errors.
    */
@@ -433,17 +433,20 @@ Available delegation context:
 ${input.delegationContext || 'No specific agents listed - you can work with various specialist agents as needed.'}`;
 
       const userMessage = input.prompt;
-      
+
       // Generate response using LLM with conversation history
-      const conversationHistory = (input.conversationHistory || []).map(msg => ({
-        role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
-        content: msg.content || ''
-      }));
+      const conversationHistory = (input.conversationHistory || []).map(
+        (msg) => ({
+          role:
+            msg.role === 'user' ? ('user' as const) : ('assistant' as const),
+          content: msg.content || '',
+        }),
+      );
 
       const llmResponse = await this.llmService.generateResponseWithHistory(
         systemPrompt,
         conversationHistory,
-        userMessage
+        userMessage,
       );
 
       const response = {
@@ -460,11 +463,13 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
         sessionId: input.sessionId,
       };
 
-      this.logger.log(`🔍 DEBUG - handleConverse response: ${JSON.stringify(response, null, 2)}`);
+      this.logger.log(
+        `🔍 DEBUG - handleConverse response: ${JSON.stringify(response, null, 2)}`,
+      );
       return response;
     } catch (error) {
       this.logger.error('Conversation failed:', error);
-      
+
       // Fallback to a helpful static message if LLM fails
       return {
         success: true,
@@ -496,15 +501,20 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
     delegationContext?: string,
   ): Promise<OrchestratorResponse> {
     this.logger.log('🔍 DEBUG - Using intelligent routing for request');
-    this.logger.log(`🔍 DEBUG - Delegation context received in facade: ${delegationContext ? 'YES' : 'NO'}`);
+    this.logger.log(
+      `🔍 DEBUG - Delegation context received in facade: ${delegationContext ? 'YES' : 'NO'}`,
+    );
     if (delegationContext) {
-      this.logger.debug(`🔍 Delegation context preview: ${delegationContext.substring(0, 200)}...`);
+      this.logger.debug(
+        `🔍 Delegation context preview: ${delegationContext.substring(0, 200)}...`,
+      );
     }
-    
 
     try {
       this.logger.log('🔍 DEBUG - About to call intent recognition service...');
-      this.logger.log(`🔍 DEBUG - Intent recognition service available: ${!!this.intentRecognitionService}`);
+      this.logger.log(
+        `🔍 DEBUG - Intent recognition service available: ${!!this.intentRecognitionService}`,
+      );
       // Use intent recognition to determine action
       const intent = await this.intentRecognitionService.classifyIntent(
         input,
@@ -514,7 +524,9 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
       this.logger.log(
         `Intent classified as: ${intent.action} (confidence: ${intent.confidence})`,
       );
-      this.logger.log(`🔍 Full intent result: ${JSON.stringify(intent, null, 2)}`);
+      this.logger.log(
+        `🔍 Full intent result: ${JSON.stringify(intent, null, 2)}`,
+      );
 
       // Route based on classified intent
       switch (intent.action) {
@@ -525,14 +537,17 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
           // This handles LLM over-thinking simple requests
           const subprojectScope = intent as any; // Handle dynamic LLM response structure
           if (subprojectScope.subprojectScope?.involvedAgents?.length > 0) {
-            const involvedAgents = subprojectScope.subprojectScope.involvedAgents;
-            
+            const involvedAgents =
+              subprojectScope.subprojectScope.involvedAgents;
+
             // Use the first suggested agent (no hardcoded preferences)
             const firstAgent = involvedAgents[0];
             const agentMatch = firstAgent.match(/^(\w+):/);
             if (agentMatch) {
               const primaryAgent = agentMatch[1];
-              this.logger.debug(`Subproject requested, delegating to primary agent: ${primaryAgent}`);
+              this.logger.debug(
+                `Subproject requested, delegating to primary agent: ${primaryAgent}`,
+              );
               return await this.delegationService.delegateToAgent(
                 primaryAgent,
                 input.prompt,
@@ -547,30 +562,43 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
           return await this.handleResumeProject(input);
 
         case 'DELEGATE':
-          this.logger.log(`🔍 DELEGATE case triggered with agentName: ${intent.agentName}`);
-          this.logger.log(`🔍 DelegationService available: ${!!this.delegationService}`);
+          this.logger.log(
+            `🔍 DELEGATE case triggered with agentName: ${intent.agentName}`,
+          );
+          this.logger.log(
+            `🔍 DelegationService available: ${!!this.delegationService}`,
+          );
           if (intent.agentName) {
-            this.logger.log(`🔍 About to call delegationService.delegateToAgent with agent: ${intent.agentName}`);
+            this.logger.log(
+              `🔍 About to call delegationService.delegateToAgent with agent: ${intent.agentName}`,
+            );
             try {
-              const delegationResult = await this.delegationService.delegateToAgent(
-                intent.agentName,
-                input.prompt,
-                input,
+              const delegationResult =
+                await this.delegationService.delegateToAgent(
+                  intent.agentName,
+                  input.prompt,
+                  input,
+                );
+              this.logger.log(
+                `🔍 Delegation succeeded: ${JSON.stringify(delegationResult, null, 2)}`,
               );
-              this.logger.log(`🔍 Delegation succeeded: ${JSON.stringify(delegationResult, null, 2)}`);
               return delegationResult;
             } catch (delegationError) {
               this.logger.error(`🔍 Delegation failed: ${delegationError}`);
               throw delegationError;
             }
           } else {
-            this.logger.log(`🔍 No agentName provided, falling back to conversation`);
+            this.logger.log(
+              `🔍 No agentName provided, falling back to conversation`,
+            );
             return await this.handleConverse(input);
           }
 
         case 'CLARIFY':
           // CLARIFY removed - treat as delegation request instead
-          this.logger.log('CLARIFY action detected but removed - converting to DELEGATE');
+          this.logger.log(
+            'CLARIFY action detected but removed - converting to DELEGATE',
+          );
           if (intent.agentName || intent.suggestedAgent) {
             const targetAgent = intent.agentName || intent.suggestedAgent;
             if (targetAgent) {
@@ -595,11 +623,22 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
     } catch (error) {
       this.logger.error('Intelligent routing failed:', error);
       this.logger.error('Error type:', typeof error);
-      this.logger.error('Error message:', error instanceof Error ? error.message : String(error));
-      this.logger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      this.logger.error(
+        'Error message:',
+        error instanceof Error ? error.message : String(error),
+      );
+      this.logger.error(
+        'Error stack:',
+        error instanceof Error ? error.stack : 'No stack trace',
+      );
 
       // If it's a delegation error, provide a more specific response instead of generic conversation fallback
-      if (error instanceof Error && (error.message.includes('delegation') || error.message.includes('DelegationError') || error.message.includes('agent'))) {
+      if (
+        error instanceof Error &&
+        (error.message.includes('delegation') ||
+          error.message.includes('DelegationError') ||
+          error.message.includes('agent'))
+      ) {
         return {
           success: false,
           message: `I encountered an error while trying to delegate your request: ${error.message}. Please try again or contact support if the issue persists.`,

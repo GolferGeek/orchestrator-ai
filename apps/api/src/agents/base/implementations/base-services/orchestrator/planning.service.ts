@@ -49,10 +49,16 @@ export class PlanningService implements IPlanningService {
       const goalAnalysis = await this.analyzeEnterpriseGoalRequirements(input);
 
       // Step 2: Assess current agent capabilities and identify gaps
-      const capabilityAssessment = await this.assessAgentCapabilities(goalAnalysis, input);
+      const capabilityAssessment = await this.assessAgentCapabilities(
+        goalAnalysis,
+        input,
+      );
 
       // Step 3: Check if request requires subproject decomposition
-      const subprojectAnalysis = await this.analyzeSubprojectNeeds(goalAnalysis, input);
+      const subprojectAnalysis = await this.analyzeSubprojectNeeds(
+        goalAnalysis,
+        input,
+      );
 
       // Step 4: Generate structured plan with enterprise features
       const planStructure = await this.generateEnterprisePlanStructure(
@@ -63,7 +69,10 @@ export class PlanningService implements IPlanningService {
       );
 
       // Step 5: Add human assignments and enterprise timeline planning
-      const planWithHumans = await this.addHumanAssignments(planStructure, goalAnalysis);
+      const planWithHumans = await this.addHumanAssignments(
+        planStructure,
+        goalAnalysis,
+      );
 
       // Step 6: Validate, optimize, and finalize enterprise plan
       const finalPlan = await this.validateAndOptimizeEnterprisePlan(
@@ -162,7 +171,9 @@ export class PlanningService implements IPlanningService {
   /**
    * Step 1: Analyze goal with enterprise requirements detection
    */
-  private async analyzeEnterpriseGoalRequirements(input: OrchestratorInput): Promise<{
+  private async analyzeEnterpriseGoalRequirements(
+    input: OrchestratorInput,
+  ): Promise<{
     projectName: string;
     description: string;
     scope: string;
@@ -263,7 +274,10 @@ Detect enterprise characteristics and provide complete analysis in the required 
   /**
    * Step 2: Assess current agent capabilities and identify gaps
    */
-  private async assessAgentCapabilities(goalAnalysis: any, input: OrchestratorInput): Promise<{
+  private async assessAgentCapabilities(
+    goalAnalysis: any,
+    input: OrchestratorInput,
+  ): Promise<{
     availableAgents: Array<{
       name: string;
       type: string;
@@ -353,7 +367,10 @@ Identify capability gaps and workforce development needs.`;
   /**
    * Step 3: Analyze if request requires subproject decomposition
    */
-  private async analyzeSubprojectNeeds(goalAnalysis: any, input: OrchestratorInput): Promise<{
+  private async analyzeSubprojectNeeds(
+    goalAnalysis: any,
+    input: OrchestratorInput,
+  ): Promise<{
     requiresSubprojects: boolean;
     suggestedSubprojects: Array<{
       name: string;
@@ -538,7 +555,10 @@ Return the complete plan structure in JSON format.`;
   /**
    * Step 5: Add human assignments to plan steps
    */
-  private async addHumanAssignments(plan: PlanDefinition, goalAnalysis: any): Promise<PlanDefinition> {
+  private async addHumanAssignments(
+    plan: PlanDefinition,
+    goalAnalysis: any,
+  ): Promise<PlanDefinition> {
     if (!goalAnalysis.humanExpertise?.required) {
       return plan; // No human assignments needed
     }
@@ -660,15 +680,17 @@ Return the improved plan in the same JSON format.`;
    * Count subproject steps in plan
    */
   private countSubprojectSteps(plan: PlanDefinition): number {
-    return plan.steps.filter(step => (step as any).stepType === 'subproject').length;
+    return plan.steps.filter((step) => (step as any).stepType === 'subproject')
+      .length;
   }
 
   /**
    * Count human assignments in plan
    */
   private countHumanAssignments(plan: PlanDefinition): number {
-    return plan.steps.filter(step => 
-      step.metadata?.humanExpert || step.stepType === 'human_approval'
+    return plan.steps.filter(
+      (step) =>
+        step.metadata?.humanExpert || step.stepType === 'human_approval',
     ).length;
   }
 
@@ -1107,7 +1129,12 @@ Create an engaging, clear presentation that helps the user understand and approv
       const parsed = JSON.parse(jsonMatch[0]);
 
       // Validate required enterprise fields
-      if (!parsed.projectName || !parsed.description || !parsed.complexity || !parsed.enterpriseFeatures) {
+      if (
+        !parsed.projectName ||
+        !parsed.description ||
+        !parsed.complexity ||
+        !parsed.enterpriseFeatures
+      ) {
         throw new Error('Missing required fields in enterprise goal analysis');
       }
 
@@ -1123,7 +1150,10 @@ Create an engaging, clear presentation that helps the user understand and approv
   /**
    * Parse capability assessment response
    */
-  private parseCapabilityAssessment(response: string, availableAgents: any[]): any {
+  private parseCapabilityAssessment(
+    response: string,
+    availableAgents: any[],
+  ): any {
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('No JSON found in response');
@@ -1131,15 +1161,21 @@ Create an engaging, clear presentation that helps the user understand and approv
       const parsed = JSON.parse(jsonMatch[0]);
 
       // Validate required fields
-      if (!parsed.hasOwnProperty('agentCreationNeeded') || !parsed.capabilityGaps) {
+      if (
+        !parsed.hasOwnProperty('agentCreationNeeded') ||
+        !parsed.capabilityGaps
+      ) {
         throw new Error('Missing required fields in capability assessment');
       }
 
       // Enhance with available agents data
-      const enhancedAgents = availableAgents.map(agent => ({
+      const enhancedAgents = availableAgents.map((agent) => ({
         ...agent,
         department: this.inferAgentDepartment(agent.name),
-        capabilities: this.inferAgentCapabilities(agent.name, agent.description),
+        capabilities: this.inferAgentCapabilities(
+          agent.name,
+          agent.description,
+        ),
       }));
 
       return {
@@ -1166,7 +1202,9 @@ Create an engaging, clear presentation that helps the user understand and approv
 
       // Validate required fields
       if (!parsed.hasOwnProperty('requiresSubprojects')) {
-        throw new Error('Missing requiresSubprojects field in subproject analysis');
+        throw new Error(
+          'Missing requiresSubprojects field in subproject analysis',
+        );
       }
 
       return parsed;
@@ -1181,7 +1219,10 @@ Create an engaging, clear presentation that helps the user understand and approv
   /**
    * Parse enterprise plan structure response
    */
-  private parseEnterprisePlanStructure(response: string, input: OrchestratorInput): PlanDefinition {
+  private parseEnterprisePlanStructure(
+    response: string,
+    input: OrchestratorInput,
+  ): PlanDefinition {
     try {
       const cleanedResponse = response.replace(/[\x00-\x1F\x7F]/g, '');
       const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
@@ -1230,7 +1271,7 @@ Create an engaging, clear presentation that helps the user understand and approv
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      
+
       if (!parsed.projectName || !parsed.steps) {
         throw new Error('Invalid plan structure in human assignment response');
       }
@@ -1251,7 +1292,9 @@ Create an engaging, clear presentation that helps the user understand and approv
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        this.logger.error('No JSON found in enterprise plan validation response');
+        this.logger.error(
+          'No JSON found in enterprise plan validation response',
+        );
         throw new Error('Plan validation response contained no JSON');
       }
 
@@ -1277,7 +1320,11 @@ Create an engaging, clear presentation that helps the user understand and approv
    * Infer agent department from name
    */
   private inferAgentDepartment(agentName: string): string {
-    if (agentName.includes('marketing') || agentName.includes('content') || agentName.includes('blog')) {
+    if (
+      agentName.includes('marketing') ||
+      agentName.includes('content') ||
+      agentName.includes('blog')
+    ) {
       return 'marketing';
     }
     if (agentName.includes('research') || agentName.includes('competitor')) {
@@ -1295,15 +1342,22 @@ Create an engaging, clear presentation that helps the user understand and approv
   /**
    * Infer agent capabilities from name and description
    */
-  private inferAgentCapabilities(agentName: string, description?: string): string[] {
+  private inferAgentCapabilities(
+    agentName: string,
+    description?: string,
+  ): string[] {
     const capabilities: string[] = [];
-    
+
     const text = `${agentName} ${description || ''}`.toLowerCase();
-    
+
     if (text.includes('marketing') || text.includes('campaign')) {
       capabilities.push('marketing_strategy', 'campaign_management');
     }
-    if (text.includes('content') || text.includes('blog') || text.includes('writing')) {
+    if (
+      text.includes('content') ||
+      text.includes('blog') ||
+      text.includes('writing')
+    ) {
       capabilities.push('content_creation', 'copywriting');
     }
     if (text.includes('research') || text.includes('analysis')) {
@@ -1315,7 +1369,7 @@ Create an engaging, clear presentation that helps the user understand and approv
     if (text.includes('swarm') || text.includes('coordination')) {
       capabilities.push('multi_agent_coordination');
     }
-    
+
     return capabilities.length > 0 ? capabilities : ['general_purpose'];
   }
 
@@ -1343,7 +1397,13 @@ Create an engaging, clear presentation that helps the user understand and approv
    * Validate step type for enterprise plans
    */
   private validateStepType(stepType: string): string {
-    const validTypes = ['agent_step', 'build_agent', 'improve_agent', 'subproject', 'human_approval'];
+    const validTypes = [
+      'agent_step',
+      'build_agent',
+      'improve_agent',
+      'subproject',
+      'human_approval',
+    ];
     return validTypes.includes(stepType) ? stepType : 'agent_step';
   }
 

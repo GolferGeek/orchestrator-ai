@@ -6,10 +6,10 @@ import { ApiAgentServicesContext } from './api-agent-services-context';
 
 /**
  * Module that provides ApiAgentServicesContext for dependency injection.
- * 
+ *
  * This module ensures that the API agent service container can be properly
  * injected into API agents using the pure service container pattern.
- * 
+ *
  * It imports all necessary modules to provide the required dependencies.
  */
 @Module({

@@ -60,9 +60,7 @@ export class TasksService {
           conversationId, // Pass existing ID for validation/reuse
         );
       conversationId = conversation.id;
-      this.logger.debug(
-        `Using conversation ${conversationId} for task`,
-      );
+      this.logger.debug(`Using conversation ${conversationId} for task`);
 
       // Create task in database
       const taskData: any = {
@@ -155,14 +153,18 @@ export class TasksService {
       }
 
       const result = data ? this.mapToTask(data) : null;
-      
+
       if (result) {
-        this.logger.debug(`🔍 DEBUG - Retrieved task ${taskId}: status=${result.status}, hasResponse=${!!result.response}, responseType=${typeof result.response}`);
+        this.logger.debug(
+          `🔍 DEBUG - Retrieved task ${taskId}: status=${result.status}, hasResponse=${!!result.response}, responseType=${typeof result.response}`,
+        );
         if (result.response) {
-          this.logger.debug(`🔍 DEBUG - Task ${taskId} response preview: ${JSON.stringify(result.response).substring(0, 200)}...`);
+          this.logger.debug(
+            `🔍 DEBUG - Task ${taskId} response preview: ${JSON.stringify(result.response).substring(0, 200)}...`,
+          );
         }
       }
-      
+
       return result;
     } catch (error) {
       this.logger.error('Error in getTaskById:', error);

@@ -8,10 +8,14 @@ export class Deliverable {
   @ApiProperty({ description: 'User who owns this deliverable' })
   user_id!: string;
 
-  @ApiPropertyOptional({ description: 'Conversation this deliverable belongs to' })
+  @ApiPropertyOptional({
+    description: 'Conversation this deliverable belongs to',
+  })
   conversation_id?: string;
 
-  @ApiPropertyOptional({ description: 'Message that generated this deliverable' })
+  @ApiPropertyOptional({
+    description: 'Message that generated this deliverable',
+  })
   message_id?: string;
 
   @ApiProperty({ description: 'Title of the deliverable' })
@@ -23,7 +27,10 @@ export class Deliverable {
   @ApiProperty({ enum: DeliverableType, description: 'Type of deliverable' })
   deliverable_type!: DeliverableType;
 
-  @ApiProperty({ enum: DeliverableFormat, description: 'Format of the content' })
+  @ApiProperty({
+    enum: DeliverableFormat,
+    description: 'Format of the content',
+  })
   format!: DeliverableFormat;
 
   @ApiProperty({ description: 'Version number' })
@@ -35,10 +42,10 @@ export class Deliverable {
   @ApiProperty({ description: 'Whether this is the latest version' })
   is_latest_version!: boolean;
 
-  @ApiPropertyOptional({ 
-    description: 'Additional metadata', 
+  @ApiPropertyOptional({
+    description: 'Additional metadata',
     type: 'object',
-    additionalProperties: true
+    additionalProperties: true,
   })
   metadata?: Record<string, any>;
 
@@ -48,7 +55,9 @@ export class Deliverable {
   @ApiPropertyOptional({ description: 'Agent that created this deliverable' })
   created_by_agent?: string;
 
-  @ApiPropertyOptional({ description: 'Optional description of the deliverable' })
+  @ApiPropertyOptional({
+    description: 'Optional description of the deliverable',
+  })
   description?: string;
 
   @ApiProperty({ description: 'Creation timestamp' })
@@ -91,7 +100,10 @@ export class DeliverableSearchResult {
   @ApiProperty({ enum: DeliverableType, description: 'Type of deliverable' })
   deliverable_type!: DeliverableType;
 
-  @ApiProperty({ enum: DeliverableFormat, description: 'Format of the content' })
+  @ApiProperty({
+    enum: DeliverableFormat,
+    description: 'Format of the content',
+  })
   format!: DeliverableFormat;
 
   @ApiProperty({ description: 'Version number' })

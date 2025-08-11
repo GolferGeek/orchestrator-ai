@@ -1,6 +1,6 @@
 /**
  * Subproject Management Service Tests - Clean Version
- * 
+ *
  * Tests the hierarchical coordination capabilities using real services.
  * Uses real LLM and Supabase integration following CLAUDE.md principles.
  * NO MOCKS - real functionality only.
@@ -40,18 +40,18 @@ describe('SubprojectManagementService - Real Integration', () => {
           expandVariables: true,
           load: [supabaseConfig],
         }),
-        SupabaseModule,   
-        CIDAFMModule,     
+        SupabaseModule,
+        CIDAFMModule,
         LLMModule,
-        AgentPoolModule,        
+        AgentPoolModule,
       ],
-      providers: [
-        SubprojectManagementService,
-      ],
+      providers: [SubprojectManagementService],
     }).compile();
 
-    service = module.get<SubprojectManagementService>(SubprojectManagementService);
-    
+    service = module.get<SubprojectManagementService>(
+      SubprojectManagementService,
+    );
+
     // Wait for module initialization to complete
     await module.init();
   });
@@ -63,23 +63,28 @@ describe('SubprojectManagementService - Real Integration', () => {
 
     it('should handle simple project analysis without decomposition', async () => {
       const simpleProject = 'Create a blog post about our new product feature';
-      
+
       try {
-        const result = await service.analyzeForSubprojects(simpleProject, testInput);
-        
+        const result = await service.analyzeForSubprojects(
+          simpleProject,
+          testInput,
+        );
+
         // Test real response structure
         expect(result).toBeDefined();
         expect(typeof result.requiresDecomposition).toBe('boolean');
         expect(Array.isArray(result.suggestedSubprojects)).toBe(true);
-        
+
         // Simple projects should typically not require decomposition
         if (!result.requiresDecomposition) {
           expect(result.suggestedSubprojects.length).toBe(0);
         }
-        
       } catch (error) {
         // Real errors are acceptable - we're testing integration
-        console.log('Real integration test revealed:', (error as Error).message);
+        console.log(
+          'Real integration test revealed:',
+          (error as Error).message,
+        );
         expect(error).toBeInstanceOf(Error);
       }
     }, 15000);
@@ -95,19 +100,22 @@ describe('SubprojectManagementService - Real Integration', () => {
         6. Sales enablement materials and training programs
         This is a 3-month initiative involving marketing, finance, product, and sales teams
       `;
-      
+
       try {
-        const result = await service.analyzeForSubprojects(complexProject, testInput);
-        
+        const result = await service.analyzeForSubprojects(
+          complexProject,
+          testInput,
+        );
+
         // Test real response structure
         expect(result).toBeDefined();
         expect(typeof result.requiresDecomposition).toBe('boolean');
         expect(Array.isArray(result.suggestedSubprojects)).toBe(true);
-        
+
         // Complex projects might require decomposition
         if (result.requiresDecomposition) {
           expect(result.suggestedSubprojects.length).toBeGreaterThan(0);
-          
+
           // Validate suggested subproject structure
           result.suggestedSubprojects.forEach((subproject: any) => {
             expect(subproject.department).toBeDefined();
@@ -116,17 +124,21 @@ describe('SubprojectManagementService - Real Integration', () => {
             expect(subproject.estimatedDuration).toBeDefined();
             expect(['low', 'medium', 'high']).toContain(subproject.priority);
             expect(Array.isArray(subproject.dependencies)).toBe(true);
-            
+
             if (subproject.resources) {
               expect(typeof subproject.resources.estimatedHours).toBe('number');
-              expect(Array.isArray(subproject.resources.requiredSkills)).toBe(true);
+              expect(Array.isArray(subproject.resources.requiredSkills)).toBe(
+                true,
+              );
             }
           });
         }
-        
       } catch (error) {
         // Real errors reveal actual integration issues - this is valuable
-        console.log('Complex project analysis revealed:', (error as Error).message);
+        console.log(
+          'Complex project analysis revealed:',
+          (error as Error).message,
+        );
         expect(error).toBeInstanceOf(Error);
       }
     }, 30000);
@@ -135,7 +147,7 @@ describe('SubprojectManagementService - Real Integration', () => {
   describe('Error Handling', () => {
     it('should handle invalid input gracefully', async () => {
       const invalidInput = { ...testInput, userId: '' };
-      
+
       try {
         await service.analyzeForSubprojects('test project', invalidInput);
       } catch (error) {

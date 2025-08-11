@@ -4,7 +4,11 @@ import * as dotenv from 'dotenv';
 
 // Utility to build a long conversation history for optimization
 function buildHistory(count: number) {
-  const items = [] as Array<{ role: string; content: string; timestamp: string }>;
+  const items = [] as Array<{
+    role: string;
+    content: string;
+    timestamp: string;
+  }>;
   for (let i = 0; i < count; i++) {
     items.push({
       role: i % 2 === 0 ? 'user' : 'assistant',
@@ -33,8 +37,10 @@ describe('Context Optimization (e2e via external API on :4000)', () => {
       dotenv.config({ path: p as any });
     }
 
-    const testEmail = process.env.SUPABASE_TEST_EMAIL || process.env.TEST_EMAIL || '';
-    const testPassword = process.env.SUPABASE_TEST_PASSWORD || process.env.TEST_PASSWORD || '';
+    const testEmail =
+      process.env.SUPABASE_TEST_EMAIL || process.env.TEST_EMAIL || '';
+    const testPassword =
+      process.env.SUPABASE_TEST_PASSWORD || process.env.TEST_PASSWORD || '';
 
     if (testEmail && testPassword) {
       try {
@@ -42,14 +48,18 @@ describe('Context Optimization (e2e via external API on :4000)', () => {
           .post('/auth/login')
           .send({ email: testEmail, password: testPassword });
         if (loginRes.status === 200) {
-          authToken = loginRes.body?.access_token || loginRes.body?.accessToken || null;
+          authToken =
+            loginRes.body?.access_token || loginRes.body?.accessToken || null;
         }
       } catch (e) {
         const supabaseUrl = process.env.SUPABASE_URL as string;
         const supabaseAnonKey = process.env.SUPABASE_ANON_KEY as string;
         if (supabaseUrl && supabaseAnonKey) {
           const client = createClient(supabaseUrl, supabaseAnonKey);
-          const { data } = await client.auth.signInWithPassword({ email: testEmail, password: testPassword });
+          const { data } = await client.auth.signInWithPassword({
+            email: testEmail,
+            password: testPassword,
+          });
           authToken = data.session?.access_token || null;
         }
       }
@@ -70,7 +80,10 @@ describe('Context Optimization (e2e via external API on :4000)', () => {
       prompt: 'Please help me plan the next steps.',
       conversationHistory: longHistory,
       params: {
-        workProduct: { type: 'deliverable', id: '00000000-0000-0000-0000-000000000001' },
+        workProduct: {
+          type: 'deliverable',
+          id: '00000000-0000-0000-0000-000000000001',
+        },
       },
       executionMode: 'immediate',
     };
@@ -82,7 +95,6 @@ describe('Context Optimization (e2e via external API on :4000)', () => {
     if (authToken) agentReq.set('Authorization', `Bearer ${authToken}`);
     const res = await agentReq;
     if (res.status !== 200) {
-      // eslint-disable-next-line no-console
       console.error('Agent task response:', res.status, res.text);
     }
     expect(res.status).toBe(200);
@@ -94,7 +106,6 @@ describe('Context Optimization (e2e via external API on :4000)', () => {
     // Fetch rollup metrics
     const metrics = await request(baseUrl).get('/metrics/context/rollup');
     if (metrics.status !== 200) {
-      // eslint-disable-next-line no-console
       console.error('Metrics response:', metrics.status, metrics.text);
     }
     expect(metrics.status).toBe(200);
@@ -104,5 +115,3 @@ describe('Context Optimization (e2e via external API on :4000)', () => {
     expect(metrics.body).toHaveProperty('optimizationRate');
   }, 15000);
 });
-
-

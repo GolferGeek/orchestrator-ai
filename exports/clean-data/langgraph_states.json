@@ -1,0 +1,4144 @@
+[
+  {
+    "id": 1,
+    "project_id": "project_1754351683495_7hg7chdto",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-04T23:54:56.584Z",
+        "estimatedEndDate": "2025-09-03T23:54:56.584Z"
+      },
+      "projectId": "project_1754351683495_7hg7chdto",
+      "objectives": [
+        "Complete Q4 Product Launch Campaign"
+      ],
+      "departments": [
+        "general"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-04T23:54:56.584Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [],
+        "mitigations": []
+      },
+      "successCriteria": [],
+      "resourceAllocation": []
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754351683495_7hg7chdto",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:54:56.584Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754351683495_7hg7chdto",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:54:56.584Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754351683495_7hg7chdto",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:54:56.584Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754351683495_7hg7chdto",
+      "lastUpdated": "2025-08-04T23:54:56.584Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-04T23:54:56.584Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-04T23:54:56.584Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-04T23:54:56.584+00:00",
+    "created_at": "2025-08-04T23:54:56.69113+00:00",
+    "updated_at": "2025-08-04T23:54:56.69113+00:00"
+  },
+  {
+    "id": 2,
+    "project_id": "project_1754351696770_ysj0bt4kd",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-04T23:55:12.405Z",
+        "estimatedEndDate": "2025-09-03T23:55:12.405Z"
+      },
+      "projectId": "project_1754351696770_ysj0bt4kd",
+      "objectives": [
+        "Complete Q4 Product Launch Campaign"
+      ],
+      "departments": [
+        "general"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-04T23:55:12.405Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [],
+        "mitigations": []
+      },
+      "successCriteria": [],
+      "resourceAllocation": []
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754351696770_ysj0bt4kd",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:55:12.405Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754351696770_ysj0bt4kd",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:55:12.405Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754351696770_ysj0bt4kd",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:55:12.405Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754351696770_ysj0bt4kd",
+      "lastUpdated": "2025-08-04T23:55:12.405Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-04T23:55:12.405Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-04T23:55:12.405Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-04T23:55:12.405+00:00",
+    "created_at": "2025-08-04T23:55:12.561174+00:00",
+    "updated_at": "2025-08-04T23:55:12.561174+00:00"
+  },
+  {
+    "id": 3,
+    "project_id": "project_1754351712606_qpuke5zop",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-04T23:55:25.055Z",
+        "estimatedEndDate": "2025-09-03T23:55:25.055Z"
+      },
+      "projectId": "project_1754351712606_qpuke5zop",
+      "objectives": [
+        "Complete Q4 Product Launch Campaign"
+      ],
+      "departments": [
+        "general"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-04T23:55:25.055Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [],
+        "mitigations": []
+      },
+      "successCriteria": [],
+      "resourceAllocation": []
+    },
+    "step_results": {
+      "finance-step": {
+        "status": "pending",
+        "stepId": "finance-step",
+        "stepName": "Financial Review",
+        "projectId": "project_1754351712606_qpuke5zop",
+        "department": "finance",
+        "lastUpdated": "2025-08-04T23:55:25.055Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "finance_analyst_agent"
+      },
+      "marketing-step": {
+        "status": "pending",
+        "stepId": "marketing-step",
+        "stepName": "Marketing Analysis",
+        "projectId": "project_1754351712606_qpuke5zop",
+        "department": "marketing",
+        "lastUpdated": "2025-08-04T23:55:25.055Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "marketing_specialist_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754351712606_qpuke5zop",
+      "lastUpdated": "2025-08-04T23:55:25.055Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 2,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-04T23:55:25.055Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-04T23:55:25.055Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-04T23:55:25.055+00:00",
+    "created_at": "2025-08-04T23:55:25.149528+00:00",
+    "updated_at": "2025-08-04T23:55:25.149528+00:00"
+  },
+  {
+    "id": 4,
+    "project_id": "project_1754351862604_0rss4svxu",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-04T23:57:55.051Z",
+        "estimatedEndDate": "2025-09-03T23:57:55.051Z"
+      },
+      "projectId": "project_1754351862604_0rss4svxu",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch.",
+        "Generate at least 500 qualified leads through the campaign within the first month.",
+        "Reach a customer satisfaction score of 85% or higher within the first three months.",
+        "Ensure 90% of marketing materials are completed and approved two weeks before launch.",
+        "Achieve a 15% conversion rate from leads to sales within the first quarter."
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-04T23:57:55.051Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Pre-Launch",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "Completion of marketing materials",
+            "Final product testing results",
+            "Budget approval"
+          ]
+        },
+        {
+          "phase": "Launch",
+          "status": "pending",
+          "approver": "Marketing Director",
+          "criteria": [
+            "All marketing channels activated",
+            "Sales team trained and ready",
+            "Customer support prepared for inquiries"
+          ]
+        },
+        {
+          "phase": "Post-Launch Review",
+          "status": "pending",
+          "approver": "Project Sponsor",
+          "criteria": [
+            "Achievement of initial sales targets",
+            "Customer feedback analysis completed",
+            "Market share assessment conducted"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may impact lead generation.",
+          "Delays in product development could affect launch timing.",
+          "Insufficient budget allocation for marketing efforts."
+        ],
+        "mitigations": [
+          "Conduct competitive analysis to adjust strategies.",
+          "Implement agile product development practices to stay on schedule.",
+          "Regularly review budget and reallocate resources as necessary."
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share before and after launch"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "Number of leads captured through marketing efforts"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Customer feedback surveys post-launch"
+        },
+        {
+          "metric": "Marketing Materials Completion",
+          "target": "90%",
+          "measurement": "Percentage of materials completed and approved"
+        },
+        {
+          "metric": "Lead to Sales Conversion Rate",
+          "target": "15%",
+          "measurement": "Percentage of leads converted to sales"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Lead",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Officer",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754351862604_0rss4svxu",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:57:55.051Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754351862604_0rss4svxu",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:57:55.051Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754351862604_0rss4svxu",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:57:55.051Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754351862604_0rss4svxu",
+      "lastUpdated": "2025-08-04T23:57:55.051Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-04T23:57:55.051Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-04T23:57:55.051Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-04T23:57:55.051+00:00",
+    "created_at": "2025-08-04T23:57:55.138155+00:00",
+    "updated_at": "2025-08-04T23:57:55.138155+00:00"
+  },
+  {
+    "id": 5,
+    "project_id": "project_1754351888426_to8vdp5w2",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-04T23:58:19.314Z",
+        "estimatedEndDate": "2025-09-03T23:58:19.314Z"
+      },
+      "projectId": "project_1754351888426_to8vdp5w2",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch",
+        "Generate 500 qualified leads within the first month of the campaign",
+        "Reach a customer satisfaction score of 85% or higher within the first three months",
+        "Secure partnerships with at least 3 key influencers in the industry by launch date"
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-04T23:58:19.314Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Pre-launch Review",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "Completion of marketing materials",
+            "Final product testing results",
+            "Budget approval"
+          ]
+        },
+        {
+          "phase": "Launch Day",
+          "status": "pending",
+          "approver": "Product Manager",
+          "criteria": [
+            "All systems operational",
+            "Marketing campaign live",
+            "Sales team trained"
+          ]
+        },
+        {
+          "phase": "Post-launch Evaluation",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "Achievement of initial sales targets",
+            "Customer feedback analysis",
+            "Review of marketing effectiveness"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition",
+          "Product readiness",
+          "Budget constraints",
+          "Customer adoption rates"
+        ],
+        "mitigations": [
+          "Conduct thorough market research",
+          "Implement a phased product rollout",
+          "Monitor budget closely and adjust as needed",
+          "Engage with early adopters for feedback"
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Market analysis report"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "CRM tracking"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Customer surveys"
+        },
+        {
+          "metric": "Influencer Partnerships Secured",
+          "target": "3",
+          "measurement": "Partnership agreements"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Lead",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Manager",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754351888426_to8vdp5w2",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:58:19.314Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754351888426_to8vdp5w2",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:58:19.314Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754351888426_to8vdp5w2",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:58:19.314Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754351888426_to8vdp5w2",
+      "lastUpdated": "2025-08-04T23:58:19.314Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-04T23:58:19.314Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-04T23:58:19.314Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-04T23:58:19.314+00:00",
+    "created_at": "2025-08-04T23:58:19.426837+00:00",
+    "updated_at": "2025-08-04T23:58:19.426837+00:00"
+  },
+  {
+    "id": 6,
+    "project_id": "project_1754351899470_hof2wqhta",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-04T23:58:32.512Z",
+        "estimatedEndDate": "2025-09-03T23:58:32.512Z"
+      },
+      "projectId": "project_1754351899470_hof2wqhta",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch.",
+        "Generate 500 qualified leads through targeted marketing campaigns by the end of Q4.",
+        "Achieve a customer satisfaction score of 85% or higher within the first month of product launch.",
+        "Secure partnerships with at least 3 key industry influencers by the launch date.",
+        "Reach a sales target of $1 million within the first three months of product availability."
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-04T23:58:32.512Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Pre-Launch",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "Completion of marketing materials",
+            "Final product testing results",
+            "Budget approval"
+          ]
+        },
+        {
+          "phase": "Launch",
+          "status": "pending",
+          "approver": "Product Committee",
+          "criteria": [
+            "Readiness of sales team",
+            "Availability of customer support resources",
+            "Launch event logistics confirmed"
+          ]
+        },
+        {
+          "phase": "Post-Launch",
+          "status": "pending",
+          "approver": "Stakeholder Review Board",
+          "criteria": [
+            "Achievement of initial sales targets",
+            "Customer feedback analysis",
+            "Partnership agreements finalized"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may hinder sales growth.",
+          "Potential delays in product development.",
+          "Insufficient marketing reach to target audience."
+        ],
+        "mitigations": [
+          "Conduct thorough market analysis to identify competitive advantages.",
+          "Implement agile development practices to minimize delays.",
+          "Enhance digital marketing strategies to broaden reach."
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share before and after launch"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "Number of leads captured through campaigns"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Customer feedback surveys"
+        },
+        {
+          "metric": "Partnerships Secured",
+          "target": "3",
+          "measurement": "Number of partnerships established"
+        },
+        {
+          "metric": "Sales Revenue",
+          "target": "$1 million",
+          "measurement": "Total sales revenue generated"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Manager",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Officer",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754351899470_hof2wqhta",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:58:32.512Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754351899470_hof2wqhta",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:58:32.512Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754351899470_hof2wqhta",
+        "department": "general",
+        "lastUpdated": "2025-08-04T23:58:32.512Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754351899470_hof2wqhta",
+      "lastUpdated": "2025-08-04T23:58:32.512Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-04T23:58:32.512Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-04T23:58:32.512Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-04T23:58:32.512+00:00",
+    "created_at": "2025-08-04T23:58:32.616216+00:00",
+    "updated_at": "2025-08-04T23:58:32.616216+00:00"
+  },
+  {
+    "id": 7,
+    "project_id": "project_1754351912660_e6oady7p3",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-04T23:58:46.206Z",
+        "estimatedEndDate": "2025-09-03T23:58:46.206Z"
+      },
+      "projectId": "project_1754351912660_e6oady7p3",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch.",
+        "Generate at least 1,000 qualified leads through the campaign within the first month.",
+        "Reach a customer satisfaction score of 85% or higher from initial product feedback.",
+        "Ensure 90% of marketing materials are completed and approved by the launch date.",
+        "Achieve a 15% conversion rate from leads to customers within the first three months."
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-04T23:58:46.206Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Marketing Material Approval",
+          "status": "pending",
+          "approver": "Marketing Director",
+          "criteria": [
+            "All materials must align with brand guidelines.",
+            "Materials must be tested for effectiveness."
+          ]
+        },
+        {
+          "phase": "Product Readiness Review",
+          "status": "pending",
+          "approver": "Product Development Lead",
+          "criteria": [
+            "Product must pass all quality assurance tests.",
+            "Feedback from beta testing must be addressed."
+          ]
+        },
+        {
+          "phase": "Final Launch Approval",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "All departments must confirm readiness.",
+            "Budget and resource allocation must be finalized."
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may hinder lead generation.",
+          "Delays in product development could affect launch timeline.",
+          "Budget constraints may limit marketing efforts."
+        ],
+        "mitigations": [
+          "Conduct competitive analysis to adjust strategies.",
+          "Implement agile development practices to ensure timely delivery.",
+          "Regular budget reviews to optimize spending."
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Quarterly report"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "1,000",
+          "measurement": "Lead tracking system"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Customer surveys"
+        },
+        {
+          "metric": "Marketing Materials Completion",
+          "target": "90%",
+          "measurement": "Project management tool"
+        },
+        {
+          "metric": "Lead to Customer Conversion Rate",
+          "target": "15%",
+          "measurement": "Sales reports"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Manager",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Officer",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "finance-step": {
+        "status": "pending",
+        "stepId": "finance-step",
+        "stepName": "Financial Review",
+        "projectId": "project_1754351912660_e6oady7p3",
+        "department": "finance",
+        "lastUpdated": "2025-08-04T23:58:46.206Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "finance_analyst_agent"
+      },
+      "marketing-step": {
+        "status": "pending",
+        "stepId": "marketing-step",
+        "stepName": "Marketing Analysis",
+        "projectId": "project_1754351912660_e6oady7p3",
+        "department": "marketing",
+        "lastUpdated": "2025-08-04T23:58:46.206Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "marketing_specialist_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754351912660_e6oady7p3",
+      "lastUpdated": "2025-08-04T23:58:46.206Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 2,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-04T23:58:46.206Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-04T23:58:46.206Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-04T23:58:46.206+00:00",
+    "created_at": "2025-08-04T23:58:46.296406+00:00",
+    "updated_at": "2025-08-04T23:58:46.296406+00:00"
+  },
+  {
+    "id": 8,
+    "project_id": "project_1754352326253_5sa2gqixk",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:05:41.031Z",
+        "estimatedEndDate": "2025-09-04T00:05:41.031Z"
+      },
+      "projectId": "project_1754352326253_5sa2gqixk",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch",
+        "Generate at least 500 qualified leads through the campaign within the first month",
+        "Reach a customer satisfaction score of 85% or higher within the first three months",
+        "Secure partnerships with at least 3 key influencers in the industry by launch date"
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:05:41.031Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Pre-launch Review",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "Finalized marketing strategy",
+            "Product readiness confirmation",
+            "Budget approval"
+          ]
+        },
+        {
+          "phase": "Launch Day",
+          "status": "pending",
+          "approver": "Product Manager",
+          "criteria": [
+            "All marketing materials completed",
+            "Sales team trained",
+            "Customer support ready"
+          ]
+        },
+        {
+          "phase": "Post-launch Evaluation",
+          "status": "pending",
+          "approver": "Marketing Director",
+          "criteria": [
+            "Success metrics reviewed",
+            "Customer feedback analyzed",
+            "Sales performance assessed"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition",
+          "Product readiness",
+          "Budget constraints",
+          "Customer adoption rates"
+        ],
+        "mitigations": [
+          "Conduct thorough market research and competitor analysis",
+          "Implement a phased product rollout",
+          "Monitor budget closely and adjust allocations as needed",
+          "Engage in customer education and outreach programs"
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Market analysis report"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "CRM system reports"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Customer feedback surveys"
+        },
+        {
+          "metric": "Influencer Partnerships Secured",
+          "target": "3",
+          "measurement": "Partnership agreements"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Lead",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Manager",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Officer",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754352326253_5sa2gqixk",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:05:41.031Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754352326253_5sa2gqixk",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:05:41.031Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754352326253_5sa2gqixk",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:05:41.031Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754352326253_5sa2gqixk",
+      "lastUpdated": "2025-08-05T00:05:41.031Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:05:41.031Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:05:41.031Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:05:41.031+00:00",
+    "created_at": "2025-08-05T00:05:41.115564+00:00",
+    "updated_at": "2025-08-05T00:05:41.115564+00:00"
+  },
+  {
+    "id": 9,
+    "project_id": "project_1754352341156_uc0qxdla2",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:06:00.837Z",
+        "estimatedEndDate": "2025-09-04T00:06:00.837Z"
+      },
+      "projectId": "project_1754352341156_uc0qxdla2",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch.",
+        "Generate at least 5,000 leads through the campaign within the first month.",
+        "Achieve a customer satisfaction score of 90% or higher based on post-purchase surveys.",
+        "Reach a social media engagement rate of 15% across all platforms during the campaign.",
+        "Ensure all marketing materials are produced and distributed by the launch date."
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:06:00.837Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Pre-launch",
+          "status": "pending",
+          "approver": "Chief Marketing Officer",
+          "criteria": [
+            "Finalized marketing strategy",
+            "Budget approval",
+            "Product readiness confirmation"
+          ]
+        },
+        {
+          "phase": "Launch",
+          "status": "pending",
+          "approver": "CEO",
+          "criteria": [
+            "All marketing materials completed",
+            "Sales team trained",
+            "Customer support ready"
+          ]
+        },
+        {
+          "phase": "Post-launch",
+          "status": "pending",
+          "approver": "Product Manager",
+          "criteria": [
+            "Review of initial sales data",
+            "Customer feedback analysis",
+            "Engagement metrics evaluation"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Delays in product development",
+          "Insufficient marketing budget",
+          "Low engagement from target audience"
+        ],
+        "mitigations": [
+          "Implement a strict project timeline with regular check-ins",
+          "Allocate contingency budget for marketing activities",
+          "Conduct audience research to tailor messaging effectively"
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share before and after launch"
+        },
+        {
+          "metric": "Lead Generation",
+          "target": "5,000 leads",
+          "measurement": "Number of leads collected through campaign channels"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "90%",
+          "measurement": "Average score from post-purchase surveys"
+        },
+        {
+          "metric": "Social Media Engagement Rate",
+          "target": "15%",
+          "measurement": "Engagement metrics across social media platforms"
+        },
+        {
+          "metric": "Marketing Material Distribution",
+          "target": "On-time delivery",
+          "measurement": "Completion status of marketing materials by launch date"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Manager",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Officer",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754352341156_uc0qxdla2",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:06:00.837Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754352341156_uc0qxdla2",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:06:00.837Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754352341156_uc0qxdla2",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:06:00.837Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754352341156_uc0qxdla2",
+      "lastUpdated": "2025-08-05T00:06:00.837Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:06:00.837Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:06:00.837Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:06:00.837+00:00",
+    "created_at": "2025-08-05T00:06:00.932091+00:00",
+    "updated_at": "2025-08-05T00:06:00.932091+00:00"
+  },
+  {
+    "id": 10,
+    "project_id": "project_1754352360970_14hk3s8pe",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:06:18.137Z",
+        "estimatedEndDate": "2025-09-04T00:06:18.137Z"
+      },
+      "projectId": "project_1754352360970_14hk3s8pe",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch.",
+        "Generate 500 qualified leads through the campaign within the first month.",
+        "Achieve a customer satisfaction score of 85% or higher from initial product feedback.",
+        "Reach 1 million impressions across all marketing channels within the campaign duration.",
+        "Secure partnerships with at least 5 key influencers in the industry by launch date."
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:06:18.137Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Marketing Strategy Finalization",
+          "status": "pending",
+          "approver": "Chief Marketing Officer",
+          "criteria": [
+            "Completion of market research",
+            "Alignment with overall business goals",
+            "Budget approval"
+          ]
+        },
+        {
+          "phase": "Product Readiness",
+          "status": "pending",
+          "approver": "Product Development Head",
+          "criteria": [
+            "Successful completion of testing",
+            "Feedback from beta users",
+            "Compliance with regulatory standards"
+          ]
+        },
+        {
+          "phase": "Campaign Launch",
+          "status": "pending",
+          "approver": "CEO",
+          "criteria": [
+            "All marketing materials approved",
+            "Sales team trained and ready",
+            "Customer support prepared for inquiries"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may hinder lead generation.",
+          "Potential delays in product development.",
+          "Budget constraints affecting marketing reach."
+        ],
+        "mitigations": [
+          "Conduct competitive analysis to refine marketing strategy.",
+          "Implement agile development practices to minimize delays.",
+          "Monitor budget closely and adjust allocations as necessary."
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share before and after launch"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "Number of leads captured through marketing efforts"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Customer feedback surveys post-launch"
+        },
+        {
+          "metric": "Impressions",
+          "target": "1 million",
+          "measurement": "Total impressions across all marketing channels"
+        },
+        {
+          "metric": "Influencer Partnerships",
+          "target": "5",
+          "measurement": "Number of partnerships secured by launch date"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Lead",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Officer",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "finance-step": {
+        "status": "pending",
+        "stepId": "finance-step",
+        "stepName": "Financial Review",
+        "projectId": "project_1754352360970_14hk3s8pe",
+        "department": "finance",
+        "lastUpdated": "2025-08-05T00:06:18.137Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "finance_analyst_agent"
+      },
+      "marketing-step": {
+        "status": "pending",
+        "stepId": "marketing-step",
+        "stepName": "Marketing Analysis",
+        "projectId": "project_1754352360970_14hk3s8pe",
+        "department": "marketing",
+        "lastUpdated": "2025-08-05T00:06:18.137Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "marketing_specialist_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754352360970_14hk3s8pe",
+      "lastUpdated": "2025-08-05T00:06:18.137Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 2,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:06:18.137Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:06:18.137Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:06:18.137+00:00",
+    "created_at": "2025-08-05T00:06:18.240435+00:00",
+    "updated_at": "2025-08-05T00:06:18.240435+00:00"
+  },
+  {
+    "id": 11,
+    "project_id": "project_1754352462483_sqn4zz3s4",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:08:01.985Z",
+        "estimatedEndDate": "2025-09-04T00:08:01.985Z"
+      },
+      "projectId": "project_1754352462483_sqn4zz3s4",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch.",
+        "Generate 500 qualified leads through the campaign within the first month.",
+        "Achieve a customer satisfaction score of 90% or higher from initial product feedback.",
+        "Increase website traffic by 30% during the campaign period.",
+        "Secure at least 5 media placements in industry-relevant publications."
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:08:01.985Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Campaign Strategy Approval",
+          "status": "pending",
+          "approver": "Chief Marketing Officer",
+          "criteria": [
+            "Alignment with overall business goals",
+            "Feasibility of the proposed budget",
+            "Clear definition of target audience"
+          ]
+        },
+        {
+          "phase": "Product Readiness Approval",
+          "status": "pending",
+          "approver": "Product Development Head",
+          "criteria": [
+            "Completion of product testing",
+            "Positive feedback from beta users",
+            "Compliance with regulatory standards"
+          ]
+        },
+        {
+          "phase": "Launch Readiness Approval",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "All marketing materials finalized",
+            "Sales team trained and ready",
+            "Customer support prepared for inquiries"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may hinder lead generation.",
+          "Product may not meet customer expectations.",
+          "Budget constraints could limit campaign reach."
+        ],
+        "mitigations": [
+          "Conduct thorough market research to identify competitive advantages.",
+          "Implement a feedback loop for continuous product improvement.",
+          "Allocate a contingency budget for unexpected expenses."
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share before and after launch"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "Number of leads captured through campaign efforts"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "90%",
+          "measurement": "Survey results from initial product users"
+        },
+        {
+          "metric": "Website Traffic Increase",
+          "target": "30%",
+          "measurement": "Website analytics data pre and post-campaign"
+        },
+        {
+          "metric": "Media Placements",
+          "target": "5",
+          "measurement": "Count of media articles published about the product"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Lead",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Analyst",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754352462483_sqn4zz3s4",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:08:01.986Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754352462483_sqn4zz3s4",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:08:01.986Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754352462483_sqn4zz3s4",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:08:01.986Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754352462483_sqn4zz3s4",
+      "lastUpdated": "2025-08-05T00:08:01.986Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:08:01.986Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:08:01.986Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:08:01.986+00:00",
+    "created_at": "2025-08-05T00:08:02.112413+00:00",
+    "updated_at": "2025-08-05T00:08:02.112413+00:00"
+  },
+  {
+    "id": 12,
+    "project_id": "project_1754352482175_pnj22k3xq",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:08:21.741Z",
+        "estimatedEndDate": "2025-09-04T00:08:21.741Z"
+      },
+      "projectId": "project_1754352482175_pnj22k3xq",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch",
+        "Generate 500 qualified leads through the campaign within the first month",
+        "Achieve a customer satisfaction score of 85% or higher within the first three months",
+        "Reach 1 million impressions across all marketing channels within the campaign duration",
+        "Secure at least 10 media placements in industry-related publications"
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:08:21.741Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Campaign Strategy Approval",
+          "status": "pending",
+          "approver": "Chief Marketing Officer",
+          "criteria": [
+            "Alignment with overall business objectives",
+            "Feasibility of proposed budget",
+            "Clarity of target audience and messaging"
+          ]
+        },
+        {
+          "phase": "Product Readiness Check",
+          "status": "pending",
+          "approver": "Product Development Head",
+          "criteria": [
+            "Completion of product testing",
+            "Finalization of product features",
+            "Readiness of support materials"
+          ]
+        },
+        {
+          "phase": "Launch Approval",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "All marketing materials are finalized",
+            "Sales team is trained and ready",
+            "Customer support is prepared for inquiries"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may hinder lead generation",
+          "Product may not meet customer expectations",
+          "Budget constraints affecting marketing efforts"
+        ],
+        "mitigations": [
+          "Conduct thorough market analysis and adjust strategies accordingly",
+          "Implement a feedback loop for product improvements based on customer input",
+          "Monitor budget closely and reallocate resources as necessary"
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share before and after launch"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "Number of leads tracked through CRM"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Survey results from customers post-purchase"
+        },
+        {
+          "metric": "Impressions",
+          "target": "1 million",
+          "measurement": "Total impressions across all marketing channels"
+        },
+        {
+          "metric": "Media Placements",
+          "target": "10",
+          "measurement": "Number of articles or features published"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Manager",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Manager",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754352482175_pnj22k3xq",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:08:21.741Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754352482175_pnj22k3xq",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:08:21.741Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754352482175_pnj22k3xq",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:08:21.741Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754352482175_pnj22k3xq",
+      "lastUpdated": "2025-08-05T00:08:21.741Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:08:21.741Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:08:21.741Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:08:21.741+00:00",
+    "created_at": "2025-08-05T00:08:21.826326+00:00",
+    "updated_at": "2025-08-05T00:08:21.826326+00:00"
+  },
+  {
+    "id": 13,
+    "project_id": "project_1754352501876_i7cyrdq5n",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:08:39.986Z",
+        "estimatedEndDate": "2025-09-04T00:08:39.986Z"
+      },
+      "projectId": "project_1754352501876_i7cyrdq5n",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch.",
+        "Generate 500 qualified leads through the campaign within the first month.",
+        "Achieve a customer satisfaction score of 85% or higher within the first three months.",
+        "Reach 100,000 impressions across all marketing channels within the first month.",
+        "Secure at least 10 media placements in industry-relevant publications within the campaign period."
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:08:39.986Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Campaign Strategy Approval",
+          "status": "pending",
+          "approver": "Chief Marketing Officer",
+          "criteria": [
+            "Alignment with overall business objectives",
+            "Feasibility of proposed budget",
+            "Clarity of target audience and messaging"
+          ]
+        },
+        {
+          "phase": "Product Readiness Approval",
+          "status": "pending",
+          "approver": "Chief Product Officer",
+          "criteria": [
+            "Completion of product testing",
+            "Positive feedback from beta users",
+            "Readiness of support materials"
+          ]
+        },
+        {
+          "phase": "Launch Approval",
+          "status": "pending",
+          "approver": "CEO",
+          "criteria": [
+            "Final review of marketing materials",
+            "Confirmation of sales readiness",
+            "Approval of launch timeline"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may hinder lead generation.",
+          "Product may not meet customer expectations.",
+          "Budget constraints could limit marketing reach."
+        ],
+        "mitigations": [
+          "Conduct competitive analysis and adjust strategies accordingly.",
+          "Implement a robust product testing phase before launch.",
+          "Monitor budget closely and adjust allocations as needed."
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share before and after launch"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "Number of leads captured through marketing efforts"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Customer feedback surveys post-purchase"
+        },
+        {
+          "metric": "Impressions",
+          "target": "100,000",
+          "measurement": "Total impressions across all marketing channels"
+        },
+        {
+          "metric": "Media Placements",
+          "target": "10",
+          "measurement": "Number of articles or features in relevant publications"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Manager",
+          "estimatedHours": 40
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Manager",
+          "estimatedHours": 30
+        }
+      ]
+    },
+    "step_results": {
+      "finance-step": {
+        "status": "pending",
+        "stepId": "finance-step",
+        "stepName": "Financial Review",
+        "projectId": "project_1754352501876_i7cyrdq5n",
+        "department": "finance",
+        "lastUpdated": "2025-08-05T00:08:39.986Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "finance_analyst_agent"
+      },
+      "marketing-step": {
+        "status": "pending",
+        "stepId": "marketing-step",
+        "stepName": "Marketing Analysis",
+        "projectId": "project_1754352501876_i7cyrdq5n",
+        "department": "marketing",
+        "lastUpdated": "2025-08-05T00:08:39.986Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "marketing_specialist_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754352501876_i7cyrdq5n",
+      "lastUpdated": "2025-08-05T00:08:39.986Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 2,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:08:39.986Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:08:39.986Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:08:39.986+00:00",
+    "created_at": "2025-08-05T00:08:40.083452+00:00",
+    "updated_at": "2025-08-05T00:08:40.083452+00:00"
+  },
+  {
+    "id": 14,
+    "project_id": "project_1754354190933_ky8tkkqai",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:36:46.917Z",
+        "estimatedEndDate": "2025-09-04T00:36:46.917Z"
+      },
+      "projectId": "project_1754354190933_ky8tkkqai",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch",
+        "Generate 500 qualified leads through the campaign within the first month",
+        "Achieve a customer satisfaction score of 85% or higher within the first three months",
+        "Reach 1 million impressions across all marketing channels within the campaign duration",
+        "Secure partnerships with at least 5 key influencers in the industry by launch date"
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:36:46.917Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Pre-launch",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "Final product readiness",
+            "Marketing materials approval",
+            "Budget confirmation"
+          ]
+        },
+        {
+          "phase": "Launch",
+          "status": "pending",
+          "approver": "Marketing Director",
+          "criteria": [
+            "All marketing channels activated",
+            "Sales team trained and ready",
+            "Customer support prepared for inquiries"
+          ]
+        },
+        {
+          "phase": "Post-launch",
+          "status": "pending",
+          "approver": "Product Manager",
+          "criteria": [
+            "Initial sales data reviewed",
+            "Customer feedback collected",
+            "Performance metrics analyzed"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may hinder lead generation",
+          "Product development delays could affect launch timing",
+          "Budget constraints may limit marketing reach"
+        ],
+        "mitigations": [
+          "Conduct competitive analysis and adjust strategies accordingly",
+          "Implement agile product development practices to minimize delays",
+          "Establish a contingency budget for unexpected expenses"
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share analysis"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "Lead tracking system"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Customer feedback surveys"
+        },
+        {
+          "metric": "Impressions",
+          "target": "1 million",
+          "measurement": "Analytics tools"
+        },
+        {
+          "metric": "Influencer Partnerships",
+          "target": "5",
+          "measurement": "Partnership agreements"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Manager",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Manager",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754354190933_ky8tkkqai",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:36:46.917Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754354190933_ky8tkkqai",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:36:46.917Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754354190933_ky8tkkqai",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:36:46.917Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754354190933_ky8tkkqai",
+      "lastUpdated": "2025-08-05T00:36:46.917Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:36:46.917Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:36:46.917Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:36:46.917+00:00",
+    "created_at": "2025-08-05T00:36:46.996509+00:00",
+    "updated_at": "2025-08-05T00:36:46.996509+00:00"
+  },
+  {
+    "id": 15,
+    "project_id": "project_1754354207067_4stmga5mm",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:37:04.579Z",
+        "estimatedEndDate": "2025-09-04T00:37:04.579Z"
+      },
+      "projectId": "project_1754354207067_4stmga5mm",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch.",
+        "Generate 500 qualified leads through the campaign within the first month.",
+        "Achieve a customer satisfaction score of 90% or higher from initial product feedback.",
+        "Reach a social media engagement rate of 15% across all platforms during the campaign.",
+        "Secure at least 10 media placements in industry-relevant publications by launch date."
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:37:04.579Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Campaign Strategy Approval",
+          "status": "pending",
+          "approver": "Chief Marketing Officer",
+          "criteria": [
+            "Alignment with overall business goals",
+            "Budget approval",
+            "Resource allocation confirmation"
+          ]
+        },
+        {
+          "phase": "Product Readiness Review",
+          "status": "pending",
+          "approver": "Product Development Head",
+          "criteria": [
+            "Completion of product testing",
+            "Finalization of product features",
+            "Readiness for customer support training"
+          ]
+        },
+        {
+          "phase": "Launch Readiness Check",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "All marketing materials finalized",
+            "Sales team trained and ready",
+            "Customer support prepared for inquiries"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may impact lead generation.",
+          "Product development delays could affect launch timing.",
+          "Budget constraints may limit marketing outreach."
+        ],
+        "mitigations": [
+          "Conduct competitive analysis to adjust marketing strategies.",
+          "Implement agile product development practices to minimize delays.",
+          "Monitor budget closely and prioritize high-impact marketing activities."
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share before and after launch"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "Number of leads captured through campaign efforts"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "90%",
+          "measurement": "Survey results from initial product users"
+        },
+        {
+          "metric": "Social Media Engagement Rate",
+          "target": "15%",
+          "measurement": "Engagement metrics across social media platforms"
+        },
+        {
+          "metric": "Media Placements",
+          "target": "10",
+          "measurement": "Number of articles or features in relevant publications"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Lead",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Analyst",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754354207067_4stmga5mm",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:37:04.580Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754354207067_4stmga5mm",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:37:04.579Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754354207067_4stmga5mm",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:37:04.579Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754354207067_4stmga5mm",
+      "lastUpdated": "2025-08-05T00:37:04.580Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:37:04.580Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:37:04.580Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:37:04.58+00:00",
+    "created_at": "2025-08-05T00:37:04.642163+00:00",
+    "updated_at": "2025-08-05T00:37:04.642163+00:00"
+  },
+  {
+    "id": 16,
+    "project_id": "project_1754354224699_9nnr6fsmu",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:37:19.097Z",
+        "estimatedEndDate": "2025-09-04T00:37:19.097Z"
+      },
+      "projectId": "project_1754354224699_9nnr6fsmu",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch.",
+        "Generate 1,000 qualified leads through the campaign within the first month.",
+        "Attain a customer satisfaction score of 85% or higher from product feedback surveys.",
+        "Reach 500,000 impressions across all marketing channels within the first month.",
+        "Secure partnerships with at least 3 key influencers in the industry by campaign launch."
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:37:19.097Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Marketing Strategy Finalization",
+          "status": "pending",
+          "approver": "Chief Marketing Officer",
+          "criteria": [
+            "Complete market analysis report",
+            "Finalized marketing budget",
+            "Approved marketing collateral"
+          ]
+        },
+        {
+          "phase": "Product Readiness",
+          "status": "pending",
+          "approver": "Chief Product Officer",
+          "criteria": [
+            "Product testing completed",
+            "Feedback from beta users incorporated",
+            "Final product specifications approved"
+          ]
+        },
+        {
+          "phase": "Campaign Launch",
+          "status": "pending",
+          "approver": "CEO",
+          "criteria": [
+            "All marketing materials ready",
+            "Sales team trained on product features",
+            "Customer support prepared for inquiries"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may hinder lead generation.",
+          "Product development delays could impact launch timing.",
+          "Budget constraints may limit marketing reach."
+        ],
+        "mitigations": [
+          "Conduct competitive analysis to refine marketing strategies.",
+          "Implement agile product development practices to stay on schedule.",
+          "Monitor budget closely and adjust allocations as necessary."
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share before and after launch"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "1,000",
+          "measurement": "Number of leads generated through marketing efforts"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Average score from customer feedback surveys"
+        },
+        {
+          "metric": "Impressions",
+          "target": "500,000",
+          "measurement": "Total impressions across all marketing channels"
+        },
+        {
+          "metric": "Influencer Partnerships",
+          "target": "3",
+          "measurement": "Number of partnerships secured by launch date"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Manager",
+          "estimatedHours": 40
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Manager",
+          "estimatedHours": 30
+        }
+      ]
+    },
+    "step_results": {
+      "finance-step": {
+        "status": "pending",
+        "stepId": "finance-step",
+        "stepName": "Financial Review",
+        "projectId": "project_1754354224699_9nnr6fsmu",
+        "department": "finance",
+        "lastUpdated": "2025-08-05T00:37:19.097Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "finance_analyst_agent"
+      },
+      "marketing-step": {
+        "status": "pending",
+        "stepId": "marketing-step",
+        "stepName": "Marketing Analysis",
+        "projectId": "project_1754354224699_9nnr6fsmu",
+        "department": "marketing",
+        "lastUpdated": "2025-08-05T00:37:19.097Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "marketing_specialist_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754354224699_9nnr6fsmu",
+      "lastUpdated": "2025-08-05T00:37:19.097Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 2,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:37:19.097Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:37:19.097Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:37:19.097+00:00",
+    "created_at": "2025-08-05T00:37:19.170186+00:00",
+    "updated_at": "2025-08-05T00:37:19.170186+00:00"
+  },
+  {
+    "id": 17,
+    "project_id": "project_1754354294499_67y3o9qx6",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:38:27.183Z",
+        "estimatedEndDate": "2025-09-04T00:38:27.183Z"
+      },
+      "projectId": "project_1754354294499_67y3o9qx6",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch",
+        "Generate 500 qualified leads through the campaign within the first month",
+        "Achieve a customer satisfaction score of 85% or higher within the first three months",
+        "Reach 1 million impressions across all marketing channels by the end of the campaign",
+        "Secure partnerships with at least 5 key influencers in the industry by launch date"
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:38:27.183Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Pre-Launch",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "Final product readiness",
+            "Marketing strategy approval",
+            "Budget allocation confirmation"
+          ]
+        },
+        {
+          "phase": "Launch",
+          "status": "pending",
+          "approver": "Marketing Director",
+          "criteria": [
+            "All marketing materials finalized",
+            "Sales team trained and ready",
+            "Customer support prepared for inquiries"
+          ]
+        },
+        {
+          "phase": "Post-Launch Review",
+          "status": "pending",
+          "approver": "Project Sponsor",
+          "criteria": [
+            "Achievement of initial success metrics",
+            "Feedback from customers and stakeholders",
+            "Analysis of campaign performance"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition",
+          "Product quality issues",
+          "Budget constraints",
+          "Timeline delays"
+        ],
+        "mitigations": [
+          "Conduct thorough market analysis and adjust strategy accordingly",
+          "Implement rigorous quality assurance processes",
+          "Monitor budget closely and adjust resource allocation as needed",
+          "Establish a detailed project timeline with buffer periods"
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share before and after launch"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "Number of leads captured through marketing efforts"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Customer feedback surveys"
+        },
+        {
+          "metric": "Impressions",
+          "target": "1 million",
+          "measurement": "Total impressions across all marketing channels"
+        },
+        {
+          "metric": "Influencer Partnerships",
+          "target": "5",
+          "measurement": "Number of partnerships secured"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Manager",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Manager",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754354294499_67y3o9qx6",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:38:27.184Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754354294499_67y3o9qx6",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:38:27.184Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754354294499_67y3o9qx6",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:38:27.184Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754354294499_67y3o9qx6",
+      "lastUpdated": "2025-08-05T00:38:27.184Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:38:27.184Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:38:27.184Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:38:27.184+00:00",
+    "created_at": "2025-08-05T00:38:27.320932+00:00",
+    "updated_at": "2025-08-05T00:38:27.320932+00:00"
+  },
+  {
+    "id": 18,
+    "project_id": "project_1754354307390_e276qc1ao",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:38:42.946Z",
+        "estimatedEndDate": "2025-09-04T00:38:42.946Z"
+      },
+      "projectId": "project_1754354307390_e276qc1ao",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch.",
+        "Generate at least 5,000 qualified leads through the campaign by the end of Q4.",
+        "Attain a customer satisfaction score of 85% or higher from product feedback surveys within the first month of launch.",
+        "Secure partnerships with at least 3 key influencers in the industry by the launch date.",
+        "Increase website traffic by 30% during the campaign period compared to the previous quarter."
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:38:42.946Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Campaign Strategy Approval",
+          "status": "pending",
+          "approver": "Chief Marketing Officer",
+          "criteria": [
+            "Alignment with overall business goals",
+            "Feasibility of proposed budget",
+            "Clear target audience definition"
+          ]
+        },
+        {
+          "phase": "Product Readiness Review",
+          "status": "pending",
+          "approver": "Product Development Head",
+          "criteria": [
+            "Completion of product testing",
+            "Positive feedback from beta users",
+            "Readiness of support materials"
+          ]
+        },
+        {
+          "phase": "Final Launch Approval",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "All marketing materials finalized",
+            "Sales team trained and ready",
+            "Budget approval confirmed"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may impact lead generation.",
+          "Product development delays could affect launch timing.",
+          "Budget constraints may limit marketing reach."
+        ],
+        "mitigations": [
+          "Conduct competitive analysis to refine marketing strategy.",
+          "Implement agile development practices to ensure timely delivery.",
+          "Monitor budget closely and adjust marketing tactics as needed."
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Market analysis report"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "5,000",
+          "measurement": "CRM lead tracking"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Post-launch survey results"
+        },
+        {
+          "metric": "Influencer Partnerships Secured",
+          "target": "3",
+          "measurement": "Partnership agreements"
+        },
+        {
+          "metric": "Website Traffic Increase",
+          "target": "30%",
+          "measurement": "Web analytics report"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Lead",
+          "estimatedHours": 60
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Officer",
+          "estimatedHours": 40
+        }
+      ]
+    },
+    "step_results": {
+      "budget-approval": {
+        "status": "pending",
+        "stepId": "budget-approval",
+        "stepName": "Budget Approval",
+        "projectId": "project_1754354307390_e276qc1ao",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:38:42.946Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "content-creation"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "general_orchestrator"
+      },
+      "market-research": {
+        "status": "pending",
+        "stepId": "market-research",
+        "stepName": "Market Research Analysis",
+        "projectId": "project_1754354307390_e276qc1ao",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:38:42.946Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "market_research_agent"
+      },
+      "content-creation": {
+        "status": "pending",
+        "stepId": "content-creation",
+        "stepName": "Marketing Content Creation",
+        "projectId": "project_1754354307390_e276qc1ao",
+        "department": "general",
+        "lastUpdated": "2025-08-05T00:38:42.946Z",
+        "dependencies": [
+          {
+            "type": "sequential",
+            "status": "pending",
+            "stepId": "market-research"
+          }
+        ],
+        "estimatedDuration": 2.5,
+        "assignedOrchestrator": "content_creator_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754354307390_e276qc1ao",
+      "lastUpdated": "2025-08-05T00:38:42.946Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 3,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:38:42.946Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:38:42.946Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:38:42.946+00:00",
+    "created_at": "2025-08-05T00:38:43.020423+00:00",
+    "updated_at": "2025-08-05T00:38:43.020423+00:00"
+  },
+  {
+    "id": 19,
+    "project_id": "project_1754354323088_t3tyi49t8",
+    "plan_state": {
+      "version": 1,
+      "timeline": {
+        "phases": [],
+        "startDate": "2025-08-05T00:38:55.081Z",
+        "estimatedEndDate": "2025-09-04T00:38:55.081Z"
+      },
+      "projectId": "project_1754354323088_t3tyi49t8",
+      "objectives": [
+        "Achieve a 20% increase in market share within the first quarter post-launch.",
+        "Generate 500 qualified leads through the campaign within the first month.",
+        "Reach a customer satisfaction score of 85% or higher within the first three months.",
+        "Secure partnerships with at least 5 key influencers in the industry by the launch date."
+      ],
+      "departments": [
+        "Marketing",
+        "Sales",
+        "Product Development",
+        "Customer Support",
+        "Finance"
+      ],
+      "description": "Comprehensive go-to-market strategy for new product line",
+      "lastUpdated": "2025-08-05T00:38:55.081Z",
+      "projectName": "Q4 Product Launch Campaign",
+      "approvalGates": [
+        {
+          "phase": "Pre-launch Review",
+          "status": "pending",
+          "approver": "Executive Team",
+          "criteria": [
+            "Final product readiness assessment",
+            "Marketing materials approval",
+            "Budget confirmation"
+          ]
+        },
+        {
+          "phase": "Launch Day",
+          "status": "pending",
+          "approver": "Project Sponsor",
+          "criteria": [
+            "All departments confirm readiness",
+            "Marketing campaign is live",
+            "Sales team is trained and prepared"
+          ]
+        }
+      ],
+      "riskAssessment": {
+        "level": "medium",
+        "factors": [
+          "Market competition may hinder lead generation.",
+          "Product development delays could impact launch timeline.",
+          "Budget constraints may limit marketing efforts."
+        ],
+        "mitigations": [
+          "Conduct thorough market analysis to identify competitive advantages.",
+          "Implement agile project management to address development delays.",
+          "Allocate contingency budget for unexpected expenses."
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "Market Share Increase",
+          "target": "20%",
+          "measurement": "Percentage of market share before and after launch"
+        },
+        {
+          "metric": "Qualified Leads Generated",
+          "target": "500",
+          "measurement": "Number of leads generated through campaign efforts"
+        },
+        {
+          "metric": "Customer Satisfaction Score",
+          "target": "85%",
+          "measurement": "Customer feedback surveys post-launch"
+        },
+        {
+          "metric": "Influencer Partnerships Secured",
+          "target": "5",
+          "measurement": "Number of partnerships established by launch date"
+        }
+      ],
+      "resourceAllocation": [
+        {
+          "priority": "high",
+          "department": "Marketing",
+          "orchestrator": "Marketing Manager",
+          "estimatedHours": 120
+        },
+        {
+          "priority": "high",
+          "department": "Sales",
+          "orchestrator": "Sales Director",
+          "estimatedHours": 80
+        },
+        {
+          "priority": "medium",
+          "department": "Product Development",
+          "orchestrator": "Product Manager",
+          "estimatedHours": 100
+        },
+        {
+          "priority": "medium",
+          "department": "Customer Support",
+          "orchestrator": "Support Manager",
+          "estimatedHours": 40
+        },
+        {
+          "priority": "low",
+          "department": "Finance",
+          "orchestrator": "Finance Officer",
+          "estimatedHours": 30
+        }
+      ]
+    },
+    "step_results": {
+      "finance-step": {
+        "status": "pending",
+        "stepId": "finance-step",
+        "stepName": "Financial Review",
+        "projectId": "project_1754354323088_t3tyi49t8",
+        "department": "finance",
+        "lastUpdated": "2025-08-05T00:38:55.081Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "finance_analyst_agent"
+      },
+      "marketing-step": {
+        "status": "pending",
+        "stepId": "marketing-step",
+        "stepName": "Marketing Analysis",
+        "projectId": "project_1754354323088_t3tyi49t8",
+        "department": "marketing",
+        "lastUpdated": "2025-08-05T00:38:55.081Z",
+        "dependencies": [],
+        "estimatedDuration": 2,
+        "assignedOrchestrator": "marketing_specialist_agent"
+      }
+    },
+    "metadata": {
+      "projectId": "project_1754354323088_t3tyi49t8",
+      "lastUpdated": "2025-08-05T00:38:55.081Z",
+      "configuration": {
+        "routing": {
+          "loadBalancing": "least_loaded",
+          "fallbackAgents": [],
+          "preferredAgents": []
+        },
+        "monitoring": {
+          "alertThresholds": {
+            "errorRate": 10,
+            "queueDepth": 100,
+            "responseTime": 30000
+          },
+          "escalationPolicy": [
+            "department_orchestrator",
+            "ceo_orchestrator"
+          ],
+          "notificationChannels": [
+            "websocket",
+            "email"
+          ]
+        },
+        "retryPolicy": {
+          "timeoutMs": 300000,
+          "maxRetries": 3,
+          "backoffStrategy": "exponential"
+        }
+      },
+      "temporaryCache": {},
+      "operationalData": {
+        "queue": {
+          "failedTasks": 0,
+          "pendingTasks": 2,
+          "completedTasks": 0,
+          "processingTasks": 0
+        },
+        "heartbeat": {
+          "status": "active",
+          "lastSeen": "2025-08-05T00:38:55.081Z",
+          "location": "langgraph-state-service"
+        },
+        "resources": {
+          "cpuUsage": 0,
+          "memoryUsage": 0,
+          "storageUsage": 0,
+          "networkLatency": 0
+        },
+        "performance": {
+          "errorRate": 0,
+          "throughput": 0,
+          "successRate": 100,
+          "lastCalculated": "2025-08-05T00:38:55.081Z",
+          "avgResponseTime": 0
+        }
+      }
+    },
+    "state_version": 1,
+    "last_synchronized": "2025-08-05T00:38:55.081+00:00",
+    "created_at": "2025-08-05T00:38:55.236537+00:00",
+    "updated_at": "2025-08-05T00:38:55.236537+00:00"
+  }
+]

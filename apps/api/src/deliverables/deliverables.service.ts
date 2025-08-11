@@ -1,12 +1,22 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
-import { 
-  CreateDeliverableDto, 
-  UpdateDeliverableDto, 
-  CreateVersionDto, 
-  DeliverableFiltersDto 
+import {
+  CreateDeliverableDto,
+  UpdateDeliverableDto,
+  CreateVersionDto,
+  DeliverableFiltersDto,
 } from './dto';
-import { Deliverable, DeliverableVersion, DeliverableSearchResult } from './entities/deliverable.entity';
+import {
+  Deliverable,
+  DeliverableVersion,
+  DeliverableSearchResult,
+} from './entities/deliverable.entity';
 
 @Injectable()
 export class DeliverablesService {
@@ -17,8 +27,13 @@ export class DeliverablesService {
   /**
    * Create a new deliverable
    */
-  async create(createDto: CreateDeliverableDto, userId: string): Promise<Deliverable> {
-    this.logger.log(`Creating deliverable: ${createDto.title} for user: ${userId}`);
+  async create(
+    createDto: CreateDeliverableDto,
+    userId: string,
+  ): Promise<Deliverable> {
+    this.logger.log(
+      `Creating deliverable: ${createDto.title} for user: ${userId}`,
+    );
 
     try {
       const { data, error } = await this.supabaseService
@@ -43,7 +58,9 @@ export class DeliverablesService {
 
       if (error) {
         this.logger.error('Failed to create deliverable:', error);
-        throw new BadRequestException(`Failed to create deliverable: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to create deliverable: ${error.message}`,
+        );
       }
 
       this.logger.log(`Deliverable created successfully: ${data.id}`);
@@ -60,8 +77,19 @@ export class DeliverablesService {
   /**
    * Find all deliverables for a user with optional filtering
    */
-  async findAll(userId: string, filters: DeliverableFiltersDto): Promise<{ items: DeliverableSearchResult[], total: number, limit: number, offset: number, has_more: boolean }> {
-    this.logger.log(`Finding deliverables for user: ${userId} with filters: ${JSON.stringify(filters)}`);
+  async findAll(
+    userId: string,
+    filters: DeliverableFiltersDto,
+  ): Promise<{
+    items: DeliverableSearchResult[];
+    total: number;
+    limit: number;
+    offset: number;
+    has_more: boolean;
+  }> {
+    this.logger.log(
+      `Finding deliverables for user: ${userId} with filters: ${JSON.stringify(filters)}`,
+    );
 
     try {
       const { data, error } = await this.supabaseService
@@ -76,7 +104,9 @@ export class DeliverablesService {
 
       if (error) {
         this.logger.error('Failed to search deliverables:', error);
-        throw new BadRequestException(`Failed to search deliverables: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to search deliverables: ${error.message}`,
+        );
       }
 
       let results = data || [];
@@ -89,13 +119,13 @@ export class DeliverablesService {
       const items = results.map((item: any) => this.mapToSearchResult(item));
       const limit = filters.limit || 50;
       const offset = filters.offset || 0;
-      
+
       return {
         items,
         total: items.length, // TODO: Get actual total count from DB
         limit,
         offset,
-        has_more: items.length === limit // Simple heuristic - if we got exactly limit items, there might be more
+        has_more: items.length === limit, // Simple heuristic - if we got exactly limit items, there might be more
       };
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -126,12 +156,17 @@ export class DeliverablesService {
           throw new NotFoundException(`Deliverable not found: ${id}`);
         }
         this.logger.error('Failed to find deliverable:', error);
-        throw new BadRequestException(`Failed to find deliverable: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to find deliverable: ${error.message}`,
+        );
       }
 
       return this.mapToDeliverable(data);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       this.logger.error('Unexpected error finding deliverable:', error);
@@ -142,7 +177,11 @@ export class DeliverablesService {
   /**
    * Update a deliverable
    */
-  async update(id: string, updateDto: UpdateDeliverableDto, userId: string): Promise<Deliverable> {
+  async update(
+    id: string,
+    updateDto: UpdateDeliverableDto,
+    userId: string,
+  ): Promise<Deliverable> {
     this.logger.log(`Updating deliverable: ${id} for user: ${userId}`);
 
     try {
@@ -169,13 +208,18 @@ export class DeliverablesService {
 
       if (error) {
         this.logger.error('Failed to update deliverable:', error);
-        throw new BadRequestException(`Failed to update deliverable: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to update deliverable: ${error.message}`,
+        );
       }
 
       this.logger.log(`Deliverable updated successfully: ${id}`);
       return this.mapToDeliverable(data);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       this.logger.error('Unexpected error updating deliverable:', error);
@@ -186,8 +230,14 @@ export class DeliverablesService {
   /**
    * Create a new version of an existing deliverable
    */
-  async createVersion(parentId: string, createVersionDto: CreateVersionDto, userId: string): Promise<Deliverable> {
-    this.logger.log(`Creating version of deliverable: ${parentId} for user: ${userId}`);
+  async createVersion(
+    parentId: string,
+    createVersionDto: CreateVersionDto,
+    userId: string,
+  ): Promise<Deliverable> {
+    this.logger.log(
+      `Creating version of deliverable: ${parentId} for user: ${userId}`,
+    );
 
     try {
       // Verify parent exists and belongs to user
@@ -205,7 +255,9 @@ export class DeliverablesService {
 
       if (error) {
         this.logger.error('Failed to create deliverable version:', error);
-        throw new BadRequestException(`Failed to create version: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to create version: ${error.message}`,
+        );
       }
 
       // Fetch the newly created version
@@ -213,10 +265,16 @@ export class DeliverablesService {
       this.logger.log(`Deliverable version created successfully: ${data}`);
       return newDeliverable;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      this.logger.error('Unexpected error creating deliverable version:', error);
+      this.logger.error(
+        'Unexpected error creating deliverable version:',
+        error,
+      );
       throw new BadRequestException('Failed to create version');
     }
   }
@@ -224,8 +282,13 @@ export class DeliverablesService {
   /**
    * Get version history for a deliverable
    */
-  async getVersionHistory(deliverableId: string, userId: string): Promise<DeliverableVersion[]> {
-    this.logger.log(`Getting version history for deliverable: ${deliverableId} for user: ${userId}`);
+  async getVersionHistory(
+    deliverableId: string,
+    userId: string,
+  ): Promise<DeliverableVersion[]> {
+    this.logger.log(
+      `Getting version history for deliverable: ${deliverableId} for user: ${userId}`,
+    );
 
     try {
       // Verify the deliverable exists and belongs to the user
@@ -239,12 +302,17 @@ export class DeliverablesService {
 
       if (error) {
         this.logger.error('Failed to get version history:', error);
-        throw new BadRequestException(`Failed to get version history: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to get version history: ${error.message}`,
+        );
       }
 
       return (data || []).map((item: any) => this.mapToVersion(item));
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       this.logger.error('Unexpected error getting version history:', error);
@@ -271,12 +339,17 @@ export class DeliverablesService {
 
       if (error) {
         this.logger.error('Failed to delete deliverable:', error);
-        throw new BadRequestException(`Failed to delete deliverable: ${error.message}`);
+        throw new BadRequestException(
+          `Failed to delete deliverable: ${error.message}`,
+        );
       }
 
       this.logger.log(`Deliverable deleted successfully: ${id}`);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       this.logger.error('Unexpected error deleting deliverable:', error);
@@ -297,7 +370,7 @@ export class DeliverablesService {
       '## Deliverable:',
     ];
 
-    return deliverableMarkers.some(marker => content.includes(marker));
+    return deliverableMarkers.some((marker) => content.includes(marker));
   }
 
   /**
@@ -309,19 +382,21 @@ export class DeliverablesService {
     type: string;
   } | null {
     // Look for deliverable markers and extract structured content
-    const deliverableMatch = content.match(/\*\*📋\s*(.*?):\*\*\n\n([\s\S]*?)(?=\n\n---|\n\n\*\*|$)/);
-    
+    const deliverableMatch = content.match(
+      /\*\*📋\s*(.*?):\*\*\n\n([\s\S]*?)(?=\n\n---|\n\n\*\*|$)/,
+    );
+
     if (deliverableMatch && deliverableMatch[1] && deliverableMatch[2]) {
       const title = deliverableMatch[1].trim();
       const extractedContent = deliverableMatch[2].trim();
-      
+
       // Determine type based on title
       let type = 'document';
       if (title.toLowerCase().includes('requirement')) type = 'requirements';
       else if (title.toLowerCase().includes('analysis')) type = 'analysis';
       else if (title.toLowerCase().includes('report')) type = 'report';
       else if (title.toLowerCase().includes('plan')) type = 'plan';
-      
+
       return { title, extractedContent, type };
     }
 

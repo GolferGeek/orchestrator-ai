@@ -1,0 +1,81 @@
+{
+  "exportedAt": "2025-08-11T13:56:00.359Z",
+  "tables": {
+    "users": {
+      "status": "success",
+      "records": 6,
+      "actualCount": 6
+    },
+    "profiles": {
+      "status": "error",
+      "error": "relation \"public.profiles\" does not exist",
+      "records": 0
+    },
+    "agent_conversations": {
+      "status": "success",
+      "records": 71,
+      "actualCount": 71
+    },
+    "tasks": {
+      "status": "success",
+      "records": 137,
+      "actualCount": 137
+    },
+    "projects": {
+      "status": "success",
+      "records": 3,
+      "actualCount": 3
+    },
+    "deliverables": {
+      "status": "success",
+      "records": 4,
+      "actualCount": 4
+    },
+    "llm_providers": {
+      "status": "success",
+      "records": 4,
+      "actualCount": 4
+    },
+    "llm_models": {
+      "status": "success",
+      "records": 9,
+      "actualCount": 9
+    },
+    "cidafm_commands": {
+      "status": "success",
+      "records": 27,
+      "actualCount": 27
+    },
+    "user_cidafm_commands": {
+      "status": "success",
+      "records": 0,
+      "actualCount": 0
+    },
+    "langgraph_states": {
+      "status": "success",
+      "records": 19,
+      "actualCount": 19
+    },
+    "project_steps": {
+      "status": "success",
+      "records": 0,
+      "actualCount": 0
+    },
+    "human_inputs": {
+      "status": "success",
+      "records": 0,
+      "actualCount": 0
+    },
+    "kpi_data": {
+      "status": "success",
+      "records": 1000,
+      "actualCount": 11182
+    },
+    "kpi_goals": {
+      "status": "success",
+      "records": 1000,
+      "actualCount": 3852
+    }
+  },
+  "totalRecords": 2280
+}

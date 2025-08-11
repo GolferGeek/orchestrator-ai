@@ -160,7 +160,7 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
       console.log(`🔍 DEBUG - Full result: ${JSON.stringify(result, null, 2)}`);
 
       expect(result.success).toBe(true);
-      
+
       // Check for either response or message field (delegation vs conversation)
       const responseContent = result.response || result.message;
       expect(responseContent).toBeDefined();
@@ -171,16 +171,20 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
 
       // Check if it's a conversation fallback (bad)
       if (responseContent && responseContent.includes("I'm the orchestrator")) {
-        console.log('❌ CONVERSATION FALLBACK DETECTED - LLM classified as CONVERSE instead of DELEGATE');
+        console.log(
+          '❌ CONVERSATION FALLBACK DETECTED - LLM classified as CONVERSE instead of DELEGATE',
+        );
         // Log the exact result for debugging
-        console.log(`🔍 Full result for debugging: ${JSON.stringify(result, null, 2)}`);
+        console.log(
+          `🔍 Full result for debugging: ${JSON.stringify(result, null, 2)}`,
+        );
       }
 
       // Validate LLM chose market research specialist (or flag if conversation fallback)
       if (result.agentName && !['market_research'].includes(result.agentName)) {
         console.log(`⚠️ Unexpected agent: ${result.agentName}`);
       }
-      
+
       // Allow test to continue for debugging even if conversation fallback
       if (result.agentName) {
         expect(['market_research', 'Orchestrator']).toContain(result.agentName);
@@ -798,9 +802,7 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
       expect(agentSequence[0]).toMatch(/(market_research)/); // Research question
       expect(agentSequence[1]).toMatch(/(market_research)/); // Competitive question
       expect(agentSequence[2]).toMatch(/(content|blog_post)/); // Content creation
-      expect(agentSequence[3]).toMatch(
-        /(content|blog_post|market_research)/,
-      ); // Campaign coordination
+      expect(agentSequence[3]).toMatch(/(content|blog_post|market_research)/); // Campaign coordination
 
       console.log(
         '🎯 Marketing Manager demonstrated intelligent context-aware agent selection!',
@@ -891,11 +893,9 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
       );
 
       // Validate that we got actual agent delegation, not just conversation
-      expect([
-        'content',
-        'blog_post',
-        'market_research',
-      ]).toContain(delegationResult.agentName);
+      expect(['content', 'blog_post', 'market_research']).toContain(
+        delegationResult.agentName,
+      );
 
       console.log('\n🎉 Complete Clarification Workflow Successful!');
       console.log(

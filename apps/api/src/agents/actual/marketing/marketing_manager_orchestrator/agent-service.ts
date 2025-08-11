@@ -14,9 +14,7 @@ export class MarketingManagerOrchestratorService extends OrchestratorAgentBaseSe
     MarketingManagerOrchestratorService.name,
   );
 
-  constructor(
-    services: OrchestratorAgentServicesContext,
-  ) {
+  constructor(services: OrchestratorAgentServicesContext) {
     super(services);
   }
 

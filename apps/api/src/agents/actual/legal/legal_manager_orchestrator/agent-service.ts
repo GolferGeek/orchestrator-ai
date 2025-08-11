@@ -5,10 +5,8 @@ import { OrchestratorAgentServicesContext } from '../../../base/implementations/
 @Injectable()
 export class LegalManagerOrchestratorService extends OrchestratorAgentBaseService {
   protected readonly logger = new Logger(LegalManagerOrchestratorService.name);
-  
-  constructor(
-    services: OrchestratorAgentServicesContext,
-  ) {
+
+  constructor(services: OrchestratorAgentServicesContext) {
     super(services);
   }
 

@@ -1,0 +1,243 @@
+[
+  {
+    "id": "494308ba-afb1-4bc8-983f-5acdec5920d4",
+    "provider_id": "7e157b23-07bb-47cd-9fe6-2c024d69ef6f",
+    "model_name": "gpt-4-turbo-preview",
+    "display_name": "GPT-4 Turbo Preview",
+    "model_type": "text-generation",
+    "context_window": 128000,
+    "max_output_tokens": 4096,
+    "model_parameters_json": {},
+    "pricing_info_json": {
+      "input_cost_per_token": 0.00001,
+      "output_cost_per_token": 0.00003
+    },
+    "capabilities": [
+      "function_calling",
+      "streaming",
+      "json_mode"
+    ],
+    "is_active": true,
+    "model_version": null,
+    "training_data_cutoff": null,
+    "created_at": "2025-05-31T15:55:10.204297+00:00",
+    "updated_at": "2025-05-31T15:55:10.204297+00:00"
+  },
+  {
+    "id": "1ac3d7f8-625e-49c3-99d0-130fe9df2be6",
+    "provider_id": "8e42c293-a4ea-4735-84a3-5fe9d88585f9",
+    "model_name": "claude-3-opus-20240229",
+    "display_name": "Claude 3 Opus",
+    "model_type": "text-generation",
+    "context_window": 200000,
+    "max_output_tokens": 4096,
+    "model_parameters_json": {},
+    "pricing_info_json": {
+      "input_cost_per_token": 0.000015,
+      "output_cost_per_token": 0.000075
+    },
+    "capabilities": [
+      "function_calling",
+      "streaming"
+    ],
+    "is_active": true,
+    "model_version": null,
+    "training_data_cutoff": null,
+    "created_at": "2025-05-31T15:55:10.204297+00:00",
+    "updated_at": "2025-05-31T15:55:10.204297+00:00"
+  },
+  {
+    "id": "73c68630-5c86-4076-8db0-ce2c3be69b0d",
+    "provider_id": "3df3f36b-8626-422f-a82e-594b9d174388",
+    "model_name": "gemini-pro",
+    "display_name": "Gemini Pro",
+    "model_type": "text-generation",
+    "context_window": 32768,
+    "max_output_tokens": 8192,
+    "model_parameters_json": {},
+    "pricing_info_json": {
+      "input_cost_per_token": 5e-7,
+      "output_cost_per_token": 0.0000015
+    },
+    "capabilities": [
+      "function_calling",
+      "streaming"
+    ],
+    "is_active": true,
+    "model_version": null,
+    "training_data_cutoff": null,
+    "created_at": "2025-05-31T15:55:10.204297+00:00",
+    "updated_at": "2025-05-31T15:55:10.204297+00:00"
+  },
+  {
+    "id": "24d53fed-d06b-485c-8f29-210848aad4d1",
+    "provider_id": "8e42c293-a4ea-4735-84a3-5fe9d88585f9",
+    "model_name": "claude-3-5-sonnet-20241022",
+    "display_name": "Claude 3.5 Sonnet",
+    "model_type": "text-generation",
+    "context_window": 200000,
+    "max_output_tokens": 8192,
+    "model_parameters_json": {
+      "top_p": 1,
+      "max_tokens": 8192,
+      "temperature": 0.7
+    },
+    "pricing_info_json": {
+      "currency": "USD",
+      "input_cost_per_token": 0.000003,
+      "output_cost_per_token": 0.000015
+    },
+    "capabilities": [
+      "function_calling",
+      "streaming",
+      "vision"
+    ],
+    "is_active": true,
+    "model_version": "20241022",
+    "training_data_cutoff": "2024-04-01",
+    "created_at": "2025-06-02T16:18:44.205991+00:00",
+    "updated_at": "2025-06-02T16:18:44.205991+00:00"
+  },
+  {
+    "id": "5c2c407d-41db-41bf-9d87-c59630fea405",
+    "provider_id": "8e42c293-a4ea-4735-84a3-5fe9d88585f9",
+    "model_name": "claude-3-7-sonnet-20250219",
+    "display_name": "Claude 3.7 Sonnet",
+    "model_type": "text-generation",
+    "context_window": 200000,
+    "max_output_tokens": 8192,
+    "model_parameters_json": {
+      "top_p": 1,
+      "max_tokens": 8192,
+      "temperature": 0.7
+    },
+    "pricing_info_json": {
+      "currency": "USD",
+      "input_cost_per_token": 0.000003,
+      "output_cost_per_token": 0.000015
+    },
+    "capabilities": [
+      "function_calling",
+      "streaming",
+      "vision"
+    ],
+    "is_active": true,
+    "model_version": "20250219",
+    "training_data_cutoff": "2024-08-01",
+    "created_at": "2025-06-02T16:18:44.205991+00:00",
+    "updated_at": "2025-06-02T16:18:44.205991+00:00"
+  },
+  {
+    "id": "b7581e76-7a31-4138-9aa6-9bd4eb84ecd3",
+    "provider_id": "8e42c293-a4ea-4735-84a3-5fe9d88585f9",
+    "model_name": "claude-4-opus-20250219",
+    "display_name": "Claude 4 Opus",
+    "model_type": "text-generation",
+    "context_window": 200000,
+    "max_output_tokens": 8192,
+    "model_parameters_json": {
+      "top_p": 1,
+      "max_tokens": 8192,
+      "temperature": 0.7
+    },
+    "pricing_info_json": {
+      "currency": "USD",
+      "input_cost_per_token": 0.000015,
+      "output_cost_per_token": 0.000075
+    },
+    "capabilities": [
+      "function_calling",
+      "streaming",
+      "vision",
+      "reasoning"
+    ],
+    "is_active": true,
+    "model_version": "20250219",
+    "training_data_cutoff": "2024-10-01",
+    "created_at": "2025-06-02T16:18:44.205991+00:00",
+    "updated_at": "2025-06-02T16:18:44.205991+00:00"
+  },
+  {
+    "id": "f32889ba-e3ac-495f-9c6c-9a2c19594452",
+    "provider_id": "8e42c293-a4ea-4735-84a3-5fe9d88585f9",
+    "model_name": "claude-4-sonnet-20250219",
+    "display_name": "Claude 4 Sonnet",
+    "model_type": "text-generation",
+    "context_window": 200000,
+    "max_output_tokens": 8192,
+    "model_parameters_json": {
+      "top_p": 1,
+      "max_tokens": 8192,
+      "temperature": 0.7
+    },
+    "pricing_info_json": {
+      "currency": "USD",
+      "input_cost_per_token": 0.000003,
+      "output_cost_per_token": 0.000015
+    },
+    "capabilities": [
+      "function_calling",
+      "streaming",
+      "vision"
+    ],
+    "is_active": true,
+    "model_version": "20250219",
+    "training_data_cutoff": "2024-10-01",
+    "created_at": "2025-06-02T16:18:44.205991+00:00",
+    "updated_at": "2025-06-02T16:18:44.205991+00:00"
+  },
+  {
+    "id": "70e6a241-bec4-4e58-9e3b-7b0eaf9e70e9",
+    "provider_id": "27e27074-94a5-440c-9a5a-6bc8a949819f",
+    "model_name": "deepseek-r1:latest",
+    "display_name": "DeepSeek-R1 Latest",
+    "model_type": "text-generation",
+    "context_window": 32768,
+    "max_output_tokens": 8192,
+    "model_parameters_json": {
+      "top_p": 0.8,
+      "max_tokens": 8192,
+      "temperature": 0.7
+    },
+    "pricing_info_json": {
+      "currency": "USD",
+      "cost_model": "local"
+    },
+    "capabilities": [
+      "reasoning",
+      "streaming"
+    ],
+    "is_active": true,
+    "model_version": "latest",
+    "training_data_cutoff": "2024-06-01",
+    "created_at": "2025-06-02T16:18:44.205991+00:00",
+    "updated_at": "2025-06-02T16:18:44.205991+00:00"
+  },
+  {
+    "id": "a6732bfd-9c2c-4669-a9f7-21102446d6bb",
+    "provider_id": "27e27074-94a5-440c-9a5a-6bc8a949819f",
+    "model_name": "llama3.2:latest",
+    "display_name": "Llama 3.2 Latest",
+    "model_type": "text-generation",
+    "context_window": 131072,
+    "max_output_tokens": 8192,
+    "model_parameters_json": {
+      "top_p": 0.9,
+      "max_tokens": 8192,
+      "temperature": 0.7
+    },
+    "pricing_info_json": {
+      "currency": "USD",
+      "cost_model": "local"
+    },
+    "capabilities": [
+      "streaming",
+      "function_calling"
+    ],
+    "is_active": true,
+    "model_version": "latest",
+    "training_data_cutoff": "2024-04-01",
+    "created_at": "2025-06-02T16:18:44.205991+00:00",
+    "updated_at": "2025-06-02T16:18:44.205991+00:00"
+  }
+]

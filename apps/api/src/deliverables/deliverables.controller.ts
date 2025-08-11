@@ -13,7 +13,14 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DeliverablesService } from './deliverables.service';
 import {
@@ -22,7 +29,11 @@ import {
   CreateVersionDto,
   DeliverableFiltersDto,
 } from './dto';
-import { Deliverable, DeliverableVersion, DeliverableSearchResult } from './entities/deliverable.entity';
+import {
+  Deliverable,
+  DeliverableVersion,
+  DeliverableSearchResult,
+} from './entities/deliverable.entity';
 
 @ApiTags('deliverables')
 @ApiBearerAuth()
@@ -32,14 +43,14 @@ export class DeliverablesController {
   constructor(private readonly deliverablesService: DeliverablesService) {}
 
   @Post()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Create a new deliverable',
-    description: 'Creates a new deliverable for the authenticated user'
+    description: 'Creates a new deliverable for the authenticated user',
   })
-  @ApiResponse({ 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: 'Deliverable created successfully',
-    type: Deliverable 
+    type: Deliverable,
   })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -52,49 +63,86 @@ export class DeliverablesController {
   }
 
   @Get()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get user deliverables',
-    description: 'Retrieves all deliverables for the authenticated user with optional filtering'
+    description:
+      'Retrieves all deliverables for the authenticated user with optional filtering',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Deliverables retrieved successfully',
     schema: {
       type: 'object',
       properties: {
-        items: { type: 'array', items: { $ref: '#/components/schemas/DeliverableSearchResult' } },
+        items: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/DeliverableSearchResult' },
+        },
         total: { type: 'number' },
         limit: { type: 'number' },
         offset: { type: 'number' },
-        has_more: { type: 'boolean' }
-      }
-    }
+        has_more: { type: 'boolean' },
+      },
+    },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiQuery({ name: 'search', required: false, description: 'Search term for title and content' })
-  @ApiQuery({ name: 'type', required: false, description: 'Filter by deliverable type' })
-  @ApiQuery({ name: 'format', required: false, description: 'Filter by format' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Number of results to return (1-100)', type: Number })
-  @ApiQuery({ name: 'offset', required: false, description: 'Number of results to skip', type: Number })
-  @ApiQuery({ name: 'latest_only', required: false, description: 'Show only latest versions', type: Boolean })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Search term for title and content',
+  })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    description: 'Filter by deliverable type',
+  })
+  @ApiQuery({
+    name: 'format',
+    required: false,
+    description: 'Filter by format',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of results to return (1-100)',
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    description: 'Number of results to skip',
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'latest_only',
+    required: false,
+    description: 'Show only latest versions',
+    type: Boolean,
+  })
   async findAll(
     @Query() filters: DeliverableFiltersDto,
     @Req() req: any,
-  ): Promise<{ items: DeliverableSearchResult[], total: number, limit: number, offset: number, has_more: boolean }> {
+  ): Promise<{
+    items: DeliverableSearchResult[];
+    total: number;
+    limit: number;
+    offset: number;
+    has_more: boolean;
+  }> {
     const userId = req.user.sub;
     return this.deliverablesService.findAll(userId, filters);
   }
 
   @Get(':id')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get deliverable by ID',
-    description: 'Retrieves a specific deliverable by its ID'
+    description: 'Retrieves a specific deliverable by its ID',
   })
   @ApiParam({ name: 'id', description: 'Deliverable UUID' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Deliverable retrieved successfully',
-    type: Deliverable 
+    type: Deliverable,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Deliverable not found' })
@@ -107,15 +155,15 @@ export class DeliverablesController {
   }
 
   @Get(':id/versions')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get deliverable version history',
-    description: 'Retrieves the version history for a specific deliverable'
+    description: 'Retrieves the version history for a specific deliverable',
   })
   @ApiParam({ name: 'id', description: 'Deliverable UUID' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Version history retrieved successfully',
-    type: [DeliverableVersion]
+    type: [DeliverableVersion],
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Deliverable not found' })
@@ -128,15 +176,15 @@ export class DeliverablesController {
   }
 
   @Post(':id/versions')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Create new version of deliverable',
-    description: 'Creates a new version of an existing deliverable'
+    description: 'Creates a new version of an existing deliverable',
   })
   @ApiParam({ name: 'id', description: 'Parent deliverable UUID' })
-  @ApiResponse({ 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: 'Version created successfully',
-    type: Deliverable 
+    type: Deliverable,
   })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -151,15 +199,15 @@ export class DeliverablesController {
   }
 
   @Patch(':id')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update deliverable',
-    description: 'Updates an existing deliverable'
+    description: 'Updates an existing deliverable',
   })
   @ApiParam({ name: 'id', description: 'Deliverable UUID' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Deliverable updated successfully',
-    type: Deliverable 
+    type: Deliverable,
   })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -175,9 +223,9 @@ export class DeliverablesController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Delete deliverable',
-    description: 'Deletes a deliverable and all its versions'
+    description: 'Deletes a deliverable and all its versions',
   })
   @ApiParam({ name: 'id', description: 'Deliverable UUID' })
   @ApiResponse({ status: 204, description: 'Deliverable deleted successfully' })

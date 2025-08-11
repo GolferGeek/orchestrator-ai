@@ -299,7 +299,9 @@ export class DelegationService implements IDelegationService {
         taskPayload.params,
       );
 
-      this.logger.log(`🔍 DEBUG - Delegation result from agent: ${JSON.stringify(result, null, 2)}`);
+      this.logger.log(
+        `🔍 DEBUG - Delegation result from agent: ${JSON.stringify(result, null, 2)}`,
+      );
       this.logger.log(`A2A delegation completed successfully`);
       return result;
     } catch (error) {
@@ -317,20 +319,25 @@ export class DelegationService implements IDelegationService {
     input: OrchestratorInput,
   ): OrchestratorResponse {
     try {
-      this.logger.log(`🔍 DEBUG - Processing delegation result: ${JSON.stringify(delegationResult, null, 2)}`);
-      
+      this.logger.log(
+        `🔍 DEBUG - Processing delegation result: ${JSON.stringify(delegationResult, null, 2)}`,
+      );
+
       // Extract content from the delegation result
-      const content = delegationResult.response || delegationResult.message || 'Task completed';
-      
+      const content =
+        delegationResult.response ||
+        delegationResult.message ||
+        'Task completed';
+
       // Format agent name for display using the formatter service
       const displayName = this.agentNameFormatter.formatDisplayName(agentName);
-      
+
       // Add agent name at the top of the response
       const formattedMessage = `**${displayName}**\n\n${content}`;
-      
+
       const response: OrchestratorResponse = {
         success: true,
-        message: formattedMessage,  // Include agent name at the top
+        message: formattedMessage, // Include agent name at the top
         action: 'DELEGATE',
         agentName,
         metadata: {
@@ -355,8 +362,9 @@ export class DelegationService implements IDelegationService {
         response.projectId = delegationResult.projectId;
       }
 
-
-      this.logger.log(`🔍 DEBUG - Final orchestrator response: ${JSON.stringify(response, null, 2)}`);
+      this.logger.log(
+        `🔍 DEBUG - Final orchestrator response: ${JSON.stringify(response, null, 2)}`,
+      );
       return response;
     } catch (error) {
       this.logger.error('Failed to process delegation result:', error);
@@ -696,5 +704,4 @@ Can the ${agentName} agent handle this request?`;
       };
     }
   }
-
 }

@@ -40,10 +40,16 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     this.logger.log(
       `Classifying intent for prompt: "${input.prompt.substring(0, 100)}..."`,
     );
-    this.logger.log(`🔍 DEBUG - Delegation context provided: ${!!delegationContext}`);
+    this.logger.log(
+      `🔍 DEBUG - Delegation context provided: ${!!delegationContext}`,
+    );
     if (delegationContext) {
-      this.logger.log(`🔍 DEBUG - Delegation context length: ${delegationContext.length}`);
-      this.logger.log(`🔍 DEBUG - Delegation context preview: ${delegationContext.substring(0, 500)}...`);
+      this.logger.log(
+        `🔍 DEBUG - Delegation context length: ${delegationContext.length}`,
+      );
+      this.logger.log(
+        `🔍 DEBUG - Delegation context preview: ${delegationContext.substring(0, 500)}...`,
+      );
     }
 
     try {
@@ -118,7 +124,8 @@ export class IntentRecognitionService implements IIntentRecognitionService {
         } else {
           return {
             action: 'CONVERSE',
-            reasoning: 'No specific agent found in clarification history, falling back to conversation',
+            reasoning:
+              'No specific agent found in clarification history, falling back to conversation',
             confidence: 0.5,
           };
         }
@@ -132,7 +139,8 @@ export class IntentRecognitionService implements IIntentRecognitionService {
         // User chose project creation - redirect to UI
         return {
           action: 'CONVERSE',
-          reasoning: 'Project creation now requires explicit UI action - redirecting user',
+          reasoning:
+            'Project creation now requires explicit UI action - redirecting user',
           confidence: 0.95,
         };
       }
@@ -140,7 +148,6 @@ export class IntentRecognitionService implements IIntentRecognitionService {
 
     return null;
   }
-
 
   /**
    * Extract suggested agent from clarification conversation history
@@ -231,8 +238,12 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     const userMessage = this.buildUserAnalysisMessage(input, context);
 
     try {
-      this.logger.log(`🔍 DEBUG - About to call LLM with system prompt containing: ${systemPrompt.substring(0, 300)}...`);
-      this.logger.log(`🔍 DEBUG - User message: ${userMessage.substring(0, 500)}...`);
+      this.logger.log(
+        `🔍 DEBUG - About to call LLM with system prompt containing: ${systemPrompt.substring(0, 300)}...`,
+      );
+      this.logger.log(
+        `🔍 DEBUG - User message: ${userMessage.substring(0, 500)}...`,
+      );
 
       const response = await this.llmService.generateResponse(
         systemPrompt,
@@ -244,9 +255,15 @@ export class IntentRecognitionService implements IIntentRecognitionService {
         },
       );
 
-      this.logger.log(`🔍 DEBUG - LLM response received: ${response.substring(0, 500)}...`);
-      this.logger.debug(`Intent classification request: ${userMessage.substring(0, 200)}...`);
-      this.logger.debug(`Intent classification response: ${response.substring(0, 300)}...`);
+      this.logger.log(
+        `🔍 DEBUG - LLM response received: ${response.substring(0, 500)}...`,
+      );
+      this.logger.debug(
+        `Intent classification request: ${userMessage.substring(0, 200)}...`,
+      );
+      this.logger.debug(
+        `Intent classification response: ${response.substring(0, 300)}...`,
+      );
 
       return this.parseIntentResponse(response);
     } catch (error) {
@@ -273,14 +290,18 @@ export class IntentRecognitionService implements IIntentRecognitionService {
       // Parse delegation context to extract agent names
       // Look for lines starting with agent_name: (new simple format)
       const lines = delegationContext.split('\n');
-      const agentLines = lines.filter(line => 
-        line.match(/^[a-z_]+:\s+/) && !line.includes('##') && !line.includes('Authority') && !line.includes('Role')
+      const agentLines = lines.filter(
+        (line) =>
+          line.match(/^[a-z_]+:\s+/) &&
+          !line.includes('##') &&
+          !line.includes('Authority') &&
+          !line.includes('Role'),
       );
       this.logger.log(`🔍 Agent lines found: ${JSON.stringify(agentLines)}`);
-      
+
       if (agentLines.length > 0) {
         availableAgents = agentLines
-          .map(line => {
+          .map((line) => {
             const match = line.match(/^([a-z_]+):/);
             return match ? match[1] : null;
           })
@@ -422,11 +443,7 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
       }
 
       // Validate action type
-      const validActions = [
-        'DELEGATE',
-        'CONVERSE',
-        'CONTINUE_DELEGATION',
-      ];
+      const validActions = ['DELEGATE', 'CONVERSE', 'CONTINUE_DELEGATION'];
       if (!validActions.includes(parsed.action)) {
         throw new Error(`Invalid action: ${parsed.action}`);
       }

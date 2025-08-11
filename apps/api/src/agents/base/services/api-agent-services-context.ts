@@ -10,10 +10,10 @@ import { ConfigurationService } from '../sub-services/configuration/configuratio
 
 /**
  * Service container for API agents using the pure service container pattern.
- * 
+ *
  * This eliminates the constructor parameter explosion problem in API agents
  * by bundling all required and optional services into a single injectable container.
- * 
+ *
  * Usage: API agents accept only this service container as their constructor parameter.
  */
 @Injectable()
@@ -25,7 +25,8 @@ export class ApiAgentServicesContext {
     public readonly tasksService: TasksService,
 
     // Optional services - using @Optional() for all optional dependencies
-    @Optional() public readonly agentRegistrationService?: AgentRegistrationService,
+    @Optional()
+    public readonly agentRegistrationService?: AgentRegistrationService,
     @Optional() public readonly jsonRpcProtocolService?: JsonRpcProtocolService,
     @Optional() public readonly loggingService?: LoggingService,
     @Optional() public readonly authService?: AuthService,

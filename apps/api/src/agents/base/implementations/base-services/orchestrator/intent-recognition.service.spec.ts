@@ -21,7 +21,7 @@ import {
  */
 describe('IntentRecognitionService - Real LLM Tests', () => {
   let service: IntentRecognitionService;
-  
+
   const delegationContext = `
 ## Available Agents
 - **blog_post**: Long-form content, thought leadership, and educational content
@@ -65,9 +65,15 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
       };
 
       // Using real LLM service - no mocking!
-      const result: IntentDirective = await service.classifyIntent(input, delegationContext);
+      const result: IntentDirective = await service.classifyIntent(
+        input,
+        delegationContext,
+      );
 
-      console.log('🔍 Intent Classification Result:', JSON.stringify(result, null, 2));
+      console.log(
+        '🔍 Intent Classification Result:',
+        JSON.stringify(result, null, 2),
+      );
       console.log('🔍 Result action:', result.action);
       console.log('🔍 Expected actions:', ['DELEGATE', 'CREATE_PROJECT']);
 
@@ -94,7 +100,10 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
         conversationHistory: [],
       };
 
-      const result: IntentDirective = await service.classifyIntent(input, delegationContext);
+      const result: IntentDirective = await service.classifyIntent(
+        input,
+        delegationContext,
+      );
 
       expect(['CREATE_PROJECT', 'DELEGATE', 'CLARIFY']).toContain(
         result.action,
@@ -118,7 +127,10 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
         conversationHistory: [],
       };
 
-      const result: IntentDirective = await service.classifyIntent(input, delegationContext);
+      const result: IntentDirective = await service.classifyIntent(
+        input,
+        delegationContext,
+      );
 
       expect(['CONVERSE', 'DELEGATE', 'CLARIFY']).toContain(result.action);
       expect(result.confidence).toBeGreaterThan(0.3);
@@ -140,7 +152,10 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
         conversationHistory: [],
       };
 
-      const result: IntentDirective = await service.classifyIntent(input, delegationContext);
+      const result: IntentDirective = await service.classifyIntent(
+        input,
+        delegationContext,
+      );
 
       expect(result.action).toBe('RESUME_PROJECT');
       expect(result.projectId).toBe('proj_123_marketing_campaign');
@@ -174,7 +189,10 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
         ],
       };
 
-      const result: IntentDirective = await service.classifyIntent(input, delegationContext);
+      const result: IntentDirective = await service.classifyIntent(
+        input,
+        delegationContext,
+      );
 
       expect(result.action).toBe('CONTINUE_DELEGATION');
       expect(result.agentName).toBe('blog_post_writer');
@@ -204,7 +222,10 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
         ],
       };
 
-      const result: IntentDirective = await service.classifyIntent(input, delegationContext);
+      const result: IntentDirective = await service.classifyIntent(
+        input,
+        delegationContext,
+      );
 
       expect(['DELEGATE', 'CLARIFY']).toContain(result.action);
       if (result.action === 'DELEGATE') {
@@ -226,7 +247,10 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
         conversationHistory: [],
       };
 
-      const result: IntentDirective = await service.classifyIntent(input, delegationContext);
+      const result: IntentDirective = await service.classifyIntent(
+        input,
+        delegationContext,
+      );
 
       expect(['DELEGATE', 'CONVERSE', 'CLARIFY']).toContain(result.action);
       expect(result.confidence).toBeGreaterThan(0.0); // LLM may be confident about CLARIFY
@@ -244,7 +268,10 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
         conversationHistory: [],
       };
 
-      const result: IntentDirective = await service.classifyIntent(input, delegationContext);
+      const result: IntentDirective = await service.classifyIntent(
+        input,
+        delegationContext,
+      );
 
       expect(['CONVERSE', 'CLARIFY']).toContain(result.action);
       // Empty prompts might return high confidence for CONVERSE

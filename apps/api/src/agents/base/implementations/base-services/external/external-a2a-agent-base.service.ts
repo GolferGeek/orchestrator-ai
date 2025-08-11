@@ -7,9 +7,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import * as path from 'path';
 
-import {
-  AgentInfo,
-} from '@agents/base/sub-services/agent-registration/agent-registration.service';
+import { AgentInfo } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { ExternalAgentServicesContext } from '../../../services/external-agent-services-context';
 
 export interface ExternalA2AConfiguration {
@@ -144,7 +142,9 @@ export class ExternalA2AAgentBaseService
   async onModuleDestroy() {
     if (this.registrationResult?.success) {
       try {
-        await this.services.agentRegistrationService.unregisterAgent(this.getAgentId());
+        await this.services.agentRegistrationService.unregisterAgent(
+          this.getAgentId(),
+        );
         this.logger.log(`Unregistered external A2A agent: ${this.agentName}`);
       } catch (error) {
         this.logger.warn(`Failed to unregister external A2A agent:`, error);
@@ -229,7 +229,10 @@ export class ExternalA2AAgentBaseService
 
       // Record task start for evaluation metrics
       if (this.services.evaluationService) {
-        this.services.evaluationService.recordTaskStart(Date.now().toString(), method);
+        this.services.evaluationService.recordTaskStart(
+          Date.now().toString(),
+          method,
+        );
       }
 
       const startTime = Date.now();
@@ -339,13 +342,11 @@ export class ExternalA2AAgentBaseService
 
       this.logger.debug(`Looking for agent.yaml at: ${yamlPath}`);
 
-      const configResult = await this.services.configurationService.parseYamlFile<any>(
-        yamlPath,
-        {
+      const configResult =
+        await this.services.configurationService.parseYamlFile<any>(yamlPath, {
           substituteEnvVars: true,
           strictEnvVars: false,
-        },
-      );
+        });
 
       // Extract external A2A configuration
       this.externalConfig = this.extractExternalA2AConfig(configResult.data);

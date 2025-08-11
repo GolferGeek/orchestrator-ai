@@ -31,7 +31,8 @@ export class ContextMetricsListener {
     this.events.push(event);
     if (this.events.length > this.bufferSize) this.events.shift();
 
-    const broadcast = (process.env.CONTEXT_METRICS_BROADCAST || 'true') === 'true';
+    const broadcast =
+      (process.env.CONTEXT_METRICS_BROADCAST || 'true') === 'true';
     if (broadcast) {
       const rollup = this.getRollup();
       try {
@@ -60,11 +61,15 @@ export class ContextMetricsListener {
     const averageCompressionRatio =
       compressionRatios.reduce((a, b) => a + b, 0) / n;
 
-    const times = this.events.map((e) => e.processingTimeMs).sort((a, b) => a - b);
+    const times = this.events
+      .map((e) => e.processingTimeMs)
+      .sort((a, b) => a - b);
     const averageProcessingTimeMs =
       times.reduce((a, b) => a + b, 0) / (this.events.length || 1);
-    const p50ProcessingTimeMs = times[Math.floor(0.5 * (times.length - 1))] || 0;
-    const p95ProcessingTimeMs = times[Math.floor(0.95 * (times.length - 1))] || 0;
+    const p50ProcessingTimeMs =
+      times[Math.floor(0.5 * (times.length - 1))] || 0;
+    const p95ProcessingTimeMs =
+      times[Math.floor(0.95 * (times.length - 1))] || 0;
 
     return {
       events: this.events.length,
@@ -76,5 +81,3 @@ export class ContextMetricsListener {
     };
   }
 }
-
-
