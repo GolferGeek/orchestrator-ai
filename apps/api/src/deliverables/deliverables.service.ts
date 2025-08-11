@@ -175,6 +175,36 @@ export class DeliverablesService {
   }
 
   /**
+   * Find deliverables by conversation ID
+   */
+  async findByConversation(conversationId: string, userId: string): Promise<Deliverable[]> {
+    this.logger.log(`Finding deliverables for conversation: ${conversationId} for user: ${userId}`);
+
+    try {
+      const { data, error } = await this.supabaseService
+        .getServiceClient()
+        .from('deliverables')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        this.logger.error('Failed to find deliverables by conversation:', error);
+        throw new BadRequestException(`Failed to find deliverables by conversation: ${error.message}`);
+      }
+
+      return (data || []).map(item => this.mapToDeliverable(item));
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error('Unexpected error finding deliverables by conversation:', error);
+      throw new BadRequestException('Failed to find deliverables by conversation');
+    }
+  }
+
+  /**
    * Update a deliverable
    */
   async update(

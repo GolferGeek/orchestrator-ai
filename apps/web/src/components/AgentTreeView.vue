@@ -588,7 +588,7 @@ const endConversation = async (conversation: Conversation) => {
   try {
     console.log('🗑️ Attempting to delete conversation:', conversation.id, conversation.agentName);
     
-    let message = `Are you sure you want to permanently delete this conversation with ${conversation.agentName}?`;
+    let message = `Are you sure you want to permanently delete this conversation with ${cleanAgentName(conversation.agentName)}?`;
     let subHeader = 'This action cannot be undone and will delete all tasks and data.';
     
     // Add warning if there are active tasks

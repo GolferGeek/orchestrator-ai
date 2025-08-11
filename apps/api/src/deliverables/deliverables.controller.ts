@@ -154,6 +154,26 @@ export class DeliverablesController {
     return this.deliverablesService.findOne(id, userId);
   }
 
+  @Get('conversation/:conversationId')
+  @ApiOperation({ 
+    summary: 'Get deliverables by conversation ID',
+    description: 'Retrieves all deliverables associated with a specific conversation'
+  })
+  @ApiParam({ name: 'conversationId', description: 'Conversation UUID' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Deliverables retrieved successfully',
+    type: [Deliverable]
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async findByConversation(
+    @Param('conversationId', ParseUUIDPipe) conversationId: string,
+    @Req() req: any,
+  ): Promise<Deliverable[]> {
+    const userId = req.user.sub;
+    return this.deliverablesService.findByConversation(conversationId, userId);
+  }
+
   @Get(':id/versions')
   @ApiOperation({
     summary: 'Get deliverable version history',

@@ -51,6 +51,21 @@ export const useAgentChatStore = defineStore('agentChat', {
     canSend: (state) => {
       const activeConversation = state.conversations.find(conv => conv.id === state.activeConversationId);
       return !!activeConversation?.agent;
+    },
+    
+    isSendingMessage: (state) => {
+      const activeConversation = state.conversations.find(conv => conv.id === state.activeConversationId);
+      return activeConversation?.isSendingMessage || false;
+    },
+    
+    isLoading: (state) => {
+      const activeConversation = state.conversations.find(conv => conv.id === state.activeConversationId);
+      return activeConversation?.isLoading || false;
+    },
+    
+    error: (state) => {
+      const activeConversation = state.conversations.find(conv => conv.id === state.activeConversationId);
+      return activeConversation?.error || state.globalError;
     }
   },
 
@@ -506,6 +521,17 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     setError(error: string | null) {
       this.globalError = error;
+    },
+
+    /**
+     * Clear errors
+     */
+    clearError() {
+      const activeConversation = this.getActiveConversation();
+      if (activeConversation) {
+        activeConversation.error = undefined;
+      }
+      this.globalError = null;
     },
 
     /**
