@@ -9,6 +9,7 @@ import {
   ProjectStepStatus,
   ProjectWebSocketMessage,
 } from '@/orchestration/orchestration.types';
+import { getTableName } from '@/supabase/supabase.config';
 
 export interface CreateProjectParams {
   name?: string;
@@ -64,7 +65,7 @@ export class ProjectsService {
       let hierarchyLevel = 0;
       if (params.parentProjectId) {
         const { data: parentProject, error: parentError } = await client
-          .from('projects')
+          .from(getTableName('projects'))
           .select('hierarchy_level')
           .eq('id', params.parentProjectId)
           .single();
@@ -103,7 +104,7 @@ export class ProjectsService {
       }
 
       const { data, error } = await client
-        .from('projects')
+        .from(getTableName('projects'))
         .insert(projectData)
         .select()
         .single();
@@ -150,7 +151,7 @@ export class ProjectsService {
 
     try {
       let query = client
-        .from('projects')
+        .from(getTableName('projects'))
         .select('*, agent_conversations!inner(user_id)', { count: 'exact' })
         .eq('agent_conversations.user_id', userId);
 
@@ -194,7 +195,7 @@ export class ProjectsService {
 
     try {
       const { data, error } = await client
-        .from('projects')
+        .from(getTableName('projects'))
         .select('*')
         .eq('id', projectId)
         .single();
@@ -240,7 +241,7 @@ export class ProjectsService {
       if (params.metadata !== undefined) updateData.metadata = params.metadata;
 
       const { data, error } = await client
-        .from('projects')
+        .from(getTableName('projects'))
         .update(updateData)
         .eq('id', projectId)
         .select()
@@ -280,7 +281,7 @@ export class ProjectsService {
 
     try {
       const { error } = await client
-        .from('projects')
+        .from(getTableName('projects'))
         .delete()
         .eq('id', projectId);
 
@@ -304,7 +305,7 @@ export class ProjectsService {
 
     try {
       const { data, error } = await client
-        .from('projects')
+        .from(getTableName('projects'))
         .select('id, agent_conversations!inner(user_id)')
         .eq('id', projectId)
         .eq('agent_conversations.user_id', userId)
@@ -332,7 +333,7 @@ export class ProjectsService {
 
     try {
       const { data, error } = await client
-        .from('project_steps')
+        .from(getTableName('project_steps'))
         .select('*')
         .eq('project_id', projectId)
         .order('step_index', { ascending: true });

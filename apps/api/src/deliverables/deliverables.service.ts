@@ -17,6 +17,7 @@ import {
   DeliverableVersion,
   DeliverableSearchResult,
 } from './entities/deliverable.entity';
+import { getTableName } from '../supabase/supabase.config';
 
 @Injectable()
 export class DeliverablesService {
@@ -38,7 +39,7 @@ export class DeliverablesService {
     try {
       const { data, error } = await this.supabaseService
         .getServiceClient()
-        .from('deliverables')
+        .from(getTableName('deliverables'))
         .insert([
           {
             user_id: userId,
@@ -145,7 +146,7 @@ export class DeliverablesService {
     try {
       const { data, error } = await this.supabaseService
         .getServiceClient()
-        .from('deliverables')
+        .from(getTableName('deliverables'))
         .select('*')
         .eq('id', id)
         .eq('user_id', userId)
@@ -183,7 +184,7 @@ export class DeliverablesService {
     try {
       const { data, error } = await this.supabaseService
         .getServiceClient()
-        .from('deliverables')
+        .from(getTableName('deliverables'))
         .select('*')
         .eq('conversation_id', conversationId)
         .eq('user_id', userId)
@@ -220,7 +221,7 @@ export class DeliverablesService {
 
       const { data, error } = await this.supabaseService
         .getServiceClient()
-        .from('deliverables')
+        .from(getTableName('deliverables'))
         .update({
           title: updateDto.title,
           content: updateDto.content,
@@ -362,7 +363,7 @@ export class DeliverablesService {
 
       const { error } = await this.supabaseService
         .getServiceClient()
-        .from('deliverables')
+        .from(getTableName('deliverables'))
         .delete()
         .eq('id', id)
         .eq('user_id', userId);

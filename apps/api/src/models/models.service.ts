@@ -9,6 +9,7 @@ import {
 } from '../dto/llm-evaluation.dto';
 import { ModelStatus, CostCalculation } from '../types/llm-evaluation';
 import { mapModelFromDb, mapLLMModelFromDb } from '../utils/case-converter';
+import { getTableName } from '../supabase/supabase.config';
 
 interface ModelFilters {
   providerId?: string;
@@ -33,7 +34,7 @@ export class ModelsService {
     console.log(`[ModelsService] findAll called with filters:`, filters);
 
     let query = client
-      .from('llm_models')
+      .from(getTableName('llm_models'))
       .select(filters.includeProvider ? `*, provider:llm_providers(*)` : '*')
       .order('display_name');
 
@@ -104,7 +105,7 @@ export class ModelsService {
     const client = this.supabaseService.getServiceClient();
 
     const { data, error } = await client
-      .from('llm_models')
+      .from(getTableName('llm_models'))
       .select(includeProvider ? `*, provider:llm_providers(*)` : '*')
       .eq('id', id)
       .single();
@@ -129,7 +130,7 @@ export class ModelsService {
     const client = this.supabaseService.getServiceClient();
 
     let query = client
-      .from('llm_models')
+      .from(getTableName('llm_models'))
       .select(`*, provider:llm_providers(*)`)
       .eq('model_name', modelId);
 
@@ -157,7 +158,7 @@ export class ModelsService {
 
     // Check if provider exists
     const { data: provider } = await client
-      .from('llm_providers')
+      .from(getTableName('llm_providers'))
       .select('id')
       .eq('id', createModelDto.providerId)
       .single();
@@ -168,7 +169,7 @@ export class ModelsService {
 
     // Check if model_id already exists for this provider
     const { data: existingModel } = await client
-      .from('llm_models')
+      .from(getTableName('llm_models'))
       .select('id')
       .eq('provider_id', createModelDto.providerId)
       .eq('model_name', createModelDto.modelId)
@@ -182,7 +183,7 @@ export class ModelsService {
     }
 
     const { data, error } = await client
-      .from('llm_models')
+      .from(getTableName('llm_models'))
       .insert({
         provider_id: createModelDto.providerId,
         display_name: createModelDto.name,
@@ -225,7 +226,7 @@ export class ModelsService {
     // If updating model_id, check for conflicts
     if (updateModelDto.modelId && updateModelDto.modelId !== existing.modelId) {
       const { data: existingModel } = await client
-        .from('llm_models')
+        .from(getTableName('llm_models'))
         .select('id')
         .eq('provider_id', existing.providerId)
         .eq('model_name', updateModelDto.modelId)
@@ -241,7 +242,7 @@ export class ModelsService {
     }
 
     const { data, error } = await client
-      .from('llm_models')
+      .from(getTableName('llm_models'))
       .update({
         ...updateModelDto,
         updated_at: new Date().toISOString(),
@@ -271,7 +272,7 @@ export class ModelsService {
 
     // Check if model has any usage in messages
     const { data: messages } = await client
-      .from('messages')
+      .from(getTableName('messages'))
       .select('id')
       .eq('model_id', id)
       .limit(1);
@@ -283,7 +284,7 @@ export class ModelsService {
       );
     }
 
-    const { error } = await client.from('llm_models').delete().eq('id', id);
+    const { error } = await client.from(getTableName('llm_models')).delete().eq('id', id);
 
     if (error) {
       throw new HttpException(
@@ -346,7 +347,7 @@ export class ModelsService {
     const client = this.supabaseService.getServiceClient();
 
     let query = client
-      .from('llm_models')
+      .from(getTableName('llm_models'))
       .select(`*, provider:providers(*)`)
       .eq('status', 'active')
       .contains('use_cases', [filters.useCase])
@@ -397,7 +398,7 @@ export class ModelsService {
     const client = this.supabaseService.getServiceClient();
 
     const { data, error } = await client
-      .from('llm_models')
+      .from(getTableName('llm_models'))
       .select(`*, provider:llm_providers(*)`)
       .eq('provider.provider_name', providerName)
       .eq('is_active', true)

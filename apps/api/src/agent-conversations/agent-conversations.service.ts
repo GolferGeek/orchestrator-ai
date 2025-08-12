@@ -7,6 +7,7 @@ import {
   AgentConversationQueryParams,
   AgentType,
 } from '../common/types/agent-conversations.types';
+import { getTableName } from '../supabase/supabase.config';
 
 @Injectable()
 export class AgentConversationsService {
@@ -55,7 +56,7 @@ export class AgentConversationsService {
 
       const { data, error } = await this.supabaseService
         .getAnonClient()
-        .from('agent_conversations')
+        .from(getTableName('agent_conversations'))
         .insert({
           user_id: userId,
           agent_name: dto.agentName,
@@ -91,7 +92,7 @@ export class AgentConversationsService {
     try {
       const { data, error } = await this.supabaseService
         .getAnonClient()
-        .from('agent_conversations')
+        .from(getTableName('agent_conversations'))
         .select()
         .eq('id', conversationId)
         .eq('user_id', userId)
@@ -124,7 +125,7 @@ export class AgentConversationsService {
       if (existingConversationId) {
         const { data: existing } = await this.supabaseService
           .getAnonClient()
-          .from('agent_conversations')
+          .from(getTableName('agent_conversations'))
           .select()
           .eq('id', existingConversationId)
           .eq('user_id', userId)
@@ -145,7 +146,7 @@ export class AgentConversationsService {
       // First try to find an active conversation
       const { data: existing } = await this.supabaseService
         .getAnonClient()
-        .from('agent_conversations')
+        .from(getTableName('agent_conversations'))
         .select()
         .eq('user_id', userId)
         .eq('agent_name', agentName)
@@ -178,7 +179,7 @@ export class AgentConversationsService {
     try {
       let query = this.supabaseService
         .getAnonClient()
-        .from('agent_conversations_with_stats')
+        .from(getTableName('agent_conversations_with_stats'))
         .select('*', { count: 'exact' });
 
       // Apply filters
@@ -228,7 +229,7 @@ export class AgentConversationsService {
     try {
       const { error } = await this.supabaseService
         .getAnonClient()
-        .from('agent_conversations')
+        .from(getTableName('agent_conversations'))
         .update({
           ended_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -266,7 +267,7 @@ export class AgentConversationsService {
       // Delete related tasks first (if any)
       const { error: tasksError } = await this.supabaseService
         .getAnonClient()
-        .from('tasks')
+        .from(getTableName('tasks'))
         .delete()
         .eq('agent_conversation_id', conversationId)
         .eq('user_id', userId);
@@ -281,7 +282,7 @@ export class AgentConversationsService {
       // Delete the conversation
       const { error } = await this.supabaseService
         .getAnonClient()
-        .from('agent_conversations')
+        .from(getTableName('agent_conversations'))
         .delete()
         .eq('id', conversationId)
         .eq('user_id', userId);
@@ -311,7 +312,7 @@ export class AgentConversationsService {
     try {
       const { error } = await this.supabaseService
         .getAnonClient()
-        .from('agent_conversations')
+        .from(getTableName('agent_conversations'))
         .update({
           metadata,
           updated_at: new Date().toISOString(),
@@ -338,7 +339,7 @@ export class AgentConversationsService {
     try {
       const { data, error } = await this.supabaseService
         .getAnonClient()
-        .from('agent_conversations')
+        .from(getTableName('agent_conversations'))
         .select()
         .eq('user_id', userId)
         .is('ended_at', null)

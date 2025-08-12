@@ -1,6 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { UsageStatsResponseDto } from '../dto/llm-evaluation.dto';
+import { getTableName } from '../supabase/supabase.config';
 
 interface UsageStatsOptions {
   startDate?: string;
@@ -40,56 +41,91 @@ export class UsageService {
     options: UsageStatsOptions,
   ): Promise<UsageStatsResponseDto> {
     const client = this.supabaseService.getServiceClient();
-
-    // Set default date range if not provided
-    const endDate = options.endDate || new Date().toISOString().split('T')[0];
     const startDate = options.startDate || this.getDateDaysAgo(30);
+    const endDate = options.endDate || new Date().toISOString().split('T')[0]!;
 
-    // Build base query for messages
-    let query = client
-      .from('messages')
-      .select(
-        `
-        id, timestamp, total_cost, input_tokens, output_tokens, response_time_ms,
-        user_rating, speed_rating, accuracy_rating,
-        provider:providers(id, name),
-        model:models(id, name, model_id)
-      `,
-      )
-      .eq('user_id', userId)
-      .gte('timestamp', startDate)
-      .lte('timestamp', endDate)
-      .not('total_cost', 'is', null);
+    try {
+      // Query tasks table for usage stats - tasks have llm_metadata with usage info
+      const { data: tasks, error } = await client
+        .from(getTableName('tasks'))
+        .select(`
+          id, 
+          created_at, 
+          completed_at,
+          started_at,
+          llm_metadata,
+          evaluation,
+          status
+        `)
+        .eq('user_id', userId)
+        .gte('created_at', startDate)
+        .lte('created_at', endDate)
+        .not('llm_metadata', 'is', null);
 
-    if (options.providerId) {
-      query = query.eq('provider_id', options.providerId);
+      if (error) {
+        throw new Error(`Failed to fetch usage stats: ${error.message}`);
+      }
+
+      // Calculate basic stats from tasks
+      const completedTasks = tasks?.filter(t => t.status === 'completed') || [];
+      const totalRequests = tasks?.length || 0;
+      
+      // Extract usage metrics from llm_metadata if available
+      let totalTokens = 0;
+      let totalCost = 0;
+      let totalResponseTime = 0;
+      let responseTimeCount = 0;
+
+      completedTasks.forEach(task => {
+        const metadata = task.llm_metadata;
+        if (metadata) {
+          // Extract token usage if available
+          if (metadata.usage) {
+            totalTokens += (metadata.usage.input_tokens || 0) + (metadata.usage.output_tokens || 0);
+          }
+          // Extract cost if available
+          if (metadata.cost) {
+            totalCost += metadata.cost;
+          }
+          // Calculate response time from timestamps
+          if (task.started_at && task.completed_at) {
+            const responseTime = new Date(task.completed_at).getTime() - new Date(task.started_at).getTime();
+            totalResponseTime += responseTime;
+            responseTimeCount++;
+          }
+        }
+      });
+
+      const averageResponseTime = responseTimeCount > 0 ? totalResponseTime / responseTimeCount : 0;
+
+      return {
+        userId,
+        dateRange: {
+          startDate,
+          endDate
+        },
+        totalRequests,
+        totalTokens,
+        totalCost,
+        averageResponseTime,
+        averageUserRating: 0 // TODO: Extract from evaluation data
+      };
+
+    } catch (error) {
+      // Return empty stats on error
+      return {
+        userId,
+        dateRange: {
+          startDate,
+          endDate
+        },
+        totalRequests: 0,
+        totalTokens: 0,
+        totalCost: 0,
+        averageResponseTime: 0,
+        averageUserRating: 0
+      };
     }
-
-    if (options.modelId) {
-      query = query.eq('model_id', options.modelId);
-    }
-
-    const { data: messages, error } = await query;
-
-    if (error) {
-      throw new HttpException(
-        `Failed to fetch usage stats: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    const stats = this.calculateStats(messages || [], startDate, endDate!);
-
-    if (options.includeDetails) {
-      stats.byProvider = this.groupByProvider(messages || []);
-      stats.byModel = this.groupByModel(messages || []);
-      stats.dailyStats = this.groupByDate(
-        messages || [],
-        options.granularity || 'daily',
-      );
-    }
-
-    return stats;
   }
 
   async getCostSummary(

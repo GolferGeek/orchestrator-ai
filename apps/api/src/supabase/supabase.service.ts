@@ -7,11 +7,14 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { getTableName, getSchemaForTable } from './supabase.config';
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {
   private anonClient: SupabaseClient | null = null;
   private serviceClient: SupabaseClient | null = null;
+  private coreSchema!: string;
+  private companySchema!: string;
   private readonly logger = new Logger(SupabaseService.name);
 
   constructor(private configService: ConfigService) {}
@@ -21,8 +24,7 @@ export class SupabaseService implements OnModuleInit {
   }
 
   private initializeClients() {
-    // Get configuration with mode support
-    const mode = this.configService.get<string>('supabase.mode') || 'cloud';
+    // Get configuration
     const url =
       this.configService.get<string>('supabase.url') ||
       this.configService.get<string>('SUPABASE_URL');
@@ -32,16 +34,26 @@ export class SupabaseService implements OnModuleInit {
     const serviceKey =
       this.configService.get<string>('supabase.serviceKey') ||
       this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
-    const database = this.configService.get<string>('supabase.database');
+    const coreSchema = 
+      this.configService.get<string>('supabase.coreSchema') ||
+      this.configService.get<string>('SUPABASE_CORE_SCHEMA');
+    const companySchema = 
+      this.configService.get<string>('supabase.companySchema') ||
+      this.configService.get<string>('SUPABASE_COMPANY_SCHEMA');
 
-    // Log the configuration mode
-    this.logger.log(`🔧 Initializing Supabase in ${mode.toUpperCase()} mode`);
-    if (mode === 'local') {
-      if (database) {
-        this.logger.log(`📊 Using database: ${database}`);
-      }
-      this.logger.log(`🔗 Database URL: ${url}`);
+    if (!coreSchema || !companySchema) {
+      this.logger.error('SUPABASE_CORE_SCHEMA and SUPABASE_COMPANY_SCHEMA must be set in environment');
+      throw new Error('SUPABASE_CORE_SCHEMA and SUPABASE_COMPANY_SCHEMA must be set in environment');
     }
+
+    // Log the configuration
+    this.logger.log(`🔧 Initializing Supabase client`);
+    this.logger.log(`📊 Core schema: ${coreSchema}, Company schema: ${companySchema}`);
+    this.logger.log(`🔗 Database URL: ${url}`);
+    
+    // Store schema configuration for easy access
+    this.coreSchema = coreSchema;
+    this.companySchema = companySchema;
 
     if (!url) {
       this.logger.warn(
@@ -232,30 +244,49 @@ export class SupabaseService implements OnModuleInit {
    * Get current Supabase configuration information
    */
   getConfig(): {
-    mode: string;
     url: string;
-    database?: string;
+    coreSchema: string;
+    companySchema: string;
     clientsAvailable: {
       anon: boolean;
       service: boolean;
     };
   } {
-    const mode = this.configService.get<string>('supabase.mode') || 'cloud';
     const url =
       this.configService.get<string>('supabase.url') ||
       this.configService.get<string>('SUPABASE_URL') ||
       '';
-    const database = this.configService.get<string>('supabase.database');
 
     return {
-      mode,
       url: url.substring(0, 30) + '...', // Truncate for security
-      database,
+      coreSchema: this.coreSchema,
+      companySchema: this.companySchema,
       clientsAvailable: {
         anon: this.anonClient !== null,
         service: this.serviceClient !== null,
       },
     };
+  }
+  
+  /**
+   * Get schema-aware table name
+   */
+  getTableName(tableName: string, explicitSchema?: string): string {
+    return getTableName(tableName, explicitSchema);
+  }
+  
+  /**
+   * Get core schema name
+   */
+  getCoreSchema(): string {
+    return this.coreSchema;
+  }
+  
+  /**
+   * Get company schema name  
+   */
+  getCompanySchema(): string {
+    return this.companySchema;
   }
 
   /**
@@ -272,8 +303,10 @@ export class SupabaseService implements OnModuleInit {
 
     try {
       // Attempt a simple query to test connectivity
+      const schema = getSchemaForTable('users');
       const { error } = await this.anonClient
-        .from('users') // Assuming users table exists from FastAPI schema
+        .schema(schema)
+        .from(getTableName('users'))
         .select('id')
         .limit(1);
 

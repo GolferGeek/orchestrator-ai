@@ -3,8 +3,25 @@ import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AgentPoolService } from './agent-pool/agent-pool.service';
 import * as express from 'express';
+import * as dotenv from 'dotenv';
+import { join } from 'path';
 
 async function bootstrap() {
+  // Load custom environment file if ENV_FILE is specified
+  if (process.env.ENV_FILE) {
+    const envFilePath = process.env.ENV_FILE.startsWith('/')
+      ? process.env.ENV_FILE
+      : join(process.cwd(), process.env.ENV_FILE);
+    
+    try {
+      dotenv.config({ path: envFilePath });
+      console.log(`🔧 Loaded environment variables from: ${envFilePath}`);
+    } catch (error) {
+      console.error(`❌ Failed to load environment file: ${envFilePath}`, error);
+      process.exit(1);
+    }
+  }
+
   const logger = new Logger('Bootstrap');
 
   // Parse command line arguments for --enable-external-agents

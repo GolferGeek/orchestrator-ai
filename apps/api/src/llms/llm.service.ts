@@ -18,6 +18,7 @@ import {
   UserLLMPreferences,
 } from '../types/llm-evaluation';
 import { mapProviderFromDb, mapModelFromDb } from '../utils/case-converter';
+import { getTableName } from '../supabase/supabase.config';
 
 // Explicitly set LangSmith environment variables for automatic tracing
 // Support both the official LangSmith env vars and our custom ones for backward compatibility
@@ -741,8 +742,8 @@ export class LLMService {
     // If both are provided, fetch them
     if (providerId && modelId) {
       const [providerResult, modelResult] = await Promise.all([
-        client.from('llm_providers').select('*').eq('id', providerId).single(),
-        client.from('llm_models').select('*').eq('id', modelId).single(),
+        client.from(getTableName('llm_providers')).select('*').eq('id', providerId).single(),
+        client.from(getTableName('llm_models')).select('*').eq('id', modelId).single(),
       ]);
 
       if (providerResult.data && modelResult.data) {
@@ -755,13 +756,13 @@ export class LLMService {
 
     // Fallback to default OpenAI GPT-4o mini
     const { data: defaultProvider } = await client
-      .from('llm_providers')
+      .from(getTableName('llm_providers'))
       .select('*')
       .eq('name', 'OpenAI')
       .single();
 
     const { data: defaultModel } = await client
-      .from('llm_models')
+      .from(getTableName('llm_models'))
       .select('*')
       .eq('model_id', 'gpt-4o-mini')
       .single();
@@ -790,7 +791,7 @@ export class LLMService {
 
     // Get provider details
     const { data: provider } = await client
-      .from('llm_providers')
+      .from(getTableName('llm_providers'))
       .select('*')
       .eq('id', model.providerId)
       .single();
