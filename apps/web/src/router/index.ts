@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
+import LandingPage from '../views/LandingPage.vue';
+import AgentsPage from '../views/AgentsPage.vue';
 import HomePage from '../views/HomePage.vue';
 import LoginPage from '../views/LoginPage.vue';
 import EvaluationsPage from '../views/EvaluationsPage.vue';
@@ -7,66 +9,85 @@ import EvaluationsPage from '../views/EvaluationsPage.vue';
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
-    redirect: '/home'
+    name: 'Landing',
+    component: LandingPage,
+    meta: { requiresAuth: false, public: true }
   },
   {
-    path: '/home',
-    name: 'Home',
-    component: HomePage,
-    meta: { requiresAuth: true }
+    path: '/app',
+    component: AgentsPage,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        redirect: '/app/home'
+      },
+      {
+        path: 'home',
+        name: 'Home',
+        component: HomePage,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'chat',
+        name: 'Chat', 
+        component: HomePage,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'evaluations',
+        name: 'Evaluations',
+        component: EvaluationsPage,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'admin/evaluations',
+        name: 'AdminEvaluations',
+        component: () => import('../views/AdminEvaluationsPage.vue'),
+        meta: { requiresAuth: true, requiresRole: ['admin', 'evaluation-monitor'] }
+      },
+      {
+        path: 'projects',
+        name: 'Projects',
+        component: () => import('../views/ProjectsListPage.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'projects/new',
+        name: 'NewProject',
+        component: () => import('../views/NewProjectPage.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'projects/:id',
+        name: 'ProjectDetail',
+        component: () => import('../views/ProjectDetailPage.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'deliverables',
+        name: 'Deliverables',
+        component: () => import('../views/DeliverablesListPage.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'organization',
+        name: 'Organization',
+        component: () => import('../views/OrganizationPage.vue'),
+        meta: { requiresAuth: true }
+      }
+    ]
   },
   {
-    path: '/chat',
-    name: 'Chat', 
-    component: HomePage,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/evaluations',
-    name: 'Evaluations',
-    component: EvaluationsPage,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/admin/evaluations',
-    name: 'AdminEvaluations',
-    component: () => import('../views/AdminEvaluationsPage.vue'),
-    meta: { requiresAuth: true, requiresRole: ['admin', 'evaluation-monitor'] }
+    path: '/videos',
+    name: 'VideoGallery',
+    component: () => import('../views/VideoGalleryPage.vue'),
+    meta: { requiresAuth: false, public: true }
   },
   {
     path: '/login', 
     name: 'Login',
     component: LoginPage
-  },
-  {
-    path: '/projects',
-    name: 'Projects',
-    component: () => import('../views/ProjectsListPage.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/projects/new',
-    name: 'NewProject',
-    component: () => import('../views/NewProjectPage.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/projects/:id',
-    name: 'ProjectDetail',
-    component: () => import('../views/ProjectDetailPage.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/deliverables',
-    name: 'Deliverables',
-    component: () => import('../views/DeliverablesListPage.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/organization',
-    name: 'Organization',
-    component: () => import('../views/OrganizationPage.vue'),
-    meta: { requiresAuth: true }
   }
 ];
 
