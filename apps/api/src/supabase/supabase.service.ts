@@ -36,8 +36,11 @@ export class SupabaseService implements OnModuleInit {
 
     // Log the configuration mode
     this.logger.log(`🔧 Initializing Supabase in ${mode.toUpperCase()} mode`);
-    if (mode === 'local' && database) {
-      this.logger.log(`📊 Using local database: ${database}`);
+    if (mode === 'local') {
+      if (database) {
+        this.logger.log(`📊 Using database: ${database}`);
+      }
+      this.logger.log(`🔗 Database URL: ${url}`);
     }
 
     if (!url) {

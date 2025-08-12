@@ -154,7 +154,7 @@ class EvaluationService {
   }
 
   private getBaseUrl(): string {
-    return import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
+    return import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:9000';
   }
 }
 
