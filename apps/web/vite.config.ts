@@ -17,7 +17,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: parseInt(process.env.WEB_PORT || '3000'),
+    port: parseInt(process.env.WEB_PORT || '9001'),
     host: true
   },
   test: {

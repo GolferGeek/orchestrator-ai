@@ -15,10 +15,10 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "format": "turbo run format",
-    "kill:3000": "lsof -ti:3000 | xargs kill -9 2>/dev/null || echo 'No process found on port 3000'",
-    "kill:4000": "lsof -ti:4000 | xargs kill -9 2>/dev/null || echo 'No process found on port 4000'",
+    "kill:9001": "lsof -ti:9001 | xargs kill -9 2>/dev/null || echo 'No process found on port 9001'",
+    "kill:9000": "lsof -ti:9000 | xargs kill -9 2>/dev/null || echo 'No process found on port 9000'",
     "kill:4100": "lsof -ti:4100 | xargs kill -9 2>/dev/null || echo 'No process found on port 4100'",
-    "kill:api": "npm run kill:4000"
+    "kill:api": "npm run kill:9000"
   },
   "devDependencies": {
     "@babel/plugin-proposal-class-properties": "^7.18.6",

@@ -87,8 +87,9 @@ export class HealthController {
       type: 'object',
       properties: {
         mode: { type: 'string', example: 'local' },
-        url: { type: 'string', example: 'http://localhost:8000...' },
-        database: { type: 'string', example: 'orchestrator_ai' },
+        environment: { type: 'string', example: 'sample' },
+        url: { type: 'string', example: 'http://localhost:8001...' },
+        database: { type: 'string', example: 'sample_environment' },
         clientsAvailable: {
           type: 'object',
           properties: {
@@ -96,6 +97,7 @@ export class HealthController {
             service: { type: 'boolean', example: true },
           },
         },
+        timestamp: { type: 'string', example: '2025-08-11T22:00:00.000Z' },
       },
     },
   })
