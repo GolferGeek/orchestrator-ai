@@ -16,6 +16,7 @@ import {
   UserProfileDto,
 } from './dto/auth.dto';
 import { UserRole } from './decorators/roles.decorator';
+import { getTableName } from '../supabase/supabase.config';
 
 @Injectable()
 export class AuthService {
@@ -222,7 +223,7 @@ export class AuthService {
       const serviceClient = this.supabaseService.getServiceClient();
 
       const { data: userData, error: queryError } = await serviceClient
-        .from('users')
+        .from(getTableName('users'))
         .select('id, email, display_name, roles, created_at')
         .eq('id', currentAuthUser.id)
         .single();
@@ -303,7 +304,7 @@ export class AuthService {
     try {
       const { data, error } = await this.supabaseService
         .getAnonClient()
-        .from('users')
+        .from(getTableName('users'))
         .select('id, email, display_name, roles, created_at, updated_at')
         .eq('id', userId)
         .single();
@@ -525,7 +526,7 @@ export class AuthService {
     try {
       const { error } = await this.supabaseService
         .getAnonClient()
-        .from('role_audit_log')
+        .from(getTableName('role_audit_log'))
         .insert({
           user_id: targetUserId,
           admin_user_id: adminUserId,

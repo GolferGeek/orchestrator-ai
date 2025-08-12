@@ -11,6 +11,7 @@ import {
   mapLLMProviderFromDb,
   mapLLMModelFromDb,
 } from '../utils/case-converter';
+import { getTableName } from '../supabase/supabase.config';
 
 @Injectable()
 export class ProvidersService {
@@ -20,7 +21,7 @@ export class ProvidersService {
     // Try service client first to bypass RLS
     const client = this.supabaseService.getServiceClient();
 
-    let query = client.from('llm_providers').select('*').order('name');
+    let query = client.from(getTableName('llm_providers')).select('*').order('name');
 
     if (status) {
       query = query.eq('status', status);
@@ -42,7 +43,7 @@ export class ProvidersService {
     const client = this.supabaseService.getServiceClient();
 
     const { data, error } = await client
-      .from('llm_providers')
+      .from(getTableName('llm_providers'))
       .select('*')
       .eq('id', id)
       .single();
@@ -67,7 +68,7 @@ export class ProvidersService {
     const client = this.supabaseService.getAnonClient();
 
     let query = client
-      .from('llm_models')
+      .from(getTableName('llm_models'))
       .select(
         `
         *,
@@ -101,7 +102,7 @@ export class ProvidersService {
 
     // Check if provider name already exists
     const { data: existingProvider } = await client
-      .from('llm_providers')
+      .from(getTableName('llm_providers'))
       .select('id')
       .eq('name', createProviderDto.name)
       .single();
@@ -121,7 +122,7 @@ export class ProvidersService {
     };
 
     const { data, error } = await client
-      .from('llm_providers')
+      .from(getTableName('llm_providers'))
       .insert(dbPayload)
       .select()
       .single();
@@ -151,7 +152,7 @@ export class ProvidersService {
     // If updating name, check for conflicts
     if (updateProviderDto.name && updateProviderDto.name !== existing.name) {
       const { data: existingProvider } = await client
-        .from('llm_providers')
+        .from(getTableName('llm_providers'))
         .select('id')
         .eq('name', updateProviderDto.name)
         .neq('id', id)
@@ -178,7 +179,7 @@ export class ProvidersService {
     dbPayload.updated_at = new Date().toISOString();
 
     const { data, error } = await client
-      .from('llm_providers')
+      .from(getTableName('llm_providers'))
       .update(dbPayload)
       .eq('id', id)
       .select()
@@ -205,7 +206,7 @@ export class ProvidersService {
 
     // Check if provider has any models
     const { data: models } = await client
-      .from('llm_models')
+      .from(getTableName('llm_models'))
       .select('id')
       .eq('provider_id', id)
       .limit(1);
@@ -217,7 +218,7 @@ export class ProvidersService {
       );
     }
 
-    const { error } = await client.from('llm_providers').delete().eq('id', id);
+    const { error } = await client.from(getTableName('llm_providers')).delete().eq('id', id);
 
     if (error) {
       throw new HttpException(
@@ -234,7 +235,7 @@ export class ProvidersService {
     const client = this.supabaseService.getAnonClient();
 
     const { data, error } = await client
-      .from('llm_providers')
+      .from(getTableName('llm_providers'))
       .select('*')
       .eq('name', name)
       .single();
@@ -259,7 +260,7 @@ export class ProvidersService {
     const client = this.supabaseService.getAnonClient();
 
     const { data, error } = await client
-      .from('llm_providers')
+      .from(getTableName('llm_providers'))
       .select(
         `
         *,

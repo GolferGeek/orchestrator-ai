@@ -43,7 +43,7 @@ function getOrchestratorClient() {
   if (!orchestratorClient) {
     // Use orchestrator database (main platform)
     const supabaseUrl = process.env.SUPABASE_MODE === 'local' 
-      ? process.env.SUPABASE_LOCAL_URL || 'http://localhost:8000'
+      ? process.env.SUPABASE_LOCAL_URL || 'http://localhost:9010'
       : process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
     
     const serviceKey = process.env.SUPABASE_MODE === 'local'
@@ -61,41 +61,25 @@ function getOrchestratorClient() {
 }
 
 /**
- * Get Company Database Client (Company/KPI data with environment-based routing)
+ * Get Company Database Client (Company/KPI data - same database, company schema)
  */
 function getCompanyClient() {
   if (!companyClient) {
-    // Environment-based routing for 2-database architecture
-    const currentEnvironment = process.env.CURRENT_ENVIRONMENT || 'sample';
-    let supabaseUrl: string;
-    let serviceKey: string;
+    // Use same database as orchestrator (single-instance demo)
+    const supabaseUrl = process.env.SUPABASE_MODE === 'local' 
+      ? process.env.SUPABASE_LOCAL_URL || 'http://localhost:9010'
+      : process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
     
-    if (process.env.SUPABASE_MODE === 'local') {
-      if (currentEnvironment === 'production') {
-        // Production environment database
-        supabaseUrl = process.env.PRODUCTION_ENVIRONMENT_SUPABASE_LOCAL_URL || 'http://localhost:8002';
-        serviceKey = process.env.PRODUCTION_ENVIRONMENT_SUPABASE_LOCAL_SERVICE_ROLE_KEY || 
-                    process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY || 
-                    process.env.SUPABASE_SERVICE_ROLE_KEY;
-      } else {
-        // Sample environment database (default)
-        supabaseUrl = process.env.SAMPLE_ENVIRONMENT_SUPABASE_LOCAL_URL || 'http://localhost:8001';
-        serviceKey = process.env.SAMPLE_ENVIRONMENT_SUPABASE_LOCAL_SERVICE_ROLE_KEY || 
-                    process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY || 
-                    process.env.SUPABASE_SERVICE_ROLE_KEY;
-      }
-    } else {
-      // Cloud mode uses the same cloud database for both environments
-      supabaseUrl = process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
-      serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    }
+    const serviceKey = process.env.SUPABASE_MODE === 'local'
+      ? process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+      : process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!serviceKey) {
-      throw new Error(`Company database service role key is required for ${currentEnvironment} environment`);
+      throw new Error('Company database service role key is required');
     }
 
     companyClient = createClient(supabaseUrl, serviceKey);
-    console.log(`🏢 Company client initialized (${currentEnvironment} environment):`, supabaseUrl);
+    console.log('🏢 Company client initialized:', supabaseUrl);
   }
   return companyClient;
 }
@@ -143,7 +127,7 @@ async function createOrchestratorSqlDatabase(): Promise<SqlDatabase> {
 
     console.log('✅ Orchestrator SQL Database interface created');
   }
-  return orchestratorSqlDatabase;
+  return orchestratorSqlDatabase!;
 }
 
 /**
@@ -199,7 +183,7 @@ async function createCompanySqlDatabase(): Promise<SqlDatabase> {
 
     console.log('✅ Company SQL Database interface created');
   }
-  return companySqlDatabase;
+  return companySqlDatabase!;
 }
 
 /**
@@ -381,12 +365,12 @@ export async function generateAndExecuteCompanySQL(
   try {
     await initializeForCompany(options.config);
 
-    const llm = getLLM(options.provider, options.model);
+    const llm = getLLM({ provider: options.provider, model: options.model });
     const db = await createCompanySqlDatabase();
-    const chain = createSqlQueryChain({
+    const chain = await createSqlQueryChain({
       llm,
       db,
-      dialect: 'postgresql',
+      dialect: 'postgres',
     });
 
     console.log('🔄 Generating SQL from natural language (Company DB):', naturalLanguageQuery);
@@ -454,12 +438,12 @@ export async function generateAndExecuteOrchestratorSQL(
   try {
     await initializeForOrchestrator(options.config);
 
-    const llm = getLLM(options.provider, options.model);
+    const llm = getLLM({ provider: options.provider, model: options.model });
     const db = await createOrchestratorSqlDatabase();
-    const chain = createSqlQueryChain({
+    const chain = await createSqlQueryChain({
       llm,
       db,
-      dialect: 'postgresql',
+      dialect: 'postgres',
     });
 
     console.log('🔄 Generating SQL from natural language (Orchestrator DB):', naturalLanguageQuery);
