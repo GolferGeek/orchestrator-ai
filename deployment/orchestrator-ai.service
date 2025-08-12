@@ -1,0 +1,15 @@
+[Unit]
+Description=Orchestrator AI Production Environment
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/Users/golfergeek/projects/orchestrator-ai
+ExecStart=/usr/bin/npm run dev:production
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=always
+RestartSec=10
+TimeoutStartSec=30
+
+[Install]
+WantedBy=multi-user.target
