@@ -10,8 +10,10 @@ import { SqlDatabase } from 'langchain/sql_db';
 import { createSqlQueryChain } from 'langchain/chains/sql_db';
 
 // Global state for Supabase tools
-let supabaseClient: any = null;
-let sqlDatabase: SqlDatabase | null = null;
+let orchestratorClient: any = null;
+let companyClient: any = null;
+let orchestratorSqlDatabase: SqlDatabase | null = null;
+let companySqlDatabase: SqlDatabase | null = null;
 let initialized = false;
 
 // Configuration interface
@@ -35,52 +37,91 @@ export interface SQLExecutionResult {
 }
 
 /**
- * Initialize Supabase client if not already done
+ * Get Orchestrator Database Client (Core platform data: users, tasks, agents, conversations)
  */
-function getSupabaseClient() {
-  if (!supabaseClient) {
-    const supabaseUrl =
-      process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+function getOrchestratorClient() {
+  if (!orchestratorClient) {
+    // Use orchestrator database (main platform)
+    const supabaseUrl = process.env.SUPABASE_MODE === 'local' 
+      ? process.env.SUPABASE_LOCAL_URL || 'http://localhost:8000'
+      : process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
+    
+    const serviceKey = process.env.SUPABASE_MODE === 'local'
+      ? process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+      : process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!serviceKey) {
-      throw new Error(
-        'SUPABASE_SERVICE_ROLE_KEY environment variable is required',
-      );
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required');
     }
 
-    supabaseClient = createClient(supabaseUrl, serviceKey);
-    console.log('✅ Supabase client initialized for tools');
+    orchestratorClient = createClient(supabaseUrl, serviceKey);
+    console.log('🎯 Orchestrator client initialized:', supabaseUrl);
   }
-  return supabaseClient;
+  return orchestratorClient;
 }
 
 /**
- * Create SQL Database interface for LangChain
+ * Get Company Database Client (Company/KPI data with environment-based routing)
  */
-async function createSqlDatabase(
-  config?: SupabaseToolsConfig,
-): Promise<SqlDatabase> {
-  if (!sqlDatabase) {
-    const client = getSupabaseClient();
+function getCompanyClient() {
+  if (!companyClient) {
+    // Environment-based routing for 2-database architecture
+    const currentEnvironment = process.env.CURRENT_ENVIRONMENT || 'sample';
+    let supabaseUrl: string;
+    let serviceKey: string;
+    
+    if (process.env.SUPABASE_MODE === 'local') {
+      if (currentEnvironment === 'production') {
+        // Production environment database
+        supabaseUrl = process.env.PRODUCTION_ENVIRONMENT_SUPABASE_LOCAL_URL || 'http://localhost:8002';
+        serviceKey = process.env.PRODUCTION_ENVIRONMENT_SUPABASE_LOCAL_SERVICE_ROLE_KEY || 
+                    process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY || 
+                    process.env.SUPABASE_SERVICE_ROLE_KEY;
+      } else {
+        // Sample environment database (default)
+        supabaseUrl = process.env.SAMPLE_ENVIRONMENT_SUPABASE_LOCAL_URL || 'http://localhost:8001';
+        serviceKey = process.env.SAMPLE_ENVIRONMENT_SUPABASE_LOCAL_SERVICE_ROLE_KEY || 
+                    process.env.SUPABASE_LOCAL_SERVICE_ROLE_KEY || 
+                    process.env.SUPABASE_SERVICE_ROLE_KEY;
+      }
+    } else {
+      // Cloud mode uses the same cloud database for both environments
+      supabaseUrl = process.env.SUPABASE_URL || 'https://jcmkjecmdugfzvdijodg.supabase.co';
+      serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    }
 
-    // Create SQL Database interface using Supabase HTTP API
-    sqlDatabase = {
+    if (!serviceKey) {
+      throw new Error(`Company database service role key is required for ${currentEnvironment} environment`);
+    }
+
+    companyClient = createClient(supabaseUrl, serviceKey);
+    console.log(`🏢 Company client initialized (${currentEnvironment} environment):`, supabaseUrl);
+  }
+  return companyClient;
+}
+
+/**
+ * Create SQL Database interface for LangChain - Orchestrator Database
+ */
+async function createOrchestratorSqlDatabase(): Promise<SqlDatabase> {
+  if (!orchestratorSqlDatabase) {
+    const client = getOrchestratorClient();
+
+    orchestratorSqlDatabase = {
       async run(query: string) {
-        console.log('🔄 Executing SQL via Supabase RPC:', query);
+        console.log('🔄 Executing SQL on Orchestrator DB:', query);
 
         try {
-          // Use Supabase RPC function for SQL execution
           const { data, error } = await client.rpc('exec_sql', {
             query: query,
           });
           if (error) {
             throw new Error(`SQL execution failed: ${error.message}`);
           }
-          console.log('✅ SQL executed successfully via Supabase RPC');
+          console.log('✅ SQL executed successfully on Orchestrator DB');
           return data;
         } catch (rpcError) {
-          console.log('❌ SQL execution failed:', rpcError);
+          console.log('❌ Orchestrator SQL execution failed:', rpcError);
           throw new Error(
             `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
           );
@@ -88,86 +129,193 @@ async function createSqlDatabase(
       },
 
       async getTableInfo() {
-        // Get schema context from database schema utilities
-        const schemaContext = await getDatabaseSchemaInfo(config);
+        // Get schema context for orchestrator tables
+        const schemaContext = await getDatabaseSchemaInfo();
         return schemaContext;
       },
 
       get allTables() {
-        // This needs to be synchronous for LangChain, so we'll implement a cached version
-        // For now, return a promise that resolves to table info
-        return getTableNames(config).then((names) =>
+        return getTableNames().then((names) =>
           names.map((name) => ({ tableName: name })),
         );
       },
     } as any;
 
-    console.log('✅ SQL Database interface created for LangChain');
+    console.log('✅ Orchestrator SQL Database interface created');
   }
-
-  // TypeScript assertion since we know sqlDatabase is not null after the if check
-  return sqlDatabase!;
+  return orchestratorSqlDatabase;
 }
 
 /**
- * Initialize the SQL database connection for LangChain using Supabase HTTP API
+ * Create SQL Database interface for LangChain - Company Database
  */
-export async function initializeSupabaseTools(
-  config?: SupabaseToolsConfig,
-): Promise<void> {
-  if (initialized) {
-    console.log('🔄 Supabase tools already initialized');
-    return;
+async function createCompanySqlDatabase(): Promise<SqlDatabase> {
+  if (!companySqlDatabase) {
+    const client = getCompanyClient();
+
+    companySqlDatabase = {
+      async run(query: string) {
+        console.log('🔄 Executing SQL on Company DB:', query);
+
+        try {
+          // Company database uses direct table queries (no exec_sql RPC)
+          // Parse and execute the query directly
+          const { data, error } = await executeQueryOnCompanyDB(client, query);
+          if (error) {
+            throw new Error(`SQL execution failed: ${error}`);
+          }
+          console.log('✅ SQL executed successfully on Company DB');
+          return data;
+        } catch (rpcError) {
+          console.log('❌ Company SQL execution failed:', rpcError);
+          throw new Error(
+            `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
+          );
+        }
+      },
+
+      async getTableInfo() {
+        // Return company database schema (with company schema prefix)
+        return `
+          Company Schema Tables:
+          company.companies: id, name, industry, founded_year, created_at, updated_at
+          company.departments: id, company_id, name, head_of_department, budget, created_at, updated_at
+          company.kpi_metrics: id, name, metric_type, unit, description, created_at, updated_at
+          company.kpi_goals: id, department_id, metric_id, target_value, period_start, period_end, created_at, updated_at
+          company.kpi_data: id, department_id, metric_id, value, date_recorded, created_at, updated_at
+        `;
+      },
+
+      get allTables() {
+        return Promise.resolve([
+          { tableName: 'company.companies' },
+          { tableName: 'company.departments' },
+          { tableName: 'company.kpi_metrics' },
+          { tableName: 'company.kpi_goals' },
+          { tableName: 'company.kpi_data' },
+        ]);
+      },
+    } as any;
+
+    console.log('✅ Company SQL Database interface created');
   }
+  return companySqlDatabase;
+}
 
-  console.log('🚀 Initializing Supabase tools with LangChain SQL support...');
+/**
+ * Execute a query on company database using PostgREST API
+ */
+async function executeQueryOnCompanyDB(client: any, query: string): Promise<{data: any, error?: string}> {
+  // Simple query parsing for basic SELECT statements on company schema
+  // This is a simplified approach - for production you'd want more robust SQL parsing
+  const lowerQuery = query.toLowerCase().trim();
+  
+  try {
+    // Handle count queries
+    if (lowerQuery.includes('select count(*)') && (lowerQuery.includes('company.companies') || lowerQuery.includes('companies'))) {
+      const { data, error } = await client.from('companies').select('*', { count: 'exact' });
+      return { data: [{ count: data?.length || 0 }], error: error?.message };
+    }
+    
+    // Handle schema-prefixed table queries
+    if (lowerQuery.includes('from company.companies') || lowerQuery.includes('from companies')) {
+      const { data, error } = await client.from('companies').select('*').limit(100);
+      return { data, error: error?.message };
+    }
+    
+    if (lowerQuery.includes('from company.departments') || lowerQuery.includes('from departments')) {
+      const { data, error } = await client.from('departments').select('*').limit(100);
+      return { data, error: error?.message };
+    }
+    
+    if (lowerQuery.includes('from company.kpi_data') || lowerQuery.includes('from kpi_data')) {
+      const { data, error } = await client.from('kpi_data').select('*').limit(100);
+      return { data, error: error?.message };
+    }
+    
+    if (lowerQuery.includes('from company.kpi_metrics') || lowerQuery.includes('from kpi_metrics')) {
+      const { data, error } = await client.from('kpi_metrics').select('*').limit(100);
+      return { data, error: error?.message };
+    }
+    
+    if (lowerQuery.includes('from company.kpi_goals') || lowerQuery.includes('from kpi_goals')) {
+      const { data, error } = await client.from('kpi_goals').select('*').limit(100);
+      return { data, error: error?.message };
+    }
+    
+    // For complex queries, try to execute via raw query if possible
+    // This is a fallback - you might need to implement more sophisticated query parsing
+    throw new Error('Complex query execution not implemented for company database');
+    
+  } catch (err) {
+    return { data: null, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
 
-  // Initialize database schema first
+/**
+ * Initialize Supabase tools for Orchestrator database
+ */
+export async function initializeForOrchestrator(config?: SupabaseToolsConfig) {
+  if (initialized) return;
+
+  console.log('🎯 Initializing Orchestrator database tools...');
+  
   await initializeDatabaseSchema();
-
-  // Initialize LangChain client
   initializeLangChain();
+  await createOrchestratorSqlDatabase();
 
-  // Create SQL database interface
-  await createSqlDatabase(config);
-
-  const client = getSupabaseClient();
-  console.log('✅ Supabase client and LangChain ready for SQL execution');
-
-  if (config?.agentName) {
-    console.log(`🤖 Initialized for agent: ${config.agentName}`);
-  }
-
-  if (config?.includeDomains) {
-    console.log(`📊 Including domains: ${config.includeDomains.join(', ')}`);
-  }
-
-  if (config?.tableNames) {
-    console.log(`📋 Including tables: ${config.tableNames.join(', ')}`);
-  }
-
+  console.log('✅ Orchestrator database tools initialized');
   initialized = true;
-  console.log('✅ Supabase tools initialization complete');
 }
 
 /**
- * Execute SQL query directly via Supabase RPC
+ * Initialize Supabase tools for Company database (KPI/Analytics)
  */
-export async function executeSQL(query: string): Promise<any> {
-  await initializeSupabaseTools();
+export async function initializeForCompany(config?: SupabaseToolsConfig) {
+  console.log('🏢 Initializing Company database tools...');
+  
+  await createCompanySqlDatabase();
+  
+  if (!initialized) {
+    initializeLangChain();
+    initialized = true;
+  }
 
-  const client = getSupabaseClient();
-  console.log('🔄 Executing SQL via Supabase RPC:', query);
+  console.log('✅ Company database tools initialized');
+}
+
+/**
+ * Legacy function - now routes to orchestrator
+ */
+export async function initializeForAgent(config?: SupabaseToolsConfig) {
+  const isKpiRequest = config?.includeDomains?.includes('KPI & Analytics') || 
+                      config?.agentName?.includes('Metrics');
+  
+  if (isKpiRequest) {
+    await initializeForCompany(config);
+  } else {
+    await initializeForOrchestrator(config);
+  }
+}
+
+/**
+ * Execute SQL query on Orchestrator database
+ */
+export async function executeOrchestratorSQL(query: string): Promise<any> {
+  await initializeForOrchestrator();
+  const client = getOrchestratorClient();
+  
+  console.log('🔄 Executing SQL on Orchestrator database:', query);
 
   try {
     const { data, error } = await client.rpc('exec_sql', { query });
     if (error) {
       throw new Error(`SQL execution failed: ${error.message}`);
     }
-    console.log('✅ SQL executed successfully via Supabase RPC');
+    console.log('✅ Orchestrator SQL executed successfully');
     return data;
   } catch (rpcError) {
-    console.log('❌ SQL execution failed:', rpcError);
+    console.log('❌ Orchestrator SQL execution failed:', rpcError);
     throw new Error(
       `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
     );
@@ -175,309 +323,249 @@ export async function executeSQL(query: string): Promise<any> {
 }
 
 /**
- * Get database schema information with agent-specific filtering
+ * Execute SQL query on Company database
  */
-export async function getDatabaseSchemaInfo(
-  config?: SupabaseToolsConfig,
-): Promise<string> {
-  await initializeDatabaseSchema();
+export async function executeCompanySQL(query: string): Promise<any> {
+  await initializeForCompany();
+  const client = getCompanyClient();
+  
+  console.log('🔄 Executing SQL on Company database:', query);
 
-  const schemaContext = await getSchemaContext({
-    tableNames: config?.tableNames,
-    includeDomains: config?.includeDomains,
-    includeRelationships: true,
-    includeBusinessContext: true,
-  });
-
-  const sqlRules = `
-SQL Syntax Rules:
-- NO semicolons in the middle of queries (semicolon only at the very end)
-- LIMIT clause comes after WHERE, GROUP BY, ORDER BY clauses
-- Correct format: SELECT ... FROM ... WHERE ... GROUP BY ... ORDER BY ... LIMIT N;
-- NEVER use semicolon before LIMIT: FROM table; LIMIT N is INVALID
-
-Column Name Rules:
-- ALWAYS use table aliases when joining multiple tables (e.g., c, d, kd, km)
-- ALWAYS prefix column names with table aliases to avoid ambiguity (e.g., c.name, km.name)
-- NEVER use bare column names like "name" when multiple tables have the same column
-- Include all non-aggregate columns in GROUP BY clause
-- Example: SELECT c.name, SUM(kd.value) FROM companies c JOIN ... GROUP BY c.id, c.name
-
-Query Optimization:
-- Always use LIMIT to prevent timeouts
-- Use indexes when available (most tables have id, created_at indexes)
-- For date filtering, use appropriate date columns
-  `;
-
-  return schemaContext + sqlRules;
-}
-
-/**
- * Get table names based on configuration
- */
-export async function getTableNames(
-  config?: SupabaseToolsConfig,
-): Promise<string[]> {
-  await initializeDatabaseSchema();
-
-  if (config?.tableNames) {
-    return config.tableNames;
-  }
-
-  if (config?.includeDomains) {
-    const tables: string[] = [];
-    for (const domain of config.includeDomains) {
-      const domainTables = await getTablesByDomain(domain);
-      tables.push(...domainTables.map((t) => t.name));
+  try {
+    const result = await executeQueryOnCompanyDB(client, query);
+    if (result.error) {
+      throw new Error(`SQL execution failed: ${result.error}`);
     }
-    return [...new Set(tables)]; // Remove duplicates
+    console.log('✅ Company SQL executed successfully');
+    return result.data;
+  } catch (sqlError) {
+    console.log('❌ Company SQL execution failed:', sqlError);
+    throw new Error(
+      `SQL execution failed: ${sqlError instanceof Error ? sqlError.message : 'Unknown error'}`,
+    );
   }
-
-  return await getAllTableNames();
 }
 
 /**
- * Clean up common SQL syntax issues
+ * Legacy function - now routes based on query content
  */
-function cleanSQL(sqlQuery: string): string {
-  return (
-    sqlQuery
-      .replace(/;\s*LIMIT/gi, ' LIMIT') // Fix semicolon before LIMIT
-      .replace(/;\s*ORDER\s+BY/gi, ' ORDER BY') // Fix semicolon before ORDER BY
-      .replace(/;\s*GROUP\s+BY/gi, ' GROUP BY') // Fix semicolon before GROUP BY
-      .replace(/;\s*WHERE/gi, ' WHERE') // Fix semicolon before WHERE
-      // Fix ambiguous "name" column when companies table is aliased as 'c'
-      .replace(/SELECT\s+"name"/gi, 'SELECT c.name')
-      .replace(/SELECT\s+name\b/gi, 'SELECT c.name')
-      // Fix GROUP BY when using company name
-      .replace(/GROUP BY c\.id(\s+ORDER)/gi, 'GROUP BY c.id, c.name$1')
-      .replace(/GROUP BY c\.id\s*$/gi, 'GROUP BY c.id, c.name')
-      .trim()
-  );
+export async function executeSQL(query: string): Promise<any> {
+  // Auto-detect if this is a company/KPI query
+  const lowerQuery = query.toLowerCase();
+  const isCompanyQuery = lowerQuery.includes('companies') || 
+                        lowerQuery.includes('departments') || 
+                        lowerQuery.includes('kpi_');
+  
+  if (isCompanyQuery) {
+    return executeCompanySQL(query);
+  } else {
+    return executeOrchestratorSQL(query);
+  }
 }
 
 /**
- * Generate and execute SQL from natural language query
+ * Generate and execute SQL using LangChain - Company database
  */
-export async function generateAndExecuteSQL(
+export async function generateAndExecuteCompanySQL(
   naturalLanguageQuery: string,
-  options?: {
+  options: {
     executeQuery?: boolean;
     maxRows?: number;
     provider?: string;
     model?: string;
-    agentContext?: string;
     config?: SupabaseToolsConfig;
-  },
+  } = {},
 ): Promise<SQLExecutionResult> {
   const startTime = Date.now();
-  const executeQuery = options?.executeQuery ?? true;
-  const maxRows = options?.maxRows ?? 100;
-  const provider = options?.provider ?? 'openai';
-  const model = options?.model ?? 'gpt-4';
-
+  
   try {
-    await initializeSupabaseTools(options?.config);
+    await initializeForCompany(options.config);
 
-    console.log(`Generating SQL for query: "${naturalLanguageQuery}"`);
-
-    // Get SQL database interface
-    const sqlDb = await createSqlDatabase(options?.config);
-    if (!sqlDb) {
-      throw new Error('SQL Database not initialized');
-    }
-
-    // Get LLM instance for SQL generation with 60 second timeout
-    // Use GPT-3.5-turbo for SQL generation to avoid GPT-4 rate limits
-    const sqlModel = model === 'gpt-4' ? 'gpt-3.5-turbo' : model;
-    const llm = getLLM({
-      provider,
-      model: sqlModel,
-      temperature: 0,
-      timeout: 60000,
-    });
-
-    // Create SQL query chain
-    const sqlQueryChain = await createSqlQueryChain({
+    const llm = getLLM(options.provider, options.model);
+    const db = await createCompanySqlDatabase();
+    const chain = createSqlQueryChain({
       llm,
-      db: sqlDb,
-      dialect: 'postgres',
+      db,
+      dialect: 'postgresql',
     });
 
-    // Enhance the query with explicit instructions for column disambiguation
-    const enhancedQuery = `${naturalLanguageQuery}
+    console.log('🔄 Generating SQL from natural language (Company DB):', naturalLanguageQuery);
 
-CRITICAL SQL REQUIREMENTS:
-- When joining companies table (aliased as 'c'), ALWAYS use c.name for company names
-- NEVER use bare "name" or name without table prefix when multiple tables have name columns
-- Include all selected non-aggregate columns in GROUP BY clause
-- Use table aliases: companies c, departments d, kpi_data kd, kpi_metrics km`;
+    const generatedSQL = await chain.invoke({
+      question: naturalLanguageQuery,
+    });
 
-    // Generate SQL query with retry logic for rate limits
-    let sqlQuery: string = '';
-    let retryCount = 0;
-    const maxRetries = 3;
-
-    while (retryCount <= maxRetries) {
-      try {
-        sqlQuery = await sqlQueryChain.invoke({
-          question: enhancedQuery,
-        });
-        break; // Success, exit retry loop
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-
-        // Check if it's a rate limit error
-        if (
-          errorMessage.includes('Rate limit') ||
-          errorMessage.includes('429')
-        ) {
-          retryCount++;
-          if (retryCount <= maxRetries) {
-            const waitTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
-            console.log(
-              `Rate limit hit, waiting ${waitTime}ms before retry ${retryCount}/${maxRetries}`,
-            );
-            await new Promise((resolve) => setTimeout(resolve, waitTime));
-            continue;
-          }
-        }
-        throw error; // Re-throw if not rate limit or max retries exceeded
-      }
-    }
-
-    if (!sqlQuery) {
-      throw new Error('Failed to generate SQL after retries');
-    }
-
-    // Clean up common SQL syntax issues
-    sqlQuery = cleanSQL(sqlQuery);
-    console.log(`Generated SQL (cleaned): ${sqlQuery}`);
-
-    let result: any[] | undefined;
+    let result: any[] = [];
     let error: string | undefined;
-    let rowCount: number | undefined;
 
-    if (executeQuery) {
+    if (options.executeQuery !== false) {
       try {
-        // Execute the generated SQL query
-        console.log(`Executing SQL query...`);
-        const queryResult: any = await sqlDb.run(sqlQuery);
-
-        // Handle different result formats from LangChain SQL execution
-        if (typeof queryResult === 'string') {
-          try {
-            // Try to parse as JSON if it's a string
-            const parsed = JSON.parse(queryResult);
-            if (Array.isArray(parsed)) {
-              result = parsed.slice(0, maxRows);
-              rowCount = parsed.length;
-            } else {
-              result = [parsed];
-              rowCount = 1;
-            }
-          } catch {
-            // If not JSON, treat as plain text result
-            result = [{ result: queryResult }];
-            rowCount = 1;
-          }
-        } else if (Array.isArray(queryResult)) {
-          result = queryResult.slice(0, maxRows);
-          rowCount = queryResult.length;
-        } else if (queryResult && typeof queryResult === 'object') {
-          // Handle object results (like TypeORM results)
-          if (queryResult.rows && Array.isArray(queryResult.rows)) {
-            result = queryResult.rows.slice(0, maxRows);
-            rowCount = queryResult.rows.length;
-          } else {
-            result = [queryResult];
-            rowCount = 1;
-          }
-        } else {
-          result = [{ result: queryResult }];
-          rowCount = 1;
+        result = await executeCompanySQL(generatedSQL);
+        if (options.maxRows && result.length > options.maxRows) {
+          result = result.slice(0, options.maxRows);
         }
-
-        console.log(`Query executed successfully, returned ${rowCount} rows`);
       } catch (executionError) {
-        error =
-          executionError instanceof Error
-            ? executionError.message
-            : 'Query execution failed';
-        console.error('Query execution failed:', executionError);
+        error = executionError instanceof Error ? executionError.message : 'Execution failed';
       }
     }
+
+    const executionTime = Date.now() - startTime;
 
     return {
-      sql: sqlQuery,
-      result,
+      sql: generatedSQL,
+      result: options.executeQuery !== false ? result : undefined,
       error,
       metadata: {
-        executionTime: Date.now() - startTime,
-        rowCount,
-        provider,
-        model,
+        executionTime,
+        rowCount: result?.length,
+        provider: options.provider || 'openai',
+        model: options.model || 'gpt-4',
       },
     };
-  } catch (error) {
+  } catch (generationError) {
     const executionTime = Date.now() - startTime;
-    console.error('Failed to generate/execute SQL:', error);
-
     return {
       sql: '',
-      error: error instanceof Error ? error.message : 'SQL generation failed',
+      error: generationError instanceof Error ? generationError.message : 'SQL generation failed',
       metadata: {
         executionTime,
-        provider,
-        model,
+        provider: options.provider || 'openai',
+        model: options.model || 'gpt-4',
       },
     };
   }
 }
 
 /**
- * Get schema information for agents
+ * Generate and execute SQL using LangChain - Orchestrator database
  */
-export async function getSchemaInfo(config?: SupabaseToolsConfig): Promise<{
-  tables: string[];
-  schema: string;
-}> {
-  await initializeSupabaseTools(config);
-
+export async function generateAndExecuteOrchestratorSQL(
+  naturalLanguageQuery: string,
+  options: {
+    executeQuery?: boolean;
+    maxRows?: number;
+    provider?: string;
+    model?: string;
+    config?: SupabaseToolsConfig;
+  } = {},
+): Promise<SQLExecutionResult> {
+  const startTime = Date.now();
+  
   try {
-    // Get SQL database interface and extract table info
-    const sqlDb = await createSqlDatabase(config);
-    const tables = await getTableNames(config);
-    const schema = await sqlDb.getTableInfo();
+    await initializeForOrchestrator(options.config);
+
+    const llm = getLLM(options.provider, options.model);
+    const db = await createOrchestratorSqlDatabase();
+    const chain = createSqlQueryChain({
+      llm,
+      db,
+      dialect: 'postgresql',
+    });
+
+    console.log('🔄 Generating SQL from natural language (Orchestrator DB):', naturalLanguageQuery);
+
+    const generatedSQL = await chain.invoke({
+      question: naturalLanguageQuery,
+    });
+
+    let result: any[] = [];
+    let error: string | undefined;
+
+    if (options.executeQuery !== false) {
+      try {
+        result = await executeOrchestratorSQL(generatedSQL);
+        if (options.maxRows && result.length > options.maxRows) {
+          result = result.slice(0, options.maxRows);
+        }
+      } catch (executionError) {
+        error = executionError instanceof Error ? executionError.message : 'Execution failed';
+      }
+    }
+
+    const executionTime = Date.now() - startTime;
 
     return {
-      tables,
-      schema,
+      sql: generatedSQL,
+      result: options.executeQuery !== false ? result : undefined,
+      error,
+      metadata: {
+        executionTime,
+        rowCount: result?.length,
+        provider: options.provider || 'openai',
+        model: options.model || 'gpt-4',
+      },
     };
-  } catch (error) {
-    console.error('Failed to get schema info:', error);
-    throw error;
+  } catch (generationError) {
+    const executionTime = Date.now() - startTime;
+    return {
+      sql: '',
+      error: generationError instanceof Error ? generationError.message : 'SQL generation failed',
+      metadata: {
+        executionTime,
+        provider: options.provider || 'openai',
+        model: options.model || 'gpt-4',
+      },
+    };
   }
 }
 
 /**
- * Check if Supabase tools are initialized
+ * Legacy function - now routes based on query content
  */
-export function isSupabaseToolsInitialized(): boolean {
-  return initialized;
+export async function generateAndExecuteSQL(
+  naturalLanguageQuery: string,
+  options: {
+    executeQuery?: boolean;
+    maxRows?: number;
+    provider?: string;
+    model?: string;
+    config?: SupabaseToolsConfig;
+  } = {},
+): Promise<SQLExecutionResult> {
+  // Auto-detect if this is a company/KPI query
+  const lowerQuery = naturalLanguageQuery.toLowerCase();
+  const isCompanyQuery = lowerQuery.includes('companies') || 
+                        lowerQuery.includes('departments') || 
+                        lowerQuery.includes('kpi') ||
+                        lowerQuery.includes('revenue') ||
+                        lowerQuery.includes('metric') ||
+                        lowerQuery.includes('goal') ||
+                        options.config?.includeDomains?.includes('KPI & Analytics');
+  
+  if (isCompanyQuery) {
+    return generateAndExecuteCompanySQL(naturalLanguageQuery, options);
+  } else {
+    return generateAndExecuteOrchestratorSQL(naturalLanguageQuery, options);
+  }
 }
 
 /**
- * Initialize for a specific agent with domain/table scope
+ * Get database schema information
  */
-export async function initializeForAgent(agentOptions: {
-  tableNames?: string[];
-  includeDomains?: string[];
-  agentName?: string;
-}): Promise<void> {
-  console.log(
-    `🤖 Initializing Supabase tools for agent: ${agentOptions.agentName || 'unnamed'}`,
-  );
-  await initializeSupabaseTools(agentOptions);
+export async function getDatabaseSchemaInfo(config?: SupabaseToolsConfig): Promise<string> {
+  if (config?.includeDomains?.includes('KPI & Analytics')) {
+    return `
+      Available tables for KPI & Analytics:
+      - companies: Company information and details
+      - departments: Organizational structure and budgets
+      - kpi_metrics: Key performance indicator definitions
+      - kpi_goals: Target values for each metric by department
+      - kpi_data: Historical performance data and measurements
+    `;
+  } else {
+    return getSchemaContext();
+  }
+}
+
+/**
+ * Get table names based on domain
+ */
+export async function getTableNames(config?: SupabaseToolsConfig): Promise<string[]> {
+  if (config?.includeDomains?.includes('KPI & Analytics')) {
+    return ['company.companies', 'company.departments', 'company.kpi_metrics', 'company.kpi_goals', 'company.kpi_data'];
+  } else if (config?.tableNames) {
+    return config.tableNames;
+  } else {
+    return getAllTableNames();
+  }
 }

@@ -3,10 +3,10 @@ import {
   AgentFunctionResponse,
 } from '@agents/base/implementations/base-services/a2a-base/interfaces';
 import {
-  initializeForAgent,
-  executeSQL,
+  initializeForCompany,
+  executeCompanySQL,
   getDatabaseSchemaInfo,
-  generateAndExecuteSQL,
+  generateAndExecuteCompanySQL,
 } from '@/supabase/utils/supabase-tools';
 
 /**
@@ -44,8 +44,8 @@ export async function execute(
       'Initializing Metrics Agent with KPI & Analytics domain scope...',
     );
 
-    // Initialize the Supabase Tools utilities with agent-specific scope
-    await initializeForAgent({
+    // Initialize the Company database tools for KPI & Analytics
+    await initializeForCompany({
       includeDomains: ['KPI & Analytics'],
       agentName: 'Enhanced Metrics Agent',
     });
@@ -71,7 +71,7 @@ export async function execute(
 
     try {
       // Test basic connectivity with a KPI-focused query
-      const testResult = await generateAndExecuteSQL(
+      const testResult = await generateAndExecuteCompanySQL(
         'Show me the count of companies in the database',
         {
           executeQuery: true,
@@ -194,7 +194,7 @@ Respond with JSON only:
       'Generating SQL from natural language...',
     );
 
-    const userQueryResult = await generateAndExecuteSQL(userMessage, {
+    const userQueryResult = await generateAndExecuteCompanySQL(userMessage, {
       executeQuery: true,
       maxRows: 100,
       provider: 'openai',
