@@ -129,7 +129,7 @@
         <ion-button 
           size="large" 
           class="cta-button"
-          @click="$emit('scroll-to-pricing')"
+          @click="$emit('scrollToPricing')"
         >
           <ion-icon slot="start" :icon="rocketOutline"></ion-icon>
           See Our Founding Partner Deal

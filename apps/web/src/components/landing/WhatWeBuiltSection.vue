@@ -338,7 +338,7 @@
         <p>These aren't just features on a roadmap. They're working right now.</p>
         <ion-button 
           size="large" 
-          @click="$emit('scroll-to-pricing')"
+          @click="$emit('scrollToPricing')"
           class="cta-button"
         >
           <ion-icon slot="start" :icon="rocketOutline"></ion-icon>
