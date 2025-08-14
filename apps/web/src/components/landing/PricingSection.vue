@@ -19,7 +19,7 @@
           <li>⚙️ 80 hours customization credit</li>
           <li>📈 Priority roadmap influence</li>
         </ul>
-        <ion-button size="large" class="cta-button" @click="$emit('schedule-call')">
+        <ion-button size="large" class="cta-button" @click="$emit('scheduleCall')">
           Reserve Your Spot (5 left)
         </ion-button>
       </div>
@@ -35,7 +35,7 @@
           <li>📊 Time-tracking transparency</li>
           <li>📅 10 hrs/mo included retainer</li>
         </ul>
-        <ion-button size="large" fill="outline" class="cta-button secondary" @click="$emit('schedule-call')">
+        <ion-button size="large" fill="outline" class="cta-button secondary" @click="$emit('scheduleCall')">
           Discuss Your Project
         </ion-button>
       </div>
@@ -51,7 +51,7 @@
           <li>🛡️ You keep your code fork forever</li>
           <li>💡 *Waived after $50k development spend</li>
         </ul>
-        <ion-button size="large" fill="outline" class="cta-button" @click="$emit('schedule-call')">
+        <ion-button size="large" fill="outline" class="cta-button" @click="$emit('scheduleCall')">
           Learn More
         </ion-button>
       </div>
