@@ -104,13 +104,29 @@ EOF
 start_supabase() {
     print_info "Starting Supabase..."
     
-    if ! supabase status > /dev/null 2>&1; then
-        print_info "Supabase is not running, starting it..."
-        supabase start
-        print_status "Supabase started"
-    else
-        print_status "Supabase is already running"
+    # Check if Docker is running
+    if ! docker info > /dev/null 2>&1; then
+        print_warning "Docker is not running. Please start Docker Desktop first."
+        print_info "You can start Supabase manually with: cd supabase && supabase start"
+        return 0
     fi
+    
+    # Check if Supabase is already running
+    if docker ps | grep -q "supabase_kong"; then
+        print_status "Supabase is already running"
+        return 0
+    fi
+    
+    # Start Supabase
+    print_info "Starting Supabase services..."
+    cd supabase
+    if supabase start; then
+        print_status "Supabase started successfully"
+    else
+        print_warning "Failed to start Supabase. You may need to start it manually:"
+        print_info "cd supabase && supabase start"
+    fi
+    cd ..
 }
 
 # Start the production environment
@@ -174,8 +190,10 @@ show_status() {
     
     echo ""
     print_info "Service URLs:"
-    echo "  🌐 Web App: http://localhost:9001"
-    echo "  🔌 API: http://localhost:9000"
+    echo "  🌐 Web App: https://app.orchestratorai.io"
+    echo "  🔌 API: https://api.orchestratorai.io"
+    echo "  🗄️  Supabase Studio: http://localhost:9012"
+    echo "  📧 Email Testing: http://localhost:9016"
     echo ""
     print_info "Management:"
     echo "  View logs: npm run prod:logs"
@@ -202,11 +220,14 @@ main() {
     echo ""
     print_status "Production environment is ready!"
     echo ""
-    print_info "Next steps:"
-    echo "  1. Configure your domain DNS to point to this server"
-    echo "  2. Set up SSL certificates with Let's Encrypt"
-    echo "  3. Update nginx configuration for your domain"
-    echo "  4. Monitor logs: npm run prod:logs"
+    print_info "Your server is now accessible at:"
+    echo "  🌐 https://app.orchestratorai.io"
+    echo "  🔌 https://api.orchestratorai.io"
+    echo ""
+    print_info "Management:"
+    echo "  Monitor logs: npm run prod:logs"
+    echo "  Check health: npm run prod:health"
+    echo "  Restart services: npm run prod:restart"
 }
 
 # Run main function
