@@ -22,7 +22,11 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: parseInt(env.WEB_PORT || '9001'),
-      host: true
+      host: true,
+      hmr: {
+        host: 'app.orchestratorai.io',
+        protocol: 'wss'
+      }
     },
     test: {
       globals: true,

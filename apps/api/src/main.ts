@@ -58,6 +58,11 @@ async function bootstrap() {
       'http://127.0.0.1:8080',
       'http://localhost:8081',
       'http://127.0.0.1:8081',
+      // Production domains
+      'https://app.orchestratorai.io',
+      'https://api.orchestratorai.io',
+      'http://app.orchestratorai.io',
+      'http://api.orchestratorai.io',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true,
