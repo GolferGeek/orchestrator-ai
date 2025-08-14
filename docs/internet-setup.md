@@ -431,6 +431,64 @@ npm run prod:restart
 4. **Backup regularly**: Database and configuration files
 5. **Limit access**: Only necessary ports open
 
+## Business Internet Alternative
+
+If you have access to business internet, the setup becomes **much simpler**:
+
+### Business Internet Advantages
+
+1. **Static IP Address** - No dynamic DNS needed
+2. **No Port Blocking** - All ports typically available
+3. **Higher Upload Speeds** - Better for serving content
+4. **Better Support** - ISP support for business customers
+5. **No TOS Restrictions** - Running servers is typically allowed
+6. **Better Reliability** - Business-grade infrastructure
+
+### Simplified Business Internet Setup
+
+With business internet, you can skip most of the complex configuration:
+
+1. **DNS Setup** (5 minutes):
+   ```
+   A Record: orchestratorai.io → [Your Static IP]
+   A Record: www.orchestratorai.io → [Your Static IP]
+   ```
+
+2. **Router Configuration** (10 minutes):
+   - Forward ports 80, 443, 9000, 9001 to your server
+   - No dynamic DNS clients needed
+
+3. **Server Setup** (5 minutes):
+   ```bash
+   npm run prod:start
+   ```
+
+4. **SSL Certificate** (5 minutes):
+   ```bash
+   sudo certbot certonly --standalone -d orchestratorai.io
+   ```
+
+**Total setup time: ~25 minutes vs 2-3 hours for residential**
+
+### Cost Comparison
+
+| Feature | Residential | Business |
+|---------|-------------|----------|
+| Monthly Cost | $50-100 | $150-300 |
+| Setup Time | 2-3 hours | 25 minutes |
+| Maintenance | High (IP changes) | Low |
+| Reliability | Variable | High |
+| Support | Limited | Priority |
+
+### Recommendation
+
+For production deployments or client installations, **business internet is highly recommended** due to:
+- Dramatically simpler setup
+- More reliable operation
+- Better performance
+- Professional support
+- No TOS concerns
+
 ## Next Steps
 
 1. **Set up monitoring**: Implement comprehensive monitoring
