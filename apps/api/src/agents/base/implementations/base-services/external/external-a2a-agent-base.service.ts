@@ -639,7 +639,7 @@ export class ExternalA2AAgentBaseService
    * Build agent URL for registration
    */
   private buildAgentUrl(): string {
-    const baseUrl = process.env.AGENT_BASE_URL || 'http://localhost:3000';
+          const baseUrl = process.env.AGENT_BASE_URL || `http://localhost:${process.env.WEB_PORT || '9001'}`;
     return `${baseUrl}/agents/external/${this.getAgentName()}`;
   }
 
