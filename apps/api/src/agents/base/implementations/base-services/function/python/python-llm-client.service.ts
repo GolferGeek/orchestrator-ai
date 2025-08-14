@@ -39,7 +39,7 @@ export class PythonLLMClientService {
    * Generate Python code for making LLM service calls
    */
   generateLLMServiceCallCode(
-    llmServiceUrl: string = 'http://localhost:3000/api/llm',
+    llmServiceUrl: string = `http://localhost:${process.env.WEB_PORT || '9001'}/api/llm`,
     includeErrorHandling: boolean = true,
   ): string {
     return `
@@ -227,7 +227,7 @@ def extract_user_preferences(metadata: Dict[str, Any]) -> Dict[str, Any]:
    * Generate complete Python LLM integration code
    */
   generateCompleteLLMIntegration(
-    llmServiceUrl: string = 'http://localhost:3000/api/llm',
+    llmServiceUrl: string = `http://localhost:${process.env.WEB_PORT || '9001'}/api/llm`,
   ): string {
     return `
 ${this.generateLLMServiceCallCode(llmServiceUrl)}

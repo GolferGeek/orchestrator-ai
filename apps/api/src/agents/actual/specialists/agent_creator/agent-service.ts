@@ -116,10 +116,10 @@ export class AgentCreatorService extends ContextAgentBaseService {
       const descMatch = yamlContent.match(/description:\s*"([^"]+)"/);
       
       return {
-        agent_name: nameMatch ? nameMatch[1].toLowerCase().replace(/[^a-z0-9]/g, '_') : 'new_agent',
-        display_name: nameMatch ? nameMatch[1] : 'New Agent',
-        department: deptMatch ? deptMatch[1].trim() : 'specialists',
-        description: descMatch ? descMatch[1] : 'Generated agent'
+        agent_name: nameMatch?.[1] ? nameMatch[1].toLowerCase().replace(/[^a-z0-9]/g, '_') : 'new_agent',
+        display_name: nameMatch?.[1] ? nameMatch[1] : 'New Agent',
+        department: deptMatch?.[1] ? deptMatch[1].trim() : 'specialists',
+        description: descMatch?.[1] ? descMatch[1] : 'Generated agent'
       };
     } catch (error) {
       this.logger.warn('Failed to parse agent info from YAML:', error);
@@ -177,7 +177,6 @@ export class AgentCreatorService extends ContextAgentBaseService {
 
       // Trigger agent discovery refresh so new agent appears immediately
       try {
-        const httpService = this.services.httpService;
         const baseUrl = process.env.API_BASE_URL || 'http://localhost:4000';
         const authToken = taskRequest.authToken;
         const headers: any = { 'Content-Type': 'application/json' };
@@ -186,7 +185,7 @@ export class AgentCreatorService extends ContextAgentBaseService {
           headers.Authorization = `Bearer ${authToken}`;
         }
 
-        await httpService.axiosRef.get(
+        await this.httpService.axiosRef.get(
           `${baseUrl}/agents/.well-known/hierarchy`,
           { headers }
         );
