@@ -14,11 +14,6 @@ export class Deliverable {
   conversation_id?: string;
 
   @ApiPropertyOptional({
-    description: 'Message that generated this deliverable',
-  })
-  message_id?: string;
-
-  @ApiPropertyOptional({
     description: 'Task that created this deliverable (used for evaluation)',
   })
   task_id?: string;

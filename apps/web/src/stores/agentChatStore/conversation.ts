@@ -57,6 +57,30 @@ export class ConversationService {
       const tasks = tasksResponse.tasks || [];
       console.log(`📋 Found ${tasks.length} tasks for conversation ${conversationId}`);
       
+      // Load deliverables for this conversation to link them to messages
+      const deliverables: any[] = [];
+      try {
+        const { deliverablesService } = await import('@/services/deliverablesService');
+        const conversationDeliverables = await deliverablesService.getConversationDeliverables(conversationId);
+        deliverables.push(...conversationDeliverables);
+        console.log(`📋 Found ${deliverables.length} deliverables for conversation ${conversationId}`);
+      } catch (error) {
+        console.warn('Failed to load deliverables for conversation, continuing without deliverable linking:', error);
+      }
+      
+      // Create maps for linking deliverables to messages
+      const messageDeliverableMap = new Map<string, string>(); // message_id -> deliverable_id
+      const taskDeliverableMap = new Map<string, string>(); // task_id -> deliverable_id
+      
+      deliverables.forEach(deliverable => {
+        if (deliverable.message_id) {
+          messageDeliverableMap.set(deliverable.message_id, deliverable.id);
+        }
+        if (deliverable.metadata?.taskId) {
+          taskDeliverableMap.set(deliverable.metadata.taskId, deliverable.id);
+        }
+      });
+      
       const messages: AgentChatMessage[] = [];
       
       // Convert each task to a pair of messages (user prompt + assistant response)
@@ -101,8 +125,9 @@ export class ConversationService {
           }
           
           // Completed task - create assistant message with parsed response
+          const assistantMessageId = `assistant-${task.id}`;
           const assistantMessage: AgentChatMessage = {
-            id: `assistant-${task.id}`,
+            id: assistantMessageId,
             role: 'assistant',
             content: responseContent,
             timestamp: new Date(task.completedAt || task.updatedAt),
@@ -119,6 +144,18 @@ export class ConversationService {
               }
             }
           };
+          
+          // Check if this message has an associated deliverable
+          // Try both message ID and task ID mapping
+          let deliverableId = messageDeliverableMap.get(assistantMessageId);
+          if (!deliverableId) {
+            deliverableId = taskDeliverableMap.get(task.id);
+          }
+          
+          if (deliverableId) {
+            assistantMessage.deliverable_id = deliverableId;
+            console.log(`🎭 Linked deliverable ${deliverableId} to message ${assistantMessageId} via ${messageDeliverableMap.has(assistantMessageId) ? 'message_id' : 'task_id'}`);
+          }
           messages.push(assistantMessage);
           
         } else if (['pending', 'running'].includes(task.status)) {
