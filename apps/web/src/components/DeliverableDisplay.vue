@@ -1082,69 +1082,133 @@ watch(() => props.deliverable?.id, () => {
 }
 
 /* Dark theme support */
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: dark), 
+html[data-theme="dark"] {
   .deliverable-display {
-    background: var(--ion-color-dark-shade);
+    background: #1a202c;
+    color: #e2e8f0;
   }
   
   .deliverable-header {
-    background: var(--ion-color-dark);
-    border-color: var(--ion-color-dark-tint);
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #f7fafc;
+  }
+  
+  .deliverable-header h2 {
+    color: #f7fafc;
+  }
+  
+  .deliverable-meta {
+    color: #a0aec0;
   }
   
   .version-section {
-    background: var(--ion-color-dark);
-    border-color: var(--ion-color-dark-tint);
+    background: #2d3748;
+    border-color: #4a5568;
+  }
+  
+  .version-item {
+    background: #374151;
+    border-color: #4b5563;
+    color: #d1d5db;
+  }
+  
+  .version-item:hover {
+    background: #4b5563;
   }
   
   .version-item.active {
-    background: #1e3a8a;
-    border-color: #3730a3;
+    background: #1e40af;
+    border-color: #3b82f6;
+    color: #dbeafe;
   }
   
-  .json-content {
-    background: var(--ion-color-dark);
+  .deliverable-content {
+    background: #1a202c;
+    color: #e2e8f0;
   }
   
-  .deliverable-footer {
-    background: var(--ion-color-dark);
-    border-color: var(--ion-color-dark-tint);
+  .markdown-content {
+    color: #e2e8f0;
+  }
+  
+  .markdown-content :deep(h1),
+  .markdown-content :deep(h2),
+  .markdown-content :deep(h3),
+  .markdown-content :deep(h4),
+  .markdown-content :deep(h5),
+  .markdown-content :deep(h6) {
+    color: #f7fafc;
+  }
+  
+  .markdown-content :deep(strong),
+  .markdown-content :deep(b) {
+    color: #f7fafc;
   }
   
   .markdown-content :deep(pre) {
-    background: var(--ion-color-dark);
+    background: #111827;
+    color: #e5e7eb;
+    border: 1px solid #374151;
   }
   
   .markdown-content :deep(code) {
-    background: var(--ion-color-dark);
+    background: #111827;
+    color: #68d391;
+    border: 1px solid #374151;
+  }
+  
+  .markdown-content :deep(blockquote) {
+    border-left-color: #4b5563;
+    background-color: rgba(255, 255, 255, 0.02);
+    color: #cbd5e0;
+  }
+  
+  .markdown-content :deep(a) {
+    color: #63b3ed;
+  }
+  
+  .json-content {
+    background: #111827;
+    color: #e5e7eb;
+    border: 1px solid #374151;
+  }
+  
+  .deliverable-footer {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #a0aec0;
   }
   
   .title-editor,
   .content-editor {
-    --background: var(--ion-color-dark-shade);
-    --color: var(--ion-color-light);
+    --background: #374151;
+    --color: #e2e8f0;
+    --border-color: #4a5568;
   }
   
   .edit-help {
-    background: var(--ion-color-dark);
+    background: #2d3748;
+    color: #a0aec0;
   }
   
   .markdown-toolbar {
-    background: var(--ion-color-dark);
-    border-color: var(--ion-color-dark-tint);
+    background: #2d3748;
+    border-color: #4a5568;
   }
   
   .toolbar-group:not(:last-child)::after {
-    background: var(--ion-color-dark-tint);
+    background: #4a5568;
   }
   
   .markdown-toolbar ion-button {
-    --color: var(--ion-color-light-shade);
+    --color: #d1d5db;
   }
   
   .markdown-toolbar ion-button:hover {
-    --color: var(--ion-color-primary-tint);
-    --background: var(--ion-color-dark-shade);
+    --color: #60a5fa;
+    --background: #374151;
   }
 }
 </style>

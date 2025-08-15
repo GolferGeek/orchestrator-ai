@@ -667,19 +667,164 @@ onMounted(async () => {
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .task-content {
-    background: var(--ion-color-dark-shade);
+    background: #2a2a2a;
+    color: #e8e8e8;
+    border: 1px solid #404040;
   }
   
   .task-role--assistant .task-content {
-    background: var(--ion-color-dark-shade);
+    background: #2a2a2a;
+    color: #e8e8e8;
+    border: 1px solid #404040;
+  }
+  
+  .task-role--user .task-content {
+    background: #1a365d;
+    color: #e2e8f0;
+    border: 1px solid #2d5a87;
+  }
+  
+  .task-agent-name {
+    color: #a0aec0;
+  }
+  
+  .task-text {
+    color: #e8e8e8;
+  }
+  
+  .task-text :deep(h1),
+  .task-text :deep(h2),
+  .task-text :deep(h3),
+  .task-text :deep(h4),
+  .task-text :deep(h5),
+  .task-text :deep(h6) {
+    color: #f7fafc;
+  }
+  
+  .task-text :deep(strong),
+  .task-text :deep(b) {
+    color: #f7fafc;
   }
   
   .task-text :deep(pre) {
-    background-color: rgba(255,255,255,0.05);
+    background-color: #1a202c;
+    color: #e2e8f0;
+    border: 1px solid #4a5568;
   }
   
   .task-text :deep(code) {
-    background-color: rgba(255,255,255,0.05);
+    background-color: #1a202c;
+    color: #68d391;
+    border: 1px solid #4a5568;
   }
+  
+  .task-text :deep(pre code) {
+    background-color: transparent;
+    border: none;
+    color: #e2e8f0;
+  }
+  
+  .task-text :deep(blockquote) {
+    border-left: 4px solid #4a5568;
+    background-color: rgba(255, 255, 255, 0.02);
+    color: #cbd5e0;
+  }
+  
+  .task-text :deep(a) {
+    color: #63b3ed;
+  }
+  
+  .task-text :deep(a):hover {
+    color: #90cdf4;
+  }
+  
+  .task-timestamp {
+    color: #a0aec0;
+  }
+  
+  .task-role--user .task-timestamp {
+    color: #e2e8f0;
+  }
+}
+
+/* Manual dark theme toggle support */
+html[data-theme="dark"] .task-content {
+  background: #2a2a2a;
+  color: #e8e8e8;
+  border: 1px solid #404040;
+}
+
+html[data-theme="dark"] .task-role--assistant .task-content {
+  background: #2a2a2a;
+  color: #e8e8e8;
+  border: 1px solid #404040;
+}
+
+html[data-theme="dark"] .task-role--user .task-content {
+  background: #1a365d;
+  color: #e2e8f0;
+  border: 1px solid #2d5a87;
+}
+
+html[data-theme="dark"] .task-agent-name {
+  color: #a0aec0;
+}
+
+html[data-theme="dark"] .task-text {
+  color: #e8e8e8;
+}
+
+html[data-theme="dark"] .task-text :deep(h1),
+html[data-theme="dark"] .task-text :deep(h2),
+html[data-theme="dark"] .task-text :deep(h3),
+html[data-theme="dark"] .task-text :deep(h4),
+html[data-theme="dark"] .task-text :deep(h5),
+html[data-theme="dark"] .task-text :deep(h6) {
+  color: #f7fafc;
+}
+
+html[data-theme="dark"] .task-text :deep(strong),
+html[data-theme="dark"] .task-text :deep(b) {
+  color: #f7fafc;
+}
+
+html[data-theme="dark"] .task-text :deep(pre) {
+  background-color: #1a202c;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+}
+
+html[data-theme="dark"] .task-text :deep(code) {
+  background-color: #1a202c;
+  color: #68d391;
+  border: 1px solid #4a5568;
+}
+
+html[data-theme="dark"] .task-text :deep(pre code) {
+  background-color: transparent;
+  border: none;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .task-text :deep(blockquote) {
+  border-left: 4px solid #4a5568;
+  background-color: rgba(255, 255, 255, 0.02);
+  color: #cbd5e0;
+}
+
+html[data-theme="dark"] .task-text :deep(a) {
+  color: #63b3ed;
+}
+
+html[data-theme="dark"] .task-text :deep(a):hover {
+  color: #90cdf4;
+}
+
+html[data-theme="dark"] .task-timestamp {
+  color: #a0aec0;
+}
+
+html[data-theme="dark"] .task-role--user .task-timestamp {
+  color: #e2e8f0;
 }
 </style>

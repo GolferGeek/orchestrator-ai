@@ -6,6 +6,18 @@
           <ion-menu-button :auto-hide="false" v-if="auth.isAuthenticated"></ion-menu-button>
         </ion-buttons>
         <ion-title>{{ pageTitle }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button 
+            fill="clear" 
+            @click="toggleDarkMode"
+            :title="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+          >
+            <ion-icon 
+              :icon="isDarkMode ? sunnyOutline : moonOutline" 
+              slot="icon-only"
+            />
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -53,7 +65,7 @@
 
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import {
   IonContent,
   IonHeader,
@@ -69,6 +81,8 @@ import {
   lockClosedOutline,
   chatbubblesOutline,
   folderOutline,
+  moonOutline,
+  sunnyOutline,
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
@@ -87,6 +101,38 @@ const pageTitle = computed(() => {
   }
   return 'Orchestrator AI';
 });
+
+// Dark mode state and functionality
+const isDarkMode = ref(false);
+
+// Initialize theme on component mount
+onMounted(() => {
+  const savedTheme = localStorage.getItem('theme');
+  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  if (savedTheme) {
+    isDarkMode.value = savedTheme === 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  } else {
+    isDarkMode.value = systemPrefersDark;
+    if (systemPrefersDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  }
+});
+
+const toggleDarkMode = () => {
+  const newTheme = isDarkMode.value ? 'light' : 'dark';
+  isDarkMode.value = !isDarkMode.value;
+  
+  console.log('🎭 Toggling dark mode:', { newTheme, isDarkMode: isDarkMode.value });
+  
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  
+  // Debug: check if attribute was set
+  console.log('🎭 HTML data-theme attribute:', document.documentElement.getAttribute('data-theme'));
+};
 
 // Methods
 const navigateToProjects = () => {

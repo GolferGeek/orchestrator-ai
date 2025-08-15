@@ -759,38 +759,135 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .two-pane-conversation {
-    background: var(--ion-color-dark);
+    background: #1a1a1a;
   }
   
   .conversation-header {
-    background: var(--ion-color-dark-shade);
-    border-color: var(--ion-color-dark-tint);
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #f7fafc;
+  }
+  
+  .conversation-info h2 {
+    color: #f7fafc;
+  }
+  
+  .agent-name {
+    color: #a0aec0;
   }
   
   .conversation-pane {
-    background: var(--ion-color-dark-shade);
+    background: #1f2937;
   }
   
   .work-product-pane {
-    background: var(--ion-color-dark);
-    border-color: var(--ion-color-dark-tint);
+    background: #1a202c;
+    border-color: #4a5568;
+  }
+  
+  .messages-container {
+    background: #1f2937;
   }
   
   .input-area {
-    background: var(--ion-color-dark-shade);
-    border-color: var(--ion-color-dark-tint);
+    background: #2d3748;
+    border-color: #4a5568;
   }
   
   .deliverable-indicator {
-    background: #1e3a8a;
-    border-color: #3730a3;
-    color: #93c5fd;
+    background: #1e40af;
+    border-color: #2563eb;
+    color: #dbeafe;
   }
   
   .deliverable-indicator:hover {
-    background: #3730a3;
-    border-color: #4338ca;
+    background: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
   }
+  
+  .thinking-indicator {
+    background: #374151;
+    border-color: #4b5563;
+  }
+  
+  .agent-thinking-name {
+    color: #d1d5db;
+  }
+  
+  .thinking-message {
+    color: #9ca3af;
+  }
+  
+  .dot {
+    background-color: #6b7280;
+  }
+}
+
+/* Manual dark theme toggle support */
+html[data-theme="dark"] .two-pane-conversation {
+  background: #1a1a1a;
+}
+
+html[data-theme="dark"] .conversation-header {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #f7fafc;
+}
+
+html[data-theme="dark"] .conversation-info h2 {
+  color: #f7fafc;
+}
+
+html[data-theme="dark"] .agent-name {
+  color: #a0aec0;
+}
+
+html[data-theme="dark"] .conversation-pane {
+  background: #1f2937;
+}
+
+html[data-theme="dark"] .work-product-pane {
+  background: #1a202c;
+  border-color: #4a5568;
+}
+
+html[data-theme="dark"] .messages-container {
+  background: #1f2937;
+}
+
+html[data-theme="dark"] .input-area {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+html[data-theme="dark"] .deliverable-indicator {
+  background: #1e40af;
+  border-color: #2563eb;
+  color: #dbeafe;
+}
+
+html[data-theme="dark"] .deliverable-indicator:hover {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .thinking-indicator {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+html[data-theme="dark"] .agent-thinking-name {
+  color: #d1d5db;
+}
+
+html[data-theme="dark"] .thinking-message {
+  color: #9ca3af;
+}
+
+html[data-theme="dark"] .dot {
+  background-color: #6b7280;
 }
 
 /* Tablet breakpoint */
