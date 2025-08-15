@@ -27,7 +27,13 @@
     "prod:stop": "pkill -f 'npm run dev:production' || echo 'No production processes to stop'",
     "prod:restart": "npm run prod:stop && sleep 2 && npm run dev:production",
     "prod:backup": "chmod +x deployment/manage-production.sh && ./deployment/manage-production.sh backup",
-    "prod:health": "chmod +x deployment/manage-production.sh && ./deployment/manage-production.sh health"
+    "prod:health": "chmod +x deployment/manage-production.sh && ./deployment/manage-production.sh health",
+    "server:start": "chmod +x deployment/start-server.sh && ./deployment/start-server.sh",
+    "server:stop": "chmod +x deployment/stop-server.sh && ./deployment/stop-server.sh",
+    "server:restart": "npm run server:stop && sleep 2 && npm run server:start",
+    "server:status": "pm2 list && (pgrep -f 'cloudflared.*tunnel.*run' > /dev/null && echo '✅ CloudFlare Tunnel running' || echo '❌ CloudFlare Tunnel not running')",
+    "server:logs": "pm2 logs",
+    "server:health": "curl -s http://localhost:9000/health && echo '' && curl -s http://localhost:9001"
   },
   "devDependencies": {
     "@babel/plugin-proposal-class-properties": "^7.18.6",
