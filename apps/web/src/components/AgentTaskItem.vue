@@ -88,6 +88,7 @@ import TaskMetadataModal from './TaskMetadataModal.vue';
 import LLMInfo from './LLMInfo.vue';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { useAuthStore } from '@/stores/authStore';
+import { DeliverableType, DeliverableFormat } from '@/services/deliverablesService';
 
 export interface AgentTaskMessage {
   id: string;
@@ -319,7 +320,7 @@ const extractDeliverableTitle = (content: string) => {
 const getDeliverableType = () => {
   // Simplified approach per user guidance: just use 'document' as default
   // The backend can provide more specific type information if needed
-  return 'document';
+  return DeliverableType.DOCUMENT;
 };
 
 const createDeliverable = async () => {
@@ -362,7 +363,7 @@ const createDeliverable = async () => {
       title,
       content: props.message.content,
       deliverable_type: deliverableType,
-      format: 'markdown',
+      format: DeliverableFormat.MARKDOWN,
       conversation_id: props.conversationId,
       message_id: props.message.id,
       created_by_agent: props.agentName || 'unknown',
@@ -381,8 +382,13 @@ const createDeliverable = async () => {
     // Store the created deliverable locally to show the indicator
     createdDeliverable.value = newDeliverable;
     
-    // Add to store
-    deliverablesStore.addDeliverable(newDeliverable);
+    // Convert and add to store
+    const storeDeliverable = {
+      ...newDeliverable,
+      created_at: new Date(newDeliverable.created_at),
+      updated_at: new Date(newDeliverable.updated_at)
+    };
+    deliverablesStore.addDeliverable(storeDeliverable as any);
     
     // Emit event for TwoPaneConversationView
     emit('deliverable-created', newDeliverable);
@@ -427,7 +433,12 @@ watch(
         console.log('✅ Fetched backend deliverable:', deliverable);
         
         // Add to store
-        deliverablesStore.addDeliverable(deliverable);
+        const storeDeliverable = {
+          ...deliverable,
+          created_at: new Date(deliverable.created_at),
+          updated_at: new Date(deliverable.updated_at)
+        };
+        deliverablesStore.addDeliverable(storeDeliverable as any);
         
         // Emit event for TwoPaneConversationView
         emit('deliverable-created', deliverable);
