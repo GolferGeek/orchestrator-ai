@@ -1,499 +1,129 @@
-# Residential Internet Server Setup Guide
+# Cloudflare Tunnel Setup Guide (Residential Internet Friendly)
 
-This guide covers setting up your Orchestrator AI server to be accessible through `orchestratorai.io` from a residential internet connection.
+This guide explains, in plain language, how to expose your local Orchestrator AI server securely over the internet using Cloudflare Tunnel. No port forwarding, no dynamic DNS clients, and no certificates to manage.
 
-## Overview
-
-The goal is to make your local server accessible via `orchestratorai.io` while handling the challenges of residential internet:
-- Dynamic IP addresses
-- ISP restrictions
-- Router configuration
-- DNS management
+## What you get
+- A secure public URL for your app and API: `app.yourdomain.com` and `api.yourdomain.com`
+- Works behind any home router/NAT (no port forwarding)
+- Automatic TLS/SSL from Cloudflare
+- DDoS protection and edge caching from Cloudflare
 
 ## Prerequisites
+- A domain managed in Cloudflare (nameservers set to Cloudflare)
+- A machine running Orchestrator AI:
+  - API on `http://localhost:9000`
+  - Web app on `http://localhost:9001`
+- Basic terminal access on that machine
 
-- Residential internet connection
-- Router with admin access
-- Domain name (orchestratorai.io)
-- Server running Orchestrator AI
-
-## Step 1: Dynamic DNS Setup
-
-Since residential IPs change frequently, we'll use a dynamic DNS service.
-
-### Option A: Cloudflare Dynamic DNS (Recommended)
-
-1. **Sign up for Cloudflare** (free tier available)
-2. **Add your domain** `orchestratorai.io` to Cloudflare
-3. **Update nameservers** at your domain registrar to use Cloudflare's
-4. **Create an API token** with DNS edit permissions
-5. **Set up dynamic DNS client** on your server
-
+## Quick start (10–15 minutes)
+1) Install Cloudflare Tunnel client
 ```bash
-# Install ddclient for dynamic DNS updates
-sudo apt-get install ddclient
-
-# Configure ddclient for Cloudflare
-sudo nano /etc/ddclient.conf
+brew install cloudflared || brew upgrade cloudflared
+cloudflared --version
 ```
 
-Add this configuration:
-```conf
-protocol=cloudflare
-use=web
-server=www.cloudflare.com
-login=your-email@example.com
-password=your-api-token
-zone=orchestratorai.io
-your-subdomain.orchestratorai.io
-```
-
-### Option B: No-IP Dynamic DNS (Alternative)
-
-1. **Sign up for No-IP** (free tier available)
-2. **Create a hostname** like `yourserver.no-ip.org`
-3. **Install No-IP client** on your server
-4. **Update your domain's CNAME** to point to the No-IP hostname
-
-## Step 2: Router Configuration
-
-### Port Forwarding Setup
-
-Configure your router to forward these ports to your server:
-
-| Port | Protocol | Service | Description |
-|------|----------|---------|-------------|
-| 80   | TCP      | HTTP    | Web traffic (redirects to HTTPS) |
-| 443  | TCP      | HTTPS   | Secure web traffic |
-| 9000 | TCP      | API     | Orchestrator AI API |
-| 9001 | TCP      | Web     | Orchestrator AI Web App |
-
-### Router Configuration Steps
-
-1. **Access router admin panel** (usually `192.168.1.1` or `192.168.0.1`)
-2. **Find Port Forwarding section** (may be called "Virtual Server" or "Port Mapping")
-3. **Add port forwarding rules** for each port above
-4. **Set internal IP** to your server's local IP (e.g., `192.168.1.100`)
-5. **Enable UPnP** if available (can auto-configure some ports)
-
-### Example Router Configuration
-
-```
-Rule 1:
-- External Port: 80
-- Internal Port: 80
-- Protocol: TCP
-- Internal IP: 192.168.1.100
-
-Rule 2:
-- External Port: 443
-- Internal Port: 443
-- Protocol: TCP
-- Internal IP: 192.168.1.100
-
-Rule 3:
-- External Port: 9000
-- Internal Port: 9000
-- Protocol: TCP
-- Internal IP: 192.168.1.100
-
-Rule 4:
-- External Port: 9001
-- Internal Port: 9001
-- Protocol: TCP
-- Internal IP: 192.168.1.100
-```
-
-## Step 3: Server Configuration
-
-### Static Local IP Assignment
-
-Assign a static IP to your server to prevent router reassignment:
-
+2) Authenticate and create a tunnel
 ```bash
-# Edit network configuration
-sudo nano /etc/netplan/01-netcfg.yaml
+cloudflared tunnel login   # opens a browser to authorize your Cloudflare account
+cloudflared tunnel create orchestrator-ai
+cloudflared tunnel list    # copy the Tunnel ID (a UUID)
 ```
 
-Add configuration:
+3) Configure the tunnel
+Create `~/.cloudflared/config.yml` with this content, replacing `<TUNNEL_ID>` and your domain:
 ```yaml
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    eth0:
-      dhcp4: no
-      addresses:
-        - 192.168.1.100/24
-      gateway4: 192.168.1.1
-      nameservers:
-          addresses: [8.8.8.8, 8.8.4.4]
+tunnel: <TUNNEL_ID>
+credentials-file: ~/.cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  - hostname: api.yourdomain.com
+    service: http://localhost:9000
+
+  - hostname: app.yourdomain.com
+    service: http://localhost:9001
+
+  - service: http_status:404
 ```
 
-Apply changes:
+Tip: In this repo, see `deployment/tunnel-config.yml` as a reference. Your actual config file must live in `~/.cloudflared/config.yml`.
+
+4) Connect your hostnames (DNS) to the tunnel
 ```bash
-sudo netplan apply
+# These commands create proxied CNAMEs that point to your tunnel automatically
+cloudflared tunnel route dns orchestrator-ai api.yourdomain.com
+cloudflared tunnel route dns orchestrator-ai app.yourdomain.com
 ```
 
-### Firewall Configuration
-
-Configure UFW firewall to allow necessary ports:
-
+5) Run the tunnel (foreground test)
 ```bash
-# Enable UFW
-sudo ufw enable
-
-# Allow SSH (change port if needed)
-sudo ufw allow 22
-
-# Allow web traffic
-sudo ufw allow 80
-sudo ufw allow 443
-
-# Allow Orchestrator AI ports
-sudo ufw allow 9000
-sudo ufw allow 9001
-
-# Check status
-sudo ufw status
+cloudflared tunnel run orchestrator-ai
 ```
+Open your browser to `https://api.yourdomain.com` and `https://app.yourdomain.com`.
 
-## Step 4: SSL Certificate Setup
-
-### Let's Encrypt with Certbot
-
-Install and configure SSL certificates:
-
+6) Run the tunnel as a service (autostart)
 ```bash
-# Install Certbot
-sudo apt-get install certbot
-
-# Get SSL certificate
-sudo certbot certonly --standalone -d orchestratorai.io -d www.orchestratorai.io
-
-# Set up auto-renewal
-sudo crontab -e
+sudo cloudflared service install
+# To check status
+sudo launchctl list | grep cloudflared || true
 ```
 
-Add this line for auto-renewal:
-```
-0 12 * * * /usr/bin/certbot renew --quiet
-```
+## How we map your services
+- `api.yourdomain.com` → `http://localhost:9000`
+- `app.yourdomain.com` → `http://localhost:9001`
 
-### Nginx SSL Configuration
+These mappings are defined in the `ingress:` section of your Cloudflare config.
 
-Update your nginx configuration to use SSL:
-
-```nginx
-server {
-    listen 80;
-    server_name orchestratorai.io www.orchestratorai.io;
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name orchestratorai.io www.orchestratorai.io;
-    
-    ssl_certificate /etc/letsencrypt/live/orchestratorai.io/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/orchestratorai.io/privkey.pem;
-    
-    # Frontend
-    location / {
-        proxy_pass http://localhost:9001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-    
-    # API
-    location /api/ {
-        proxy_pass http://localhost:9000/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-## Step 5: DNS Configuration
-
-### Cloudflare DNS Records
-
-Set up these DNS records in Cloudflare:
-
-| Type | Name | Content | TTL | Proxy Status |
-|------|------|---------|-----|--------------|
-| A | @ | [Your Dynamic IP] | Auto | Proxied |
-| A | www | [Your Dynamic IP] | Auto | Proxied |
-| CNAME | api | orchestratorai.io | Auto | Proxied |
-
-### Dynamic IP Update Script
-
-Create a script to update DNS when IP changes:
-
+## Daily operations
+- Start/stop Orchestrator services with PM2 or the provided scripts
+- Check everything with:
 ```bash
-#!/bin/bash
-# /usr/local/bin/update-dns.sh
-
-CURRENT_IP=$(curl -s https://ipinfo.io/ip)
-RECORDED_IP=$(dig +short orchestratorai.io)
-
-if [ "$CURRENT_IP" != "$RECORDED_IP" ]; then
-    echo "IP changed from $RECORDED_IP to $CURRENT_IP"
-    
-    # Update Cloudflare DNS
-    curl -X PUT "https://api.cloudflare.com/client/v4/zones/[ZONE_ID]/dns_records/[RECORD_ID]" \
-        -H "Authorization: Bearer [API_TOKEN]" \
-        -H "Content-Type: application/json" \
-        --data "{
-            \"type\": \"A\",
-            \"name\": \"orchestratorai.io\",
-            \"content\": \"$CURRENT_IP\",
-            \"ttl\": 1,
-            \"proxied\": true
-        }"
-    
-    echo "DNS updated successfully"
-else
-    echo "IP unchanged: $CURRENT_IP"
-fi
+npm run server:status
 ```
+This shows PM2 status, verifies DNS points to Cloudflare, and confirms HTTPS is served by Cloudflare.
 
-Make it executable and add to crontab:
-```bash
-chmod +x /usr/local/bin/update-dns.sh
-crontab -e
-```
-
-Add this line to check every 5 minutes:
-```
-*/5 * * * * /usr/local/bin/update-dns.sh
-```
-
-## Step 6: ISP Considerations
-
-### Common Residential ISP Issues
-
-1. **Port 25 blocking**: Most ISPs block SMTP traffic
-2. **Dynamic IP changes**: Can happen every 24-48 hours
-3. **Rate limiting**: Some ISPs limit server traffic
-4. **Terms of Service**: Check if running servers violates TOS
-
-### Solutions
-
-- **Use port 587** for SMTP instead of 25
-- **Set up monitoring** for IP changes
-- **Implement rate limiting** in your application
-- **Consider business internet** for production use
-
-## Step 7: Monitoring and Maintenance
-
-### Health Check Script
-
-Create a monitoring script:
-
-```bash
-#!/bin/bash
-# /usr/local/bin/health-check.sh
-
-# Check if services are running
-if ! curl -f http://localhost:9000/health > /dev/null 2>&1; then
-    echo "API is down, restarting..."
-    npm run prod:restart
-fi
-
-if ! curl -f http://localhost:9001 > /dev/null 2>&1; then
-    echo "Web app is down, restarting..."
-    npm run prod:restart
-fi
-
-# Check SSL certificate expiry
-if [ $(date -d "$(openssl x509 -enddate -noout -in /etc/letsencrypt/live/orchestratorai.io/cert.pem | cut -d= -f2)" +%s) -lt $(date -d "+30 days" +%s) ]; then
-    echo "SSL certificate expiring soon, renewing..."
-    certbot renew
-fi
-```
-
-Add to crontab for hourly checks:
-```
-0 * * * * /usr/local/bin/health-check.sh
-```
-
-### Log Monitoring
-
-Set up log rotation and monitoring:
-
-```bash
-# Install logrotate
-sudo apt-get install logrotate
-
-# Configure log rotation for your app
-sudo nano /etc/logrotate.d/orchestrator-ai
-```
-
-Add configuration:
-```
-/var/log/orchestrator-ai/*.log {
-    daily
-    missingok
-    rotate 7
-    compress
-    delaycompress
-    notifempty
-    create 644 www-data www-data
-}
-```
-
-## Step 8: Testing
-
-### Local Testing
-
-```bash
-# Test local services
-curl http://localhost:9000/health
-curl http://localhost:9001
-
-# Test SSL locally
-curl -k https://localhost:443
-```
-
-### External Testing
-
-```bash
-# Test from external network
-curl https://orchestratorai.io/health
-curl https://orchestratorai.io
-
-# Test DNS resolution
-nslookup orchestratorai.io
-dig orchestratorai.io
-```
+## Do NOT do these (they break tunnels)
+- Do not run dynamic DNS updaters (e.g., `ddclient`, custom `update-dns.sh` cron jobs)
+- Do not create A/AAAA records for `api`/`app` that point to your home IP
+  - Use the proxied CNAME that Cloudflare Tunnel sets up via `tunnel route dns`
 
 ## Troubleshooting
+- “It still resolves to my home IP”
+  - Flush DNS cache and ensure your Mac uses public DNS (1.1.1.1):
+  ```bash
+  sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
+  dig +short api.yourdomain.com
+  dig @1.1.1.1 +short api.yourdomain.com
+  ```
+  - Authoritative check:
+  ```bash
+  dig @quinton.ns.cloudflare.com +short A api.yourdomain.com
+  ```
+- “Cloudflare record keeps flipping back to my IP”
+  - Remove any cron scripts or services that update DNS (ddclient, custom curl scripts)
+  - Revoke old API tokens used for DNS edits (Cloudflare Dashboard → Profile → API Tokens)
 
-### Common Issues
+## Security notes
+- Cloudflare handles TLS certificates at the edge; no Certbot/Let’s Encrypt needed on your box
+- Keep `~/.cloudflared/<TUNNEL_ID>.json` safe; it’s your tunnel credential
+- Use least-privileged Cloudflare API tokens only when necessary
 
-1. **Port forwarding not working**
-   - Check router configuration
-   - Verify server firewall settings
-   - Test with `telnet external-ip port`
-
-2. **SSL certificate issues**
-   - Ensure port 80 is open for verification
-   - Check certificate paths in nginx config
-   - Verify domain ownership
-
-3. **Dynamic DNS not updating**
-   - Check ddclient logs: `tail -f /var/log/ddclient.log`
-   - Verify API credentials
-   - Test manual DNS update
-
-4. **Services not accessible**
-   - Check if services are running: `npm run prod:status`
-   - Verify port forwarding
-   - Check firewall rules
-
-### Useful Commands
-
+## Appendix: Commands you’ll use
 ```bash
-# Check current external IP
-curl -s https://ipinfo.io/ip
+# Create/login/list tunnels
+cloudflared tunnel login
+cloudflared tunnel create orchestrator-ai
+cloudflared tunnel list
 
-# Test port forwarding
-telnet your-external-ip 80
+# Route hostnames to the tunnel
+cloudflared tunnel route dns orchestrator-ai api.yourdomain.com
+cloudflared tunnel route dns orchestrator-ai app.yourdomain.com
 
-# Check service status
-npm run prod:status
+# Run/inspect the tunnel
+cloudflared tunnel run orchestrator-ai
+sudo cloudflared service install
 
-# View logs
-npm run prod:logs
-
-# Restart services
-npm run prod:restart
+# Verify
+npm run server:status
 ```
 
-## Security Considerations
-
-1. **Keep system updated**: Regular security updates
-2. **Use strong passwords**: For all services
-3. **Monitor logs**: Check for suspicious activity
-4. **Backup regularly**: Database and configuration files
-5. **Limit access**: Only necessary ports open
-
-## Business Internet Alternative
-
-If you have access to business internet, the setup becomes **much simpler**:
-
-### Business Internet Advantages
-
-1. **Static IP Address** - No dynamic DNS needed
-2. **No Port Blocking** - All ports typically available
-3. **Higher Upload Speeds** - Better for serving content
-4. **Better Support** - ISP support for business customers
-5. **No TOS Restrictions** - Running servers is typically allowed
-6. **Better Reliability** - Business-grade infrastructure
-
-### Simplified Business Internet Setup
-
-With business internet, you can skip most of the complex configuration:
-
-1. **DNS Setup** (5 minutes):
-   ```
-   A Record: orchestratorai.io → [Your Static IP]
-   A Record: www.orchestratorai.io → [Your Static IP]
-   ```
-
-2. **Router Configuration** (10 minutes):
-   - Forward ports 80, 443, 9000, 9001 to your server
-   - No dynamic DNS clients needed
-
-3. **Server Setup** (5 minutes):
-   ```bash
-   npm run prod:start
-   ```
-
-4. **SSL Certificate** (5 minutes):
-   ```bash
-   sudo certbot certonly --standalone -d orchestratorai.io
-   ```
-
-**Total setup time: ~25 minutes vs 2-3 hours for residential**
-
-### Cost Comparison
-
-| Feature | Residential | Business |
-|---------|-------------|----------|
-| Monthly Cost | $50-100 | $150-300 |
-| Setup Time | 2-3 hours | 25 minutes |
-| Maintenance | High (IP changes) | Low |
-| Reliability | Variable | High |
-| Support | Limited | Priority |
-
-### Recommendation
-
-For production deployments or client installations, **business internet is highly recommended** due to:
-- Dramatically simpler setup
-- More reliable operation
-- Better performance
-- Professional support
-- No TOS concerns
-
-## Next Steps
-
-1. **Set up monitoring**: Implement comprehensive monitoring
-2. **Backup strategy**: Regular automated backups
-3. **Performance tuning**: Optimize for your hardware
-4. **Scaling plan**: Consider load balancing for growth
-
-This setup provides a robust foundation for running Orchestrator AI on residential internet while handling the challenges of dynamic IPs and ISP restrictions.
+That’s it. With Cloudflare Tunnel, your app and API are safely reachable on residential internet without opening ports or managing certificates.
