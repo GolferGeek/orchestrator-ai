@@ -1,5 +1,7 @@
 <template>
   <div class="deliverable-display">
+    <!-- Document Paper Container -->
+    <div class="document-paper">
     <div class="deliverable-header">
       <div class="title-section">
         <h3 class="deliverable-title">{{ deliverable.title }}</h3>
@@ -354,6 +356,7 @@
           :agent-name="deliverable.created_by_agent"
         />
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -722,16 +725,51 @@ watch(() => props.deliverable?.id, () => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background: #f8fafc;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.document-paper {
   background: white;
+  border-radius: 12px;
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.05),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100% - 40px);
+  max-width: 100%;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Add subtle paper texture */
+.document-paper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(90deg, transparent 79px, rgba(0,0,0,0.02) 79px, rgba(0,0,0,0.02) 81px, transparent 81px),
+    repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(0,0,0,0.01) 24px, rgba(0,0,0,0.01) 25px);
+  pointer-events: none;
+  border-radius: 12px;
 }
 
 .deliverable-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 16px;
-  border-bottom: 1px solid var(--ion-color-light);
-  background: var(--ion-color-step-25);
+  padding: 24px 24px 16px 24px;
+  border-bottom: 2px solid #e2e8f0;
+  background: linear-gradient(to bottom, #fafbfc, #ffffff);
+  border-radius: 12px 12px 0 0;
+  position: relative;
+  z-index: 1;
 }
 
 .title-section {
@@ -899,12 +937,17 @@ watch(() => props.deliverable?.id, () => {
 .content-display {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 24px 32px;
+  background: white;
+  position: relative;
+  z-index: 1;
 }
 
 .markdown-content {
-  line-height: 1.6;
-  color: var(--ion-color-dark);
+  line-height: 1.7;
+  color: #1f2937;
+  font-size: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .markdown-content :deep(h1),
@@ -967,9 +1010,12 @@ watch(() => props.deliverable?.id, () => {
 }
 
 .deliverable-footer {
-  padding: 16px;
-  border-top: 1px solid var(--ion-color-light);
-  background: var(--ion-color-step-25);
+  padding: 20px 24px;
+  border-top: 2px solid #e2e8f0;
+  background: linear-gradient(to top, #fafbfc, #ffffff);
+  border-radius: 0 0 12px 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .timestamps {
@@ -1117,14 +1163,32 @@ watch(() => props.deliverable?.id, () => {
 @media (prefers-color-scheme: dark), 
 html[data-theme="dark"] {
   .deliverable-display {
-    background: #1a202c;
+    background: #0f172a;
     color: #e2e8f0;
   }
   
+  .document-paper {
+    background: #1e293b;
+    box-shadow: 
+      0 4px 6px rgba(0, 0, 0, 0.2),
+      0 1px 3px rgba(0, 0, 0, 0.3),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  
+  .document-paper::before {
+    background: 
+      linear-gradient(90deg, transparent 79px, rgba(255,255,255,0.03) 79px, rgba(255,255,255,0.03) 81px, transparent 81px),
+      repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(255,255,255,0.02) 24px, rgba(255,255,255,0.02) 25px);
+  }
+  
   .deliverable-header {
-    background: #2d3748;
-    border-color: #4a5568;
+    background: linear-gradient(to bottom, #334155, #1e293b);
+    border-color: #475569;
     color: #f7fafc;
+  }
+  
+  .content-display {
+    background: #1e293b;
   }
   
   .deliverable-header h2 {
@@ -1208,8 +1272,8 @@ html[data-theme="dark"] {
   }
   
   .deliverable-footer {
-    background: #2d3748;
-    border-color: #4a5568;
+    background: linear-gradient(to top, #334155, #1e293b);
+    border-color: #475569;
     color: #a0aec0;
   }
   
