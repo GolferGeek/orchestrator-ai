@@ -19,7 +19,7 @@
     "server:start": "chmod +x deployment/start-server.sh && ./deployment/start-server.sh",
     "server:stop": "chmod +x deployment/stop-server.sh && ./deployment/stop-server.sh",
     "server:restart": "npm run server:stop && sleep 2 && npm run server:start",
-    "server:status": "pm2 list && (pgrep -f 'cloudflared.*tunnel.*run' > /dev/null && echo '✅ CloudFlare Tunnel running' || echo '❌ CloudFlare Tunnel not running')",
+    "server:status": "pm2 list && (pgrep -f 'cloudflared.*tunnel.*run' > /dev/null && echo '✅ CloudFlare Tunnel running' || echo '❌ CloudFlare Tunnel not running') && echo 'DNS check for api.orchestratorai.io:' && dig +short api.orchestratorai.io | sed 's/^/  /' && echo 'Authoritative check:' && dig @quinton.ns.cloudflare.com +short A api.orchestratorai.io | sed 's/^/  /' && echo 'HTTPS HEAD check:' && (curl -sI https://api.orchestratorai.io | grep -Ei '^(server:|cf-ray:|date:)' || true)",
     "server:logs": "pm2 logs",
     "server:health": "curl -s http://localhost:9000/health && echo '' && curl -s http://localhost:9001",
     "prod:start": "echo '⚠️  prod:start is deprecated. Use: npm run server:start' && npm run server:start",
