@@ -65,11 +65,11 @@ export class CreateDeliverableDto {
   conversation_id?: string;
 
   @ApiPropertyOptional({
-    description: 'Message ID that generated this deliverable',
+    description: 'Task ID that created this deliverable',
   })
   @IsOptional()
   @IsUUID()
-  message_id?: string;
+  task_id?: string;
 
   @ApiPropertyOptional({
     description: 'Name of the agent that created this deliverable',
