@@ -111,16 +111,16 @@
                 <div class="deliverable-header">
                   <div class="deliverable-title-section">
                     <div class="title-with-icon">
-                      <span class="type-icon">{{ getTypeIcon(deliverable.deliverable_type) }}</span>
+                      <span class="type-icon">{{ getTypeIcon(deliverable.deliverable_type as any) }}</span>
                       <ion-card-title>{{ deliverable.title }}</ion-card-title>
                     </div>
                   </div>
                   <div class="deliverable-badges">
                     <ion-badge 
-                      :color="getTypeColor(deliverable.deliverable_type)"
+                      :color="getTypeColor(deliverable.deliverable_type as any)"
                       class="type-badge"
                     >
-                      {{ getTypeName(deliverable.deliverable_type) }}
+                      {{ getTypeName(deliverable.deliverable_type as any) }}
                     </ion-badge>
                     <ion-badge 
                       v-if="deliverable.version > 1"
@@ -135,7 +135,7 @@
 
               <ion-card-content>
                 <div class="deliverable-preview">
-                  <p class="content-preview">{{ getContentPreview(deliverable.content_preview) }}</p>
+                  <p class="content-preview">{{ getContentPreview(deliverable.content_preview || deliverable.content || '') }}</p>
                 </div>
 
                 <div class="deliverable-meta">
@@ -299,15 +299,18 @@ const pageSize = 20;
 
 // Computed properties
 const displayedDeliverables = computed(() => {
-  let filtered = deliverables.recentDeliverables.value;
+  let filtered = deliverables.recentDeliverables.value.map((d: any) => ({
+    ...d,
+    content_preview: (d as any).content_preview || (d.content ? d.content.substring(0, 200) + (d.content.length > 200 ? '...' : '') : '')
+  }));
   
   // Apply search filter
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(deliverable => 
       deliverable.title.toLowerCase().includes(query) ||
-      deliverable.content_preview.toLowerCase().includes(query) ||
-      deliverable.tags?.some(tag => tag.toLowerCase().includes(query))
+      (deliverable.content_preview || deliverable.content || '').toLowerCase().includes(query) ||
+      deliverable.tags?.some((tag: string) => tag.toLowerCase().includes(query))
     );
   }
   
@@ -329,8 +332,8 @@ const displayedDeliverables = computed(() => {
         bValue = new Date(b.created_at).getTime();
         break;
       case 'updated':
-        aValue = new Date(a.updated_at).getTime();
-        bValue = new Date(b.updated_at).getTime();
+        aValue = new Date(a.updated_at || a.created_at).getTime();
+        bValue = new Date(b.updated_at || b.created_at).getTime();
         break;
       case 'title':
         aValue = a.title.toLowerCase();
@@ -356,7 +359,8 @@ const displayedDeliverables = computed(() => {
 
 const canLoadMore = computed(() => {
   // This would be based on the total count from the search results
-  return deliverables.store.searchResults?.has_more || false;
+  // For now, just return false as we don't have pagination implemented
+  return false;
 });
 
 // Methods
@@ -376,7 +380,7 @@ const handleRefresh = async (event: CustomEvent) => {
 const handleSearch = async () => {
   if (searchQuery.value.trim()) {
     await deliverables.search(searchQuery.value, {
-      type: typeFilter.value as DeliverableType || undefined,
+      type: typeFilter.value as any || undefined,
       limit: pageSize,
       offset: 0
     });
@@ -389,16 +393,12 @@ const handleSearch = async () => {
 const handleFilter = async () => {
   if (searchQuery.value.trim()) {
     await deliverables.search(searchQuery.value, {
-      type: typeFilter.value as DeliverableType || undefined,
+      type: typeFilter.value as any || undefined,
       limit: pageSize,
       offset: 0
     });
   } else {
-    await deliverables.store.loadDeliverables({
-      type: typeFilter.value as DeliverableType || undefined,
-      limit: pageSize,
-      offset: 0
-    });
+    await deliverables.store.loadDeliverables();
   }
   currentOffset.value = 0;
 };
@@ -414,16 +414,12 @@ const loadMoreDeliverables = async () => {
     
     if (searchQuery.value.trim()) {
       await deliverables.search(searchQuery.value, {
-        type: typeFilter.value as DeliverableType || undefined,
+        type: typeFilter.value as any || undefined,
         limit: pageSize,
         offset: newOffset
       });
     } else {
-      await deliverables.store.loadDeliverables({
-        type: typeFilter.value as DeliverableType || undefined,
-        limit: pageSize,
-        offset: newOffset
-      });
+      await deliverables.store.loadDeliverables();
     }
     
     currentOffset.value = newOffset;
@@ -436,24 +432,24 @@ const createNewDeliverable = () => {
   deliverables.startCreating();
 };
 
-const viewDeliverable = async (deliverable: DeliverableSearchItem) => {
+const viewDeliverable = async (deliverable: any) => {
   // Fetch full deliverable details and show in modal
   const fullDeliverable = await deliverables.store.getDeliverable(deliverable.id);
   if (fullDeliverable) {
-    deliverables.showDeliverable(fullDeliverable);
+    deliverables.showDeliverable(fullDeliverable as any);
   }
 };
 
-const editDeliverable = async (deliverable: DeliverableSearchItem) => {
+const editDeliverable = async (deliverable: any) => {
   // Fetch full deliverable details and show in modal for editing
   const fullDeliverable = await deliverables.store.getDeliverable(deliverable.id);
   if (fullDeliverable) {
-    deliverables.showDeliverable(fullDeliverable);
+    deliverables.showDeliverable(fullDeliverable as any);
     // The modal will detect that it's in edit mode
   }
 };
 
-const viewVersions = async (deliverable: DeliverableSearchItem) => {
+const viewVersions = async (deliverable: any) => {
   try {
     const versions = await deliverables.getVersions(deliverable.id);
     // Show versions in a modal or navigate to versions page
@@ -464,7 +460,7 @@ const viewVersions = async (deliverable: DeliverableSearchItem) => {
   }
 };
 
-const confirmDelete = async (deliverable: DeliverableSearchItem) => {
+const confirmDelete = async (deliverable: any) => {
   const alert = await alertController.create({
     header: 'Delete Deliverable',
     message: `Are you sure you want to delete "${deliverable.title}"? This action cannot be undone.`,
@@ -480,7 +476,7 @@ const confirmDelete = async (deliverable: DeliverableSearchItem) => {
   await alert.present();
 };
 
-const deleteDeliverable = async (deliverable: DeliverableSearchItem) => {
+const deleteDeliverable = async (deliverable: any) => {
   try {
     await deliverables.store.deleteDeliverable(deliverable.id);
     // Show success toast
@@ -544,8 +540,9 @@ const getTypeColor = (type: DeliverableType): string => {
   return colors[type] || 'medium';
 };
 
-const formatDate = (dateString: string): string => {
-  return deliverables.formatDate(dateString);
+const formatDate = (date: string | Date): string => {
+  const dateStr = typeof date === 'string' ? date : date.toISOString();
+  return deliverables.formatDate(dateStr);
 };
 
 const hasVersions = (deliverableId: string): boolean => {

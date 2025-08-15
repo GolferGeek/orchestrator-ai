@@ -165,7 +165,7 @@ export function useDeliverables() {
         enhancedAt: new Date().toISOString(),
         ...options.metadata
       }
-    });
+    }) as any;
   }
 
   /**
@@ -237,12 +237,16 @@ export function useDeliverables() {
    */
   async function deleteDeliverable(deliverable: Deliverable): Promise<boolean> {
     if (confirm(`Are you sure you want to delete "${deliverable.title}"?`)) {
-      await store.deleteDeliverable(deliverable.id);
-      const success = true;
-      if (success && selectedDeliverable.value?.id === deliverable.id) {
-        hideDeliverable();
+      try {
+        await store.deleteDeliverable(deliverable.id);
+        if (selectedDeliverable.value?.id === deliverable.id) {
+          hideDeliverable();
+        }
+        return true;
+      } catch (error) {
+        console.error('Failed to delete deliverable:', error);
+        return false;
       }
-      return success;
     }
     return false;
   }

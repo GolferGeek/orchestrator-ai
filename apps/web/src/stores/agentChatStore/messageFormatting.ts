@@ -73,14 +73,26 @@ export class MessageFormattingService {
             }
             console.log('📄 Using success.message format (orchestrator)');
           } else if (parsedResult.success && parsedResult.response) {
-            // Format: { success: true, response: "content", metadata: {...} }
+            // Format: { success: true, response: "content", metadata: {...}, deliverableId: "uuid" }
             responseContent = String(parsedResult.response);
+            responseMetadata = parsedResult.metadata || {};
+            // Extract deliverable ID if present - THIS IS THE KEY FIX
+            if (parsedResult.deliverableId) {
+              responseMetadata.deliverable_id = parsedResult.deliverableId;
+              console.log('🎭 ✅ EXTRACTED deliverable ID in success.response format:', parsedResult.deliverableId);
+            } else {
+              console.log('🎭 ❌ NO deliverable ID found in parsedResult keys:', Object.keys(parsedResult));
+            }
+            console.log('📄 Using success.response format');
+          } else if (parsedResult.success) {
+            // Format: { success: true, response: "content", deliverableId: "..." } (current blog post format)
+            responseContent = String(parsedResult.response || parsedResult.message || 'Success');
             responseMetadata = parsedResult.metadata || {};
             // Extract deliverable ID if present
             if (parsedResult.deliverableId) {
               responseMetadata.deliverable_id = parsedResult.deliverableId;
             }
-            console.log('📄 Using success.response format');
+            console.log('📄 Using success format with deliverableId');
           } else if (parsedResult.message) {
             // Format: { message: "content" }
             responseContent = String(parsedResult.message);

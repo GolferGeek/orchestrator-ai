@@ -129,10 +129,22 @@ const hasBackendDeliverable = computed(() => {
 });
 
 const backendDeliverableId = computed(() => {
-  return props.message.deliverable_id || 
-         props.message.deliverableId ||
-         props.message.metadata?.deliverable_id || 
-         props.message.metadata?.deliverableId;
+  const id = props.message.deliverable_id || 
+             props.message.deliverableId ||
+             props.message.metadata?.deliverable_id || 
+             props.message.metadata?.deliverableId;
+  
+  console.log('🎭 backendDeliverableId computed:', {
+    messageId: props.message.id,
+    deliverable_id: props.message.deliverable_id,
+    deliverableId: props.message.deliverableId,
+    metadata_deliverable_id: props.message.metadata?.deliverable_id,
+    metadata_deliverableId: props.message.metadata?.deliverableId,
+    finalId: id,
+    idType: typeof id
+  });
+  
+  return id;
 });
 
 const backendDeliverable = computed(() => {
@@ -323,6 +335,11 @@ const getDeliverableType = () => {
   return DeliverableType.DOCUMENT;
 };
 
+const isUuid = (value?: string) => {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+};
+
 const createDeliverable = async () => {
   console.log('🎭 createDeliverable called:', {
     hasContent: !!props.message.content,
@@ -359,13 +376,11 @@ const createDeliverable = async () => {
       return;
     }
     
-    const deliverableData = {
+    const deliverableData: any = {
       title,
       content: props.message.content,
-      deliverable_type: deliverableType,
-      format: DeliverableFormat.MARKDOWN,
-      conversation_id: props.conversationId,
-      message_id: props.message.id,
+      deliverable_type: deliverableType as any, // Type assertion to handle enum mismatch
+      format: 'markdown' as any, // Type assertion to handle enum mismatch
       created_by_agent: props.agentName || 'unknown',
       metadata: {
         taskId: props.message.taskId,
@@ -373,6 +388,14 @@ const createDeliverable = async () => {
         createdFromTaskCompletion: true,
       },
     };
+
+    // Only include IDs if they are valid UUIDs (backend validates with IsUUID)
+    if (isUuid(props.conversationId)) {
+      deliverableData.conversation_id = props.conversationId;
+    }
+    if (isUuid(props.message.id)) {
+      deliverableData.message_id = props.message.id;
+    }
     
     // Use the proper deliverablesService instead of direct fetch
     const { deliverablesService } = await import('@/services/deliverablesService');
