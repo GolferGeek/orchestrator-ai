@@ -13,6 +13,7 @@ interface Deliverable {
   user_id: string;
   conversation_id?: string;
   message_id?: string;
+  task_id?: string;
   title: string;
   content: string;
   deliverable_type: DeliverableType | string;
@@ -167,8 +168,27 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       setLoading(true);
       clearError();
 
-      if (!isUuid(conversationId)) {
-        console.warn('Skipping loadDeliverablesByConversation: invalid conversationId', conversationId);
+      console.log('🔍 loadDeliverablesByConversation called with:', {
+        conversationId,
+        type: typeof conversationId,
+        length: conversationId?.length,
+        isUuid: isUuid(conversationId)
+      });
+
+      // Enhanced validation to catch more edge cases
+      if (!conversationId || 
+          typeof conversationId !== 'string' || 
+          conversationId.trim() === '' ||
+          conversationId === 'undefined' ||
+          conversationId === 'null' ||
+          !isUuid(conversationId.trim())) {
+        console.warn('Skipping loadDeliverablesByConversation: invalid conversationId', {
+          conversationId,
+          type: typeof conversationId,
+          length: conversationId?.length,
+          trimmed: conversationId?.trim(),
+          isUuid: conversationId ? isUuid(conversationId.trim()) : false
+        });
         return [] as any[];
       }
 
@@ -182,7 +202,7 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       
       // Use the proper deliverablesService instead of direct fetch
       const { deliverablesService } = await import('@/services/deliverablesService');
-      const deliverables = await deliverablesService.getConversationDeliverables(conversationId);
+      const deliverables = await deliverablesService.getConversationDeliverables(conversationId.trim());
       
       // Clear existing deliverables for this conversation
       const existingIds = state.value.conversationDeliverables.get(conversationId) || [];
@@ -204,7 +224,15 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
 
       return deliverables;
     } catch (error: any) {
-      console.error('Failed to load deliverables by conversation:', error);
+      console.error('Failed to load deliverables by conversation:', {
+        conversationId,
+        error: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        fullError: error
+      });
       setError(error.message);
       throw error;
     } finally {
@@ -216,6 +244,30 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     try {
       setLoading(true);
       clearError();
+
+      console.log('🔍 loadDeliverableVersions called with:', {
+        parentId,
+        type: typeof parentId,
+        length: parentId?.length,
+        isUuid: isUuid(parentId)
+      });
+
+      // Enhanced validation to catch invalid deliverable IDs
+      if (!parentId || 
+          typeof parentId !== 'string' || 
+          parentId.trim() === '' ||
+          parentId === 'undefined' ||
+          parentId === 'null' ||
+          !isUuid(parentId.trim())) {
+        console.warn('Skipping loadDeliverableVersions: invalid parentId', {
+          parentId,
+          type: typeof parentId,
+          length: parentId?.length,
+          trimmed: parentId?.trim(),
+          isUuid: parentId ? isUuid(parentId.trim()) : false
+        });
+        return [] as any[];
+      }
 
       const authToken = authStore.token;
       if (!authToken) {
@@ -286,11 +338,60 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     }
   };
 
-  // Additional methods for compatibility
+  // Load all deliverables for the current user
   const loadDeliverables = async () => {
-    // For now, this can be an alias to loading all deliverables for a conversation
-    // In a full implementation, this might load all deliverables for a user
-    console.log('loadDeliverables called - implementing as needed');
+    try {
+      setLoading(true);
+      clearError();
+
+      console.log('🔍 loadDeliverables called - loading all user deliverables');
+
+      const authToken = authStore.token;
+      if (!authToken) {
+        console.log('No authentication token available for loading deliverables, skipping load');
+        return [];
+      }
+      
+      // Use the proper deliverablesService to load all user deliverables
+      const { deliverablesService } = await import('@/services/deliverablesService');
+      const result = await deliverablesService.getDeliverables({
+        limit: 100, // Get more deliverables for the main page
+        offset: 0,
+        latest_only: true // Only show latest versions by default
+      });
+      
+      console.log('🔍 loadDeliverables result:', result);
+
+      // Clear existing deliverables first
+      state.value.deliverables.clear();
+      state.value.conversationDeliverables.clear();
+
+      // Add all deliverables to the store
+      result.items.forEach((deliverable: any) => {
+        const storeDeliverable = {
+          ...deliverable,
+          created_at: new Date(deliverable.created_at),
+          updated_at: new Date(deliverable.updated_at)
+        };
+        addDeliverable(storeDeliverable);
+      });
+
+      console.log('🔍 Total deliverables loaded:', result.items.length);
+      return result.items;
+    } catch (error: any) {
+      console.error('Failed to load all deliverables:', {
+        error: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        fullError: error
+      });
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getDeliverable = (id: string) => {

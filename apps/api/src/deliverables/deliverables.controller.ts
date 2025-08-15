@@ -58,7 +58,11 @@ export class DeliverablesController {
     @Body() createDeliverableDto: CreateDeliverableDto,
     @Req() req: any,
   ): Promise<Deliverable> {
-    const userId = req.user.sub;
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    if (!userId) {
+      console.log('🔍 ERROR: No user ID found in JWT token for create');
+      throw new Error('User not authenticated');
+    }
     return this.deliverablesService.create(createDeliverableDto, userId);
   }
 
@@ -129,7 +133,11 @@ export class DeliverablesController {
     offset: number;
     has_more: boolean;
   }> {
-    const userId = req.user.sub;
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    if (!userId) {
+      console.log('🔍 ERROR: No user ID found in JWT token for findAll');
+      throw new Error('User not authenticated');
+    }
     return this.deliverablesService.findAll(userId, filters);
   }
 
@@ -173,12 +181,25 @@ export class DeliverablesController {
     description: 'Deliverables retrieved successfully',
     type: [Deliverable]
   })
+  @ApiResponse({ status: 400, description: 'Bad Request - Invalid conversation ID format' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findByConversation(
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
     @Req() req: any,
   ): Promise<Deliverable[]> {
-    const userId = req.user.sub;
+    console.log('🔍 findByConversation called with:', {
+      conversationId,
+      type: typeof conversationId,
+      userId: req.user?.sub || req.user?.id || req.user?.userId,
+      fullUser: req.user
+    });
+    
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    if (!userId) {
+      console.log('🔍 ERROR: No user ID found in JWT token');
+      throw new Error('User not authenticated');
+    }
+    console.log('🔍 Using userId:', userId);
     return this.deliverablesService.findByConversation(conversationId, userId);
   }
 
@@ -199,7 +220,19 @@ export class DeliverablesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: any,
   ): Promise<DeliverableVersion[]> {
-    const userId = req.user.sub;
+    console.log('🔍 getVersionHistory called with:', {
+      id,
+      type: typeof id,
+      userId: req.user?.sub || req.user?.id || req.user?.userId,
+      fullUser: req.user
+    });
+    
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    if (!userId) {
+      console.log('🔍 ERROR: No user ID found in JWT token for getVersionHistory');
+      throw new Error('User not authenticated');
+    }
+    console.log('🔍 Using userId for getVersionHistory:', userId);
     return this.deliverablesService.getVersionHistory(id, userId);
   }
 
@@ -222,7 +255,11 @@ export class DeliverablesController {
     @Body() createVersionDto: CreateVersionDto,
     @Req() req: any,
   ): Promise<Deliverable> {
-    const userId = req.user.sub;
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    if (!userId) {
+      console.log('🔍 ERROR: No user ID found in JWT token for createVersion');
+      throw new Error('User not authenticated');
+    }
     return this.deliverablesService.createVersion(id, createVersionDto, userId);
   }
 
@@ -245,7 +282,11 @@ export class DeliverablesController {
     @Body() updateDeliverableDto: UpdateDeliverableDto,
     @Req() req: any,
   ): Promise<Deliverable> {
-    const userId = req.user.sub;
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    if (!userId) {
+      console.log('🔍 ERROR: No user ID found in JWT token for update');
+      throw new Error('User not authenticated');
+    }
     return this.deliverablesService.update(id, updateDeliverableDto, userId);
   }
 
@@ -263,7 +304,11 @@ export class DeliverablesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: any,
   ): Promise<void> {
-    const userId = req.user.sub;
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    if (!userId) {
+      console.log('🔍 ERROR: No user ID found in JWT token for remove');
+      throw new Error('User not authenticated');
+    }
     return this.deliverablesService.remove(id, userId);
   }
 }

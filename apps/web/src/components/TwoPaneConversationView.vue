@@ -80,9 +80,13 @@
             v-for="message in messages"
             :key="message.id"
             class="message-wrapper"
-            :class="{ 'has-deliverable': messageHasDeliverable(message) }"
+            :class="{ 
+              'has-deliverable': messageHasDeliverable(message),
+              'hidden-duplicate': shouldHideMessageWithDeliverable(message)
+            }"
           >
             <AgentTaskItem
+              v-if="!shouldHideMessageWithDeliverable(message)"
               :message="message"
               :conversation-id="conversation?.id"
               :agent="conversation?.agent"
@@ -91,9 +95,28 @@
               @deliverable-updated="handleDeliverableUpdated"
             />
             
-            <!-- Deliverable Connection Indicator -->
+            <!-- Deliverable Connection Indicator (shown instead of full message) -->
             <div 
-              v-if="messageHasDeliverable(message)"
+              v-if="shouldHideMessageWithDeliverable(message)"
+              class="deliverable-connection"
+              @click="selectDeliverable(getMessageDeliverable(message))"
+            >
+              <div class="connection-content">
+                <ion-icon :icon="documentTextOutline" />
+                <span>{{ getMessageDeliverable(message)?.title || 'Deliverable created' }}</span>
+                <ion-chip size="small" color="primary" outline>
+                  {{ getMessageDeliverable(message)?.deliverable_type || 'document' }}
+                </ion-chip>
+              </div>
+              <ion-button fill="clear" size="small">
+                <ion-icon :icon="arrowForwardOutline" />
+                View
+              </ion-button>
+            </div>
+            
+            <!-- Standard Deliverable Indicator (for messages we're not hiding) -->
+            <div 
+              v-else-if="messageHasDeliverable(message)"
               class="deliverable-indicator"
               @click="selectDeliverable(getMessageDeliverable(message))"
             >
@@ -220,6 +243,7 @@ import {
   IonSpinner,
   IonActionSheet,
   IonModal,
+  IonChip,
 } from '@ionic/vue';
 import {
   alertCircleOutline,
@@ -354,6 +378,23 @@ const getMessageDeliverable = (message: any) => {
   return deliverablesStore.getDeliverableById(deliverableId);
 };
 
+const shouldHideMessageWithDeliverable = (message: any) => {
+  // Hide messages with deliverables when the work product pane is shown
+  // and the message has a deliverable that matches the active work product
+  if (!showWorkProductPane.value || !activeWorkProduct.value) {
+    return false;
+  }
+  
+  const messageDeliverable = getMessageDeliverable(message);
+  if (!messageDeliverable) {
+    return false;
+  }
+  
+  // Hide the message if this deliverable is actively shown in the work product pane
+  return activeWorkProduct.value.type === 'deliverable' &&
+         activeWorkProduct.value.data?.id === messageDeliverable.id;
+};
+
 const selectDeliverable = (deliverable: any) => {
   if (!deliverable) {
     console.warn('selectDeliverable called with null/undefined deliverable');
@@ -474,12 +515,27 @@ watch(() => messages.value.length, () => {
 });
 
 // Watch for conversation changes and load deliverables
-watch(() => props.conversation?.id, (newId) => {
+watch(() => props.conversation?.id, async (newId) => {
   if (newId && authStore.isAuthenticated) {
-    deliverablesStore.loadDeliverablesByConversation(newId);
+    await deliverablesStore.loadDeliverablesByConversation(newId);
+    
+    // Auto-select the most recent deliverable if available
+    const conversationDeliverables = deliverablesStore.getDeliverablesByConversation(newId);
+    if (conversationDeliverables && conversationDeliverables.length > 0) {
+      // Sort by updated_at to get the most recent
+      const mostRecentDeliverable = conversationDeliverables
+        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+      
+      selectDeliverable(mostRecentDeliverable);
+      console.log('🎭 Auto-selected most recent deliverable:', mostRecentDeliverable.title);
+    } else {
+      // Reset active work product when no deliverables
+      activeWorkProduct.value = null;
+    }
+  } else {
+    // Reset active work product when switching conversations
+    activeWorkProduct.value = null;
   }
-  // Reset active work product when switching conversations
-  activeWorkProduct.value = null;
 });
 
 // Watch for authentication state changes and load deliverables when user logs in
@@ -533,6 +589,7 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
 
 .conversation-pane {
   flex: 1;
+  min-width: 300px;
   display: flex;
   flex-direction: column;
   background: white;
@@ -548,7 +605,9 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
 }
 
 .work-product-pane {
-  width: 400px;
+  width: 45%;
+  min-width: 400px;
+  max-width: 600px;
   border-left: 1px solid var(--ion-color-light);
   background: var(--ion-color-step-25);
   transition: all 0.3s ease;
@@ -602,6 +661,48 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
 .deliverable-indicator:hover {
   background: #bbdefb;
   border-color: #90caf9;
+}
+
+.deliverable-connection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 12px 16px;
+  background: #f3e5f5;
+  border: 1px solid #ce93d8;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 60px;
+}
+
+.deliverable-connection:hover {
+  background: #e1bee7;
+  border-color: #ba68c8;
+  box-shadow: 0 2px 8px rgba(156, 39, 176, 0.15);
+}
+
+.connection-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.connection-content ion-icon {
+  font-size: 1.2em;
+  color: #7b1fa2;
+}
+
+.connection-content span {
+  font-weight: 500;
+  color: #4a148c;
+  flex: 1;
+}
+
+.message-wrapper.hidden-duplicate {
+  opacity: 1;
 }
 
 .input-area {
@@ -893,7 +994,9 @@ html[data-theme="dark"] .dot {
 /* Tablet breakpoint */
 @media (max-width: 1024px) {
   .work-product-pane {
-    width: 350px;
+    width: 40%;
+    min-width: 350px;
+    max-width: 450px;
   }
 }
 

@@ -272,17 +272,50 @@ export class DeliverablesService {
 
     try {
       // Verify parent exists and belongs to user
-      await this.findOne(parentId, userId);
+      const parentDeliverable = await this.findOne(parentId, userId);
 
+      // Get the next version number for this deliverable family
+      const { data: existingVersions, error: versionError } = await this.supabaseService
+        .getServiceClient()
+        .from(getTableName('deliverables'))
+        .select('version')
+        .or(`parent_deliverable_id.eq.${parentId},id.eq.${parentId}`)
+        .eq('user_id', userId)
+        .order('version', { ascending: false })
+        .limit(1);
+
+      if (versionError) {
+        this.logger.error('Failed to get version number:', versionError);
+        throw new BadRequestException('Failed to determine version number');
+      }
+
+      const nextVersion = existingVersions && existingVersions.length > 0 
+        ? existingVersions[0].version + 1 
+        : parentDeliverable.version + 1;
+
+      // Create the new version
       const { data, error } = await this.supabaseService
         .getServiceClient()
-        .rpc('create_deliverable_version', {
-          parent_id: parentId,
-          new_title: createVersionDto.title,
-          new_content: createVersionDto.content,
-          new_metadata: createVersionDto.metadata || {},
-          created_by_agent_name: createVersionDto.created_by_agent || null,
-        });
+        .from(getTableName('deliverables'))
+        .insert([
+          {
+            user_id: userId,
+            title: createVersionDto.title,
+            content: createVersionDto.content,
+            deliverable_type: parentDeliverable.deliverable_type,
+            format: parentDeliverable.format,
+            version: nextVersion,
+            parent_deliverable_id: parentId,
+            is_latest_version: true,
+            conversation_id: parentDeliverable.conversation_id,
+            message_id: parentDeliverable.message_id,
+            created_by_agent: createVersionDto.created_by_agent || parentDeliverable.created_by_agent,
+            metadata: createVersionDto.metadata || parentDeliverable.metadata,
+            tags: parentDeliverable.tags,
+          },
+        ])
+        .select('*')
+        .single();
 
       if (error) {
         this.logger.error('Failed to create deliverable version:', error);
@@ -291,10 +324,17 @@ export class DeliverablesService {
         );
       }
 
-      // Fetch the newly created version
-      const newDeliverable = await this.findOne(data, userId);
-      this.logger.log(`Deliverable version created successfully: ${data}`);
-      return newDeliverable;
+      // Update previous versions to mark them as not latest
+      await this.supabaseService
+        .getServiceClient()
+        .from(getTableName('deliverables'))
+        .update({ is_latest_version: false })
+        .or(`parent_deliverable_id.eq.${parentId},id.eq.${parentId}`)
+        .neq('id', data.id)
+        .eq('user_id', userId);
+
+      this.logger.log(`Deliverable version created successfully: ${data.id}`);
+      return this.mapToDeliverable(data);
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -323,13 +363,16 @@ export class DeliverablesService {
 
     try {
       // Verify the deliverable exists and belongs to the user
-      await this.findOne(deliverableId, userId);
+      const deliverable = await this.findOne(deliverableId, userId);
 
+      // Find all versions by parent_deliverable_id or by matching the current deliverable
       const { data, error } = await this.supabaseService
         .getServiceClient()
-        .rpc('get_deliverable_versions', {
-          deliverable_id: deliverableId,
-        });
+        .from(getTableName('deliverables'))
+        .select('id, title, version, is_latest_version, created_at, created_by_agent, content')
+        .or(`parent_deliverable_id.eq.${deliverableId},id.eq.${deliverableId}`)
+        .eq('user_id', userId)
+        .order('version', { ascending: true });
 
       if (error) {
         this.logger.error('Failed to get version history:', error);
@@ -464,7 +507,7 @@ export class DeliverablesService {
       is_latest_version: data.is_latest_version,
       created_at: new Date(data.created_at),
       created_by_agent: data.created_by_agent,
-      content_preview: data.content_preview,
+      content_preview: data.content_preview || (data.content ? data.content.substring(0, 200) : ''),
     };
   }
 
