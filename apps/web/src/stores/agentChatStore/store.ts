@@ -121,6 +121,23 @@ export const useAgentChatStore = defineStore('agentChat', {
       this.conversations.push(newConversation);
       this.activeConversationId = newConversation.id;
       
+      // Add to navigation store immediately so it appears in the left pane
+      const conversationsStore = useAgentConversationsStore();
+      conversationsStore.addExistingConversation({
+        id: newConversation.id,
+        agentName: agent.name,
+        agentType: agent.type,
+        startedAt: new Date(),
+        lastActiveAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        taskCount: 0,
+        completedTasks: 0,
+        failedTasks: 0,
+        activeTasks: 0,
+      });
+      console.log('✅ Conversation added to navigation tree immediately');
+      
       console.log(`✅ New conversation started: ${newConversation.id}`);
       return newConversation.id;
     },

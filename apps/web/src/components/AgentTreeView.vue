@@ -320,8 +320,10 @@ const filteredAgentTypes = computed(() => {
         });
       }
       
-      // Get conversations from store
-      const agentConversations = conversationsStore.getConversationsByAgent(agent.name, agent.type);
+      // Get conversations from store - use direct state access for reactivity
+      const agentConversations = conversationsStore.conversations.filter(conv => 
+        conv.agentName === agent.name && conv.agentType === agent.type
+      );
       
       const agentType = types.get(agent.type)!;
       agentType.agents.push({
@@ -376,7 +378,9 @@ const filteredAgentTypes = computed(() => {
           hierarchyAgent.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
         
         if (matchesSearch) {
-          const agentConversations = conversationsStore.getConversationsByAgent(hierarchyAgent.name, hierarchyAgent.type);
+          const agentConversations = conversationsStore.conversations.filter(conv => 
+            conv.agentName === hierarchyAgent.name && conv.agentType === hierarchyAgent.type
+          );
           
           const agentGroup: AgentType = {
             type: `${hierarchyAgent.name}_hierarchy_${level}`, // Unique identifier
@@ -406,7 +410,9 @@ const filteredAgentTypes = computed(() => {
         agent.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
       
       if (matchesSearch) {
-        const agentConversations = conversationsStore.getConversationsByAgent(agent.name, agent.type || 'specialist');
+        const agentConversations = conversationsStore.conversations.filter(conv => 
+          conv.agentName === agent.name && conv.agentType === (agent.type || 'specialist')
+        );
         
         const agentGroup: AgentType = {
           type: `${agent.name}_hierarchy_${level}`, // Unique identifier
@@ -467,7 +473,9 @@ const filteredAgentTypes = computed(() => {
       if (filteredAgents.length > 0) {
         const agentItems = filteredAgents
           .map((agent: any) => {
-            const agentConversations = conversationsStore.getConversationsByAgent(agent.name, agent.type);
+            const agentConversations = conversationsStore.conversations.filter(conv => 
+              conv.agentName === agent.name && conv.agentType === agent.type
+            );
             return {
               name: agent.name,
               type: agent.type || 'specialist',
