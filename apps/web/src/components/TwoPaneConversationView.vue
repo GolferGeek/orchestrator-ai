@@ -81,8 +81,7 @@
             :key="message.id"
             class="message-wrapper"
             :class="{ 
-              'has-deliverable': messageHasDeliverable(message),
-              'hidden-duplicate': shouldHideMessageWithDeliverable(message)
+              'has-deliverable': messageHasDeliverable(message)
             }"
           >
             <AgentTaskItem
@@ -109,21 +108,11 @@
                 </ion-chip>
               </div>
               <ion-button fill="clear" size="small">
-                <ion-icon :icon="arrowForwardOutline" />
-                View
+                <ion-icon v-if="!showWorkProductPane" :icon="arrowForwardOutline" />
+                {{ showWorkProductPane ? 'Show' : 'View' }}
               </ion-button>
             </div>
             
-            <!-- Standard Deliverable Indicator (for messages we're not hiding) -->
-            <div 
-              v-else-if="messageHasDeliverable(message)"
-              class="deliverable-indicator"
-              @click="selectDeliverable(getMessageDeliverable(message))"
-            >
-              <ion-icon :icon="linkOutline" />
-              <span>Created/Updated Deliverable</span>
-              <ion-icon :icon="arrowForwardOutline" />
-            </div>
           </div>
         </div>
 
@@ -174,9 +163,6 @@
       >
         <!-- Deliverable Display -->
         <template v-if="activeWorkProduct?.type === 'deliverable'">
-          <div style="padding: 10px; background: yellow; font-size: 12px;">
-            DEBUG: Rendering DeliverableDisplay with deliverable: {{ activeWorkProduct.data?.title }}
-          </div>
           <DeliverableDisplay
             :deliverable="activeWorkProduct.data"
             :conversation-id="conversation?.id"
@@ -379,20 +365,9 @@ const getMessageDeliverable = (message: any) => {
 };
 
 const shouldHideMessageWithDeliverable = (message: any) => {
-  // Hide messages with deliverables when the work product pane is shown
-  // and the message has a deliverable that matches the active work product
-  if (!showWorkProductPane.value || !activeWorkProduct.value) {
-    return false;
-  }
-  
+  // Always hide messages that have deliverables - deliverables should only appear in the deliverable pane
   const messageDeliverable = getMessageDeliverable(message);
-  if (!messageDeliverable) {
-    return false;
-  }
-  
-  // Hide the message if this deliverable is actively shown in the work product pane
-  return activeWorkProduct.value.type === 'deliverable' &&
-         activeWorkProduct.value.data?.id === messageDeliverable.id;
+  return !!messageDeliverable;
 };
 
 const selectDeliverable = (deliverable: any) => {
@@ -402,10 +377,8 @@ const selectDeliverable = (deliverable: any) => {
   }
   activeWorkProduct.value = { type: 'deliverable', data: deliverable };
   // Always open the work product pane when a deliverable is selected
-  if (!showWorkProductPane.value) {
-    showWorkProductPane.value = true;
-    console.log('🎭 Opened work product pane from selectDeliverable');
-  }
+  showWorkProductPane.value = true;
+  console.log('🎭 Opened work product pane from selectDeliverable');
   showDeliverableSelector.value = false;
 };
 
@@ -418,10 +391,9 @@ const handleDeliverableCreated = (deliverable: any) => {
   activeWorkProduct.value = { type: 'deliverable', data: deliverable };
   console.log('🎭 Set activeWorkProduct:', activeWorkProduct.value);
   
-  if (!showWorkProductPane.value && !isMobile.value) {
-    showWorkProductPane.value = true;
-    console.log('🎭 Showed work product pane');
-  }
+  // Always show the work product pane when a deliverable is created
+  showWorkProductPane.value = true;
+  console.log('🎭 Showed work product pane');
   
   console.log('🎭 Current showWorkProductPane state:', showWorkProductPane.value);
 };
@@ -479,9 +451,7 @@ const handleMergeCompleted = (mergedDeliverable: any) => {
 // Responsive handling
 const checkMobile = () => {
   isMobile.value = window.innerWidth < 768;
-  if (!isMobile.value && showWorkProductPane.value === undefined) {
-    showWorkProductPane.value = true;
-  }
+  // Don't auto-show work product pane on desktop - let the conversation content determine this
 };
 
 onMounted(() => {
@@ -531,10 +501,18 @@ watch(() => props.conversation?.id, async (newId) => {
     } else {
       // Reset active work product when no deliverables
       activeWorkProduct.value = null;
+      // Hide work product pane when no deliverables (can be toggled back on)
+      if (!isMobile.value) {
+        showWorkProductPane.value = false;
+      }
     }
   } else {
     // Reset active work product when switching conversations
     activeWorkProduct.value = null;
+    // Hide work product pane when no conversation
+    if (!isMobile.value) {
+      showWorkProductPane.value = false;
+    }
   }
 });
 
@@ -605,9 +583,9 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
 }
 
 .work-product-pane {
-  width: 45%;
+  width: 67%;
   min-width: 400px;
-  max-width: 600px;
+  max-width: none;
   border-left: 1px solid var(--ion-color-light);
   background: var(--ion-color-step-25);
   transition: all 0.3s ease;
@@ -643,25 +621,6 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   position: relative;
 }
 
-.deliverable-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: #e3f2fd;
-  border: 1px solid #bbdefb;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.9em;
-  color: #1565c0;
-}
-
-.deliverable-indicator:hover {
-  background: #bbdefb;
-  border-color: #90caf9;
-}
 
 .deliverable-connection {
   display: flex;
@@ -701,9 +660,6 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   flex: 1;
 }
 
-.message-wrapper.hidden-duplicate {
-  opacity: 1;
-}
 
 .input-area {
   border-top: 1px solid var(--ion-color-light);
@@ -895,17 +851,6 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
     border-color: #4a5568;
   }
   
-  .deliverable-indicator {
-    background: #1e40af;
-    border-color: #2563eb;
-    color: #dbeafe;
-  }
-  
-  .deliverable-indicator:hover {
-    background: #2563eb;
-    border-color: #3b82f6;
-    color: #ffffff;
-  }
   
   .thinking-indicator {
     background: #374151;
@@ -962,17 +907,6 @@ html[data-theme="dark"] .input-area {
   border-color: #4a5568;
 }
 
-html[data-theme="dark"] .deliverable-indicator {
-  background: #1e40af;
-  border-color: #2563eb;
-  color: #dbeafe;
-}
-
-html[data-theme="dark"] .deliverable-indicator:hover {
-  background: #2563eb;
-  border-color: #3b82f6;
-  color: #ffffff;
-}
 
 html[data-theme="dark"] .thinking-indicator {
   background: #374151;
@@ -994,9 +928,9 @@ html[data-theme="dark"] .dot {
 /* Tablet breakpoint */
 @media (max-width: 1024px) {
   .work-product-pane {
-    width: 40%;
+    width: 60%;
     min-width: 350px;
-    max-width: 450px;
+    max-width: none;
   }
 }
 

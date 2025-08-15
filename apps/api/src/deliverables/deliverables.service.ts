@@ -289,7 +289,7 @@ export class DeliverablesService {
         throw new BadRequestException('Failed to determine version number');
       }
 
-      const nextVersion = existingVersions && existingVersions.length > 0 
+      const nextVersion = existingVersions && existingVersions.length > 0 && existingVersions[0]
         ? existingVersions[0].version + 1 
         : parentDeliverable.version + 1;
 
