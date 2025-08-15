@@ -124,7 +124,7 @@ router.beforeEach(async (to, from, next) => {
           const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role));
           
           if (!hasRequiredRole) {
-            next({ path: '/home' }); // Redirect to home if insufficient permissions
+            next({ path: '/app/home' }); // Redirect to home if insufficient permissions
             return;
           }
         } else {

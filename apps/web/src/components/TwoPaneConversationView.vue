@@ -355,9 +355,15 @@ const getMessageDeliverable = (message: any) => {
 };
 
 const selectDeliverable = (deliverable: any) => {
+  if (!deliverable) {
+    console.warn('selectDeliverable called with null/undefined deliverable');
+    return;
+  }
   activeWorkProduct.value = { type: 'deliverable', data: deliverable };
-  if (isMobile.value) {
+  // Always open the work product pane when a deliverable is selected
+  if (!showWorkProductPane.value) {
     showWorkProductPane.value = true;
+    console.log('🎭 Opened work product pane from selectDeliverable');
   }
   showDeliverableSelector.value = false;
 };
@@ -452,6 +458,14 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile);
+});
+
+// Ensure pane opens when a work product becomes active (desktop)
+watch(() => activeWorkProduct.value, (val) => {
+  if (val && !isMobile.value && !showWorkProductPane.value) {
+    showWorkProductPane.value = true;
+    console.log('🎭 Opened work product pane from activeWorkProduct watcher');
+  }
 });
 
 // Watch for new messages and scroll

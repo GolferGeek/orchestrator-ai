@@ -156,6 +156,16 @@ class DeliverablesService {
    * Get a specific deliverable by ID
    */
   async getDeliverable(id: string): Promise<Deliverable> {
+    console.log('🎭 deliverablesService.getDeliverable called with:', {
+      id,
+      idType: typeof id,
+      idValue: JSON.stringify(id),
+      isUndefined: id === undefined,
+      isNull: id === null,
+      isEmpty: id === '',
+      url: `/deliverables/${id}`
+    });
+    
     const response = await this.axiosInstance.get(`/deliverables/${id}`);
     return response.data;
   }
@@ -210,8 +220,22 @@ class DeliverablesService {
    * Get deliverables for a specific conversation
    */
   async getConversationDeliverables(conversationId: string): Promise<DeliverableSearchItem[]> {
-    const result = await this.getDeliverables({ conversation_id: conversationId });
-    return result.items;
+    const response = await this.axiosInstance.get(`/deliverables/conversation/${conversationId}`);
+    // Backend returns full Deliverable[]; map to search items shape for callers that expect previews
+    const items = (response.data as Deliverable[]).map((d) => ({
+      id: d.id,
+      title: d.title,
+      deliverable_type: d.deliverable_type,
+      format: d.format,
+      version: d.version,
+      is_latest_version: d.is_latest_version,
+      created_at: d.created_at,
+      updated_at: d.updated_at,
+      created_by_agent: d.created_by_agent,
+      content_preview: (d.content || '').substring(0, 200) + ((d.content || '').length > 200 ? '...' : ''),
+      tags: d.tags,
+    }));
+    return items;
   }
 
   /**

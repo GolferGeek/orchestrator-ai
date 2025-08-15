@@ -239,30 +239,36 @@ export const useAgentChatStore = defineStore('agentChat', {
           activeConversation.messages.every(msg => msg.metadata?.isWelcome);
           
         if (hasOnlyInitialMessages) {
-          console.log('🔄 Creating new conversation in database...');
-          const backendId = await conversation.createConversation(activeConversation.agent);
-          conversationId = backendId;
-          activeConversation.id = conversationId;
-          this.activeConversationId = conversationId;
-          console.log('✅ Backend conversation created:', backendId);
-          
-          // Update the conversations navigation store so the new conversation appears in the tree
-          // Do this BEFORE creating tasks to avoid race conditions with WebSocket events
-          const conversationsStore = useAgentConversationsStore();
-          conversationsStore.addExistingConversation({
-            id: conversationId,
-            agentName: activeConversation.agent.name,
-            agentType: activeConversation.agent.type,
-            startedAt: new Date(),
-            lastActiveAt: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            taskCount: 0,
-            completedTasks: 0,
-            failedTasks: 0,
-            activeTasks: 0,
-          });
-          console.log('✅ Conversation added to navigation tree BEFORE task creation');
+          // Only create a backend conversation if one does not already exist
+          const exists = await conversation.conversationExists(conversationId);
+          if (!exists) {
+            console.log('🔄 Creating new conversation in database...');
+            const backendId = await conversation.createConversation(activeConversation.agent);
+            conversationId = backendId;
+            activeConversation.id = conversationId;
+            this.activeConversationId = conversationId;
+            console.log('✅ Backend conversation created:', backendId);
+            
+            // Update the conversations navigation store so the new conversation appears in the tree
+            // Do this BEFORE creating tasks to avoid race conditions with WebSocket events
+            const conversationsStore = useAgentConversationsStore();
+            conversationsStore.addExistingConversation({
+              id: conversationId,
+              agentName: activeConversation.agent.name,
+              agentType: activeConversation.agent.type,
+              startedAt: new Date(),
+              lastActiveAt: new Date(),
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              taskCount: 0,
+              completedTasks: 0,
+              failedTasks: 0,
+              activeTasks: 0,
+            });
+            console.log('✅ Conversation added to navigation tree BEFORE task creation');
+          } else {
+            console.log('ℹ️ Backend conversation already exists, skipping creation');
+          }
         } else {
           console.log('ℹ️ Using existing conversation ID:', conversationId);
         }
