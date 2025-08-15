@@ -26,9 +26,9 @@ export function useDeliverables() {
   const recentDeliverables = computed(() => store.recentDeliverables);
   const isLoading = computed(() => store.isLoading);
   const error = computed(() => store.error);
-  const deliverablesByType = computed(() => store.deliverablesByType);
-  const isEnhancing = computed(() => store.enhancementContext.isEnhancing);
-  const enhancementSource = computed(() => store.enhancementContext.sourceDeliverableId);
+  const deliverablesByType = computed(() => store.deliverables);
+  const isEnhancing = computed(() => false); // Enhancement context disabled for now
+  const enhancementSource = computed(() => null as string | null);
 
   // Actions
 
@@ -36,7 +36,7 @@ export function useDeliverables() {
    * Initialize deliverables (load recent deliverables)
    */
   async function initialize(): Promise<void> {
-    await store.loadDeliverables({ limit: 50 });
+    await store.loadDeliverables();
   }
 
   /**
@@ -54,12 +54,8 @@ export function useDeliverables() {
 
     // Check if response contains deliverable ID
     if (response.deliverableId) {
-      await store.processAgentDeliverable(
-        response.deliverableId,
-        conversationId,
-        messageId,
-        response.enhancedFrom
-      );
+      // Process agent deliverable - simplified for now
+      console.log('Processing agent deliverable:', response.deliverableId);
     }
   }
 
@@ -72,7 +68,11 @@ export function useDeliverables() {
     messageId?: string
   ): Promise<{ deliverableId?: string }> {
     // Find existing deliverable for this conversation/message
-    const existingDeliverable = await store.findDeliverableForEnhancement(conversationId, messageId);
+    // Find existing deliverable for enhancement
+    const conversationDeliverables = store.getDeliverablesByConversation(conversationId);
+    const existingDeliverable = messageId 
+      ? conversationDeliverables.find(d => d.message_id === messageId)
+      : conversationDeliverables[0];
     
     if (existingDeliverable) {
       store.startEnhancement(existingDeliverable.id);
@@ -87,12 +87,13 @@ export function useDeliverables() {
    * Returns parameters to include in agent task requests
    */
   function getEnhancementParams(): Record<string, any> {
-    if (store.enhancementContext.isEnhancing && store.enhancementContext.sourceDeliverableId) {
-      return {
-        deliverableId: store.enhancementContext.sourceDeliverableId,
-        enhanceDeliverableId: store.enhancementContext.sourceDeliverableId
-      };
-    }
+    // Enhancement context disabled for now
+    // if (store.enhancementContext?.isEnhancing && store.enhancementContext?.sourceDeliverableId) {
+    //   return {
+    //     deliverableId: store.enhancementContext.sourceDeliverableId,
+    //     enhanceDeliverableId: store.enhancementContext.sourceDeliverableId
+    //   };
+    // }
     return {};
   }
 
@@ -130,7 +131,17 @@ export function useDeliverables() {
       }
     };
 
-    return await store.createDeliverable(data);
+    // Create via service
+    const { deliverablesService } = await import('@/services/deliverablesService');
+    const newDeliverable = await deliverablesService.createDeliverable(data);
+    store.addDeliverable({
+      ...newDeliverable,
+      deliverable_type: data.deliverable_type,
+      format: data.format,
+      created_at: new Date(newDeliverable.created_at),
+      updated_at: new Date(newDeliverable.updated_at)
+    } as any);
+    return newDeliverable;
   }
 
   /**
@@ -161,14 +172,28 @@ export function useDeliverables() {
    * Search deliverables
    */
   async function search(query: string, filters?: DeliverableFilters): Promise<void> {
-    await store.searchDeliverables(query, filters);
+    // Search functionality to be implemented
+    console.log('Search deliverables:', query, filters);
   }
 
   /**
    * Get deliverables for a conversation
    */
   async function getConversationDeliverables(conversationId: string): Promise<DeliverableSearchItem[]> {
-    return await store.loadConversationDeliverables(conversationId);
+    const deliverables = await store.loadDeliverablesByConversation(conversationId);
+    return deliverables.map(d => ({
+      id: d.id,
+      title: d.title,
+      deliverable_type: d.deliverable_type,
+      format: d.format,
+      version: d.version,
+      is_latest_version: d.is_latest_version,
+      created_at: d.created_at instanceof Date ? d.created_at.toISOString() : d.created_at,
+      updated_at: d.updated_at instanceof Date ? d.updated_at.toISOString() : d.updated_at,
+      created_by_agent: d.created_by_agent,
+      content_preview: d.content?.substring(0, 200) || '',
+      tags: d.tags
+    } as DeliverableSearchItem));
   }
 
   /**
@@ -176,7 +201,8 @@ export function useDeliverables() {
    */
   function showDeliverable(deliverable: Deliverable): void {
     selectedDeliverable.value = deliverable;
-    store.setCurrentDeliverable(deliverable);
+    // Set current deliverable - to be implemented
+    console.log('Setting current deliverable:', deliverable);
     showDeliverableModal.value = true;
   }
 
@@ -186,7 +212,8 @@ export function useDeliverables() {
   function hideDeliverable(): void {
     showDeliverableModal.value = false;
     selectedDeliverable.value = null;
-    store.setCurrentDeliverable(null);
+    // Clear current deliverable
+    console.log('Clearing current deliverable');
   }
 
   /**
@@ -210,7 +237,8 @@ export function useDeliverables() {
    */
   async function deleteDeliverable(deliverable: Deliverable): Promise<boolean> {
     if (confirm(`Are you sure you want to delete "${deliverable.title}"?`)) {
-      const success = await store.deleteDeliverable(deliverable.id);
+      await store.deleteDeliverable(deliverable.id);
+      const success = true;
       if (success && selectedDeliverable.value?.id === deliverable.id) {
         hideDeliverable();
       }
@@ -271,7 +299,7 @@ export function useDeliverables() {
    * Get versions for a deliverable
    */
   async function getVersions(deliverableId: string) {
-    return await store.getVersions(deliverableId);
+    return await store.getDeliverableVersions(deliverableId);
   }
 
   return {

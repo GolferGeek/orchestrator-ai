@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useAuthStore } from './authStore';
+import type { 
+  Deliverable as ServiceDeliverable,
+  DeliverableSearchItem,
+  DeliverableType,
+  DeliverableFormat
+} from '@/services/deliverablesService';
 
 interface Deliverable {
   id: string;
@@ -9,8 +15,8 @@ interface Deliverable {
   message_id?: string;
   title: string;
   content: string;
-  deliverable_type: string;
-  format: string;
+  deliverable_type: DeliverableType | string;
+  format: DeliverableFormat | string;
   version: number;
   parent_deliverable_id?: string;
   is_latest_version: boolean;
@@ -20,6 +26,7 @@ interface Deliverable {
   description?: string;
   created_at: Date;
   updated_at: Date;
+  content_preview?: string;
 }
 
 interface DeliverableVersion {
@@ -141,8 +148,13 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       state.value.conversationDeliverables.delete(conversationId);
 
       // Add new deliverables
-      deliverables.forEach((deliverable: Deliverable) => {
-        addDeliverable(deliverable);
+      deliverables.forEach((deliverable: any) => {
+        const storeDeliverable = {
+          ...deliverable,
+          created_at: new Date(deliverable.created_at),
+          updated_at: new Date(deliverable.updated_at)
+        };
+        addDeliverable(storeDeliverable);
       });
 
       return deliverables;
@@ -169,7 +181,11 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       // Use the proper deliverablesService instead of direct fetch
       const { deliverablesService } = await import('@/services/deliverablesService');
       const versions = await deliverablesService.getVersions(parentId);
-      state.value.deliverableVersions.set(parentId, versions);
+      const storeVersions = versions.map((v: any) => ({
+        ...v,
+        created_at: new Date(v.created_at)
+      }));
+      state.value.deliverableVersions.set(parentId, storeVersions);
       
       return versions;
     } catch (error: any) {
@@ -202,12 +218,17 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       // Use the proper deliverablesService instead of direct fetch
       const { deliverablesService } = await import('@/services/deliverablesService');
       const newVersion = await deliverablesService.createVersion(parentId, data);
-      addDeliverable(newVersion);
+      const storeVersion = {
+        ...newVersion,
+        created_at: new Date(newVersion.created_at),
+        updated_at: new Date(newVersion.updated_at)
+      };
+      addDeliverable(storeVersion as any);
       
       // Invalidate cached versions for this parent
       state.value.deliverableVersions.delete(parentId);
       
-      return newVersion;
+      return storeVersion as any;
     } catch (error: any) {
       console.error('Failed to create deliverable version:', error);
       setError(error.message);
@@ -261,8 +282,18 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       setLoading(true);
       // Use the proper deliverablesService instead of direct fetch
       const { deliverablesService } = await import('@/services/deliverablesService');
-      const updatedDeliverable = await deliverablesService.updateDeliverable(id, data);
-      addDeliverable(updatedDeliverable);
+      const serviceData = {
+        ...data,
+        deliverable_type: data.deliverable_type as DeliverableType,
+        format: data.format as DeliverableFormat
+      };
+      const updatedDeliverable = await deliverablesService.updateDeliverable(id, serviceData as any);
+      const storeDeliverable = {
+        ...updatedDeliverable,
+        created_at: new Date(updatedDeliverable.created_at),
+        updated_at: new Date(updatedDeliverable.updated_at)
+      };
+      addDeliverable(storeDeliverable as any);
       return updatedDeliverable;
     } catch (error: any) {
       console.error('Failed to update deliverable:', error);
