@@ -18,6 +18,11 @@ export class Deliverable {
   })
   message_id?: string;
 
+  @ApiPropertyOptional({
+    description: 'Task that created this deliverable (used for evaluation)',
+  })
+  task_id?: string;
+
   @ApiProperty({ description: 'Title of the deliverable' })
   title!: string;
 

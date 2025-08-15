@@ -148,6 +148,7 @@ CREATE TABLE public.deliverables (
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     conversation_id UUID REFERENCES public.agent_conversations(id) ON DELETE CASCADE,
     project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    task_id UUID REFERENCES public.tasks(id) ON DELETE SET NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     content TEXT,
@@ -238,6 +239,7 @@ CREATE INDEX idx_projects_status ON public.projects(status);
 CREATE INDEX idx_deliverables_user_id ON public.deliverables(user_id);
 CREATE INDEX idx_deliverables_conversation_id ON public.deliverables(conversation_id);
 CREATE INDEX idx_deliverables_project_id ON public.deliverables(project_id);
+CREATE INDEX idx_deliverables_task_id ON public.deliverables(task_id);
 
 -- Company schema indexes
 CREATE INDEX idx_departments_company_id ON company.departments(company_id);

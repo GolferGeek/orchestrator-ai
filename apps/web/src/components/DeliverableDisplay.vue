@@ -342,6 +342,18 @@
           {{ tag }}
         </ion-chip>
       </div>
+      
+      <!-- Task Rating (for the work that created this deliverable) -->
+      <div class="rating-section" v-if="deliverable.task_id">
+        <div class="rating-label">Rate the agent's work on this deliverable:</div>
+        <div class="rating-context" v-if="deliverable.created_by_agent">
+          Created by {{ deliverable.created_by_agent }}
+        </div>
+        <TaskRating 
+          :task-id="deliverable.task_id"
+          :agent-name="deliverable.created_by_agent"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -378,6 +390,7 @@ import {
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import TaskRating from './TaskRating.vue';
 
 interface Props {
   deliverable: any;
@@ -976,6 +989,25 @@ watch(() => props.deliverable?.id, () => {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  margin-bottom: 16px;
+}
+
+.rating-section {
+  border-top: 1px solid var(--ion-color-light-shade);
+  padding-top: 16px;
+}
+
+.rating-label {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin-bottom: 4px;
+}
+
+.rating-context {
+  font-size: 0.8em;
+  color: var(--ion-color-medium);
+  margin-bottom: 8px;
 }
 
 /* Edit Mode Styles */
@@ -1181,6 +1213,14 @@ html[data-theme="dark"] {
     color: #a0aec0;
   }
   
+  .rating-label {
+    color: #f7fafc;
+  }
+  
+  .rating-context {
+    color: #a0aec0;
+  }
+  
   .title-editor,
   .content-editor {
     --background: #374151;
@@ -1210,5 +1250,13 @@ html[data-theme="dark"] {
     --color: #60a5fa;
     --background: #374151;
   }
+}
+
+html[data-theme="dark"] .rating-label {
+  color: #f7fafc;
+}
+
+html[data-theme="dark"] .rating-context {
+  color: #a0aec0;
 }
 </style>
