@@ -89,7 +89,7 @@ NESTJS_PID=$!
 sleep 2
 
 echo -e "${GREEN}✅ Development environment ready!${NC}"
-echo -e "${BLUE}📡 NestJS API: http://localhost:${API_PORT:-4000}${NC}"
+echo -e "${BLUE}📡 NestJS API: http://localhost:${API_PORT:-9000}${NC}"
 echo -e "${BLUE}🐍 Python Virtual Environment: Active${NC}"
 echo -e "${BLUE}🔧 LangGraph: Available for Python agents${NC}"
 echo -e "\n${BLUE}Press Ctrl+C to stop all services${NC}"
