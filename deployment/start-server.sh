@@ -38,7 +38,36 @@ check_port() {
     fi
 }
 
-# Step 1: Check and start PM2 processes
+# Step 1: Clean up any conflicting processes on production ports
+echo -e "\n${BLUE}🧹 Checking for conflicting processes...${NC}"
+
+# Kill anything on port 9000 that's not PM2
+if check_port 9000; then
+    PID_9000=$(lsof -ti:9000)
+    if [ ! -z "$PID_9000" ]; then
+        # Check if it's a PM2 process
+        if ! ps aux | grep $PID_9000 | grep -q "PM2"; then
+            echo -e "${YELLOW}Killing non-PM2 process on port 9000 (PID: $PID_9000)${NC}"
+            kill -9 $PID_9000 2>/dev/null || true
+            sleep 1
+        fi
+    fi
+fi
+
+# Kill anything on port 9001 that's not PM2
+if check_port 9001; then
+    PID_9001=$(lsof -ti:9001)
+    if [ ! -z "$PID_9001" ]; then
+        # Check if it's a PM2 process
+        if ! ps aux | grep $PID_9001 | grep -q "PM2"; then
+            echo -e "${YELLOW}Killing non-PM2 process on port 9001 (PID: $PID_9001)${NC}"
+            kill -9 $PID_9001 2>/dev/null || true
+            sleep 1
+        fi
+    fi
+fi
+
+# Step 2: Check and start PM2 processes
 echo -e "\n${BLUE}📦 Checking PM2 processes...${NC}"
 if command -v pm2 &> /dev/null; then
     # Check if PM2 daemon is running
@@ -62,7 +91,7 @@ else
     exit 1
 fi
 
-# Step 2: Verify services are accessible locally
+# Step 3: Verify services are accessible locally
 echo -e "\n${BLUE}🔍 Verifying local services...${NC}"
 
 # Check API on port 9000
@@ -89,7 +118,7 @@ else
     sleep 5
 fi
 
-# Step 3: Check and start CloudFlare Tunnel
+# Step 4: Check and start CloudFlare Tunnel
 echo -e "\n${BLUE}🌐 Checking CloudFlare Tunnel...${NC}"
 
 if command -v cloudflared &> /dev/null; then
@@ -133,7 +162,7 @@ else
     echo "Install with: brew install cloudflared (macOS) or see deployment/setup-cloudflare-tunnel.sh"
 fi
 
-# Step 4: Final status check
+# Step 5: Final status check
 echo -e "\n${BLUE}📊 Final Status Check${NC}"
 echo "======================================"
 
