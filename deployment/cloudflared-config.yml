@@ -1,0 +1,38 @@
+# CloudFlare Tunnel Configuration for Orchestrator AI
+# Place this at ~/.cloudflared/config.yml
+
+# Replace TUNNEL_ID with your actual tunnel ID
+tunnel: YOUR_TUNNEL_ID
+credentials-file: ~/.cloudflared/YOUR_TUNNEL_ID.json
+
+ingress:
+  # API Service with WebSocket support
+  - hostname: api.orchestratorai.io
+    service: http://localhost:9000
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+      # Keep connections alive for WebSockets
+      keepAliveConnections: 100
+      keepAliveTimeout: 90s
+      httpHostHeader: api.orchestratorai.io
+      
+  # Web App with Vite HMR WebSocket support
+  - hostname: app.orchestratorai.io  
+    service: http://localhost:9001
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+      httpHostHeader: app.orchestratorai.io
+      
+  # Dedicated WebSocket endpoint (optional)
+  - hostname: ws.orchestratorai.io
+    service: http://localhost:9000
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+      # Longer timeout for WebSockets
+      keepAliveTimeout: 900s
+      
+  # Catch-all rule (required)
+  - service: http_status:404

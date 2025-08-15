@@ -1,0 +1,8 @@
+{
+  "buildDate": "2025-08-14T22:42:59Z",
+  "environment": "production",
+  "apiVersion": "0.0.1",
+  "webVersion": "0.0.1",
+  "nodeVersion": "v22.18.0",
+  "npmVersion": "10.9.3"
+}

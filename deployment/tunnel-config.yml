@@ -1,0 +1,14 @@
+tunnel: 66945a87-92a0-466e-ab59-c096ce14ae4d
+credentials-file: /Users/golfergeek/.cloudflared/66945a87-92a0-466e-ab59-c096ce14ae4d.json
+
+ingress:
+  # API Service with WebSocket support
+  - hostname: api.orchestratorai.io
+    service: http://localhost:9000
+      
+  # Web App  
+  - hostname: app.orchestratorai.io  
+    service: http://localhost:9001
+      
+  # Catch-all rule (required)
+  - service: http_status:404
