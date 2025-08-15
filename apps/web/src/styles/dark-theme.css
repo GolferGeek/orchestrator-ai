@@ -1,0 +1,174 @@
+/* Enhanced Dark Theme Variables */
+:root {
+  /* Dark theme color palette */
+  --dark-bg-primary: #1a1a1a;
+  --dark-bg-secondary: #1f2937;
+  --dark-bg-tertiary: #2d3748;
+  --dark-bg-quaternary: #374151;
+  --dark-bg-elevated: #1a202c;
+  
+  /* Text colors */
+  --dark-text-primary: #f7fafc;
+  --dark-text-secondary: #e2e8f0;
+  --dark-text-tertiary: #d1d5db;
+  --dark-text-muted: #a0aec0;
+  --dark-text-subtle: #9ca3af;
+  
+  /* Border colors */
+  --dark-border-primary: #4a5568;
+  --dark-border-secondary: #4b5563;
+  --dark-border-subtle: #374151;
+  
+  /* Accent colors */
+  --dark-accent-blue: #3b82f6;
+  --dark-accent-blue-light: #60a5fa;
+  --dark-accent-blue-dark: #1e40af;
+  --dark-accent-blue-bg: #1e3a8a;
+  
+  /* Code highlighting */
+  --dark-code-bg: #111827;
+  --dark-code-text: #e5e7eb;
+  --dark-code-keyword: #68d391;
+  --dark-code-border: #374151;
+  
+  /* Status colors */
+  --dark-success: #10b981;
+  --dark-warning: #f59e0b;
+  --dark-error: #ef4444;
+  --dark-info: #3b82f6;
+}
+
+/* Apply enhanced dark theme when system prefers dark */
+@media (prefers-color-scheme: dark) {
+  /* Override Ionic's default dark variables with our enhanced palette */
+  :root {
+    --ion-background-color: var(--dark-bg-primary);
+    --ion-background-color-rgb: 26, 26, 26;
+    
+    --ion-text-color: var(--dark-text-secondary);
+    --ion-text-color-rgb: 226, 232, 240;
+    
+    --ion-color-step-50: var(--dark-bg-secondary);
+    --ion-color-step-100: var(--dark-bg-tertiary);
+    --ion-color-step-150: var(--dark-bg-quaternary);
+    --ion-color-step-200: #4a5568;
+    
+    --ion-toolbar-background: var(--dark-bg-tertiary);
+    --ion-toolbar-color: var(--dark-text-primary);
+    
+    --ion-item-background: var(--dark-bg-secondary);
+    --ion-item-color: var(--dark-text-secondary);
+    
+    --ion-card-background: var(--dark-bg-tertiary);
+    --ion-card-color: var(--dark-text-secondary);
+  }
+  
+  /* Scrollbar styling for dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: var(--dark-bg-secondary);
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--dark-bg-quaternary);
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--dark-border-primary);
+  }
+  
+  /* Selection styling */
+  ::selection {
+    background: var(--dark-accent-blue-bg);
+    color: var(--dark-text-primary);
+  }
+  
+  ::-moz-selection {
+    background: var(--dark-accent-blue-bg);
+    color: var(--dark-text-primary);
+  }
+}
+
+/* Apply enhanced dark theme when manually toggled */
+html[data-theme="dark"] {
+  /* Override Ionic's default dark variables with our enhanced palette */
+  --ion-background-color: var(--dark-bg-primary);
+  --ion-background-color-rgb: 26, 26, 26;
+  
+  --ion-text-color: var(--dark-text-secondary);
+  --ion-text-color-rgb: 226, 232, 240;
+  
+  --ion-color-step-50: var(--dark-bg-secondary);
+  --ion-color-step-100: var(--dark-bg-tertiary);
+  --ion-color-step-150: var(--dark-bg-quaternary);
+  --ion-color-step-200: #4a5568;
+  
+  --ion-toolbar-background: var(--dark-bg-tertiary);
+  --ion-toolbar-color: var(--dark-text-primary);
+  
+  --ion-item-background: var(--dark-bg-secondary);
+  --ion-item-color: var(--dark-text-secondary);
+  
+  --ion-card-background: var(--dark-bg-tertiary);
+  --ion-card-color: var(--dark-text-secondary);
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--dark-bg-secondary);
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--dark-bg-quaternary);
+  border-radius: 4px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--dark-border-primary);
+}
+
+html[data-theme="dark"] ::selection {
+  background: var(--dark-accent-blue-bg);
+  color: var(--dark-text-primary);
+}
+
+html[data-theme="dark"] ::-moz-selection {
+  background: var(--dark-accent-blue-bg);
+  color: var(--dark-text-primary);
+}
+
+/* Utility classes for consistent dark theme styling */
+@media (prefers-color-scheme: dark) {
+  .dark-bg-primary { background-color: var(--dark-bg-primary) !important; }
+  .dark-bg-secondary { background-color: var(--dark-bg-secondary) !important; }
+  .dark-bg-tertiary { background-color: var(--dark-bg-tertiary) !important; }
+  .dark-bg-elevated { background-color: var(--dark-bg-elevated) !important; }
+  
+  .dark-text-primary { color: var(--dark-text-primary) !important; }
+  .dark-text-secondary { color: var(--dark-text-secondary) !important; }
+  .dark-text-muted { color: var(--dark-text-muted) !important; }
+  
+  .dark-border { border-color: var(--dark-border-primary) !important; }
+  .dark-border-subtle { border-color: var(--dark-border-subtle) !important; }
+}
+
+html[data-theme="dark"] .dark-bg-primary { background-color: var(--dark-bg-primary) !important; }
+html[data-theme="dark"] .dark-bg-secondary { background-color: var(--dark-bg-secondary) !important; }
+html[data-theme="dark"] .dark-bg-tertiary { background-color: var(--dark-bg-tertiary) !important; }
+html[data-theme="dark"] .dark-bg-elevated { background-color: var(--dark-bg-elevated) !important; }
+
+html[data-theme="dark"] .dark-text-primary { color: var(--dark-text-primary) !important; }
+html[data-theme="dark"] .dark-text-secondary { color: var(--dark-text-secondary) !important; }
+html[data-theme="dark"] .dark-text-muted { color: var(--dark-text-muted) !important; }
+
+html[data-theme="dark"] .dark-border { border-color: var(--dark-border-primary) !important; }
+html[data-theme="dark"] .dark-border-subtle { border-color: var(--dark-border-subtle) !important; }

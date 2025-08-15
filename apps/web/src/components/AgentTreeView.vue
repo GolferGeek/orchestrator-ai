@@ -1232,10 +1232,78 @@ watch(() => props.searchQuery, (newSearchQuery) => {
   }
 
 /* Dark theme support */
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: dark), 
+html[data-theme="dark"] {
+  .agent-tree-view {
+    background: #1f2937;
+    color: #f3f4f6;
+  }
+  
+  .tree-content {
+    background: #1f2937;
+  }
+  
+  .agent-header {
+    background: #374151;
+    border-color: #4b5563;
+  }
+  
+  .agent-header ion-label h3 {
+    color: #f3f4f6;
+  }
+  
+  .agent-header ion-label p {
+    color: #9ca3af;
+  }
+  
+  .conversation-item {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
+  
+  .conversation-item:hover {
+    background: #4a5568;
+  }
+  
   .conversation-item.selected {
     border-color: #3b82f6;
-    background: #1e3a8a;
+    background: #1e40af;
+    color: #dbeafe;
+  }
+  
+  .conversation-meta {
+    color: #a0aec0;
+  }
+  
+  .conversation-item.selected .conversation-meta {
+    color: #bfdbfe;
+  }
+  
+  .conversation-stats {
+    color: #9ca3af;
+  }
+  
+  .conversation-item.selected .conversation-stats {
+    color: #bfdbfe;
+  }
+  
+  .compact-badge {
+    background: #4a5568;
+    color: #e2e8f0;
+  }
+  
+  .agent-actions {
+    background: #374151;
+    border-color: #4b5563;
+  }
+  
+  .start-conversation-btn {
+    --color: #60a5fa;
+  }
+  
+  .create-project-btn {
+    --color: #a78bfa;
   }
 }
 </style>

@@ -205,29 +205,40 @@ const handleSendMessage = async (content: string) => {
 }
 
 /* Dark theme support */
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: dark), 
+html[data-theme="dark"] {
   .conversation-tab-bar {
-    background: var(--ion-color-dark-shade);
-    border-color: var(--ion-color-dark-tint);
+    background: #2d3748;
+    border-color: #4a5568;
   }
   
   .conversation-tab {
-    background: var(--ion-color-dark);
-    border-color: var(--ion-color-dark-tint);
+    background: #374151;
+    border-color: #4b5563;
+    color: #d1d5db;
   }
   
   .conversation-tab:hover {
-    background: var(--ion-color-dark-tint);
+    background: #4b5563;
+    color: #f3f4f6;
   }
   
   .conversation-tab.active {
-    background: #1e3a8a;
-    color: #93c5fd;
+    background: #1e40af;
+    color: #dbeafe;
     border-bottom-color: #3b82f6;
   }
   
   .conversation-tab.active .tab-close-button {
-    --color: #93c5fd;
+    --color: #dbeafe;
+  }
+  
+  .empty-state {
+    color: #9ca3af;
+  }
+  
+  .empty-state h3 {
+    color: #f3f4f6;
   }
 }
 </style>
