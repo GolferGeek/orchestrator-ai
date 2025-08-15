@@ -85,34 +85,15 @@
             }"
           >
             <AgentTaskItem
-              v-if="!shouldHideMessageWithDeliverable(message)"
               :message="message"
               :conversation-id="conversation?.id"
               :agent="conversation?.agent"
               :agent-name="conversation?.agent?.name"
+              :show-work-product-pane="showWorkProductPane"
               @deliverable-created="handleDeliverableCreated"
               @deliverable-updated="handleDeliverableUpdated"
+              @deliverable-selected="selectDeliverable"
             />
-            
-            <!-- Deliverable Connection Indicator (shown instead of full message) -->
-            <div 
-              v-if="shouldHideMessageWithDeliverable(message)"
-              class="deliverable-connection"
-              @click="selectDeliverable(getMessageDeliverable(message))"
-            >
-              <div class="connection-content">
-                <ion-icon :icon="documentTextOutline" />
-                <span>{{ getMessageDeliverable(message)?.title || 'Deliverable created' }}</span>
-                <ion-chip size="small" color="primary" outline>
-                  {{ getMessageDeliverable(message)?.deliverable_type || 'document' }}
-                </ion-chip>
-              </div>
-              <ion-button fill="clear" size="small">
-                <ion-icon v-if="!showWorkProductPane" :icon="arrowForwardOutline" />
-                {{ showWorkProductPane ? 'Show' : 'View' }}
-              </ion-button>
-            </div>
-            
           </div>
         </div>
 
@@ -364,11 +345,6 @@ const getMessageDeliverable = (message: any) => {
   return deliverablesStore.getDeliverableById(deliverableId);
 };
 
-const shouldHideMessageWithDeliverable = (message: any) => {
-  // Always hide messages that have deliverables - deliverables should only appear in the deliverable pane
-  const messageDeliverable = getMessageDeliverable(message);
-  return !!messageDeliverable;
-};
 
 const selectDeliverable = (deliverable: any) => {
   if (!deliverable) {
@@ -622,43 +598,6 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
 }
 
 
-.deliverable-connection {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 8px;
-  padding: 12px 16px;
-  background: #f3e5f5;
-  border: 1px solid #ce93d8;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 60px;
-}
-
-.deliverable-connection:hover {
-  background: #e1bee7;
-  border-color: #ba68c8;
-  box-shadow: 0 2px 8px rgba(156, 39, 176, 0.15);
-}
-
-.connection-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.connection-content ion-icon {
-  font-size: 1.2em;
-  color: #7b1fa2;
-}
-
-.connection-content span {
-  font-weight: 500;
-  color: #4a148c;
-  flex: 1;
-}
 
 
 .input-area {

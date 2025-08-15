@@ -25,7 +25,7 @@
         
 
         <!-- Task text content -->
-        <div class="task-text" v-if="message.content">
+        <div class="task-text" v-if="message.content && !willHideForDeliverable">
           <!-- Render markdown for assistant messages -->
           <div v-if="message.role === 'assistant'" class="rendered-content">
             <div v-if="renderedContent" v-html="renderedContent"></div>
@@ -33,6 +33,33 @@
           </div>
           <!-- Plain text for user messages -->
           <div v-else>{{ message.content }}</div>
+        </div>
+        
+        <!-- Deliverable Creation Callout (shown instead of message content for deliverable messages) -->
+        <div v-if="willHideForDeliverable" class="deliverable-creation-callout" :class="{ 'clickable': displayedDeliverable }" @click="handleCalloutClick">
+          <div class="callout-content">
+            <ion-icon :icon="documentTextOutline" class="callout-icon" />
+            <div class="callout-text">
+              <div class="callout-title">
+                {{ displayedDeliverable ? 'Deliverable Created' : 'Creating deliverable...' }}
+              </div>
+              <div class="callout-description">
+                {{ displayedDeliverable ? displayedDeliverable.title : 'Processing your request into a structured document' }}
+              </div>
+            </div>
+            <div class="callout-indicator" v-if="!displayedDeliverable">
+              <ion-spinner name="dots" color="primary" />
+            </div>
+            <ion-chip v-else size="small" color="primary" outline>
+              {{ displayedDeliverable.deliverable_type || 'document' }}
+            </ion-chip>
+          </div>
+          <div class="callout-action" v-if="displayedDeliverable && !props.showWorkProductPane">
+            <ion-button fill="clear" size="small">
+              <ion-icon :icon="arrowForwardOutline" slot="end" />
+              View in Document Pane
+            </ion-button>
+          </div>
         </div>
         
         <!-- Task timestamp -->
@@ -81,7 +108,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
 import { marked } from 'marked';
-import { IonAvatar, IonIcon, IonButton } from '@ionic/vue';
+import { IonAvatar, IonIcon, IonButton, IonSpinner, IonChip } from '@ionic/vue';
 import { personCircleOutline, cogOutline, informationCircleOutline, documentTextOutline, arrowForwardOutline } from 'ionicons/icons';
 import TaskRating from './TaskRating.vue';
 import TaskMetadataModal from './TaskMetadataModal.vue';
@@ -106,11 +133,13 @@ const props = defineProps<{
   agentName?: string;
   conversationId?: string;
   agent?: any;
+  showWorkProductPane?: boolean;
 }>();
 
 const emit = defineEmits<{
   'deliverable-created': [deliverable: any];
   'deliverable-updated': [deliverable: any];
+  'deliverable-selected': [deliverable: any];
 }>();
 
 // Stores
@@ -154,6 +183,15 @@ const backendDeliverable = computed(() => {
 
 const displayedDeliverable = computed(() => {
   return createdDeliverable.value || backendDeliverable.value;
+});
+
+const willHideForDeliverable = computed(() => {
+  // Hide message content if:
+  // 1. We already have a deliverable (backend or created)
+  // 2. OR this is deliverable content that will create a deliverable
+  return hasBackendDeliverable.value || 
+         displayedDeliverable.value || 
+         (props.message.role === 'assistant' && isDeliverableContent());
 });
 
 const renderedContent = computed(() => {
@@ -327,6 +365,12 @@ const extractDeliverableTitle = (content: string) => {
   }
   
   return 'Generated Content';
+};
+
+const handleCalloutClick = () => {
+  if (displayedDeliverable.value) {
+    emit('deliverable-selected', displayedDeliverable.value);
+  }
 };
 
 const getDeliverableType = () => {
@@ -663,6 +707,74 @@ onMounted(async () => {
   --color: var(--ion-color-primary);
 }
 
+/* Deliverable Creation Callout */
+.deliverable-creation-callout {
+  padding: 16px;
+  margin: 8px 0;
+  background: linear-gradient(135deg, #f8f4ff 0%, #f0e7ff 100%);
+  border: 1px solid #e0d4ed;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(139, 69, 197, 0.1);
+  transition: all 0.3s ease;
+}
+
+.deliverable-creation-callout.clickable {
+  cursor: pointer;
+}
+
+.deliverable-creation-callout:hover {
+  box-shadow: 0 4px 16px rgba(139, 69, 197, 0.15);
+  transform: translateY(-1px);
+}
+
+.callout-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.callout-icon {
+  font-size: 24px;
+  color: #8b45c5;
+  flex-shrink: 0;
+}
+
+.callout-text {
+  flex: 1;
+}
+
+.callout-title {
+  font-weight: 600;
+  color: #5b21b6;
+  font-size: 0.95em;
+  margin-bottom: 2px;
+}
+
+.callout-description {
+  font-size: 0.85em;
+  color: #7c3aed;
+  opacity: 0.8;
+}
+
+.callout-indicator {
+  flex-shrink: 0;
+}
+
+.callout-action {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(139, 69, 197, 0.15);
+}
+
+.callout-action ion-button {
+  --color: #8b45c5;
+  --color-hover: #7c3aed;
+  font-size: 0.85em;
+}
+
 
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
@@ -745,6 +857,38 @@ onMounted(async () => {
   .task-role--user .task-timestamp {
     color: #e2e8f0;
   }
+  
+  /* Dark mode callout */
+  .deliverable-creation-callout {
+    background: linear-gradient(135deg, #2a1f3a 0%, #2d1b40 100%);
+    border-color: #4a3b5c;
+    box-shadow: 0 2px 8px rgba(139, 69, 197, 0.2);
+  }
+  
+  .deliverable-creation-callout:hover {
+    box-shadow: 0 4px 16px rgba(139, 69, 197, 0.3);
+  }
+  
+  .callout-icon {
+    color: #a78bfa;
+  }
+  
+  .callout-title {
+    color: #c4b5fd;
+  }
+  
+  .callout-description {
+    color: #a78bfa;
+  }
+  
+  .callout-action {
+    border-top-color: rgba(167, 139, 250, 0.2);
+  }
+  
+  .callout-action ion-button {
+    --color: #a78bfa;
+    --color-hover: #c4b5fd;
+  }
 }
 
 /* Manual dark theme toggle support */
@@ -826,5 +970,37 @@ html[data-theme="dark"] .task-timestamp {
 
 html[data-theme="dark"] .task-role--user .task-timestamp {
   color: #e2e8f0;
+}
+
+/* Manual dark theme callout */
+html[data-theme="dark"] .deliverable-creation-callout {
+  background: linear-gradient(135deg, #2a1f3a 0%, #2d1b40 100%);
+  border-color: #4a3b5c;
+  box-shadow: 0 2px 8px rgba(139, 69, 197, 0.2);
+}
+
+html[data-theme="dark"] .deliverable-creation-callout:hover {
+  box-shadow: 0 4px 16px rgba(139, 69, 197, 0.3);
+}
+
+html[data-theme="dark"] .callout-icon {
+  color: #a78bfa;
+}
+
+html[data-theme="dark"] .callout-title {
+  color: #c4b5fd;
+}
+
+html[data-theme="dark"] .callout-description {
+  color: #a78bfa;
+}
+
+html[data-theme="dark"] .callout-action {
+  border-top-color: rgba(167, 139, 250, 0.2);
+}
+
+html[data-theme="dark"] .callout-action ion-button {
+  --color: #a78bfa;
+  --color-hover: #c4b5fd;
 }
 </style>
