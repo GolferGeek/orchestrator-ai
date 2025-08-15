@@ -42,30 +42,55 @@ async function bootstrap() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-  // Enable CORS
+  // Enable CORS with more permissive settings for production
+  const corsOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:9001',
+    'http://127.0.0.1:9001',
+    'http://localhost:3100',
+    'http://127.0.0.1:3100',
+    'http://localhost:3101',
+    'http://127.0.0.1:3101',
+    // Add more common development ports
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+    'http://localhost:8081',
+    'http://127.0.0.1:8081',
+    // Production domains
+    'https://app.orchestratorai.io',
+    'https://api.orchestratorai.io',
+    'http://app.orchestratorai.io',
+    'http://api.orchestratorai.io',
+    // CloudFlare variations
+    'https://orchestratorai.io',
+    'http://orchestratorai.io',
+  ];
+
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://localhost:9001',
-      'http://127.0.0.1:9001',
-      'http://localhost:3100',
-      'http://127.0.0.1:3100',
-      'http://localhost:3101',
-      'http://127.0.0.1:3101',
-      // Add more common development ports
-      'http://localhost:8080',
-      'http://127.0.0.1:8080',
-      'http://localhost:8081',
-      'http://127.0.0.1:8081',
-      // Production domains
-      'https://app.orchestratorai.io',
-      'https://api.orchestratorai.io',
-      'http://app.orchestratorai.io',
-      'http://api.orchestratorai.io',
-    ],
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      
+      // Check if origin is in our list
+      if (corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      
+      // Log unrecognized origins for debugging
+      logger.warn(`CORS request from unrecognized origin: ${origin}`);
+      
+      // In production, you might want to be more restrictive
+      // For now, let's allow all orchestratorai.io subdomains
+      if (origin.includes('orchestratorai.io')) {
+        return callback(null, true);
+      }
+      
+      callback(new Error('Not allowed by CORS'));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
   // Start the HTTP server
