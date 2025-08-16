@@ -82,7 +82,7 @@
           v-if="selectedVersion && !selectedVersion.isCurrentVersion"
           fill="outline"
           size="small"
-          @click="makeCurrentVersion(selectedVersion)"
+          @click="makeCurrentVersion"
           color="primary"
         >
           Set as Current
@@ -528,9 +528,44 @@ const formatDate = (dateString: string) => {
   }
 };
 
+const formatCreationType = (creationType: string) => {
+  if (!creationType || typeof creationType !== 'string') {
+    return 'Unknown'; // Default fallback
+  }
+  
+  const typeMap = {
+    ai_response: 'AI Assistant',
+    manual_edit: 'Manual Edit',
+    ai_enhancement: 'AI Enhancement',
+    user_request: 'User Request',
+  };
+  
+  return typeMap[creationType as keyof typeof typeMap] || creationType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
+const getContentPreview = (content: string) => {
+  if (!content || typeof content !== 'string') {
+    return 'No content available';
+  }
+  
+  // Remove markdown formatting and get first few lines
+  const cleanContent = content
+    .replace(/^#+\s+/gm, '') // Remove headers
+    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+    .replace(/\*(.*?)\*/g, '$1') // Remove italic
+    .replace(/`(.*?)`/g, '$1') // Remove inline code
+    .replace(/```[\s\S]*?```/g, '[code block]') // Replace code blocks
+    .trim();
+  
+  // Get first 150 characters
+  return cleanContent.length > 150 
+    ? cleanContent.substring(0, 147) + '...'
+    : cleanContent;
+};
+
 const startEditing = () => {
   isEditing.value = true;
-  editedContent.value = props.deliverable.content || '';
+  editedContent.value = displayVersion.value?.content || '';
   editedTitle.value = props.deliverable.title || '';
 };
 
@@ -712,8 +747,19 @@ const goToNextVersion = async () => {
 };
 
 const selectVersion = async (version: any) => {
-  if (version.id !== props.deliverable.id) {
-    await loadAndEmitFullVersion(version.id);
+  selectedVersion.value = version;
+};
+
+const makeCurrentVersion = async () => {
+  if (!selectedVersion.value) return;
+  
+  try {
+    // In the new versioning system, we would call the backend to set this version as current
+    // For now, we'll update the local state and emit an event
+    selectedVersion.value.isCurrentVersion = true;
+    emit('current-version-changed', selectedVersion.value);
+  } catch (error) {
+    console.error('Failed to set current version:', error);
   }
 };
 
@@ -735,7 +781,7 @@ const loadAndEmitFullVersion = async (versionId: string) => {
 };
 
 const downloadDeliverable = () => {
-  const content = props.deliverable.content;
+  const content = displayVersion.value?.content || '';
   const filename = `${props.deliverable.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${getFileExtension()}`;
   
   const blob = new Blob([content], { type: getMimeType() });
@@ -751,23 +797,25 @@ const downloadDeliverable = () => {
 };
 
 const getFileExtension = () => {
+  const format = displayVersion.value?.format || 'text';
   const extensions = {
     markdown: 'md',
     html: 'html',
     json: 'json',
     text: 'txt',
   };
-  return extensions[props.deliverable.format as keyof typeof extensions] || 'txt';
+  return extensions[format as keyof typeof extensions] || 'txt';
 };
 
 const getMimeType = () => {
+  const format = displayVersion.value?.format || 'text';
   const mimeTypes = {
     markdown: 'text/markdown',
     html: 'text/html',
     json: 'application/json',
     text: 'text/plain',
   };
-  return mimeTypes[props.deliverable.format as keyof typeof mimeTypes] || 'text/plain';
+  return mimeTypes[format as keyof typeof mimeTypes] || 'text/plain';
 };
 
 // Watch for deliverable changes and reload versions
