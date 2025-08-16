@@ -59,5 +59,5 @@ export class DeliverableFiltersDto {
     if (value === 'false') return false;
     return value;
   })
-  latest_only?: boolean = true;
+  latestOnly?: boolean = true;
 }

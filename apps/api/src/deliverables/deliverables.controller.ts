@@ -85,7 +85,7 @@ export class DeliverablesController {
         total: { type: 'number' },
         limit: { type: 'number' },
         offset: { type: 'number' },
-        has_more: { type: 'boolean' },
+        hasMore: { type: 'boolean' },
       },
     },
   })
@@ -118,7 +118,7 @@ export class DeliverablesController {
     type: Number,
   })
   @ApiQuery({
-    name: 'latest_only',
+    name: 'latestOnly',
     required: false,
     description: 'Show only latest versions',
     type: Boolean,
@@ -131,7 +131,7 @@ export class DeliverablesController {
     total: number;
     limit: number;
     offset: number;
-    has_more: boolean;
+    hasMore: boolean;
   }> {
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
@@ -245,7 +245,7 @@ export class DeliverablesController {
   @ApiResponse({
     status: 201,
     description: 'Version created successfully',
-    type: Deliverable,
+    type: DeliverableVersion,
   })
   @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -254,7 +254,7 @@ export class DeliverablesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() createVersionDto: CreateVersionDto,
     @Req() req: any,
-  ): Promise<Deliverable> {
+  ): Promise<DeliverableVersion> {
     console.log('🚀 createVersion controller called with:', {
       parentId: id,
       body: createVersionDto,
@@ -277,9 +277,8 @@ export class DeliverablesController {
       const result = await this.deliverablesService.createVersion(id, createVersionDto, userId);
       console.log('🎉 createVersion controller success:', {
         resultId: result.id,
-        resultVersion: result.version,
-        resultTitle: result.title,
-        resultIsLatest: result.is_latest_version
+        resultVersionNumber: result.versionNumber,
+        resultIsCurrentVersion: result.isCurrentVersion
       });
       return result;
     } catch (error) {

@@ -123,11 +123,11 @@
                       {{ getTypeName(deliverable.type as any) }}
                     </ion-badge>
                     <ion-badge 
-                      v-if="deliverable.version > 1"
+                      v-if="getVersionNumber(deliverable) > 1"
                       color="medium"
                       class="version-badge"
                     >
-                      v{{ deliverable.version }}
+                      v{{ getVersionNumber(deliverable) }}
                     </ion-badge>
                   </div>
                 </div>
@@ -135,23 +135,23 @@
 
               <ion-card-content>
                 <div class="deliverable-preview">
-                  <p class="content-preview">{{ getContentPreview(deliverable.content_preview || deliverable.content || '') }}</p>
+                  <p class="content-preview">{{ getContentPreview(getDeliverableContent(deliverable)) }}</p>
                 </div>
 
                 <div class="deliverable-meta">
-                  <div class="meta-item" v-if="deliverable.created_by_agent">
+                  <div class="meta-item" v-if="getCreatedByAgent(deliverable)">
                     <ion-icon :icon="sparklesOutline"></ion-icon>
-                    <span>{{ deliverable.created_by_agent }}</span>
+                    <span>{{ getCreatedByAgent(deliverable) }}</span>
                   </div>
                   <div class="meta-item">
                     <ion-icon :icon="calendarOutline"></ion-icon>
-                    <span>{{ formatDate(deliverable.created_at) }}</span>
+                    <span>{{ formatDate(deliverable.createdAt) }}</span>
                   </div>
                 </div>
 
-                <div class="deliverable-tags" v-if="deliverable.tags && deliverable.tags.length > 0">
+                <div class="deliverable-tags" v-if="getDeliverableTags(deliverable).length > 0">
                   <ion-chip 
-                    v-for="tag in deliverable.tags?.slice(0, 3)" 
+                    v-for="tag in getDeliverableTags(deliverable).slice(0, 3)" 
                     :key="tag"
                     color="primary"
                     outline
@@ -160,12 +160,12 @@
                     <ion-label>{{ tag }}</ion-label>
                   </ion-chip>
                   <ion-chip 
-                    v-if="(deliverable.tags?.length || 0) > 3"
+                    v-if="getDeliverableTags(deliverable).length > 3"
                     color="medium"
                     outline
                     class="tag-chip"
                   >
-                    <ion-label>+{{ (deliverable.tags?.length || 0) - 3 }}</ion-label>
+                    <ion-label>+{{ getDeliverableTags(deliverable).length - 3 }}</ion-label>
                   </ion-chip>
                 </div>
 
@@ -188,14 +188,14 @@
                     Edit
                   </ion-button>
                   <ion-button 
-                    v-if="deliverable.version > 1 || hasVersions(deliverable.id)"
+                    v-if="getVersionNumber(deliverable) > 1 || hasVersions(deliverable.id)"
                     fill="clear" 
                     size="small"
                     color="secondary"
                     @click.stop="viewVersions(deliverable)"
                   >
                     <ion-icon :icon="gitBranchOutline" slot="start"></ion-icon>
-                    Versions
+                    Versions ({{ getVersionNumber(deliverable) }})
                   </ion-button>
                   <ion-button 
                     fill="clear" 
@@ -253,33 +253,33 @@
             v-for="version in versions" 
             :key="version.id"
             class="version-card"
-            :class="{ 'latest-version': version.is_latest_version }"
+            :class="{ 'latest-version': version.isCurrentVersion }"
           >
             <ion-card-header>
-              <ion-card-title>{{ version.title }}</ion-card-title>
+              <ion-card-title>Version {{ version.versionNumber }}</ion-card-title>
               <ion-card-subtitle>
                 <div class="version-meta">
-                  <ion-chip :color="version.is_latest_version ? 'primary' : 'medium'">
+                  <ion-chip :color="version.isCurrentVersion ? 'primary' : 'medium'">
                     <ion-icon :icon="gitBranchOutline" />
-                    <ion-label>v{{ version.version }}</ion-label>
+                    <ion-label>v{{ version.versionNumber }}</ion-label>
                   </ion-chip>
-                  <ion-chip v-if="version.is_latest_version" color="success">
+                  <ion-chip v-if="version.isCurrentVersion" color="success">
                     <ion-icon :icon="checkmarkOutline" />
-                    <ion-label>Latest</ion-label>
+                    <ion-label>Current</ion-label>
                   </ion-chip>
                   <ion-chip color="light">
                     <ion-icon :icon="timeOutline" />
-                    <ion-label>{{ formatDate(version.created_at) }}</ion-label>
+                    <ion-label>{{ formatDate(version.createdAt) }}</ion-label>
                   </ion-chip>
-                  <ion-chip v-if="version.created_by_agent" color="secondary">
+                  <ion-chip v-if="version.metadata?.createdByAgent" color="secondary">
                     <ion-icon :icon="personOutline" />
-                    <ion-label>{{ version.created_by_agent }}</ion-label>
+                    <ion-label>{{ version.metadata.createdByAgent }}</ion-label>
                   </ion-chip>
                 </div>
               </ion-card-subtitle>
             </ion-card-header>
             <ion-card-content>
-              <p class="content-preview">{{ version.content_preview }}</p>
+              <p class="content-preview">{{ getContentPreview(version.content || '') }}</p>
               <div class="version-actions">
                 <ion-button 
                   fill="outline" 
@@ -290,14 +290,14 @@
                   View
                 </ion-button>
                 <ion-button 
-                  v-if="!version.is_latest_version"
+                  v-if="!version.isCurrentVersion"
                   fill="solid" 
                   size="small"
                   color="primary"
-                  @click="makeLatestVersion(version)"
+                  @click="makeCurrentVersion(version)"
                 >
                   <ion-icon :icon="checkmarkCircleOutline" slot="start" />
-                  Make Latest
+                  Make Current
                 </ion-button>
               </div>
             </ion-card-content>
@@ -359,10 +359,12 @@ import {
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useDeliverables } from '@/composables/useDeliverables';
-import { DeliverableType, type Deliverable, type DeliverableSearchItem } from '@/services/deliverablesService';
+import { DeliverableType, type Deliverable, type DeliverableSearchResult } from '@/services/deliverablesService';
+import { useDeliverablesStore } from '@/stores/deliverablesStore';
 
 const router = useRouter();
 const deliverables = useDeliverables();
+const deliverablesStore = useDeliverablesStore();
 
 // Reactive state
 const searchQuery = ref('');
@@ -380,18 +382,15 @@ const selectedDeliverableId = ref<string | null>(null);
 
 // Computed properties
 const displayedDeliverables = computed(() => {
-  let filtered = deliverables.recentDeliverables.value.map((d: any) => ({
-    ...d,
-    content_preview: (d as any).content_preview || (d.content ? d.content.substring(0, 200) + (d.content.length > 200 ? '...' : '') : '')
-  }));
+  let filtered = deliverables.recentDeliverables.value.map((d: any) => d);
   
   // Apply search filter
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(deliverable => 
       deliverable.title.toLowerCase().includes(query) ||
-      (deliverable.content_preview || deliverable.content || '').toLowerCase().includes(query) ||
-      deliverable.tags?.some((tag: string) => tag.toLowerCase().includes(query))
+      getDeliverableContent(deliverable).toLowerCase().includes(query) ||
+      getDeliverableTags(deliverable)?.some((tag: string) => tag.toLowerCase().includes(query))
     );
   }
   
@@ -409,12 +408,12 @@ const displayedDeliverables = computed(() => {
     
     switch (sortField) {
       case 'created':
-        aValue = new Date(a.created_at).getTime();
-        bValue = new Date(b.created_at).getTime();
+        aValue = new Date(a.createdAt).getTime();
+        bValue = new Date(b.createdAt).getTime();
         break;
       case 'updated':
-        aValue = new Date(a.updated_at || a.created_at).getTime();
-        bValue = new Date(b.updated_at || b.created_at).getTime();
+        aValue = new Date(a.updatedAt || a.createdAt).getTime();
+        bValue = new Date(b.updatedAt || b.createdAt).getTime();
         break;
       case 'title':
         aValue = a.title.toLowerCase();
@@ -447,7 +446,7 @@ const canLoadMore = computed(() => {
 // Methods
 const loadDeliverables = async () => {
   try {
-    await deliverables.initialize();
+    await deliverablesStore.loadDeliverables();
   } catch (err) {
     console.error('Failed to load deliverables:', err);
   }
@@ -479,7 +478,7 @@ const handleFilter = async () => {
       offset: 0
     });
   } else {
-    await deliverables.store.loadDeliverables();
+    await deliverablesStore.loadDeliverables();
   }
   currentOffset.value = 0;
 };
@@ -500,7 +499,7 @@ const loadMoreDeliverables = async () => {
         offset: newOffset
       });
     } else {
-      await deliverables.store.loadDeliverables();
+      await deliverablesStore.loadDeliverables();
     }
     
     currentOffset.value = newOffset;
@@ -514,20 +513,19 @@ const createNewDeliverable = () => {
 };
 
 const viewDeliverable = async (deliverable: any) => {
-  // Fetch full deliverable details and show in modal
-  const fullDeliverable = await deliverables.store.getDeliverable(deliverable.id);
-  if (fullDeliverable) {
-    deliverables.showDeliverable(fullDeliverable as any);
-  }
+  // Navigate to deliverable detail view or show in dedicated component
+  // For now, just log - this would typically navigate to a detail page
+  console.log('Viewing deliverable:', deliverable.id);
+  // TODO: Implement navigation to detail view
+  // router.push(`/deliverables/${deliverable.id}`);
 };
 
 const editDeliverable = async (deliverable: any) => {
-  // Fetch full deliverable details and show in modal for editing
-  const fullDeliverable = await deliverables.store.getDeliverable(deliverable.id);
-  if (fullDeliverable) {
-    deliverables.showDeliverable(fullDeliverable as any);
-    // The modal will detect that it's in edit mode
-  }
+  // Navigate to edit view
+  // For now, just log - this would typically navigate to an edit page
+  console.log('Editing deliverable:', deliverable.id);
+  // TODO: Implement navigation to edit view
+  // router.push(`/deliverables/${deliverable.id}/edit`);
 };
 
 const viewVersions = async (deliverable: any) => {
@@ -536,7 +534,7 @@ const viewVersions = async (deliverable: any) => {
     selectedDeliverableId.value = deliverable.id;
     showVersionsModal.value = true;
     
-    const versionList = await deliverables.getVersions(deliverable.id);
+    const versionList = await deliverablesStore.getDeliverableVersions(deliverable.id);
     versions.value = versionList;
   } catch (err) {
     console.error('Failed to load versions:', err);
@@ -563,17 +561,51 @@ const confirmDelete = async (deliverable: any) => {
 
 const deleteDeliverable = async (deliverable: any) => {
   try {
-    await deliverables.store.deleteDeliverable(deliverable.id);
+    await deliverablesStore.deleteDeliverable(deliverable.id);
+    
     // Show success toast
-    console.log('Deliverable deleted successfully');
+    const toast = await toastController.create({
+      message: 'Deliverable deleted successfully',
+      duration: 2000,
+      position: 'bottom',
+      color: 'success'
+    });
+    await toast.present();
+    
     // Refresh the list
     await loadDeliverables();
   } catch (err) {
     console.error('Failed to delete deliverable:', err);
+    
+    // Show error toast
+    const toast = await toastController.create({
+      message: 'Failed to delete deliverable',
+      duration: 2000,
+      position: 'bottom',
+      color: 'danger'
+    });
+    await toast.present();
   }
 };
 
 
+
+// Helper functions for new data structure
+const getVersionNumber = (deliverable: any): number => {
+  return deliverable.currentVersion?.versionNumber || 1;
+};
+
+const getDeliverableContent = (deliverable: any): string => {
+  return deliverable.currentVersion?.content || '';
+};
+
+const getCreatedByAgent = (deliverable: any): string | null => {
+  return deliverable.currentVersion?.metadata?.createdByAgent || null;
+};
+
+const getDeliverableTags = (deliverable: any): string[] => {
+  return deliverable.currentVersion?.metadata?.tags || [];
+};
 
 // Utility methods
 const getContentPreview = (content: string): string => {
@@ -607,8 +639,8 @@ const formatDate = (date: string | Date): string => {
 
 const hasVersions = (deliverableId: string): boolean => {
   // Check if there are cached versions for this deliverable
-  const deliverable = deliverables.store.getDeliverableById(deliverableId);
-  return deliverable ? deliverable.version > 1 : false;
+  const deliverable = deliverablesStore.getDeliverableById(deliverableId);
+  return deliverable ? getVersionNumber(deliverable) > 1 : false;
 };
 
 const hideVersionsModal = () => {
@@ -619,62 +651,45 @@ const hideVersionsModal = () => {
 
 const viewVersion = async (versionId: string) => {
   try {
-    // Load the specific version and show it
-    const version = await deliverables.store.getDeliverable(versionId);
-    if (version) {
-      deliverables.showDeliverable(version);
-      hideVersionsModal();
-    }
+    // Navigate to view the specific version
+    console.log('Viewing version:', versionId);
+    // TODO: Implement navigation to version view
+    // router.push(`/deliverables/version/${versionId}`);
+    hideVersionsModal();
   } catch (err) {
     console.error('Failed to load version:', err);
   }
 };
 
-const makeLatestVersion = async (version: any) => {
+const makeCurrentVersion = async (version: any) => {
   try {
     // Show confirmation dialog
     const alert = await alertController.create({
-      header: 'Make Latest Version',
-      message: `Are you sure you want to make version ${version.version} the latest version? This will create a new version based on the selected content.`,
+      header: 'Make Current Version',
+      message: `Are you sure you want to make version ${version.versionNumber} the current version? This will change which version is displayed by default.`,
       buttons: [
         {
           text: 'Cancel',
           role: 'cancel'
         },
         {
-          text: 'Make Latest',
+          text: 'Make Current',
           role: 'confirm',
           handler: async () => {
             try {
-              // Get the full content of the selected version
-              const fullVersion = await deliverables.store.getDeliverable(version.id);
-              if (!fullVersion) {
-                throw new Error('Could not load version details');
-              }
+              // Set the selected version as the current version
+              const updatedVersion = await deliverablesStore.setCurrentVersion(version.id);
 
-              // Create a new version based on the selected version
-              const newVersion = await deliverables.store.createVersion(selectedDeliverableId.value!, {
-                title: fullVersion.title,
-                content: fullVersion.content,
-                created_by_agent: 'version_promotion',
-                metadata: {
-                  promotionReason: 'user_promoted_version',
-                  promotedAt: new Date().toISOString(),
-                  promotedFromVersion: version.version,
-                  originalVersionId: version.id
-                }
-              });
-
-              // Refresh the deliverables list to show the new latest version
+              // Refresh the deliverables list to show the new current version
               await loadDeliverables();
               
               // Refresh the versions list in the modal
-              const versionList = await deliverables.getVersions(selectedDeliverableId.value!);
+              const versionList = await deliverablesStore.getDeliverableVersions(selectedDeliverableId.value!);
               versions.value = versionList;
 
               // Show success toast
               const toast = await toastController.create({
-                message: `Version ${version.version} has been promoted to latest version`,
+                message: `Version ${version.versionNumber} is now the current version`,
                 duration: 3000,
                 position: 'bottom',
                 color: 'success'
@@ -682,11 +697,11 @@ const makeLatestVersion = async (version: any) => {
               await toast.present();
               
             } catch (error) {
-              console.error('Failed to make version latest:', error);
+              console.error('Failed to make version current:', error);
               
               // Show error toast
               const toast = await toastController.create({
-                message: 'Failed to promote version. Please try again.',
+                message: 'Failed to set current version. Please try again.',
                 duration: 3000,
                 position: 'bottom',
                 color: 'danger'
