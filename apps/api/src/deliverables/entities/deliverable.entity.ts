@@ -25,7 +25,7 @@ export class Deliverable {
   content!: string;
 
   @ApiProperty({ enum: DeliverableType, description: 'Type of deliverable' })
-  deliverable_type!: DeliverableType;
+  type!: DeliverableType;
 
   @ApiProperty({
     enum: DeliverableFormat,
@@ -98,7 +98,7 @@ export class DeliverableSearchResult {
   title!: string;
 
   @ApiProperty({ enum: DeliverableType, description: 'Type of deliverable' })
-  deliverable_type!: DeliverableType;
+  type!: DeliverableType;
 
   @ApiProperty({
     enum: DeliverableFormat,

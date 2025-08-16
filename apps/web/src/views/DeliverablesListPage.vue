@@ -111,16 +111,16 @@
                 <div class="deliverable-header">
                   <div class="deliverable-title-section">
                     <div class="title-with-icon">
-                      <span class="type-icon">{{ getTypeIcon(deliverable.deliverable_type as any) }}</span>
+                      <span class="type-icon">{{ getTypeIcon(deliverable.type as any) }}</span>
                       <ion-card-title>{{ deliverable.title }}</ion-card-title>
                     </div>
                   </div>
                   <div class="deliverable-badges">
                     <ion-badge 
-                      :color="getTypeColor(deliverable.deliverable_type as any)"
+                      :color="getTypeColor(deliverable.type as any)"
                       class="type-badge"
                     >
-                      {{ getTypeName(deliverable.deliverable_type as any) }}
+                      {{ getTypeName(deliverable.type as any) }}
                     </ion-badge>
                     <ion-badge 
                       v-if="deliverable.version > 1"
@@ -227,15 +227,84 @@
       </div>
     </ion-content>
 
-    <!-- Deliverable Modal -->
-    <DeliverableModal
-      :is-open="deliverables.showDeliverableModal.value"
-      :deliverable="deliverables.selectedDeliverable.value || undefined"
-      :mode="deliverables.isCreatingDeliverable.value ? 'create' : 'view'"
-      @close="deliverables.hideDeliverable"
-      @save="handleSaveDeliverable"
-      @enhance="handleEnhanceDeliverable"
-    />
+
+    <!-- Versions Modal -->
+    <ion-modal :is-open="showVersionsModal" @will-dismiss="hideVersionsModal">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Version History</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="hideVersionsModal">
+              <ion-icon :icon="closeOutline" />
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <div v-if="isLoadingVersions" class="loading-container">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Loading versions...</p>
+        </div>
+        <div v-else-if="versions.length === 0" class="no-versions">
+          <p>No versions found</p>
+        </div>
+        <div v-else class="versions-list">
+          <ion-card 
+            v-for="version in versions" 
+            :key="version.id"
+            class="version-card"
+            :class="{ 'latest-version': version.is_latest_version }"
+          >
+            <ion-card-header>
+              <ion-card-title>{{ version.title }}</ion-card-title>
+              <ion-card-subtitle>
+                <div class="version-meta">
+                  <ion-chip :color="version.is_latest_version ? 'primary' : 'medium'">
+                    <ion-icon :icon="gitBranchOutline" />
+                    <ion-label>v{{ version.version }}</ion-label>
+                  </ion-chip>
+                  <ion-chip v-if="version.is_latest_version" color="success">
+                    <ion-icon :icon="checkmarkOutline" />
+                    <ion-label>Latest</ion-label>
+                  </ion-chip>
+                  <ion-chip color="light">
+                    <ion-icon :icon="timeOutline" />
+                    <ion-label>{{ formatDate(version.created_at) }}</ion-label>
+                  </ion-chip>
+                  <ion-chip v-if="version.created_by_agent" color="secondary">
+                    <ion-icon :icon="personOutline" />
+                    <ion-label>{{ version.created_by_agent }}</ion-label>
+                  </ion-chip>
+                </div>
+              </ion-card-subtitle>
+            </ion-card-header>
+            <ion-card-content>
+              <p class="content-preview">{{ version.content_preview }}</p>
+              <div class="version-actions">
+                <ion-button 
+                  fill="outline" 
+                  size="small"
+                  @click="viewVersion(version.id)"
+                >
+                  <ion-icon :icon="eyeOutline" slot="start" />
+                  View
+                </ion-button>
+                <ion-button 
+                  v-if="!version.is_latest_version"
+                  fill="solid" 
+                  size="small"
+                  color="primary"
+                  @click="makeLatestVersion(version)"
+                >
+                  <ion-icon :icon="checkmarkCircleOutline" slot="start" />
+                  Make Latest
+                </ion-button>
+              </div>
+            </ion-card-content>
+          </ion-card>
+        </div>
+      </ion-content>
+    </ion-modal>
   </ion-page>
 </template>
 
@@ -265,7 +334,9 @@ import {
   IonSelectOption,
   IonChip,
   IonLabel,
+  IonModal,
   alertController,
+  toastController,
 } from '@ionic/vue';
 import {
   addOutline,
@@ -280,11 +351,15 @@ import {
   gitBranchOutline,
   trashOutline,
   chevronDownOutline,
+  closeOutline,
+  timeOutline,
+  checkmarkOutline,
+  checkmarkCircleOutline,
+  personOutline,
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useDeliverables } from '@/composables/useDeliverables';
 import { DeliverableType, type Deliverable, type DeliverableSearchItem } from '@/services/deliverablesService';
-import DeliverableModal from '@/components/DeliverableModal.vue';
 
 const router = useRouter();
 const deliverables = useDeliverables();
@@ -296,6 +371,12 @@ const sortBy = ref('created_desc');
 const isLoadingMore = ref(false);
 const currentOffset = ref(0);
 const pageSize = 20;
+
+// Versions modal state
+const showVersionsModal = ref(false);
+const versions = ref<any[]>([]);
+const isLoadingVersions = ref(false);
+const selectedDeliverableId = ref<string | null>(null);
 
 // Computed properties
 const displayedDeliverables = computed(() => {
@@ -317,7 +398,7 @@ const displayedDeliverables = computed(() => {
   // Apply type filter
   if (typeFilter.value) {
     filtered = filtered.filter(deliverable => 
-      deliverable.deliverable_type === typeFilter.value
+      deliverable.type === typeFilter.value
     );
   }
   
@@ -340,8 +421,8 @@ const displayedDeliverables = computed(() => {
         bValue = b.title.toLowerCase();
         break;
       case 'type':
-        aValue = a.deliverable_type;
-        bValue = b.deliverable_type;
+        aValue = a.type;
+        bValue = b.type;
         break;
       default:
         return 0;
@@ -451,12 +532,16 @@ const editDeliverable = async (deliverable: any) => {
 
 const viewVersions = async (deliverable: any) => {
   try {
-    const versions = await deliverables.getVersions(deliverable.id);
-    // Show versions in a modal or navigate to versions page
-    console.log('Versions for deliverable:', versions);
-    // TODO: Implement versions modal or page
+    isLoadingVersions.value = true;
+    selectedDeliverableId.value = deliverable.id;
+    showVersionsModal.value = true;
+    
+    const versionList = await deliverables.getVersions(deliverable.id);
+    versions.value = versionList;
   } catch (err) {
     console.error('Failed to load versions:', err);
+  } finally {
+    isLoadingVersions.value = false;
   }
 };
 
@@ -488,32 +573,7 @@ const deleteDeliverable = async (deliverable: any) => {
   }
 };
 
-const handleSaveDeliverable = async (updates: Partial<Deliverable>) => {
-  if (deliverables.isCreatingDeliverable.value) {
-    // Create new deliverable
-    try {
-      await deliverables.createDeliverable(
-        updates.title || 'New Deliverable',
-        updates.content || '',
-        {
-          description: updates.description,
-          type: DeliverableType.DOCUMENT, // Default type
-        }
-      );
-      deliverables.hideDeliverable();
-    } catch (err) {
-      console.error('Failed to create deliverable:', err);
-    }
-  }
-};
 
-const handleEnhanceDeliverable = async (deliverable: Deliverable) => {
-  // Start enhancement workflow
-  deliverables.store.startEnhancement(deliverable.id);
-  
-  // TODO: Navigate to chat or show enhancement dialog
-  console.log('Starting enhancement for deliverable:', deliverable.id);
-};
 
 // Utility methods
 const getContentPreview = (content: string): string => {
@@ -546,9 +606,102 @@ const formatDate = (date: string | Date): string => {
 };
 
 const hasVersions = (deliverableId: string): boolean => {
-  // For now, assume deliverables with version > 1 have versions
-  // This could be enhanced to cache version info
-  return false; // TODO: Implement version caching if needed
+  // Check if there are cached versions for this deliverable
+  const deliverable = deliverables.store.getDeliverableById(deliverableId);
+  return deliverable ? deliverable.version > 1 : false;
+};
+
+const hideVersionsModal = () => {
+  showVersionsModal.value = false;
+  versions.value = [];
+  selectedDeliverableId.value = null;
+};
+
+const viewVersion = async (versionId: string) => {
+  try {
+    // Load the specific version and show it
+    const version = await deliverables.store.getDeliverable(versionId);
+    if (version) {
+      deliverables.showDeliverable(version);
+      hideVersionsModal();
+    }
+  } catch (err) {
+    console.error('Failed to load version:', err);
+  }
+};
+
+const makeLatestVersion = async (version: any) => {
+  try {
+    // Show confirmation dialog
+    const alert = await alertController.create({
+      header: 'Make Latest Version',
+      message: `Are you sure you want to make version ${version.version} the latest version? This will create a new version based on the selected content.`,
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Make Latest',
+          role: 'confirm',
+          handler: async () => {
+            try {
+              // Get the full content of the selected version
+              const fullVersion = await deliverables.store.getDeliverable(version.id);
+              if (!fullVersion) {
+                throw new Error('Could not load version details');
+              }
+
+              // Create a new version based on the selected version
+              const newVersion = await deliverables.store.createVersion(selectedDeliverableId.value!, {
+                title: fullVersion.title,
+                content: fullVersion.content,
+                created_by_agent: 'version_promotion',
+                metadata: {
+                  promotionReason: 'user_promoted_version',
+                  promotedAt: new Date().toISOString(),
+                  promotedFromVersion: version.version,
+                  originalVersionId: version.id
+                }
+              });
+
+              // Refresh the deliverables list to show the new latest version
+              await loadDeliverables();
+              
+              // Refresh the versions list in the modal
+              const versionList = await deliverables.getVersions(selectedDeliverableId.value!);
+              versions.value = versionList;
+
+              // Show success toast
+              const toast = await toastController.create({
+                message: `Version ${version.version} has been promoted to latest version`,
+                duration: 3000,
+                position: 'bottom',
+                color: 'success'
+              });
+              await toast.present();
+              
+            } catch (error) {
+              console.error('Failed to make version latest:', error);
+              
+              // Show error toast
+              const toast = await toastController.create({
+                message: 'Failed to promote version. Please try again.',
+                duration: 3000,
+                position: 'bottom',
+                color: 'danger'
+              });
+              await toast.present();
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  } catch (err) {
+    console.error('Failed to show confirmation dialog:', err);
+  }
 };
 
 // Watchers
@@ -779,5 +932,51 @@ const {
   .deliverable-actions {
     border-top-color: var(--ion-color-step-200);
   }
+}
+
+/* Versions Modal Styles */
+.versions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.version-card {
+  margin: 0;
+}
+
+.version-card.latest-version {
+  border-left: 4px solid var(--ion-color-success);
+  background: var(--ion-color-success-tint);
+}
+
+.version-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.version-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 1rem;
+}
+
+.no-versions {
+  text-align: center;
+  padding: 2rem;
+  color: var(--ion-color-medium);
 }
 </style>

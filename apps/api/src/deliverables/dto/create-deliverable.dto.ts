@@ -40,7 +40,7 @@ export class CreateDeliverableDto {
 
   @ApiProperty({ enum: DeliverableType, description: 'Type of deliverable' })
   @IsEnum(DeliverableType)
-  deliverable_type!: DeliverableType;
+  type!: DeliverableType;
 
   @ApiProperty({
     enum: DeliverableFormat,

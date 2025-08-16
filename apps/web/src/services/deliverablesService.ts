@@ -24,7 +24,7 @@ export interface Deliverable {
   user_id: string;
   title: string;
   content: string;
-  deliverable_type: DeliverableType;
+  type: DeliverableType;
   format: DeliverableFormat;
   description?: string;
   conversation_id?: string;
@@ -52,7 +52,7 @@ export interface DeliverableVersion {
 export interface CreateDeliverableDto {
   title: string;
   content: string;
-  deliverable_type: DeliverableType;
+  type: DeliverableType;
   format: DeliverableFormat;
   description?: string;
   conversation_id?: string;
@@ -84,7 +84,7 @@ export interface DeliverableFilters {
 export interface DeliverableSearchItem {
   id: string;
   title: string;
-  deliverable_type: DeliverableType;
+  type: DeliverableType;
   format: DeliverableFormat;
   version: number;
   is_latest_version: boolean;
@@ -225,7 +225,7 @@ class DeliverablesService {
     const items = (response.data as Deliverable[]).map((d) => ({
       id: d.id,
       title: d.title,
-      deliverable_type: d.deliverable_type,
+      type: d.type,
       format: d.format,
       version: d.version,
       is_latest_version: d.is_latest_version,

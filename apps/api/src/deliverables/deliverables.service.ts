@@ -45,7 +45,7 @@ export class DeliverablesService {
             user_id: userId,
             title: createDto.title,
             content: createDto.content,
-            type: createDto.deliverable_type,
+            type: createDto.type,
             format: createDto.format,
             conversation_id: createDto.conversation_id || null,
             task_id: createDto.task_id || null,
@@ -225,7 +225,7 @@ export class DeliverablesService {
         .update({
           title: updateDto.title,
           content: updateDto.content,
-          type: updateDto.deliverable_type,
+          type: updateDto.type,
           format: updateDto.format,
           created_by_agent: updateDto.created_by_agent,
           metadata: updateDto.metadata,
@@ -267,14 +267,26 @@ export class DeliverablesService {
     userId: string,
   ): Promise<Deliverable> {
     this.logger.log(
-      `Creating version of deliverable: ${parentId} for user: ${userId}`,
+      `🔄 Creating version of deliverable: ${parentId} for user: ${userId}`,
+    );
+    this.logger.log(
+      `📝 Version DTO: ${JSON.stringify(createVersionDto, null, 2)}`,
     );
 
     try {
       // Verify parent exists and belongs to user
+      this.logger.log(`🔍 Verifying parent deliverable exists: ${parentId}`);
       const parentDeliverable = await this.findOne(parentId, userId);
+      this.logger.log(`✅ Parent deliverable found: ${JSON.stringify({
+        id: parentDeliverable.id,
+        title: parentDeliverable.title,
+        version: parentDeliverable.version,
+        type: parentDeliverable.type,
+        format: parentDeliverable.format
+      }, null, 2)}`);
 
       // Get the next version number for this deliverable family
+      this.logger.log(`🔢 Getting version numbers for deliverable family: ${parentId}`);
       const { data: existingVersions, error: versionError } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('deliverables'))
@@ -285,7 +297,7 @@ export class DeliverablesService {
         .limit(1);
 
       if (versionError) {
-        this.logger.error('Failed to get version number:', versionError);
+        this.logger.error('❌ Failed to get version number:', versionError);
         throw new BadRequestException('Failed to determine version number');
       }
 
@@ -293,39 +305,62 @@ export class DeliverablesService {
         ? existingVersions[0].version + 1 
         : parentDeliverable.version + 1;
 
+      this.logger.log(`📊 Version calculation: existing=${JSON.stringify(existingVersions)}, parent=${parentDeliverable.version}, next=${nextVersion}`);
+
+      // Prepare new version data
+      const newVersionData = {
+        user_id: userId,
+        title: createVersionDto.title,
+        content: createVersionDto.content,
+        type: parentDeliverable.type,
+        format: parentDeliverable.format,
+        version: nextVersion,
+        parent_deliverable_id: parentId,
+        is_latest_version: true,
+        conversation_id: parentDeliverable.conversation_id,
+        task_id: parentDeliverable.task_id,
+        created_by_agent: createVersionDto.created_by_agent || parentDeliverable.created_by_agent,
+        metadata: createVersionDto.metadata || parentDeliverable.metadata,
+        tags: parentDeliverable.tags,
+      };
+
+      this.logger.log(`📦 New version data to insert: ${JSON.stringify(newVersionData, null, 2)}`);
+
       // Create the new version
+      this.logger.log(`💾 Inserting new version into database...`);
       const { data, error } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('deliverables'))
-        .insert([
-          {
-            user_id: userId,
-            title: createVersionDto.title,
-            content: createVersionDto.content,
-            type: parentDeliverable.deliverable_type,
-            format: parentDeliverable.format,
-            version: nextVersion,
-            parent_deliverable_id: parentId,
-            is_latest_version: true,
-            conversation_id: parentDeliverable.conversation_id,
-            task_id: parentDeliverable.task_id,
-            created_by_agent: createVersionDto.created_by_agent || parentDeliverable.created_by_agent,
-            metadata: createVersionDto.metadata || parentDeliverable.metadata,
-            tags: parentDeliverable.tags,
-          },
-        ])
+        .insert([newVersionData])
         .select('*')
         .single();
 
       if (error) {
-        this.logger.error('Failed to create deliverable version:', error);
+        this.logger.error('❌ Failed to create deliverable version:', {
+          error,
+          errorCode: error.code,
+          errorMessage: error.message,
+          errorDetails: error.details,
+          errorHint: error.hint,
+          parentId,
+          userId,
+          newVersionData
+        });
         throw new BadRequestException(
           `Failed to create version: ${error.message}`,
         );
       }
 
+      this.logger.log(`✅ New version inserted successfully: ${JSON.stringify({
+        id: data.id,
+        version: data.version,
+        title: data.title,
+        is_latest_version: data.is_latest_version
+      }, null, 2)}`);
+
       // Update previous versions to mark them as not latest
-      await this.supabaseService
+      this.logger.log(`🔄 Updating previous versions to mark as not latest...`);
+      const { error: updateError } = await this.supabaseService
         .getServiceClient()
         .from(getTableName('deliverables'))
         .update({ is_latest_version: false })
@@ -333,18 +368,42 @@ export class DeliverablesService {
         .neq('id', data.id)
         .eq('user_id', userId);
 
-      this.logger.log(`Deliverable version created successfully: ${data.id}`);
-      return this.mapToDeliverable(data);
+      if (updateError) {
+        this.logger.error('⚠️ Failed to update previous versions, but new version was created:', updateError);
+        // Don't throw here since the new version was successfully created
+      } else {
+        this.logger.log(`✅ Previous versions updated successfully`);
+      }
+
+      this.logger.log(`🎉 Deliverable version created successfully: ${data.id}`);
+      const mappedDeliverable = this.mapToDeliverable(data);
+      this.logger.log(`📤 Returning mapped deliverable: ${JSON.stringify({
+        id: mappedDeliverable.id,
+        title: mappedDeliverable.title,
+        version: mappedDeliverable.version,
+        is_latest_version: mappedDeliverable.is_latest_version
+      }, null, 2)}`);
+      
+      return mappedDeliverable;
     } catch (error) {
       if (
         error instanceof NotFoundException ||
         error instanceof BadRequestException
       ) {
+        this.logger.error(`🚨 Known error in createVersion: ${error.message}`);
         throw error;
       }
       this.logger.error(
-        'Unexpected error creating deliverable version:',
-        error,
+        '💥 Unexpected error creating deliverable version:',
+        {
+          error,
+          errorName: error.constructor.name,
+          errorMessage: error.message,
+          errorStack: error.stack,
+          parentId,
+          userId,
+          createVersionDto
+        }
       );
       throw new BadRequestException('Failed to create version');
     }
@@ -486,7 +545,7 @@ export class DeliverablesService {
       task_id: data.task_id,
       title: data.title,
       content: data.content,
-      deliverable_type: data.type,
+      type: data.type,
       format: data.format,
       version: data.version,
       parent_deliverable_id: data.parent_deliverable_id,
@@ -515,7 +574,7 @@ export class DeliverablesService {
     return {
       id: data.id,
       title: data.title,
-      deliverable_type: data.type,
+      type: data.type,
       format: data.format,
       version: data.version,
       is_latest_version: data.is_latest_version,

@@ -6,8 +6,8 @@
       <div class="title-section">
         <h3 class="deliverable-title">{{ deliverable.title }}</h3>
         <div class="metadata">
-          <ion-chip :color="getTypeColor(deliverable.deliverable_type)" outline>
-            {{ formatType(deliverable.deliverable_type) }}
+          <ion-chip :color="getTypeColor(deliverable.type)" outline>
+            {{ formatType(deliverable.type) }}
           </ion-chip>
           <ion-chip :color="getFormatColor(deliverable.format)" outline>
             {{ deliverable.format.toUpperCase() }}
@@ -320,7 +320,7 @@
         <div 
           v-else
           class="text-content"
-        >{{ deliverable.content }}</div>
+        >{{ deliverable.content || '' }}</div>
       </div>
     </div>
 
@@ -402,6 +402,7 @@ interface Props {
 
 interface Emits {
   (e: 'version-changed', version: any): void;
+  (e: 'version-created', version: any): void;
   (e: 'merge-requested', deliverable: any): void;
   (e: 'edit-requested', deliverable: any): void;
 }
@@ -447,21 +448,30 @@ const hasUnsavedChanges = computed(() => {
 
 const renderedMarkdown = computed(() => {
   if (props.deliverable.format !== 'markdown') return '';
+  if (!props.deliverable.content || typeof props.deliverable.content !== 'string') {
+    return '';
+  }
   try {
     return marked(props.deliverable.content);
   } catch (error) {
     console.error('Failed to render markdown:', error);
-    return props.deliverable.content;
+    return props.deliverable.content || '';
   }
 });
 
 const sanitizedHtml = computed(() => {
   if (props.deliverable.format !== 'html') return '';
+  if (!props.deliverable.content || typeof props.deliverable.content !== 'string') {
+    return '';
+  }
   return DOMPurify.sanitize(props.deliverable.content);
 });
 
 // Methods
 const getTypeColor = (type: string) => {
+  if (!type || typeof type !== 'string') {
+    return 'medium'; // Default fallback
+  }
   const colors = {
     document: 'primary',
     analysis: 'secondary',
@@ -473,6 +483,9 @@ const getTypeColor = (type: string) => {
 };
 
 const getFormatColor = (format: string) => {
+  if (!format || typeof format !== 'string') {
+    return 'medium'; // Default fallback
+  }
   const colors = {
     markdown: 'primary',
     html: 'secondary',
@@ -483,6 +496,9 @@ const getFormatColor = (format: string) => {
 };
 
 const formatType = (type: string) => {
+  if (!type || typeof type !== 'string') {
+    return 'Document'; // Default fallback
+  }
   return type.charAt(0).toUpperCase() + type.slice(1);
 };
 
@@ -508,8 +524,8 @@ const formatDate = (dateString: string) => {
 
 const startEditing = () => {
   isEditing.value = true;
-  editedContent.value = props.deliverable.content;
-  editedTitle.value = props.deliverable.title;
+  editedContent.value = props.deliverable.content || '';
+  editedTitle.value = props.deliverable.title || '';
 };
 
 const cancelEditing = () => {
@@ -524,22 +540,38 @@ const saveEdits = async () => {
   try {
     isSaving.value = true;
     
-    const updatedData: any = {};
-    if (editedTitle.value !== props.deliverable.title) {
-      updatedData.title = editedTitle.value;
-    }
-    if (editedContent.value !== props.deliverable.content) {
-      updatedData.content = editedContent.value;
-    }
+    // Create a new version instead of updating in-place
+    const newVersion = await deliverablesStore.createVersion(props.deliverable.id, {
+      title: editedTitle.value,
+      content: editedContent.value,
+      created_by_agent: 'manual_edit',
+      metadata: {
+        editReason: 'user_edit',
+        editedAt: new Date().toISOString(),
+        previousVersion: props.deliverable.version
+      }
+    });
     
-    await deliverablesStore.updateDeliverable(props.deliverable.id, updatedData);
+    // Emit an event to notify parent component that a new version was created
+    emit('version-created', newVersion);
     
     isEditing.value = false;
     editedContent.value = '';
     editedTitle.value = '';
-  } catch (error) {
-    console.error('Failed to save deliverable:', error);
-    // TODO: Show error toast
+  } catch (error: any) {
+    console.error('Failed to save deliverable:', {
+      error,
+      message: error.message,
+      response: error.response,
+      status: error.response?.status,
+      data: error.response?.data,
+      parentId: props.deliverable.id,
+      title: editedTitle.value,
+      contentLength: editedContent.value.length
+    });
+    
+    // Show error message to user
+    alert(`Failed to save deliverable: ${error.message || 'Unknown error'}`);
   } finally {
     isSaving.value = false;
   }
@@ -623,6 +655,9 @@ const insertCodeBlock = () => {
 };
 
 const formatJson = (content: string) => {
+  if (!content || typeof content !== 'string') {
+    return '';
+  }
   try {
     const parsed = JSON.parse(content);
     return JSON.stringify(parsed, null, 2);
@@ -648,31 +683,48 @@ const loadVersions = async () => {
   }
 };
 
-const goToPreviousVersion = () => {
+const goToPreviousVersion = async () => {
   if (!canGoPrevious.value) return;
   
   const currentIndex = versions.value.findIndex(v => v.id === props.deliverable.id);
   const previousVersion = versions.value[currentIndex - 1];
   
   if (previousVersion) {
-    emit('version-changed', previousVersion);
+    await loadAndEmitFullVersion(previousVersion.id);
   }
 };
 
-const goToNextVersion = () => {
+const goToNextVersion = async () => {
   if (!canGoNext.value) return;
   
   const currentIndex = versions.value.findIndex(v => v.id === props.deliverable.id);
   const nextVersion = versions.value[currentIndex + 1];
   
   if (nextVersion) {
-    emit('version-changed', nextVersion);
+    await loadAndEmitFullVersion(nextVersion.id);
   }
 };
 
-const selectVersion = (version: any) => {
+const selectVersion = async (version: any) => {
   if (version.id !== props.deliverable.id) {
-    emit('version-changed', version);
+    await loadAndEmitFullVersion(version.id);
+  }
+};
+
+const loadAndEmitFullVersion = async (versionId: string) => {
+  try {
+    // Fetch the full deliverable for this version
+    const fullVersion = await deliverablesStore.getDeliverable(versionId);
+    if (fullVersion) {
+      emit('version-changed', fullVersion);
+    }
+  } catch (error) {
+    console.error('Failed to load full version:', error);
+    // Fallback: still emit the limited version data
+    const limitedVersion = versions.value.find(v => v.id === versionId);
+    if (limitedVersion) {
+      emit('version-changed', limitedVersion);
+    }
   }
 };
 

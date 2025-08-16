@@ -22,7 +22,7 @@ export function toDeliverableFormat(format: string | DeliverableFormat): Deliver
 export function convertServiceToStoreDeliverable(serviceDeliverable: any): any {
   return {
     ...serviceDeliverable,
-    deliverable_type: toDeliverableType(serviceDeliverable.deliverable_type),
+    type: toDeliverableType(serviceDeliverable.type),
     format: toDeliverableFormat(serviceDeliverable.format),
     created_at: new Date(serviceDeliverable.created_at),
     updated_at: new Date(serviceDeliverable.updated_at),

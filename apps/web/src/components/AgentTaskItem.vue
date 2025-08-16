@@ -1,10 +1,7 @@
 <template>
   <div class="agent-task-item" :class="[`task-role--${message.role}`]">
     <div class="task-message">
-      <!-- User avatar for user messages -->
-      <ion-avatar v-if="message.role === 'user'" slot="start" class="task-avatar user-avatar">
-        <ion-icon :icon="personCircleOutline" size="small"></ion-icon>
-      </ion-avatar>
+      <!-- User avatar removed for more space -->
       
       <!-- Task content -->
       <div class="task-content">
@@ -51,7 +48,7 @@
               <ion-spinner name="dots" color="primary" />
             </div>
             <ion-chip v-else size="small" color="primary" outline>
-              {{ displayedDeliverable.deliverable_type || 'document' }}
+              {{ displayedDeliverable.type || 'document' }}
             </ion-chip>
           </div>
           <div class="callout-action" v-if="displayedDeliverable && !props.showWorkProductPane">
@@ -74,10 +71,7 @@
         />
       </div>
       
-      <!-- Agent avatar for assistant messages -->
-      <ion-avatar v-if="message.role === 'assistant'" slot="end" class="task-avatar agent-avatar">
-        <ion-icon :icon="cogOutline" size="small"></ion-icon>
-      </ion-avatar>
+      <!-- Agent avatar removed for more space -->
     </div>
     
     <!-- Task evaluation interface for assistant messages -->
@@ -108,8 +102,8 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
 import { marked } from 'marked';
-import { IonAvatar, IonIcon, IonButton, IonSpinner, IonChip } from '@ionic/vue';
-import { personCircleOutline, cogOutline, informationCircleOutline, documentTextOutline, arrowForwardOutline } from 'ionicons/icons';
+import { IonIcon, IonButton, IonSpinner, IonChip } from '@ionic/vue';
+import { informationCircleOutline, documentTextOutline, arrowForwardOutline } from 'ionicons/icons';
 import TaskRating from './TaskRating.vue';
 import TaskMetadataModal from './TaskMetadataModal.vue';
 import LLMInfo from './LLMInfo.vue';
@@ -423,7 +417,7 @@ const createDeliverable = async () => {
     const deliverableData: any = {
       title,
       content: props.message.content,
-      deliverable_type: deliverableType as any, // Type assertion to handle enum mismatch
+      type: deliverableType as any, // Type assertion to handle enum mismatch
       format: 'markdown' as any, // Type assertion to handle enum mismatch
       created_by_agent: props.agentName || 'unknown',
       metadata: {

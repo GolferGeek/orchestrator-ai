@@ -968,7 +968,7 @@ export class EvaluationService {
             ? task.llm_metadata.result.substring(0, 100) + '...'
             : undefined,
           // Check deliverable fields
-          deliverable_type: task.deliverable_type,
+          type: task.type,
           deliverable_metadata: task.deliverable_metadata,
           // Check status and completion
           status: task.status,
@@ -1087,7 +1087,7 @@ export class EvaluationService {
             responseMetadata: task.response_metadata,
             llmMetadata: task.llm_metadata,
             taskMetadata: task.metadata,
-            deliverableType: task.deliverable_type,
+            deliverableType: task.type,
             deliverableMetadata: task.deliverable_metadata,
             progressMessage: task.progress_message,
             workflowStepsCompleted:

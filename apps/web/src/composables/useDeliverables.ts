@@ -117,7 +117,7 @@ export function useDeliverables() {
     const data: CreateDeliverableDto = {
       title,
       content,
-      deliverable_type: options.type || DeliverableType.DOCUMENT,
+      type: options.type || DeliverableType.DOCUMENT,
       format: options.format || DeliverableFormat.MARKDOWN,
       description: options.description,
       conversation_id: options.conversationId,
@@ -136,7 +136,7 @@ export function useDeliverables() {
     const newDeliverable = await deliverablesService.createDeliverable(data);
     store.addDeliverable({
       ...newDeliverable,
-      deliverable_type: data.deliverable_type,
+      type: data.type,
       format: data.format,
       created_at: new Date(newDeliverable.created_at),
       updated_at: new Date(newDeliverable.updated_at)
@@ -184,7 +184,7 @@ export function useDeliverables() {
     return deliverables.map(d => ({
       id: d.id,
       title: d.title,
-      deliverable_type: d.deliverable_type,
+      type: d.type,
       format: d.format,
       version: d.version,
       is_latest_version: d.is_latest_version,
