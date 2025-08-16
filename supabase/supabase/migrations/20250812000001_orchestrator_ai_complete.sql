@@ -162,6 +162,27 @@ CREATE TABLE public.deliverables (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Project Steps table - Individual steps within multi-step projects
+CREATE TABLE public.project_steps (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+    step_id VARCHAR(255) NOT NULL,
+    step_index INTEGER NOT NULL,
+    step_type VARCHAR(50) NOT NULL CHECK (step_type IN ('agent_step', 'human_approval')),
+    step_name VARCHAR(255) NOT NULL,
+    agent_name VARCHAR(255),
+    prompt TEXT,
+    dependencies TEXT[] DEFAULT '{}',
+    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'completed', 'failed', 'skipped')),
+    result JSONB,
+    error_details JSONB,
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- =====================================
 -- COMPANY SCHEMA - KPI & BUSINESS DATA
 -- =====================================
@@ -240,6 +261,9 @@ CREATE INDEX idx_deliverables_user_id ON public.deliverables(user_id);
 CREATE INDEX idx_deliverables_conversation_id ON public.deliverables(conversation_id);
 CREATE INDEX idx_deliverables_project_id ON public.deliverables(project_id);
 CREATE INDEX idx_deliverables_task_id ON public.deliverables(task_id);
+CREATE INDEX idx_project_steps_project_id ON public.project_steps(project_id);
+CREATE INDEX idx_project_steps_status ON public.project_steps(status);
+CREATE INDEX idx_project_steps_step_index ON public.project_steps(project_id, step_index);
 
 -- Company schema indexes
 CREATE INDEX idx_departments_company_id ON company.departments(company_id);
@@ -285,6 +309,9 @@ CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON public.projects
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_deliverables_updated_at BEFORE UPDATE ON public.deliverables
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_project_steps_updated_at BEFORE UPDATE ON public.project_steps
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Apply triggers to company schema tables
@@ -357,6 +384,7 @@ ALTER TABLE public.agent_conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.deliverables ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.project_steps ENABLE ROW LEVEL SECURITY;
 
 -- Users can only see their own data
 CREATE POLICY "Users can view own profile" ON public.users
@@ -380,6 +408,10 @@ CREATE POLICY "Users can view own projects" ON public.projects
 -- Deliverables are visible to their owners
 CREATE POLICY "Users can view own deliverables" ON public.deliverables
     FOR ALL USING (auth.uid() = user_id);
+
+-- Project steps are visible to project owners
+CREATE POLICY "Users can view own project steps" ON public.project_steps
+    FOR ALL USING (auth.uid() = (SELECT user_id FROM public.projects WHERE id = project_id));
 
 -- =====================================
 -- GRANTS
@@ -409,6 +441,9 @@ GRANT SELECT ON public.projects TO anon;
 
 GRANT ALL ON public.deliverables TO authenticated;
 GRANT SELECT ON public.deliverables TO anon;
+
+GRANT ALL ON public.project_steps TO authenticated;
+GRANT SELECT ON public.project_steps TO anon;
 
 -- Grant permissions on company tables
 GRANT ALL ON company.companies TO authenticated;
