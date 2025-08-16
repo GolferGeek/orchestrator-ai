@@ -31,6 +31,8 @@ import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { TaskStatusService } from '../../../../../tasks/task-status.service';
 import { DeliverablesService } from '../../../../../deliverables/deliverables.service';
+import { TasksService } from '../../../../../tasks/tasks.service';
+import { DeliverableVersionCreationType } from '../../../../../deliverables/dto';
 import {
   DeliverableType,
   DeliverableFormat,
@@ -61,6 +63,7 @@ export abstract class A2AAgentBaseService
   protected configurationService: ConfigurationService;
   protected taskStatusService?: TaskStatusService;
   protected deliverablesService?: DeliverablesService;
+  protected tasksService?: TasksService;
 
   constructor(
     protected readonly httpService: HttpService,
@@ -70,6 +73,9 @@ export abstract class A2AAgentBaseService
     @Optional()
     @Inject(DeliverablesService)
     deliverablesService?: DeliverablesService,
+    @Optional()
+    @Inject(TasksService)
+    tasksService?: TasksService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -87,6 +93,7 @@ export abstract class A2AAgentBaseService
       configurationService || new ConfigurationService();
     this.taskStatusService = taskStatusService;
     this.deliverablesService = deliverablesService;
+    this.tasksService = tasksService;
   }
 
   // ============================================================================
@@ -673,6 +680,44 @@ export abstract class A2AAgentBaseService
   // ============================================================================
 
   /**
+   * Get conversation and project context from a task ID
+   */
+  private async getTaskContext(
+    taskId: string,
+    userId: string,
+  ): Promise<{ conversationId?: string; projectStepId?: string }> {
+    if (!this.tasksService) {
+      this.logger.debug('TasksService not available - cannot get task context');
+      return {};
+    }
+
+    try {
+      const task = await this.tasksService.getTaskById(taskId, userId);
+      if (!task) {
+        this.logger.debug(`Task ${taskId} not found or not accessible by user ${userId}`);
+        return {};
+      }
+
+      // Check for project step ID in task params (for project-based tasks)
+      let projectStepId: string | undefined;
+      if (task.params && typeof task.params === 'object') {
+        projectStepId = 
+          task.params.projectStepId || 
+          task.params.project_step_id ||
+          task.params.workProduct?.id; // WorkProductContext.id might be project step
+      }
+
+      return {
+        conversationId: task.agentConversationId || undefined,
+        projectStepId,
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to get task context for ${taskId}:`, error);
+      return {};
+    }
+  }
+
+  /**
    * Auto-persist deliverable if content contains deliverable markers
    * This runs for ALL agents when they complete tasks
    * @returns deliverable ID if created, null otherwise
@@ -708,6 +753,12 @@ export abstract class A2AAgentBaseService
         return null;
       }
 
+      // Get conversation context from task if available
+      let taskContext: { conversationId?: string; projectStepId?: string } = {};
+      if (taskId) {
+        taskContext = await this.getTaskContext(taskId, userId);
+      }
+
       // Create new deliverable or enhance existing one
       let deliverable;
 
@@ -716,8 +767,10 @@ export abstract class A2AAgentBaseService
         deliverable = await this.deliverablesService.createVersion(
           enhanceDeliverableId,
           {
-            title: deliverableData.title,
             content: deliverableData.content,
+            format: deliverableData.format || 'markdown',
+            createdByType: DeliverableVersionCreationType.AI_ENHANCEMENT,
+            taskId: taskId || 'unknown',
             metadata: {
               agentName: this.getAgentName(),
               agentType: this.getAgentType(),
@@ -726,28 +779,41 @@ export abstract class A2AAgentBaseService
               enhancedFrom: enhanceDeliverableId,
               ...deliverableData.metadata,
             },
-            created_by_agent: this.getAgentName(),
           },
           userId,
         );
 
         this.logger.log(
-          `📄 Deliverable enhanced: ${deliverable.title} (New ID: ${deliverable.id}, Enhanced from: ${enhanceDeliverableId})`,
+          `📄 Deliverable enhanced: Version ${deliverable.versionNumber} (Version ID: ${deliverable.id}, Enhanced from: ${enhanceDeliverableId})`,
         );
       } else {
         // Creating a new deliverable
+        // Require either conversationId or projectStepId (deliverable must belong to something)
+        if (!taskContext.conversationId && !taskContext.projectStepId) {
+          this.logger.warn(
+            `Cannot create deliverable without conversationId or projectStepId. Task ${taskId} has no context.`,
+          );
+          return null;
+        }
+
         deliverable = await this.deliverablesService.create(
           {
             title: deliverableData.title,
-            content: deliverableData.content,
             type: deliverableData.type,
-            format: deliverableData.format,
-            description: deliverableData.description,
-            metadata: {
+            conversationId: taskContext.conversationId,
+            projectStepId: taskContext.projectStepId,
+            // Initial version data
+            initialContent: deliverableData.content,
+            initialFormat: deliverableData.format || 'markdown',
+            initialCreationType: DeliverableVersionCreationType.AI_RESPONSE,
+            initialTaskId: taskId || 'unknown',
+            initialMetadata: {
               agentName: this.getAgentName(),
               agentType: this.getAgentType(),
               taskId: taskId || 'unknown',
               generatedAt: new Date().toISOString(),
+              // Include description in metadata instead since it's not in the main table
+              description: deliverableData.description,
               ...deliverableData.metadata,
             },
           },

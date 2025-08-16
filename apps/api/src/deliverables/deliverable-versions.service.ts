@@ -173,7 +173,7 @@ export class DeliverableVersionsService {
     deliverableId: string,
     userId: string,
   ): Promise<DeliverableVersion | null> {
-    this.logger.log(`Getting current version for deliverable: ${deliverableId}`);
+    this.logger.log(`Getting current version for deliverable: ${deliverableId} for user: ${userId}`);
 
     try {
       // Verify deliverable ownership
@@ -192,7 +192,27 @@ export class DeliverableVersionsService {
         throw new BadRequestException('Failed to find current version');
       }
 
-      return data ? this.mapToVersion(data) : null;
+      if (data) {
+        this.logger.log(`Found current version: ${data.id} (v${data.version_number}) for deliverable: ${deliverableId}`);
+        return this.mapToVersion(data);
+      } else {
+        this.logger.warn(`No current version found for deliverable: ${deliverableId} - checking if any versions exist`);
+        
+        // Check if any versions exist at all
+        const { data: allVersions, error: allVersionsError } = await this.supabaseService
+          .getServiceClient()
+          .from(getTableName('deliverable_versions'))
+          .select('id, version_number, is_current_version')
+          .eq('deliverable_id', deliverableId);
+          
+        if (allVersionsError) {
+          this.logger.error('Failed to check for any versions:', allVersionsError);
+        } else {
+          this.logger.warn(`Found ${allVersions?.length || 0} total versions for deliverable ${deliverableId}:`, allVersions);
+        }
+        
+        return null;
+      }
     } catch (error) {
       if (
         error instanceof NotFoundException ||

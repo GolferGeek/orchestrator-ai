@@ -281,11 +281,11 @@ export class DeliverablesController {
         resultIsCurrentVersion: result.isCurrentVersion
       });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.log('❌ createVersion controller error:', {
         error,
         errorMessage: error.message,
-        errorName: error.constructor.name,
+        errorName: error.constructor?.name,
         parentId: id,
         userId,
         createVersionDto

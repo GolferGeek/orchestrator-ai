@@ -31,6 +31,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       services.httpService,
       services.taskStatusService,
       services.deliverablesService,
+      services.tasksService, // Context agents need TasksService for deliverable auto-persistence
       services.agentRegistrationService,
       services.jsonRpcProtocolService,
       services.loggingService,
