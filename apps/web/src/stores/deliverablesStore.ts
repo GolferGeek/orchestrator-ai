@@ -2,48 +2,20 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useAuthStore } from './authStore';
 import type { 
-  Deliverable as ServiceDeliverable,
-  DeliverableSearchItem,
+  Deliverable,
+  DeliverableVersion,
+  DeliverableSearchResult,
   DeliverableType,
-  DeliverableFormat
+  DeliverableFormat,
+  CreateDeliverableDto,
+  CreateVersionDto
 } from '@/services/deliverablesService';
-
-interface Deliverable {
-  id: string;
-  user_id: string;
-  conversation_id?: string;
-  message_id?: string;
-  task_id?: string;
-  title: string;
-  content: string;
-  type: DeliverableType | string;
-  format: DeliverableFormat | string;
-  version: number;
-  parent_deliverable_id?: string;
-  is_latest_version: boolean;
-  metadata?: Record<string, any>;
-  tags?: string[];
-  created_by_agent?: string;
-  description?: string;
-  created_at: Date;
-  updated_at: Date;
-  content_preview?: string;
-}
-
-interface DeliverableVersion {
-  id: string;
-  title: string;
-  version: number;
-  is_latest_version: boolean;
-  created_at: Date;
-  created_by_agent?: string;
-  content_preview: string;
-}
 
 interface DeliverablesState {
   deliverables: Map<string, Deliverable>;
-  deliverableVersions: Map<string, DeliverableVersion[]>;
+  deliverableVersions: Map<string, DeliverableVersion[]>; // deliverableId -> versions
   conversationDeliverables: Map<string, string[]>; // conversationId -> deliverableIds
+  currentVersions: Map<string, DeliverableVersion>; // deliverableId -> current version
   isLoading: boolean;
   error: string | null;
 }
@@ -56,6 +28,7 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     deliverables: new Map(),
     deliverableVersions: new Map(),
     conversationDeliverables: new Map(),
+    currentVersions: new Map(),
     isLoading: false,
     error: null,
   });
@@ -70,14 +43,14 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
   const recentDeliverables = computed(() => 
     deliverables.value
       .slice()
-      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 10)
   );
   const searchResults = computed(() => deliverables.value); // For now, just return all deliverables
   
   // Group deliverables by type for compatibility
   const deliverablesByType = computed(() => {
-    const grouped: Record<string, any[]> = {
+    const grouped: Record<string, Deliverable[]> = {
       'document': [],
       'analysis': [],
       'report': [],
@@ -86,7 +59,7 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     };
     
     deliverables.value.forEach(deliverable => {
-      const type = deliverable.type.toLowerCase();
+      const type = (deliverable.type || 'document').toLowerCase();
       if (grouped[type]) {
         grouped[type].push(deliverable);
       } else {
@@ -114,6 +87,10 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       .filter(Boolean) as Deliverable[];
   };
 
+  const getCurrentVersion = (deliverableId: string) => {
+    return state.value.currentVersions.get(deliverableId) || null;
+  };
+
   const getDeliverableVersions = async (parentId: string) => {
     if (state.value.deliverableVersions.has(parentId)) {
       return state.value.deliverableVersions.get(parentId)!;
@@ -136,24 +113,43 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     state.value.error = null;
   };
 
-  const addDeliverable = (deliverable: any) => {
-    // Normalize date fields to ensure consistency
-    const normalizedDeliverable = {
-      ...deliverable,
-      created_at: deliverable.created_at instanceof Date ? deliverable.created_at : new Date(deliverable.created_at),
-      updated_at: deliverable.updated_at instanceof Date ? deliverable.updated_at : new Date(deliverable.updated_at),
-    };
+  const addDeliverable = (deliverable: Deliverable) => {
+    state.value.deliverables.set(deliverable.id, deliverable);
     
-    state.value.deliverables.set(deliverable.id, normalizedDeliverable as Deliverable);
-    
-    // Add to conversation mapping if conversation_id exists
-    if (deliverable.conversation_id) {
-      const existing = state.value.conversationDeliverables.get(deliverable.conversation_id) || [];
+    // Add to conversation mapping if conversationId exists
+    if (deliverable.conversationId) {
+      const existing = state.value.conversationDeliverables.get(deliverable.conversationId) || [];
       if (!existing.includes(deliverable.id)) {
         state.value.conversationDeliverables.set(
-          deliverable.conversation_id,
+          deliverable.conversationId,
           [...existing, deliverable.id]
         );
+      }
+    }
+
+    // Store current version if provided
+    if (deliverable.currentVersion) {
+      state.value.currentVersions.set(deliverable.id, deliverable.currentVersion);
+    }
+  };
+
+  const addVersion = (deliverableId: string, version: DeliverableVersion) => {
+    const existing = state.value.deliverableVersions.get(deliverableId) || [];
+    
+    // Remove existing version with same ID if present, then add new one
+    const filtered = existing.filter(v => v.id !== version.id);
+    const newVersions = [...filtered, version].sort((a, b) => b.versionNumber - a.versionNumber);
+    
+    state.value.deliverableVersions.set(deliverableId, newVersions);
+    
+    // Update current version if this is marked as current
+    if (version.isCurrentVersion) {
+      state.value.currentVersions.set(deliverableId, version);
+      
+      // Update the deliverable's currentVersion if it exists in store
+      const deliverable = state.value.deliverables.get(deliverableId);
+      if (deliverable) {
+        deliverable.currentVersion = version;
       }
     }
   };
@@ -208,18 +204,14 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       const existingIds = state.value.conversationDeliverables.get(conversationId) || [];
       existingIds.forEach(id => {
         state.value.deliverables.delete(id);
+        state.value.currentVersions.delete(id);
       });
       
       state.value.conversationDeliverables.delete(conversationId);
 
       // Add new deliverables
-      deliverables.forEach((deliverable: any) => {
-        const storeDeliverable = {
-          ...deliverable,
-          created_at: new Date(deliverable.created_at),
-          updated_at: new Date(deliverable.updated_at)
-        };
-        addDeliverable(storeDeliverable);
+      deliverables.forEach((deliverable: Deliverable) => {
+        addDeliverable(deliverable);
       });
 
       return deliverables;
@@ -277,15 +269,16 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       
       // Use the proper deliverablesService instead of direct fetch
       const { deliverablesService } = await import('@/services/deliverablesService');
-      const versions = await deliverablesService.getVersions(parentId);
+      const versions = await deliverablesService.getVersionHistory(parentId);
       
-      // Normalize date fields in versions
-      const normalizedVersions = versions.map(v => ({
-        ...v,
-        created_at: (v.created_at as any) instanceof Date ? v.created_at : new Date(v.created_at as any)
-      }));
+      // Store versions in state
+      state.value.deliverableVersions.set(parentId, versions);
       
-      state.value.deliverableVersions.set(parentId, normalizedVersions as any);
+      // Update current version if we find one
+      const currentVersion = versions.find(v => v.isCurrentVersion);
+      if (currentVersion) {
+        state.value.currentVersions.set(parentId, currentVersion);
+      }
       
       return versions;
     } catch (error: any) {
@@ -298,14 +291,9 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
   };
 
   const createVersion = async (
-    parentId: string, 
-    data: {
-      title: string;
-      content: string;
-      created_by_agent?: string;
-      metadata?: Record<string, any>;
-    }
-  ): Promise<Deliverable> => {
+    deliverableId: string, 
+    data: CreateVersionDto
+  ): Promise<DeliverableVersion> => {
     try {
       setLoading(true);
       clearError();
@@ -319,30 +307,23 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       const { deliverablesService } = await import('@/services/deliverablesService');
       
       console.log('🔄 Creating new version:', {
-        parentId,
+        deliverableId,
         data,
         authToken: !!authToken
       });
       
-      const newVersion = await deliverablesService.createVersion(parentId, data);
+      const newVersion = await deliverablesService.createVersion(deliverableId, data);
       
       console.log('✅ Version created successfully:', {
         newVersionId: newVersion.id,
-        version: newVersion.version,
-        title: newVersion.title,
-        isLatest: newVersion.is_latest_version
+        versionNumber: newVersion.versionNumber,
+        isCurrentVersion: newVersion.isCurrentVersion
       });
-      const storeVersion = {
-        ...newVersion,
-        created_at: new Date(newVersion.created_at),
-        updated_at: new Date(newVersion.updated_at)
-      };
-      addDeliverable(storeVersion as any);
       
-      // Invalidate cached versions for this parent
-      state.value.deliverableVersions.delete(parentId);
+      // Add version to store
+      addVersion(deliverableId, newVersion);
       
-      return storeVersion as any;
+      return newVersion;
     } catch (error: any) {
       console.error('Failed to create deliverable version:', error);
       setError(error.message);
@@ -371,7 +352,7 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       const result = await deliverablesService.getDeliverables({
         limit: 100, // Get more deliverables for the main page
         offset: 0,
-        latest_only: true // Only show latest versions by default
+        latestOnly: true // Only show latest versions by default
       });
       
       console.log('🔍 loadDeliverables result:', result);
@@ -379,19 +360,28 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       // Clear existing deliverables first
       state.value.deliverables.clear();
       state.value.conversationDeliverables.clear();
+      state.value.currentVersions.clear();
 
-      // Add all deliverables to the store
-      result.items.forEach((deliverable: any) => {
-        const storeDeliverable = {
-          ...deliverable,
-          created_at: new Date(deliverable.created_at),
-          updated_at: new Date(deliverable.updated_at)
-        };
-        addDeliverable(storeDeliverable);
+      // For search results, we need to convert to full deliverables
+      // Note: This is a limitation - we may need a separate endpoint for full deliverable objects
+      const deliverablePromises = result.items.map(async (searchItem) => {
+        try {
+          return await deliverablesService.getDeliverable(searchItem.id);
+        } catch (error) {
+          console.error(`Failed to load deliverable ${searchItem.id}:`, error);
+          return null;
+        }
       });
 
-      console.log('🔍 Total deliverables loaded:', result.items.length);
-      return result.items;
+      const deliverables = (await Promise.all(deliverablePromises)).filter(Boolean) as Deliverable[];
+      
+      // Add all deliverables to the store
+      deliverables.forEach((deliverable) => {
+        addDeliverable(deliverable);
+      });
+
+      console.log('🔍 Total deliverables loaded:', deliverables.length);
+      return deliverables;
     } catch (error: any) {
       console.error('Failed to load all deliverables:', {
         error: error.message,
@@ -560,6 +550,72 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     return await getDeliverableVersions(deliverableId);
   };
 
+  // New version management methods
+  const setCurrentVersion = async (versionId: string) => {
+    try {
+      setLoading(true);
+      const { deliverablesService } = await import('@/services/deliverablesService');
+      const version = await deliverablesService.setCurrentVersion(versionId);
+      
+      // Update store state
+      addVersion(version.deliverableId, version);
+      
+      return version;
+    } catch (error: any) {
+      console.error('Failed to set current version:', error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteVersion = async (versionId: string) => {
+    try {
+      setLoading(true);
+      const { deliverablesService } = await import('@/services/deliverablesService');
+      await deliverablesService.deleteVersion(versionId);
+      
+      // Remove from store state
+      for (const [deliverableId, versions] of state.value.deliverableVersions.entries()) {
+        const filtered = versions.filter(v => v.id !== versionId);
+        if (filtered.length !== versions.length) {
+          state.value.deliverableVersions.set(deliverableId, filtered);
+          break;
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to delete version:', error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCurrentVersion = async (deliverableId: string) => {
+    try {
+      const { deliverablesService } = await import('@/services/deliverablesService');
+      const version = await deliverablesService.getCurrentVersion(deliverableId);
+      
+      if (version) {
+        state.value.currentVersions.set(deliverableId, version);
+        
+        // Update deliverable if it exists
+        const deliverable = state.value.deliverables.get(deliverableId);
+        if (deliverable) {
+          deliverable.currentVersion = version;
+        }
+      }
+      
+      return version;
+    } catch (error: any) {
+      console.error('Failed to load current version:', error);
+      setError(error.message);
+      throw error;
+    }
+  };
+
   return {
     // State
     deliverables,
@@ -579,12 +635,14 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     getDeliverableVersions,
     getDeliverable, // alias for getDeliverableById
     getVersions, // alias for getDeliverableVersions
+    getCurrentVersion,
 
     // Actions
     setLoading,
     setError,
     clearError,
     addDeliverable,
+    addVersion,
     loadDeliverablesByConversation,
     loadDeliverableVersions,
     createVersion,
@@ -592,6 +650,11 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     deleteDeliverable,
     updateDeliverable,
     startEnhancement,
+    
+    // Version management
+    setCurrentVersion,
+    deleteVersion,
+    loadCurrentVersion,
     
     // Additional methods for compatibility
     processAgentDeliverable,

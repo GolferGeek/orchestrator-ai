@@ -26,28 +26,19 @@ export enum DeliverableFormat {
   HTML = 'html',
 }
 
+export enum DeliverableVersionCreationType {
+  AI_RESPONSE = 'ai_response',
+  MANUAL_EDIT = 'manual_edit',
+  AI_ENHANCEMENT = 'ai_enhancement',
+  USER_REQUEST = 'user_request',
+}
+
 export class CreateDeliverableDto {
   @ApiProperty({ description: 'Title of the deliverable', maxLength: 255 })
   @IsString()
   @MinLength(1)
   @MaxLength(255)
   title!: string;
-
-  @ApiProperty({ description: 'Content of the deliverable' })
-  @IsString()
-  @MinLength(1)
-  content!: string;
-
-  @ApiProperty({ enum: DeliverableType, description: 'Type of deliverable' })
-  @IsEnum(DeliverableType)
-  type!: DeliverableType;
-
-  @ApiProperty({
-    enum: DeliverableFormat,
-    description: 'Format of the content',
-  })
-  @IsEnum(DeliverableFormat)
-  format!: DeliverableFormat;
 
   @ApiPropertyOptional({
     description: 'Optional description of the deliverable',
@@ -57,44 +48,59 @@ export class CreateDeliverableDto {
   @MaxLength(1000)
   description?: string;
 
+  @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
+  @IsOptional()
+  @IsEnum(DeliverableType)
+  type?: DeliverableType;
+
+  @ApiProperty({
+    description: 'Conversation ID this deliverable belongs to (required)',
+  })
+  @IsUUID()
+  conversationId!: string;
+
   @ApiPropertyOptional({
-    description: 'Conversation ID this deliverable belongs to',
+    description: 'Project step ID this deliverable belongs to',
   })
   @IsOptional()
   @IsUUID()
-  conversation_id?: string;
+  projectStepId?: string;
 
-  @ApiPropertyOptional({
-    description: 'Task ID that created this deliverable',
-  })
-  @IsOptional()
-  @IsUUID()
-  task_id?: string;
-
-  @ApiPropertyOptional({
-    description: 'Name of the agent that created this deliverable',
-  })
+  // Initial version data (optional - can be added later)
+  @ApiPropertyOptional({ description: 'Initial content for the first version' })
   @IsOptional()
   @IsString()
-  created_by_agent?: string;
+  initialContent?: string;
 
   @ApiPropertyOptional({
-    description: 'Additional metadata',
+    enum: DeliverableFormat,
+    description: 'Format of the initial content',
+  })
+  @IsOptional()
+  @IsEnum(DeliverableFormat)
+  initialFormat?: DeliverableFormat;
+
+  @ApiPropertyOptional({
+    enum: DeliverableVersionCreationType,
+    description: 'How the initial version was created',
+  })
+  @IsOptional()
+  @IsEnum(DeliverableVersionCreationType)
+  initialCreationType?: DeliverableVersionCreationType;
+
+  @ApiPropertyOptional({
+    description: 'Task ID that created the initial version',
+  })
+  @IsOptional()
+  @IsUUID()
+  initialTaskId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Initial version metadata',
     type: 'object',
     additionalProperties: true,
   })
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, any>;
-
-  @ApiPropertyOptional({
-    description: 'Tags for organization and searching',
-    type: [String],
-    maxItems: 10,
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @ArrayMaxSize(10)
-  tags?: string[];
+  initialMetadata?: Record<string, any>;
 }

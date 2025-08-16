@@ -19,88 +19,97 @@ export enum DeliverableFormat {
   HTML = 'html'
 }
 
+export enum DeliverableVersionCreationType {
+  AI_RESPONSE = 'ai_response',
+  MANUAL_EDIT = 'manual_edit',
+  AI_ENHANCEMENT = 'ai_enhancement',
+  USER_REQUEST = 'user_request',
+}
+
 export interface Deliverable {
   id: string;
-  user_id: string;
+  userId: string;
+  conversationId: string;
+  projectStepId?: string;
   title: string;
-  content: string;
-  type: DeliverableType;
-  format: DeliverableFormat;
   description?: string;
-  conversation_id?: string;
-  message_id?: string;
-  created_by_agent?: string;
-  parent_deliverable_id?: string;
-  version: number;
-  is_latest_version: boolean;
-  metadata: Record<string, any>;
-  tags: string[];
-  created_at: string;
-  updated_at: string;
+  type?: DeliverableType;
+  createdAt: string;
+  updatedAt: string;
+  currentVersion?: DeliverableVersion;
+  versions?: DeliverableVersion[];
 }
 
 export interface DeliverableVersion {
   id: string;
-  title: string;
-  version: number;
-  is_latest_version: boolean;
-  created_at: string;
-  created_by_agent?: string;
-  content_preview: string;
+  deliverableId: string;
+  versionNumber: number;
+  content?: string;
+  format?: DeliverableFormat;
+  isCurrentVersion: boolean;
+  createdByType: DeliverableVersionCreationType;
+  taskId?: string;
+  metadata?: Record<string, any>;
+  fileAttachments?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateDeliverableDto {
   title: string;
-  content: string;
-  type: DeliverableType;
-  format: DeliverableFormat;
   description?: string;
-  conversation_id?: string;
-  message_id?: string;
-  created_by_agent?: string;
-  metadata?: Record<string, any>;
-  tags?: string[];
+  type?: DeliverableType;
+  conversationId: string;
+  projectStepId?: string;
+  // Initial version data (optional)
+  initialContent?: string;
+  initialFormat?: DeliverableFormat;
+  initialCreationType?: DeliverableVersionCreationType;
+  initialTaskId?: string;
+  initialMetadata?: Record<string, any>;
 }
 
 export interface CreateVersionDto {
-  title: string;
   content: string;
+  format?: DeliverableFormat;
+  createdByType?: DeliverableVersionCreationType;
+  taskId?: string;
   metadata?: Record<string, any>;
-  created_by_agent?: string;
 }
 
 export interface DeliverableFilters {
   type?: DeliverableType;
   format?: DeliverableFormat;
-  created_by_agent?: string;
-  conversation_id?: string;
   search?: string;
-  tags?: string[];
   limit?: number;
   offset?: number;
-  latest_only?: boolean;
-}
-
-export interface DeliverableSearchItem {
-  id: string;
-  title: string;
-  type: DeliverableType;
-  format: DeliverableFormat;
-  version: number;
-  is_latest_version: boolean;
-  created_at: string;
-  updated_at: string;
-  created_by_agent?: string;
-  content_preview: string;
-  tags?: string[];
+  latestOnly?: boolean;
 }
 
 export interface DeliverableSearchResult {
-  items: DeliverableSearchItem[];
+  id: string;
+  userId: string;
+  conversationId: string;
+  title: string;
+  description?: string;
+  type?: DeliverableType;
+  createdAt: string;
+  updatedAt: string;
+  // Current version information
+  format?: DeliverableFormat;
+  content?: string;
+  metadata?: Record<string, any>;
+  versionNumber?: number;
+  isCurrentVersion?: boolean;
+  versionId?: string;
+}
+
+export interface DeliverableSearchResponse {
+  items: DeliverableSearchResult[];
   total: number;
   limit: number;
   offset: number;
-  has_more: boolean;
+  hasMore: boolean;
 }
 
 /**
@@ -131,21 +140,16 @@ class DeliverablesService {
   /**
    * Get all deliverables for the current user with optional filtering
    */
-  async getDeliverables(filters?: DeliverableFilters): Promise<DeliverableSearchResult> {
+  async getDeliverables(filters?: DeliverableFilters): Promise<DeliverableSearchResponse> {
     const params = new URLSearchParams();
     
     if (filters) {
       if (filters.type) params.append('type', filters.type);
       if (filters.format) params.append('format', filters.format);
-      if (filters.created_by_agent) params.append('created_by_agent', filters.created_by_agent);
-      if (filters.conversation_id) params.append('conversation_id', filters.conversation_id);
       if (filters.search) params.append('search', filters.search);
-      if (filters.tags && filters.tags.length > 0) {
-        filters.tags.forEach(tag => params.append('tags', tag));
-      }
       if (filters.limit) params.append('limit', filters.limit.toString());
       if (filters.offset) params.append('offset', filters.offset.toString());
-      if (filters.latest_only) params.append('latest_only', filters.latest_only.toString());
+      if (filters.latestOnly !== undefined) params.append('latestOnly', filters.latestOnly.toString());
     }
 
     const response = await this.axiosInstance.get(`/deliverables?${params.toString()}`);
@@ -181,15 +185,15 @@ class DeliverablesService {
   /**
    * Create a new version of an existing deliverable
    */
-  async createVersion(parentId: string, data: CreateVersionDto): Promise<Deliverable> {
-    const response = await this.axiosInstance.post(`/deliverables/${parentId}/versions`, data);
+  async createVersion(deliverableId: string, data: CreateVersionDto): Promise<DeliverableVersion> {
+    const response = await this.axiosInstance.post(`/deliverable-versions/${deliverableId}`, data);
     return response.data;
   }
 
   /**
-   * Update an existing deliverable
+   * Update an existing deliverable (metadata only)
    */
-  async updateDeliverable(id: string, updates: Partial<CreateDeliverableDto>): Promise<Deliverable> {
+  async updateDeliverable(id: string, updates: Partial<Pick<CreateDeliverableDto, 'title' | 'description' | 'type' | 'projectStepId'>>): Promise<Deliverable> {
     const response = await this.axiosInstance.patch(`/deliverables/${id}`, updates);
     return response.data;
   }
@@ -204,45 +208,64 @@ class DeliverablesService {
   /**
    * Get all versions of a deliverable
    */
-  async getVersions(parentId: string): Promise<DeliverableVersion[]> {
-    const response = await this.axiosInstance.get(`/deliverables/${parentId}/versions`);
+  async getVersionHistory(deliverableId: string): Promise<DeliverableVersion[]> {
+    const response = await this.axiosInstance.get(`/deliverable-versions/${deliverableId}/history`);
     return response.data;
+  }
+
+  /**
+   * Get the current version of a deliverable
+   */
+  async getCurrentVersion(deliverableId: string): Promise<DeliverableVersion | null> {
+    const response = await this.axiosInstance.get(`/deliverable-versions/${deliverableId}/current`);
+    return response.data;
+  }
+
+  /**
+   * Get a specific version by its ID
+   */
+  async getVersion(versionId: string): Promise<DeliverableVersion> {
+    const response = await this.axiosInstance.get(`/deliverable-versions/version/${versionId}`);
+    return response.data;
+  }
+
+  /**
+   * Set a specific version as the current version
+   */
+  async setCurrentVersion(versionId: string): Promise<DeliverableVersion> {
+    const response = await this.axiosInstance.patch(`/deliverable-versions/version/${versionId}/set-current`);
+    return response.data;
+  }
+
+  /**
+   * Delete a specific version
+   */
+  async deleteVersion(versionId: string): Promise<void> {
+    await this.axiosInstance.delete(`/deliverable-versions/version/${versionId}`);
   }
 
   /**
    * Search deliverables with advanced query options
    */
-  async searchDeliverables(query: string, filters?: Omit<DeliverableFilters, 'search'>): Promise<DeliverableSearchResult> {
+  async searchDeliverables(query: string, filters?: Omit<DeliverableFilters, 'search'>): Promise<DeliverableSearchResponse> {
     return this.getDeliverables({ ...filters, search: query });
   }
 
   /**
    * Get deliverables for a specific conversation
    */
-  async getConversationDeliverables(conversationId: string): Promise<DeliverableSearchItem[]> {
+  async getConversationDeliverables(conversationId: string): Promise<Deliverable[]> {
     const response = await this.axiosInstance.get(`/deliverables/conversation/${conversationId}`);
-    // Backend returns full Deliverable[]; map to search items shape for callers that expect previews
-    const items = (response.data as Deliverable[]).map((d) => ({
-      id: d.id,
-      title: d.title,
-      type: d.type,
-      format: d.format,
-      version: d.version,
-      is_latest_version: d.is_latest_version,
-      created_at: d.created_at,
-      updated_at: d.updated_at,
-      created_by_agent: d.created_by_agent,
-      content_preview: (d.content || '').substring(0, 200) + ((d.content || '').length > 200 ? '...' : ''),
-      tags: d.tags,
-    }));
-    return items;
+    return response.data;
   }
 
   /**
-   * Get deliverables created by a specific agent
+   * Get deliverables created by a specific agent (by searching version metadata)
    */
-  async getAgentDeliverables(agentName: string): Promise<DeliverableSearchItem[]> {
-    const result = await this.getDeliverables({ created_by_agent: agentName });
+  async getAgentDeliverables(agentName: string): Promise<DeliverableSearchResult[]> {
+    // Note: This would need backend support to filter by version creation metadata
+    const result = await this.getDeliverables({});
+    // For now, return all deliverables - this could be enhanced with server-side filtering
     return result.items;
   }
 
@@ -250,28 +273,34 @@ class DeliverablesService {
    * Check if a deliverable exists for the current conversation/task context
    * This helps with enhancement workflows
    */
-  async findExistingDeliverable(conversationId: string, messageId?: string): Promise<Deliverable | null> {
-    const filters: DeliverableFilters = { conversation_id: conversationId };
-    if (messageId) {
-      // We'll need to get full deliverable details to check metadata since search results don't include full metadata
-      const result = await this.getDeliverables(filters);
-      for (const item of result.items) {
-        const fullDeliverable = await this.getDeliverable(item.id);
-        if (fullDeliverable.message_id === messageId || 
-            fullDeliverable.metadata?.messageId === messageId ||
-            fullDeliverable.metadata?.taskId === messageId) {
-          return fullDeliverable;
+  async findExistingDeliverable(conversationId: string, taskId?: string): Promise<Deliverable | null> {
+    try {
+      const deliverables = await this.getConversationDeliverables(conversationId);
+      
+      if (taskId) {
+        // Look for deliverable with matching task ID in any of its versions
+        for (const deliverable of deliverables) {
+          if (deliverable.currentVersion?.taskId === taskId) {
+            return deliverable;
+          }
+          // Could also check all versions if needed:
+          // const versions = await this.getVersionHistory(deliverable.id);
+          // if (versions.some(v => v.taskId === taskId)) return deliverable;
         }
+        return null;
       }
+      
+      // Return the most recent deliverable from this conversation
+      return deliverables.length > 0 ? deliverables[0] : null;
+    } catch (error) {
+      console.error('Error finding existing deliverable:', error);
       return null;
     }
-    
-    const result = await this.getDeliverables(filters);
-    if (result.items.length > 0) {
-      // Return the full deliverable details for the most recent one
-      return this.getDeliverable(result.items[0].id);
-    }
-    return null;
+  }
+
+  // Legacy method aliases for backward compatibility
+  async getVersions(deliverableId: string): Promise<DeliverableVersion[]> {
+    return this.getVersionHistory(deliverableId);
   }
 }
 

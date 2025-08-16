@@ -4,8 +4,9 @@ import {
   DeliverableType, 
   DeliverableFormat, 
   type Deliverable, 
-  type DeliverableSearchItem,
+  type DeliverableSearchResult,
   type CreateDeliverableDto,
+  type CreateVersionDto,
   type DeliverableFilters 
 } from '@/services/deliverablesService';
 
@@ -71,7 +72,7 @@ export function useDeliverables() {
     // Find existing deliverable for enhancement
     const conversationDeliverables = store.getDeliverablesByConversation(conversationId);
     const existingDeliverable = messageId 
-      ? conversationDeliverables.find(d => d.message_id === messageId)
+      ? conversationDeliverables.find(d => d.currentVersion?.metadata?.messageId === messageId)
       : conversationDeliverables[0];
     
     if (existingDeliverable) {
@@ -116,31 +117,25 @@ export function useDeliverables() {
   ): Promise<Deliverable | null> {
     const data: CreateDeliverableDto = {
       title,
-      content,
-      type: options.type || DeliverableType.DOCUMENT,
-      format: options.format || DeliverableFormat.MARKDOWN,
       description: options.description,
-      conversation_id: options.conversationId,
-      message_id: options.messageId,
-      created_by_agent: options.agentName,
-      tags: options.tags || [],
-      metadata: {
+      type: options.type || DeliverableType.DOCUMENT,
+      conversationId: options.conversationId || '',
+      projectStepId: options.metadata?.projectStepId,
+      // Initial version data
+      initialContent: content,
+      initialFormat: options.format || DeliverableFormat.MARKDOWN,
+      initialCreationType: 'manual_edit' as any,
+      initialMetadata: {
         manuallyCreated: true,
         createdAt: new Date().toISOString(),
+        createdByAgent: options.agentName,
+        tags: options.tags || [],
         ...options.metadata
       }
     };
 
-    // Create via service
-    const { deliverablesService } = await import('@/services/deliverablesService');
-    const newDeliverable = await deliverablesService.createDeliverable(data);
-    store.addDeliverable({
-      ...newDeliverable,
-      type: data.type,
-      format: data.format,
-      created_at: new Date(newDeliverable.created_at),
-      updated_at: new Date(newDeliverable.updated_at)
-    } as any);
+    // Create via store which handles service calls
+    const newDeliverable = await store.createDeliverable(data);
     return newDeliverable;
   }
 
@@ -155,17 +150,20 @@ export function useDeliverables() {
       agentName?: string;
       metadata?: Record<string, any>;
     } = {}
-  ): Promise<Deliverable | null> {
-    return await store.createVersion(sourceId, {
-      title: newTitle,
+  ): Promise<any> {
+    const versionData: CreateVersionDto = {
       content: newContent,
-      created_by_agent: options.agentName,
+      format: DeliverableFormat.MARKDOWN,
+      createdByType: 'ai_enhancement' as any,
       metadata: {
         enhancementReason: 'manual_enhancement',
         enhancedAt: new Date().toISOString(),
+        createdByAgent: options.agentName,
         ...options.metadata
       }
-    }) as any;
+    };
+    
+    return await store.createVersion(sourceId, versionData);
   }
 
   /**
@@ -179,21 +177,25 @@ export function useDeliverables() {
   /**
    * Get deliverables for a conversation
    */
-  async function getConversationDeliverables(conversationId: string): Promise<DeliverableSearchItem[]> {
+  async function getConversationDeliverables(conversationId: string): Promise<DeliverableSearchResult[]> {
     const deliverables = await store.loadDeliverablesByConversation(conversationId);
     return deliverables.map(d => ({
       id: d.id,
+      userId: d.userId,
+      conversationId: d.conversationId,
       title: d.title,
+      description: d.description,
       type: d.type,
-      format: d.format,
-      version: d.version,
-      is_latest_version: d.is_latest_version,
-      created_at: d.created_at instanceof Date ? d.created_at.toISOString() : d.created_at,
-      updated_at: d.updated_at instanceof Date ? d.updated_at.toISOString() : d.updated_at,
-      created_by_agent: d.created_by_agent,
-      content_preview: d.content?.substring(0, 200) || '',
-      tags: d.tags
-    } as DeliverableSearchItem));
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt,
+      // Current version information  
+      format: d.currentVersion?.format,
+      content: d.currentVersion?.content,
+      metadata: d.currentVersion?.metadata,
+      versionNumber: d.currentVersion?.versionNumber,
+      isCurrentVersion: d.currentVersion?.isCurrentVersion,
+      versionId: d.currentVersion?.id
+    } as DeliverableSearchResult));
   }
 
   /**

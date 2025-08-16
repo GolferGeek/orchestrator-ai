@@ -6,11 +6,11 @@
       <div class="title-section">
         <h3 class="deliverable-title">{{ deliverable.title }}</h3>
         <div class="metadata">
-          <ion-chip :color="getTypeColor(deliverable.type)" outline>
+          <ion-chip v-if="deliverable.type" :color="getTypeColor(deliverable.type)" outline>
             {{ formatType(deliverable.type) }}
           </ion-chip>
-          <ion-chip :color="getFormatColor(deliverable.format)" outline>
-            {{ deliverable.format.toUpperCase() }}
+          <ion-chip v-if="currentVersion?.format" :color="getFormatColor(currentVersion.format)" outline>
+            {{ currentVersion.format.toUpperCase() }}
           </ion-chip>
         </div>
       </div>
@@ -61,10 +61,10 @@
     <div class="version-section" v-if="versions.length > 1 || showVersionHistory">
       <div class="version-info">
         <span class="version-label">
-          Version {{ deliverable.version }} of {{ totalVersions }}
+          Version {{ displayVersion?.versionNumber || currentVersion?.versionNumber || 1 }} of {{ totalVersions }}
         </span>
-        <span v-if="deliverable.created_by_agent" class="created-by">
-          by {{ deliverable.created_by_agent }}
+        <span v-if="displayVersion?.createdByType" class="created-by">
+          by {{ formatCreationType(displayVersion.createdByType) }}
         </span>
       </div>
       
@@ -79,13 +79,13 @@
         </ion-button>
         
         <ion-button
-          v-if="!deliverable.is_latest_version"
+          v-if="selectedVersion && !selectedVersion.isCurrentVersion"
           fill="outline"
           size="small"
-          @click="$emit('merge-requested', deliverable)"
+          @click="makeCurrentVersion(selectedVersion)"
           color="primary"
         >
-          Merge Changes
+          Set as Current
         </ion-button>
         
         <ion-button
@@ -112,21 +112,24 @@
             v-for="version in sortedVersions"
             :key="version.id"
             class="version-item"
-            :class="{ active: version.id === deliverable.id }"
+            :class="{ 
+              active: selectedVersion?.id === version.id,
+              current: version.isCurrentVersion 
+            }"
             @click="selectVersion(version)"
           >
             <div class="version-marker">
-              <div class="version-dot" :class="{ latest: version.is_latest_version }"></div>
+              <div class="version-dot" :class="{ current: version.isCurrentVersion }"></div>
             </div>
             <div class="version-details">
               <div class="version-header">
-                <span class="version-number">v{{ version.version }}</span>
-                <span class="version-date">{{ formatDate(version.created_at) }}</span>
+                <span class="version-number">v{{ version.versionNumber }}</span>
+                <span class="version-date">{{ formatDate(version.createdAt) }}</span>
               </div>
-              <p class="version-preview">{{ version.content_preview }}</p>
+              <p class="version-preview">{{ getContentPreview(version.content) }}</p>
               <div class="version-meta">
-                <span v-if="version.created_by_agent" class="agent-name">{{ version.created_by_agent }}</span>
-                <ion-chip v-if="version.is_latest_version" color="success" size="small">Latest</ion-chip>
+                <span v-if="version.createdByType" class="creation-type">{{ formatCreationType(version.createdByType) }}</span>
+                <ion-chip v-if="version.isCurrentVersion" color="success" size="small">Current</ion-chip>
               </div>
             </div>
           </div>
@@ -295,23 +298,23 @@
       </div>
       
       <!-- Read-Only Mode -->
-      <div v-else class="content-display" :class="`format-${deliverable.format}`">
+      <div v-else class="content-display" :class="`format-${displayVersion?.format || 'text'}`">
         <!-- Markdown Content -->
         <div 
-          v-if="deliverable.format === 'markdown'"
+          v-if="displayVersion?.format === 'markdown'"
           class="markdown-content"
           v-html="renderedMarkdown"
         ></div>
         
         <!-- JSON Content -->
         <pre 
-          v-else-if="deliverable.format === 'json'"
+          v-else-if="displayVersion?.format === 'json'"
           class="json-content"
-        ><code>{{ formatJson(deliverable.content) }}</code></pre>
+        ><code>{{ formatJson(displayVersion?.content) }}</code></pre>
         
         <!-- HTML Content -->
         <div 
-          v-else-if="deliverable.format === 'html'"
+          v-else-if="displayVersion?.format === 'html'"
           class="html-content"
           v-html="sanitizedHtml"
         ></div>
@@ -320,40 +323,31 @@
         <div 
           v-else
           class="text-content"
-        >{{ deliverable.content || '' }}</div>
+        >{{ displayVersion?.content || '' }}</div>
       </div>
     </div>
 
     <!-- Footer Info -->
     <div class="deliverable-footer">
       <div class="timestamps">
-        <span class="created">Created {{ formatDate(deliverable.created_at) }}</span>
-        <span v-if="deliverable.updated_at !== deliverable.created_at" class="updated">
-          Updated {{ formatDate(deliverable.updated_at) }}
+        <span class="created">Created {{ formatDate(deliverable.createdAt) }}</span>
+        <span v-if="deliverable.updatedAt !== deliverable.createdAt" class="updated">
+          Updated {{ formatDate(deliverable.updatedAt) }}
+        </span>
+        <span v-if="displayVersion && displayVersion.createdAt !== deliverable.createdAt" class="version-created">
+          This version: {{ formatDate(displayVersion.createdAt) }}
         </span>
       </div>
       
-      <!-- Tags -->
-      <div v-if="deliverable.tags && deliverable.tags.length" class="tags-section">
-        <ion-chip
-          v-for="tag in deliverable.tags"
-          :key="tag"
-          size="small"
-          color="light"
-        >
-          {{ tag }}
-        </ion-chip>
-      </div>
-      
-      <!-- Task Rating (for the work that created this deliverable) -->
-      <div class="rating-section" v-if="deliverable.task_id">
-        <div class="rating-label">Rate the agent's work on this deliverable:</div>
-        <div class="rating-context" v-if="deliverable.created_by_agent">
-          Created by {{ deliverable.created_by_agent }}
+      <!-- Task Rating (for the work that created this version) -->
+      <div class="rating-section" v-if="displayVersion?.taskId">
+        <div class="rating-label">Rate the agent's work on this version:</div>
+        <div class="rating-context" v-if="displayVersion?.createdByType">
+          Created by {{ formatCreationType(displayVersion.createdByType) }}
         </div>
         <TaskRating 
-          :task-id="deliverable.task_id"
-          :agent-name="deliverable.created_by_agent"
+          :task-id="displayVersion.taskId"
+          :agent-name="displayVersion.createdByType"
         />
       </div>
     </div>
@@ -394,17 +388,18 @@ import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import TaskRating from './TaskRating.vue';
+import type { Deliverable, DeliverableVersion } from '@/types/deliverables';
 
 interface Props {
-  deliverable: any;
+  deliverable: Deliverable;
   conversationId?: string;
 }
 
 interface Emits {
-  (e: 'version-changed', version: any): void;
-  (e: 'version-created', version: any): void;
-  (e: 'merge-requested', deliverable: any): void;
-  (e: 'edit-requested', deliverable: any): void;
+  (e: 'version-changed', version: DeliverableVersion): void;
+  (e: 'version-created', version: DeliverableVersion): void;
+  (e: 'current-version-changed', version: DeliverableVersion): void;
+  (e: 'edit-requested', deliverable: Deliverable): void;
 }
 
 const props = defineProps<Props>();
@@ -415,7 +410,8 @@ const deliverablesStore = useDeliverablesStore();
 
 // Reactive state
 const showVersionHistory = ref(false);
-const versions = ref<any[]>([]);
+const versions = ref<DeliverableVersion[]>([]);
+const selectedVersion = ref<DeliverableVersion | null>(null);
 const isEditing = ref(false);
 const editedContent = ref('');
 const editedTitle = ref('');
@@ -425,46 +421,56 @@ const contentTextarea = ref<any>(null);
 // Computed properties
 const totalVersions = computed(() => versions.value.length);
 
+const currentVersion = computed(() => {
+  return props.deliverable.currentVersion || deliverablesStore.getCurrentVersion(props.deliverable.id);
+});
+
+const displayVersion = computed(() => {
+  return selectedVersion.value || currentVersion.value;
+});
+
 const sortedVersions = computed(() => {
-  return [...versions.value].sort((a, b) => b.version - a.version);
+  return [...versions.value].sort((a, b) => b.versionNumber - a.versionNumber);
 });
 
 const canGoPrevious = computed(() => {
-  const currentIndex = versions.value.findIndex(v => v.id === props.deliverable.id);
-  return currentIndex > 0;
+  if (!selectedVersion.value) return false;
+  const currentIndex = sortedVersions.value.findIndex(v => v.id === selectedVersion.value?.id);
+  return currentIndex < sortedVersions.value.length - 1;
 });
 
 const canGoNext = computed(() => {
-  const currentIndex = versions.value.findIndex(v => v.id === props.deliverable.id);
-  return currentIndex < versions.value.length - 1 && currentIndex !== -1;
+  if (!selectedVersion.value) return false;
+  const currentIndex = sortedVersions.value.findIndex(v => v.id === selectedVersion.value?.id);
+  return currentIndex > 0;
 });
 
 const hasUnsavedChanges = computed(() => {
   return isEditing.value && (
-    editedContent.value !== props.deliverable.content ||
+    editedContent.value !== (displayVersion.value?.content || '') ||
     editedTitle.value !== props.deliverable.title
   );
 });
 
 const renderedMarkdown = computed(() => {
-  if (props.deliverable.format !== 'markdown') return '';
-  if (!props.deliverable.content || typeof props.deliverable.content !== 'string') {
+  if (displayVersion.value?.format !== 'markdown') return '';
+  if (!displayVersion.value?.content || typeof displayVersion.value.content !== 'string') {
     return '';
   }
   try {
-    return marked(props.deliverable.content);
+    return marked(displayVersion.value.content);
   } catch (error) {
     console.error('Failed to render markdown:', error);
-    return props.deliverable.content || '';
+    return displayVersion.value.content || '';
   }
 });
 
 const sanitizedHtml = computed(() => {
-  if (props.deliverable.format !== 'html') return '';
-  if (!props.deliverable.content || typeof props.deliverable.content !== 'string') {
+  if (displayVersion.value?.format !== 'html') return '';
+  if (!displayVersion.value?.content || typeof displayVersion.value.content !== 'string') {
     return '';
   }
-  return DOMPurify.sanitize(props.deliverable.content);
+  return DOMPurify.sanitize(displayVersion.value.content);
 });
 
 // Methods

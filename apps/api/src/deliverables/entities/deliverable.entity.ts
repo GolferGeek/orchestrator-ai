@@ -1,129 +1,151 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DeliverableType, DeliverableFormat } from '../dto';
+import { DeliverableType, DeliverableFormat, DeliverableVersionCreationType } from '../dto';
 
 export class Deliverable {
   @ApiProperty({ description: 'Unique identifier' })
   id!: string;
 
   @ApiProperty({ description: 'User who owns this deliverable' })
-  user_id!: string;
+  userId!: string;
+
+  @ApiProperty({
+    description: 'Conversation this deliverable belongs to (required, unique)',
+  })
+  conversationId!: string;
 
   @ApiPropertyOptional({
-    description: 'Conversation this deliverable belongs to',
+    description: 'Project step this deliverable belongs to',
   })
-  conversation_id?: string;
-
-  @ApiPropertyOptional({
-    description: 'Task that created this deliverable (used for evaluation)',
-  })
-  task_id?: string;
+  projectStepId?: string;
 
   @ApiProperty({ description: 'Title of the deliverable' })
   title!: string;
 
-  @ApiProperty({ description: 'Content of the deliverable' })
-  content!: string;
-
-  @ApiProperty({ enum: DeliverableType, description: 'Type of deliverable' })
-  type!: DeliverableType;
-
-  @ApiProperty({
-    enum: DeliverableFormat,
-    description: 'Format of the content',
-  })
-  format!: DeliverableFormat;
-
-  @ApiProperty({ description: 'Version number' })
-  version!: number;
-
-  @ApiPropertyOptional({ description: 'Parent deliverable ID for versioning' })
-  parent_deliverable_id?: string;
-
-  @ApiProperty({ description: 'Whether this is the latest version' })
-  is_latest_version!: boolean;
-
   @ApiPropertyOptional({
-    description: 'Additional metadata',
-    type: 'object',
-    additionalProperties: true,
-  })
-  metadata?: Record<string, any>;
-
-  @ApiPropertyOptional({ description: 'Tags for organization', type: [String] })
-  tags?: string[];
-
-  @ApiPropertyOptional({ description: 'Agent that created this deliverable' })
-  created_by_agent?: string;
-
-  @ApiPropertyOptional({
-    description: 'Optional description of the deliverable',
+    description: 'Description of the deliverable',
   })
   description?: string;
 
+  @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
+  type?: DeliverableType;
+
   @ApiProperty({ description: 'Creation timestamp' })
-  created_at!: Date;
+  createdAt!: Date;
 
   @ApiProperty({ description: 'Last update timestamp' })
-  updated_at!: Date;
+  updatedAt!: Date;
+
+  // Include current version data when fetched
+  @ApiPropertyOptional({ description: 'Current version data', type: () => DeliverableVersion })
+  currentVersion?: DeliverableVersion;
+
+  // Include all versions when requested
+  @ApiPropertyOptional({ description: 'All versions', type: [DeliverableVersion] })
+  versions?: DeliverableVersion[];
 }
 
 export class DeliverableVersion {
   @ApiProperty({ description: 'Version identifier' })
   id!: string;
 
-  @ApiProperty({ description: 'Version title' })
-  title!: string;
+  @ApiProperty({ description: 'Parent deliverable identifier' })
+  deliverableId!: string;
 
-  @ApiProperty({ description: 'Version number' })
-  version!: number;
+  @ApiProperty({ description: 'Version number (sequential)' })
+  versionNumber!: number;
 
-  @ApiProperty({ description: 'Whether this is the latest version' })
-  is_latest_version!: boolean;
+  @ApiPropertyOptional({ description: 'Version content' })
+  content?: string;
 
-  @ApiProperty({ description: 'Creation timestamp' })
-  created_at!: Date;
+  @ApiPropertyOptional({ 
+    enum: DeliverableFormat, 
+    description: 'Format of the content' 
+  })
+  format?: DeliverableFormat;
 
-  @ApiPropertyOptional({ description: 'Agent that created this version' })
-  created_by_agent?: string;
+  @ApiProperty({ description: 'Whether this is the current version' })
+  isCurrentVersion!: boolean;
 
-  @ApiProperty({ description: 'Content preview (first 200 characters)' })
-  content_preview!: string;
+  @ApiProperty({ 
+    enum: DeliverableVersionCreationType,
+    description: 'How this version was created' 
+  })
+  createdByType!: DeliverableVersionCreationType;
+
+  @ApiPropertyOptional({
+    description: 'Task that created this version (if any)',
+  })
+  taskId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Version-specific metadata',
+    type: 'object',
+    additionalProperties: true,
+  })
+  metadata?: Record<string, any>;
+
+  @ApiPropertyOptional({
+    description: 'File attachments for this version',
+    type: 'object',
+    additionalProperties: true,
+  })
+  fileAttachments?: Record<string, any>;
+
+  @ApiProperty({ description: 'Version creation timestamp' })
+  createdAt!: Date;
+
+  @ApiProperty({ description: 'Version last update timestamp' })
+  updatedAt!: Date;
 }
 
 export class DeliverableSearchResult {
   @ApiProperty({ description: 'Deliverable identifier' })
   id!: string;
 
+  @ApiProperty({ description: 'User who owns this deliverable' })
+  userId!: string;
+
+  @ApiProperty({ description: 'Conversation this deliverable belongs to' })
+  conversationId!: string;
+
   @ApiProperty({ description: 'Deliverable title' })
   title!: string;
 
-  @ApiProperty({ enum: DeliverableType, description: 'Type of deliverable' })
-  type!: DeliverableType;
+  @ApiPropertyOptional({ description: 'Deliverable description' })
+  description?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
+  type?: DeliverableType;
+
+  @ApiProperty({ description: 'Deliverable creation timestamp' })
+  createdAt!: Date;
+
+  @ApiProperty({ description: 'Deliverable last update timestamp' })
+  updatedAt!: Date;
+
+  // Current version information
+  @ApiPropertyOptional({
     enum: DeliverableFormat,
-    description: 'Format of the content',
+    description: 'Format of the current version content',
   })
-  format!: DeliverableFormat;
+  format?: DeliverableFormat;
 
-  @ApiProperty({ description: 'Version number' })
-  version!: number;
+  @ApiPropertyOptional({ description: 'Current version content preview' })
+  content?: string;
 
-  @ApiProperty({ description: 'Whether this is the latest version' })
-  is_latest_version!: boolean;
+  @ApiPropertyOptional({
+    description: 'Current version metadata',
+    type: 'object',
+    additionalProperties: true,
+  })
+  metadata?: Record<string, any>;
 
-  @ApiProperty({ description: 'Creation timestamp' })
-  created_at!: Date;
+  @ApiPropertyOptional({ description: 'Current version number' })
+  versionNumber?: number;
 
-  @ApiProperty({ description: 'Last update timestamp' })
-  updated_at!: Date;
+  @ApiPropertyOptional({ description: 'Whether this has a current version' })
+  isCurrentVersion?: boolean;
 
-  @ApiPropertyOptional({ description: 'Agent that created this deliverable' })
-  created_by_agent?: string;
-
-  @ApiProperty({ description: 'Content preview (first 200 characters)' })
-  content_preview!: string;
-
-  @ApiPropertyOptional({ description: 'Tags for organization', type: [String] })
-  tags?: string[];
+  @ApiPropertyOptional({ description: 'Current version identifier' })
+  versionId?: string;
 }

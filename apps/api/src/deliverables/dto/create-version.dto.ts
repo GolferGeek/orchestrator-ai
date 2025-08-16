@@ -2,25 +2,44 @@ import {
   IsString,
   IsOptional,
   IsObject,
+  IsEnum,
+  IsUUID,
   MinLength,
-  MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { DeliverableFormat, DeliverableVersionCreationType } from './create-deliverable.dto';
 
 export class CreateVersionDto {
-  @ApiProperty({ description: 'Title of the new version', maxLength: 255 })
-  @IsString()
-  @MinLength(1)
-  @MaxLength(255)
-  title!: string;
-
   @ApiProperty({ description: 'Content of the new version' })
   @IsString()
   @MinLength(1)
   content!: string;
 
   @ApiPropertyOptional({
-    description: 'Additional metadata for this version',
+    enum: DeliverableFormat,
+    description: 'Format of the content',
+  })
+  @IsOptional()
+  @IsEnum(DeliverableFormat)
+  format?: DeliverableFormat;
+
+  @ApiPropertyOptional({
+    enum: DeliverableVersionCreationType,
+    description: 'How this version was created',
+  })
+  @IsOptional()
+  @IsEnum(DeliverableVersionCreationType)
+  createdByType?: DeliverableVersionCreationType;
+
+  @ApiPropertyOptional({
+    description: 'Task ID that created this version',
+  })
+  @IsOptional()
+  @IsUUID()
+  taskId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Version-specific metadata',
     type: 'object',
     additionalProperties: true,
   })
@@ -29,9 +48,11 @@ export class CreateVersionDto {
   metadata?: Record<string, any>;
 
   @ApiPropertyOptional({
-    description: 'Name of the agent that created this version',
+    description: 'File attachments for this version',
+    type: 'object',
+    additionalProperties: true,
   })
   @IsOptional()
-  @IsString()
-  created_by_agent?: string;
+  @IsObject()
+  fileAttachments?: Record<string, any>;
 }
