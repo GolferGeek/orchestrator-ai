@@ -728,3 +728,233 @@ BEGIN
     OFFSET offset_count;
 END;
 $$;
+
+-- =====================================================================================
+-- DELIVERABLES VERSIONING SYSTEM
+-- =====================================================================================
+-- Add versioning support to deliverables (applied at end for new installations)
+
+-- Transform deliverables table to support versioning
+ALTER TABLE public.deliverables DROP COLUMN IF EXISTS content CASCADE;
+ALTER TABLE public.deliverables DROP COLUMN IF EXISTS format CASCADE;
+ALTER TABLE public.deliverables DROP COLUMN IF EXISTS version CASCADE;
+ALTER TABLE public.deliverables DROP COLUMN IF EXISTS status CASCADE;
+ALTER TABLE public.deliverables DROP COLUMN IF EXISTS metadata CASCADE;
+ALTER TABLE public.deliverables DROP COLUMN IF EXISTS file_attachments CASCADE;
+
+-- Update deliverables to link to project steps instead of projects directly
+ALTER TABLE public.deliverables DROP COLUMN IF EXISTS project_id CASCADE;
+ALTER TABLE public.deliverables ADD COLUMN project_step_id UUID REFERENCES public.project_steps(id) ON DELETE SET NULL;
+
+-- Ensure one deliverable per conversation
+ALTER TABLE public.deliverables ADD CONSTRAINT unique_deliverable_per_conversation 
+    UNIQUE (conversation_id);
+
+-- Create deliverable versions table
+CREATE TABLE public.deliverable_versions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    deliverable_id UUID NOT NULL REFERENCES public.deliverables(id) ON DELETE CASCADE,
+    version_number INTEGER NOT NULL,
+    content TEXT,
+    format VARCHAR(100),
+    is_current_version BOOLEAN DEFAULT false,
+    
+    -- Track how this version was created
+    created_by_type VARCHAR(50) DEFAULT 'ai_response' CHECK (
+        created_by_type IN ('ai_response', 'manual_edit', 'ai_enhancement', 'user_request')
+    ),
+    
+    -- Optional task linking for versions created by specific tasks
+    task_id UUID REFERENCES public.tasks(id) ON DELETE SET NULL,
+    
+    -- Flexible metadata for version-specific info
+    metadata JSONB DEFAULT '{}',
+    file_attachments JSONB,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Ensure unique version numbers per deliverable
+    CONSTRAINT unique_version_number_per_deliverable 
+        UNIQUE (deliverable_id, version_number),
+    
+    -- Ensure only one current version per deliverable
+    CONSTRAINT unique_current_version_per_deliverable 
+        EXCLUDE (deliverable_id WITH =) WHERE (is_current_version = true)
+);
+
+-- Add indexes for deliverable versions
+CREATE INDEX idx_deliverables_project_step_id ON public.deliverables(project_step_id);
+CREATE INDEX idx_deliverable_versions_deliverable_id ON public.deliverable_versions(deliverable_id);
+CREATE INDEX idx_deliverable_versions_current ON public.deliverable_versions(deliverable_id, is_current_version);
+CREATE INDEX idx_deliverable_versions_task_id ON public.deliverable_versions(task_id);
+CREATE INDEX idx_deliverable_versions_created_by_type ON public.deliverable_versions(created_by_type);
+CREATE INDEX idx_deliverable_versions_version_number ON public.deliverable_versions(deliverable_id, version_number);
+
+-- Add trigger for deliverable_versions
+CREATE TRIGGER update_deliverable_versions_updated_at BEFORE UPDATE ON public.deliverable_versions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable RLS on deliverable versions
+ALTER TABLE public.deliverable_versions ENABLE ROW LEVEL SECURITY;
+
+-- Add RLS policy for deliverable versions
+CREATE POLICY "Users can view own deliverable versions" ON public.deliverable_versions
+    FOR ALL USING (
+        auth.uid() = (
+            SELECT d.user_id 
+            FROM public.deliverables d 
+            WHERE d.id = deliverable_id
+        )
+    );
+
+-- Add grants for deliverable versions
+GRANT ALL ON public.deliverable_versions TO authenticated;
+GRANT SELECT ON public.deliverable_versions TO anon;
+
+-- Helper function to get current version of a deliverable
+CREATE OR REPLACE FUNCTION public.get_current_deliverable_version(deliverable_uuid UUID)
+RETURNS TABLE (
+    id UUID,
+    version_number INTEGER,
+    content TEXT,
+    format VARCHAR(100),
+    created_by_type VARCHAR(50),
+    metadata JSONB,
+    created_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        dv.id,
+        dv.version_number,
+        dv.content,
+        dv.format,
+        dv.created_by_type,
+        dv.metadata,
+        dv.created_at
+    FROM public.deliverable_versions dv
+    WHERE dv.deliverable_id = deliverable_uuid
+      AND dv.is_current_version = true;
+END;
+$$;
+
+-- Helper function to create new version
+CREATE OR REPLACE FUNCTION public.create_deliverable_version(
+    deliverable_uuid UUID,
+    version_content TEXT,
+    version_format VARCHAR(100) DEFAULT NULL,
+    creation_type VARCHAR(50) DEFAULT 'ai_response',
+    version_task_id UUID DEFAULT NULL,
+    version_metadata JSONB DEFAULT '{}'
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    next_version_number INTEGER;
+    new_version_id UUID;
+BEGIN
+    -- Get next version number
+    SELECT COALESCE(MAX(version_number), 0) + 1
+    INTO next_version_number
+    FROM public.deliverable_versions
+    WHERE deliverable_id = deliverable_uuid;
+    
+    -- Unset current version flag on existing versions
+    UPDATE public.deliverable_versions 
+    SET is_current_version = false
+    WHERE deliverable_id = deliverable_uuid 
+      AND is_current_version = true;
+    
+    -- Create new version
+    INSERT INTO public.deliverable_versions (
+        deliverable_id,
+        version_number,
+        content,
+        format,
+        created_by_type,
+        task_id,
+        metadata,
+        is_current_version
+    ) VALUES (
+        deliverable_uuid,
+        next_version_number,
+        version_content,
+        version_format,
+        creation_type,
+        version_task_id,
+        version_metadata,
+        true
+    ) RETURNING id INTO new_version_id;
+    
+    RETURN new_version_id;
+END;
+$$;
+
+-- Grant execute permissions on helper functions
+GRANT EXECUTE ON FUNCTION public.get_current_deliverable_version(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_deliverable_version(UUID, TEXT, VARCHAR(100), VARCHAR(50), UUID, JSONB) TO authenticated;
+
+-- Update search function to work with versioning
+DROP FUNCTION IF EXISTS public.search_deliverables(text, text, text, integer, integer);
+
+CREATE OR REPLACE FUNCTION public.search_deliverables(
+    search_term text DEFAULT NULL,
+    filter_type text DEFAULT NULL,
+    filter_format text DEFAULT NULL,
+    limit_count integer DEFAULT 20,
+    offset_count integer DEFAULT 0
+)
+RETURNS TABLE (
+    id uuid,
+    user_id uuid,
+    conversation_id uuid,
+    title text,
+    description text,
+    type text,
+    format text,
+    content text,
+    metadata jsonb,
+    created_at timestamptz,
+    updated_at timestamptz,
+    version_number integer,
+    is_current_version boolean,
+    version_id uuid
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        d.id,
+        d.user_id,
+        d.conversation_id,
+        d.title,
+        d.description,
+        d.type,
+        dv.format,
+        dv.content,
+        dv.metadata,
+        d.created_at,
+        d.updated_at,
+        dv.version_number,
+        dv.is_current_version,
+        dv.id as version_id
+    FROM public.deliverables d
+    LEFT JOIN public.deliverable_versions dv ON d.id = dv.deliverable_id
+    WHERE 
+        (search_term IS NULL OR dv.content ILIKE '%' || search_term || '%' OR d.title ILIKE '%' || search_term || '%')
+        AND (filter_type IS NULL OR d.type = filter_type)
+        AND (filter_format IS NULL OR dv.format = filter_format)
+        AND (dv.is_current_version = true OR dv.id IS NULL)  -- Only show current versions or deliverables without versions
+    ORDER BY d.created_at DESC
+    LIMIT limit_count
+    OFFSET offset_count;
+END;
+$$;
