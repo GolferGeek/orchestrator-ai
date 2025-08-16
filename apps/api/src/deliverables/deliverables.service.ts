@@ -51,7 +51,6 @@ export class DeliverablesService {
             conversation_id: createDto.conversationId,
             project_step_id: createDto.projectStepId || null,
             title: createDto.title,
-            description: createDto.description || null,
             type: createDto.type || null,
           },
         ])
@@ -67,14 +66,21 @@ export class DeliverablesService {
 
       this.logger.log(`Deliverable created successfully: ${deliverableData.id}`);
 
-      // If initial content is provided, create the first version
+      // Always create an initial version
+      // Log what content we're working with for debugging
+      this.logger.log(`Creating initial version for deliverable ${deliverableData.id} with content length: ${(createDto.initialContent || '').length}`);
       if (createDto.initialContent) {
-        await this.createInitialVersion(
-          deliverableData.id,
-          createDto,
-          userId,
-        );
+        this.logger.log(`Initial content preview: ${createDto.initialContent.substring(0, 100)}...`);
+      } else {
+        this.logger.warn(`No initial content provided for deliverable ${deliverableData.id} - this might indicate a content extraction issue`);
       }
+      
+      const initialVersion = await this.createInitialVersion(
+        deliverableData.id,
+        createDto,
+        userId,
+      );
+      this.logger.log(`Initial version created: ${initialVersion.id} for deliverable: ${deliverableData.id}`);
 
       return await this.findOne(deliverableData.id, userId);
     } catch (error) {
@@ -177,9 +183,12 @@ export class DeliverablesService {
         const currentVersion = await this.versionsService.getCurrentVersion(id, userId);
         if (currentVersion) {
           deliverable.currentVersion = currentVersion;
+          this.logger.debug(`Current version loaded: ${currentVersion.id} for deliverable: ${id}`);
+        } else {
+          this.logger.warn(`No current version found for deliverable: ${id}`);
         }
       } catch (error) {
-        this.logger.error('Failed to get current version:', error);
+        this.logger.error(`Failed to get current version for deliverable ${id}:`, error);
         // Don't throw here, just return deliverable without current version
       }
 
@@ -267,7 +276,6 @@ export class DeliverablesService {
 
       // Only update fields that are provided
       if (updateDto.title !== undefined) updateData.title = updateDto.title;
-      if (updateDto.description !== undefined) updateData.description = updateDto.description;
       if (updateDto.type !== undefined) updateData.type = updateDto.type;
       if (updateDto.projectStepId !== undefined) updateData.project_step_id = updateDto.projectStepId;
 
@@ -331,28 +339,33 @@ export class DeliverablesService {
     deliverableId: string,
     createDto: CreateDeliverableDto,
     userId: string,
-  ): Promise<void> {
-    const { error } = await this.supabaseService
+  ): Promise<DeliverableVersion> {
+    const { data, error } = await this.supabaseService
       .getServiceClient()
       .from(getTableName('deliverable_versions'))
       .insert([
         {
           deliverable_id: deliverableId,
           version_number: 1,
-          content: createDto.initialContent,
-          format: createDto.initialFormat,
+          content: createDto.initialContent || '', // Default to empty string if no content
+          format: createDto.initialFormat || 'text', // Default to text format
           is_current_version: true,
-          created_by_type: createDto.initialCreationType,
+          created_by_type: createDto.initialCreationType || 'user_request', // Default creation type
           task_id: createDto.initialTaskId || null,
           metadata: createDto.initialMetadata || {},
           file_attachments: {},
         },
-      ]);
+      ])
+      .select('*')
+      .single();
 
     if (error) {
       this.logger.error('Failed to create initial version:', error);
       throw new BadRequestException(`Failed to create initial version: ${error.message}`);
     }
+
+    this.logger.log(`Initial version created successfully: ${data.id} (v1) with content length: ${(createDto.initialContent || '').length}`);
+    return this.mapToVersion(data);
   }
 
   /**
@@ -446,7 +459,6 @@ export class DeliverablesService {
       conversationId: data.conversation_id,
       projectStepId: data.project_step_id,
       title: data.title,
-      description: data.description,
       type: data.type,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
@@ -476,7 +488,6 @@ export class DeliverablesService {
       userId: data.user_id,
       conversationId: data.conversation_id,
       title: data.title,
-      description: data.description,
       type: data.type,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),

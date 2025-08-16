@@ -33,6 +33,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       services.httpService,
       services.taskStatusService,
       services.deliverablesService,
+      undefined, // No tasksService for Python function agents
       services.agentRegistrationService,
       services.jsonRpcProtocolService,
       services.loggingService,

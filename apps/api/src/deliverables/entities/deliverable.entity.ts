@@ -1,49 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DeliverableType, DeliverableFormat, DeliverableVersionCreationType } from '../dto';
 
-export class Deliverable {
-  @ApiProperty({ description: 'Unique identifier' })
-  id!: string;
-
-  @ApiProperty({ description: 'User who owns this deliverable' })
-  userId!: string;
-
-  @ApiProperty({
-    description: 'Conversation this deliverable belongs to (required, unique)',
-  })
-  conversationId!: string;
-
-  @ApiPropertyOptional({
-    description: 'Project step this deliverable belongs to',
-  })
-  projectStepId?: string;
-
-  @ApiProperty({ description: 'Title of the deliverable' })
-  title!: string;
-
-  @ApiPropertyOptional({
-    description: 'Description of the deliverable',
-  })
-  description?: string;
-
-  @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
-  type?: DeliverableType;
-
-  @ApiProperty({ description: 'Creation timestamp' })
-  createdAt!: Date;
-
-  @ApiProperty({ description: 'Last update timestamp' })
-  updatedAt!: Date;
-
-  // Include current version data when fetched
-  @ApiPropertyOptional({ description: 'Current version data', type: () => DeliverableVersion })
-  currentVersion?: DeliverableVersion;
-
-  // Include all versions when requested
-  @ApiPropertyOptional({ description: 'All versions', type: [DeliverableVersion] })
-  versions?: DeliverableVersion[];
-}
-
 export class DeliverableVersion {
   @ApiProperty({ description: 'Version identifier' })
   id!: string;
@@ -98,6 +55,45 @@ export class DeliverableVersion {
   updatedAt!: Date;
 }
 
+export class Deliverable {
+  @ApiProperty({ description: 'Unique identifier' })
+  id!: string;
+
+  @ApiProperty({ description: 'User who owns this deliverable' })
+  userId!: string;
+
+  @ApiPropertyOptional({
+    description: 'Conversation this deliverable belongs to (optional - when deliverable is part of a conversation)',
+  })
+  conversationId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Project step this deliverable belongs to',
+  })
+  projectStepId?: string;
+
+  @ApiProperty({ description: 'Title of the deliverable' })
+  title!: string;
+
+
+  @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
+  type?: DeliverableType;
+
+  @ApiProperty({ description: 'Creation timestamp' })
+  createdAt!: Date;
+
+  @ApiProperty({ description: 'Last update timestamp' })
+  updatedAt!: Date;
+
+  // Include current version data when fetched
+  @ApiPropertyOptional({ description: 'Current version data', type: () => DeliverableVersion })
+  currentVersion?: DeliverableVersion;
+
+  // Include all versions when requested
+  @ApiPropertyOptional({ description: 'All versions', type: () => [DeliverableVersion] })
+  versions?: DeliverableVersion[];
+}
+
 export class DeliverableSearchResult {
   @ApiProperty({ description: 'Deliverable identifier' })
   id!: string;
@@ -105,14 +101,12 @@ export class DeliverableSearchResult {
   @ApiProperty({ description: 'User who owns this deliverable' })
   userId!: string;
 
-  @ApiProperty({ description: 'Conversation this deliverable belongs to' })
-  conversationId!: string;
+  @ApiPropertyOptional({ description: 'Conversation this deliverable belongs to (if any)' })
+  conversationId?: string;
 
   @ApiProperty({ description: 'Deliverable title' })
   title!: string;
 
-  @ApiPropertyOptional({ description: 'Deliverable description' })
-  description?: string;
 
   @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
   type?: DeliverableType;

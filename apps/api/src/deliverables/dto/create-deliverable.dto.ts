@@ -8,6 +8,10 @@ import {
   MaxLength,
   MinLength,
   ArrayMaxSize,
+  ValidateIf,
+  registerDecorator,
+  ValidationOptions,
+  ValidationArguments,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -33,6 +37,28 @@ export enum DeliverableVersionCreationType {
   USER_REQUEST = 'user_request',
 }
 
+// Custom validator to ensure at least one of conversationId or projectStepId is provided
+function AtLeastOneContext(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'atLeastOneContext',
+      target: object.constructor,
+      propertyName: propertyName,
+      constraints: [],
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          const obj = args.object as CreateDeliverableDto;
+          return !!(obj.conversationId || obj.projectStepId);
+        },
+        defaultMessage(args: ValidationArguments) {
+          return 'Either conversationId or projectStepId must be provided';
+        },
+      },
+    });
+  };
+}
+
 export class CreateDeliverableDto {
   @ApiProperty({ description: 'Title of the deliverable', maxLength: 255 })
   @IsString()
@@ -40,24 +66,19 @@ export class CreateDeliverableDto {
   @MaxLength(255)
   title!: string;
 
-  @ApiPropertyOptional({
-    description: 'Optional description of the deliverable',
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(1000)
-  description?: string;
 
   @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
   @IsOptional()
   @IsEnum(DeliverableType)
   type?: DeliverableType;
 
-  @ApiProperty({
-    description: 'Conversation ID this deliverable belongs to (required)',
+  @ApiPropertyOptional({
+    description: 'Conversation ID this deliverable belongs to (optional - use when deliverable is part of a conversation)',
   })
+  @IsOptional()
   @IsUUID()
-  conversationId!: string;
+  @AtLeastOneContext({ message: 'Either conversationId or projectStepId must be provided' })
+  conversationId?: string;
 
   @ApiPropertyOptional({
     description: 'Project step ID this deliverable belongs to',
