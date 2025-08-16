@@ -16,7 +16,7 @@ interface Deliverable {
   task_id?: string;
   title: string;
   content: string;
-  deliverable_type: DeliverableType | string;
+  type: DeliverableType | string;
   format: DeliverableFormat | string;
   version: number;
   parent_deliverable_id?: string;
@@ -86,7 +86,7 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     };
     
     deliverables.value.forEach(deliverable => {
-      const type = deliverable.deliverable_type.toLowerCase();
+      const type = deliverable.type.toLowerCase();
       if (grouped[type]) {
         grouped[type].push(deliverable);
       } else {
@@ -317,7 +317,21 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       
       // Use the proper deliverablesService instead of direct fetch
       const { deliverablesService } = await import('@/services/deliverablesService');
+      
+      console.log('🔄 Creating new version:', {
+        parentId,
+        data,
+        authToken: !!authToken
+      });
+      
       const newVersion = await deliverablesService.createVersion(parentId, data);
+      
+      console.log('✅ Version created successfully:', {
+        newVersionId: newVersion.id,
+        version: newVersion.version,
+        title: newVersion.title,
+        isLatest: newVersion.is_latest_version
+      });
       const storeVersion = {
         ...newVersion,
         created_at: new Date(newVersion.created_at),
@@ -433,7 +447,7 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       const { deliverablesService } = await import('@/services/deliverablesService');
       const serviceData = {
         ...data,
-        deliverable_type: data.deliverable_type as DeliverableType,
+        type: data.type as DeliverableType,
         format: data.format as DeliverableFormat
       };
       const updatedDeliverable = await deliverablesService.updateDeliverable(id, serviceData as any);
@@ -528,7 +542,7 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       id: d.id,
       title: d.title,
       created_at: d.created_at,
-      deliverable_type: d.deliverable_type,
+      type: d.type,
       created_by_agent: d.created_by_agent,
       content_preview: d.content.substring(0, 200) + (d.content.length > 200 ? '...' : ''),
       ...d

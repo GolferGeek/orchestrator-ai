@@ -148,6 +148,7 @@
             :deliverable="activeWorkProduct.data"
             :conversation-id="conversation?.id"
             @version-changed="handleVersionChanged"
+            @version-created="handleVersionCreated"
             @merge-requested="handleMergeRequested"
             @edit-requested="handleEditRequested"
           />
@@ -385,6 +386,18 @@ const handleDeliverableUpdated = (deliverable: any) => {
 const handleVersionChanged = (version: any) => {
   if (activeWorkProduct.value?.type === 'deliverable') {
     activeWorkProduct.value = { type: 'deliverable', data: version };
+  }
+};
+
+const handleVersionCreated = async (newVersion: any) => {
+  // When a new version is created, update the active work product to show the new version
+  if (activeWorkProduct.value?.type === 'deliverable') {
+    activeWorkProduct.value = { type: 'deliverable', data: newVersion };
+  }
+  
+  // Reload the deliverables for this conversation to update the list
+  if (props.conversation?.id) {
+    await deliverablesStore.loadDeliverablesByConversation(props.conversation.id);
   }
 };
 

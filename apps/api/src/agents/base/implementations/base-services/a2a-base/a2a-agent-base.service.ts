@@ -740,7 +740,7 @@ export abstract class A2AAgentBaseService
           {
             title: deliverableData.title,
             content: deliverableData.content,
-            deliverable_type: deliverableData.type,
+            type: deliverableData.type,
             format: deliverableData.format,
             description: deliverableData.description,
             metadata: {

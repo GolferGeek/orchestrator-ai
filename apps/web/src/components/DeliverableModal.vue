@@ -347,11 +347,23 @@ const saveChanges = async () => {
     };
     
     if ('id' in displayDeliverable.value && displayDeliverable.value.id) {
-      // Update existing deliverable
-      await deliverables.store.updateDeliverable(displayDeliverable.value.id, updates);
+      // Create new version of existing deliverable instead of updating in-place
+      const newVersion = await deliverables.store.createVersion(displayDeliverable.value.id, {
+        title: updates.title,
+        content: updates.content,
+        created_by_agent: 'manual_edit',
+        metadata: {
+          editReason: 'user_edit',
+          editedAt: new Date().toISOString(),
+          previousVersion: displayDeliverable.value.version
+        }
+      });
+      
+      // Update the displayed deliverable to the new version
+      emit('save', newVersion);
       
       const toast = await toastController.create({
-        message: 'Deliverable updated successfully',
+        message: 'New version created successfully',
         duration: 2000,
         position: 'bottom',
         color: 'success'
@@ -512,9 +524,7 @@ const getFileExtension = (format: string): string => {
 
 // Helper functions for type compatibility
 const getDeliverableType = (deliverable: DeliverableItem): string => {
-  return ('deliverable_type' in deliverable) 
-    ? deliverable.deliverable_type 
-    : deliverable.deliverableType;
+  return deliverable.type;
 };
 
 const getDeliverableDate = (deliverable: DeliverableItem): Date | string => {

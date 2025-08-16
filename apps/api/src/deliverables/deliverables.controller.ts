@@ -255,12 +255,44 @@ export class DeliverablesController {
     @Body() createVersionDto: CreateVersionDto,
     @Req() req: any,
   ): Promise<Deliverable> {
+    console.log('🚀 createVersion controller called with:', {
+      parentId: id,
+      body: createVersionDto,
+      user: req.user,
+      headers: {
+        authorization: req.headers.authorization ? 'Bearer [REDACTED]' : 'None',
+        'content-type': req.headers['content-type']
+      }
+    });
+
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
       console.log('🔍 ERROR: No user ID found in JWT token for createVersion');
       throw new Error('User not authenticated');
     }
-    return this.deliverablesService.createVersion(id, createVersionDto, userId);
+
+    console.log('✅ User authenticated, calling service with userId:', userId);
+
+    try {
+      const result = await this.deliverablesService.createVersion(id, createVersionDto, userId);
+      console.log('🎉 createVersion controller success:', {
+        resultId: result.id,
+        resultVersion: result.version,
+        resultTitle: result.title,
+        resultIsLatest: result.is_latest_version
+      });
+      return result;
+    } catch (error) {
+      console.log('❌ createVersion controller error:', {
+        error,
+        errorMessage: error.message,
+        errorName: error.constructor.name,
+        parentId: id,
+        userId,
+        createVersionDto
+      });
+      throw error;
+    }
   }
 
   @Patch(':id')
