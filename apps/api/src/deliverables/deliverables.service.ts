@@ -9,7 +9,6 @@ import { SupabaseService } from '../supabase/supabase.service';
 import {
   CreateDeliverableDto,
   UpdateDeliverableDto,
-  CreateVersionDto,
   DeliverableFiltersDto,
 } from './dto';
 import {
@@ -309,28 +308,7 @@ export class DeliverablesService {
     }
   }
 
-  /**
-   * Create a new version of an existing deliverable
-   * Delegates to the versions service
-   */
-  async createVersion(
-    deliverableId: string,
-    createVersionDto: CreateVersionDto,
-    userId: string,
-  ): Promise<DeliverableVersion> {
-    return this.versionsService.createVersion(deliverableId, createVersionDto, userId);
-  }
 
-  /**
-   * Get version history for a deliverable
-   * Delegates to the versions service
-   */
-  async getVersionHistory(
-    deliverableId: string,
-    userId: string,
-  ): Promise<DeliverableVersion[]> {
-    return this.versionsService.getVersionHistory(deliverableId, userId);
-  }
 
   /**
    * Create initial version for a new deliverable

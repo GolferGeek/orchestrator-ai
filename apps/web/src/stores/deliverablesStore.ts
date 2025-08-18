@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { useAuthStore } from './authStore';
 import type { 
   Deliverable,
@@ -13,7 +13,7 @@ import type {
 
 interface DeliverablesState {
   deliverables: Map<string, Deliverable>;
-  deliverableVersions: Map<string, DeliverableVersion[]>; // deliverableId -> versions
+  deliverableVersions: Record<string, DeliverableVersion[]>; // deliverableId -> versions (using Record for reactivity)
   conversationDeliverables: Map<string, string[]>; // conversationId -> deliverableIds
   currentVersions: Map<string, DeliverableVersion>; // deliverableId -> current version
   isLoading: boolean;
@@ -26,12 +26,15 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
   // State
   const state = ref<DeliverablesState>({
     deliverables: new Map(),
-    deliverableVersions: new Map(),
+    deliverableVersions: {}, // Use reactive object instead of Map
     conversationDeliverables: new Map(),
     currentVersions: new Map(),
     isLoading: false,
     error: null,
   });
+
+  // Reactive counter to trigger updates when versions change
+  const versionsUpdateCounter = ref(0);
 
   // Getters
   const deliverables = computed(() => Array.from(state.value.deliverables.values()));
@@ -92,12 +95,26 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
   };
 
   const getDeliverableVersions = async (parentId: string) => {
-    if (state.value.deliverableVersions.has(parentId)) {
-      return state.value.deliverableVersions.get(parentId)!;
+    if (state.value.deliverableVersions[parentId]) {
+      return state.value.deliverableVersions[parentId];
     }
     
     await loadDeliverableVersions(parentId);
-    return state.value.deliverableVersions.get(parentId) || [];
+    return state.value.deliverableVersions[parentId] || [];
+  };
+
+  // Reactive computed getter for use in Vue components
+  const getDeliverableVersionsReactive = (parentId: string) => {
+    return computed(() => {
+      // Include the counter to trigger reactivity when versions change
+      versionsUpdateCounter.value; // This creates a dependency
+      return state.value.deliverableVersions[parentId] || [];
+    });
+  };
+
+  // Synchronous getter for use in computed properties  
+  const getDeliverableVersionsSync = (parentId: string): DeliverableVersion[] => {
+    return state.value.deliverableVersions[parentId] || [];
   };
 
   // Actions
@@ -134,13 +151,14 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
   };
 
   const addVersion = (deliverableId: string, version: DeliverableVersion) => {
-    const existing = state.value.deliverableVersions.get(deliverableId) || [];
+    const existing = state.value.deliverableVersions[deliverableId] || [];
     
     // Remove existing version with same ID if present, then add new one
     const filtered = existing.filter(v => v.id !== version.id);
     const newVersions = [...filtered, version].sort((a, b) => b.versionNumber - a.versionNumber);
     
-    state.value.deliverableVersions.set(deliverableId, newVersions);
+    state.value.deliverableVersions[deliverableId] = newVersions;
+    versionsUpdateCounter.value++; // Trigger reactivity
     
     // Update current version if this is marked as current
     if (version.isCurrentVersion) {
@@ -272,7 +290,8 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       const versions = await deliverablesService.getVersionHistory(parentId);
       
       // Store versions in state
-      state.value.deliverableVersions.set(parentId, versions);
+      state.value.deliverableVersions[parentId] = versions;
+      versionsUpdateCounter.value++; // Trigger reactivity
       
       // Update current version if we find one
       const currentVersion = versions.find(v => v.isCurrentVersion);
@@ -550,6 +569,24 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     return await getDeliverableVersions(deliverableId);
   };
 
+  const getVersion = async (versionId: string): Promise<DeliverableVersion> => {
+    try {
+      setLoading(true);
+      clearError();
+      
+      const { deliverablesService } = await import('@/services/deliverablesService');
+      const version = await deliverablesService.getVersion(versionId);
+      
+      return version;
+    } catch (error: any) {
+      console.error('Failed to get version:', error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // New version management methods
   const setCurrentVersion = async (versionId: string) => {
     try {
@@ -577,10 +614,11 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       await deliverablesService.deleteVersion(versionId);
       
       // Remove from store state
-      for (const [deliverableId, versions] of state.value.deliverableVersions.entries()) {
+      for (const [deliverableId, versions] of Object.entries(state.value.deliverableVersions)) {
         const filtered = versions.filter(v => v.id !== versionId);
         if (filtered.length !== versions.length) {
-          state.value.deliverableVersions.set(deliverableId, filtered);
+          state.value.deliverableVersions[deliverableId] = filtered;
+          versionsUpdateCounter.value++; // Trigger reactivity
           break;
         }
       }
@@ -633,8 +671,11 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     getDeliverableById,
     getDeliverablesByConversation,
     getDeliverableVersions,
+    getDeliverableVersionsReactive, // reactive computed for Vue components
+    getDeliverableVersionsSync, // synchronous version for computed properties
     getDeliverable, // alias for getDeliverableById
     getVersions, // alias for getDeliverableVersions
+    getVersion, // get single version by ID
     getCurrentVersion,
 
     // Actions

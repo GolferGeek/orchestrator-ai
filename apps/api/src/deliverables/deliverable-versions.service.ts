@@ -87,14 +87,10 @@ export class DeliverableVersionsService {
     deliverableId: string,
     userId: string,
   ): Promise<DeliverableVersion[]> {
-    this.logger.log(
-      `Getting version history for deliverable: ${deliverableId} for user: ${userId}`,
-    );
-
     try {
-      // Verify the deliverable exists and belongs to the user
+      // Verify deliverable ownership
       await this.verifyDeliverableOwnership(deliverableId, userId);
-
+      
       // Get all versions for this deliverable
       const { data, error } = await this.supabaseService
         .getServiceClient()
@@ -110,8 +106,11 @@ export class DeliverableVersionsService {
         );
       }
 
-      return (data || []).map((item: any) => this.mapToVersion(item));
+      const versions = (data || []).map((item: any) => this.mapToVersion(item));
+      
+      return versions;
     } catch (error) {
+      this.logger.error('Exception in getVersionHistory:', error);
       if (
         error instanceof NotFoundException ||
         error instanceof BadRequestException
@@ -329,16 +328,42 @@ export class DeliverableVersionsService {
   // Private helper methods
 
   private async verifyDeliverableOwnership(deliverableId: string, userId: string): Promise<void> {
-    const { data, error } = await this.supabaseService
-      .getServiceClient()
-      .from(getTableName('deliverables'))
-      .select('id')
-      .eq('id', deliverableId)
-      .eq('user_id', userId)
-      .single();
+    this.logger.log(`🔍 Verifying ownership: deliverable=${deliverableId}, userId=${userId}`);
+    
+    try {
+      // First, check if the deliverable exists at all (without user_id filter for debugging)
+      const { data: deliverableCheck, error: checkError } = await this.supabaseService
+        .getServiceClient()
+        .from(getTableName('deliverables'))
+        .select('id, user_id')
+        .eq('id', deliverableId)
+        .single();
 
-    if (error || !data) {
-      throw new NotFoundException(`Deliverable not found: ${deliverableId}`);
+      if (checkError) {
+        this.logger.error(`🔍 Database query error:`, checkError);
+        // If it's a schema or connection error, we'll see it here
+        throw new NotFoundException(`Database error checking deliverable: ${checkError.message || checkError.code || 'unknown error'}`);
+      }
+
+      if (!deliverableCheck) {
+        this.logger.warn(`🔍 Deliverable ${deliverableId} does not exist in database`);
+        throw new NotFoundException(`Deliverable not found: ${deliverableId}`);
+      }
+
+      this.logger.log(`🔍 Found deliverable ${deliverableId} owned by user ${deliverableCheck.user_id}, checking against ${userId}`);
+
+      if (deliverableCheck.user_id !== userId) {
+        this.logger.warn(`🔍 User ID mismatch: deliverable owned by ${deliverableCheck.user_id}, requested by ${userId}`);
+        throw new NotFoundException(`Deliverable not found: ${deliverableId}`);
+      }
+
+      this.logger.log(`🔍 Ownership verification passed for deliverable ${deliverableId}`);
+    } catch (error) {
+      this.logger.error(`🔍 Exception in verifyDeliverableOwnership:`, error);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new NotFoundException(`Failed to verify deliverable ownership: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
