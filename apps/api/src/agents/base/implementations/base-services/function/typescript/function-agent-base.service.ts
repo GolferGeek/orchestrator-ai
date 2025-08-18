@@ -49,6 +49,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       services.httpService,
       services.taskStatusService,
       services.deliverablesService,
+      services.deliverableVersionsService,
       undefined, // No tasksService for TypeScript function agents
       services.agentRegistrationService,
       services.jsonRpcProtocolService,

@@ -4,7 +4,7 @@
     <div class="document-paper">
     <div class="deliverable-header">
       <div class="title-section">
-        <h3 class="deliverable-title">{{ deliverable.title }}</h3>
+        <h3 class="deliverable-title">{{ displayTitle }}</h3>
         <div class="metadata">
           <ion-chip v-if="deliverable.type" :color="getTypeColor(deliverable.type)" outline>
             {{ formatType(deliverable.type) }}
@@ -58,7 +58,7 @@
     </div>
 
     <!-- Version Navigation -->
-    <div class="version-section" v-if="versions.length > 1 || showVersionHistory">
+    <div class="version-section" v-if="totalVersions > 1 || showVersionHistory">
       <div class="version-info">
         <span class="version-label">
           Version {{ displayVersion?.versionNumber || currentVersion?.versionNumber || 1 }} of {{ totalVersions }}
@@ -391,7 +391,7 @@ import TaskRating from './TaskRating.vue';
 import type { Deliverable, DeliverableVersion } from '@/types/deliverables';
 
 interface Props {
-  deliverable: Deliverable;
+  deliverable: Deliverable | DeliverableVersion;
   conversationId?: string;
 }
 
@@ -408,21 +408,52 @@ const emit = defineEmits<Emits>();
 // Store
 const deliverablesStore = useDeliverablesStore();
 
+// Helper computed properties to handle both Deliverable and DeliverableVersion objects
+const isVersionObject = computed(() => {
+  // DeliverableVersion has 'deliverableId' and 'versionNumber', Deliverable does not
+  return 'deliverableId' in props.deliverable && 'versionNumber' in props.deliverable;
+});
+
+const actualDeliverableId = computed(() => {
+  return isVersionObject.value 
+    ? (props.deliverable as DeliverableVersion).deliverableId 
+    : (props.deliverable as Deliverable).id;
+});
+
+const displayTitle = computed(() => {
+  // If it's a version object, we might not have the title, so we'll need to get it from store
+  if (isVersionObject.value) {
+    const deliverable = deliverablesStore.getDeliverableById(actualDeliverableId.value);
+    return deliverable?.title || 'Untitled Deliverable';
+  }
+  return (props.deliverable as Deliverable).title || 'Untitled Deliverable';
+});
+
 // Reactive state
 const showVersionHistory = ref(false);
-const versions = ref<DeliverableVersion[]>([]);
 const selectedVersion = ref<DeliverableVersion | null>(null);
+const selectedVersionIndex = ref(0);
 const isEditing = ref(false);
 const editedContent = ref('');
 const editedTitle = ref('');
 const isSaving = ref(false);
 const contentTextarea = ref<any>(null);
 
-// Computed properties
+// Computed versions that reactively watches the store state
+const versions = computed(() => {
+  // This will trigger whenever the store state changes
+  return deliverablesStore.getDeliverableVersionsSync(actualDeliverableId.value);
+});
+
 const totalVersions = computed(() => versions.value.length);
 
 const currentVersion = computed(() => {
-  return props.deliverable.currentVersion || deliverablesStore.getCurrentVersion(props.deliverable.id);
+  if (isVersionObject.value) {
+    // If we have a version object, it's the current version being displayed
+    return props.deliverable as DeliverableVersion;
+  }
+  // If we have a deliverable object, get its current version
+  return (props.deliverable as Deliverable).currentVersion || deliverablesStore.getCurrentVersion(actualDeliverableId.value);
 });
 
 const displayVersion = computed(() => {
@@ -433,22 +464,27 @@ const sortedVersions = computed(() => {
   return [...versions.value].sort((a, b) => b.versionNumber - a.versionNumber);
 });
 
+// Use sortedVersions for navigation to ensure consistent ordering
 const canGoPrevious = computed(() => {
-  if (!selectedVersion.value) return false;
-  const currentIndex = sortedVersions.value.findIndex(v => v.id === selectedVersion.value?.id);
-  return currentIndex < sortedVersions.value.length - 1;
+  const currentDisplayVersion = displayVersion.value || currentVersion.value;
+  if (!currentDisplayVersion || sortedVersions.value.length <= 1) return false;
+  
+  const currentIndex = sortedVersions.value.findIndex(v => v.id === currentDisplayVersion.id);
+  return currentIndex < sortedVersions.value.length - 1; // Can go to previous (older) version
 });
 
 const canGoNext = computed(() => {
-  if (!selectedVersion.value) return false;
-  const currentIndex = sortedVersions.value.findIndex(v => v.id === selectedVersion.value?.id);
-  return currentIndex > 0;
+  const currentDisplayVersion = displayVersion.value || currentVersion.value;
+  if (!currentDisplayVersion || sortedVersions.value.length <= 1) return false;
+  
+  const currentIndex = sortedVersions.value.findIndex(v => v.id === currentDisplayVersion.id);
+  return currentIndex > 0; // Can go to next (newer) version
 });
 
 const hasUnsavedChanges = computed(() => {
   return isEditing.value && (
     editedContent.value !== (displayVersion.value?.content || '') ||
-    editedTitle.value !== props.deliverable.title
+    editedTitle.value !== displayTitle.value
   );
 });
 
@@ -566,7 +602,7 @@ const getContentPreview = (content: string) => {
 const startEditing = () => {
   isEditing.value = true;
   editedContent.value = displayVersion.value?.content || '';
-  editedTitle.value = props.deliverable.title || '';
+  editedTitle.value = displayTitle.value || '';
 };
 
 const cancelEditing = () => {
@@ -581,17 +617,48 @@ const saveEdits = async () => {
   try {
     isSaving.value = true;
     
-    // Create a new version instead of updating in-place
-    const newVersion = await deliverablesStore.createVersion(props.deliverable.id, {
-      title: editedTitle.value,
+    // Create a new version with proper DTO format
+    const newVersion = await deliverablesStore.createVersion(actualDeliverableId.value, {
       content: editedContent.value,
-      created_by_agent: 'manual_edit',
+      format: currentVersion.value?.format || 'markdown', // Preserve original format
+      createdByType: 'manual_edit', // Use correct field name
       metadata: {
         editReason: 'user_edit',
         editedAt: new Date().toISOString(),
-        previousVersion: props.deliverable.version
+        previousVersionNumber: currentVersion.value?.versionNumber
       }
     });
+    
+    console.log('✅ New version created:', newVersion);
+    
+    // Reload the versions to get the updated list
+    await deliverablesStore.loadDeliverableVersions(actualDeliverableId.value);
+    
+    // The versions computed property will automatically update from the store
+    
+    // Update the display to show the new version
+    displayVersion.value = newVersion;
+    selectedVersion.value = newVersion;
+    
+    // Find the index of the new version in the versions array
+    if (Array.isArray(versions.value)) {
+      const newVersionIndex = versions.value.findIndex(v => v.id === newVersion.id);
+      if (newVersionIndex !== -1) {
+        selectedVersionIndex.value = newVersionIndex;
+      }
+    }
+    
+    console.log('📊 Version display updated:', {
+      newVersionId: newVersion.id,
+      displayedContent: displayVersion.value?.content?.substring(0, 100),
+      versionsCount: versions.value.length,
+      totalVersions: totalVersions.value,
+      canGoPrevious: canGoPrevious.value,
+      canGoNext: canGoNext.value
+    });
+    
+    // Force reactive updates with nextTick
+    await nextTick();
     
     // Emit an event to notify parent component that a new version was created
     emit('version-created', newVersion);
@@ -606,8 +673,7 @@ const saveEdits = async () => {
       response: error.response,
       status: error.response?.status,
       data: error.response?.data,
-      parentId: props.deliverable.id,
-      title: editedTitle.value,
+      parentId: actualDeliverableId.value,
       contentLength: editedContent.value.length
     });
     
@@ -711,55 +777,95 @@ const loadVersions = async () => {
   try {
     if (props.deliverable.parent_deliverable_id) {
       // This is a version, load all versions of the parent
-      versions.value = await deliverablesStore.getDeliverableVersions(
+      await deliverablesStore.loadDeliverableVersions(
         props.deliverable.parent_deliverable_id
       );
     } else {
       // This is the parent, load all its versions
-      versions.value = await deliverablesStore.getDeliverableVersions(props.deliverable.id);
+      await deliverablesStore.loadDeliverableVersions(actualDeliverableId.value);
     }
+    // The versions computed property will automatically update from the store
   } catch (error) {
     console.error('Failed to load versions:', error);
-    versions.value = [props.deliverable]; // Fallback to current only
+    // The computed property will handle the fallback through the store
   }
 };
 
 const goToPreviousVersion = async () => {
   if (!canGoPrevious.value) return;
   
-  const currentIndex = versions.value.findIndex(v => v.id === props.deliverable.id);
-  const previousVersion = versions.value[currentIndex - 1];
+  // Find current version index in sortedVersions (newest first)
+  const currentDisplayVersion = displayVersion.value || currentVersion.value;
+  if (!Array.isArray(sortedVersions.value) || !currentDisplayVersion) return;
   
-  if (previousVersion) {
-    await loadAndEmitFullVersion(previousVersion.id);
+  const currentIndex = sortedVersions.value.findIndex(v => v.id === currentDisplayVersion.id);
+  
+  // Go to previous (older) version - next index in the sorted array
+  if (currentIndex < sortedVersions.value.length - 1) {
+    const previousVersion = sortedVersions.value[currentIndex + 1];
+    selectedVersionIndex.value = currentIndex + 1;
+    await selectAndDisplayVersion(previousVersion);
   }
 };
 
 const goToNextVersion = async () => {
   if (!canGoNext.value) return;
   
-  const currentIndex = versions.value.findIndex(v => v.id === props.deliverable.id);
-  const nextVersion = versions.value[currentIndex + 1];
+  // Find current version index in sortedVersions (newest first)
+  const currentDisplayVersion = displayVersion.value || currentVersion.value;
+  const currentIndex = sortedVersions.value.findIndex(v => v.id === currentDisplayVersion?.id);
   
-  if (nextVersion) {
-    await loadAndEmitFullVersion(nextVersion.id);
+  // Go to next (newer) version - previous index in the sorted array
+  if (currentIndex > 0) {
+    const nextVersion = sortedVersions.value[currentIndex - 1];
+    selectedVersionIndex.value = currentIndex - 1;
+    await selectAndDisplayVersion(nextVersion);
   }
 };
 
 const selectVersion = async (version: any) => {
   selectedVersion.value = version;
+  await selectAndDisplayVersion(version);
+};
+
+const selectAndDisplayVersion = async (version: any) => {
+  selectedVersion.value = version;
+  
+  // Update the display version to show this version's content
+  displayVersion.value = version;
+  
+  // If this is not a full version object with content, load it
+  if (!version.content && version.id) {
+    try {
+      const fullVersion = await deliverablesStore.getVersion(version.id);
+      if (fullVersion) {
+        displayVersion.value = fullVersion;
+        selectedVersion.value = fullVersion;
+      }
+    } catch (error) {
+      console.error('Failed to load full version:', error);
+    }
+  }
 };
 
 const makeCurrentVersion = async () => {
   if (!selectedVersion.value) return;
   
   try {
-    // In the new versioning system, we would call the backend to set this version as current
-    // For now, we'll update the local state and emit an event
+    // Call the backend to set this version as current
+    await deliverablesStore.setCurrentVersion(selectedVersion.value.id);
+    
+    // Reload versions to get updated current version status
+    await deliverablesStore.loadDeliverableVersions(actualDeliverableId.value);
+    
+    // Update local state
     selectedVersion.value.isCurrentVersion = true;
     emit('current-version-changed', selectedVersion.value);
+    
+    console.log('✅ Version set as current successfully');
   } catch (error) {
     console.error('Failed to set current version:', error);
+    alert(`Failed to set current version: ${error.message || 'Unknown error'}`);
   }
 };
 
@@ -782,7 +888,7 @@ const loadAndEmitFullVersion = async (versionId: string) => {
 
 const downloadDeliverable = () => {
   const content = displayVersion.value?.content || '';
-  const filename = `${props.deliverable.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${getFileExtension()}`;
+  const filename = `${displayTitle.value.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${getFileExtension()}`;
   
   const blob = new Blob([content], { type: getMimeType() });
   const url = URL.createObjectURL(blob);
@@ -868,14 +974,23 @@ watch(() => props.deliverable?.id, () => {
 
 .deliverable-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 16px;
   padding: 24px 24px 16px 24px;
   border-bottom: 2px solid #e2e8f0;
   background: linear-gradient(to bottom, #fafbfc, #ffffff);
   border-radius: 12px 12px 0 0;
   position: relative;
   z-index: 1;
+}
+
+@media (min-width: 768px) {
+  .deliverable-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
 }
 
 .title-section {
@@ -888,6 +1003,10 @@ watch(() => props.deliverable?.id, () => {
   font-weight: 600;
   color: var(--ion-color-dark);
   line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
 }
 
 .metadata {
@@ -898,8 +1017,17 @@ watch(() => props.deliverable?.id, () => {
 
 .header-actions {
   display: flex;
-  gap: 4px;
-  margin-left: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+@media (max-width: 767px) {
+  .header-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 .version-section {
@@ -1196,6 +1324,7 @@ watch(() => props.deliverable?.id, () => {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .edit-help {

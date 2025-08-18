@@ -26,12 +26,10 @@ import { DeliverablesService } from './deliverables.service';
 import {
   CreateDeliverableDto,
   UpdateDeliverableDto,
-  CreateVersionDto,
   DeliverableFiltersDto,
 } from './dto';
 import {
   Deliverable,
-  DeliverableVersion,
   DeliverableSearchResult,
 } from './entities/deliverable.entity';
 
@@ -203,96 +201,7 @@ export class DeliverablesController {
     return this.deliverablesService.findByConversation(conversationId, userId);
   }
 
-  @Get(':id/versions')
-  @ApiOperation({
-    summary: 'Get deliverable version history',
-    description: 'Retrieves the version history for a specific deliverable',
-  })
-  @ApiParam({ name: 'id', description: 'Deliverable UUID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Version history retrieved successfully',
-    type: [DeliverableVersion],
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Deliverable not found' })
-  async getVersionHistory(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Req() req: any,
-  ): Promise<DeliverableVersion[]> {
-    console.log('🔍 getVersionHistory called with:', {
-      id,
-      type: typeof id,
-      userId: req.user?.sub || req.user?.id || req.user?.userId,
-      fullUser: req.user
-    });
-    
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
-    if (!userId) {
-      console.log('🔍 ERROR: No user ID found in JWT token for getVersionHistory');
-      throw new Error('User not authenticated');
-    }
-    console.log('🔍 Using userId for getVersionHistory:', userId);
-    return this.deliverablesService.getVersionHistory(id, userId);
-  }
 
-  @Post(':id/versions')
-  @ApiOperation({
-    summary: 'Create new version of deliverable',
-    description: 'Creates a new version of an existing deliverable',
-  })
-  @ApiParam({ name: 'id', description: 'Parent deliverable UUID' })
-  @ApiResponse({
-    status: 201,
-    description: 'Version created successfully',
-    type: DeliverableVersion,
-  })
-  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Parent deliverable not found' })
-  async createVersion(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() createVersionDto: CreateVersionDto,
-    @Req() req: any,
-  ): Promise<DeliverableVersion> {
-    console.log('🚀 createVersion controller called with:', {
-      parentId: id,
-      body: createVersionDto,
-      user: req.user,
-      headers: {
-        authorization: req.headers.authorization ? 'Bearer [REDACTED]' : 'None',
-        'content-type': req.headers['content-type']
-      }
-    });
-
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
-    if (!userId) {
-      console.log('🔍 ERROR: No user ID found in JWT token for createVersion');
-      throw new Error('User not authenticated');
-    }
-
-    console.log('✅ User authenticated, calling service with userId:', userId);
-
-    try {
-      const result = await this.deliverablesService.createVersion(id, createVersionDto, userId);
-      console.log('🎉 createVersion controller success:', {
-        resultId: result.id,
-        resultVersionNumber: result.versionNumber,
-        resultIsCurrentVersion: result.isCurrentVersion
-      });
-      return result;
-    } catch (error: any) {
-      console.log('❌ createVersion controller error:', {
-        error,
-        errorMessage: error.message,
-        errorName: error.constructor?.name,
-        parentId: id,
-        userId,
-        createVersionDto
-      });
-      throw error;
-    }
-  }
 
   @Patch(':id')
   @ApiOperation({

@@ -4,6 +4,7 @@ import { LLMService } from '@/llms/llm.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
 import { TasksService } from '@/tasks/tasks.service';
 import { DeliverablesService } from '@/deliverables/deliverables.service';
+import { DeliverableVersionsService } from '@/deliverables/deliverable-versions.service';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
@@ -27,6 +28,7 @@ export class PythonFunctionAgentServicesContext {
     public readonly tasksService: TasksService,
     public readonly taskStatusService: TaskStatusService,
     public readonly deliverablesService: DeliverablesService,
+    public readonly deliverableVersionsService: DeliverableVersionsService,
 
     // Agent framework services (optional)
     @Optional()

@@ -12,6 +12,7 @@ import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 // Task and deliverable services
 import { TaskStatusService } from '../../../tasks/task-status.service';
 import { DeliverablesService } from '../../../deliverables/deliverables.service';
+import { DeliverableVersionsService } from '../../../deliverables/deliverable-versions.service';
 
 /**
  * Universal Service Container for All Agent Types
@@ -40,5 +41,6 @@ export class UniversalAgentServicesContext {
     // Task and deliverable services (optional)
     @Optional() public readonly taskStatusService?: TaskStatusService,
     @Optional() public readonly deliverablesService?: DeliverablesService,
+    @Optional() public readonly deliverableVersionsService?: DeliverableVersionsService,
   ) {}
 }

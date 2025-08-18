@@ -4,6 +4,7 @@ import { LLMService } from '@/llms/llm.service';
 import { TaskStatusService } from '@/tasks/task-status.service';
 import { TasksService } from '@/tasks/tasks.service';
 import { DeliverablesService } from '@/deliverables/deliverables.service';
+import { DeliverableVersionsService } from '@/deliverables/deliverable-versions.service';
 import { TaskProgressGateway } from '@/websocket/task-progress.gateway';
 import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-protocol/json-rpc-protocol.service';
@@ -26,6 +27,7 @@ export class AgentServicesContext {
     @Optional() public readonly taskStatusService?: TaskStatusService,
     @Optional() public readonly tasksService?: TasksService,
     @Optional() public readonly deliverablesService?: DeliverablesService,
+    @Optional() public readonly deliverableVersionsService?: DeliverableVersionsService,
     @Optional() public readonly taskProgressGateway?: TaskProgressGateway,
 
     // Agent framework services
@@ -49,6 +51,7 @@ export class AgentServicesContext {
       taskStatusService: this.taskStatusService,
       tasksService: this.tasksService,
       deliverablesService: this.deliverablesService,
+      deliverableVersionsService: this.deliverableVersionsService,
     };
 
     switch (agentType) {

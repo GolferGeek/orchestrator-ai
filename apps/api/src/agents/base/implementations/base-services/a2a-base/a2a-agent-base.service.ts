@@ -31,6 +31,7 @@ import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { TaskStatusService } from '../../../../../tasks/task-status.service';
 import { DeliverablesService } from '../../../../../deliverables/deliverables.service';
+import { DeliverableVersionsService } from '../../../../../deliverables/deliverable-versions.service';
 import { TasksService } from '../../../../../tasks/tasks.service';
 import { DeliverableVersionCreationType } from '../../../../../deliverables/dto';
 import {
@@ -63,6 +64,7 @@ export abstract class A2AAgentBaseService
   protected configurationService: ConfigurationService;
   protected taskStatusService?: TaskStatusService;
   protected deliverablesService?: DeliverablesService;
+  protected deliverableVersionsService?: DeliverableVersionsService;
   protected tasksService?: TasksService;
 
   constructor(
@@ -73,6 +75,9 @@ export abstract class A2AAgentBaseService
     @Optional()
     @Inject(DeliverablesService)
     deliverablesService?: DeliverablesService,
+    @Optional()
+    @Inject(DeliverableVersionsService)
+    deliverableVersionsService?: DeliverableVersionsService,
     @Optional()
     @Inject(TasksService)
     tasksService?: TasksService,
@@ -93,6 +98,7 @@ export abstract class A2AAgentBaseService
       configurationService || new ConfigurationService();
     this.taskStatusService = taskStatusService;
     this.deliverablesService = deliverablesService;
+    this.deliverableVersionsService = deliverableVersionsService;
     this.tasksService = tasksService;
   }
 
@@ -764,7 +770,10 @@ export abstract class A2AAgentBaseService
 
       if (enhanceDeliverableId) {
         // Creating a new version of an existing deliverable
-        deliverable = await this.deliverablesService.createVersion(
+        if (!this.deliverableVersionsService) {
+          throw new Error('DeliverableVersionsService not available for creating deliverable versions');
+        }
+        deliverable = await this.deliverableVersionsService.createVersion(
           enhanceDeliverableId,
           {
             content: deliverableData.content,
