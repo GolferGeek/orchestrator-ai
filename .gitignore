@@ -9,8 +9,16 @@ dev-debug.log
 # Dependency directories
 node_modules/
 
-# Environment variables
+# Environment variables (ignore actual files, but allow example files)
 .env
+.env.local
+.env.development
+.env.production
+.env.server
+# Allow example files to be committed:
+!.env.example
+!.env.production.example
+!.env.server.example
 
 # Editor directories and files
 .idea
