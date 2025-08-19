@@ -139,8 +139,8 @@ import gradient from 'gradient-string';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from project root
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 // Configure Anthropic client
 const anthropic = new Anthropic({
