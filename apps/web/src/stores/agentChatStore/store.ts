@@ -4,6 +4,7 @@ import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { formatAgentName } from '@/utils/caseConverter';
 import tasksService from '@/services/tasksService';
+import { useDeliverablesStore } from '@/stores/deliverablesStore';
 
 // Simple UUID v4 generator
 function generateUUID(): string {
@@ -197,8 +198,10 @@ export const useAgentChatStore = defineStore('agentChat', {
         const newConversation = conversation.createConversationObject(agent, conversationCreatedAt);
         newConversation.id = backendConversationId; // Use backend ID
         
-        // Load conversation messages
+        // Load conversation messages (this already includes deliverable linking)
+        console.log(`📚 Loading messages with deliverable linking...`);
         newConversation.messages = await conversation.loadConversationMessages(backendConversationId);
+        console.log(`✅ Messages loaded with deliverable IDs linked`);
         
         // Update execution modes for this conversation
         await conversation.updateConversationExecutionModes(newConversation);
@@ -222,6 +225,23 @@ export const useAgentChatStore = defineStore('agentChat', {
           failedTasks: backendConversation.failedTasks || 0,
           activeTasks: backendConversation.activeTasks || 0,
         });
+        
+        // Load conversation's deliverables (this happens AFTER conversation is shown but BEFORE UI updates)
+        try {
+          const deliverablesStore = useDeliverablesStore();
+          
+          console.log(`📋 Loading deliverables for conversation: ${backendConversationId}`);
+          const deliverables = await deliverablesStore.loadDeliverablesByConversation(backendConversationId);
+          
+          if (deliverables && deliverables.length > 0) {
+            console.log(`✅ Loaded ${deliverables.length} deliverable(s) for conversation`);
+          } else {
+            console.log(`ℹ️ No deliverables found for conversation: ${backendConversationId}`);
+          }
+        } catch (deliverableError) {
+          console.warn('Failed to load deliverables for conversation:', deliverableError);
+          // Don't let deliverable loading failure block conversation opening
+        }
         
         // Restore WebSocket subscriptions for active tasks
         await this.restoreActiveTaskSubscriptions(newConversation);

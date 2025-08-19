@@ -347,11 +347,27 @@ const getMessageDeliverable = (message: any) => {
 };
 
 
-const selectDeliverable = (deliverable: any) => {
+const selectDeliverable = async (deliverable: any) => {
   if (!deliverable) {
     console.warn('selectDeliverable called with null/undefined deliverable');
     return;
   }
+  
+  // Versions are already loaded by openExistingConversation, but load them if missing
+  const versions = deliverablesStore.getVersionsByDeliverableId(deliverable.id);
+  if (!versions || versions.length === 0) {
+    try {
+      console.log(`📑 Loading versions for deliverable: ${deliverable.id} (not already loaded)`);
+      await deliverablesStore.loadDeliverableVersions(deliverable.id);
+      console.log(`✅ Loaded versions for deliverable "${deliverable.title}"`);
+    } catch (error) {
+      console.warn('Failed to load deliverable versions:', error);
+      // Don't let version loading failure block deliverable selection
+    }
+  } else {
+    console.log(`🎭 Using already-loaded versions for deliverable: ${deliverable.title}`);
+  }
+  
   activeWorkProduct.value = { type: 'deliverable', data: deliverable };
   // Always open the work product pane when a deliverable is selected
   showWorkProductPane.value = true;
@@ -359,18 +375,34 @@ const selectDeliverable = (deliverable: any) => {
   showDeliverableSelector.value = false;
 };
 
-const handleDeliverableCreated = (deliverable: any) => {
+const handleDeliverableCreated = async (deliverable: any) => {
   console.log('🎭 TwoPaneConversationView: handleDeliverableCreated called with:', deliverable);
   console.log('🎭 Current conversation ID:', props.conversation?.id);
   console.log('🎭 Deliverable conversation ID:', deliverable.conversation_id);
   
-  // Auto-select newly created deliverable
+  // Ensure the deliverable belongs to the current conversation
+  if (props.conversation?.id && deliverable.conversation_id !== props.conversation.id) {
+    console.warn('🎭 Deliverable belongs to different conversation, ignoring');
+    return;
+  }
+  
+  // Load versions for the newly created deliverable
+  try {
+    console.log(`📑 Loading versions for newly created deliverable: ${deliverable.id}`);
+    await deliverablesStore.loadDeliverableVersions(deliverable.id);
+    console.log(`✅ Loaded versions for deliverable "${deliverable.title}"`);
+  } catch (error) {
+    console.warn('Failed to load deliverable versions:', error);
+    // Don't let version loading failure block deliverable creation handling
+  }
+  
+  // Auto-select newly created or newly loaded deliverable
   activeWorkProduct.value = { type: 'deliverable', data: deliverable };
   console.log('🎭 Set activeWorkProduct:', activeWorkProduct.value);
   
-  // Always show the work product pane when a deliverable is created
+  // Always show the work product pane when a deliverable becomes available
   showWorkProductPane.value = true;
-  console.log('🎭 Showed work product pane');
+  console.log('🎭 Showed work product pane for deliverable:', deliverable.title);
   
   console.log('🎭 Current showWorkProductPane state:', showWorkProductPane.value);
 };
@@ -450,10 +482,7 @@ onMounted(() => {
   // Auto-scroll to bottom on mount
   scrollToBottom();
   
-  // Load deliverables for this conversation only if authenticated
-  if (props.conversation?.id && authStore.isAuthenticated) {
-    deliverablesStore.loadDeliverablesByConversation(props.conversation.id);
-  }
+  // Deliverable loading is now handled by the conversation watcher with immediate: true
 });
 
 onUnmounted(() => {
@@ -473,21 +502,51 @@ watch(() => messages.value.length, () => {
   scrollToBottom();
 });
 
-// Watch for conversation changes and load deliverables
-watch(() => props.conversation?.id, async (newId) => {
+// Watch for conversation changes and handle deliverable loading properly
+watch(() => props.conversation?.id, async (newId, oldId) => {
+  console.log(`🎭 Conversation changed from ${oldId} to ${newId}`);
+  
   if (newId && authStore.isAuthenticated) {
-    await deliverablesStore.loadDeliverablesByConversation(newId);
+    // Step 1: Check if deliverables are already loaded, if not load them
+    let conversationDeliverables = deliverablesStore.getDeliverablesByConversation(newId);
     
-    // Auto-select the most recent deliverable if available
-    const conversationDeliverables = deliverablesStore.getDeliverablesByConversation(newId);
-    if (conversationDeliverables && conversationDeliverables.length > 0) {
-      // Sort by updated_at to get the most recent
+    if (!conversationDeliverables || conversationDeliverables.length === 0) {
+      // Load deliverables first
+      console.log(`📋 Loading deliverables for conversation: ${newId}`);
+      try {
+        const loadedDeliverables = await deliverablesStore.loadDeliverablesByConversation(newId);
+        conversationDeliverables = loadedDeliverables || [];
+        console.log(`✅ Loaded ${conversationDeliverables.length} deliverable(s) for conversation`);
+      } catch (error) {
+        console.warn('Failed to load deliverables:', error);
+        conversationDeliverables = [];
+      }
+    } else {
+      console.log(`🎭 Found ${conversationDeliverables.length} already-loaded deliverables for conversation ${newId}`);
+    }
+    
+    if (conversationDeliverables.length > 0) {
+      // Step 2: Get the most recent deliverable
       const mostRecentDeliverable = conversationDeliverables
         .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
       
-      selectDeliverable(mostRecentDeliverable);
-      console.log('🎭 Auto-selected most recent deliverable:', mostRecentDeliverable.title);
+      console.log(`🎭 Auto-selecting most recent deliverable: ${mostRecentDeliverable.title}`);
+      
+      // Step 3: Load versions for the selected deliverable
+      try {
+        console.log(`📑 Loading versions for deliverable: ${mostRecentDeliverable.id}`);
+        await deliverablesStore.loadDeliverableVersions(mostRecentDeliverable.id);
+        console.log(`✅ Loaded versions for deliverable "${mostRecentDeliverable.title}"`);
+      } catch (error) {
+        console.warn('Failed to load deliverable versions:', error);
+      }
+      
+      // Step 4: Set up the work product pane and select the deliverable
+      activeWorkProduct.value = { type: 'deliverable', data: mostRecentDeliverable };
+      showWorkProductPane.value = true;
+      console.log(`🎭 Set up work product pane for deliverable: ${mostRecentDeliverable.title}`);
     } else {
+      console.log(`🎭 No deliverables found, resetting work product pane`);
       // Reset active work product when no deliverables
       activeWorkProduct.value = null;
       // Hide work product pane when no deliverables (can be toggled back on)
@@ -496,6 +555,7 @@ watch(() => props.conversation?.id, async (newId) => {
       }
     }
   } else {
+    console.log(`🎭 No conversation or not authenticated, resetting work product pane`);
     // Reset active work product when switching conversations
     activeWorkProduct.value = null;
     // Hide work product pane when no conversation
@@ -503,7 +563,7 @@ watch(() => props.conversation?.id, async (newId) => {
       showWorkProductPane.value = false;
     }
   }
-});
+}, { immediate: true }); // Add immediate: true to ensure it runs on component mount
 
 // Watch for authentication state changes and load deliverables when user logs in
 watch(() => authStore.isAuthenticated, (isAuthenticated) => {
