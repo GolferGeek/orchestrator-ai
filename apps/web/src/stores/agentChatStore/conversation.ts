@@ -72,7 +72,22 @@ export class ConversationService {
       const messageDeliverableMap = new Map<string, string>(); // message_id -> deliverable_id
       const taskDeliverableMap = new Map<string, string>(); // task_id -> deliverable_id
       
+      // First, extract deliverableId from task responses and create task->deliverable mapping
+      tasks.forEach(task => {
+        if (task.response && task.status === 'completed') {
+          try {
+            const parsedResponse = JSON.parse(task.response);
+            if (parsedResponse.deliverableId) {
+              taskDeliverableMap.set(task.id, parsedResponse.deliverableId);
+            }
+          } catch (e) {
+            // Could not parse task response to extract deliverableId
+          }
+        }
+      });
+      
       deliverables.forEach(deliverable => {
+        // Keep the existing logic for backwards compatibility
         if (deliverable.message_id) {
           messageDeliverableMap.set(deliverable.message_id, deliverable.id);
         }
@@ -120,7 +135,6 @@ export class ConversationService {
             }
           } catch (e) {
             // If parsing fails, use the raw response
-            console.log(`📋 Using raw response for task ${task.id} (JSON parse failed):`, e);
             responseContent = task.response;
           }
           
@@ -154,7 +168,6 @@ export class ConversationService {
           
           if (deliverableId) {
             assistantMessage.deliverable_id = deliverableId;
-            console.log(`🎭 Linked deliverable ${deliverableId} to message ${assistantMessageId} via ${messageDeliverableMap.has(assistantMessageId) ? 'message_id' : 'task_id'}`);
           }
           messages.push(assistantMessage);
           
