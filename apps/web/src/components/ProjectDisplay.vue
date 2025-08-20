@@ -132,6 +132,29 @@
         </ion-chip>
       </div>
     </div>
+    
+    <!-- Project Actions Input -->
+    <div class="project-actions">
+      <form @submit.prevent="submitProjectPrompt">
+        <ion-item>
+          <ion-textarea
+            v-model="projectPrompt"
+            placeholder='Enter project instructions (e.g., "add testing phase", "update timeline")...'
+            :rows="2"
+            class="project-prompt-input"
+          />
+          <ion-button
+            slot="end"
+            type="submit"
+            :disabled="!projectPrompt.trim()"
+            fill="clear"
+            color="secondary"
+          >
+            <ion-icon :icon="sendOutline" />
+          </ion-button>
+        </ion-item>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -142,6 +165,8 @@ import {
   IonButton,
   IonIcon,
   IonProgressBar,
+  IonItem,
+  IonTextarea,
 } from '@ionic/vue';
 import {
   timeOutline,
@@ -152,6 +177,7 @@ import {
   ellipseOutline,
   personOutline,
   calendarOutline,
+  sendOutline,
 } from 'ionicons/icons';
 import { marked } from 'marked';
 
@@ -171,6 +197,7 @@ const emit = defineEmits<Emits>();
 
 // Reactive state
 const showProjectHistory = ref(false);
+const projectPrompt = ref('');
 
 // Computed properties
 const totalSteps = computed(() => {
@@ -263,6 +290,32 @@ const downloadProject = () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+};
+
+const submitProjectPrompt = async () => {
+  if (!projectPrompt.value.trim()) return;
+  
+  const content = projectPrompt.value.trim();
+  projectPrompt.value = '';
+  
+  try {
+    // Import the agent chat store and context store
+    const { useAgentChatStore } = await import('@/stores/agentChatStore');
+    const { useContextStore } = await import('@/stores/contextStore');
+    
+    const agentChatStore = useAgentChatStore();
+    const contextStore = useContextStore();
+    
+    // Set project context
+    contextStore.setProjectContext(props.project.id);
+    
+    // Send context-aware message
+    await agentChatStore.sendContextAwareMessage(content);
+  } catch (error) {
+    console.error('Failed to send project prompt:', error);
+    // Restore the input text on error
+    projectPrompt.value = content;
+  }
 };
 </script>
 
@@ -524,5 +577,11 @@ const downloadProject = () => {
     background: var(--ion-color-dark);
     border-color: var(--ion-color-dark-tint);
   }
+}
+
+.project-actions {
+  padding: 16px;
+  border-top: 1px solid var(--ion-color-light-shade);
+  background: var(--ion-color-step-25);
 }
 </style>
