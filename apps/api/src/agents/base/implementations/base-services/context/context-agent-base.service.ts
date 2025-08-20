@@ -62,6 +62,11 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       // Extract user message from params
       const userMessage = this.extractUserMessage(params);
 
+      // Check for metadata-driven routing first
+      if (params.metadata?.context && params.metadata?.method) {
+        return await this.handleMetadataRouting(params.metadata, userMessage, params);
+      }
+
       // Check if this is a simple greeting request
       if (this.isGreeting(userMessage)) {
         const greeting = this.generatePersonalizedGreeting(agentName);
@@ -422,5 +427,356 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Handle metadata-driven routing for version management operations
+   */
+  private async handleMetadataRouting(metadata: any, userMessage: string, params: any): Promise<any> {
+    const agentName = this.getAgentName();
+    const agentType = this.getAgentType();
+
+    try {
+      // Extract userId from params
+      const userId = this.extractUserId(params);
+
+      // Route based on context
+      switch (metadata.context) {
+        case 'deliverable':
+          return await this.handleDeliverableContext(metadata, userMessage, userId, agentName, agentType);
+        
+        case 'project':
+          return await this.handleProjectContext(metadata, userMessage, userId, agentName, agentType);
+        
+        case 'conversation':
+        default:
+          // Fall back to normal conversation processing
+          return await this.processRegularConversation(userMessage, params, agentName, agentType);
+      }
+    } catch (error) {
+      this.contextLogger.error('Metadata routing failed:', error);
+      return {
+        success: false,
+        response: `I encountered an error processing your ${metadata.context} request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        metadata: {
+          agentName,
+          agentType,
+          error: true,
+          context: metadata.context,
+          method: metadata.method,
+          processedAt: new Date().toISOString(),
+        },
+      };
+    }
+  }
+
+  /**
+   * Handle deliverable context operations
+   */
+  private async handleDeliverableContext(
+    metadata: any,
+    userMessage: string,
+    userId: string,
+    agentName: string,
+    agentType: string,
+  ): Promise<any> {
+    if (!this.deliverableVersionsService) {
+      return {
+        success: false,
+        response: 'Deliverable version management is not available for this agent',
+        metadata: { agentName, agentType, error: true },
+      };
+    }
+
+    switch (metadata.method) {
+      case 'delete':
+        return await this.handleVersionDeletion(metadata, userId, agentName, agentType);
+      
+      case 'newVersion':
+        return await this.handleVersionCreation(metadata, userMessage, userId, agentName, agentType);
+      
+      case 'merge':
+        return await this.handleVersionMerge(metadata, userMessage, userId, agentName, agentType);
+      
+      case 'create':
+        return await this.handleNewDeliverableCreation(metadata, userMessage, userId, agentName, agentType);
+      
+      default:
+        return {
+          success: false,
+          response: `I don't understand the deliverable operation "${metadata.method}". I can help with delete, newVersion, merge, or create operations.`,
+          metadata: { agentName, agentType, error: true, unknownMethod: metadata.method },
+        };
+    }
+  }
+
+  /**
+   * Handle version deletion
+   */
+  private async handleVersionDeletion(metadata: any, userId: string, agentName: string, agentType: string): Promise<any> {
+    if (!metadata.versionIds || !Array.isArray(metadata.versionIds) || metadata.versionIds.length === 0) {
+      return {
+        success: false,
+        response: 'I need version IDs to delete. Please specify which versions you want me to delete.',
+        metadata: { agentName, agentType, error: true },
+      };
+    }
+
+    try {
+      const deleteResults = await Promise.all(
+        metadata.versionIds.map((versionId: string) => 
+          this.deliverableVersionsService!.deleteVersion(versionId, userId)
+        )
+      );
+
+      const successCount = deleteResults.filter(r => r.success).length;
+      const failureCount = deleteResults.length - successCount;
+
+      if (failureCount === 0) {
+        return {
+          success: true,
+          response: `I've successfully deleted ${successCount} version${successCount > 1 ? 's' : ''}.`,
+          metadata: { agentName, agentType, deletedVersions: metadata.versionIds },
+        };
+      } else {
+        const failedVersions = deleteResults
+          .map((result, index) => ({ result, versionId: metadata.versionIds[index] }))
+          .filter(item => !item.result.success)
+          .map(item => `${item.versionId}: ${item.result.message}`);
+
+        return {
+          success: false,
+          response: `I could delete ${successCount} version${successCount > 1 ? 's' : ''}, but ${failureCount} failed: ${failedVersions.join(', ')}`,
+          metadata: { agentName, agentType, partialSuccess: true, failures: failedVersions },
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        response: `I encountered an error while deleting versions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        metadata: { agentName, agentType, error: true },
+      };
+    }
+  }
+
+  /**
+   * Handle version creation from task
+   */
+  private async handleVersionCreation(metadata: any, userMessage: string, userId: string, agentName: string, agentType: string): Promise<any> {
+    if (!metadata.deliverableId) {
+      return {
+        success: false,
+        response: 'I need a deliverable ID to create a new version.',
+        metadata: { agentName, agentType, error: true },
+      };
+    }
+
+    try {
+      const newVersion = await this.deliverableVersionsService!.createVersionFromTask(
+        metadata.deliverableId,
+        userMessage,
+        userId,
+        metadata.baseVersionId
+      );
+
+      return {
+        success: true,
+        response: `I've created version ${newVersion.versionNumber} with your requested changes.`,
+        metadata: { 
+          agentName, 
+          agentType, 
+          newVersionId: newVersion.id,
+          versionNumber: newVersion.versionNumber,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        response: `I couldn't create the new version: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        metadata: { agentName, agentType, error: true },
+      };
+    }
+  }
+
+  /**
+   * Handle version merging
+   */
+  private async handleVersionMerge(metadata: any, userMessage: string, userId: string, agentName: string, agentType: string): Promise<any> {
+    if (!metadata.deliverableId || !metadata.versionIds || !Array.isArray(metadata.versionIds) || metadata.versionIds.length < 2) {
+      return {
+        success: false,
+        response: 'I need a deliverable ID and at least 2 version IDs to merge versions.',
+        metadata: { agentName, agentType, error: true },
+      };
+    }
+
+    try {
+      const mergeResult = await this.deliverableVersionsService!.mergeVersions(
+        metadata.deliverableId,
+        metadata.versionIds,
+        userMessage,
+        userId
+      );
+
+      let response = `I've created version ${mergeResult.newVersion.versionNumber} by merging ${metadata.versionIds.length} versions.`;
+      
+      if (mergeResult.conflictSummary) {
+        response += ` ${mergeResult.conflictSummary}`;
+      }
+
+      return {
+        success: true,
+        response,
+        metadata: { 
+          agentName, 
+          agentType, 
+          newVersionId: mergeResult.newVersion.id,
+          versionNumber: mergeResult.newVersion.versionNumber,
+          mergedVersions: metadata.versionIds,
+          conflictSummary: mergeResult.conflictSummary,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        response: `I couldn't merge the versions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        metadata: { agentName, agentType, error: true },
+      };
+    }
+  }
+
+  /**
+   * Handle new deliverable creation
+   */
+  private async handleNewDeliverableCreation(metadata: any, userMessage: string, userId: string, agentName: string, agentType: string): Promise<any> {
+    if (!this.deliverablesService) {
+      return {
+        success: false,
+        response: 'Deliverable creation is not available for this agent',
+        metadata: { agentName, agentType, error: true },
+      };
+    }
+
+    try {
+      // Extract title from the user's prompt (simple heuristic)
+      const title = this.extractTitleFromPrompt(userMessage) || 'New Deliverable';
+      
+      // For now, use the user's prompt as initial content
+      // TODO: Generate content using agent's LLM processing
+      const initialContent = userMessage;
+      
+      // Create the deliverable with the user's prompt as initial content
+      const createDeliverableDto = {
+        title,
+        type: metadata.deliverableType || 'document',
+        conversationId: metadata.conversationId, // Will be provided by frontend
+        initialContent,
+        initialFormat: metadata.deliverableFormat || 'markdown',
+        initialCreationType: 'conversation_task' as any, // TODO: Import proper enum
+        initialMetadata: {
+          agentName,
+          agentType,
+          originalPrompt: userMessage,
+          createdAt: new Date().toISOString(),
+        },
+      };
+
+      const newDeliverable = await this.deliverablesService!.create(createDeliverableDto, userId);
+
+      return {
+        success: true,
+        response: `I've created a new deliverable: "${title}". You can find it in your deliverables list.`,
+        metadata: { 
+          agentName, 
+          agentType, 
+          deliverableId: newDeliverable.id,
+          deliverableTitle: title,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        response: `I couldn't create the deliverable: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        metadata: { agentName, agentType, error: true },
+      };
+    }
+  }
+
+  /**
+   * Extract a title from the user's prompt
+   */
+  private extractTitleFromPrompt(prompt: string): string {
+    // Simple heuristic to extract title from prompts like:
+    // "Write a blog post about AI trends" -> "Blog Post About AI Trends"
+    // "Create a market analysis" -> "Market Analysis"
+    
+    const cleanPrompt = prompt.trim();
+    
+    // Remove common prefixes
+    let title = cleanPrompt
+      .replace(/^(write|create|draft|generate|make|build)\s+(a|an|the)?\s*/i, '')
+      .replace(/^(please\s+)?(can\s+you\s+)?(help\s+me\s+)?/i, '');
+    
+    // Capitalize first letter of each word
+    title = title.replace(/\b\w/g, l => l.toUpperCase());
+    
+    // Limit length
+    if (title.length > 100) {
+      title = title.substring(0, 97) + '...';
+    }
+    
+    return title || 'New Deliverable';
+  }
+
+  /**
+   * Handle project context operations
+   */
+  private async handleProjectContext(metadata: any, userMessage: string, userId: string, agentName: string, agentType: string): Promise<any> {
+    // TODO: Implement project context operations
+    return {
+      success: false,
+      response: 'Project operations are not yet implemented.',
+      metadata: { agentName, agentType, notImplemented: true },
+    };
+  }
+
+  /**
+   * Process regular conversation (fallback for conversation context or no metadata)
+   */
+  private async processRegularConversation(userMessage: string, params: any, agentName: string, agentType: string): Promise<any> {
+    // Continue with existing conversation processing logic
+    if (!this.contextData) {
+      return this.processWithoutContext('process', params, agentName, agentType);
+    }
+
+    // Process with LLM using context
+    const systemPrompt = this.buildSystemPrompt(agentName, agentType);
+    const conversationHistory = params.conversationHistory || [];
+    
+    if (conversationHistory.length > 0) {
+      const formattedHistory = conversationHistory.map((msg: any) => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: msg.content,
+      }));
+
+      return await this.services.llmService.generateResponseWithHistory(
+        systemPrompt,
+        formattedHistory,
+        userMessage
+      );
+    } else {
+      return await this.services.llmService.generateResponse(
+        systemPrompt,
+        userMessage
+      );
+    }
+  }
+
+  /**
+   * Extract user ID from params
+   */
+  private extractUserId(params: any): string {
+    // Try various possible locations for userId
+    return params.userId || params.user?.id || params.user?.sub || params.currentUser?.id || 'unknown';
   }
 }

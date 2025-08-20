@@ -173,7 +173,7 @@ export class DeliverableVersionsController {
   async deleteVersion(
     @Param('versionId', ParseUUIDPipe) versionId: string,
     @Req() req: any,
-  ): Promise<void> {
+  ): Promise<{ success: boolean; message: string }> {
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
       throw new Error('User not authenticated');

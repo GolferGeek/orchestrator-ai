@@ -305,6 +305,13 @@
         </div>
       </ion-content>
     </ion-modal>
+
+    <!-- New Deliverable Dialog -->
+    <NewDeliverableDialog
+      :is-open="showNewDeliverableDialog"
+      @dismiss="showNewDeliverableDialog = false"
+      @created="handleDeliverableCreated"
+    />
   </ion-page>
 </template>
 
@@ -361,6 +368,7 @@ import { useRouter } from 'vue-router';
 import { useDeliverables } from '@/composables/useDeliverables';
 import { DeliverableType, type Deliverable, type DeliverableSearchResult } from '@/services/deliverablesService';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import NewDeliverableDialog from '@/components/NewDeliverableDialog.vue';
 
 const router = useRouter();
 const deliverables = useDeliverables();
@@ -508,8 +516,16 @@ const loadMoreDeliverables = async () => {
   }
 };
 
+const showNewDeliverableDialog = ref(false);
+
 const createNewDeliverable = () => {
-  deliverables.startCreating();
+  showNewDeliverableDialog.value = true;
+};
+
+const handleDeliverableCreated = (deliverableId: string) => {
+  // Refresh the deliverables list
+  loadDeliverables();
+  showNewDeliverableDialog.value = false;
 };
 
 const viewDeliverable = async (deliverable: any) => {

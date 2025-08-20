@@ -7,6 +7,8 @@ import {
 import { SupabaseService } from '../supabase/supabase.service';
 import {
   CreateVersionDto,
+  DeliverableVersionCreationType,
+  DeliverableFormat,
 } from './dto';
 import {
   DeliverableVersion,
@@ -269,35 +271,23 @@ export class DeliverableVersionsService {
   }
 
   /**
-   * Delete a specific version
+   * Delete a specific version (cannot delete current version)
    */
   async deleteVersion(
     versionId: string,
     userId: string,
-  ): Promise<void> {
+  ): Promise<{ success: boolean; message: string }> {
     this.logger.log(`Deleting version: ${versionId} for user: ${userId}`);
 
     try {
       // Get the version and verify ownership
       const version = await this.getVersion(versionId, userId);
 
-      // Check if this is the current version
+      // Prevent deletion of current version (as per PRD requirement)
       if (version.isCurrentVersion) {
-        // Get all versions for this deliverable
-        const allVersions = await this.getVersionHistory(version.deliverableId, userId);
-        
-        if (allVersions.length === 1) {
-          throw new BadRequestException('Cannot delete the only version of a deliverable');
-        }
-
-        // Set the previous version as current
-        const previousVersion = allVersions
-          .filter(v => v.id !== versionId)
-          .sort((a, b) => b.versionNumber - a.versionNumber)[0];
-
-        if (previousVersion) {
-          await this.setCurrentVersion(previousVersion.id, userId);
-        }
+        const message = 'Cannot delete the current version. Please set a different version as current first.';
+        this.logger.warn(`Delete blocked: ${message} (versionId: ${versionId})`);
+        return { success: false, message };
       }
 
       // Delete the version
@@ -312,7 +302,9 @@ export class DeliverableVersionsService {
         throw new BadRequestException(`Failed to delete version: ${error.message}`);
       }
 
-      this.logger.log(`Version deleted successfully: ${versionId}`);
+      const successMessage = `Version ${version.versionNumber} deleted successfully`;
+      this.logger.log(`${successMessage}: ${versionId}`);
+      return { success: true, message: successMessage };
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -322,6 +314,124 @@ export class DeliverableVersionsService {
       }
       this.logger.error('Unexpected error deleting version:', error);
       throw new BadRequestException('Failed to delete version');
+    }
+  }
+
+  /**
+   * Merge multiple versions into a new version using LLM
+   */
+  async mergeVersions(
+    deliverableId: string,
+    versionIds: string[],
+    mergePrompt: string,
+    userId: string,
+  ): Promise<{ newVersion: DeliverableVersion; conflictSummary?: string }> {
+    this.logger.log(`Merging versions: ${versionIds.join(', ')} for deliverable: ${deliverableId}`);
+
+    try {
+      // Verify deliverable ownership
+      await this.verifyDeliverableOwnership(deliverableId, userId);
+
+      // Validate that we have at least 2 versions to merge
+      if (versionIds.length < 2) {
+        throw new BadRequestException('At least 2 versions are required for merging');
+      }
+
+      // Get all versions to merge and verify they exist and belong to the deliverable
+      const versions = await Promise.all(
+        versionIds.map(async (versionId) => {
+          const version = await this.getVersion(versionId, userId);
+          if (version.deliverableId !== deliverableId) {
+            throw new BadRequestException(`Version ${versionId} does not belong to deliverable ${deliverableId}`);
+          }
+          return version;
+        })
+      );
+
+      // TODO: Integrate with LLM service for intelligent merging
+      // For now, implement a simple concatenation with conflict detection
+      const mergedContent = await this.performLLMMerge(versions, mergePrompt);
+      
+      // Create new version with merged content
+      const createVersionDto: CreateVersionDto = {
+        content: mergedContent.content,
+        format: versions[0]?.format || this.getMostCommonFormat(versions), // Use format from first version or most common
+        createdByType: DeliverableVersionCreationType.CONVERSATION_MERGE,
+        metadata: {
+          mergedFromVersions: versionIds,
+          mergePrompt: mergePrompt,
+          mergedAt: new Date().toISOString(),
+        },
+      };
+
+      const newVersion = await this.createVersion(deliverableId, createVersionDto, userId);
+
+      return {
+        newVersion,
+        conflictSummary: mergedContent.conflictSummary,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.logger.error('Unexpected error merging versions:', error);
+      throw new BadRequestException('Failed to merge versions');
+    }
+  }
+
+  /**
+   * Create a new version from a task-based prompt
+   */
+  async createVersionFromTask(
+    deliverableId: string,
+    taskPrompt: string,
+    userId: string,
+    baseVersionId?: string,
+  ): Promise<DeliverableVersion> {
+    this.logger.log(`Creating version from task for deliverable: ${deliverableId}`);
+
+    try {
+      // Verify deliverable ownership
+      await this.verifyDeliverableOwnership(deliverableId, userId);
+
+      // Get base version (current version if not specified)
+      const baseVersion = baseVersionId 
+        ? await this.getVersion(baseVersionId, userId)
+        : await this.getCurrentVersion(deliverableId, userId);
+
+      if (!baseVersion) {
+        throw new BadRequestException('No base version found for task-based modification');
+      }
+
+      // TODO: Integrate with LLM service for task-based content modification
+      // For now, append the task prompt as a comment
+      const modifiedContent = await this.performTaskBasedModification(baseVersion.content || '', taskPrompt);
+
+      // Create new version with modified content
+      const createVersionDto: CreateVersionDto = {
+        content: modifiedContent,
+        format: baseVersion.format || this.detectFormatFromContent(modifiedContent),
+        createdByType: DeliverableVersionCreationType.CONVERSATION_TASK,
+        metadata: {
+          baseVersionId: baseVersion.id,
+          taskPrompt: taskPrompt,
+          modifiedAt: new Date().toISOString(),
+        },
+      };
+
+      return await this.createVersion(deliverableId, createVersionDto, userId);
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.logger.error('Unexpected error creating version from task:', error);
+      throw new BadRequestException('Failed to create version from task');
     }
   }
 
@@ -413,5 +523,96 @@ export class DeliverableVersionsService {
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
     };
+  }
+
+  /**
+   * Perform LLM-based merge of multiple version contents
+   * TODO: Integrate with actual LLM service
+   */
+  private async performLLMMerge(
+    versions: DeliverableVersion[],
+    mergePrompt: string,
+  ): Promise<{ content: string; conflictSummary?: string }> {
+    // Placeholder implementation - will be replaced with actual LLM integration
+    const versionContents = versions.map((v, i) => 
+      `=== VERSION ${v.versionNumber} ===\n${v.content || ''}`
+    ).join('\n\n');
+
+    const mergedContent = `${versionContents}\n\n=== MERGE INSTRUCTIONS ===\n${mergePrompt}\n\n[TODO: This will be replaced with LLM-generated merged content]`;
+
+    return {
+      content: mergedContent,
+      conflictSummary: `Merged ${versions.length} versions with prompt: "${mergePrompt}". LLM integration pending.`,
+    };
+  }
+
+  /**
+   * Perform task-based content modification using LLM
+   * TODO: Integrate with actual LLM service
+   */
+  private async performTaskBasedModification(
+    baseContent: string,
+    taskPrompt: string,
+  ): Promise<string> {
+    // Placeholder implementation - will be replaced with actual LLM integration
+    return `${baseContent}\n\n=== TASK MODIFICATION ===\n${taskPrompt}\n\n[TODO: This will be replaced with LLM-modified content]`;
+  }
+
+  /**
+   * Detect format from content using simple heuristics
+   */
+  private detectFormatFromContent(content: string): DeliverableFormat {
+    if (!content) return DeliverableFormat.TEXT;
+    
+    const trimmedContent = content.trim();
+    
+    // Check for JSON
+    if ((trimmedContent.startsWith('{') && trimmedContent.endsWith('}')) ||
+        (trimmedContent.startsWith('[') && trimmedContent.endsWith(']'))) {
+      try {
+        JSON.parse(trimmedContent);
+        return DeliverableFormat.JSON;
+      } catch {
+        // Not valid JSON, continue checking
+      }
+    }
+    
+    // Check for HTML
+    if (trimmedContent.includes('<html') || 
+        trimmedContent.includes('<!DOCTYPE') ||
+        (trimmedContent.includes('<') && trimmedContent.includes('>'))) {
+      return DeliverableFormat.HTML;
+    }
+    
+    // Check for Markdown
+    if (content.includes('```') || 
+        content.includes('#') || 
+        content.includes('**') || 
+        content.includes('__') ||
+        content.includes('[') && content.includes('](')) {
+      return DeliverableFormat.MARKDOWN;
+    }
+    
+    // Default to plain text
+    return DeliverableFormat.TEXT;
+  }
+
+  /**
+   * Get the most common format from a list of versions
+   */
+  private getMostCommonFormat(versions: DeliverableVersion[]): DeliverableFormat {
+    if (versions.length === 0) return DeliverableFormat.TEXT;
+    
+    const formatCounts = versions.reduce((acc, v) => {
+      if (v.format) {
+        acc[v.format] = (acc[v.format] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const mostCommon = Object.entries(formatCounts)
+      .sort(([,a], [,b]) => b - a)[0]?.[0];
+      
+    return (mostCommon as DeliverableFormat) || DeliverableFormat.TEXT;
   }
 }

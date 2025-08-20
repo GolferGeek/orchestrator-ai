@@ -35,6 +35,8 @@ export enum DeliverableVersionCreationType {
   MANUAL_EDIT = 'manual_edit',
   AI_ENHANCEMENT = 'ai_enhancement',
   USER_REQUEST = 'user_request',
+  CONVERSATION_TASK = 'conversation_task',
+  CONVERSATION_MERGE = 'conversation_merge',
 }
 
 // Custom validator to ensure at least one of conversationId or projectStepId is provided

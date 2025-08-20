@@ -19,6 +19,10 @@
         <ion-button fill="clear" size="small" @click="showVersionHistory = !showVersionHistory">
           <ion-icon :icon="timeOutline" />
         </ion-button>
+        <ion-button fill="clear" size="small" @click="showVersionManagement = !showVersionManagement">
+          <ion-icon :icon="settingsOutline" />
+          Manage
+        </ion-button>
         <ion-button 
           v-if="!isEditing"
           fill="clear" 
@@ -136,6 +140,15 @@
         </div>
       </ion-accordion>
     </ion-accordion-group>
+
+    <!-- Version Management Panel -->
+    <VersionManagementPanel
+      v-if="showVersionManagement"
+      :deliverable-id="actualDeliverableId"
+      :versions="versions"
+      :current-version-id="currentVersion?.id"
+      class="version-management"
+    />
 
     <!-- Content Display -->
     <div class="content-section">
@@ -383,11 +396,13 @@ import {
   codeSlashOutline,
   chatboxOutline,
   removeOutline,
+  settingsOutline,
 } from 'ionicons/icons';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import TaskRating from './TaskRating.vue';
+import VersionManagementPanel from './VersionManagementPanel.vue';
 import type { Deliverable, DeliverableVersion } from '@/types/deliverables';
 
 interface Props {
@@ -431,6 +446,7 @@ const displayTitle = computed(() => {
 
 // Reactive state
 const showVersionHistory = ref(false);
+const showVersionManagement = ref(false);
 const selectedVersion = ref<DeliverableVersion | null>(null);
 const selectedVersionIndex = ref(0);
 const isEditing = ref(false);
