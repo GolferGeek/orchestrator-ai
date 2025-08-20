@@ -319,11 +319,26 @@ watch(() => backendDeliverable.value, (newVal, oldVal) => {
       new: newVal?.title,
       deliverableId: backendDeliverableId.value
     });
+    
+    // Emit deliverable-created event when a new deliverable is detected
+    if (newVal && !oldVal) {
+      console.log(`🎭 Emitting deliverable-created event for ${newVal.title}`);
+      emit('deliverable-created', newVal);
+    } else if (newVal && oldVal && newVal.id !== oldVal.id) {
+      // Different deliverable
+      console.log(`🎭 Emitting deliverable-created event for different deliverable ${newVal.title}`);
+      emit('deliverable-created', newVal);
+    }
   }
 }, { immediate: true });
 
-// Note: We only rely on backend-created deliverables that are already linked to messages
-// No frontend deliverable creation or emission needed
+// Watch for deliverable ID being added to message metadata (from task completion)
+watch(() => backendDeliverableId.value, (newId, oldId) => {
+  if (newId && !oldId) {
+    console.log(`🎯 Deliverable ID added to message ${props.message.id}: ${newId}`);
+    // The backendDeliverable watcher will handle the emission when the deliverable loads
+  }
+}, { immediate: true });
 </script>
 
 <style scoped>

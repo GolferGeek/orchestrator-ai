@@ -590,6 +590,32 @@ export const useAgentChatStore = defineStore('agentChat', {
           }
         }
 
+        // Check if a deliverable was created and handle UI updates
+        if (completedTask.deliverableId) {
+          console.log(`🎭 DEBUG: Task ${taskId} created deliverable ${completedTask.deliverableId}`);
+          
+          try {
+            // Load the deliverable and trigger UI updates
+            const { deliverablesService } = await import('@/services/deliverablesService');
+            const newDeliverable = await deliverablesService.getDeliverable(completedTask.deliverableId);
+            
+            // Add to store
+            const deliverablesStore = await import('@/stores/deliverablesStore').then(m => m.useDeliverablesStore());
+            deliverablesStore.addDeliverable(newDeliverable);
+            
+            // Update message with deliverable ID
+            existingMessage.deliverable_id = completedTask.deliverableId;
+            existingMessage.metadata = {
+              ...existingMessage.metadata,
+              deliverable_id: completedTask.deliverableId
+            };
+            
+            console.log(`🎭 DEBUG: Added deliverable ${completedTask.deliverableId} to message and store`);
+          } catch (error) {
+            console.warn('Failed to load newly created deliverable:', error);
+          }
+        }
+
         // Cleanup WebSocket subscriptions
         websocketHandler.unsubscribeFromTask(taskId);
         console.log(`🏁 DEBUG: WebSocket unsubscribed for task ${taskId}`);
