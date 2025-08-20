@@ -598,21 +598,41 @@ export const useAgentChatStore = defineStore('agentChat', {
             // Load the deliverable and trigger UI updates
             const { deliverablesService } = await import('@/services/deliverablesService');
             const newDeliverable = await deliverablesService.getDeliverable(completedTask.deliverableId);
+            console.log(`🎭 DEBUG: Loaded deliverable from service:`, newDeliverable);
             
             // Add to store
-            const deliverablesStore = await import('@/stores/deliverablesStore').then(m => m.useDeliverablesStore());
+            const { useDeliverablesStore } = await import('@/stores/deliverablesStore');
+            const deliverablesStore = useDeliverablesStore();
             deliverablesStore.addDeliverable(newDeliverable);
+            console.log(`🎭 DEBUG: Added deliverable to store`);
             
-            // Update message with deliverable ID
+            // Update message with deliverable ID - this should trigger AgentTaskItem watchers
             existingMessage.deliverable_id = completedTask.deliverableId;
             existingMessage.metadata = {
               ...existingMessage.metadata,
               deliverable_id: completedTask.deliverableId
             };
             
-            console.log(`🎭 DEBUG: Added deliverable ${completedTask.deliverableId} to message and store`);
+            console.log(`🎭 DEBUG: Updated message with deliverable ID ${completedTask.deliverableId}`);
+            
+            // Reload conversation deliverables to pick up the new one
+            await deliverablesStore.loadDeliverablesByConversation(conversationId);
+            console.log(`🎭 DEBUG: Reloaded conversation deliverables`);
+            
+            // Load deliverable versions
+            await deliverablesStore.loadDeliverableVersions(completedTask.deliverableId);
+            console.log(`🎭 DEBUG: Loaded versions for new deliverable`);
+            
+            // Force Vue reactivity by replacing the message again after deliverable update
+            const messageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
+            if (messageIndex >= 0) {
+              console.log(`🎭 DEBUG: Forcing Vue reactivity after deliverable update`);
+              const updatedMessage = { ...existingMessage };
+              conv.messages[messageIndex] = updatedMessage;
+            }
+            
           } catch (error) {
-            console.warn('Failed to load newly created deliverable:', error);
+            console.error('Failed to load newly created deliverable:', error);
           }
         }
 

@@ -339,6 +339,21 @@ watch(() => backendDeliverableId.value, (newId, oldId) => {
     // The backendDeliverable watcher will handle the emission when the deliverable loads
   }
 }, { immediate: true });
+
+// Debug: Watch message metadata changes
+watch(() => props.message.metadata, (newMetadata, oldMetadata) => {
+  console.log(`🔍 Message ${props.message.id} metadata changed:`, {
+    old: oldMetadata,
+    new: newMetadata,
+    hasDeliverableId: !!(newMetadata?.deliverable_id),
+    deliverableId: newMetadata?.deliverable_id
+  });
+}, { deep: true, immediate: true });
+
+// Debug: Watch message deliverable_id changes  
+watch(() => props.message.deliverable_id, (newId, oldId) => {
+  console.log(`🔍 Message ${props.message.id} deliverable_id changed: ${oldId} → ${newId}`);
+}, { immediate: true });
 </script>
 
 <style scoped>
