@@ -24,7 +24,10 @@
     "server:health": "curl -s http://localhost:9000/health && echo '' && curl -s http://localhost:9001",
     "prod:start": "echo '⚠️  prod:start is deprecated. Use: npm run server:start' && npm run server:start",
     "prod:stop": "echo '⚠️  prod:stop is deprecated. Use: npm run server:stop' && npm run server:stop",
-    "prod:status": "echo '⚠️  prod:status is deprecated. Use: npm run server:status' && npm run server:status"
+    "prod:status": "echo '⚠️  prod:status is deprecated. Use: npm run server:status' && npm run server:status",
+    "initiative:kickoff": "node scripts/kickoff-initiative.js",
+    "initiative:recipe": "node scripts/initiative-recipe.js | cat",
+    "initiative:archive": "node scripts/archive-initiative.js"
   },
   "devDependencies": {
     "@babel/plugin-proposal-class-properties": "^7.18.6",
