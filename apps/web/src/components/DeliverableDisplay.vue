@@ -364,6 +364,29 @@
         />
       </div>
     </div>
+    
+    <!-- Deliverable Actions Input -->
+    <div class="deliverable-actions">
+      <form @submit.prevent="submitDeliverablePrompt">
+        <ion-item>
+          <ion-textarea
+            v-model="deliverablePrompt"
+            placeholder='Enter instructions for this deliverable (e.g., "make the intro shorter", "fix the conclusion")...'
+            :rows="2"
+            class="deliverable-prompt-input"
+          />
+          <ion-button
+            slot="end"
+            type="submit"
+            :disabled="!deliverablePrompt.trim()"
+            fill="clear"
+            color="primary"
+          >
+            <ion-icon :icon="sendOutline" />
+          </ion-button>
+        </ion-item>
+      </form>
+    </div>
     </div>
   </div>
 </template>
@@ -397,6 +420,7 @@ import {
   chatboxOutline,
   removeOutline,
   settingsOutline,
+  sendOutline,
 } from 'ionicons/icons';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { marked } from 'marked';
@@ -453,6 +477,7 @@ const isEditing = ref(false);
 const editedContent = ref('');
 const editedTitle = ref('');
 const isSaving = ref(false);
+const deliverablePrompt = ref('');
 const contentTextarea = ref<any>(null);
 
 // Computed versions that reactively watches the store state
@@ -625,6 +650,32 @@ const cancelEditing = () => {
   isEditing.value = false;
   editedContent.value = '';
   editedTitle.value = '';
+};
+
+const submitDeliverablePrompt = async () => {
+  if (!deliverablePrompt.value.trim()) return;
+  
+  const content = deliverablePrompt.value.trim();
+  deliverablePrompt.value = '';
+  
+  try {
+    // Import the agent chat store and context store
+    const { useAgentChatStore } = await import('@/stores/agentChatStore');
+    const { useContextStore } = await import('@/stores/contextStore');
+    
+    const agentChatStore = useAgentChatStore();
+    const contextStore = useContextStore();
+    
+    // Set deliverable context
+    contextStore.setDeliverableContext(actualDeliverableId.value);
+    
+    // Send context-aware message
+    await agentChatStore.sendContextAwareMessage(content);
+  } catch (error) {
+    console.error('Failed to send deliverable prompt:', error);
+    // Restore the input text on error
+    deliverablePrompt.value = content;
+  }
 };
 
 const saveEdits = async () => {
@@ -1573,5 +1624,11 @@ html[data-theme="dark"] .rating-label {
 
 html[data-theme="dark"] .rating-context {
   color: #a0aec0;
+}
+
+.deliverable-actions {
+  padding: 16px;
+  border-top: 1px solid var(--ion-color-light-shade);
+  background: var(--ion-color-step-25);
 }
 </style>

@@ -97,8 +97,8 @@
           </div>
         </div>
 
-        <!-- Input Area -->
-        <div class="input-area">
+        <!-- Input Area (hidden when work product pane is showing) -->
+        <div class="input-area" v-if="!showWorkProductPane || !hasActiveWorkProduct">
           <form @submit.prevent="sendMessage">
             <ion-item>
               <ion-textarea
