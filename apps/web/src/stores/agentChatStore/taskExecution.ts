@@ -42,6 +42,7 @@ export class TaskExecutionService {
         llmSelection: options.llmSelection,
         executionMode: options.executionMode,
         taskId: options.taskId,
+        metadata: options.metadata, // Pass context metadata to backend
       }
     );
 

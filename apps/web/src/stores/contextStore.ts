@@ -1,0 +1,227 @@
+import { defineStore } from 'pinia';
+
+export type ContextType = 'conversation' | 'deliverable' | 'project';
+
+export interface ContextState {
+  activeContext: ContextType;
+  activeDeliverableId: string | null;
+  activeProjectId: string | null;
+  // Track which pane should show the prompt input
+  promptInputLocation: 'conversation' | 'deliverable' | 'project';
+}
+
+export interface ContextMetadata {
+  context: ContextType;
+  deliverableId?: string;
+  projectId?: string;
+  method?: string;
+  [key: string]: any;
+}
+
+/**
+ * Context Store - Manages active UI context for metadata-driven operations
+ * 
+ * This store tracks whether the user is currently working in:
+ * - Conversation context (general agent chat)
+ * - Deliverable context (working on a specific deliverable)
+ * - Project context (working on a specific project)
+ * 
+ * It also determines where the prompt input should appear and what metadata
+ * should be sent with tasks to enable proper backend routing.
+ */
+export const useContextStore = defineStore('context', {
+  state: (): ContextState => ({
+    activeContext: 'conversation',
+    activeDeliverableId: null,
+    activeProjectId: null,
+    promptInputLocation: 'conversation',
+  }),
+
+  getters: {
+    /**
+     * Get the current context metadata for task creation
+     */
+    contextMetadata(): ContextMetadata {
+      switch (this.activeContext) {
+        case 'deliverable':
+          return { 
+            context: 'deliverable', 
+            deliverableId: this.activeDeliverableId || undefined 
+          };
+
+        case 'project':
+          return { 
+            context: 'project', 
+            projectId: this.activeProjectId || undefined 
+          };
+
+        case 'conversation':
+        default:
+          return { context: 'conversation' };
+      }
+    },
+
+    /**
+     * Check if we're in deliverable context
+     */
+    isDeliverableContext(): boolean {
+      return this.activeContext === 'deliverable' && !!this.activeDeliverableId;
+    },
+
+    /**
+     * Check if we're in project context
+     */
+    isProjectContext(): boolean {
+      return this.activeContext === 'project' && !!this.activeProjectId;
+    },
+
+    /**
+     * Check if we're in conversation context
+     */
+    isConversationContext(): boolean {
+      return this.activeContext === 'conversation';
+    },
+
+    /**
+     * Get context display name for UI
+     */
+    contextDisplayName(): string {
+      switch (this.activeContext) {
+        case 'deliverable':
+          return this.activeDeliverableId ? `Deliverable ${this.activeDeliverableId.slice(0, 8)}...` : 'Deliverable';
+        case 'project':
+          return this.activeProjectId ? `Project ${this.activeProjectId.slice(0, 8)}...` : 'Project';
+        case 'conversation':
+        default:
+          return 'Conversation';
+      }
+    },
+  },
+
+  actions: {
+    /**
+     * Switch to conversation context
+     */
+    setConversationContext() {
+      this.activeContext = 'conversation';
+      this.activeDeliverableId = null;
+      this.activeProjectId = null;
+      this.promptInputLocation = 'conversation';
+    },
+
+    /**
+     * Switch to deliverable context
+     */
+    setDeliverableContext(deliverableId: string) {
+      this.activeContext = 'deliverable';
+      this.activeDeliverableId = deliverableId;
+      this.activeProjectId = null;
+      this.promptInputLocation = 'deliverable';
+    },
+
+    /**
+     * Switch to project context
+     */
+    setProjectContext(projectId: string) {
+      this.activeContext = 'project';
+      this.activeProjectId = projectId;
+      this.activeDeliverableId = null;
+      this.promptInputLocation = 'project';
+    },
+
+    /**
+     * Clear all context (return to conversation)
+     */
+    clearContext() {
+      this.setConversationContext();
+    },
+
+    /**
+     * Create task metadata for version deletion
+     */
+    createDeleteMetadata(versionIds: string[]): ContextMetadata {
+      if (!this.isDeliverableContext) {
+        throw new Error('Delete operation requires deliverable context');
+      }
+      
+      return {
+        ...this.contextMetadata,
+        method: 'delete',
+        versionIds,
+      };
+    },
+
+    /**
+     * Create task metadata for new version creation
+     */
+    createNewVersionMetadata(baseVersionId?: string): ContextMetadata {
+      if (!this.isDeliverableContext) {
+        throw new Error('New version operation requires deliverable context');
+      }
+      
+      const metadata: ContextMetadata = {
+        ...this.contextMetadata,
+        method: 'newVersion',
+      };
+
+      if (baseVersionId) {
+        metadata.baseVersionId = baseVersionId;
+      }
+
+      return metadata;
+    },
+
+    /**
+     * Create task metadata for version merging
+     */
+    createMergeMetadata(versionIds: string[]): ContextMetadata {
+      if (!this.isDeliverableContext) {
+        throw new Error('Merge operation requires deliverable context');
+      }
+      
+      if (versionIds.length < 2) {
+        throw new Error('Merge operation requires at least 2 versions');
+      }
+
+      return {
+        ...this.contextMetadata,
+        method: 'merge',
+        versionIds,
+      };
+    },
+
+    /**
+     * Create task metadata for new deliverable creation
+     */
+    createNewDeliverableMetadata(agentType: string, agentName: string): ContextMetadata {
+      return {
+        context: 'deliverable',
+        method: 'create',
+        agentType,
+        agentName,
+      };
+    },
+
+    /**
+     * Create task metadata for project operations
+     */
+    createProjectMetadata(method: string, additionalData?: Record<string, any>): ContextMetadata {
+      if (!this.isProjectContext) {
+        throw new Error('Project operation requires project context');
+      }
+
+      return {
+        ...this.contextMetadata,
+        method,
+        ...additionalData,
+      };
+    },
+
+    /**
+     * Get metadata for regular conversation
+     */
+    createConversationMetadata(): ContextMetadata {
+      return { context: 'conversation' };
+    },
+  },
+});

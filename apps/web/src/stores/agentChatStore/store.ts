@@ -5,6 +5,7 @@ import { useLLMStore } from '@/stores/llmStore';
 import { formatAgentName } from '@/utils/caseConverter';
 import tasksService from '@/services/tasksService';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { useContextStore } from '@/stores/contextStore';
 
 // Simple UUID v4 generator
 function generateUUID(): string {
@@ -363,6 +364,124 @@ export const useAgentChatStore = defineStore('agentChat', {
         if (conversation) {
           conversation.isSendingMessage = false;
         }
+      }
+    },
+
+    /**
+     * Send message with context metadata for version operations
+     */
+    async sendMessageWithContext(content: string, metadata: any) {
+      const activeConversation = this.getActiveConversation();
+      if (!activeConversation) {
+        console.error('No active conversation');
+        return;
+      }
+
+      // Set loading state
+      activeConversation.isSendingMessage = true;
+      activeConversation.error = undefined;
+
+      try {
+        let conversationId = activeConversation.id;
+
+        // Create conversation in backend if needed (same logic as sendMessage)
+        const hasOnlyInitialMessages = activeConversation.messages.length <= 1 && 
+          activeConversation.messages.every(msg => msg.metadata?.isWelcome);
+          
+        if (hasOnlyInitialMessages) {
+          const exists = await conversation.conversationExists(conversationId);
+          if (!exists) {
+            console.log('🔄 Creating new conversation in database...');
+            const backendId = await conversation.createConversation(activeConversation.agent);
+            conversationId = backendId;
+            activeConversation.id = conversationId;
+            this.activeConversationId = conversationId;
+            console.log('✅ Backend conversation created:', backendId);
+            
+            const conversationsStore = useAgentConversationsStore();
+            conversationsStore.addExistingConversation({
+              id: conversationId,
+              agentName: activeConversation.agent.name,
+              agentType: activeConversation.agent.type,
+              startedAt: new Date(),
+              lastActiveAt: new Date(),
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              taskCount: 0,
+              completedTasks: 0,
+              failedTasks: 0,
+              activeTasks: 0,
+            });
+          }
+        }
+
+        // Add user message to conversation
+        const userMessage = messageFormatting.createUserMessage(content);
+        activeConversation.messages.push(userMessage);
+
+        // Get execution mode and user preferences
+        const userPreferences = useUserPreferencesStore();
+        const effectiveMode = taskExecution.determineExecutionMode(activeConversation, userPreferences.preferences);
+        
+        // For WebSocket mode, generate task ID early
+        if (effectiveMode === 'websocket') {
+          preGeneratedTaskId = generateUUID();
+          console.log(`🔗 Pre-generated task ID for WebSocket mode: ${preGeneratedTaskId}`);
+        }
+
+        // Prepare task execution options with context metadata
+        const taskOptions = {
+          method: 'process',
+          prompt: content,
+          conversationId: conversationId,
+          conversationHistory: this.buildConversationHistory(activeConversation),
+          llmSelection: this.getLLMSelection(),
+          executionMode: effectiveMode,
+          agentType: activeConversation.agent.type,
+          agentName: activeConversation.agent.name,
+          taskId: preGeneratedTaskId,
+          metadata: metadata, // Include context metadata
+        };
+
+        // Execute task using service
+        await taskExecution.createAndExecuteTask(taskOptions, {
+          onPlaceholder: (taskId) => this.createPlaceholderMessage(conversationId, taskId),
+          onCompletion: (taskId) => this.handleTaskCompletion(conversationId, taskId),
+          onWorkflowStep: (convId, taskId, stepEvent) => this.handleWorkflowStepUpdate(convId, taskId, stepEvent),
+          onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
+          onImmediateResult: (convId, task) => this.createResponseMessage(convId, task),
+        });
+
+      } catch (error) {
+        const conversation = this.getActiveConversation();
+        if (conversation) {
+          conversation.error = error instanceof Error ? error.message : 'Failed to send message';
+        }
+        console.error('Error sending message with context:', error);
+      } finally {
+        // Clear loading state
+        const conversation = this.getActiveConversation();
+        if (conversation) {
+          conversation.isSendingMessage = false;
+        }
+      }
+    },
+
+    /**
+     * Send message with automatic context detection
+     */
+    async sendContextAwareMessage(content: string) {
+      const contextStore = useContextStore();
+      const metadata = contextStore.contextMetadata;
+      
+      console.log('🎯 Sending context-aware message:', { content, metadata });
+      
+      if (metadata.context === 'conversation') {
+        // Use regular sendMessage for conversation context
+        return await this.sendMessage(content);
+      } else {
+        // Use sendMessageWithContext for deliverable/project contexts
+        return await this.sendMessageWithContext(content, metadata);
       }
     },
 

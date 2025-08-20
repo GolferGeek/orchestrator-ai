@@ -67,6 +67,7 @@ export interface TaskExecutionOptions {
   agentType: string;
   agentName: string;
   taskId?: string;
+  metadata?: any; // Context metadata for version operations
 }
 
 export interface DeliverableOptions {
