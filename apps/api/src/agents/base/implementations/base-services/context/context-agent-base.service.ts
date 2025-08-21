@@ -63,7 +63,17 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       const userMessage = this.extractUserMessage(params);
 
       // Check for metadata-driven routing first
+      this.contextLogger.debug(`🎯 Context agent executeTask - checking metadata:`, {
+        hasMetadata: !!params.metadata,
+        metadata: params.metadata,
+        hasContext: !!params.metadata?.context,
+        hasMethod: !!params.metadata?.method,
+        context: params.metadata?.context,
+        method: params.metadata?.method
+      });
+      
       if (params.metadata?.context && params.metadata?.method) {
+        this.contextLogger.debug(`🎯 Routing to metadata handler for ${params.metadata.context}/${params.metadata.method}`);
         return await this.handleMetadataRouting(params.metadata, userMessage, params);
       }
 

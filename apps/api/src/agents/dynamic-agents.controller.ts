@@ -236,6 +236,7 @@ export class DynamicAgentsController {
         authToken: token,
         llmSelection: normalizedTaskRequest.llmSelection,
         conversationHistory: normalizedTaskRequest.conversationHistory || [],
+        metadata: normalizedTaskRequest.metadata, // Pass metadata for deliverable operations
       };
 
       this.logger.debug(
