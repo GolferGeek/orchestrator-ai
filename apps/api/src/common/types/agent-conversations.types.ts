@@ -111,6 +111,7 @@ export interface CreateTaskDto {
     taskId?: string;
     metadata?: Record<string, any>;
   }>; // Conversation history array passed from frontend
+  metadata?: Record<string, any>; // Context metadata for deliverable/project operations
 }
 
 export interface UpdateTaskDto {
