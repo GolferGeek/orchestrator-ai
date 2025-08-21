@@ -616,6 +616,18 @@ export abstract class A2AAgentBaseService
         result.enhancedFrom = enhanceDeliverableId;
       }
     }
+    
+    // If version was created (check result metadata), promote to top level
+    if (typeof result === 'object' && result !== null && result.metadata) {
+      if (result.metadata.newVersionId) {
+        result.newVersionId = result.metadata.newVersionId;
+        result.versionNumber = result.metadata.versionNumber;
+        // Ensure deliverable ID is also available for version operations
+        if (!result.deliverableId && enhanceDeliverableId) {
+          result.deliverableId = enhanceDeliverableId;
+        }
+      }
+    }
 
     await this.taskStatusService.completeTask(taskId, userId, result);
 
