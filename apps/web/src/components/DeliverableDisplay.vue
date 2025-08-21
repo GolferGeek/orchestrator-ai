@@ -666,11 +666,23 @@ const submitDeliverablePrompt = async () => {
     const agentChatStore = useAgentChatStore();
     const contextStore = useContextStore();
     
-    // Set deliverable context
+    // Set deliverable context first
     contextStore.setDeliverableContext(actualDeliverableId.value);
     
-    // Send context-aware message
-    await agentChatStore.sendContextAwareMessage(content);
+    // Get the currently displayed version ID to base the new version on
+    const baseVersionId = displayVersion.value?.id;
+    if (!baseVersionId) {
+      console.error('No current version found for deliverable');
+      return;
+    }
+    
+    console.log(`🎯 Creating new version based on version ${baseVersionId} for deliverable ${actualDeliverableId.value}`);
+    
+    // Create metadata for new version creation with base version ID
+    const metadata = contextStore.createNewVersionMetadata(baseVersionId);
+    
+    // Send message with version creation context
+    await agentChatStore.sendMessageWithContext(content, metadata);
   } catch (error) {
     console.error('Failed to send deliverable prompt:', error);
     // Restore the input text on error

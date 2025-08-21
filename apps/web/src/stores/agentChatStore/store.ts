@@ -635,6 +635,44 @@ export const useAgentChatStore = defineStore('agentChat', {
             console.error('Failed to load newly created deliverable:', error);
           }
         }
+        
+        // Check if a new version was created (different from new deliverable)
+        if (completedTask.newVersionId) {
+          console.log(`🎭 DEBUG: Task ${taskId} created new version ${completedTask.newVersionId}`);
+          
+          try {
+            // For version creation, we need to reload the versions and update the UI
+            const { useDeliverablesStore } = await import('@/stores/deliverablesStore');
+            const deliverablesStore = useDeliverablesStore();
+            
+            // Find the deliverable ID from the version or existing message
+            const deliverableId = completedTask.deliverableId || existingMessage.deliverable_id || existingMessage.metadata?.deliverable_id;
+            
+            if (deliverableId) {
+              // Reload versions to pick up the new version
+              await deliverablesStore.loadDeliverableVersions(deliverableId);
+              console.log(`🎭 DEBUG: Reloaded versions after new version creation`);
+              
+              // Update message to indicate version creation (but keep existing deliverable_id)
+              existingMessage.metadata = {
+                ...existingMessage.metadata,
+                newVersionId: completedTask.newVersionId,
+                versionNumber: completedTask.versionNumber
+              };
+              
+              // Force Vue reactivity
+              const messageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
+              if (messageIndex >= 0) {
+                console.log(`🎭 DEBUG: Forcing Vue reactivity after version update`);
+                const updatedMessage = { ...existingMessage };
+                conv.messages[messageIndex] = updatedMessage;
+              }
+            }
+            
+          } catch (error) {
+            console.error('Failed to handle new version creation:', error);
+          }
+        }
 
         // Cleanup WebSocket subscriptions
         websocketHandler.unsubscribeFromTask(taskId);
