@@ -200,6 +200,19 @@ export class MessageFormattingService {
   }
 
   /**
+   * Create a user message
+   */
+  createUserMessage(content: string): AgentChatMessage {
+    return {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content,
+      timestamp: new Date(),
+      metadata: {}
+    };
+  }
+
+  /**
    * Create a placeholder message for ongoing tasks
    */
   createPlaceholderMessage(taskId: string): AgentChatMessage {
