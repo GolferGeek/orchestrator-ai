@@ -109,33 +109,77 @@ export class DeliverablesService {
     );
 
     try {
-      const { data, error } = await this.supabaseService
+      // Build query with deliverable and version data
+      let query = this.supabaseService
         .getServiceClient()
-        .rpc('search_deliverables_with_versions', {
-          search_user_id: userId,
-          search_term: filters.search || null,
-          filter_type: filters.type || null,
-          filter_format: filters.format || null,
-          latest_only: filters.latestOnly !== false,
-          limit_count: filters.limit || 50,
-          offset_count: filters.offset || 0,
-        });
+        .from(getTableName('deliverables'))
+        .select(`
+          *,
+          deliverable_versions!deliverable_versions_deliverable_id_fkey(
+            id,
+            version_number,
+            content,
+            format,
+            metadata,
+            created_at,
+            is_current_version
+          )
+        `)
+        .eq('user_id', userId);
+
+      // Add search filter if provided
+      if (filters.search) {
+        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      }
+
+      // Add type filter if provided
+      if (filters.type) {
+        query = query.eq('type', filters.type);
+      }
+
+      // Add ordering, limit, and offset
+      query = query
+        .order('created_at', { ascending: false })
+        .range(filters.offset || 0, (filters.offset || 0) + (filters.limit || 50) - 1);
+
+      const { data, error } = await query;
 
       if (error) {
-        this.logger.error('Failed to search deliverables:', error);
+        this.logger.error('Failed to find deliverables:', error);
         throw new BadRequestException(
-          `Failed to search deliverables: ${error.message}`,
+          `Failed to find deliverables: ${error.message}`,
         );
       }
 
-      const results = data || [];
-      const items = results.map((item: any) => this.mapToSearchResult(item));
+      const deliverables = data || [];
+      const items = deliverables.map((deliverable: any) => {
+        // Get the current version or the first version if no current version is marked
+        const currentVersion = deliverable.deliverable_versions?.find((v: any) => v.is_current_version) ||
+                              deliverable.deliverable_versions?.[0];
+
+        return {
+          id: deliverable.id,
+          userId: deliverable.user_id,
+          conversationId: deliverable.conversation_id,
+          title: deliverable.title,
+          type: deliverable.type,
+          createdAt: new Date(deliverable.created_at),
+          updatedAt: new Date(deliverable.updated_at),
+          format: currentVersion?.format || null,
+          content: currentVersion?.content || null,
+          metadata: currentVersion?.metadata || deliverable.metadata || {},
+          versionNumber: currentVersion?.version_number || null,
+          isCurrentVersion: currentVersion?.is_current_version || false,
+          versionId: currentVersion?.id || null,
+        } as DeliverableSearchResult;
+      });
+
       const limit = filters.limit || 50;
       const offset = filters.offset || 0;
 
       return {
         items,
-        total: items.length, // TODO: Get actual total count from DB
+        total: items.length, // Simple count of returned items
         limit,
         offset,
         hasMore: items.length === limit, // Simple heuristic - if we got exactly limit items, there might be more
@@ -144,8 +188,8 @@ export class DeliverablesService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      this.logger.error('Unexpected error searching deliverables:', error);
-      throw new BadRequestException('Failed to search deliverables');
+      this.logger.error('Unexpected error finding deliverables:', error);
+      throw new BadRequestException('Failed to find deliverables');
     }
   }
 
@@ -471,7 +515,7 @@ export class DeliverablesService {
       updatedAt: new Date(data.updated_at),
       format: data.format,
       content: data.content,
-      metadata: data.metadata || {},
+      metadata: data.version_metadata || data.metadata || {},
       versionNumber: data.version_number,
       isCurrentVersion: data.is_current_version,
       versionId: data.version_id,
