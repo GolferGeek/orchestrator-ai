@@ -290,7 +290,7 @@ export class ApiAgentBaseService
       const config: ApiConfiguration = {
         endpoint: apiConfig.endpoint,
         method: apiConfig.method || 'POST',
-        timeout: apiConfig.timeout || 30000,
+        timeout: apiConfig.timeout || 60000,
         headers: apiConfig.headers || {},
         authentication: apiConfig.authentication || null,
         retry: apiConfig.retry || {
@@ -487,7 +487,7 @@ export class ApiAgentBaseService
               ? requestData
               : undefined,
             headers,
-            timeout: config.timeout || 30000,
+            timeout: config.timeout || 60000,
           }),
         );
 

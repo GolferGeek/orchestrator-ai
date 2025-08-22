@@ -483,7 +483,7 @@ export class ExternalA2AAgentBaseService
               jsonrpc: '2.0',
             },
             {
-              timeout: this.externalConfig!.timeout || 30000,
+              timeout: this.externalConfig!.timeout || 60000,
               headers: {
                 'Content-Type': 'application/json',
                 ...this.buildAuthHeaders(),
@@ -587,7 +587,7 @@ export class ExternalA2AAgentBaseService
       return {
         endpoint: config.endpoint || '',
         protocol: 'A2A',
-        timeout: config.timeout || 30000,
+        timeout: config.timeout || 60000,
         authentication: config.authentication || null,
         retry: config.retry || { attempts: 3, delay: 1000, backoff: 'linear' },
         capabilities: config.capabilities || [],

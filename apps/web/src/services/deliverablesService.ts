@@ -127,7 +127,7 @@ class DeliverablesService {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 30000,
+      timeout: 60000,
     });
 
     // Add auth token to requests
