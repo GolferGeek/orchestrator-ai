@@ -35,8 +35,8 @@
         <p>Please <router-link to="/login">log in</router-link> to access your conversations and projects.</p>
       </div>
 
-      <!-- Agent Conversation View -->
-      <div v-else-if="agentChatStore.hasActiveConversation" class="conversation-container">
+      <!-- Agent Conversation View or Deliverable View -->
+      <div v-else-if="agentChatStore.hasActiveConversation || route.query.deliverableId" class="conversation-container">
         <ConversationTabs />
       </div>
 
@@ -65,7 +65,7 @@
 
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import {
   IonContent,
   IonHeader,
@@ -84,12 +84,14 @@ import {
   moonOutline,
   sunnyOutline,
 } from 'ionicons/icons';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+
 import ConversationTabs from '@/components/ConversationTabs.vue';
 
 const router = useRouter();
+const route = useRoute();
 const auth = useAuthStore();
 const agentChatStore = useAgentChatStore();
 
@@ -105,8 +107,43 @@ const pageTitle = computed(() => {
 // Dark mode state and functionality
 const isDarkMode = ref(false);
 
+// Handle conversation opening from query parameters
+const handleConversationFromQuery = async () => {
+  const conversationId = route.query.conversationId as string;
+  
+  if (conversationId && auth.isAuthenticated) {
+    try {
+      console.log('🔗 Opening conversation from query parameter:', conversationId);
+      
+      // Check if conversation is already open
+      const existingConversation = agentChatStore.conversations.find(conv => conv.id === conversationId);
+      
+      if (existingConversation) {
+        // Just switch to it
+        agentChatStore.switchToConversation(conversationId);
+      } else {
+        // Open the conversation
+        await agentChatStore.openExistingConversation(conversationId);
+      }
+      
+      // Clear the query parameter to avoid re-opening on refresh
+      router.replace({ 
+        name: route.name as string, 
+        params: route.params,
+        query: { ...route.query, conversationId: undefined }
+      });
+      
+    } catch (error) {
+      console.error('Failed to open conversation from query:', error);
+    }
+  }
+};
+
+// Watch for query parameter changes
+watch(() => route.query.conversationId, handleConversationFromQuery, { immediate: true });
+
 // Initialize theme on component mount
-onMounted(() => {
+onMounted(async () => {
   const savedTheme = localStorage.getItem('theme');
   const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   
@@ -119,6 +156,8 @@ onMounted(() => {
       document.documentElement.setAttribute('data-theme', 'dark');
     }
   }
+
+
 });
 
 const toggleDarkMode = () => {
@@ -138,6 +177,8 @@ const toggleDarkMode = () => {
 const navigateToProjects = () => {
   router.push('/projects');
 };
+
+
 
 </script>
 

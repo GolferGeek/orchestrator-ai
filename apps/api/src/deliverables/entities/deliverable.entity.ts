@@ -72,6 +72,11 @@ export class Deliverable {
   })
   projectStepId?: string;
 
+  @ApiPropertyOptional({
+    description: 'Agent that should handle editing this deliverable (inherited from creating conversation)',
+  })
+  agentName?: string;
+
   @ApiProperty({ description: 'Title of the deliverable' })
   title!: string;
 
@@ -103,6 +108,9 @@ export class DeliverableSearchResult {
 
   @ApiPropertyOptional({ description: 'Conversation this deliverable belongs to (if any)' })
   conversationId?: string;
+
+  @ApiPropertyOptional({ description: 'Agent that should handle editing this deliverable' })
+  agentName?: string;
 
   @ApiProperty({ description: 'Deliverable title' })
   title!: string;

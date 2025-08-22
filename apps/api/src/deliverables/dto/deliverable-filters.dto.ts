@@ -60,4 +60,16 @@ export class DeliverableFiltersDto {
     return value;
   })
   latestOnly?: boolean = true;
+
+  @ApiPropertyOptional({
+    description: 'Filter for standalone deliverables (without conversations)',
+    default: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  standalone?: boolean = false;
 }

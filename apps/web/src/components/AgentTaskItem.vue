@@ -322,12 +322,16 @@ watch(() => backendDeliverable.value, (newVal, oldVal) => {
     
     // Emit deliverable-created event when a new deliverable is detected
     if (newVal && !oldVal) {
-      console.log(`🎭 Emitting deliverable-created event for ${newVal.title}`);
+      console.log(`🎭 ✅ EMITTING deliverable-created event for NEW deliverable: ${newVal.title}`);
+      console.log(`🎭 ✅ Event payload:`, { id: newVal.id, title: newVal.title, conversation_id: newVal.conversationId });
       emit('deliverable-created', newVal);
     } else if (newVal && oldVal && newVal.id !== oldVal.id) {
       // Different deliverable
-      console.log(`🎭 Emitting deliverable-created event for different deliverable ${newVal.title}`);
+      console.log(`🎭 ✅ EMITTING deliverable-created event for DIFFERENT deliverable: ${newVal.title}`);
+      console.log(`🎭 ✅ Event payload:`, { id: newVal.id, title: newVal.title, conversation_id: newVal.conversationId });
       emit('deliverable-created', newVal);
+    } else if (newVal && oldVal) {
+      console.log(`🎭 ℹ️ Deliverable updated but same ID - not emitting creation event`);
     }
   }
 }, { immediate: true });

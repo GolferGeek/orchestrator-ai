@@ -654,6 +654,94 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     }
   };
 
+  // New methods for flexible deliverable-conversation relationships
+  const loadStandaloneDeliverables = async () => {
+    try {
+      setLoading(true);
+      clearError();
+
+      const { deliverablesService } = await import('@/services/deliverablesService');
+      const response = await deliverablesService.getDeliverables({ standalone: true });
+      
+      // Update store with standalone deliverables
+      response.items.forEach(deliverable => {
+        const mapped = {
+          id: deliverable.id,
+          userId: deliverable.userId,
+          conversationId: deliverable.conversationId,
+          agentName: deliverable.agentName,
+          title: deliverable.title,
+          type: deliverable.type,
+          createdAt: deliverable.createdAt,
+          updatedAt: deliverable.updatedAt,
+          currentVersion: deliverable.content ? {
+            id: deliverable.versionId,
+            content: deliverable.content,
+            format: deliverable.format,
+            versionNumber: deliverable.versionNumber,
+            isCurrentVersion: deliverable.isCurrentVersion,
+          } : undefined,
+        };
+        state.value.deliverables.set(deliverable.id, mapped);
+      });
+
+      return response.items;
+    } catch (error: any) {
+      console.error('Failed to load standalone deliverables:', error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createEditingConversation = async (
+    deliverableId: string, 
+    options: {
+      agentName?: string;
+      initialMessage?: string;
+      action?: 'edit' | 'enhance' | 'revise' | 'discuss' | 'new-version';
+    } = {}
+  ) => {
+    try {
+      setLoading(true);
+      clearError();
+
+      const { deliverablesService } = await import('@/services/deliverablesService');
+      const result = await deliverablesService.createEditingConversation(deliverableId, options);
+      
+      // Update the deliverable in our store to reflect the new conversation link
+      const deliverable = state.value.deliverables.get(deliverableId);
+      if (deliverable) {
+        deliverable.conversationId = result.conversationId;
+        state.value.deliverables.set(deliverableId, deliverable);
+      }
+
+      return result;
+    } catch (error: any) {
+      console.error('Failed to create editing conversation:', error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConversationDeleted = (conversationId: string) => {
+    // Update deliverables that were linked to this conversation
+    state.value.deliverables.forEach((deliverable, id) => {
+      if (deliverable.conversationId === conversationId) {
+        deliverable.conversationId = undefined;
+        state.value.deliverables.set(id, deliverable);
+      }
+    });
+
+    // Remove from conversation deliverables mapping
+    state.value.conversationDeliverables.delete(conversationId);
+    
+    console.log(`Updated deliverables after conversation ${conversationId} deletion`);
+  };
+
   return {
     // State
     deliverables,
@@ -704,5 +792,10 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     searchDeliverables,
     loadConversationDeliverables,
     setCurrentDeliverable,
+
+    // New methods for flexible deliverable-conversation relationships
+    loadStandaloneDeliverables,
+    createEditingConversation,
+    handleConversationDeleted,
   };
 });

@@ -29,8 +29,9 @@ export enum DeliverableVersionCreationType {
 export interface Deliverable {
   id: string;
   userId: string;
-  conversationId: string;
+  conversationId?: string;
   projectStepId?: string;
+  agentName?: string;
   title: string;
   description?: string;
   type?: DeliverableType;
@@ -84,12 +85,14 @@ export interface DeliverableFilters {
   limit?: number;
   offset?: number;
   latestOnly?: boolean;
+  standalone?: boolean;
 }
 
 export interface DeliverableSearchResult {
   id: string;
   userId: string;
-  conversationId: string;
+  conversationId?: string;
+  agentName?: string;
   title: string;
   description?: string;
   type?: DeliverableType;
@@ -150,6 +153,7 @@ class DeliverablesService {
       if (filters.limit) params.append('limit', filters.limit.toString());
       if (filters.offset) params.append('offset', filters.offset.toString());
       if (filters.latestOnly !== undefined) params.append('latestOnly', filters.latestOnly.toString());
+      if (filters.standalone !== undefined) params.append('standalone', filters.standalone.toString());
     }
 
     const response = await this.axiosInstance.get(`/deliverables?${params.toString()}`);
@@ -296,6 +300,21 @@ class DeliverablesService {
       console.error('Error finding existing deliverable:', error);
       return null;
     }
+  }
+
+  /**
+   * Create an editing conversation for a standalone deliverable
+   */
+  async createEditingConversation(
+    deliverableId: string, 
+    options: {
+      agentName?: string;
+      initialMessage?: string;
+      action?: 'edit' | 'enhance' | 'revise' | 'discuss' | 'new-version';
+    } = {}
+  ): Promise<{ conversationId: string; message: string }> {
+    const response = await this.axiosInstance.post(`/deliverables/${deliverableId}/conversations`, options);
+    return response.data;
   }
 
   // Legacy method aliases for backward compatibility

@@ -1,7 +1,7 @@
 <template>
   <ion-page>
-    <ion-split-pane content-id="main-content">
-      <ion-menu content-id="main-content" type="overlay" :disabled="!auth.isAuthenticated">
+    <ion-split-pane content-id="agents-main-content" when="(min-width: 2000px)">
+      <ion-menu content-id="agents-main-content" type="overlay" :disabled="!auth.isAuthenticated">
         <ion-header>
           <ion-toolbar>
             <ion-title 
@@ -27,7 +27,7 @@
               <ion-list-header>Navigation</ion-list-header>
               
               <!-- Direct Navigation Items - Projects and Evaluations at top -->
-              <ion-menu-toggle :auto-hide="false">
+              <ion-menu-toggle>
                 <ion-item 
                   router-direction="root" 
                   router-link="/app/projects" 
@@ -39,7 +39,7 @@
                   <ion-label>Projects</ion-label>
                 </ion-item>
               </ion-menu-toggle>
-              <ion-menu-toggle :auto-hide="false">
+              <ion-menu-toggle>
                 <ion-item 
                   router-direction="root" 
                   router-link="/app/deliverables" 
@@ -51,7 +51,7 @@
                   <ion-label>Deliverables</ion-label>
                 </ion-item>
               </ion-menu-toggle>
-              <ion-menu-toggle :auto-hide="false">
+              <ion-menu-toggle>
                 <ion-item router-direction="root" router-link="/app/evaluations" lines="none" :detail="false">
                   <ion-icon aria-hidden="true" :icon="starOutline" slot="start"></ion-icon>
                   <ion-label>Evaluations</ion-label>
@@ -100,7 +100,7 @@
           </div>
         </ion-content>
       </ion-menu>
-      <ion-router-outlet id="main-content"></ion-router-outlet>
+      <ion-router-outlet id="agents-main-content"></ion-router-outlet>
     </ion-split-pane>
   </ion-page>
 </template>
@@ -131,6 +131,7 @@ const menuTitle = computed(() => {
 });
 
 const handleLogout = async () => {
+  console.log('🚪 Logout clicked');
   await auth.logout();
   router.push('/login');
 };
@@ -138,6 +139,8 @@ const handleLogout = async () => {
 const navigateToLanding = () => {
   router.push('/');
 };
+
+
 
 const handleConversationSelected = async (conversation: any) => {
   try {
@@ -252,6 +255,8 @@ ion-menu {
   --padding-end: 8px;
   min-width: 40px;
 }
+
+
 
 /* Compact styles for tree view in menu */
 .agents-content :deep(.agent-tree-container) {

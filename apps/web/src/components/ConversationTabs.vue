@@ -55,10 +55,12 @@
 import { computed } from 'vue';
 import { IonButton, IonIcon } from '@ionic/vue';
 import { closeOutline, chatbubblesOutline } from 'ionicons/icons';
+import { useRoute } from 'vue-router';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import AgentChatView from './AgentChatView.vue';
 import TwoPaneConversationView from './TwoPaneConversationView.vue';
 
+const route = useRoute();
 const agentChatStore = useAgentChatStore();
 
 // Computed

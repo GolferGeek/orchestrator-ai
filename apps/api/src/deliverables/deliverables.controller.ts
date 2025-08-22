@@ -27,6 +27,7 @@ import {
   CreateDeliverableDto,
   UpdateDeliverableDto,
   DeliverableFiltersDto,
+  CreateEditingConversationDto,
 } from './dto';
 import {
   Deliverable,
@@ -119,6 +120,12 @@ export class DeliverablesController {
     name: 'latestOnly',
     required: false,
     description: 'Show only latest versions',
+    type: Boolean,
+  })
+  @ApiQuery({
+    name: 'standalone',
+    required: false,
+    description: 'Filter for standalone deliverables (without conversations)',
     type: Boolean,
   })
   async findAll(
@@ -228,6 +235,43 @@ export class DeliverablesController {
       throw new Error('User not authenticated');
     }
     return this.deliverablesService.update(id, updateDeliverableDto, userId);
+  }
+
+  @Post(':id/conversations')
+  @ApiOperation({
+    summary: 'Create editing conversation for deliverable',
+    description: 'Creates a new conversation for editing a standalone deliverable',
+  })
+  @ApiParam({ name: 'id', description: 'Deliverable UUID' })
+  @ApiResponse({
+    status: 201,
+    description: 'Editing conversation created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        conversationId: { type: 'string', description: 'ID of the created conversation' },
+        message: { type: 'string', description: 'Initial context message for the conversation' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Deliverable not found' })
+  async createEditingConversation(
+    @Param('id', ParseUUIDPipe) deliverableId: string,
+    @Body() createEditingConversationDto: CreateEditingConversationDto,
+    @Req() req: any,
+  ): Promise<{ conversationId: string; message: string }> {
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    if (!userId) {
+      console.log('🔍 ERROR: No user ID found in JWT token for createEditingConversation');
+      throw new Error('User not authenticated');
+    }
+    return this.deliverablesService.createEditingConversation(
+      deliverableId,
+      createEditingConversationDto,
+      userId,
+    );
   }
 
   @Delete(':id')

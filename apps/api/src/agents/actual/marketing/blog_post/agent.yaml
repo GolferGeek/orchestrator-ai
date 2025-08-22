@@ -13,7 +13,7 @@ hierarchy:
   department: marketing
 
 # Agent type - determines loading strategy
-type: "context"
+type: "specialist"
 
 capabilities:
   - content_creation
