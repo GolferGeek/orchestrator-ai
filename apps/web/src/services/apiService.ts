@@ -25,7 +25,7 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 30000,
+      timeout: 60000,
     });
 
     // Add response interceptor for error handling and automatic token refresh

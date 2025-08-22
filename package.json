@@ -8,6 +8,7 @@
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "cd apps/api && ./start-dev.sh",
     "dev:web": "cd apps/web && npm run dev",
+    "dev:browser-mcp": "npx @agentdeskai/browser-tools-server@latest",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",

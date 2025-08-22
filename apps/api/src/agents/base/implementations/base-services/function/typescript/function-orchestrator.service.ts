@@ -135,7 +135,7 @@ export class FunctionOrchestratorService {
       try {
         const result = await this.executeWithTimeout(
           () => step.function(context),
-          step.timeout || 30000, // 30 second default timeout
+          step.timeout || 60000, // 60 second default timeout
         );
 
         return {
