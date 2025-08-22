@@ -191,6 +191,16 @@
     </div>
 
     <!-- Task Details Modal removed - conversations now load in main window -->
+    
+    <!-- Conversation Delete Modal -->
+    <ConversationDeleteModal
+      :is-open="showDeleteModal"
+      :agent-display-name="deleteModalData?.agentDisplayName || ''"
+      :active-tasks="deleteModalData?.activeTasks || 0"
+      :has-deliverables="deleteModalData?.hasDeliverables || false"
+      @cancel="cancelDelete"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
@@ -207,7 +217,6 @@ import {
   IonSearchbar,
   IonSpinner,
   IonAvatar,
-  alertController,
 } from '@ionic/vue';
 import {
   personOutline,
@@ -235,11 +244,13 @@ import {
   folderOutline,
 } from 'ionicons/icons';
 import { agentConversationsService } from '@/services/agentConversationsService';
+import { deliverablesService } from '@/services/deliverablesService';
 import { formatAgentName } from '@/utils/caseConverter';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
 import { websocketService } from '@/services/websocketService';
 import { useRouter } from 'vue-router';
+import ConversationDeleteModal from './ConversationDeleteModal.vue';
 // TaskDetailsModal import removed - conversations now load in main window
 
 interface Agent {
@@ -287,6 +298,13 @@ const expandedGroups = ref<string[]>([]); // Start with all accordions closed
 const expandedAgents = ref<string[]>([]); // Track manually expanded agents
 const selectedConversation = ref<Conversation | null>(null);
 // showTaskModal removed - conversations now load in main window
+const showDeleteModal = ref(false);
+const deleteModalData = ref<{
+  conversation: Conversation;
+  agentDisplayName: string;
+  activeTasks: number;
+  hasDeliverables: boolean;
+} | null>(null);
 
 // Data - removed local agents ref, using store instead
 
@@ -596,47 +614,63 @@ const endConversation = async (conversation: Conversation) => {
   try {
     console.log('🗑️ Attempting to delete conversation:', conversation.id, conversation.agentName);
     
-    let message = `Are you sure you want to permanently delete this conversation with ${cleanAgentName(conversation.agentName)}?`;
-    let subHeader = 'This action cannot be undone and will delete all tasks and data.';
-    
-    // Add warning if there are active tasks
-    if (conversation.activeTasks > 0) {
-      subHeader += ` This conversation has ${conversation.activeTasks} running task${conversation.activeTasks > 1 ? 's' : ''} that will be cancelled.`;
+    // Check if conversation has deliverables
+    let hasDeliverables = false;
+    try {
+      const deliverables = await deliverablesService.getByConversation(conversation.id);
+      hasDeliverables = deliverables.length > 0;
+    } catch (error) {
+      console.warn('Could not check for deliverables:', error);
+      // Continue with hasDeliverables = false
     }
     
-    console.log('🗑️ Showing Ionic alert dialog');
+    // Set up modal data
+    deleteModalData.value = {
+      conversation,
+      agentDisplayName: cleanAgentName(conversation.agentName),
+      activeTasks: conversation.activeTasks,
+      hasDeliverables,
+    };
     
-    const alert = await alertController.create({
-      header: 'Delete Conversation',
-      subHeader: subHeader,
-      message: message,
-      buttons: [
-        {
-          text: 'Cancel',
-          role: 'cancel',
-          handler: () => {
-            console.log('🗑️ User cancelled deletion via Ionic alert');
-            return false;
-          }
-        },
-        {
-          text: 'Delete',
-          role: 'destructive',
-          cssClass: 'danger',
-          handler: () => {
-            console.log('🗑️ User confirmed deletion via Ionic alert');
-            return true;
-          }
-        }
-      ]
-    });
+    // Show the modal
+    showDeleteModal.value = true;
+  } catch (err) {
+    console.error('🗑️ Error in endConversation:', err);
+  }
+};
 
-    await alert.present();
-    const { role } = await alert.onDidDismiss();
-    
-    if (role === 'cancel') {
-      console.log('🗑️ User cancelled deletion');
+const cancelDelete = () => {
+  console.log('🗑️ User cancelled deletion');
+  showDeleteModal.value = false;
+  deleteModalData.value = null;
+};
+
+const confirmDelete = async (deleteDeliverables: boolean) => {
+  try {
+    if (!deleteModalData.value) {
+      console.error('🗑️ No delete modal data available');
       return;
+    }
+
+    const conversation = deleteModalData.value.conversation;
+    console.log('🗑️ User confirmed deletion, deleteDeliverables:', deleteDeliverables);
+    
+    // Close modal first
+    showDeleteModal.value = false;
+    
+    // Delete deliverables if requested
+    if (deleteDeliverables && deleteModalData.value.hasDeliverables) {
+      try {
+        console.log('🗑️ Deleting deliverables for conversation:', conversation.id);
+        const deliverables = await deliverablesService.getByConversation(conversation.id);
+        for (const deliverable of deliverables) {
+          await deliverablesService.delete(deliverable.id);
+        }
+        console.log('🗑️ Deliverables deleted successfully');
+      } catch (error) {
+        console.error('🗑️ Error deleting deliverables:', error);
+        // Continue with conversation deletion even if deliverable deletion fails
+      }
     }
 
     console.log('🗑️ Calling conversationsStore.deleteConversation...');
@@ -644,8 +678,10 @@ const endConversation = async (conversation: Conversation) => {
     await conversationsStore.deleteConversation(conversation.id);
     console.log('🗑️ Delete conversation completed successfully');
   } catch (err) {
-    console.error('🗑️ Error in endConversation:', err);
+    console.error('🗑️ Error in confirmDelete:', err);
     // Error is already handled in the store
+  } finally {
+    deleteModalData.value = null;
   }
 };
 
