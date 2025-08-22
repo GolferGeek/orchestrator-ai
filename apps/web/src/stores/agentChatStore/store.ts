@@ -349,7 +349,11 @@ export const useAgentChatStore = defineStore('agentChat', {
           onCompletion: (taskId) => this.handleTaskCompletion(conversationId, taskId),
           onWorkflowStep: (convId, taskId, stepEvent) => this.handleWorkflowStepUpdate(convId, taskId, stepEvent),
           onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
-          onImmediateResult: (convId, task) => this.createResponseMessage(convId, task),
+          onImmediateResult: (convId, task) => {
+            this.createResponseMessage(convId, task);
+            // Ensure deliverable is loaded into store for Vue reactivity
+            this.ensureDeliverableLoaded(convId, task);
+          },
         });
 
       } catch (error) {
@@ -449,7 +453,11 @@ export const useAgentChatStore = defineStore('agentChat', {
           onCompletion: (taskId) => this.handleTaskCompletion(conversationId, taskId),
           onWorkflowStep: (convId, taskId, stepEvent) => this.handleWorkflowStepUpdate(convId, taskId, stepEvent),
           onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
-          onImmediateResult: (convId, task) => this.createResponseMessage(convId, task),
+          onImmediateResult: (convId, task) => {
+            this.createResponseMessage(convId, task);
+            // Ensure deliverable is loaded into store for Vue reactivity
+            this.ensureDeliverableLoaded(convId, task);
+          },
         });
 
       } catch (error) {
@@ -682,6 +690,57 @@ export const useAgentChatStore = defineStore('agentChat', {
         console.error(`🏁 DEBUG: Failed to handle task completion for ${taskId}:`, error);
         deliverable.clearProcessingLock(existingMessage);
         conv.error = error instanceof Error ? error.message : 'Failed to load task result';
+      }
+    },
+
+    /**
+     * Ensure deliverable is loaded into store for Vue reactivity
+     */
+    async ensureDeliverableLoaded(conversationId: string, task: any) {
+      console.log(`📦 DEBUG: ensureDeliverableLoaded called for task ${task.taskId}`);
+      
+      // Extract deliverable ID from task response (same logic as messageFormatting)
+      let deliverableId = null;
+      if (task.response) {
+        try {
+          const parsedResponse = typeof task.response === 'string' 
+            ? JSON.parse(task.response) 
+            : task.response;
+          
+          // Match the extraction logic from messageFormatting.ts
+          if (parsedResponse?.deliverableId) {
+            deliverableId = parsedResponse.deliverableId;
+          } else if (parsedResponse?.success?.deliverable_id) {
+            deliverableId = parsedResponse.success.deliverable_id;
+          } else if (parsedResponse?.deliverable_id) {
+            deliverableId = parsedResponse.deliverable_id;
+          } else if (parsedResponse?.result?.deliverable_id) {
+            deliverableId = parsedResponse.result.deliverable_id;
+          }
+          
+          console.log(`📦 DEBUG: Parsed response keys:`, Object.keys(parsedResponse));
+          console.log(`📦 DEBUG: Looking for deliverable ID in response:`, {
+            directDeliverableId: parsedResponse?.deliverableId,
+            successDeliverableId: parsedResponse?.success?.deliverable_id,
+            resultDeliverableId: parsedResponse?.result?.deliverable_id
+          });
+        } catch (e) {
+          console.log(`📦 DEBUG: Could not parse response for deliverable ID:`, e);
+          return;
+        }
+      }
+
+      if (deliverableId) {
+        console.log(`📦 DEBUG: Found deliverable ID ${deliverableId}, ensuring it's loaded in store`);
+        
+        // Load the deliverable into the store to trigger Vue reactivity
+        const deliverablesStore = useDeliverablesStore();
+        try {
+          await deliverablesStore.loadDeliverablesByConversation(conversationId);
+          console.log(`📦 ✅ Loaded conversation deliverables for ${conversationId}`);
+        } catch (error) {
+          console.error(`📦 ERROR: Failed to load deliverables for conversation ${conversationId}:`, error);
+        }
       }
     },
 

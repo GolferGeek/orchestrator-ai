@@ -264,7 +264,26 @@ export class AgentConversationsService {
         throw new Error('Conversation not found');
       }
 
-      // Delete related tasks first (if any)
+      // Preserve agent_name in deliverables before deleting conversation
+      // The database will automatically set conversation_id to NULL due to SET NULL constraint,
+      // but we want to ensure agent_name is preserved for future editing
+      const { error: deliverablesUpdateError } = await this.supabaseService
+        .getAnonClient()
+        .from(getTableName('deliverables'))
+        .update({
+          agent_name: conversation.agentName, // Preserve the agent name
+          // conversation_id will be automatically set to NULL by the database constraint
+        })
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId)
+        .is('agent_name', null); // Only update if agent_name is not already set
+
+      if (deliverablesUpdateError) {
+        this.logger.warn('Warning: Could not preserve agent_name in deliverables:', deliverablesUpdateError);
+        // Don't throw here - this is not critical enough to stop deletion
+      }
+
+      // Delete related tasks (if any)
       const { error: tasksError } = await this.supabaseService
         .getAnonClient()
         .from(getTableName('tasks'))
@@ -293,7 +312,7 @@ export class AgentConversationsService {
       }
 
       this.logger.debug(
-        `Successfully deleted conversation ${conversationId} for user ${userId}`,
+        `Successfully deleted conversation ${conversationId} for user ${userId}. Associated deliverables preserved as standalone.`,
       );
     } catch (error) {
       this.logger.error('Error in deleteConversation:', error);

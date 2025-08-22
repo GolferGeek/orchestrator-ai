@@ -194,6 +194,10 @@ const deliverableFormat = ref('');
 // Computed properties
 const availableAgents = computed(() => {
   // Get agents from the store, excluding orchestrator agents for deliverable creation
+  if (!agentsStore.agents || !Array.isArray(agentsStore.agents)) {
+    return [];
+  }
+  
   return agentsStore.agents.filter(agent => 
     agent.type !== 'orchestrator' && 
     agent.name && 
@@ -259,8 +263,14 @@ const createDeliverable = async () => {
 // Lifecycle
 onMounted(async () => {
   // Load agents if not already loaded
-  if (availableAgents.value.length === 0) {
-    await agentsStore.fetchAvailableAgents();
+  try {
+    if (!agentsStore.agents || agentsStore.agents.length === 0) {
+      console.log('📋 Loading agents for NewDeliverableDialog...');
+      await agentsStore.fetchAvailableAgents();
+      console.log('✅ Agents loaded:', agentsStore.agents?.length || 0);
+    }
+  } catch (error) {
+    console.error('Failed to load agents:', error);
   }
 });
 

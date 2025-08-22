@@ -656,10 +656,12 @@ const submitDeliverablePrompt = async () => {
   if (!deliverablePrompt.value.trim()) return;
   
   const content = deliverablePrompt.value.trim();
+  const originalPrompt = content;
   deliverablePrompt.value = '';
   
   try {
-    // Import the agent chat store and context store
+    // Since we automatically have a conversation when viewing deliverables,
+    // we can send the message through the existing conversation
     const { useAgentChatStore } = await import('@/stores/agentChatStore');
     const { useContextStore } = await import('@/stores/contextStore');
     
@@ -676,17 +678,18 @@ const submitDeliverablePrompt = async () => {
       return;
     }
     
-    console.log(`🎯 Creating new version based on version ${baseVersionId} for deliverable ${actualDeliverableId.value}`);
+    console.log(`🎯 Sending prompt through conversation for deliverable ${actualDeliverableId.value}`);
     
     // Create metadata for new version creation with base version ID
     const metadata = contextStore.createNewVersionMetadata(baseVersionId);
     
-    // Send message with version creation context
+    // Send message with version creation context to the active conversation
     await agentChatStore.sendMessageWithContext(content, metadata);
+    
   } catch (error) {
     console.error('Failed to send deliverable prompt:', error);
     // Restore the input text on error
-    deliverablePrompt.value = content;
+    deliverablePrompt.value = originalPrompt;
   }
 };
 
@@ -1004,9 +1007,19 @@ const getMimeType = () => {
 };
 
 // Watch for deliverable changes and reload versions
-watch(() => props.deliverable?.id, () => {
+watch(() => props.deliverable?.id, async () => {
   if (props.deliverable) {
     loadVersions();
+    
+    // Set deliverable context for proper metadata handling
+    try {
+      const { useContextStore } = await import('@/stores/contextStore');
+      const contextStore = useContextStore();
+      contextStore.setDeliverableContext(actualDeliverableId.value);
+      console.log('🎯 Set deliverable context for:', actualDeliverableId.value);
+    } catch (error) {
+      console.error('Failed to set deliverable context:', error);
+    }
   }
 }, { immediate: true });
 </script>

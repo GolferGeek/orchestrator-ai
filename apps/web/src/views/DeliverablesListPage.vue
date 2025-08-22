@@ -529,19 +529,96 @@ const handleDeliverableCreated = (deliverableId: string) => {
 };
 
 const viewDeliverable = async (deliverable: any) => {
-  // Navigate to deliverable detail view or show in dedicated component
-  // For now, just log - this would typically navigate to a detail page
-  console.log('Viewing deliverable:', deliverable.id);
-  // TODO: Implement navigation to detail view
-  // router.push(`/deliverables/${deliverable.id}`);
+  // Create a viewing conversation for this deliverable
+  console.log('🔍 Creating viewing conversation for deliverable:', deliverable.id);
+  try {
+    // Create conversation with "view" intent
+    const result = await deliverablesStore.createEditingConversation(
+      deliverable.id,
+      {
+        action: 'discuss',
+        agentName: deliverable.agentName || 'blog_post', // Fallback to blog post writer
+        initialMessage: `Please show me this deliverable: "${deliverable.title}"`
+      }
+    );
+    
+    console.log('🎭 Conversation creation result:', result);
+
+    // Navigate to split view with conversation and deliverable
+    console.log('🚀 About to navigate with:', {
+      conversationId: result.conversationId,
+      deliverableId: deliverable.id,
+      mode: 'view'
+    });
+    
+    await router.push({
+      name: 'Home',
+      query: {
+        conversationId: result.conversationId,
+        deliverableId: deliverable.id,
+        mode: 'view'
+      }
+    });
+    
+    console.log('✅ Navigation to split view with conversation successful');
+  } catch (error) {
+    console.error('❌ Failed to create viewing conversation:', error);
+    
+    // Show error toast
+    const toast = await toastController.create({
+      message: 'Failed to open deliverable: ' + error.message,
+      duration: 3000,
+      position: 'bottom',
+      color: 'danger'
+    });
+    await toast.present();
+  }
 };
 
 const editDeliverable = async (deliverable: any) => {
-  // Navigate to edit view
-  // For now, just log - this would typically navigate to an edit page
-  console.log('Editing deliverable:', deliverable.id);
-  // TODO: Implement navigation to edit view
-  // router.push(`/deliverables/${deliverable.id}/edit`);
+  try {
+    console.log('Creating editing conversation for deliverable:', deliverable.id);
+    
+    // Create editing conversation for this deliverable
+    const result = await deliverablesStore.createEditingConversation(
+      deliverable.id,
+      {
+        action: 'edit',
+        agentName: deliverable.agentName || 'blog_post', // Fallback to blog post writer
+        initialMessage: `I want to edit this deliverable: "${deliverable.title}"`
+      }
+    );
+
+    // Navigate to split view with conversation and deliverable
+    console.log('🚀 About to navigate to edit mode with:', {
+      conversationId: result.conversationId,
+      deliverableId: deliverable.id,
+      mode: 'edit'
+    });
+    
+    await router.push({
+      name: 'Home',
+      query: {
+        conversationId: result.conversationId,
+        deliverableId: deliverable.id,
+        mode: 'edit'
+      }
+    });
+    
+    console.log('✅ Edit navigation successful');
+
+  } catch (err: any) {
+    console.error('Failed to create editing conversation:', err);
+    
+    // Show error toast
+    const toast = await toastController.create({
+      message: 'Failed to start editing: ' + err.message,
+      duration: 3000,
+      position: 'bottom',
+      color: 'danger'
+    });
+    await toast.present();
+  }
 };
 
 const viewVersions = async (deliverable: any) => {

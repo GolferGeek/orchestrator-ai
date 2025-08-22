@@ -89,6 +89,15 @@ export class CreateDeliverableDto {
   @IsUUID()
   projectStepId?: string;
 
+  @ApiPropertyOptional({
+    description: 'Agent that should handle editing this deliverable (inherited from creating conversation)',
+    maxLength: 255,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  agentName?: string;
+
   // Initial version data (optional - can be added later)
   @ApiPropertyOptional({ description: 'Initial content for the first version' })
   @IsOptional()

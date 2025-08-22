@@ -10,6 +10,7 @@ import {
   CreateDeliverableDto,
   UpdateDeliverableDto,
   DeliverableFiltersDto,
+  CreateEditingConversationDto,
 } from './dto';
 import {
   Deliverable,
@@ -18,6 +19,8 @@ import {
 } from './entities/deliverable.entity';
 import { getTableName } from '../supabase/supabase.config';
 import { DeliverableVersionsService } from './deliverable-versions.service';
+import { AgentConversationsService } from '../agent-conversations/agent-conversations.service';
+import { CreateAgentConversationDto } from '../common/types/agent-conversations.types';
 
 @Injectable()
 export class DeliverablesService {
@@ -26,6 +29,7 @@ export class DeliverablesService {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly versionsService: DeliverableVersionsService,
+    private readonly agentConversationsService: AgentConversationsService,
   ) {}
 
   /**
@@ -49,6 +53,7 @@ export class DeliverablesService {
             user_id: userId,
             conversation_id: createDto.conversationId,
             project_step_id: createDto.projectStepId || null,
+            agent_name: createDto.agentName || null,
             title: createDto.title,
             type: createDto.type || null,
           },
@@ -135,6 +140,13 @@ export class DeliverablesService {
       // Add type filter if provided
       if (filters.type) {
         query = query.eq('type', filters.type);
+      }
+
+      // Add standalone filter if provided
+      if (filters.standalone === true) {
+        query = query.is('conversation_id', null);
+      } else if (filters.standalone === false) {
+        query = query.not('conversation_id', 'is', null);
       }
 
       // Add ordering, limit, and offset
@@ -321,6 +333,7 @@ export class DeliverablesService {
       if (updateDto.title !== undefined) updateData.title = updateDto.title;
       if (updateDto.type !== undefined) updateData.type = updateDto.type;
       if (updateDto.projectStepId !== undefined) updateData.project_step_id = updateDto.projectStepId;
+      if (updateDto.agentName !== undefined) updateData.agent_name = updateDto.agentName;
 
       const { data, error } = await this.supabaseService
         .getServiceClient()
@@ -349,6 +362,144 @@ export class DeliverablesService {
       }
       this.logger.error('Unexpected error updating deliverable:', error);
       throw new BadRequestException('Failed to update deliverable');
+    }
+  }
+
+  /**
+   * Create an editing conversation for a standalone deliverable
+   */
+  async createEditingConversation(
+    deliverableId: string,
+    dto: CreateEditingConversationDto,
+    userId: string,
+  ): Promise<{ conversationId: string; message: string }> {
+    this.logger.log(
+      `Creating editing conversation for deliverable: ${deliverableId} for user: ${userId}`,
+    );
+
+    try {
+      // First, verify the deliverable exists and belongs to the user
+      const deliverable = await this.findOne(deliverableId, userId);
+      if (!deliverable) {
+        throw new NotFoundException('Deliverable not found');
+      }
+
+      // Determine which agent to use (from DTO or from deliverable)
+      const agentName = dto.agentName || deliverable.agentName;
+      
+      if (!agentName) {
+        throw new BadRequestException('No agent specified for this deliverable. Please specify an agent to handle the editing conversation.');
+      }
+      
+      // Determine the action type for context
+      const action = dto.action || 'edit';
+      
+      // Create context metadata for the conversation
+      const conversationMetadata = {
+        deliverableId,
+        deliverableTitle: deliverable.title,
+        deliverableType: deliverable.type,
+        editingAction: action,
+        context: 'deliverable_editing',
+      };
+
+      // Create the conversation
+      const conversationDto: CreateAgentConversationDto = {
+        agentName,
+        agentType: 'marketing', // Use marketing for blog_post agent
+        metadata: conversationMetadata,
+        workProduct: {
+          type: 'deliverable',
+          id: deliverableId,
+        },
+      };
+
+      const conversation = await this.agentConversationsService.createConversation(
+        userId,
+        conversationDto,
+      );
+
+      // Link the deliverable to the new conversation
+      await this.linkToConversation(deliverableId, conversation.id, userId);
+
+      // Generate an appropriate initial message based on the action
+      const initialMessage = dto.initialMessage || this.generateInitialMessage(
+        action,
+        deliverable.title,
+      );
+
+      this.logger.log(
+        `Successfully created editing conversation ${conversation.id} for deliverable ${deliverableId}`,
+      );
+
+      return {
+        conversationId: conversation.id,
+        message: initialMessage,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.logger.error('Unexpected error creating editing conversation:', error);
+      throw new BadRequestException('Failed to create editing conversation');
+    }
+  }
+
+  /**
+   * Link a deliverable to a conversation
+   */
+  async linkToConversation(
+    deliverableId: string,
+    conversationId: string,
+    userId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `Linking deliverable ${deliverableId} to conversation ${conversationId}`,
+    );
+
+    try {
+      const { error } = await this.supabaseService
+        .getServiceClient()
+        .from(getTableName('deliverables'))
+        .update({ conversation_id: conversationId })
+        .eq('id', deliverableId)
+        .eq('user_id', userId);
+
+      if (error) {
+        this.logger.error('Failed to link deliverable to conversation:', error);
+        throw new BadRequestException(
+          `Failed to link deliverable to conversation: ${error.message}`,
+        );
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error('Unexpected error linking deliverable to conversation:', error);
+      throw new BadRequestException('Failed to link deliverable to conversation');
+    }
+  }
+
+  /**
+   * Generate an appropriate initial message for the editing conversation
+   */
+  private generateInitialMessage(action: string, deliverableTitle: string): string {
+    switch (action) {
+      case 'edit':
+        return `I'd like to edit the deliverable "${deliverableTitle}". Please help me make improvements to the content.`;
+      case 'enhance':
+        return `I want to enhance the deliverable "${deliverableTitle}" with additional details, examples, or improvements.`;
+      case 'revise':
+        return `I need to revise the deliverable "${deliverableTitle}". Please help me refine and improve the existing content.`;
+      case 'discuss':
+        return `I'd like to discuss the deliverable "${deliverableTitle}". I may have questions or want to explore ways to improve it.`;
+      case 'new-version':
+        return `I want to create a new version of the deliverable "${deliverableTitle}" based on new requirements or insights.`;
+      default:
+        return `I'd like to edit the deliverable "${deliverableTitle}". Please help me make improvements to the content.`;
     }
   }
 
@@ -480,6 +631,7 @@ export class DeliverablesService {
       userId: data.user_id,
       conversationId: data.conversation_id,
       projectStepId: data.project_step_id,
+      agentName: data.agent_name,
       title: data.title,
       type: data.type,
       createdAt: new Date(data.created_at),

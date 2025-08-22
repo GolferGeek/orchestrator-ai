@@ -277,6 +277,8 @@ const isOrchestratorConversation = computed(() => {
   return props.conversation?.agent?.name?.toLowerCase().includes('orchestrator') || false;
 });
 
+
+
 const deliverableActionButtons = computed(() => {
   const conversationDeliverables = deliverablesStore.getDeliverablesByConversation(props.conversation?.id);
   return conversationDeliverables.map(deliverable => ({
@@ -378,10 +380,12 @@ const selectDeliverable = async (deliverable: any) => {
 const handleDeliverableCreated = async (deliverable: any) => {
   console.log('🎭 TwoPaneConversationView: handleDeliverableCreated called with:', deliverable);
   console.log('🎭 Current conversation ID:', props.conversation?.id);
-  console.log('🎭 Deliverable conversation ID:', deliverable.conversation_id);
+  
+  // Use the correct camelCase field name
+  console.log('🎭 Deliverable conversation ID:', deliverable.conversationId);
   
   // Ensure the deliverable belongs to the current conversation
-  if (props.conversation?.id && deliverable.conversation_id !== props.conversation.id) {
+  if (props.conversation?.id && deliverable.conversationId !== props.conversation.id) {
     console.warn('🎭 Deliverable belongs to different conversation, ignoring');
     return;
   }
@@ -400,11 +404,29 @@ const handleDeliverableCreated = async (deliverable: any) => {
   activeWorkProduct.value = { type: 'deliverable', data: deliverable };
   console.log('🎭 Set activeWorkProduct:', activeWorkProduct.value);
   
-  // Always show the work product pane when a deliverable becomes available
+  // FORCE show the work product pane immediately when a deliverable is created
   showWorkProductPane.value = true;
-  console.log('🎭 Showed work product pane for deliverable:', deliverable.title);
+  console.log('🎭 FORCED work product pane to show for deliverable:', deliverable.title);
   
-  console.log('🎭 Current showWorkProductPane state:', showWorkProductPane.value);
+  // Force Vue reactivity update
+  await nextTick();
+  console.log('🎭 After nextTick - showWorkProductPane state:', showWorkProductPane.value);
+  
+  // Show visual debugging toast to confirm pane opened
+  try {
+    const { toastController } = await import('@ionic/vue');
+    const toast = await toastController.create({
+      message: `✅ Deliverable "${deliverable.title}" created and pane opened!`,
+      duration: 3000,
+      position: 'top',
+      color: 'success'
+    });
+    await toast.present();
+  } catch (error) {
+    console.error('Failed to show debug toast:', error);
+  }
+  
+  console.log('🎭 Deliverable pane should now be visible with deliverable content');
 };
 
 const handleDeliverableUpdated = (deliverable: any) => {
@@ -571,6 +593,8 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
     deliverablesStore.loadDeliverablesByConversation(props.conversation.id);
   }
 });
+
+
 </script>
 
 <style scoped>
