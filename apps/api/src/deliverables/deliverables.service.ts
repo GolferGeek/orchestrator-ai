@@ -312,6 +312,130 @@ export class DeliverablesService {
   }
 
   /**
+   * Create or update deliverable from task completion
+   * Implements single-deliverable-per-conversation model
+   */
+  async createOrUpdateFromTaskCompletion(
+    taskId: string,
+    userId: string,
+    response: any,
+    taskData: any,
+  ): Promise<string | null> {
+    try {
+      // Parse response and extract content
+      const content = this.extractContentFromResponse(response);
+      if (!content || !this.shouldCreateDeliverable(content)) {
+        return null;
+      }
+
+      const conversationId = taskData.agent_conversation_id;
+      if (!conversationId) {
+        this.logger.warn(`Task ${taskId} - no conversation ID found`);
+        return null;
+      }
+
+      // Check if conversation already has a deliverable
+      const existingDeliverables = await this.findByConversation(conversationId, userId);
+      
+      if (existingDeliverables.length > 0) {
+        // UPDATE existing deliverable (create new version)
+        const existingDeliverable = existingDeliverables[0];
+        if (!existingDeliverable) {
+          this.logger.error(`No existing deliverable found for conversation ${conversationId}`);
+          return null;
+        }
+        
+        await this.versionsService.createVersion(
+          existingDeliverable.id,
+          {
+            content: content,
+            format: 'markdown' as any,
+            createdByType: 'task_completion' as any,
+            taskId: taskId,
+            metadata: {
+              createdAt: new Date().toISOString(),
+              source: 'task_completion',
+            },
+          },
+          userId
+        );
+
+        this.logger.debug(`Updated deliverable ${existingDeliverable.id} with new version from task ${taskId}`);
+        return existingDeliverable.id;
+      } else {
+        // CREATE new deliverable (first time for this conversation)
+        const newDeliverable = await this.create({
+          title: this.extractTitleFromContent(content),
+          type: 'document' as any,
+          conversationId,
+          initialContent: content,
+          initialFormat: 'markdown' as any,
+          initialCreationType: 'task_completion' as any,
+          initialMetadata: {
+            taskId,
+            createdAt: new Date().toISOString(),
+            source: 'task_completion',
+          },
+        }, userId);
+
+        this.logger.debug(`Created new deliverable ${newDeliverable.id} from task ${taskId}`);
+        return newDeliverable.id;
+      }
+    } catch (error) {
+      this.logger.error(`Error creating/updating deliverable for task ${taskId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Extract content from task response
+   */
+  private extractContentFromResponse(response: any): string | null {
+    let result = response;
+    if (typeof response === 'string') {
+      try {
+        result = JSON.parse(response);
+      } catch {
+        return response.length > 100 ? response : null;
+      }
+    }
+
+    return result?.response || result?.message || result?.content || null;
+  }
+
+  /**
+   * Check if content should create a deliverable
+   */
+  private shouldCreateDeliverable(content: string): boolean {
+    if (!content || content.length < 100) {
+      return false;
+    }
+
+    // Check for document-like structure
+    return content.includes('#') || content.includes('\n\n') || content.length > 500;
+  }
+
+  /**
+   * Extract title from content
+   */
+  private extractTitleFromContent(content: string): string {
+    // Look for markdown H1 header
+    const h1Match = content.match(/^#\s+(.+)$/m);
+    if (h1Match && h1Match[1]) {
+      return h1Match[1].trim();
+    }
+
+    // Look for first line as title
+    const firstLine = content.split('\n')[0]?.trim();
+    if (firstLine && firstLine.length < 100) {
+      return firstLine.replace(/^#+\s*/, ''); // Remove markdown headers
+    }
+
+    // Default title
+    return 'Task Result';
+  }
+
+  /**
    * Update deliverable metadata (title, description, type)
    */
   async update(

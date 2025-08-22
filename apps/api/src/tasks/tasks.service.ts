@@ -21,6 +21,7 @@ import {
   MessageEmitter,
   TaskMessageEmitter,
 } from './message-emitter.interface';
+import { DeliverablesService } from '../deliverables/deliverables.service';
 
 @Injectable()
 export class TasksService {
@@ -34,6 +35,8 @@ export class TasksService {
     private readonly taskMessageService: TaskMessageService,
     @Inject(forwardRef(() => TaskStatusService))
     private readonly taskStatusService: TaskStatusService,
+    @Inject(forwardRef(() => DeliverablesService))
+    private readonly deliverablesService: DeliverablesService,
   ) {}
 
   /**
@@ -313,6 +316,32 @@ export class TasksService {
         this.eventEmitter.emit('task.progress', progressEvent);
       }
 
+      // Handle deliverable creation for completed tasks
+      if (updates.status === 'completed') {
+        const deliverableId = await this.deliverablesService.createOrUpdateFromTaskCompletion(
+          taskId,
+          userId,
+          updates.response,
+          data,
+        );
+        
+        if (deliverableId) {
+          // Update the task response to include deliverable ID
+          const enhancedResponse = this.addDeliverableIdToResponse(updates.response, deliverableId);
+          
+          // Update the database with enhanced response
+          await this.supabaseService
+            .getAnonClient()
+            .from('tasks')
+            .update({
+              response: enhancedResponse,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', taskId)
+            .eq('user_id', userId);
+        }
+      }
+
       // Emit completion event
       if (
         updates.status === 'completed' ||
@@ -514,6 +543,32 @@ export class TasksService {
       userId,
     );
     return messages;
+  }
+
+  /**
+   * Add deliverable ID to task response
+   */
+  private addDeliverableIdToResponse(response: any, deliverableId: string): string {
+    try {
+      let result = response;
+      if (typeof response === 'string') {
+        try {
+          result = JSON.parse(response);
+        } catch {
+          result = { response };
+        }
+      }
+
+      const enhancedResult = {
+        ...result,
+        deliverableId,
+      };
+
+      return JSON.stringify(enhancedResult);
+    } catch (error) {
+      this.logger.error('Error adding deliverable ID to response:', error);
+      return response;
+    }
   }
 
   /**
