@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import {
   IonModal,
   IonHeader,
@@ -104,7 +104,25 @@ const emit = defineEmits<{
 
 const deleteDeliverables = ref(false);
 
+// Debug logging
+watch(() => props.hasDeliverables, (hasDeliverables) => {
+  console.log('🗑️ Modal hasDeliverables changed:', hasDeliverables);
+});
+
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen) {
+    console.log('🗑️ Modal opened with props:', {
+      agentDisplayName: props.agentDisplayName,
+      activeTasks: props.activeTasks,
+      hasDeliverables: props.hasDeliverables,
+    });
+    // Reset checkbox when modal opens
+    deleteDeliverables.value = false;
+  }
+});
+
 const confirmDelete = () => {
+  console.log('🗑️ Modal confirmDelete called with deleteDeliverables:', deleteDeliverables.value);
   emit('confirm', deleteDeliverables.value);
 };
 </script>
