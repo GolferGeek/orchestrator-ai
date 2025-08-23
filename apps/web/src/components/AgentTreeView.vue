@@ -632,6 +632,12 @@ const endConversation = async (conversation: Conversation) => {
       hasDeliverables,
     };
     
+    console.log('🗑️ Modal data prepared:', {
+      conversationId: conversation.id,
+      hasDeliverables,
+      activeTasks: conversation.activeTasks,
+    });
+    
     // Show the modal
     showDeleteModal.value = true;
   } catch (err) {
