@@ -617,7 +617,7 @@ const endConversation = async (conversation: Conversation) => {
     // Check if conversation has deliverables
     let hasDeliverables = false;
     try {
-      const deliverables = await deliverablesService.getByConversation(conversation.id);
+      const deliverables = await deliverablesService.getConversationDeliverables(conversation.id);
       hasDeliverables = deliverables.length > 0;
     } catch (error) {
       console.warn('Could not check for deliverables:', error);
@@ -668,9 +668,9 @@ const confirmDelete = async (deleteDeliverables: boolean) => {
     if (deleteDeliverables && deleteModalData.value.hasDeliverables) {
       try {
         console.log('🗑️ Deleting deliverables for conversation:', conversation.id);
-        const deliverables = await deliverablesService.getByConversation(conversation.id);
+        const deliverables = await deliverablesService.getConversationDeliverables(conversation.id);
         for (const deliverable of deliverables) {
-          await deliverablesService.delete(deliverable.id);
+          await deliverablesService.deleteDeliverable(deliverable.id);
         }
         console.log('🗑️ Deliverables deleted successfully');
       } catch (error) {
