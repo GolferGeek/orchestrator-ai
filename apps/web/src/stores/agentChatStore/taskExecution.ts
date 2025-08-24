@@ -22,11 +22,8 @@ export class TaskExecutionService {
   ): Promise<void> {
     const { executionMode, conversationId, taskId } = options;
     
-    console.log(`🎯 Creating agent task with execution mode: ${executionMode}`);
-    
     // For WebSocket mode, set up subscriptions BEFORE making the API call
     if (executionMode === 'websocket' && taskId) {
-      console.log(`🔗 Setting up WebSocket subscriptions early for task ${taskId}`);
       await this.startWebSocketMode(conversationId, taskId, handlers);
     }
     
@@ -46,12 +43,7 @@ export class TaskExecutionService {
       }
     );
 
-    console.log(`📋 Task created:`, {
-      taskId: task.taskId,
-      status: task.status,
-      conversationId: task.conversationId,
-      executionMode
-    });
+
 
     // Handle response based on execution mode and task status
     await this.handleTaskExecution(task, executionMode, conversationId, handlers);
@@ -73,24 +65,20 @@ export class TaskExecutionService {
       
     } else if (task.status === 'pending' && executionMode === 'polling') {
       // Task is async - create placeholder and start polling
-      console.log(`📊 Task ${task.taskId} is pending, starting polling mode`);
       handlers.onPlaceholder(task.taskId);
       await this.startPollingMode(conversationId, task.taskId, handlers);
       
     } else if (task.status === 'pending' && executionMode === 'immediate') {
       // Immediate mode - wait for task completion by polling once
-      console.log(`⚡ Task ${task.taskId} is pending in immediate mode, waiting for completion`);
       handlers.onPlaceholder(task.taskId);
       await this.handleImmediateMode(conversationId, task.taskId, handlers);
       
     } else {
       // Task completed immediately - use result from task creation response
-      console.log(`✅ Task ${task.taskId} completed immediately, processing result`);
       
       // For immediate mode, the response is in the result field
       let taskForProcessing: any = task;
       if (task.result && task.result.response && !(task as any).response) {
-        console.log(`🔄 Converting result.response to response format for immediate mode`);
         taskForProcessing = {
           ...task,
           response: JSON.stringify(task.result)
@@ -109,7 +97,7 @@ export class TaskExecutionService {
     taskId: string, 
     handlers: any
   ): Promise<void> {
-    console.log(`🔗 Starting WebSocket mode for task ${taskId} in conversation ${conversationId}`);
+
     
     await websocketHandler.subscribeToTaskEvents(conversationId, taskId, {
       onCompletion: handlers.onCompletion,
@@ -136,7 +124,6 @@ export class TaskExecutionService {
           const updatedTask = await tasksService.getTask(taskId);
           
           if (updatedTask.status === 'completed' || updatedTask.status === 'failed') {
-            console.log(`⚡ Task ${taskId} completed in immediate mode`);
             handlers.onCompletion(taskId);
             return;
           }
@@ -148,7 +135,6 @@ export class TaskExecutionService {
       }
       
       // Fallback to polling if immediate wait times out
-      console.log(`⚡ Task ${taskId} immediate mode timed out, falling back to polling`);
       await this.startPollingMode(conversationId, taskId, handlers);
     };
 
@@ -163,15 +149,10 @@ export class TaskExecutionService {
     taskId: string, 
     handlers: any
   ): Promise<void> {
-    console.log(`🔄 Starting polling for task ${taskId} in conversation ${conversationId}`);
-    console.log(`🚨 POLLING FIX LOADED: Enhanced polling with safety timeout and cancelled status check`);
-    
     const interval = 2000; // 2 second interval
-    console.log(`🔄 Polling interval: ${interval}ms`);
     let lastMessageCount = 0;
     let pollCount = 0;
     const maxPolls = 300; // Maximum 5 minutes of polling (300 * 2s = 600s)
-    console.log(`🔄 Max polls before timeout: ${maxPolls}`);
     
     const pollInterval = setInterval(async () => {
       try {
@@ -179,7 +160,6 @@ export class TaskExecutionService {
         
         // Safety timeout - stop polling after maxPolls attempts
         if (pollCount > maxPolls) {
-          console.warn(`⚠️ Task ${taskId} polling timeout after ${maxPolls} attempts, stopping polling`);
           clearInterval(pollInterval);
           handlers.onCompletion(taskId);
           return;
@@ -187,24 +167,11 @@ export class TaskExecutionService {
         
         // Get full task for completion check
         const fullTask = await tasksService.getTask(taskId);
-        console.log(`🔍 Task ${taskId} status check (${pollCount}/${maxPolls}):`, {
-          status: fullTask.status,
-          hasResponse: !!fullTask.response,
-          responseLength: fullTask.response?.length || 0,
-          timestamp: new Date().toISOString()
-        });
-        
-        // Enhanced status check with detailed logging
-        console.log(`🚨 STATUS CHECK: Task ${taskId} status is "${fullTask.status}"`);
-        console.log(`🚨 STATUS CHECK: Checking if "${fullTask.status}" matches completion conditions...`);
         
         if (fullTask.status === 'completed' || fullTask.status === 'failed' || fullTask.status === 'cancelled') {
-          console.log(`🏁 ✅ STOPPING POLLING: Task ${taskId} completed with status: ${fullTask.status}`);
           clearInterval(pollInterval);
           handlers.onCompletion(taskId);
           return;
-        } else {
-          console.log(`🔄 ⏳ CONTINUING POLLING: Task ${taskId} status "${fullTask.status}" not in completion states [completed, failed, cancelled]`);
         }
         
         // Get task status for progress info
@@ -212,12 +179,10 @@ export class TaskExecutionService {
 
         // Get accumulated messages for progress updates
         const messages = await tasksService.getTaskMessages(taskId);
-        console.log(`📊 Polling task ${taskId}: ${messages.length} total messages (${lastMessageCount} seen before)`);
         
         // Process new messages since last poll
         if (messages.length > lastMessageCount) {
           const newMessages = messages.slice(lastMessageCount);
-          console.log(`📨 Found ${newMessages.length} new messages for task ${taskId}`);
           
           // Build accumulated progress content from all progress messages
           const progressMessages = messages.filter(msg => msg.messageType === 'progress');
@@ -268,18 +233,15 @@ export class TaskExecutionService {
     userPreferences: any
   ): ExecutionMode {
     if (conversation.executionMode && conversation.isExecutionModeOverride) {
-      console.log(`👤 User has overridden execution mode to: ${conversation.executionMode}`);
       return conversation.executionMode;
     } else {
       // Use preference-based mode selection
       let mode = userPreferences.defaultExecutionMode;
-      console.log(`⚙️ Default execution mode from preferences: ${mode}`);
       
       // Check if agent supports the preferred mode, fall back to first supported mode if not
       const supportedModes = conversation.supportedExecutionModes;
       if (!supportedModes.includes(mode)) {
         mode = supportedModes[0]; // Use first supported mode as fallback
-        console.log(`🔄 Agent doesn't support ${userPreferences.defaultExecutionMode}, falling back to: ${mode}`);
       }
       
       // Auto-switch to WebSocket for workflow agents if enabled and supported
@@ -287,11 +249,9 @@ export class TaskExecutionService {
           conversation.agent?.name === 'requirements_writer' &&
           supportedModes.includes('websocket')) {
         mode = 'websocket';
-        console.log(`🔧 Auto-switched to WebSocket for workflow agent: ${conversation.agent?.name}`);
       }
       
       conversation.executionMode = mode;
-      console.log(`✅ Final execution mode set to: ${mode} (supported: ${supportedModes.join(', ')})`);
       return mode;
     }
   }
@@ -315,13 +275,11 @@ export class TaskExecutionService {
   ): boolean {
     // Check if the agent supports this mode
     if (!conversation.supportedExecutionModes.includes(mode)) {
-      console.warn(`⚠️ Agent ${conversation.agent?.name} doesn't support ${mode} mode. Supported: ${conversation.supportedExecutionModes.join(', ')}`);
       return false;
     }
     
     conversation.executionMode = mode;
     conversation.isExecutionModeOverride = true;
-    console.log(`👤 User manually set execution mode to: ${mode}`);
     return true;
   }
 
@@ -330,7 +288,6 @@ export class TaskExecutionService {
    */
   resetExecutionModeOverride(conversation: AgentConversation): void {
     conversation.isExecutionModeOverride = false;
-    console.log(`🔄 Reset execution mode override for agent: ${conversation.agent?.name}`);
   }
 
   /**

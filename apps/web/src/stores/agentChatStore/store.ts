@@ -90,7 +90,6 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Start new conversation with agent
      */
     async startNewConversation(agent: Agent): Promise<string> {
-      console.log(`💬 Starting new conversation with agent: ${agent.name}`);
       
       // Create conversation object
       const newConversation = conversation.createConversationObject(agent);
@@ -100,11 +99,9 @@ export const useAgentChatStore = defineStore('agentChat', {
         const backendConversationId = await conversation.createConversation(agent);
         // Use the backend conversation ID instead of the local one
         newConversation.id = backendConversationId;
-        console.log(`🔗 Backend conversation created: ${backendConversationId}`);
       } catch (error) {
         console.error('❌ Failed to create backend conversation:', error);
         // Continue with local conversation ID as fallback, but this might cause issues
-        console.warn('⚠️ Continuing with local conversation ID, but project creation may fail');
       }
       
       // Add welcome message (matching original behavior)
@@ -138,9 +135,9 @@ export const useAgentChatStore = defineStore('agentChat', {
         failedTasks: 0,
         activeTasks: 0,
       });
-      console.log('✅ Conversation added to navigation tree immediately');
+
       
-      console.log(`✅ New conversation started: ${newConversation.id}`);
+
       return newConversation.id;
     },
 
@@ -182,7 +179,7 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     async openExistingConversation(backendConversationId: string) {
       try {
-        console.log(`🔍 Opening existing conversation: ${backendConversationId}`);
+
 
         // Get conversation details from backend
         const backendConversation = await conversation.getBackendConversation(backendConversationId);
@@ -200,9 +197,9 @@ export const useAgentChatStore = defineStore('agentChat', {
         newConversation.id = backendConversationId; // Use backend ID
         
         // Load conversation messages (this already includes deliverable linking)
-        console.log(`📚 Loading messages with deliverable linking...`);
+
         newConversation.messages = await conversation.loadConversationMessages(backendConversationId);
-        console.log(`✅ Messages loaded with deliverable IDs linked`);
+
         
         // Update execution modes for this conversation
         await conversation.updateConversationExecutionModes(newConversation);
@@ -231,13 +228,13 @@ export const useAgentChatStore = defineStore('agentChat', {
         try {
           const deliverablesStore = useDeliverablesStore();
           
-          console.log(`📋 Loading deliverables for conversation: ${backendConversationId}`);
+
           const deliverables = await deliverablesStore.loadDeliverablesByConversation(backendConversationId);
           
           if (deliverables && deliverables.length > 0) {
-            console.log(`✅ Loaded ${deliverables.length} deliverable(s) for conversation`);
+
           } else {
-            console.log(`ℹ️ No deliverables found for conversation: ${backendConversationId}`);
+
           }
         } catch (deliverableError) {
           console.warn('Failed to load deliverables for conversation:', deliverableError);
@@ -247,7 +244,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Restore WebSocket subscriptions for active tasks
         await this.restoreActiveTaskSubscriptions(newConversation);
         
-        console.log(`✅ Existing conversation loaded: ${backendConversationId}`);
+
         
       } catch (error) {
         this.globalError = error instanceof Error ? error.message : 'Failed to load conversation';
@@ -280,12 +277,12 @@ export const useAgentChatStore = defineStore('agentChat', {
           // Only create a backend conversation if one does not already exist
           const exists = await conversation.conversationExists(conversationId);
           if (!exists) {
-            console.log('🔄 Creating new conversation in database...');
+
             const backendId = await conversation.createConversation(activeConversation.agent);
             conversationId = backendId;
             activeConversation.id = conversationId;
             this.activeConversationId = conversationId;
-            console.log('✅ Backend conversation created:', backendId);
+
             
             // Update the conversations navigation store so the new conversation appears in the tree
             // Do this BEFORE creating tasks to avoid race conditions with WebSocket events
@@ -303,12 +300,12 @@ export const useAgentChatStore = defineStore('agentChat', {
               failedTasks: 0,
               activeTasks: 0,
             });
-            console.log('✅ Conversation added to navigation tree BEFORE task creation');
+
           } else {
-            console.log('ℹ️ Backend conversation already exists, skipping creation');
+
           }
         } else {
-          console.log('ℹ️ Using existing conversation ID:', conversationId);
+
         }
 
         // Add user message immediately
@@ -326,7 +323,7 @@ export const useAgentChatStore = defineStore('agentChat', {
 
         // Always generate a unique task ID for every task execution to prevent database conflicts
         preGeneratedTaskId = generateUUID();
-        console.log(`🆔 Generated unique task ID: ${preGeneratedTaskId} for ${effectiveMode} mode`);
+
 
         // Prepare task execution options
         const taskOptions = {
@@ -393,12 +390,12 @@ export const useAgentChatStore = defineStore('agentChat', {
         if (hasOnlyInitialMessages) {
           const exists = await conversation.conversationExists(conversationId);
           if (!exists) {
-            console.log('🔄 Creating new conversation in database...');
+
             const backendId = await conversation.createConversation(activeConversation.agent);
             conversationId = backendId;
             activeConversation.id = conversationId;
             this.activeConversationId = conversationId;
-            console.log('✅ Backend conversation created:', backendId);
+
             
             const conversationsStore = useAgentConversationsStore();
             conversationsStore.addExistingConversation({
@@ -427,7 +424,7 @@ export const useAgentChatStore = defineStore('agentChat', {
 
         // Always generate a unique task ID for every task execution to prevent database conflicts
         preGeneratedTaskId = generateUUID();
-        console.log(`🆔 Generated unique task ID: ${preGeneratedTaskId} for ${effectiveMode} mode`);
+
 
         // Prepare task execution options with context metadata
         const taskOptions = {
@@ -478,7 +475,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       const contextStore = useContextStore();
       const metadata = contextStore.contextMetadata;
       
-      console.log('🎯 Sending context-aware message:', { content, metadata });
+
       
       if (metadata.context === 'conversation') {
         // Use regular sendMessage for conversation context
@@ -513,7 +510,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       );
       
       if (existingResponse) {
-        console.log(`⚠️ Response message already exists for task ${task.taskId}, skipping`);
+
         return;
       }
 
@@ -527,10 +524,10 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Handle task completion with deliverable generation
      */
     async handleTaskCompletion(conversationId: string, taskId: string) {
-      console.log(`🏁 DEBUG: handleTaskCompletion called for task ${taskId}`);
+
       const conv = this.getConversationById(conversationId);
       if (!conv) {
-        console.log(`🏁 DEBUG: No conversation found for ${conversationId}`);
+
         return;
       }
 
@@ -539,27 +536,27 @@ export const useAgentChatStore = defineStore('agentChat', {
       );
 
       if (!existingMessage) {
-        console.log(`🏁 DEBUG: No message found for task ${taskId}`);
+
         return;
       }
 
-      console.log(`🏁 DEBUG: Found existing message for task ${taskId}`);
+
 
       try {
         // Get completed task
-        console.log(`🏁 DEBUG: Getting completed task data for ${taskId}`);
+
         const completedTask = await tasksService.getTask(taskId);
-        console.log(`🏁 DEBUG: Completed task data:`, completedTask);
+
         
         if (completedTask.status !== 'completed') {
-          console.log(`🏁 DEBUG: Task ${taskId} not completed. Status: ${completedTask.status}`);
+
           return;
         }
 
-        console.log(`🏁 DEBUG: Extracting final content for task ${taskId}`);
+
         // Extract final content for display - backend handles deliverable creation
         const finalContent = messageFormatting.extractDeliverableContent(completedTask);
-        console.log(`🏁 DEBUG: Final content extracted:`, finalContent.substring(0, 200) + '...');
+
 
         // Update message content with the final response
         existingMessage.content = finalContent;
@@ -573,27 +570,27 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Force Vue reactivity by replacing the message in the array
         const messageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
         if (messageIndex >= 0) {
-          console.log(`🏁 DEBUG: Replacing message at index ${messageIndex}`);
+
           const updatedMessage = { ...existingMessage };
           conv.messages[messageIndex] = updatedMessage;
-          console.log(`🏁 DEBUG: Message replaced, new content length: ${updatedMessage.content.length}`);
+
         }
 
         // Check if a deliverable was created and handle UI updates
         if (completedTask.deliverableId) {
-          console.log(`🎭 DEBUG: Task ${taskId} created deliverable ${completedTask.deliverableId}`);
+
           
           try {
             // Load the deliverable and trigger UI updates
             const { deliverablesService } = await import('@/services/deliverablesService');
             const newDeliverable = await deliverablesService.getDeliverable(completedTask.deliverableId);
-            console.log(`🎭 DEBUG: Loaded deliverable from service:`, newDeliverable);
+
             
             // Add to store
             const { useDeliverablesStore } = await import('@/stores/deliverablesStore');
             const deliverablesStore = useDeliverablesStore();
             deliverablesStore.addDeliverable(newDeliverable);
-            console.log(`🎭 DEBUG: Added deliverable to store`);
+
             
             // Update message with deliverable ID - this should trigger AgentTaskItem watchers
             existingMessage.deliverableId = completedTask.deliverableId;
@@ -602,20 +599,20 @@ export const useAgentChatStore = defineStore('agentChat', {
               deliverableId: completedTask.deliverableId
             };
             
-            console.log(`🎭 DEBUG: Updated message with deliverable ID ${completedTask.deliverableId}`);
+
             
             // Reload conversation deliverables to pick up the new one
             await deliverablesStore.loadDeliverablesByConversation(conversationId);
-            console.log(`🎭 DEBUG: Reloaded conversation deliverables`);
+
             
             // Load deliverable versions
             await deliverablesStore.loadDeliverableVersions(completedTask.deliverableId);
-            console.log(`🎭 DEBUG: Loaded versions for new deliverable`);
+
             
             // Force Vue reactivity by replacing the message again after deliverable update
             const messageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
             if (messageIndex >= 0) {
-              console.log(`🎭 DEBUG: Forcing Vue reactivity after deliverable update`);
+
               const updatedMessage = { ...existingMessage };
               conv.messages[messageIndex] = updatedMessage;
             }
@@ -627,7 +624,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         
         // Check if a new version was created (different from new deliverable)
         if (completedTask.newVersionId) {
-          console.log(`🎭 DEBUG: Task ${taskId} created new version ${completedTask.newVersionId}`);
+
           
           try {
             // For version creation, we need to reload the versions and update the UI
@@ -640,7 +637,7 @@ export const useAgentChatStore = defineStore('agentChat', {
             if (deliverableId) {
               // Reload versions to pick up the new version
               await deliverablesStore.loadDeliverableVersions(deliverableId);
-              console.log(`🎭 DEBUG: Reloaded versions after new version creation`);
+
               
               // Update message to indicate version creation (but keep existing deliverableId)
               existingMessage.metadata = {
@@ -652,7 +649,7 @@ export const useAgentChatStore = defineStore('agentChat', {
               // Force Vue reactivity
               const messageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
               if (messageIndex >= 0) {
-                console.log(`🎭 DEBUG: Forcing Vue reactivity after version update`);
+
                 const updatedMessage = { ...existingMessage };
                 conv.messages[messageIndex] = updatedMessage;
               }
@@ -665,7 +662,7 @@ export const useAgentChatStore = defineStore('agentChat', {
 
         // Cleanup WebSocket subscriptions
         websocketHandler.unsubscribeFromTask(taskId);
-        console.log(`🏁 DEBUG: WebSocket unsubscribed for task ${taskId}`);
+
 
       } catch (error) {
         console.error(`🏁 DEBUG: Failed to handle task completion for ${taskId}:`, error);
@@ -677,7 +674,7 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Ensure deliverable is loaded into store for Vue reactivity
      */
     async ensureDeliverableLoaded(conversationId: string, task: any) {
-      console.log(`📦 DEBUG: ensureDeliverableLoaded called for task ${task.taskId}`);
+
       
       // Extract deliverable ID from task response (same logic as messageFormatting)
       let deliverableId = null;
@@ -698,26 +695,22 @@ export const useAgentChatStore = defineStore('agentChat', {
             deliverableId = parsedResponse.result.deliverableId;
           }
           
-          console.log(`📦 DEBUG: Parsed response keys:`, Object.keys(parsedResponse));
-          console.log(`📦 DEBUG: Looking for deliverable ID in response:`, {
-            directDeliverableId: parsedResponse?.deliverableId,
-            successDeliverableId: parsedResponse?.success?.deliverableId,
-            resultDeliverableId: parsedResponse?.result?.deliverableId
-          });
+
+
         } catch (e) {
-          console.log(`📦 DEBUG: Could not parse response for deliverable ID:`, e);
+
           return;
         }
       }
 
       if (deliverableId) {
-        console.log(`📦 DEBUG: Found deliverable ID ${deliverableId}, ensuring it's loaded in store`);
+
         
         // Load the deliverable into the store to trigger Vue reactivity
         const deliverablesStore = useDeliverablesStore();
         try {
           await deliverablesStore.loadDeliverablesByConversation(conversationId);
-          console.log(`📦 ✅ Loaded conversation deliverables for ${conversationId}`);
+
         } catch (error) {
           console.error(`📦 ERROR: Failed to load deliverables for conversation ${conversationId}:`, error);
         }
@@ -857,7 +850,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       const activeConversation = this.getActiveConversation();
       if (activeConversation) {
         activeConversation.isExecutionModeOverride = false;
-        console.log(`🔄 Reset execution mode override for agent: ${activeConversation.agent?.name}`);
+
       }
     },
 
@@ -866,24 +859,24 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     async restoreActiveTaskSubscriptions(conv: AgentConversation) {
       try {
-        console.log(`🔄 Restoring active task subscriptions for conversation: ${conv.id}`);
+
         
         // Get active tasks for this conversation
         const activeTasks = await conversation.getActiveTasksForConversation(conv.id);
         
         if (activeTasks.length === 0) {
-          console.log(`ℹ️ No active tasks to restore for conversation ${conv.id}`);
+
           return;
         }
         
-        console.log(`🔄 Restoring ${activeTasks.length} active task subscriptions:`, activeTasks.map(t => t.taskId));
+
         
         // Restore WebSocket subscriptions for each active task
         for (const task of activeTasks) {
           try {
             // Check if we have websocket mode enabled for this conversation
             if (conv.supportedExecutionModes.includes('websocket')) {
-              console.log(`🔌 Restoring WebSocket subscription for task: ${task.taskId}`);
+
               
               // Use the websocket handler to subscribe to this task
               await websocketHandler.subscribeToTaskEvents(conv.id, task.taskId, {
@@ -892,16 +885,16 @@ export const useAgentChatStore = defineStore('agentChat', {
                 onWorkflowStep: (stepEvent) => this.handleWorkflowStepUpdate(conv.id, task.taskId, stepEvent)
               });
               
-              console.log(`✅ WebSocket subscription restored for task: ${task.taskId}`);
+
             } else {
-              console.log(`⚠️ Conversation doesn't support WebSocket mode, skipping task: ${task.taskId}`);
+
             }
           } catch (error) {
             console.error(`❌ Failed to restore WebSocket subscription for task ${task.taskId}:`, error);
           }
         }
         
-        console.log(`✅ Active task subscription restoration complete for conversation: ${conv.id}`);
+
         
       } catch (error) {
         console.error(`❌ Failed to restore active task subscriptions for conversation ${conv.id}:`, error);

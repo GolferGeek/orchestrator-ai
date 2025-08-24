@@ -197,18 +197,7 @@ export class EvaluationController {
       totalPages: number;
     };
   }> {
-    // Debug logging to see what filters are received
-    console.log(
-      '[EvaluationController] getAllUserEvaluations called with filters:',
-      {
-        page,
-        limit,
-        minRating,
-        hasNotes,
-        agentName,
-        userId: user.id,
-      },
-    );
+
 
     // Ensure reasonable pagination limits
     const sanitizedLimit = Math.min(Math.max(limit, 1), 100);

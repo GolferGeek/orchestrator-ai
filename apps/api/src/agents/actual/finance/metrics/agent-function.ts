@@ -27,13 +27,7 @@ export async function execute(
 ): Promise<AgentFunctionResponse> {
   const { userMessage, llmService, progressCallback, metadata } = params;
 
-  console.log('🎯 METRICS AGENT DEBUG: Starting execution with LangChain.js');
-  console.log('📝 User message:', userMessage);
-  console.log('🔧 LLM Service available:', !!llmService);
-  console.log('📊 Metadata:', JSON.stringify(metadata, null, 2));
-
   // This agent now uses utility functions with global state instead of NestJS services
-  console.log('✅ Using LangChain.js Supabase Tools utility functions');
 
   try {
     // Step 1: Initialize database connection with Metrics Agent scope
@@ -50,14 +44,7 @@ export async function execute(
       agentName: 'Enhanced Metrics Agent',
     });
 
-    console.log(
-      '✅ Metrics Agent initialized with KPI & Analytics domain scope using utility functions',
-    );
-
     const schemaResult = { success: true, data: { validated: true } };
-
-    console.log('📊 Schema initialized with LangChain.js');
-    console.log('✅ Database connection established');
 
     // Step 1.5: Validate database access with KPI-focused query
     const requiredTables = [
@@ -90,7 +77,6 @@ export async function execute(
         );
       }
 
-      console.log('✅ Database connectivity validated');
       progressCallback?.(
         'Database schema',
         0,
@@ -98,7 +84,7 @@ export async function execute(
         `Connected successfully - LangChain.js SQL generation ready`,
       );
     } catch (error) {
-      console.log('❌ Database validation failed:', error);
+
       progressCallback?.(
         'Database schema',
         0,
@@ -155,7 +141,7 @@ Respond with JSON only:
         `${analysis.intent}`,
       );
     } catch (e) {
-      console.log('❌ Failed to parse analysis response:', e);
+
       progressCallback?.(
         'Request analysis',
         1,
@@ -168,7 +154,7 @@ Respond with JSON only:
     }
 
     // Step 2.5: Ready for SQL generation with LangChain
-    console.log('✅ LangChain SQL generation ready');
+
     progressCallback?.(
       'SQL validation',
       2,
@@ -204,7 +190,7 @@ Respond with JSON only:
     });
 
     if (userQueryResult.error) {
-      console.log('❌ SQL generation/execution failed:', userQueryResult.error);
+
       progressCallback?.(
         'SQL Execution',
         2.7,
@@ -212,12 +198,6 @@ Respond with JSON only:
         `SQL execution failed: ${userQueryResult.error}`,
       );
     } else {
-      console.log('📄 Generated SQL:', userQueryResult.sql);
-      console.log(
-        '📊 Query results:',
-        userQueryResult.result?.length || 0,
-        'rows',
-      );
 
       progressCallback?.(
         'SQL Generation',

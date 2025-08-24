@@ -71,7 +71,7 @@ function getSupabaseClient() {
     }
 
     supabaseClient = createClient(supabaseUrl, serviceKey);
-    console.log('✅ Supabase client initialized');
+
   }
   return supabaseClient;
 }
@@ -97,8 +97,6 @@ async function discoverFullSchema(): Promise<void> {
     }
     tableMap.get(row.table_name)!.push(row);
   });
-
-  console.log(`📋 Found ${tableMap.size} tables in database`);
 
   // Discover foreign key relationships
   const relationships = await discoverRelationships();
@@ -133,9 +131,7 @@ async function discoverFullSchema(): Promise<void> {
   categorizeBusinessDomains();
 
   schemaCache.initialized = true;
-  console.log(
-    `✅ Database schema discovery complete: ${schemaCache.tablesInfo.size} tables, ${schemaCache.relationships.length} relationships`,
-  );
+
 }
 
 /**
@@ -166,9 +162,7 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
     });
 
     if (error) {
-      console.log(
-        '⚠️ Could not discover foreign keys, using naming conventions',
-      );
+
       return inferRelationshipsFromNaming();
     }
 
@@ -180,15 +174,9 @@ async function discoverRelationships(): Promise<SchemaRelationship[]> {
       relationshipType: 'many-to-one' as const,
     }));
 
-    console.log(
-      `🔗 Discovered ${relationships.length} foreign key relationships`,
-    );
     return relationships;
   } catch (error) {
-    console.log(
-      '⚠️ Error discovering foreign keys, using naming conventions:',
-      error,
-    );
+
     return inferRelationshipsFromNaming();
   }
 }
@@ -202,7 +190,6 @@ async function inferRelationshipsFromNaming(): Promise<SchemaRelationship[]> {
   // This will be called after tables are processed, so we need to implement this later
   // For now, return empty array and we'll implement this after the main schema is loaded
 
-  console.log('🔗 Using naming convention inference for relationships');
   return relationships;
 }
 
@@ -420,7 +407,6 @@ function categorizeBusinessDomains(): void {
     });
   });
 
-  console.log(`🏢 Categorized tables into ${domains.length} business domains`);
 }
 
 /**

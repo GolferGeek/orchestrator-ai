@@ -30,14 +30,14 @@ export class ConversationService {
    * Create a new conversation in the backend
    */
   async createConversation(agent: Agent): Promise<string> {
-    console.log(`🔗 Creating backend conversation for agent: ${agent.name}`);
+
     
     const backendConversation = await agentConversationsService.createConversation({
       agentName: agent.name,
       agentType: agent.type as AgentType,
     });
     
-    console.log('✅ Backend conversation created:', backendConversation.id);
+
     return backendConversation.id;
   }
 
@@ -45,7 +45,7 @@ export class ConversationService {
    * Load conversation messages from backend by reconstructing from tasks
    */
   async loadConversationMessages(conversationId: string): Promise<AgentChatMessage[]> {
-    console.log(`📚 Loading conversation messages for: ${conversationId}`);
+
     
     try {
       // Load all tasks for this conversation
@@ -55,7 +55,7 @@ export class ConversationService {
       });
       
       const tasks = tasksResponse.tasks || [];
-      console.log(`📋 Found ${tasks.length} tasks for conversation ${conversationId}`);
+
       
       // Load deliverables for this conversation to link them to messages
       const deliverables: any[] = [];
@@ -63,9 +63,9 @@ export class ConversationService {
         const { deliverablesService } = await import('@/services/deliverablesService');
         const conversationDeliverables = await deliverablesService.getConversationDeliverables(conversationId);
         deliverables.push(...conversationDeliverables);
-        console.log(`📋 Found ${deliverables.length} deliverables for conversation ${conversationId}`);
+
       } catch (error) {
-        console.warn('Failed to load deliverables for conversation, continuing without deliverable linking:', error);
+
       }
       
       // Create maps for linking deliverables to messages
@@ -221,18 +221,18 @@ export class ConversationService {
       // Sort messages by timestamp
       messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
       
-      console.log(`✅ Reconstructed ${messages.length} messages from ${tasks.length} tasks for conversation ${conversationId}`);
+
       
       // Log active tasks for restoration
       const activeTasks = tasks.filter(t => ['pending', 'running'].includes(t.status));
       if (activeTasks.length > 0) {
-        console.log(`🔄 Found ${activeTasks.length} active tasks that will need WebSocket restoration:`, activeTasks.map(t => t.id));
+
       }
       
       return messages;
       
     } catch (error) {
-      console.error(`❌ Failed to load messages for conversation ${conversationId}:`, error);
+console.error(`Failed to load messages for conversation ${conversationId}:`, error);
       return [];
     }
   }
@@ -261,11 +261,11 @@ export class ConversationService {
           progressMessage: task.progressMessage
         }));
       
-      console.log(`🔄 Found ${activeTasks.length} active tasks for conversation ${conversationId}:`, activeTasks);
+
       return activeTasks;
       
     } catch (error) {
-      console.error(`❌ Failed to get active tasks for conversation ${conversationId}:`, error);
+console.error(`Failed to get active tasks for conversation ${conversationId}:`, error);
       return [];
     }
   }
@@ -276,7 +276,7 @@ export class ConversationService {
   async updateConversationExecutionModes(conversation: AgentConversation): Promise<void> {
     if (!conversation.agent) return;
 
-    console.log(`🔄 Updating execution modes for agent: ${conversation.agent.name}`);
+
 
     try {
       // Use the existing agents store instead of making a separate API call
@@ -285,40 +285,40 @@ export class ConversationService {
       // Find agent info from the store
       const agentInfo = agentsStore.availableAgents.find(agent => agent.name === conversation.agent?.name);
       
-      console.log(`🔄 DEBUG: Agent data for ${conversation.agent.name}:`, agentInfo);
-      console.log(`🔄 DEBUG: Raw execution_modes:`, agentInfo?.execution_modes);
+
+
       
       if (agentInfo?.execution_modes && Array.isArray(agentInfo.execution_modes)) {
         // Map execution modes from agent data (handles 'real-time' -> 'websocket')
         const rawModes = agentInfo.execution_modes;
-        console.log(`🔄 DEBUG: Processing execution modes:`, rawModes);
+
         
         const mappedModes = rawModes.map((mode: string) => {
           if (mode === 'real-time') {
-            console.log(`🔄 DEBUG: Mapping 'real-time' to 'websocket'`);
+
             return 'websocket';
           }
-          console.log(`🔄 DEBUG: Keeping mode as-is: '${mode}'`);
+
           return mode as ExecutionMode;
         });
         
-        console.log(`🔄 DEBUG: Mapped modes:`, mappedModes);
+
         
         const supportedModes = mappedModes.filter((mode: string) => {
           const isSupported = ['immediate', 'polling', 'websocket'].includes(mode);
-          console.log(`🔄 DEBUG: Mode '${mode}' supported:`, isSupported);
+
           return isSupported;
         });
         
         conversation.supportedExecutionModes = supportedModes;
-        console.log(`🔄 Updated execution modes for ${conversation.agent.name}:`, supportedModes);
+
       } else {
         // Default to immediate mode if no execution modes specified
         conversation.supportedExecutionModes = ['immediate'];
-        console.log(`🔄 No execution modes found for ${conversation.agent.name}, defaulting to immediate`);
+
       }
     } catch (error) {
-      console.warn('Failed to update execution modes for conversation:', error);
+
       conversation.supportedExecutionModes = ['immediate'];
     }
   }
@@ -401,7 +401,7 @@ export class ConversationService {
     try {
       return await agentConversationsService.getConversation(conversationId);
     } catch (error) {
-      console.error(`❌ Failed to get conversation ${conversationId}:`, error);
+console.error(`Failed to get conversation ${conversationId}:`, error);
       throw error;
     }
   }
@@ -412,13 +412,13 @@ export class ConversationService {
   async persistConversationState(conversation: AgentConversation): Promise<void> {
     try {
       // This could be extended to save conversation metadata
-      console.log(`💾 Persisting conversation state for: ${conversation.id}`);
+
       
       // For now, we don't need to persist the entire state
       // The messages are persisted separately when created
       
     } catch (error) {
-      console.warn(`Failed to persist conversation state for ${conversation.id}:`, error);
+
     }
   }
 
@@ -427,11 +427,11 @@ export class ConversationService {
    */
   async archiveConversation(conversationId: string): Promise<void> {
     try {
-      console.log(`🗄️ Archiving conversation: ${conversationId}`);
+
       // Implementation depends on backend support for archiving
       // For now, we just log it
     } catch (error) {
-      console.error(`Failed to archive conversation ${conversationId}:`, error);
+console.error(`Failed to archive conversation ${conversationId}:`, error);
     }
   }
 
@@ -443,7 +443,7 @@ export class ConversationService {
       const response = await agentConversationsService.listConversations();
       return response.conversations;
     } catch (error) {
-      console.error('Failed to get user conversations:', error);
+console.error('Failed to get user conversations:', error);
       return [];
     }
   }
@@ -523,7 +523,7 @@ export class ConversationService {
       .filter(Boolean);
     
     activeTasks.forEach(taskId => {
-      console.log(`🧹 Cleaning up active task: ${taskId}`);
+
       // This could unsubscribe from WebSocket events, etc.
     });
   }

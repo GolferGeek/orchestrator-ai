@@ -55,7 +55,7 @@ function getOrchestratorClient() {
     }
 
     orchestratorClient = createClient(supabaseUrl, serviceKey);
-    console.log('🎯 Orchestrator client initialized:', supabaseUrl);
+
   }
   return orchestratorClient;
 }
@@ -79,7 +79,7 @@ function getCompanyClient() {
     }
 
     companyClient = createClient(supabaseUrl, serviceKey);
-    console.log('🏢 Company client initialized:', supabaseUrl);
+
   }
   return companyClient;
 }
@@ -93,7 +93,6 @@ async function createOrchestratorSqlDatabase(): Promise<SqlDatabase> {
 
     orchestratorSqlDatabase = {
       async run(query: string) {
-        console.log('🔄 Executing SQL on Orchestrator DB:', query);
 
         try {
           const { data, error } = await client.rpc('exec_sql', {
@@ -102,10 +101,10 @@ async function createOrchestratorSqlDatabase(): Promise<SqlDatabase> {
           if (error) {
             throw new Error(`SQL execution failed: ${error.message}`);
           }
-          console.log('✅ SQL executed successfully on Orchestrator DB');
+
           return data;
         } catch (rpcError) {
-          console.log('❌ Orchestrator SQL execution failed:', rpcError);
+
           throw new Error(
             `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
           );
@@ -125,7 +124,6 @@ async function createOrchestratorSqlDatabase(): Promise<SqlDatabase> {
       },
     } as any;
 
-    console.log('✅ Orchestrator SQL Database interface created');
   }
   return orchestratorSqlDatabase!;
 }
@@ -139,7 +137,6 @@ async function createCompanySqlDatabase(): Promise<SqlDatabase> {
 
     companySqlDatabase = {
       async run(query: string) {
-        console.log('🔄 Executing SQL on Company DB:', query);
 
         try {
           // Company database uses direct table queries (no exec_sql RPC)
@@ -148,10 +145,10 @@ async function createCompanySqlDatabase(): Promise<SqlDatabase> {
           if (error) {
             throw new Error(`SQL execution failed: ${error}`);
           }
-          console.log('✅ SQL executed successfully on Company DB');
+
           return data;
         } catch (rpcError) {
-          console.log('❌ Company SQL execution failed:', rpcError);
+
           throw new Error(
             `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
           );
@@ -181,7 +178,6 @@ async function createCompanySqlDatabase(): Promise<SqlDatabase> {
       },
     } as any;
 
-    console.log('✅ Company SQL Database interface created');
   }
   return companySqlDatabase!;
 }
@@ -242,13 +238,10 @@ async function executeQueryOnCompanyDB(client: any, query: string): Promise<{dat
 export async function initializeForOrchestrator(config?: SupabaseToolsConfig) {
   if (initialized) return;
 
-  console.log('🎯 Initializing Orchestrator database tools...');
-  
   await initializeDatabaseSchema();
   initializeLangChain();
   await createOrchestratorSqlDatabase();
 
-  console.log('✅ Orchestrator database tools initialized');
   initialized = true;
 }
 
@@ -256,8 +249,7 @@ export async function initializeForOrchestrator(config?: SupabaseToolsConfig) {
  * Initialize Supabase tools for Company database (KPI/Analytics)
  */
 export async function initializeForCompany(config?: SupabaseToolsConfig) {
-  console.log('🏢 Initializing Company database tools...');
-  
+
   await createCompanySqlDatabase();
   
   if (!initialized) {
@@ -265,7 +257,6 @@ export async function initializeForCompany(config?: SupabaseToolsConfig) {
     initialized = true;
   }
 
-  console.log('✅ Company database tools initialized');
 }
 
 /**
@@ -288,18 +279,16 @@ export async function initializeForAgent(config?: SupabaseToolsConfig) {
 export async function executeOrchestratorSQL(query: string): Promise<any> {
   await initializeForOrchestrator();
   const client = getOrchestratorClient();
-  
-  console.log('🔄 Executing SQL on Orchestrator database:', query);
 
   try {
     const { data, error } = await client.rpc('exec_sql', { query });
     if (error) {
       throw new Error(`SQL execution failed: ${error.message}`);
     }
-    console.log('✅ Orchestrator SQL executed successfully');
+
     return data;
   } catch (rpcError) {
-    console.log('❌ Orchestrator SQL execution failed:', rpcError);
+
     throw new Error(
       `SQL execution failed: ${rpcError instanceof Error ? rpcError.message : 'Unknown error'}`,
     );
@@ -312,18 +301,16 @@ export async function executeOrchestratorSQL(query: string): Promise<any> {
 export async function executeCompanySQL(query: string): Promise<any> {
   await initializeForCompany();
   const client = getCompanyClient();
-  
-  console.log('🔄 Executing SQL on Company database:', query);
 
   try {
     const result = await executeQueryOnCompanyDB(client, query);
     if (result.error) {
       throw new Error(`SQL execution failed: ${result.error}`);
     }
-    console.log('✅ Company SQL executed successfully');
+
     return result.data;
   } catch (sqlError) {
-    console.log('❌ Company SQL execution failed:', sqlError);
+
     throw new Error(
       `SQL execution failed: ${sqlError instanceof Error ? sqlError.message : 'Unknown error'}`,
     );
@@ -372,8 +359,6 @@ export async function generateAndExecuteCompanySQL(
       db,
       dialect: 'postgres',
     });
-
-    console.log('🔄 Generating SQL from natural language (Company DB):', naturalLanguageQuery);
 
     const generatedSQL = await chain.invoke({
       question: naturalLanguageQuery,
@@ -445,8 +430,6 @@ export async function generateAndExecuteOrchestratorSQL(
       db,
       dialect: 'postgres',
     });
-
-    console.log('🔄 Generating SQL from natural language (Orchestrator DB):', naturalLanguageQuery);
 
     const generatedSQL = await chain.invoke({
       question: naturalLanguageQuery,

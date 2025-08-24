@@ -748,10 +748,6 @@ export class EvaluationService {
       totalPages: number;
     };
   }> {
-    console.log(
-      `[EvaluationService] getAllUserEvaluations called for user: ${userId}, filters:`,
-      filters,
-    );
 
     const client = this.supabaseService.getAnonClient();
 
@@ -761,13 +757,6 @@ export class EvaluationService {
       .select('*')
       .eq('user_id', userId)
       .not('evaluation', 'is', null);
-
-    console.log(
-      `[EvaluationService] Tasks result:`,
-      tasks?.length || 0,
-      'items, error:',
-      tasksError,
-    );
 
     if (tasksError) {
       throw new HttpException(
@@ -785,10 +774,6 @@ export class EvaluationService {
           task.evaluation.accuracy_rating),
     );
 
-    console.log(
-      `[EvaluationService] Tasks with actual evaluations: ${tasksWithEvaluations.length}`,
-    );
-
     // Get unique provider and model IDs from tasks to fetch details
     const providerIds = new Set<string>();
     const modelIds = new Set<string>();
@@ -797,13 +782,6 @@ export class EvaluationService {
       // Provider and model IDs are nested in originalLLMSelection
       const providerId = task.llm_metadata?.originalLLMSelection?.providerId;
       const modelId = task.llm_metadata?.originalLLMSelection?.modelId;
-
-      console.log(`[EvaluationService] Extracting from task ${task.id}:`, {
-        hasLLMMetadata: !!task.llm_metadata,
-        hasOriginalSelection: !!task.llm_metadata?.originalLLMSelection,
-        providerId,
-        modelId,
-      });
 
       if (providerId) {
         providerIds.add(providerId);
@@ -817,83 +795,38 @@ export class EvaluationService {
     const providersMap = new Map();
     const modelsMap = new Map();
 
-    console.log(
-      `[EvaluationService] Provider IDs collected:`,
-      Array.from(providerIds),
-    );
-    console.log(
-      `[EvaluationService] Model IDs collected:`,
-      Array.from(modelIds),
-    );
-    console.log(`[EvaluationService] Provider IDs size:`, providerIds.size);
-    console.log(`[EvaluationService] Model IDs size:`, modelIds.size);
-
     // Fetch user email
-    console.log(
-      `[EvaluationService] Fetching user email for userId: ${userId}`,
-    );
+
     const { data: userProfile, error: userError } = await client
       .from('profiles')
       .select('email')
       .eq('id', userId)
       .single();
 
-    console.log(
-      `[EvaluationService] User profile result:`,
-      userProfile,
-      'Error:',
-      userError,
-    );
     const userEmail = userProfile?.email || 'Unknown';
 
     // Test direct query with known IDs
-    console.log(`[EvaluationService] Testing direct llm_provider query...`);
+
     const { data: testProvider, error: testProviderError } = await client
       .from('llm_providers')
       .select('*')
       .eq('id', '11111111-1111-1111-1111-111111111111');
-    console.log(
-      `[EvaluationService] Direct llm_provider query result:`,
-      testProvider,
-      'Error:',
-      testProviderError,
-    );
 
-    console.log(`[EvaluationService] Testing direct llm_model query...`);
     const { data: testModel, error: testModelError } = await client
       .from('llm_models')
       .select('*')
       .eq('id', 'bb7bd9b6-f120-4847-807e-b0455bad6f31');
-    console.log(
-      `[EvaluationService] Direct llm_model query result:`,
-      testModel,
-      'Error:',
-      testModelError,
-    );
 
     if (providerIds.size > 0) {
-      console.log(`[EvaluationService] About to query llm_providers table...`);
+
       const { data: providers, error: providerError } = await client
         .from('llm_providers')
         .select('*')
         .in('id', Array.from(providerIds));
 
-      console.log(
-        `[EvaluationService] Providers query result:`,
-        providers,
-        'Error:',
-        providerError,
-      );
-
       if (providers) {
         providers.forEach((provider) => {
-          console.log(
-            `[EvaluationService] Mapping llm_provider:`,
-            provider.id,
-            '->',
-            provider.name || provider.provider_name,
-          );
-          console.log(`[EvaluationService] Full provider object:`, provider);
+
           // Use the mapLLMProviderFromDb utility function for consistent mapping
           const mappedProvider = mapLLMProviderFromDb(provider);
           providersMap.set(provider.id, mappedProvider);
@@ -902,28 +835,15 @@ export class EvaluationService {
     }
 
     if (modelIds.size > 0) {
-      console.log(`[EvaluationService] About to query llm_models table...`);
+
       const { data: models, error: modelError } = await client
         .from('llm_models')
         .select('*')
         .in('id', Array.from(modelIds));
 
-      console.log(
-        `[EvaluationService] Models query result:`,
-        models,
-        'Error:',
-        modelError,
-      );
-
       if (models) {
         models.forEach((model) => {
-          console.log(
-            `[EvaluationService] Mapping llm_model:`,
-            model.id,
-            '->',
-            model.display_name || model.model_name || model.name,
-          );
-          console.log(`[EvaluationService] Full model object:`, model);
+
           // Use the mapLLMModelFromDb utility function for consistent mapping
           const mappedModel = mapLLMModelFromDb(model);
           modelsMap.set(model.id, mappedModel);
@@ -935,65 +855,8 @@ export class EvaluationService {
     const allEvaluations: EnhancedMessageResponseDto[] =
       tasksWithEvaluations.map((task) => {
         // Debug: log all available task fields and data
-        console.log(
-          `[EvaluationService] Task ${task.id} fields:`,
-          Object.keys(task),
-        );
-        console.log(`[EvaluationService] Task actual data:`, {
-          method: task.method,
-          prompt: task.prompt
-            ? task.prompt.substring(0, 100) + '...'
-            : undefined,
-          response: task.response
-            ? task.response.substring(0, 100) + '...'
-            : undefined,
-          // Check alternative field names for response
-          result: task.result
-            ? task.result.substring(0, 100) + '...'
-            : undefined,
-          output: task.output
-            ? task.output.substring(0, 100) + '...'
-            : undefined,
-          answer: task.answer
-            ? task.answer.substring(0, 100) + '...'
-            : undefined,
-          response_metadata: task.response_metadata,
-          metadata: task.metadata,
-          llm_metadata: task.llm_metadata,
-          // Check if response is nested in llm_metadata
-          llm_response: task.llm_metadata?.response
-            ? task.llm_metadata.response.substring(0, 100) + '...'
-            : undefined,
-          llm_result: task.llm_metadata?.result
-            ? task.llm_metadata.result.substring(0, 100) + '...'
-            : undefined,
-          // Check deliverable fields
-          type: task.type,
-          deliverable_metadata: task.deliverable_metadata,
-          // Check status and completion
-          status: task.status,
-          completed_at: task.completed_at,
-          progress: task.progress,
-          // Check evaluation object for response data
-          evaluation_data: task.evaluation,
-        });
 
         // Additional debug for missing response data
-        console.log(
-          `[EvaluationService] Task ${task.id} response data check:`,
-          {
-            hasPrompt: !!task.prompt,
-            hasResponse: !!task.response,
-            hasResponseMetadata: !!task.response_metadata,
-            responseMetadataKeys: task.response_metadata
-              ? Object.keys(task.response_metadata)
-              : [],
-            hasWorkflowSteps:
-              !!task.response_metadata?.workflow_steps_completed,
-            workflowStepsCount:
-              task.response_metadata?.workflow_steps_completed?.length || 0,
-          },
-        );
 
         // Create more meaningful content from task details
         let taskContent = 'Task';
@@ -1039,32 +902,11 @@ export class EvaluationService {
         // Format the agent name for consistent display
         const displayAgentName = formatAgentNameForDisplay(agentName);
 
-        console.log(
-          `[EvaluationService] Task ${task.id}: "${taskContent}" by ${displayAgentName}`,
-        );
-
         // Get provider and model from LLM metadata (nested in originalLLMSelection)
         const providerId = task.llm_metadata?.originalLLMSelection?.providerId;
         const modelId = task.llm_metadata?.originalLLMSelection?.modelId;
         const provider = providerId ? providersMap.get(providerId) : undefined;
         const model = modelId ? modelsMap.get(modelId) : undefined;
-
-        console.log(
-          `[EvaluationService] Task ${task.id} - Provider ID: ${providerId}, Model ID: ${modelId}`,
-        );
-        console.log(
-          `[EvaluationService] Task ${task.id} - Provider obj:`,
-          provider ? provider.name || provider.display_name : 'not found',
-        );
-        console.log(
-          `[EvaluationService] Task ${task.id} - Model obj:`,
-          model ? model.display_name || model.model_name : 'not found',
-        );
-        console.log(`[EvaluationService] Task ${task.id} - Model lookup:`, {
-          modelId,
-          foundInMap: !!model,
-          modelKeys: model ? Object.keys(model) : [],
-        });
 
         return {
           id: task.id,
@@ -1112,10 +954,6 @@ export class EvaluationService {
         };
       });
 
-    console.log(
-      `[EvaluationService] Task evaluations count: ${allEvaluations.length}`,
-    );
-
     // Apply filters using direct DTO fields
     let filteredEvaluations = allEvaluations;
 
@@ -1160,10 +998,6 @@ export class EvaluationService {
       offset + filters.limit,
     );
 
-    console.log(
-      `[EvaluationService] After filtering and pagination: ${paginatedEvaluations.length} items`,
-    );
-
     const evaluations = paginatedEvaluations;
 
     return {
@@ -1194,10 +1028,6 @@ export class EvaluationService {
       totalPages: number;
     };
   }> {
-    console.log(
-      `[EvaluationService] getAllEvaluationsForAdmin called with filters:`,
-      filters,
-    );
 
     const client = this.supabaseService.getAnonClient();
 
@@ -1299,10 +1129,6 @@ export class EvaluationService {
 
       return hasRating;
     });
-
-    console.log(
-      `[EvaluationService] Admin evaluations found: ${tasksWithEvaluations.length}`,
-    );
 
     // Get unique user IDs and provider/model IDs for batch fetching
     const userIds = new Set<string>();
