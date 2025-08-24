@@ -20,20 +20,17 @@
         </ion-button>
       </div>
     </div>
-
     <!-- Loading state -->
     <div v-if="conversationsStore.isLoading" class="loading-state">
       <ion-spinner />
       <p>Loading agents...</p>
     </div>
-
     <!-- Error state -->
     <div v-if="conversationsStore.error" class="error-state">
       <ion-icon :icon="alertCircleOutline" color="danger" />
       <p>{{ conversationsStore.error }}</p>
       <ion-button @click="refreshData">Retry</ion-button>
     </div>
-
     <!-- Tree view -->
     <div v-if="!conversationsStore.isLoading && !conversationsStore.error" class="tree-content">
       <ion-accordion-group :multiple="true" v-model="expandedGroups">
@@ -58,7 +55,6 @@
               {{ agentType.totalConversations }}
             </ion-badge>
           </ion-item>
-
           <div slot="content" class="agent-type-content">
             <!-- Individual Agents - Custom expandable structure -->
             <div
@@ -98,7 +94,6 @@
                   color="medium"
                 />
               </div>
-
               <!-- Agent Content - Only show if expanded -->
               <div v-if="isAgentExpanded(agent)" class="conversations-content">
                 <!-- Action buttons at the top -->
@@ -112,7 +107,6 @@
                     <ion-icon :icon="addOutline" slot="start" />
                     New {{ getConversationLabel(agent) }}
                   </ion-button>
-                  
                   <!-- Create Project button for orchestrator agents -->
                   <ion-button 
                     v-if="agent.type === 'orchestrator'"
@@ -126,7 +120,6 @@
                     Create Project
                   </ion-button>
                 </div>
-                
                 <!-- Conversations for this agent -->
                 <div
                   v-if="agent.conversations.length === 0"
@@ -134,7 +127,6 @@
                 >
                   <p>No {{ getConversationPluralLabel(agent).toLowerCase() }} yet</p>
                 </div>
-
                 <div
                   v-for="conversation in agent.conversations"
                   :key="conversation.id"
@@ -189,9 +181,7 @@
         </ion-accordion>
       </ion-accordion-group>
     </div>
-
     <!-- Task Details Modal removed - conversations now load in main window -->
-    
     <!-- Conversation Delete Modal -->
     <ConversationDeleteModal
       :is-open="showDeleteModal"
@@ -203,7 +193,6 @@
     />
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import {
@@ -252,7 +241,6 @@ import { websocketService } from '@/services/websocketService';
 import { useRouter } from 'vue-router';
 import ConversationDeleteModal from './ConversationDeleteModal.vue';
 // TaskDetailsModal import removed - conversations now load in main window
-
 interface Agent {
   name: string;
   type: string;
@@ -262,7 +250,6 @@ interface Agent {
   activeConversations: number;
   totalConversations: number;
 }
-
 interface Conversation {
   id: string;
   agentName: string;
@@ -276,7 +263,6 @@ interface Conversation {
   activeTasks: number;
   metadata?: Record<string, any>;
 }
-
 interface AgentType {
   type: string;
   agents: Agent[];
@@ -285,13 +271,11 @@ interface AgentType {
   level?: number;
   hierarchyData?: any;
 }
-
 // Props
 const props = defineProps<{
   compactMode?: boolean;
   searchQuery?: string;
 }>();
-
 // Reactive state
 const searchQuery = ref(props.searchQuery || '');
 const expandedGroups = ref<string[]>([]); // Start with all accordions closed
@@ -305,30 +289,24 @@ const deleteModalData = ref<{
   activeTasks: number;
   hasDeliverables: boolean;
 } | null>(null);
-
 // Data - removed local agents ref, using store instead
-
 // Stores
 const agentsStore = useAgentsStore();
 const conversationsStore = useAgentConversationsStore();
 const router = useRouter();
-
 // Computed - now using hierarchy instead of type grouping
 const filteredAgentTypes = computed(() => {
   const hierarchy = agentsStore.getAgentHierarchy;
   const availableAgents = agentsStore.getAvailableAgents;
-  
   if (!hierarchy) {
     // Fallback to original type-based grouping if hierarchy not available
     const types = new Map<string, AgentType>();
-    
     const filteredAgents = availableAgents.filter((agent: any) => {
       const matchesSearch = !searchQuery.value || 
         agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
         agent.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
       return matchesSearch;
     });
-
     filteredAgents.forEach((agent: any) => {
       if (!types.has(agent.type)) {
         types.set(agent.type, {
@@ -337,12 +315,10 @@ const filteredAgentTypes = computed(() => {
           totalConversations: 0,
         });
       }
-      
       // Get conversations from store - use direct state access for reactivity
       const agentConversations = conversationsStore.conversations.filter(conv => 
         conv.agentName === agent.name && conv.agentType === agent.type
       );
-      
       const agentType = types.get(agent.type)!;
       agentType.agents.push({
         name: agent.name,
@@ -355,31 +331,19 @@ const filteredAgentTypes = computed(() => {
       });
       agentType.totalConversations += agentConversations.length;
     });
-
     return Array.from(types.values()).sort((a, b) => {
       const order = ['orchestrator', 'marketing', 'sales', 'operations', 'engineering', 'research', 'finance', 'hr', 'specialist', 'product', 'legal'];
       return order.indexOf(a.type) - order.indexOf(b.type);
     });
   }
-
   // Convert hierarchy to display format
   const buildHierarchyGroups = (node: any, level: number = 0): AgentType[] => {
     const groups: AgentType[] = [];
-    
-    console.log('🔍 BuildHierarchyGroups - Processing node:', {
-      nodeName: node.name,
-      nodeAgent: node.agent,
-      level: level,
-      hasChildren: node.children && node.children.length > 0
-    });
-    
     // Check if this node represents an agent (either has node.agent or is an agent itself)
     const agentData = node.agent || (node.name && node.type ? node : null);
-    
     if (agentData) {
       // This is an actual agent node
       const agent = availableAgents.find(a => a.name === agentData.name);
-      console.log('🔍 BuildHierarchyGroups - Looking for agent:', agentData.name, 'Found:', !!agent);
       if (!agent) {
         // If not found in availableAgents, create from hierarchy data
         const hierarchyAgent = {
@@ -388,18 +352,14 @@ const filteredAgentTypes = computed(() => {
           description: agentData.metadata?.description || agentData.description || '',
           execution_modes: []
         };
-        console.log('🔍 BuildHierarchyGroups - Using hierarchy data for agent:', hierarchyAgent.name);
-        
         // Apply search filter
         const matchesSearch = !searchQuery.value || 
           hierarchyAgent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
           hierarchyAgent.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
-        
         if (matchesSearch) {
           const agentConversations = conversationsStore.conversations.filter(conv => 
             conv.agentName === hierarchyAgent.name && conv.agentType === hierarchyAgent.type
           );
-          
           const agentGroup: AgentType = {
             type: `${hierarchyAgent.name}_hierarchy_${level}`, // Unique identifier
             agents: [{
@@ -416,22 +376,18 @@ const filteredAgentTypes = computed(() => {
             level: level,
             hierarchyData: agentData
           };
-          
           groups.push(agentGroup);
         }
         return groups;
       }
-      
       // Apply search filter for found agent
       const matchesSearch = !searchQuery.value || 
         agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
         agent.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
-      
       if (matchesSearch) {
         const agentConversations = conversationsStore.conversations.filter(conv => 
           conv.agentName === agent.name && conv.agentType === (agent.type || 'specialist')
         );
-        
         const agentGroup: AgentType = {
           type: `${agent.name}_hierarchy_${level}`, // Unique identifier
           agents: [{
@@ -448,28 +404,23 @@ const filteredAgentTypes = computed(() => {
           level: level,
           hierarchyData: agentData
         };
-        
         groups.push(agentGroup);
       }
     }
-    
     // Process children
     if (node.children && node.children.length > 0) {
       node.children.forEach((child: any) => {
         groups.push(...buildHierarchyGroups(child, level + 1));
       });
     }
-    
     return groups;
   };
-
   // Start from top-level agents (those with no parent)
   const hierarchyGroups: AgentType[] = [];
   const topLevelAgents = hierarchy.data || hierarchy.topLevel || [];
   if (topLevelAgents && topLevelAgents.length > 0) {
     // Since the hierarchy is coming as a flat list, let's group by department type
     const departmentGroups = new Map<string, any[]>();
-    
     topLevelAgents.forEach((agent: any) => {
       const department = agent.type || 'specialist';
       if (!departmentGroups.has(department)) {
@@ -477,7 +428,6 @@ const filteredAgentTypes = computed(() => {
       }
       departmentGroups.get(department)!.push(agent);
     });
-    
     // Convert each department group to AgentType format
     departmentGroups.forEach((agents, department) => {
       // Apply search filter
@@ -487,7 +437,6 @@ const filteredAgentTypes = computed(() => {
           agent.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
         return matchesSearch;
       });
-      
       if (filteredAgents.length > 0) {
         const agentItems = filteredAgents
           .map((agent: any) => {
@@ -508,14 +457,11 @@ const filteredAgentTypes = computed(() => {
             // Put managers first (agents with "manager" or "orchestrator" in name)
             const aIsManager = a.name.toLowerCase().includes('manager') || a.name.toLowerCase().includes('orchestrator');
             const bIsManager = b.name.toLowerCase().includes('manager') || b.name.toLowerCase().includes('orchestrator');
-            
             if (aIsManager && !bIsManager) return -1;
             if (!aIsManager && bIsManager) return 1;
-            
             // If both are managers or both are not managers, sort alphabetically
             return a.name.localeCompare(b.name);
           });
-        
         const departmentGroup: AgentType = {
           type: department,
           agents: agentItems,
@@ -523,17 +469,13 @@ const filteredAgentTypes = computed(() => {
           isHierarchyNode: false,
           level: 0,
         };
-        
         hierarchyGroups.push(departmentGroup);
       }
     });
   }
-  
   return hierarchyGroups;
 });
-
 // Methods
-
 const refreshData = async () => {
   try {
     // Force refresh both stores and hierarchy
@@ -541,26 +483,21 @@ const refreshData = async () => {
     await agentsStore.fetchAgentHierarchy();
     await conversationsStore.fetchConversations(true); // Force refresh
   } catch (err) {
-    console.error('Error during refresh:', err);
+
   }
 };
-
 const filterAgents = () => {
   // Filtering is handled in computed property
 };
-
 const selectConversation = (conversation: Conversation) => {
   selectedConversation.value = conversation;
   // Emit event for parent components
   emit('conversation-selected', conversation);
 };
-
-
 // Custom agent expand/collapse methods
 const toggleAgent = (agent: Agent) => {
   const agentKey = `${agent.type}-${agent.name}`;
   const index = expandedAgents.value.indexOf(agentKey);
-  
   if (index === -1) {
     // Agent not expanded, add it
     expandedAgents.value.push(agentKey);
@@ -569,30 +506,23 @@ const toggleAgent = (agent: Agent) => {
     expandedAgents.value.splice(index, 1);
   }
 };
-
 const isAgentExpanded = (agent: Agent): boolean => {
   const agentKey = `${agent.type}-${agent.name}`;
   return expandedAgents.value.includes(agentKey);
 };
-
 const createNewConversation = async (agent: Agent) => {
   try {
     // No automatic accordion manipulation - let user control accordions manually
-    
     // With lazy conversation creation, we don't create conversations upfront
     // Instead, emit an event for the parent to handle (e.g., open chat interface)
     // The conversation will be created when the first task is sent
-    
     // Emit event to parent with agent info
     emit('agent-selected', agent);
-    
     // Give user feedback that something is happening
     // In a full implementation, this would transition to a chat interface
-    
   } catch (err) {
   }
 };
-
 const createNewProject = async (agent: Agent) => {
   try {
     // Navigate to project creation page with pre-selected orchestrator
@@ -604,26 +534,21 @@ const createNewProject = async (agent: Agent) => {
       }
     });
   } catch (err) {
-    console.error('Failed to navigate to project creation:', err);
+
   }
 };
-
 // viewConversationTasks removed - clicking conversation directly loads it
-
 const endConversation = async (conversation: Conversation) => {
   try {
-    console.log('🗑️ Attempting to delete conversation:', conversation.id, conversation.agentName);
-    
     // Check if conversation has deliverables
     let hasDeliverables = false;
     try {
       const deliverables = await deliverablesService.getConversationDeliverables(conversation.id);
       hasDeliverables = deliverables.length > 0;
     } catch (error) {
-      console.warn('Could not check for deliverables:', error);
+
       // Continue with hasDeliverables = false
     }
-    
     // Set up modal data
     deleteModalData.value = {
       conversation,
@@ -631,74 +556,51 @@ const endConversation = async (conversation: Conversation) => {
       activeTasks: conversation.activeTasks,
       hasDeliverables,
     };
-    
-    console.log('🗑️ Modal data prepared:', {
-      conversationId: conversation.id,
-      hasDeliverables,
-      activeTasks: conversation.activeTasks,
-    });
-    
     // Show the modal
     showDeleteModal.value = true;
   } catch (err) {
-    console.error('🗑️ Error in endConversation:', err);
+
   }
 };
-
 const cancelDelete = () => {
-  console.log('🗑️ User cancelled deletion');
   showDeleteModal.value = false;
   deleteModalData.value = null;
 };
-
 const confirmDelete = async (deleteDeliverables: boolean) => {
   try {
     if (!deleteModalData.value) {
-      console.error('🗑️ No delete modal data available');
+
       return;
     }
-
     const conversation = deleteModalData.value.conversation;
-    console.log('🗑️ User confirmed deletion, deleteDeliverables:', deleteDeliverables);
-    
     // Close modal first
     showDeleteModal.value = false;
-    
     // Delete deliverables if requested
     if (deleteDeliverables && deleteModalData.value.hasDeliverables) {
       try {
-        console.log('🗑️ Deleting deliverables for conversation:', conversation.id);
         const deliverables = await deliverablesService.getConversationDeliverables(conversation.id);
         for (const deliverable of deliverables) {
           await deliverablesService.deleteDeliverable(deliverable.id);
         }
-        console.log('🗑️ Deliverables deleted successfully');
       } catch (error) {
-        console.error('🗑️ Error deleting deliverables:', error);
+
         // Continue with conversation deletion even if deliverable deletion fails
       }
     }
-
-    console.log('🗑️ Calling conversationsStore.deleteConversation...');
     // Use store method - this will update the UI reactively
     await conversationsStore.deleteConversation(conversation.id);
-    console.log('🗑️ Delete conversation completed successfully');
   } catch (err) {
-    console.error('🗑️ Error in confirmDelete:', err);
+
     // Error is already handled in the store
   } finally {
     deleteModalData.value = null;
   }
 };
-
 // handleTaskAction removed - no longer needed without modal
-
 // Utility functions
-
 const getConversationDisplayName = (conversation: Conversation) => {
   const date = new Date(conversation.startedAt);
   const now = new Date();
-  
   // If it's today, show time only
   if (date.toDateString() === now.toDateString()) {
     return date.toLocaleTimeString([], { 
@@ -707,7 +609,6 @@ const getConversationDisplayName = (conversation: Conversation) => {
       hour12: true 
     });
   }
-  
   // If it's this week, show day and time
   const daysDiff = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
   if (daysDiff === 1) {
@@ -717,7 +618,6 @@ const getConversationDisplayName = (conversation: Conversation) => {
       hour12: true 
     })}`;
   }
-  
   if (daysDiff < 7) {
     return `${date.toLocaleDateString([], { weekday: 'short' })} ${date.toLocaleTimeString([], { 
       hour: '2-digit', 
@@ -725,7 +625,6 @@ const getConversationDisplayName = (conversation: Conversation) => {
       hour12: true 
     })}`;
   }
-  
   // For older conversations, show date and time
   return date.toLocaleString([], {
     month: 'short',
@@ -735,15 +634,12 @@ const getConversationDisplayName = (conversation: Conversation) => {
     hour12: true
   });
 };
-
 const getConversationLabel = (agent: Agent) => {
   return agent.type === 'orchestrator' ? 'Session' : 'Conversation';
 };
-
 const getConversationPluralLabel = (agent: Agent) => {
   return agent.type === 'orchestrator' ? 'Sessions' : 'Conversations';
 };
-
 const cleanAgentName = (name: string) => {
   // Remove 'orchestrator' suffix and clean up names for better UX
   return formatAgentName(name)
@@ -752,14 +648,12 @@ const cleanAgentName = (name: string) => {
     .replace(/\s*Ceo\s*Orchestrator$/i, 'CEO')  // Replace 'Ceo Orchestrator' with 'CEO'
     .trim();
 };
-
 const formatAgentTypeName = (agentType: AgentType) => {
   // For hierarchy nodes, use the cleaned agent name
   if (agentType.isHierarchyNode && agentType.agents.length > 0) {
     const agent = agentType.agents[0];
     return cleanAgentName(agent.name);
   }
-  
   // Fallback to original type-based naming
   const type = agentType.type;
   const names = {
@@ -777,21 +671,18 @@ const formatAgentTypeName = (agentType: AgentType) => {
   };
   return names[type as keyof typeof names] || type.charAt(0).toUpperCase() + type.slice(1);
 };
-
 const formatTime = (date: Date) => {
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
-
   if (minutes < 1) return 'Just now';
   if (minutes < 60) return `${minutes}m ago`;
   if (hours < 24) return `${hours}h ago`;
   if (days < 7) return `${days}d ago`;
   return date.toLocaleDateString();
 };
-
 const getAgentTypeIcon = (type: string) => {
   const icons = {
     orchestrator: serverOutline,
@@ -808,7 +699,6 @@ const getAgentTypeIcon = (type: string) => {
   };
   return icons[type as keyof typeof icons] || personOutline;
 };
-
 const getAgentTypeColor = (type: string) => {
   const colors = {
     orchestrator: 'success',
@@ -825,7 +715,6 @@ const getAgentTypeColor = (type: string) => {
   };
   return colors[type as keyof typeof colors] || 'medium';
 };
-
 // Events
 const emit = defineEmits<{
   'conversation-selected': [conversation: Conversation];
@@ -834,73 +723,55 @@ const emit = defineEmits<{
   'task-failed': [event: { taskId: string; conversationId: string }];
   'task-updated': [event: { taskId: string; conversationId: string }];
 }>();
-
 // Lifecycle
 onMounted(() => {
   refreshData();
-  
   // Listen for task events to update conversation states
   websocketService.onTaskEvent('created', (event) => {
     // Update task counts in store without full refresh - use reactive task count updates instead
     if (event.conversationId) {
-      console.log('🔧 Task created event:', event.conversationId, event.taskId);
       const conversation = conversationsStore.getConversationById(event.conversationId);
-      console.log('🔧 Found conversation for created task:', !!conversation);
-      
       if (conversation) {
         conversationsStore.updateConversationTaskCounts(event.conversationId, {
           activeTasks: conversation.activeTasks + 1,
           taskCount: conversation.taskCount + 1,
         });
       } else {
-        console.warn('🔧 Conversation not found in store for created task:', event.conversationId);
+
       }
     }
   });
-  
   websocketService.onTaskEvent('completed', (event) => {
     if (event.conversationId) {
-      console.log('🎯 Task completed event:', event.conversationId, event.taskId);
       const conversation = conversationsStore.getConversationById(event.conversationId);
-      console.log('🎯 Found conversation for completed task:', !!conversation, conversation?.activeTasks);
-      
       if (conversation) {
-        console.log('🎯 Updating task counts: activeTasks', conversation.activeTasks, '-> ', Math.max(0, conversation.activeTasks - 1));
         conversationsStore.updateConversationTaskCounts(event.conversationId, {
           activeTasks: Math.max(0, conversation.activeTasks - 1),
           completedTasks: conversation.completedTasks + 1,
         });
-        
         // For long-running tasks, we need to trigger a refresh of the conversation data
         // to get the latest task results. This is a partial refresh that won't reset UI state.
         emit('task-completed', { taskId: event.taskId, conversationId: event.conversationId });
       } else {
-        console.warn('🎯 Conversation not found in store for completed task:', event.conversationId);
-        console.log('🎯 Available conversations:', conversationsStore.conversations.map(c => ({ id: c.id, agentName: c.agentName })));
+
       }
     }
   });
-  
   websocketService.onTaskEvent('failed', (event) => {
     if (event.conversationId) {
-      console.log('❌ Task failed event:', event.conversationId, event.taskId);
       const conversation = conversationsStore.getConversationById(event.conversationId);
-      console.log('❌ Found conversation for failed task:', !!conversation);
-      
       if (conversation) {
         conversationsStore.updateConversationTaskCounts(event.conversationId, {
           activeTasks: Math.max(0, conversation.activeTasks - 1),
           failedTasks: conversation.failedTasks + 1,
         });
-        
         // For failed tasks, also notify parent components
         emit('task-failed', { taskId: event.taskId, conversationId: event.conversationId });
       } else {
-        console.warn('❌ Conversation not found in store for failed task:', event.conversationId);
+
       }
     }
   });
-  
   websocketService.onTaskEvent('updated', (event) => {
     if (event.conversationId) {
       // For task updates (progress, intermediate results), update the lastActiveAt timestamp
@@ -908,13 +779,11 @@ onMounted(() => {
       conversationsStore.updateConversationTaskCounts(event.conversationId, {
         // Just update the timestamp to show activity
       });
-      
       // Notify parent components about the task update
       emit('task-updated', { taskId: event.taskId, conversationId: event.conversationId });
     }
   });
 });
-
 // Watch for WebSocket connection changes
 watch(() => websocketService.connected.value, (connected) => {
   if (connected) {
@@ -922,68 +791,56 @@ watch(() => websocketService.connected.value, (connected) => {
     // This will be handled automatically by the websocket service
   }
 });
-
 // Watch for changes to the search query prop
 watch(() => props.searchQuery, (newSearchQuery) => {
   searchQuery.value = newSearchQuery || '';
 });
 </script>
-
 <style scoped>
 .agent-tree-view {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
-
 /* Organization Level Styling */
 .organization-header {
   --background: var(--ion-color-step-25);
   border-bottom: 1px solid var(--ion-color-step-100);
 }
-
 /* Hierarchy Level Styling */
 .organization-header[data-hierarchy-level="1"] {
   --padding-start: 32px;
   --background: var(--ion-color-step-50);
 }
-
 .organization-header[data-hierarchy-level="2"] {
   --padding-start: 48px;
   --background: var(--ion-color-step-75);
 }
-
 .organization-header[data-hierarchy-level="3"] {
   --padding-start: 64px;
   --background: var(--ion-color-step-100);
 }
-
 .organization-icon {
   font-size: 1.2em;
   margin-right: 4px;
 }
-
 .organization-title {
   font-weight: 600;
   font-size: 1.1em;
   margin-bottom: 2px;
 }
-
 .organization-subtitle {
   font-size: 0.85em;
   color: var(--ion-color-medium);
   margin: 0;
 }
-
 .conversation-count {
   font-weight: 600;
 }
-
 /* Agent/Specialist Level Styling */
 .agent-section {
   margin-bottom: 8px;
 }
-
 .agent-header-button {
   display: flex;
   align-items: center;
@@ -994,73 +851,59 @@ watch(() => props.searchQuery, (newSearchQuery) => {
   transition: background-color 0.2s ease;
   gap: 12px;
 }
-
 .agent-header-button:hover {
   background: var(--ion-color-step-100);
 }
-
 .agent-specialist-icon {
   font-size: 1em;
   flex-shrink: 0;
 }
-
 .agent-info {
   flex: 1;
   min-width: 0;
 }
-
 .agent-name {
   font-weight: 500;
   font-size: 1em;
   margin: 0 0 2px 0;
 }
-
 .agent-subtitle {
   font-size: 0.8em;
   color: var(--ion-color-medium);
   margin: 0;
   font-style: italic;
 }
-
 .agent-badges {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
 }
-
 .active-badge {
   background: var(--ion-color-success);
 }
-
 .total-badge {
   background: var(--ion-color-medium);
 }
-
 .expand-icon {
   font-size: 1.2em;
   flex-shrink: 0;
 }
-
 .tree-header {
   padding: 16px;
   border-bottom: 1px solid var(--ion-color-step-150);
 }
-
 .tree-header h2 {
   margin: 0 0 12px 0;
   color: var(--ion-color-primary);
 }
-
 .header-actions {
   display: flex;
   gap: 8px;
   align-items: center;
 }
-
 .header-actions ion-searchbar {
   flex: 1;
 }
-
 .loading-state,
 .error-state {
   display: flex;
@@ -1070,24 +913,19 @@ watch(() => props.searchQuery, (newSearchQuery) => {
   padding: 32px;
   text-align: center;
 }
-
 .error-state {
   color: var(--ion-color-danger);
 }
-
 .tree-content {
   flex: 1;
   overflow-y: auto;
 }
-
 .agent-type-content {
   padding-left: 16px;
 }
-
 .agent-header {
   --padding-start: 16px;
 }
-
 .agent-header ion-label h3 {
   font-size: 0.95em;
   font-weight: 500;
@@ -1096,28 +934,23 @@ watch(() => props.searchQuery, (newSearchQuery) => {
   text-overflow: unset;
   margin-bottom: 0;
 }
-
 .agent-avatar {
   width: 32px;
   height: 32px;
 }
-
 .agent-badges {
   display: flex;
   gap: 4px;
   align-items: center;
 }
-
 .conversations-content {
   padding: 8px 16px;
 }
-
 .no-conversations {
   text-align: center;
   padding: 24px;
   color: var(--ion-color-medium);
 }
-
 .conversation-item {
   background: var(--ion-color-step-50);
   border-radius: 8px;
@@ -1127,16 +960,13 @@ watch(() => props.searchQuery, (newSearchQuery) => {
   transition: all 0.2s ease;
   border: 2px solid transparent;
 }
-
 .conversation-item:hover {
   background: var(--ion-color-step-100);
 }
-
 .conversation-item.selected {
   border-color: #1976d2;
   background: #e3f2fd;
 }
-
 .conversation-header {
   display: flex;
   justify-content: space-between;
@@ -1144,99 +974,81 @@ watch(() => props.searchQuery, (newSearchQuery) => {
   margin-bottom: 8px;
   gap: 8px;
 }
-
 .conversation-info {
   flex: 1;
   min-width: 0;
 }
-
 .conversation-info h4 {
   margin: 0 0 4px 0;
   font-size: 1em;
   font-weight: 500;
 }
-
 .conversation-meta {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
-
 .task-badge {
   font-size: 0.7em;
   flex-shrink: 0;
 }
-
 .conversation-time {
   margin: 0;
   font-size: 0.85em;
   color: var(--ion-color-medium);
   flex-shrink: 0;
 }
-
 .conversation-actions {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
 }
-
 .conversation-stats {
   display: flex;
   gap: 12px;
   font-size: 0.85em;
   color: var(--ion-color-medium);
 }
-
 .stat {
   display: flex;
   align-items: center;
   gap: 4px;
 }
-
 .stat.total {
   margin-left: auto;
   font-weight: 500;
 }
-
 /* Compact Mode Styles */
 .agent-tree-view.compact-mode {
   padding: 0;
 }
-
 .agent-tree-view.compact-mode .tree-content {
   padding: 0;
 }
-
 .agent-tree-view.compact-mode ion-item {
   --padding-start: 12px;
   --padding-end: 12px;
   font-size: 0.9em;
 }
-
 .agent-tree-view.compact-mode .conversation-item {
   padding: 6px 16px;
   font-size: 0.85em;
 }
-
 .agent-tree-view.compact-mode .conversation-meta {
   font-size: 0.75em;
 }
-
 .agent-tree-view.compact-mode .conversation-stats {
   font-size: 0.75em;
 }
-
 /* Compact mode styling for all agents */
 .agent-tree-view.compact-mode .agent-header {
   --padding-start: 12px;
   --padding-end: 8px;
 }
-
 .agent-tree-view.compact-mode .agent-header ion-label h3 {
   font-size: 0.9em;
 }
-  
   /* Compact badge styles */
   .compact-badge {
     min-width: 20px;
@@ -1245,12 +1057,10 @@ watch(() => props.searchQuery, (newSearchQuery) => {
     border-radius: 12px;
     margin-left: 4px;
   }
-  
   .agent-tree-view.compact-mode .compact-badge {
     font-size: 0.7em;
     min-width: 18px;
   }
-  
   /* Agent actions */
   .agent-actions {
     padding: 8px 16px;
@@ -1259,7 +1069,6 @@ watch(() => props.searchQuery, (newSearchQuery) => {
     flex-direction: column;
     gap: 4px;
   }
-  
   .start-conversation-btn {
     --color: var(--ion-color-primary);
     font-size: 0.9em;
@@ -1267,7 +1076,6 @@ watch(() => props.searchQuery, (newSearchQuery) => {
     font-weight: 500;
     justify-content: flex-start;
   }
-  
   .create-project-btn {
     --color: var(--ion-color-secondary);
     font-size: 0.9em;
@@ -1275,12 +1083,10 @@ watch(() => props.searchQuery, (newSearchQuery) => {
     font-weight: 500;
     justify-content: flex-start;
   }
-  
   .agent-tree-view.compact-mode .start-conversation-btn,
   .agent-tree-view.compact-mode .create-project-btn {
     font-size: 0.8em;
   }
-
 /* Dark theme support */
 @media (prefers-color-scheme: dark), 
 html[data-theme="dark"] {
@@ -1288,70 +1094,55 @@ html[data-theme="dark"] {
     background: #1f2937;
     color: #f3f4f6;
   }
-  
   .tree-content {
     background: #1f2937;
   }
-  
   .agent-header {
     background: #374151;
     border-color: #4b5563;
   }
-  
   .agent-header ion-label h3 {
     color: #f3f4f6;
   }
-  
   .agent-header ion-label p {
     color: #9ca3af;
   }
-  
   .conversation-item {
     background: #2d3748;
     border-color: #4a5568;
     color: #e2e8f0;
   }
-  
   .conversation-item:hover {
     background: #4a5568;
   }
-  
   .conversation-item.selected {
     border-color: #3b82f6;
     background: #1e40af;
     color: #dbeafe;
   }
-  
   .conversation-meta {
     color: #a0aec0;
   }
-  
   .conversation-item.selected .conversation-meta {
     color: #bfdbfe;
   }
-  
   .conversation-stats {
     color: #9ca3af;
   }
-  
   .conversation-item.selected .conversation-stats {
     color: #bfdbfe;
   }
-  
   .compact-badge {
     background: #4a5568;
     color: #e2e8f0;
   }
-  
   .agent-actions {
     background: #374151;
     border-color: #4b5563;
   }
-  
   .start-conversation-btn {
     --color: #60a5fa;
   }
-  
   .create-project-btn {
     --color: #a78bfa;
   }

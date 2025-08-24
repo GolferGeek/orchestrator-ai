@@ -1,5 +1,4 @@
 import { DeliverableType, DeliverableFormat } from '@/services/deliverablesService';
-
 // Helper to ensure string is a valid DeliverableType
 export function toDeliverableType(type: string | DeliverableType): DeliverableType {
   if (Object.values(DeliverableType).includes(type as DeliverableType)) {
@@ -8,7 +7,6 @@ export function toDeliverableType(type: string | DeliverableType): DeliverableTy
   // Default fallback
   return DeliverableType.DOCUMENT;
 }
-
 // Helper to ensure string is a valid DeliverableFormat  
 export function toDeliverableFormat(format: string | DeliverableFormat): DeliverableFormat {
   if (Object.values(DeliverableFormat).includes(format as DeliverableFormat)) {
@@ -17,7 +15,6 @@ export function toDeliverableFormat(format: string | DeliverableFormat): Deliver
   // Default fallback
   return DeliverableFormat.MARKDOWN;
 }
-
 // Convert service deliverable (with string dates) to store deliverable (with Date objects)
 export function convertServiceToStoreDeliverable(serviceDeliverable: any): any {
   return {
@@ -29,7 +26,6 @@ export function convertServiceToStoreDeliverable(serviceDeliverable: any): any {
     content_preview: serviceDeliverable.content_preview || serviceDeliverable.content?.substring(0, 200) || ''
   };
 }
-
 // Convert store deliverable to service format
 export function convertStoreToServiceDeliverable(storeDeliverable: any): any {
   return {

@@ -19,7 +19,6 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content :fullscreen="true" class="ion-padding">
       <!-- Last Refresh Indicator -->
       <ion-item lines="none" class="refresh-indicator">
@@ -31,7 +30,6 @@
           <small>{{ autoRefreshEnabled ? 'Auto-refresh every 30s' : 'Auto-refresh disabled' }}</small>
         </ion-note>
       </ion-item>
-
       <!-- Tab Navigation -->
       <ion-segment v-model="activeTab" @ionChange="onTabChange">
         <ion-segment-button value="overview">
@@ -47,7 +45,6 @@
           <ion-label>Workflows</ion-label>
         </ion-segment-button>
       </ion-segment>
-
       <!-- Overview Tab -->
       <div v-if="activeTab === 'overview'">
         <AdminEvaluationOverview 
@@ -56,7 +53,6 @@
           @refresh="refreshData"
         />
       </div>
-
       <!-- All Evaluations Tab -->
       <div v-if="activeTab === 'evaluations'">
         <AdminEvaluationsList 
@@ -69,7 +65,6 @@
           @refresh="refreshData"
         />
       </div>
-
       <!-- Analytics Tab -->
       <div v-if="activeTab === 'analytics'">
         <AdminAnalyticsView 
@@ -80,7 +75,6 @@
           @refresh="refreshData"
         />
       </div>
-
       <!-- Workflows Tab -->
       <div v-if="activeTab === 'workflows'">
         <AdminWorkflowsView 
@@ -89,7 +83,6 @@
           @refresh="refreshData"
         />
       </div>
-
       <!-- Error State -->
       <ion-card v-if="error" color="danger">
         <ion-card-content>
@@ -103,7 +96,6 @@
         </ion-card-content>
       </ion-card>
     </ion-content>
-
     <!-- Export Modal -->
     <AdminExportModal 
       :is-open="showExportModal"
@@ -112,7 +104,6 @@
     />
   </ion-page>
 </template>
-
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, reactive, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -139,21 +130,17 @@ import {
   refreshOutline,
   downloadOutline
 } from 'ionicons/icons';
-
 // Import admin components (we'll create these)
 import AdminEvaluationOverview from '@/components/Admin/AdminEvaluationOverview.vue';
 import AdminEvaluationsList from '@/components/Admin/AdminEvaluationsList.vue';
 import AdminAnalyticsView from '@/components/Admin/AdminAnalyticsView.vue';
 import AdminWorkflowsView from '@/components/Admin/AdminWorkflowsView.vue';
 import AdminExportModal from '@/components/Admin/AdminExportModal.vue';
-
 // Import admin service
 import { useAdminEvaluationStore } from '@/stores/adminEvaluationStore';
-
 const adminStore = useAdminEvaluationStore();
 const route = useRoute();
 const router = useRouter();
-
 // Reactive state
 const activeTab = ref('overview');
 const refreshInterval = ref<NodeJS.Timeout | null>(null);
@@ -162,14 +149,12 @@ const autoRefreshEnabled = ref(true);
 const showExportModal = ref(false);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
-
 // Data from store
 const evaluations = ref<any[]>([]);
 const pagination = ref<any>({});
 const analytics = ref<any>(null);
 const workflowAnalytics = ref<any>(null);
 const constraintAnalytics = ref<any>(null);
-
 // Filters
 const filters = reactive({
   page: 1,
@@ -184,25 +169,21 @@ const filters = reactive({
   hasWorkflowSteps: undefined,
   hasConstraints: undefined
 });
-
 onMounted(async () => {
   await refreshData();
   startAutoRefresh();
   setupFocusRefresh();
 });
-
 onUnmounted(() => {
   stopAutoRefresh();
   cleanupFocusRefresh();
 });
-
 // Watch for route changes to refresh data when navigating to this page
 watch(() => route.path, async (newPath) => {
   if (newPath === '/admin/evaluations') {
     await refreshData();
   }
 }, { immediate: true });
-
 // Auto-refresh functionality
 function startAutoRefresh() {
   // Refresh every 30 seconds
@@ -213,14 +194,12 @@ function startAutoRefresh() {
     }
   }, 30000); // 30 seconds
 }
-
 function stopAutoRefresh() {
   if (refreshInterval.value) {
     clearInterval(refreshInterval.value);
     refreshInterval.value = null;
   }
 }
-
 // Focus-based refresh functionality
 function setupFocusRefresh() {
   // Refresh when window/tab becomes visible
@@ -233,7 +212,6 @@ function setupFocusRefresh() {
       }
     }
   };
-
   // Refresh when window/tab gains focus
   const handleFocus = () => {
     if (!isLoading.value && autoRefreshEnabled.value) {
@@ -244,31 +222,25 @@ function setupFocusRefresh() {
       }
     }
   };
-
   document.addEventListener('visibilitychange', handleVisibilityChange);
   window.addEventListener('focus', handleFocus);
-
   // Store cleanup functions
   const cleanupFunctions = () => {
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     window.removeEventListener('focus', handleFocus);
   };
-
   // Store cleanup function for onUnmounted
   (window as any).__adminEvaluationsCleanup = cleanupFunctions;
 }
-
 function cleanupFocusRefresh() {
   if ((window as any).__adminEvaluationsCleanup) {
     (window as any).__adminEvaluationsCleanup();
     delete (window as any).__adminEvaluationsCleanup;
   }
 }
-
 async function refreshData() {
   isLoading.value = true;
   error.value = null;
-  
   try {
     // Load data based on active tab
     switch (activeTab.value) {
@@ -288,12 +260,11 @@ async function refreshData() {
     lastRefreshTime.value = new Date();
   } catch (err: any) {
     error.value = err.message || 'Failed to load admin data';
-    console.error('Admin data loading error:', err);
+
   } finally {
     isLoading.value = false;
   }
 }
-
 async function manualRefresh() {
   // Stop auto-refresh temporarily to avoid conflicts
   stopAutoRefresh();
@@ -301,14 +272,11 @@ async function manualRefresh() {
   // Restart auto-refresh
   startAutoRefresh();
 }
-
 function formatLastRefreshTime(): string {
   if (!lastRefreshTime.value) return 'Never';
-  
   const now = new Date();
   const diffMs = now.getTime() - lastRefreshTime.value.getTime();
   const diffSeconds = Math.floor(diffMs / 1000);
-  
   if (diffSeconds < 60) {
     return `${diffSeconds} seconds ago`;
   } else if (diffSeconds < 3600) {
@@ -319,7 +287,6 @@ function formatLastRefreshTime(): string {
     return `${hours} hour${hours > 1 ? 's' : ''} ago`;
   }
 }
-
 function toggleAutoRefresh() {
   autoRefreshEnabled.value = !autoRefreshEnabled.value;
   if (autoRefreshEnabled.value) {
@@ -328,48 +295,39 @@ function toggleAutoRefresh() {
     stopAutoRefresh();
   }
 }
-
 async function loadOverviewData() {
   analytics.value = await adminStore.fetchAnalytics();
 }
-
 async function loadEvaluationsData() {
   const result = await adminStore.fetchAllEvaluations(filters);
   evaluations.value = result.evaluations;
   pagination.value = result.pagination;
 }
-
 async function loadAnalyticsData() {
   const [analyticsData, workflowData, constraintData] = await Promise.all([
     adminStore.fetchAnalytics(),
     adminStore.fetchWorkflowAnalytics(),
     adminStore.fetchConstraintAnalytics()
   ]);
-  
   analytics.value = analyticsData;
   workflowAnalytics.value = workflowData;
   constraintAnalytics.value = constraintData;
 }
-
 async function loadWorkflowData() {
   workflowAnalytics.value = await adminStore.fetchWorkflowAnalytics();
 }
-
 async function onTabChange(event: CustomEvent) {
   activeTab.value = event.detail.value;
   await refreshData();
 }
-
 function onFilterChange(newFilters: any) {
   Object.assign(filters, newFilters);
   loadEvaluationsData();
 }
-
 function onPageChange(page: number) {
   filters.page = page;
   loadEvaluationsData();
 }
-
 async function onExport(exportOptions: any) {
   try {
     isLoading.value = true;
@@ -382,29 +340,23 @@ async function onExport(exportOptions: any) {
   }
 }
 </script>
-
 <style scoped>
 .ion-padding {
   padding: 16px;
 }
-
 ion-segment {
   margin-bottom: 20px;
 }
-
 .error-card {
   margin: 20px 0;
 }
-
 .refresh-indicator {
   --background: transparent;
   margin-bottom: 8px;
 }
-
 .rotating {
   animation: rotate 1s linear infinite;
 }
-
 @keyframes rotate {
   from {
     transform: rotate(0deg);

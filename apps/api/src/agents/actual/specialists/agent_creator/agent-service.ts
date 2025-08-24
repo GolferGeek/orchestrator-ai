@@ -15,8 +15,7 @@ export class AgentCreatorService extends ContextAgentBaseService {
    */
   async processTask(taskRequest: any): Promise<any> {
     try {
-      this.logger.debug(`Agent Creator processing task. User message: ${taskRequest.prompt?.substring(0, 100)}...`);
-      
+
       // First, let the AI handle the conversation normally
       const response = await super.processTask(taskRequest);
 
@@ -24,13 +23,13 @@ export class AgentCreatorService extends ContextAgentBaseService {
       const shouldCreateAgent = this.shouldTriggerAgentCreation(response);
       
       if (shouldCreateAgent) {
-        this.logger.log('Agent file contents detected in AI response');
+
         const fileContents = this.extractFileContents(response);
         if (fileContents) {
-          this.logger.log(`Extracted file contents for agent: ${fileContents.agentInfo.agent_name}`);
+
           return await this.createAgentFilesFromContent(fileContents, taskRequest);
         } else {
-          this.logger.warn('Agent file contents detected but could not extract properly');
+
           // Return the original response instead of an error - let the AI handle clarification
           return response;
         }
@@ -38,7 +37,7 @@ export class AgentCreatorService extends ContextAgentBaseService {
 
       return response;
     } catch (error) {
-      this.logger.error('Agent Creator task processing failed:', error);
+
       return {
         message: "I apologize, but I encountered an error. Let me help you create your agent. What kind of agent would you like to build?",
         metadata: {
@@ -73,7 +72,7 @@ export class AgentCreatorService extends ContextAgentBaseService {
       // Extract YAML content
       const yamlMatch = message.match(/```yaml\n([\s\S]*?)\n```/);
       if (!yamlMatch) {
-        this.logger.warn('No YAML content found in response');
+
         return null;
       }
       const yamlContent = yamlMatch[1].trim();
@@ -81,7 +80,7 @@ export class AgentCreatorService extends ContextAgentBaseService {
       // Extract Markdown content
       const mdMatch = message.match(/```markdown\n([\s\S]*?)\n```/);
       if (!mdMatch) {
-        this.logger.warn('No Markdown content found in response');
+
         return null;
       }
       const mdContent = mdMatch[1].trim();
@@ -89,7 +88,7 @@ export class AgentCreatorService extends ContextAgentBaseService {
       // Extract TypeScript content
       const tsMatch = message.match(/```typescript\n([\s\S]*?)\n```/);
       if (!tsMatch) {
-        this.logger.warn('No TypeScript content found in response');
+
         return null;
       }
       const tsContent = tsMatch[1].trim();
@@ -97,11 +96,10 @@ export class AgentCreatorService extends ContextAgentBaseService {
       // Extract basic agent info from YAML content for metadata
       const agentInfo = this.parseAgentInfoFromYaml(yamlContent);
 
-      this.logger.debug('Successfully extracted file contents');
       return { yamlContent, mdContent, tsContent, agentInfo };
       
     } catch (error) {
-      this.logger.warn('Failed to extract file contents:', error);
+
       return null;
     }
   }
@@ -122,7 +120,7 @@ export class AgentCreatorService extends ContextAgentBaseService {
         description: descMatch?.[1] ? descMatch[1] : 'Generated agent'
       };
     } catch (error) {
-      this.logger.warn('Failed to parse agent info from YAML:', error);
+
       return {
         agent_name: 'new_agent',
         display_name: 'New Agent',
@@ -138,7 +136,6 @@ export class AgentCreatorService extends ContextAgentBaseService {
   private async createAgentFilesFromContent(fileContents: { yamlContent: string; mdContent: string; tsContent: string; agentInfo: any }, taskRequest: any): Promise<any> {
     try {
       const { yamlContent, mdContent, tsContent, agentInfo } = fileContents;
-      this.logger.log(`Creating agent files for: ${agentInfo.agent_name} in department: ${agentInfo.department}`);
 
       // Import fs and path for direct file operations
       const fs = await import('fs/promises');
@@ -147,8 +144,6 @@ export class AgentCreatorService extends ContextAgentBaseService {
       // Use fixed base directory path
       const AGENTS_BASE_DIR = '/Users/Justin/projects/GolferGeek/orchestrator-ai/apps/api/src/agents/actual';
       const agentDir = path.join(AGENTS_BASE_DIR, agentInfo.department, agentInfo.agent_name);
-      
-      this.logger.debug(`Agent directory: ${agentDir}`);
 
       // Check if agent already exists
       try {
@@ -173,8 +168,6 @@ export class AgentCreatorService extends ContextAgentBaseService {
       await fs.writeFile(mdPath, mdContent);
       await fs.writeFile(tsPath, tsContent);
 
-      this.logger.log(`Successfully created agent files in: ${agentDir}`);
-
       // Trigger agent discovery refresh so new agent appears immediately
       try {
         const baseUrl = process.env.API_BASE_URL || 'http://localhost:4000';
@@ -189,9 +182,9 @@ export class AgentCreatorService extends ContextAgentBaseService {
           `${baseUrl}/agents/.well-known/hierarchy`,
           { headers }
         );
-        this.logger.debug('Agent discovery refresh triggered successfully');
+
       } catch (refreshError) {
-        this.logger.warn('Failed to refresh agent discovery, but agent was created:', refreshError);
+
       }
 
       return {
@@ -230,8 +223,7 @@ No coding required - your agent is live and ready!`,
       };
 
     } catch (error) {
-      this.logger.error('Failed to create agent files:', error);
-      
+
       let errorMessage = 'Unknown error occurred';
       if (error instanceof Error) {
         errorMessage = error.message;
@@ -242,7 +234,7 @@ No coding required - your agent is live and ready!`,
       // Check if it's an HTTP error with response details
       if ((error as any).response) {
         const httpError = error as any;
-        this.logger.error(`HTTP Error ${httpError.response.status}: ${httpError.response.statusText}`, httpError.response.data);
+
         errorMessage = `API Error (${httpError.response.status}): ${httpError.response.data?.message || httpError.response.statusText}`;
       }
       

@@ -73,7 +73,7 @@ export class RolesGuard implements CanActivate {
 
     // Ensure user is authenticated (should be handled by JwtAuthGuard first)
     if (!user || !user.id) {
-      this.logger.warn('RolesGuard: No authenticated user found');
+
       throw new ForbiddenException('Authentication required');
     }
 
@@ -82,9 +82,7 @@ export class RolesGuard implements CanActivate {
       const userProfile = await this.getUserProfile(user.id);
 
       if (!userProfile) {
-        this.logger.warn(
-          `RolesGuard: User profile not found for ID: ${user.id}`,
-        );
+
         throw new ForbiddenException('User profile not found');
       }
 
@@ -98,11 +96,6 @@ export class RolesGuard implements CanActivate {
         const userRoles = userProfile.roles.join(', ');
         const requiredRolesList = requiredRoles.join(', ');
 
-        this.logger.warn(
-          `RolesGuard: Access denied for user ${userProfile.email}. ` +
-            `User roles: [${userRoles}], Required roles: [${requiredRolesList}]`,
-        );
-
         throw new ForbiddenException(
           `Insufficient permissions. Required roles: [${requiredRolesList}]`,
         );
@@ -111,21 +104,11 @@ export class RolesGuard implements CanActivate {
       // Add user profile to request for use in controllers
       request.userProfile = userProfile;
 
-      this.logger.debug(
-        `RolesGuard: Access granted for user ${userProfile.email} ` +
-          `with roles: [${userProfile.roles.join(', ')}]`,
-      );
-
       return true;
     } catch (error) {
       if (error instanceof ForbiddenException) {
         throw error;
       }
-
-      this.logger.error(
-        `RolesGuard: Error checking user roles for user ID ${user.id}:`,
-        error,
-      );
 
       throw new ForbiddenException('Error verifying user permissions');
     }
@@ -154,7 +137,7 @@ export class RolesGuard implements CanActivate {
 
       return data;
     } catch (error) {
-      this.logger.error(`Error fetching user profile for ID ${userId}:`, error);
+
       throw error;
     }
   }

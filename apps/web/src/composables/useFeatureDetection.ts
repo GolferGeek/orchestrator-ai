@@ -1,7 +1,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useApiConfigStore } from '../stores/apiConfigStore';
 import { API_FEATURES, ApiFeature, ApiVersion, ApiTechnology } from '../types/api';
-
 interface FeatureCompatibility {
   feature: ApiFeature;
   isSupported: boolean;
@@ -10,7 +9,6 @@ interface FeatureCompatibility {
   fallbackMessage?: string;
   requiresTechnology?: ApiTechnology;
 }
-
 interface VersionCapabilities {
   version: ApiVersion;
   technology: ApiTechnology;
@@ -18,17 +16,14 @@ interface VersionCapabilities {
   limitations: string[];
   recommendations: string[];
 }
-
 export function useFeatureDetection() {
   // Stores
   const apiConfigStore = useApiConfigStore();
-
   // Reactive state
   const detectedFeatures = ref<Set<ApiFeature>>(new Set());
   const lastDetectionTime = ref<Date | null>(null);
   const detectionInProgress = ref(false);
   const detectionError = ref<string | null>(null);
-
   // Feature compatibility matrix
   const featureCompatibility: Record<ApiFeature, FeatureCompatibility> = {
     [API_FEATURES.ORCHESTRATOR]: {
@@ -78,7 +73,6 @@ export function useFeatureDetection() {
       fallbackMessage: 'Multi-modal support is in development.',
     },
   };
-
   // Version capabilities
   const versionCapabilities: VersionCapabilities[] = [
     {
@@ -103,7 +97,6 @@ export function useFeatureDetection() {
       ]
     }
   ];
-
   // Computed properties  
   const currentEndpoint = computed(() => ({
     version: 'v1' as ApiVersion,
@@ -115,23 +108,19 @@ export function useFeatureDetection() {
       API_FEATURES.SESSION_MANAGEMENT,
     ]
   }));
-  
   const currentCapabilities = computed(() => {
     return versionCapabilities.find(cap => 
       cap.version === currentEndpoint.value.version && 
       cap.technology === currentEndpoint.value.technology
     ) || versionCapabilities[0];
   });
-
   const supportedFeatures = computed(() => {
     return Array.from(detectedFeatures.value);
   });
-
   const unsupportedFeatures = computed(() => {
     const allFeatures = Object.values(API_FEATURES);
     return allFeatures.filter(feature => !detectedFeatures.value.has(feature));
   });
-
   const featureRecommendations = computed(() => {
     const recommendations: Array<{
       feature: ApiFeature;
@@ -139,7 +128,6 @@ export function useFeatureDetection() {
       action?: string;
       priority: 'low' | 'medium' | 'high';
     }> = [];
-
     unsupportedFeatures.value.forEach(feature => {
       const compatibility = featureCompatibility[feature];
       if (compatibility.fallbackMessage) {
@@ -151,24 +139,18 @@ export function useFeatureDetection() {
         });
       }
     });
-
     return recommendations;
   });
-
   // Methods
   const detectFeatures = async (): Promise<void> => {
     if (detectionInProgress.value) return;
-
     detectionInProgress.value = true;
     detectionError.value = null;
-
     try {
       const endpoint = currentEndpoint.value;
       const detected = new Set<ApiFeature>();
-
       // Start with static features from endpoint configuration
       endpoint.features.forEach(feature => detected.add(feature as ApiFeature));
-
       // For V2 APIs, try dynamic feature detection
       if (endpoint.version === 'v2') {
         try {
@@ -176,7 +158,6 @@ export function useFeatureDetection() {
         } catch (error) {
         }
       }
-
       // Validate detected features against compatibility matrix
       const validatedFeatures = new Set<ApiFeature>();
       detected.forEach(feature => {
@@ -184,24 +165,19 @@ export function useFeatureDetection() {
           validatedFeatures.add(feature);
         }
       });
-
       detectedFeatures.value = validatedFeatures;
       lastDetectionTime.value = new Date();
-
       // Update API config store with detected features
       await apiConfigStore.updateFeatureAvailability(endpoint.name);
-
     } catch (error) {
       detectionError.value = error instanceof Error ? error.message : 'Unknown error';
     } finally {
       detectionInProgress.value = false;
     }
   };
-
   const isFeatureSupported = (feature: ApiFeature): boolean => {
     return detectedFeatures.value.has(feature);
   };
-
   const isFeatureCompatible = (
     feature: ApiFeature, 
     version: ApiVersion, 
@@ -209,28 +185,22 @@ export function useFeatureDetection() {
   ): boolean => {
     const compatibility = featureCompatibility[feature];
     if (!compatibility) return false;
-
     // Check version requirement
     if (version < compatibility.minimumVersion) return false;
-
     // Check technology requirement
     if (compatibility.requiresTechnology && technology !== compatibility.requiresTechnology) {
       return false;
     }
-
     return compatibility.isSupported;
   };
-
   const getFeatureFallback = (feature: ApiFeature): string | null => {
     const compatibility = featureCompatibility[feature];
     return compatibility?.fallbackMessage || null;
   };
-
   const getAlternativeFeature = (feature: ApiFeature): ApiFeature | null => {
     const compatibility = featureCompatibility[feature];
     return compatibility?.alternativeFeature || null;
   };
-
   const getRecommendedAction = (compatibility: FeatureCompatibility): string | undefined => {
     if (compatibility.minimumVersion === 'v2') {
       return 'Switch to V2 API';
@@ -240,13 +210,11 @@ export function useFeatureDetection() {
     }
     return undefined;
   };
-
   const getPriority = (compatibility: FeatureCompatibility): 'low' | 'medium' | 'high' => {
     if (compatibility.feature === API_FEATURES.HIERARCHICAL_AGENTS) return 'high';
     if (compatibility.feature === API_FEATURES.REAL_TIME_CHAT) return 'medium';
     return 'low';
   };
-
   const executeWithFallback = async <T>(
     feature: ApiFeature,
     primaryAction: () => Promise<T>,
@@ -265,11 +233,9 @@ export function useFeatureDetection() {
       if (fallbackAction) {
         return await fallbackAction();
       }
-      
       throw new Error(`Feature ${feature} is not supported and no fallback provided`);
     }
   };
-
   const getVersionComparisonData = () => {
     return versionCapabilities.map(cap => ({
       ...cap,
@@ -282,11 +248,9 @@ export function useFeatureDetection() {
       )
     }));
   };
-
   const canUpgradeForFeature = (feature: ApiFeature): boolean => {
     const compatibility = featureCompatibility[feature];
     if (!compatibility) return false;
-
     // Check if there's a higher version that supports this feature
     const availableEndpoints = apiConfigStore.allEndpoints;
     return availableEndpoints.some(endpoint => 
@@ -295,21 +259,17 @@ export function useFeatureDetection() {
       endpoint.isAvailable
     );
   };
-
   const getUpgradeRecommendation = (feature: ApiFeature): string | null => {
     if (!canUpgradeForFeature(feature)) return null;
-
     const compatibility = featureCompatibility[feature];
     const targetVersion = compatibility.minimumVersion;
     const targetTechnology = compatibility.requiresTechnology;
-
     if (targetTechnology) {
       return `Upgrade to ${targetVersion} with ${targetTechnology} to enable ${feature}`;
     } else {
       return `Upgrade to ${targetVersion} to enable ${feature}`;
     }
   };
-
   // Watchers
   watch(
     () => currentEndpoint.value,
@@ -318,49 +278,40 @@ export function useFeatureDetection() {
     },
     { immediate: false }
   );
-
   // Lifecycle
   onMounted(() => {
     detectFeatures();
   });
-
   // Auto-refresh feature detection periodically
   let detectionInterval: number | undefined;
-
   const startPeriodicDetection = (intervalMs: number = 300000) => { // 5 minutes
     if (detectionInterval) return;
-    
     detectionInterval = window.setInterval(() => {
       if (!detectionInProgress.value) {
         detectFeatures();
       }
     }, intervalMs);
   };
-
   const stopPeriodicDetection = () => {
     if (detectionInterval) {
       clearInterval(detectionInterval);
       detectionInterval = undefined;
     }
   };
-
   onUnmounted(() => {
     stopPeriodicDetection();
   });
-
   return {
     // State
     detectedFeatures: supportedFeatures,
     lastDetectionTime,
     detectionInProgress,
     detectionError,
-    
     // Computed
     currentCapabilities,
     supportedFeatures,
     unsupportedFeatures,
     featureRecommendations,
-    
     // Methods
     detectFeatures,
     isFeatureSupported,
@@ -373,7 +324,6 @@ export function useFeatureDetection() {
     getUpgradeRecommendation,
     startPeriodicDetection,
     stopPeriodicDetection,
-    
     // Constants
     API_FEATURES,
     featureCompatibility,

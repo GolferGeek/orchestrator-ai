@@ -18,23 +18,19 @@
     </ion-buttons>
   </ion-toolbar>
 </template>
-
 <script setup lang="ts">
 import { ref, defineEmits, onUnmounted, watch } from 'vue';
 import { IonTextarea, IonButtons, IonButton, IonIcon, IonToolbar, toastController } from '@ionic/vue';
 import { sendOutline, micOutline, micOffOutline } from 'ionicons/icons';
 import { useUiStore } from '../stores/uiStore';
 import { Capacitor } from '@capacitor/core';
-
 const inputText = ref('');
 const isRecording = ref(false);
 const uiStore = useUiStore();
-
 // --- Web Speech API --- 
 // @ts-ignore: next-line 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition: SpeechRecognition | null = null;
-
 const presentToast = async (message: string, duration: number = 2000, color: string = 'warning') => {
   const toast = await toastController.create({
     message: message,
@@ -44,24 +40,20 @@ const presentToast = async (message: string, duration: number = 2000, color: str
   });
   await toast.present();
 };
-
 if (SpeechRecognition && !Capacitor.isNativePlatform()) {
   recognition = new SpeechRecognition();
   recognition.continuous = false; 
   recognition.interimResults = true; 
   recognition.lang = 'en-US'; 
-
   recognition.onstart = () => {
     isRecording.value = true;
   };
-
   recognition.onend = () => {
     if (isRecording.value) { 
         isRecording.value = false;
         emit('pttToggle', false);
     }
   };
-
   recognition.onresult = (event: SpeechRecognitionEvent) => {
     let interimTranscript = '';
     let finalTranscript = '';
@@ -78,7 +70,6 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
       inputText.value = interimTranscript.trim();
     }
   };
-
   recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
     let userMessage = 'Voice input error.';
     if (event.error === 'no-speech') {
@@ -91,7 +82,6 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
       userMessage = `Voice input failed: ${event.error}`;
     }
     presentToast(userMessage, 3000, 'danger');
-
     if (isRecording.value) {
       isRecording.value = false;
       emit('pttToggle', false);
@@ -102,26 +92,22 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
   // Web Speech API is not supported in this browser
 }
 // --- End Web Speech API ---
-
 const emit = defineEmits<{
   (e: 'sendMessage', text: string): void;
   (e: 'pttToggle', recordingState: boolean): void;
 }>();
-
 const sendMessage = () => {
   if (inputText.value.trim() && !isRecording.value) {
     emit('sendMessage', inputText.value.trim());
     inputText.value = '';
   }
 };
-
 const handleEnterKey = (event: KeyboardEvent) => {
   if (!event.shiftKey && !isRecording.value) {
     event.preventDefault();
     sendMessage();
   }
 };
-
 const togglePtt = async () => {
   if (Capacitor.isNativePlatform()) {
     // --- Native PTT (Capacitor Plugin) Logic Placeholder ---
@@ -150,7 +136,6 @@ const togglePtt = async () => {
     emit('pttToggle', isRecording.value);
     uiStore.setPttRecording(isRecording.value);
     // --- End Native PTT Logic Placeholder ---
-
   } else if (recognition) { // Web Speech API path
     if (isRecording.value) {
       recognition.stop();
@@ -171,20 +156,16 @@ const togglePtt = async () => {
     presentToast('Voice input is not supported in your browser.', 3000, 'danger');
   }
 };
-
 watch(isRecording, (newValue) => {
   uiStore.setPttRecording(newValue);
 });
-
 onUnmounted(() => {
   if (recognition && isRecording.value && !Capacitor.isNativePlatform()) {
     recognition.stop();
   }
   // TODO: Add cleanup for native plugin listeners if implemented
 });
-
 </script>
-
 <style scoped>
 .chat-input-toolbar {
   --padding-start: 8px;
@@ -195,7 +176,6 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
 }
-
 .chat-textarea {
   flex-grow: 1;
   border: 1px solid var(--ion-color-medium-shade);
@@ -209,23 +189,19 @@ onUnmounted(() => {
   align-self: center;
   margin-right: 4px; /* Reduced margin as buttons will have padding */
 }
-
 .input-buttons {
   display: flex;
   align-items: center;
 }
-
 .custom-button-padding {
   --padding-start: 8px; /* Add horizontal padding */
   --padding-end: 8px;   /* Add horizontal padding */
   height: 40px; /* Ensure vertical touch target */
   /* min-width: 40px; /* Ensure horizontal touch target */
 }
-
 .ptt-button {
   /* Specific styles if needed */
 }
-
 .send-button {
   /* Specific styles if needed */
 }

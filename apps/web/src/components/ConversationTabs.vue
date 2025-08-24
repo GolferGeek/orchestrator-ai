@@ -22,7 +22,6 @@
         </div>
       </div>
     </div>
-
     <!-- Tab Content -->
     <div class="conversation-tab-content">
       <div v-if="activeConversation" class="active-conversation">
@@ -31,7 +30,6 @@
           v-if="shouldUseTwoPaneView"
           :conversation="activeConversation"
         />
-        
         <!-- Traditional Single-Pane Chat View -->
         <AgentChatView 
           v-else
@@ -39,7 +37,6 @@
           @send-message="handleSendMessage"
         />
       </div>
-      
       <div v-else class="no-active-conversation">
         <div class="empty-state">
           <ion-icon :icon="chatbubblesOutline" size="large" color="medium" />
@@ -50,7 +47,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { computed } from 'vue';
 import { IonButton, IonIcon } from '@ionic/vue';
@@ -59,54 +55,44 @@ import { useRoute } from 'vue-router';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import AgentChatView from './AgentChatView.vue';
 import TwoPaneConversationView from './TwoPaneConversationView.vue';
-
 const route = useRoute();
 const agentChatStore = useAgentChatStore();
-
 // Computed
 const activeConversation = computed(() => {
   return agentChatStore.getActiveConversation();
 });
-
 const isOrchestratorConversation = computed(() => {
   return activeConversation.value?.agent?.name?.toLowerCase().includes('orchestrator') || false;
 });
-
 const shouldUseTwoPaneView = computed(() => {
   // Enable two-pane view for all conversations
   // Regular agents: show deliverables in right pane
   // Orchestrator agents: show deliverables AND projects in right pane
   return true;
 });
-
 // Methods
 const switchToConversation = (conversationId: string) => {
   agentChatStore.switchToConversation(conversationId);
 };
-
 const closeConversation = (conversationId: string) => {
   // Close conversation without confirmation dialog
   agentChatStore.closeConversation(conversationId);
 };
-
 const handleSendMessage = async (content: string) => {
   await agentChatStore.sendMessage(content);
 };
 </script>
-
 <style scoped>
 .conversation-tabs-container {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
-
 .conversation-tab-bar {
   border-bottom: 1px solid var(--ion-color-light);
   background: var(--ion-color-step-50);
   padding: 0;
 }
-
 .tab-scroll-wrapper {
   display: flex;
   overflow-x: auto;
@@ -114,11 +100,9 @@ const handleSendMessage = async (content: string) => {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
 }
-
 .tab-scroll-wrapper::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
 }
-
 .conversation-tab {
   display: flex;
   align-items: center;
@@ -132,17 +116,14 @@ const handleSendMessage = async (content: string) => {
   max-width: 250px;
   position: relative;
 }
-
 .conversation-tab:hover {
   background: var(--ion-color-step-150);
 }
-
 .conversation-tab.active {
   background: #e3f2fd;
   color: #1565c0;
   border-bottom: 2px solid #1976d2;
 }
-
 .tab-title {
   flex: 1;
   font-size: 0.9em;
@@ -151,7 +132,6 @@ const handleSendMessage = async (content: string) => {
   text-overflow: ellipsis;
   margin-right: 8px;
 }
-
 .tab-close-button {
   --padding-start: 4px;
   --padding-end: 4px;
@@ -159,53 +139,43 @@ const handleSendMessage = async (content: string) => {
   opacity: 0.7;
   flex-shrink: 0;
 }
-
 .conversation-tab:hover .tab-close-button {
   opacity: 1;
 }
-
 .conversation-tab.active .tab-close-button {
   --color: #1565c0;
   opacity: 0.8;
 }
-
 .conversation-tab-content {
   flex: 1;
   overflow: hidden;
 }
-
 .active-conversation {
   height: 100%;
 }
-
 .no-active-conversation {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
 .empty-state {
   text-align: center;
   color: var(--ion-color-medium);
   max-width: 300px;
   padding: 40px 20px;
 }
-
 .empty-state ion-icon {
   margin-bottom: 16px;
 }
-
 .empty-state h3 {
   margin: 16px 0 8px 0;
   color: var(--ion-color-dark);
 }
-
 .empty-state p {
   margin: 0;
   line-height: 1.5;
 }
-
 /* Dark theme support */
 @media (prefers-color-scheme: dark), 
 html[data-theme="dark"] {
@@ -213,32 +183,26 @@ html[data-theme="dark"] {
     background: #2d3748;
     border-color: #4a5568;
   }
-  
   .conversation-tab {
     background: #374151;
     border-color: #4b5563;
     color: #d1d5db;
   }
-  
   .conversation-tab:hover {
     background: #4b5563;
     color: #f3f4f6;
   }
-  
   .conversation-tab.active {
     background: #1e40af;
     color: #dbeafe;
     border-bottom-color: #3b82f6;
   }
-  
   .conversation-tab.active .tab-close-button {
     --color: #dbeafe;
   }
-  
   .empty-state {
     color: #9ca3af;
   }
-  
   .empty-state h3 {
     color: #f3f4f6;
   }

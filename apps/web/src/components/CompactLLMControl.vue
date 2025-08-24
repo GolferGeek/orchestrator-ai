@@ -20,7 +20,6 @@
       </div>
       <ion-icon :icon="settingsOutline" class="settings-icon" />
     </div>
-
     <!-- Modal -->
     <ion-modal :is-open="isModalOpen" @didDismiss="closeModal">
       <ion-header>
@@ -33,7 +32,6 @@
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
-      
       <ion-content class="modal-content">
         <div class="settings-container">
           <LLMSelector />
@@ -43,7 +41,6 @@
     </ion-modal>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import {
@@ -60,54 +57,43 @@ import { settingsOutline, closeOutline } from 'ionicons/icons';
 import { useLLMStore } from '@/stores/llmStore';
 import LLMSelector from './LLMSelector.vue';
 import CIDAFMControls from './CIDAFMControls.vue';
-
 const llmStore = useLLMStore();
 const isModalOpen = ref(false);
-
 onMounted(() => {
   // Initialize store if not already done
   if (!llmStore.selectedProvider && !llmStore.selectedModel) {
     llmStore.initialize();
   }
 });
-
 // Computed properties for display
 const currentProvider = computed(() => 
   llmStore.selectedProvider?.name || null
 );
-
 const currentModel = computed(() => 
   llmStore.selectedModel?.name || null
 );
-
 const allModifiers = computed(() => [
   ...llmStore.selectedCIDAFMCommands,
   ...llmStore.customModifiers,
 ]);
-
 const firstTwoModifiers = computed(() => 
   allModifiers.value.slice(0, 2)
 );
-
 const additionalModifiersCount = computed(() => 
   Math.max(0, allModifiers.value.length - 2)
 );
-
 // Modal controls
 const openModal = () => {
   isModalOpen.value = true;
 };
-
 const closeModal = () => {
   isModalOpen.value = false;
 };
 </script>
-
 <style scoped>
 .compact-llm-control {
   width: 100%;
 }
-
 .compact-display {
   display: flex;
   align-items: center;
@@ -120,32 +106,27 @@ const closeModal = () => {
   transition: all 0.2s ease;
   min-height: 40px;
 }
-
 .compact-display:hover {
   background: var(--ion-color-step-100);
   border-color: var(--ion-color-primary);
 }
-
 .llm-info {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-
 .provider-model {
   font-size: 0.9em;
   font-weight: 500;
   color: var(--ion-color-primary);
 }
-
 .cidafm-preview {
   display: flex;
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
 }
-
 .modifier-tag {
   background: var(--ion-color-primary);
   color: var(--ion-color-primary-contrast);
@@ -154,18 +135,15 @@ const closeModal = () => {
   font-size: 0.7em;
   font-weight: 500;
 }
-
 .more-count {
   font-size: 0.7em;
   color: var(--ion-color-medium);
   font-weight: 500;
 }
-
 .settings-icon {
   font-size: 1.2em;
   color: var(--ion-color-medium);
 }
-
 .modal-content {
   --padding-top: 16px;
   --padding-bottom: 16px;
@@ -174,7 +152,6 @@ const closeModal = () => {
   --max-width: 100%;
   --width: 100%;
 }
-
 .settings-container {
   display: flex;
   flex-direction: column;

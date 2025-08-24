@@ -73,7 +73,6 @@ export class TasksService {
           conversationId, // Pass existing ID for validation/reuse
         );
       conversationId = conversation.id;
-      this.logger.debug(`Using conversation ${conversationId} for task`);
 
       // Prepare task data with proper ID handling
       const taskData: any = {
@@ -121,7 +120,7 @@ export class TasksService {
           if (error) {
             // If it's a duplicate key error and we have attempts left, generate new ID
             if (error.code === '23505' && attempts < maxAttempts - 1) {
-              this.logger.warn(`Task ID ${finalTaskData.id} already exists, generating new ID (attempt ${attempts + 1})`);
+
               finalTaskData = {
                 ...taskData,
                 id: this.generateTaskId(), // Generate new unique ID
@@ -130,7 +129,6 @@ export class TasksService {
               continue;
             }
 
-            this.logger.error('Error creating task in database:', error);
             throw new Error(`Failed to create task: ${error.message}`);
           }
 
@@ -156,8 +154,6 @@ export class TasksService {
             },
           );
 
-          this.logger.debug(`Task ${createdTask.id} registered with TaskStatusService`);
-
           // Emit task created event
           this.eventEmitter.emit('task.created', {
             taskId: createdTask.id,
@@ -177,7 +173,7 @@ export class TasksService {
 
       throw new Error(`Failed to create task after ${maxAttempts} attempts`);
     } catch (error) {
-      this.logger.error('Error in createTask:', error);
+
       throw error;
     }
   }
@@ -196,26 +192,22 @@ export class TasksService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        this.logger.error('Error fetching task:', error);
+
         throw new Error(`Failed to fetch task: ${error.message}`);
       }
 
       const result = data ? this.mapToTask(data) : null;
 
       if (result) {
-        this.logger.debug(
-          `🔍 DEBUG - Retrieved task ${taskId}: status=${result.status}, hasResponse=${!!result.response}, responseType=${typeof result.response}`,
-        );
+
         if (result.response) {
-          this.logger.debug(
-            `🔍 DEBUG - Task ${taskId} response preview: ${JSON.stringify(result.response).substring(0, 200)}...`,
-          );
+
         }
       }
 
       return result;
     } catch (error) {
-      this.logger.error('Error in getTaskById:', error);
+
       throw error;
     }
   }
@@ -253,7 +245,7 @@ export class TasksService {
       const { data, error, count } = await query;
 
       if (error) {
-        this.logger.error('Error listing tasks:', error);
+
         throw new Error(`Failed to list tasks: ${error.message}`);
       }
 
@@ -262,7 +254,7 @@ export class TasksService {
         total: count || 0,
       };
     } catch (error) {
-      this.logger.error('Error in listTasks:', error);
+
       throw error;
     }
   }
@@ -329,7 +321,7 @@ export class TasksService {
         .single();
 
       if (error) {
-        this.logger.error('Error updating task:', error);
+
         throw new Error(`Failed to update task: ${error.message}`);
       }
 
@@ -345,10 +337,6 @@ export class TasksService {
           : undefined,
         error: updates.errorMessage,
       });
-
-      this.logger.debug(
-        `Task ${taskId} synced with TaskStatusService: ${updates.status}`,
-      );
 
       // Emit progress event
       if (updates.progress !== undefined || updates.progressMessage) {
@@ -401,7 +389,7 @@ export class TasksService {
 
       return this.mapToTask(data);
     } catch (error) {
-      this.logger.error('Error in updateTask:', error);
+
       throw error;
     }
   }
@@ -426,7 +414,7 @@ export class TasksService {
         .eq('id', taskId);
 
       if (error) {
-        this.logger.error('Error updating task progress:', error);
+
         throw new Error(`Failed to update task progress: ${error.message}`);
       }
 
@@ -441,7 +429,7 @@ export class TasksService {
       };
       this.eventEmitter.emit('task.progress', progressEvent);
     } catch (error) {
-      this.logger.error('Error in updateTaskProgress:', error);
+
       throw error;
     }
   }
@@ -461,7 +449,7 @@ export class TasksService {
         this.taskLifecycleService.cancelTask(taskId);
       }
     } catch (error) {
-      this.logger.error('Error in cancelTask:', error);
+
       throw error;
     }
   }
@@ -480,13 +468,13 @@ export class TasksService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        this.logger.error('Error fetching active tasks:', error);
+
         throw new Error(`Failed to fetch active tasks: ${error.message}`);
       }
 
       return data.map((item) => this.mapToTask(item));
     } catch (error) {
-      this.logger.error('Error in getActiveTasks:', error);
+
       throw error;
     }
   }
@@ -611,7 +599,7 @@ export class TasksService {
 
       return JSON.stringify(enhancedResult);
     } catch (error) {
-      this.logger.error('Error adding deliverable ID to response:', error);
+
       return response;
     }
   }

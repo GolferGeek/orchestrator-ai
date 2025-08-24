@@ -68,7 +68,6 @@ export class CreateDeliverableDto {
   @MaxLength(255)
   title!: string;
 
-
   @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
   @IsOptional()
   @IsEnum(DeliverableType)

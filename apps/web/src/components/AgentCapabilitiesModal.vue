@@ -20,7 +20,6 @@
             <p class="agent-description">{{ formatAgentDescription(singleAgent.description) }}</p>
           </div>
         </div>
-        
         <div class="capabilities-section">
           <ion-text color="primary">
             <h3>My Capabilities:</h3>
@@ -35,7 +34,6 @@
           </ion-list>
         </div>
       </div>
-
       <!-- Multiple Agents List Mode -->
       <div v-else>
         <div v-if="agents.length === 0" class="no-agents">
@@ -68,7 +66,6 @@
     </ion-content>
   </ion-modal>
 </template>
-
 <script setup lang="ts">
 import { defineProps, defineEmits, computed, withDefaults } from 'vue';
 import { formatAgentDescription } from '@/utils/caseConverter';
@@ -92,12 +89,10 @@ import {
   chevronForwardOutline,
   checkmarkCircleOutline
 } from 'ionicons/icons';
-
 interface Agent {
   name: string;
   description: string;
 }
-
 interface AgentCapabilities {
   name: string;
   description: string;
@@ -105,7 +100,6 @@ interface AgentCapabilities {
   originalName?: string;
   type?: string;
 }
-
 const props = withDefaults(defineProps<{
   isOpen: boolean;
   agents?: Agent[];
@@ -114,62 +108,48 @@ const props = withDefaults(defineProps<{
   agents: () => [],
   singleAgent: null
 });
-
 const emit = defineEmits(['dismiss', 'agentSelected']);
-
 const modalTitle = computed(() => {
   if (props.singleAgent) {
     return `${props.singleAgent.name} Capabilities`;
   }
   return 'Available Agents';
 });
-
 const onDismiss = () => {
   emit('dismiss');
 };
-
 const selectAgent = (agent: Agent) => {
   emit('agentSelected', agent);
   onDismiss();
 };
-
 const cleanAgentName = (name: string) => {
   // Remove common prefixes and suffixes to get clean agent names
   let cleanName = name.trim();
-  
   // Remove "Agent Name:" prefix if present
   cleanName = cleanName.replace(/^Agent Name:\s*/i, '');
-  
   // Remove "Agent" suffix if present
   cleanName = cleanName.replace(/\s+Agent$/i, '');
-  
   // Remove "Agent" prefix if present  
   cleanName = cleanName.replace(/^Agent\s+/i, '');
-  
   return cleanName || name; // Return original if cleaning resulted in empty string
 };
 </script>
-
 <style scoped>
 .no-agents {
   text-align: center;
   padding: 2rem 0;
 }
-
 .agents-list h3 {
   margin-bottom: 1rem;
 }
-
 .agent-item {
   --background: var(--ion-color-light);
   margin-bottom: 0.5rem;
   border-radius: 8px;
 }
-
 .agent-item:hover {
   --background: var(--ion-color-light-shade);
 }
-
 .agent-name-link {
   color: var(--ion-color-primary);
   text-decoration: none;
@@ -177,22 +157,18 @@ const cleanAgentName = (name: string) => {
   cursor: pointer;
   transition: color 0.2s ease;
 }
-
 .agent-item:hover .agent-name-link {
   color: var(--ion-color-primary-shade);
   text-decoration: underline;
 }
-
 .agent-description {
   margin-top: 0.25rem;
   margin-bottom: 0;
 }
-
 /* Single Agent Capabilities Styling */
 .agent-capabilities {
   padding: 1rem 0;
 }
-
 .agent-header {
   display: flex;
   align-items: flex-start;
@@ -202,37 +178,31 @@ const cleanAgentName = (name: string) => {
   background: var(--ion-color-light);
   border-radius: 12px;
 }
-
 .agent-icon {
   font-size: 2rem;
   margin-top: 0.25rem;
 }
-
 .agent-name {
   color: var(--ion-color-primary);
   font-weight: 700;
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
 }
-
 .agent-header .agent-description {
   color: var(--ion-color-medium);
   margin: 0;
   line-height: 1.4;
 }
-
 .capabilities-section h3 {
   margin-bottom: 1rem;
   font-weight: 600;
 }
-
 .capability-item {
   --background: var(--ion-color-light);
   margin-bottom: 0.5rem;
   border-radius: 8px;
   --border-radius: 8px;
 }
-
 .capability-item ion-label p {
   color: var(--ion-color-dark);
   margin: 0;

@@ -128,16 +128,12 @@ export class AgentRegistrationService implements OnModuleDestroy {
       },
     };
 
-    this.logger.debug('Registration service configured', {
-      config: this.config,
-    });
   }
 
   /**
    * Register an agent with the agent pool
    */
   async registerAgent(agentInfo: AgentInfo): Promise<RegistrationResult> {
-    this.logger.log(`Attempting to register agent: ${agentInfo.name}`);
 
     const registration: AgentRegistration = {
       ...agentInfo,
@@ -153,10 +149,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
         this.registrationAttempts = attempt;
 
         const url = `${this.config.agentPoolBaseUrl}${this.config.endpoints.register}`;
-        this.logger.debug(
-          `Registration attempt ${attempt}/${this.config.maxRetryAttempts} to: ${url}`,
-        );
-        this.logger.debug(`Registering agent: ${registration.name}`);
 
         const response = await this.httpService.axiosRef.post(
           url,
@@ -167,10 +159,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
           this.isRegistered = true;
           this.registeredAgentId = agentInfo.id;
           this.registrationTime = new Date();
-
-          this.logger.log(
-            `Successfully registered agent: ${agentInfo.name} (attempt ${attempt})`,
-          );
 
           // Start heartbeat if configured
           if (this.config.autoHeartbeat) {
@@ -185,29 +173,19 @@ export class AgentRegistrationService implements OnModuleDestroy {
           };
         } else {
           lastError = `Unexpected response status: ${response.status}`;
-          this.logger.warn(
-            `Registration attempt ${attempt} failed: ${lastError}`,
-          );
+
         }
       } catch (error: any) {
         lastError = error.message || String(error);
-        this.logger.warn(
-          `Registration attempt ${attempt} failed: ${lastError}`,
-        );
 
         if (attempt < this.config.maxRetryAttempts) {
-          this.logger.debug(
-            `Waiting ${this.config.retryDelay}ms before retry...`,
-          );
+
           await this.delay(this.config.retryDelay);
         }
       }
     }
 
     // All attempts failed
-    this.logger.error(
-      `Failed to register agent ${agentInfo.name} after ${this.config.maxRetryAttempts} attempts`,
-    );
 
     return {
       success: false,
@@ -236,7 +214,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
       this.stopHeartbeat();
 
       const url = `${this.config.agentPoolBaseUrl}${this.config.endpoints.unregister}/${targetAgentId}`;
-      this.logger.debug(`Unregistering agent from: ${url}`);
 
       await this.httpService.axiosRef.delete(url);
 
@@ -246,8 +223,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
       this.registrationTime = null;
       this.registrationAttempts = 0;
 
-      this.logger.log(`Successfully unregistered agent: ${targetAgentId}`);
-
       return {
         success: true,
         agentId: targetAgentId,
@@ -255,9 +230,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
       };
     } catch (error: any) {
       const errorMessage = error.message || String(error);
-      this.logger.warn(
-        `Failed to unregister agent ${targetAgentId}: ${errorMessage}`,
-      );
 
       return {
         success: false,
@@ -295,8 +267,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
       this.lastHeartbeatTime = new Date();
       this.heartbeatCount++;
 
-      this.logger.debug(`Heartbeat sent for agent: ${agentId}`);
-
       return {
         success: true,
         message: 'Heartbeat sent successfully',
@@ -304,9 +274,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
     } catch (error: any) {
       this.failedHeartbeats++;
       const errorMessage = error.message || String(error);
-      this.logger.warn(
-        `Failed to send heartbeat for agent ${agentId}: ${errorMessage}`,
-      );
 
       return {
         success: false,
@@ -320,15 +287,9 @@ export class AgentRegistrationService implements OnModuleDestroy {
    */
   startHeartbeat(agentInfo: AgentInfo, getMetrics?: () => AgentMetrics): void {
     if (this.heartbeatInterval) {
-      this.logger.debug(
-        'Heartbeat already running, stopping previous interval',
-      );
+
       this.stopHeartbeat();
     }
-
-    this.logger.log(
-      `Starting heartbeat for agent: ${agentInfo.name} (interval: ${this.config.heartbeatInterval}ms)`,
-    );
 
     this.heartbeatInterval = setInterval(async () => {
       const metrics = getMetrics ? getMetrics() : undefined;
@@ -343,7 +304,7 @@ export class AgentRegistrationService implements OnModuleDestroy {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
-      this.logger.debug('Heartbeat stopped');
+
     }
   }
 
@@ -467,7 +428,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
    * Cleanup on module destroy
    */
   async onModuleDestroy(): Promise<void> {
-    this.logger.debug('AgentRegistrationService destroying...');
 
     // Stop heartbeat
     this.stopHeartbeat();
@@ -477,7 +437,6 @@ export class AgentRegistrationService implements OnModuleDestroy {
       await this.unregisterAgent(this.registeredAgentId);
     }
 
-    this.logger.debug('AgentRegistrationService destroyed');
   }
 
   /**

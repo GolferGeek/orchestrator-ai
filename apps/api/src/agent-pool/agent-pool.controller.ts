@@ -44,15 +44,13 @@ export class AgentPoolController {
     try {
       await this.agentPoolService.registerAgent(registration);
 
-      this.logger.log(`Agent ${registration.id} registered via API`);
-
       return {
         success: true,
         message: 'Agent registered successfully',
         agentId: registration.id,
       };
     } catch (error) {
-      this.logger.error(`Error registering agent ${registration.id}:`, error);
+
       throw error;
     }
   }
@@ -78,18 +76,13 @@ export class AgentPoolController {
     try {
       await this.agentPoolService.receiveHeartbeat(heartbeat);
 
-      this.logger.debug(`Heartbeat received from ${heartbeat.agentId} via API`);
-
       return {
         success: true,
         message: 'Heartbeat received',
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error(
-        `Error processing heartbeat from ${heartbeat.agentId}:`,
-        error,
-      );
+
       throw error;
     }
   }
@@ -112,15 +105,13 @@ export class AgentPoolController {
     try {
       await this.agentPoolService.unregisterAgent(agentId);
 
-      this.logger.log(`Agent ${agentId} unregistered via API`);
-
       return {
         success: true,
         message: 'Agent unregistered successfully',
         agentId,
       };
     } catch (error) {
-      this.logger.error(`Error unregistering agent ${agentId}:`, error);
+
       throw error;
     }
   }

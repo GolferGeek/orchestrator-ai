@@ -81,25 +81,15 @@ export class ApiAgentBaseService
       services.configurationService,
     );
 
-    this.apiLogger.debug(`API Agent initialized with service container:`, {
-      hasHttpService: !!services.httpService,
-      hasTaskStatusService: !!services.taskStatusService,
-      hasTasksService: !!services.tasksService,
-    });
   }
 
   /**
    * Initialize the API agent and load configuration from agent.yaml
    */
   async onModuleInit() {
-    this.apiLogger.debug(`onModuleInit called for ${this.getAgentName()}`);
 
     // Call parent initialization first
     await super.onModuleInit();
-
-    this.apiLogger.debug(
-      `Parent onModuleInit completed for ${this.getAgentName()}, loading API configuration...`,
-    );
 
     // Load API configuration from agent.yaml
     await this.loadApiConfigurationFromYaml();
@@ -109,18 +99,12 @@ export class ApiAgentBaseService
    * Load API configuration from agent.yaml file using AgentContextService
    */
   private async loadApiConfigurationFromYaml(): Promise<void> {
-    this.apiLogger.debug(
-      `Loading API configuration from YAML for ${this.getAgentName()}`,
-    );
 
     let agentPath = this.agentPath;
 
     // Fallback: If agent path is unknown, try to determine it from the agent name
     if (!agentPath || agentPath === 'unknown') {
       const agentName = this.getAgentName();
-      this.apiLogger.debug(
-        `Agent path is unknown, attempting to determine from agent name: ${agentName}`,
-      );
 
       // Map known agent names to their paths
       const agentPathMap: Record<string, string> = {
@@ -135,9 +119,6 @@ export class ApiAgentBaseService
       agentPath = agentPathMap[agentName];
 
       if (agentPath) {
-        this.apiLogger.debug(
-          `Mapped agent name "${agentName}" to path: ${agentPath}`,
-        );
         this.agentPath = agentPath; // Update the stored path
       } else {
         this.apiLogger.warn(
@@ -146,10 +127,6 @@ export class ApiAgentBaseService
         return;
       }
     }
-
-    this.apiLogger.debug(`Using agent path: ${agentPath}`);
-    this.apiLogger.debug(`Process CWD: ${process.cwd()}`);
-    this.apiLogger.debug(`__dirname: ${__dirname}`);
 
     try {
       // Try multiple path resolution strategies
@@ -174,14 +151,11 @@ export class ApiAgentBaseService
 
       for (const dir of possibleDirectories) {
         const testPath = path.join(dir, 'agent.yaml');
-        this.apiLogger.debug(`Trying directory: ${dir}`);
 
         if (fs.existsSync(testPath)) {
           yamlPath = testPath;
-          this.apiLogger.debug(`Found agent.yaml at: ${yamlPath}`);
           break;
         } else {
-          this.apiLogger.debug(`No agent.yaml found at: ${testPath}`);
         }
       }
 
@@ -192,16 +166,10 @@ export class ApiAgentBaseService
         return;
       }
 
-      this.apiLogger.debug(`Using agent directory: ${agentPath}`);
-
       if (fs.existsSync(yamlPath)) {
-        this.apiLogger.debug(`Found agent.yaml at: ${yamlPath}`);
 
         // Extract the directory name for AgentContextService (it expects just the directory)
         const agentDirectory = path.dirname(yamlPath);
-        this.apiLogger.debug(
-          `Using agent directory for context service: ${agentDirectory}`,
-        );
 
         try {
           // Load context using the absolute directory path
@@ -211,9 +179,6 @@ export class ApiAgentBaseService
           const config = this.extractApiConfigurationFromContext();
 
           if (config) {
-            this.apiLogger.debug(
-              `API configuration found in YAML for ${this.getAgentName()}`,
-            );
 
             // Use ConfigurationService for environment variable substitution if available
             if (this.services.configurationService) {
@@ -227,21 +192,12 @@ export class ApiAgentBaseService
               this.setApiConfiguration(substitutionResult.data);
 
               if (substitutionResult.substitutedVars.length > 0) {
-                this.apiLogger.debug(
-                  `Environment variables substituted: ${substitutionResult.substitutedVars.join(', ')}`,
-                );
               }
             } else {
               // Fallback: use config as-is without environment variable substitution
-              this.apiLogger.debug(
-                'ConfigurationService not available, using config without env var substitution',
-              );
               this.setApiConfiguration(config);
             }
 
-            this.apiLogger.debug(
-              `API configuration loaded successfully for ${this.getAgentName()}`,
-            );
             return;
           } else {
             this.apiLogger.warn(
@@ -256,7 +212,6 @@ export class ApiAgentBaseService
 
         return; // Found the file, but couldn't load config
       } else {
-        this.apiLogger.debug(`No agent.yaml found at: ${yamlPath}`);
       }
     } catch (error) {
       this.apiLogger.error(
@@ -282,10 +237,6 @@ export class ApiAgentBaseService
       }
 
       const apiConfig = context.metadata.api_configuration;
-      this.apiLogger.debug(
-        'Raw api_configuration from YAML:',
-        JSON.stringify(apiConfig, null, 2),
-      );
 
       const config: ApiConfiguration = {
         endpoint: apiConfig.endpoint,
@@ -301,19 +252,6 @@ export class ApiAgentBaseService
         requestTransform: apiConfig.request_transform || undefined,
         responseTransform: apiConfig.response_transform || undefined,
       };
-
-      this.apiLogger.debug(
-        'Extracted API configuration:',
-        JSON.stringify(config, null, 2),
-      );
-      this.apiLogger.debug(
-        'Request transform extracted:',
-        config.requestTransform,
-      );
-      this.apiLogger.debug(
-        'Response transform extracted:',
-        config.responseTransform,
-      );
 
       return config;
     } catch (error) {
@@ -331,7 +269,6 @@ export class ApiAgentBaseService
   setApiConfiguration(config: ApiConfiguration): void {
     // Environment variable substitution is handled by ConfigurationService in loadApiConfigurationFromContext
     this.apiConfiguration = config;
-    this.apiLogger.debug(`API configuration set for ${this.getAgentName()}`);
   }
 
   /**
@@ -339,9 +276,6 @@ export class ApiAgentBaseService
    */
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
-    this.apiLogger.debug(
-      `ExecuteTask called for ${agentName}, method: ${method}`,
-    );
 
     // Store current user ID and task ID for task completion
     if (params.currentUser?.id) {
@@ -351,40 +285,16 @@ export class ApiAgentBaseService
       this.currentTaskId = params.taskId;
     }
 
-    this.apiLogger.debug(`Task execution context:`, {
-      taskId: this.currentTaskId,
-      userId: this.currentUserId,
-      hasTasksService: !!this.services.tasksService,
-      hasTaskStatusService: !!this.services.taskStatusService,
-      agentName: this.getAgentName(),
-    });
-
     // Log what services were injected during construction
-    this.apiLogger.debug(`API Agent services status:`, {
-      hasTasksService: !!this.services.tasksService,
-      hasTaskStatusService: !!this.services.taskStatusService,
-      tasksServiceType: this.services.tasksService
-        ? this.services.tasksService.constructor.name
-        : 'undefined',
-      taskStatusServiceType: this.services.taskStatusService
-        ? this.services.taskStatusService.constructor.name
-        : 'undefined',
-    });
 
     try {
       // Lazy loading: If no API configuration, try to load it now
       if (!this.apiConfiguration) {
-        this.apiLogger.debug(
-          `No API configuration found, attempting lazy loading for ${agentName}...`,
-        );
         await this.loadApiConfigurationFromYaml();
       }
 
       // If still no API configuration, fall back to simple response
       if (!this.apiConfiguration) {
-        this.apiLogger.debug(
-          `No API configuration for ${agentName}, using fallback`,
-        );
         return this.fallbackResponse(method, params);
       }
 
@@ -406,8 +316,6 @@ export class ApiAgentBaseService
       // Execute the API call
       const result = await this.callExternalApi(apiParams);
 
-      this.apiLogger.debug(`API call executed successfully for ${agentName}`);
-
       const response = {
         success: true,
         response: result.response,
@@ -421,9 +329,7 @@ export class ApiAgentBaseService
       };
 
       // Save the task result to the database for async tasks
-      this.apiLogger.debug(`About to save API task result...`);
       await this.saveApiTaskResult(result);
-      this.apiLogger.debug(`API task result save completed`);
 
       return response;
     } catch (error) {
@@ -469,12 +375,6 @@ export class ApiAgentBaseService
         // Prepare headers
         const headers = this.prepareHeaders(config, params);
 
-        this.apiLogger.debug(
-          `Making HTTP ${config.method} request to: ${config.endpoint}`,
-        );
-        this.apiLogger.debug(`Request headers:`, headers);
-        this.apiLogger.debug(`Request data:`, requestData);
-
         // Make the HTTP request
         const response = await firstValueFrom(
           this.services.httpService.request({
@@ -490,13 +390,6 @@ export class ApiAgentBaseService
             timeout: config.timeout || 60000,
           }),
         );
-
-        this.apiLogger.debug(`HTTP response status: ${response.status}`);
-        this.apiLogger.debug(`HTTP response headers:`, response.headers);
-        this.apiLogger.debug(
-          `HTTP response data type: ${typeof response.data}`,
-        );
-        this.apiLogger.debug(`HTTP response data:`, response.data);
 
         // Transform response
         const transformedResponse = this.transformResponse(
@@ -548,7 +441,6 @@ export class ApiAgentBaseService
         user: params.currentUser,
         timestamp: params.metadata.timestamp,
       };
-      this.apiLogger.debug(`Using default request transform:`, defaultData);
       return defaultData;
     }
 
@@ -563,7 +455,6 @@ export class ApiAgentBaseService
         user: params.currentUser?.email || 'anonymous',
         timestamp: params.metadata.timestamp,
       };
-      this.apiLogger.debug(`Using N8N request transform:`, n8nData);
       return n8nData;
     }
 
@@ -599,10 +490,6 @@ export class ApiAgentBaseService
         );
 
         const customData = JSON.parse(templateString);
-        this.apiLogger.debug(
-          `Using custom template request transform:`,
-          customData,
-        );
         return customData;
       } catch (error) {
         this.apiLogger.error(`Error parsing custom template:`, error);
@@ -611,10 +498,6 @@ export class ApiAgentBaseService
           message: params.userMessage,
           sessionId: params.sessionId,
         };
-        this.apiLogger.debug(
-          `Falling back to default request transform:`,
-          defaultData,
-        );
         return defaultData;
       }
     }
@@ -646,10 +529,6 @@ export class ApiAgentBaseService
         );
 
         const template = JSON.parse(templateString);
-        this.apiLogger.debug(
-          `Using JSON template request transform:`,
-          template,
-        );
         return template;
       } catch (error) {
         this.apiLogger.error(
@@ -666,7 +545,6 @@ export class ApiAgentBaseService
       user: params.currentUser,
       timestamp: params.metadata.timestamp,
     };
-    this.apiLogger.debug(`Using fallback request transform:`, defaultData);
     return defaultData;
   }
 
@@ -676,21 +554,11 @@ export class ApiAgentBaseService
   private transformResponse(apiResponse: any, _params: ApiAgentParams): string {
     const config = this.apiConfiguration;
 
-    this.apiLogger.debug(`Raw API response received:`, apiResponse);
-    this.apiLogger.debug(
-      `Response transform config:`,
-      config?.responseTransform,
-    );
-
     // If no transform specified, use default extraction
     if (!config?.responseTransform) {
-      this.apiLogger.debug(
-        'No response transform specified, using default extraction',
-      );
 
       // Try common response field names
       if (typeof apiResponse === 'string') {
-        this.apiLogger.debug('Response is already a string, returning as-is');
         return apiResponse;
       }
 
@@ -704,18 +572,11 @@ export class ApiAgentBaseService
       ];
       for (const field of commonFields) {
         if (apiResponse[field] && typeof apiResponse[field] === 'string') {
-          this.apiLogger.debug(
-            `Found response in field '${field}':`,
-            apiResponse[field],
-          );
           return apiResponse[field];
         }
       }
 
       // Fallback to stringified response
-      this.apiLogger.debug(
-        'No suitable field found, stringifying entire response',
-      );
       return JSON.stringify(apiResponse);
     }
 
@@ -725,17 +586,12 @@ export class ApiAgentBaseService
       config.responseTransform.format === 'field_extraction'
     ) {
       const fieldName = config.responseTransform.field;
-      this.apiLogger.debug(`Using field extraction for field '${fieldName}'`);
 
       if (
         typeof apiResponse === 'object' &&
         apiResponse !== null &&
         apiResponse[fieldName] !== undefined
       ) {
-        this.apiLogger.debug(
-          `Extracted field '${fieldName}':`,
-          apiResponse[fieldName],
-        );
         return String(apiResponse[fieldName]);
       } else {
         this.apiLogger.warn(
@@ -747,7 +603,6 @@ export class ApiAgentBaseService
 
     // Handle specific transformation formats
     if (config.responseTransform === 'standard') {
-      this.apiLogger.debug('Using standard response transform');
       // For standard format, look for common fields
       if (typeof apiResponse === 'string') {
         return apiResponse;
@@ -756,10 +611,6 @@ export class ApiAgentBaseService
       const standardFields = ['output', 'response', 'message', 'result'];
       for (const field of standardFields) {
         if (apiResponse[field] && typeof apiResponse[field] === 'string') {
-          this.apiLogger.debug(
-            `Standard transform found response in field '${field}':`,
-            apiResponse[field],
-          );
           return apiResponse[field];
         }
       }
@@ -774,19 +625,11 @@ export class ApiAgentBaseService
         // Simple JSONPath-like extraction
         const fieldPath = config.responseTransform.slice(2);
         const fieldValue = this.extractNestedField(apiResponse, fieldPath);
-        this.apiLogger.debug(
-          `JSONPath extraction for '${fieldPath}':`,
-          fieldValue,
-        );
         return fieldValue || JSON.stringify(apiResponse);
       }
 
       // Direct field name
       const directValue = apiResponse[config.responseTransform];
-      this.apiLogger.debug(
-        `Direct field extraction for '${config.responseTransform}':`,
-        directValue,
-      );
       return directValue || JSON.stringify(apiResponse);
     } catch (error) {
       this.apiLogger.warn(
@@ -891,7 +734,6 @@ export class ApiAgentBaseService
    * Fallback response when no API configuration is available
    */
   private async fallbackResponse(method: string, _params: any): Promise<any> {
-    this.apiLogger.debug(`Using fallback response for ${this.getAgentName()}`);
 
     return {
       success: true,
@@ -919,15 +761,10 @@ export class ApiAgentBaseService
    */
   protected async saveApiTaskResult(result: any): Promise<void> {
     if (!this.services.tasksService) {
-      this.apiLogger.debug(`Cannot save result - TasksService not available`);
       return;
     }
 
     if (!this.currentUserId || !this.currentTaskId) {
-      this.apiLogger.debug(`Cannot save result - missing user or task ID:`, {
-        userId: this.currentUserId,
-        taskId: this.currentTaskId,
-      });
       return;
     }
 
@@ -947,21 +784,12 @@ export class ApiAgentBaseService
         },
       };
 
-      this.apiLogger.debug(`Saving API task result to database:`, {
-        taskId: this.currentTaskId,
-        userId: this.currentUserId,
-        agentName: this.getAgentName(),
-      });
-
       await this.services.tasksService.updateTask(
         this.currentTaskId,
         this.currentUserId,
         updateData,
       );
 
-      this.apiLogger.debug(
-        `✅ API Task ${this.currentTaskId} result saved to database successfully`,
-      );
     } catch (error) {
       this.apiLogger.error(
         `❌ Failed to save API task ${this.currentTaskId} result:`,
@@ -976,7 +804,6 @@ export class ApiAgentBaseService
    */
   setDiscoveredPath(path: string): void {
     this.agentPath = path;
-    this.apiLogger.debug(`Agent path set to: ${path}`);
   }
 
   /**

@@ -82,14 +82,14 @@ export class AgentContextService {
    */
   private async loadContext(): Promise<AgentContext | null> {
     if (!this.agentDirectory) {
-      this.logger.warn('No agent directory set, cannot load context');
+
       return null;
     }
 
     const yamlPath = path.join(this.agentDirectory, 'agent.yaml');
 
     if (!fs.existsSync(yamlPath)) {
-      this.logger.warn(`No agent.yaml found at: ${yamlPath}`);
+
       return null;
     }
 
@@ -100,7 +100,7 @@ export class AgentContextService {
       const parsed = yaml.load(yamlContent) as any;
 
       if (!parsed) {
-        this.logger.warn('Failed to parse YAML content');
+
         return null;
       }
 
@@ -136,10 +136,7 @@ export class AgentContextService {
 
       return context;
     } catch (error) {
-      this.logger.error(
-        `Failed to load agent context from ${yamlPath}:`,
-        error,
-      );
+
       return null;
     }
   }

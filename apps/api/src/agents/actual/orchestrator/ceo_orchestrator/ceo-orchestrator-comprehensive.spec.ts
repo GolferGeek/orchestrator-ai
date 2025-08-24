@@ -99,8 +99,6 @@ describe('CEO Orchestrator - Comprehensive Cross-Departmental Intelligence Tests
         marketingRequest,
       );
 
-      console.log(`🔍 Debug result:`, JSON.stringify(result, null, 2));
-
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
       expect(result.response).toBeDefined();

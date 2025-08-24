@@ -3,7 +3,6 @@
 from typing import Dict, Any, List
 from datetime import datetime
 
-
 class WorkflowState:
     """Generic workflow state management for Python function agents"""
     
@@ -85,7 +84,6 @@ class WorkflowState:
         
         return task_data
 
-
 class RequirementsWriterState(WorkflowState):
     """State management for the requirements writer workflow"""
     
@@ -154,7 +152,6 @@ class RequirementsWriterState(WorkflowState):
             context_parts.append(f"Document Type: {self.document_type}")
         
         return "\n".join(context_parts)
-
 
 def create_final_response(state: WorkflowState, content_key: str = 'response') -> Dict[str, Any]:
     """Create the final response structure for any workflow"""

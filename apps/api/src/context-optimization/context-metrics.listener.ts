@@ -43,7 +43,7 @@ export class ContextMetricsListener {
           timestamp: new Date().toISOString(),
         });
       } catch (e) {
-        this.logger.debug(`Failed to broadcast context metrics: ${e}`);
+
       }
     }
   }

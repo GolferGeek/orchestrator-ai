@@ -7,7 +7,6 @@
         <strong>growth of opportunity</strong>.
       </p>
     </div>
-
     <div class="advantage-grid">
       <!-- Growth vs Efficiency -->
       <div class="advantage-card highlight">
@@ -25,7 +24,6 @@
           creating a competitive advantage that big agencies can't match.</span>
         </div>
       </div>
-
       <!-- Innovation Advantage -->
       <div class="advantage-card">
         <div class="advantage-icon">
@@ -43,7 +41,6 @@
           while big firms spend months evaluating "enterprise solutions."</span>
         </div>
       </div>
-
       <!-- Speed Advantage -->
       <div class="advantage-card">
         <div class="advantage-icon">
@@ -62,7 +59,6 @@
           in a weekend, while big chains plan for years.</span>
         </div>
       </div>
-
       <!-- Personal Touch -->
       <div class="advantage-card">
         <div class="advantage-icon">
@@ -80,7 +76,6 @@
         </div>
       </div>
     </div>
-
     <div class="advantage-cta">
       <div class="cta-content">
         <h3>Ready to Turn Your Size into an Advantage?</h3>
@@ -100,7 +95,6 @@
     </div>
   </section>
 </template>
-
 <script setup lang="ts">
 import { IonIcon, IonButton } from '@ionic/vue';
 import { 
@@ -110,30 +104,25 @@ import {
   peopleOutline, 
   rocketOutline 
 } from 'ionicons/icons';
-
 defineEmits<{
   scrollToPricing: []
 }>();
 </script>
-
 <style scoped>
 .small-company-section {
   background: var(--landing-primary-50);
   padding: 4rem 0;
 }
-
 .section-header {
   text-align: center;
   margin-bottom: 3rem;
 }
-
 .section-header h2 {
   font-size: 2.5rem;
   color: var(--landing-dark);
   margin-bottom: 1rem;
   font-weight: 700;
 }
-
 .section-subtitle {
   font-size: 1.2rem;
   color: var(--landing-gray);
@@ -141,14 +130,12 @@ defineEmits<{
   margin: 0 auto;
   line-height: 1.6;
 }
-
 .advantage-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 2rem;
   margin-bottom: 3rem;
 }
-
 .advantage-card {
   background: var(--landing-white);
   border-radius: 16px;
@@ -157,19 +144,16 @@ defineEmits<{
   transition: var(--transition-smooth);
   box-shadow: var(--shadow-sm);
 }
-
 .advantage-card.highlight {
   border-color: var(--landing-secondary);
   background: linear-gradient(135deg, var(--landing-secondary-light), var(--landing-white));
   box-shadow: var(--shadow-green);
 }
-
 .advantage-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
   border-color: var(--landing-secondary);
 }
-
 .advantage-icon {
   width: 60px;
   height: 60px;
@@ -180,32 +164,27 @@ defineEmits<{
   justify-content: center;
   margin-bottom: 1.5rem;
 }
-
 .advantage-icon ion-icon {
   font-size: 1.8rem;
   color: var(--landing-white);
 }
-
 .advantage-card h3 {
   font-size: 1.3rem;
   color: var(--landing-dark);
   margin-bottom: 1rem;
   font-weight: 600;
 }
-
 .advantage-card p {
   color: var(--landing-gray);
   line-height: 1.6;
   margin-bottom: 1.5rem;
 }
-
 .advantage-example {
   background: var(--landing-primary-100);
   border-radius: 8px;
   padding: 1rem;
   border-left: 4px solid var(--landing-secondary);
 }
-
 .example-label {
   font-weight: 600;
   color: var(--landing-secondary);
@@ -213,13 +192,11 @@ defineEmits<{
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
 }
-
 .example-text {
   color: var(--landing-dark);
   font-size: 0.9rem;
   line-height: 1.5;
 }
-
 .advantage-cta {
   background: var(--landing-white);
   border-radius: 20px;
@@ -228,14 +205,12 @@ defineEmits<{
   box-shadow: var(--shadow-md);
   border: 2px solid var(--landing-secondary-light);
 }
-
 .cta-content h3 {
   font-size: 1.8rem;
   color: var(--landing-dark);
   margin-bottom: 1rem;
   font-weight: 700;
 }
-
 .cta-content p {
   font-size: 1.1rem;
   color: var(--landing-gray);
@@ -245,32 +220,26 @@ defineEmits<{
   margin-left: auto;
   margin-right: auto;
 }
-
 .cta-button {
   --background: var(--landing-accent);
   --color: var(--landing-white);
   --border-radius: 8px;
   font-weight: 600;
 }
-
 @media (max-width: 768px) {
   .advantage-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
-  
   .advantage-card {
     padding: 1.5rem;
   }
-  
   .section-header h2 {
     font-size: 2rem;
   }
-  
   .section-subtitle {
     font-size: 1rem;
   }
-  
   .cta-content h3 {
     font-size: 1.5rem;
   }

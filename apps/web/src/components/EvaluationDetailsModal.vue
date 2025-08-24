@@ -10,7 +10,6 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    
     <ion-content class="ion-padding" v-if="evaluation">
       <!-- Agent and Message Info -->
       <ion-card class="message-info">
@@ -27,7 +26,6 @@
             </ion-col>
           </ion-row>
         </ion-card-header>
-        
         <ion-card-content>
           <div class="message-content">
             <!-- Show task prompt if available -->
@@ -35,7 +33,6 @@
               <h4>Task Prompt:</h4>
               <p class="content-text">{{ evaluation.metadata.taskPrompt }}</p>
             </ion-text>
-            
             <!-- Show task response if available -->
             <ion-text v-if="evaluation.metadata?.taskResponse">
               <h4>Task Response:</h4>
@@ -67,14 +64,12 @@
               </div>
               <p v-else class="content-text response-text">{{ evaluation.metadata.taskResponse }}</p>
             </ion-text>
-            
             <!-- Fallback to general content if no specific prompt/response -->
             <ion-text v-if="!evaluation.metadata?.taskPrompt && !evaluation.metadata?.taskResponse">
               <h4>Task Content:</h4>
               <p class="content-text">{{ evaluation.content }}</p>
             </ion-text>
           </div>
-          
           <!-- Technical Details -->
           <ion-grid class="technical-details">
             <ion-row v-if="evaluation.provider || evaluation.model || evaluation.metadata?.llmMetadata">
@@ -114,7 +109,6 @@
                 </ion-chip>
               </ion-col>
             </ion-row>
-            
             <!-- Response Metadata Section -->
             <ion-row v-if="evaluation.metadata?.responseMetadata">
               <ion-col size="12">
@@ -126,7 +120,6 @@
                 </div>
               </ion-col>
             </ion-row>
-
             <!-- LLM Metadata if available -->
             <ion-row v-if="evaluation.metadata?.llmMetadata">
               <ion-col size="12">
@@ -138,7 +131,6 @@
                 </div>
               </ion-col>
             </ion-row>
-
             <!-- User Email if available -->
             <ion-row v-if="evaluation.metadata?.userEmail">
               <ion-col size="12">
@@ -148,7 +140,6 @@
                 </ion-chip>
               </ion-col>
             </ion-row>
-            
             <!-- Progress Message if available -->
             <ion-row v-if="evaluation.metadata?.progressMessage">
               <ion-col size="12">
@@ -158,7 +149,6 @@
               </ion-col>
             </ion-row>
           </ion-grid>
-          
           <!-- Workflow Steps if available -->
           <div v-if="evaluation.metadata?.workflowStepsCompleted && evaluation.metadata.workflowStepsCompleted.length > 0" class="workflow-steps">
             <ion-text color="medium">
@@ -178,13 +168,11 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- Evaluation Ratings -->
       <ion-card class="ratings-card">
         <ion-card-header>
           <ion-card-title>Your Evaluation</ion-card-title>
         </ion-card-header>
-        
         <ion-card-content>
           <ion-grid>
             <!-- Overall Rating -->
@@ -209,7 +197,6 @@
                 </div>
               </ion-col>
             </ion-row>
-
             <!-- Speed Rating -->
             <ion-row v-if="evaluation.speedRating">
               <ion-col size="12" size-md="6">
@@ -234,7 +221,6 @@
                 </div>
               </ion-col>
             </ion-row>
-
             <!-- Accuracy Rating -->
             <ion-row v-if="evaluation.accuracyRating">
               <ion-col size="12" size-md="6">
@@ -262,7 +248,6 @@
           </ion-grid>
         </ion-card-content>
       </ion-card>
-
       <!-- User Notes -->
       <ion-card v-if="evaluation.userNotes" class="notes-card">
         <ion-card-header>
@@ -271,14 +256,12 @@
             Your Notes
           </ion-card-title>
         </ion-card-header>
-        
         <ion-card-content>
           <ion-text>
             <p class="notes-content">{{ evaluation.userNotes }}</p>
           </ion-text>
         </ion-card-content>
       </ion-card>
-
       <!-- Additional Details -->
       <ion-card v-if="evaluation.evaluationDetails" class="details-card">
         <ion-card-header>
@@ -287,7 +270,6 @@
             Additional Details
           </ion-card-title>
         </ion-card-header>
-        
         <ion-card-content>
           <div v-if="evaluation.evaluationDetails.tags && evaluation.evaluationDetails.tags.length > 0">
             <ion-text>
@@ -304,21 +286,18 @@
               </ion-chip>
             </div>
           </div>
-          
           <div v-if="evaluation.evaluationDetails.feedback">
             <ion-text>
               <h5>Additional Feedback:</h5>
               <p>{{ evaluation.evaluationDetails.feedback }}</p>
             </ion-text>
           </div>
-          
           <div v-if="evaluation.evaluationDetails.userContext">
             <ion-text>
               <h5>Context:</h5>
               <p>{{ evaluation.evaluationDetails.userContext }}</p>
             </ion-text>
           </div>
-          
           <div v-if="evaluation.evaluationDetails.modelConfidence">
             <ion-text>
               <h5>Model Confidence:</h5>
@@ -334,7 +313,6 @@
         </ion-card-content>
       </ion-card>
     </ion-content>
-    
     <!-- Loading State -->
     <ion-content v-else class="ion-padding ion-text-center">
       <ion-spinner name="crescent"></ion-spinner>
@@ -342,7 +320,6 @@
     </ion-content>
   </ion-modal>
 </template>
-
 <script setup lang="ts">
 import { computed } from 'vue';
 import {
@@ -380,57 +357,30 @@ import {
   mailOutline
 } from 'ionicons/icons';
 import type { EvaluationWithMessage } from '@/types/evaluation';
-
 interface Props {
   isOpen: boolean;
   evaluation: EvaluationWithMessage | null;
 }
-
 const props = defineProps<Props>();
 const emit = defineEmits<{
   dismiss: [];
 }>();
-
 const starIcon = computed(() => star);
-
 // Parse the task response JSON if it exists
 const parsedResponse = computed(() => {
   // Debug: Log all evaluation data
-  console.log('🔍 [Frontend] Full evaluation object:', props.evaluation);
-  console.log('🔍 [Frontend] Evaluation metadata:', props.evaluation?.metadata);
-  console.log('🔍 [Frontend] Provider/Model info:', {
-    provider: props.evaluation?.provider,
-    model: props.evaluation?.model,
-    providerId: props.evaluation?.providerId,
-    modelId: props.evaluation?.modelId
-  });
-  console.log('🔍 [Frontend] User email:', props.evaluation?.metadata?.userEmail);
-  console.log('🔍 [Frontend] Response metadata:', props.evaluation?.metadata?.responseMetadata);
-  console.log('🔍 [Frontend] LLM metadata:', props.evaluation?.metadata?.llmMetadata);
-  console.log('🔍 [Frontend] Has taskResponse:', !!props.evaluation?.metadata?.taskResponse);
-  console.log('🔍 [Frontend] Has taskPrompt:', !!props.evaluation?.metadata?.taskPrompt);
-  console.log('🔍 [Frontend] Has workflowStepsCompleted:', !!props.evaluation?.metadata?.workflowStepsCompleted);
-  console.log('🔍 [Frontend] Raw taskResponse:', props.evaluation?.metadata?.taskResponse);
-  
   if (!props.evaluation?.metadata?.taskResponse) {
-    console.log('🔍 [Frontend] No taskResponse found, returning null');
     return null;
   }
-  
   try {
     const response = JSON.parse(props.evaluation.metadata.taskResponse);
-    console.log('🔍 [Frontend] Parsed task response:', response);
-    
     // Extract key fields from the response
     const result: any = {};
-    
     // Helper function to recursively look for email data
     const findEmailData = (obj: any): any => {
       if (!obj || typeof obj !== 'object') return null;
-      
       // Direct email field
       if (obj.email) return obj.email;
-      
       // Look in nested objects
       for (const key in obj) {
         if (typeof obj[key] === 'object') {
@@ -440,7 +390,6 @@ const parsedResponse = computed(() => {
       }
       return null;
     };
-    
     // Helper function to extract response text from various structures
     const extractResponseText = (obj: any): string | null => {
       // Try different fields that might contain the actual response
@@ -448,7 +397,6 @@ const parsedResponse = computed(() => {
       if (typeof obj.content === 'string') return obj.content;
       if (typeof obj.text === 'string') return obj.text;
       if (typeof obj.message === 'string') return obj.message;
-      
       // If response field contains another JSON, try to parse it
       if (typeof obj.response === 'object') {
         try {
@@ -456,18 +404,14 @@ const parsedResponse = computed(() => {
           if (obj.response.text) return obj.response.text;
           if (obj.response.message) return obj.response.message;
         } catch (e) {
-          console.log('Error parsing nested response:', e);
         }
       }
-      
       return null;
     };
-    
     // Extract response content
     const responseText = extractResponseText(response);
     if (responseText) {
       result.response = responseText;
-      
       // Try to parse the response text itself as JSON to look for email
       try {
         const nestedResponse = JSON.parse(responseText);
@@ -479,80 +423,56 @@ const parsedResponse = computed(() => {
         // Response text is not JSON, that's fine
       }
     }
-    
     // Look for email at the top level
     const topLevelEmail = findEmailData(response);
     if (topLevelEmail) {
       result.email = topLevelEmail;
     }
-    
     // Look for deliverable
     if (response.deliverable) {
       result.deliverable = response.deliverable;
     }
-    
-    console.log('Extracted result:', result);
-    
     // Return null if no meaningful content found
     return Object.keys(result).length > 0 ? result : null;
   } catch (error) {
     // If JSON parsing fails, return null to fall back to raw text
-    console.log('Failed to parse task response JSON:', error);
     return null;
   }
 });
-
 function onDismiss() {
   emit('dismiss');
 }
-
 function formatDate(dateString: string): string {
   if (!dateString) return 'No date available';
-  
   const date = new Date(dateString);
-  
   // Check if date is valid
   if (isNaN(date.getTime())) {
     return 'Invalid date';
   }
-  
   return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { 
     hour: '2-digit', 
     minute: '2-digit' 
   });
 }
-
 function formatCost(cost: number): string {
   return cost.toFixed(4);
 }
-
 const formatStepName = (stepName: string): string => {
-  console.log('🔍 [Frontend] Formatting step name:', stepName);
   // Convert snake_case to human readable format
   return stepName
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
-
 // Debug computed property for workflow steps
 const debugWorkflowSteps = computed(() => {
-  console.log('🔍 [Frontend] Workflow steps debug:', {
-    hasMetadata: !!props.evaluation?.metadata,
-    hasWorkflowSteps: !!props.evaluation?.metadata?.workflowStepsCompleted,
-    workflowStepsType: typeof props.evaluation?.metadata?.workflowStepsCompleted,
-    workflowStepsLength: props.evaluation?.metadata?.workflowStepsCompleted?.length,
-    workflowStepsData: props.evaluation?.metadata?.workflowStepsCompleted
-  });
   return props.evaluation?.metadata?.workflowStepsCompleted;
 });
 </script>
-
 <style scoped>
 .message-info {
   margin-bottom: 1rem;
 }
-
 .content-text {
   background: var(--ion-color-light);
   padding: 1rem;
@@ -562,12 +482,10 @@ const debugWorkflowSteps = computed(() => {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
-
 .response-text {
   background: var(--ion-color-light-tint);
   border-left: 4px solid var(--ion-color-success);
 }
-
 .email-section {
   margin: 1rem 0;
   padding: 1rem;
@@ -575,15 +493,12 @@ const debugWorkflowSteps = computed(() => {
   border-radius: 8px;
   border-left: 4px solid var(--ion-color-warning);
 }
-
 .email-content {
   margin-top: 0.5rem;
 }
-
 .email-content p {
   margin: 0.25rem 0;
 }
-
 .email-body {
   background: var(--ion-color-light-tint);
   padding: 0.75rem;
@@ -593,11 +508,9 @@ const debugWorkflowSteps = computed(() => {
   font-family: monospace;
   margin-top: 0.5rem;
 }
-
 .deliverable-section {
   margin: 1rem 0;
 }
-
 .metadata-section {
   background: var(--ion-color-light);
   padding: 1rem;
@@ -605,7 +518,6 @@ const debugWorkflowSteps = computed(() => {
   border-left: 4px solid var(--ion-color-primary);
   margin: 0.5rem 0;
 }
-
 .metadata-display {
   margin: 0;
   font-size: 0.85rem;
@@ -616,7 +528,6 @@ const debugWorkflowSteps = computed(() => {
   border-radius: 4px;
   border: 1px solid var(--ion-color-light-shade);
 }
-
 .llm-metadata {
   background: var(--ion-color-light);
   padding: 1rem;
@@ -624,14 +535,12 @@ const debugWorkflowSteps = computed(() => {
   border-left: 4px solid var(--ion-color-tertiary);
   margin: 0.5rem 0;
 }
-
 .llm-metadata pre {
   margin: 0;
   font-size: 0.85rem;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
-
 .workflow-steps {
   margin: 1rem 0;
   padding: 1rem;
@@ -639,48 +548,39 @@ const debugWorkflowSteps = computed(() => {
   border-radius: 8px;
   border-left: 4px solid var(--ion-color-success);
 }
-
 .steps-container {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
-
 .step-chip {
   margin: 0.25rem 0;
 }
-
 .technical-details {
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--ion-color-light-shade);
 }
-
 .ratings-card {
   margin-bottom: 1rem;
 }
-
 .rating-section {
   margin-bottom: 1.5rem;
 }
-
 .star-rating {
   display: flex;
   align-items: center;
   gap: 0.25rem;
   margin-top: 0.5rem;
 }
-
 .rating-text {
   margin-left: 0.5rem;
   font-size: 1.1rem;
 }
-
 .notes-card {
   margin-bottom: 1rem;
 }
-
 .notes-content {
   background: var(--ion-color-light);
   padding: 1rem;
@@ -691,31 +591,26 @@ const debugWorkflowSteps = computed(() => {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
-
 .details-card {
   margin-bottom: 1rem;
 }
-
 .tags-container {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin: 0.5rem 0;
 }
-
 .confidence-text {
   text-align: center;
   margin: 0.5rem 0;
   font-weight: bold;
 }
-
 h4 {
   margin: 0.5rem 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
-
 h5 {
   margin: 1rem 0 0.5rem 0;
   color: var(--ion-color-medium);

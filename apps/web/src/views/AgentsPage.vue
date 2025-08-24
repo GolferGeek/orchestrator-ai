@@ -19,13 +19,10 @@
               <ion-icon aria-hidden="true" :icon="logOutOutline" slot="start"></ion-icon>
               <ion-label>Logout</ion-label>
             </ion-item>
-            
             <hr/>
-            
             <!-- Navigation -->
             <ion-list>
               <ion-list-header>Navigation</ion-list-header>
-              
               <!-- Direct Navigation Items - Projects and Evaluations at top -->
               <ion-menu-toggle>
                 <ion-item 
@@ -57,7 +54,6 @@
                   <ion-label>Evaluations</ion-label>
                 </ion-item>
               </ion-menu-toggle>
-              
               <!-- Agents & Conversations Accordion - Takes remaining space -->
               <ion-accordion-group :value="agentsExpanded ? 'agents' : undefined">
                 <ion-accordion value="agents">
@@ -85,7 +81,6 @@
                         <ion-icon :icon="refreshOutline" />
                       </ion-button>
                     </div>
-                    
                     <!-- Agent Tree -->
                     <AgentTreeView 
                       @conversation-selected="handleConversationSelected"
@@ -104,7 +99,6 @@
     </ion-split-pane>
   </ion-page>
 </template>
-
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { 
@@ -115,56 +109,44 @@ import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useRouter } from 'vue-router';
 import AgentTreeView from '@/components/AgentTreeView.vue';
-
 const auth = useAuthStore();
 const agentChatStore = useAgentChatStore();
 const router = useRouter();
-
 // State for accordion and search
 const agentsExpanded = ref(true);
 const searchQuery = ref('');
 const isRefreshing = ref(false);
-
 // Dynamic titles based on current route
 const menuTitle = computed(() => {
   return 'Orchestrator AI';
 });
-
 const handleLogout = async () => {
-  console.log('🚪 Logout clicked');
   await auth.logout();
   router.push('/login');
 };
-
 const navigateToLanding = () => {
   router.push('/');
 };
-
-
-
 const handleConversationSelected = async (conversation: any) => {
   try {
     await agentChatStore.openExistingConversation(conversation.id);
     router.push('/app/home');
   } catch (error) {
-    console.error('Failed to open conversation:', error);
+
   }
 };
-
 const handleAgentSelected = async (agent: any) => {
   try {
     await agentChatStore.startNewConversation(agent);
     router.push('/app/home');
   } catch (error) {
-    console.error('Failed to start conversation:', error);
+
   }
 };
-
 const handleSearch = () => {
   // The search query is passed as a prop to AgentTreeView
   // The component will handle the actual filtering
 };
-
 const handleRefresh = async () => {
   try {
     isRefreshing.value = true;
@@ -172,13 +154,12 @@ const handleRefresh = async () => {
     // For now, we'll let the AgentTreeView handle its own refresh
     await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for UX
   } catch (error) {
-    console.error('Failed to refresh:', error);
+
   } finally {
     isRefreshing.value = false;
   }
 };
 </script>
-
 <style scoped>
 /* Clickable title styling */
 .clickable-title {
@@ -186,12 +167,10 @@ const handleRefresh = async () => {
   transition: all 0.2s ease;
   user-select: none;
 }
-
 .clickable-title:hover {
   opacity: 0.8;
   transform: scale(1.02);
 }
-
 /* Basic styling for user info in menu */
 ion-note {
   display: block;
@@ -205,7 +184,6 @@ hr {
   border-top: 1px solid var(--ion-color-step-150, #e0e0e0);
   margin: 8px 0;
 }
-
 /* Navigation item selected state */
 ion-item.selected {
   --background: var(--ion-color-primary-tint, #e3f2fd);
@@ -213,18 +191,15 @@ ion-item.selected {
   font-weight: 500;
   border-left: 3px solid var(--ion-color-primary, #1976d2);
 }
-
 /* Increase sidebar width for better space utilization */
 ion-menu {
   --width: 356px; /* Increased by ~36px (half inch) */
 }
-
 @media (max-width: 768px) {
   ion-menu {
     --width: 300px; /* Also increased mobile width proportionally */
   }
 }
-
 /* Agents & Conversations accordion content */
 .agents-content {
   padding: 0;
@@ -232,7 +207,6 @@ ion-menu {
   min-height: 0; /* Allow flex child to shrink */
   overflow-y: auto;
 }
-
 /* Controls at top of agents accordion */
 .agents-controls {
   display: flex;
@@ -242,42 +216,33 @@ ion-menu {
   background: var(--ion-color-step-50);
   border-bottom: 1px solid var(--ion-color-step-150);
 }
-
 .compact-searchbar {
   flex: 1;
   --border-radius: 8px;
   --box-shadow: none;
   --background: var(--ion-color-step-100);
 }
-
 .refresh-btn {
   --padding-start: 8px;
   --padding-end: 8px;
   min-width: 40px;
 }
-
-
-
 /* Compact styles for tree view in menu */
 .agents-content :deep(.agent-tree-container) {
   padding: 0;
   background: transparent;
 }
-
 .agents-content :deep(.department-section) {
   margin-bottom: 0.5rem;
 }
-
 .agents-content :deep(.department-header) {
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
 }
-
 .agents-content :deep(.agent-item) {
   padding: 0.5rem 1.5rem;
   font-size: 0.85rem;
 }
-
 /* Dark theme support for navigation */
 @media (prefers-color-scheme: dark) {
   ion-item.selected {
@@ -285,11 +250,9 @@ ion-menu {
     --color: #3b82f6;
     border-left-color: #3b82f6;
   }
-  
   .agents-content {
     background: var(--ion-color-step-50);
   }
-  
   .agents-controls {
     background: var(--ion-color-step-100);
     border-bottom-color: var(--ion-color-step-200);

@@ -29,9 +29,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
     // Keep our own reference for custom authentication
     this.customHttpService = services.httpService;
 
-    this.logger.log(
-      '🔗 Hiverarchy AI Orchestrator Agent Service initialized with dynamic auth',
-    );
   }
 
   /**
@@ -56,21 +53,16 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       // Call parent initialization first
       await super.onModuleInit();
 
-      this.logger.log('✅ External agent proxy ready');
-
       // Test authentication on startup (non-blocking)
       try {
         await this.ensureAuthenticated();
-        this.logger.log('🔐 External agent authentication verified on startup');
+
       } catch (authError) {
-        this.logger.warn(
-          '⚠️ External agent authentication failed during startup - will retry on first request:',
-          authError,
-        );
+
         // Don't throw - allow the agent to initialize but mark as unauthenticated
       }
     } catch (error) {
-      this.logger.error('❌ Failed to initialize external agent:', error);
+
       throw error;
     }
   }
@@ -80,7 +72,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
    * This is the standard interface expected by the dynamic controller
    */
   async processTask(taskRequest: any): Promise<any> {
-    this.logger.debug(`🎯 Hiverarchy AI Orchestrator processing task`);
 
     try {
       // Ensure we have a valid authentication token
@@ -92,7 +83,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
       // Forward the task request to the external Hiverarchy agent
       return await this.executeTaskWithAuth('processTask', hiverarchyParams);
     } catch (error) {
-      this.logger.error(`❌ Failed to process task via Hiverarchy:`, error);
+
       throw error;
     }
   }
@@ -109,8 +100,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
     ) {
       return;
     }
-
-    this.logger.debug('🔐 Authenticating with Hiverarchy...');
 
     try {
       // Read authentication configuration from YAML
@@ -142,12 +131,12 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         // Token expires in 1 hour (3600 seconds)
         this.tokenExpiry =
           Date.now() + (response.data.expiresIn || 3600) * 1000;
-        this.logger.log('✅ Successfully authenticated with Hiverarchy');
+
       } else {
         throw new Error('No access token received from Hiverarchy');
       }
     } catch (error) {
-      this.logger.error('❌ Failed to authenticate with Hiverarchy:', error);
+
       throw new Error(
         `Hiverarchy authentication failed: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -170,8 +159,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
     } else if (taskRequest?.user) {
       userMessage = taskRequest.user;
     }
-
-    this.logger.debug(`📝 Extracted user message: "${userMessage}"`);
 
     // Return in Hiverarchy's expected format (userMessage at top level)
     return {
@@ -211,9 +198,6 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         id: `external-hiverarchy-${Date.now()}`,
       };
 
-      this.logger.debug(`🚀 Sending A2A request to Hiverarchy: ${endpoint}`);
-      this.logger.debug(`Request body:`, JSON.stringify(requestBody, null, 2));
-
       const response = await firstValueFrom(
         this.customHttpService.post(endpoint, requestBody, {
           headers: {
@@ -224,13 +208,7 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         }),
       );
 
-      this.logger.debug(
-        `📥 Received response from Hiverarchy:`,
-        JSON.stringify(response.data, null, 2),
-      );
-
       if (response.status >= 200 && response.status < 300) {
-        this.logger.log('✅ Successfully received response from Hiverarchy');
 
         // Handle the exact response format from external agent
         let actualResponse = response.data;
@@ -277,12 +255,10 @@ export class HiverarchyAgentService extends ExternalA2AAgentBaseService {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error: any) {
-      this.logger.error('❌ Failed to execute task with Hiverarchy:', error);
 
       // Log more details about the error
       if (error.response) {
-        this.logger.error(`Response status: ${error.response.status}`);
-        this.logger.error(`Response data:`, error.response.data);
+
       }
 
       throw error;

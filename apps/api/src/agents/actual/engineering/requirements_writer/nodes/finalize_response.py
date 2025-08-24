@@ -34,21 +34,14 @@ except ImportError as e:
     def create_final_response(state):
         return {"response": "Fallback final response", "metadata": {}}
 
-
 async def finalize_response_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Node: Finalize the response with metadata and emit completion"""
-    
-    print(f"DEBUG: finalize_response_node started with keys: {list(state_dict.keys())}", file=sys.stderr)
-    
+
     state = RequirementsWriterState(state_dict)
-    
-    print(f"DEBUG: RequirementsWriterState created, task_id: {state.task_id}", file=sys.stderr)
-    print(f"DEBUG: Document content available: {bool(getattr(state, 'document_content', None))}", file=sys.stderr)
-    print(f"DEBUG: Document content length: {len(getattr(state, 'document_content', '')) if getattr(state, 'document_content', None) else 0}", file=sys.stderr)
-    
+
     try:
         # Emit start event
-        print(f"DEBUG: About to emit progress for finalize_response", file=sys.stderr)
+
         emit_progress(
             state.task_id,
             "finalize_response",
@@ -57,11 +50,10 @@ async def finalize_response_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
             "in_progress",
             "Finalizing response and preparing deliverables..."
         )
-        print(f"DEBUG: Progress emitted successfully", file=sys.stderr)
-        
+
         # Ensure we have content
         document_content = getattr(state, 'document_content', None)
-        print(f"DEBUG: Checking document content: {bool(document_content)}", file=sys.stderr)
+
         if not document_content:
             error_msg = "No document content was generated"
             print(f"ERROR: {error_msg}", file=sys.stderr)
@@ -73,7 +65,7 @@ async def finalize_response_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
                 return {"error": error_msg, "userMessage": state_dict.get("userMessage", ""), "metadata": state_dict.get("metadata", {})}
         
         # Add final metadata
-        print(f"DEBUG: About to add final metadata", file=sys.stderr)
+
         try:
             features = getattr(state, 'features', [])
             metadata = getattr(state, 'metadata', {})
@@ -87,18 +79,15 @@ async def finalize_response_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
                 'features_identified': len(features),
                 'document_sections': count_document_sections(document_content)
             }
-            
-            print(f"DEBUG: Final metadata created: {final_metadata}", file=sys.stderr)
-            
+
             metadata.update(final_metadata)
             state.workflow_step = 'completed'
-            
-            print(f"DEBUG: Metadata updated successfully", file=sys.stderr)
+
         except Exception as metadata_error:
             print(f"ERROR: Failed to update final metadata: {metadata_error}", file=sys.stderr)
         
         # Emit completion events
-        print(f"DEBUG: About to emit completion events", file=sys.stderr)
+
         try:
             emit_progress(
                 state.task_id,
@@ -114,16 +103,15 @@ async def finalize_response_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
                 "completed",
                 f"Requirements document generated successfully ({len(document_content)} characters)"
             )
-            
-            print(f"DEBUG: Completion events emitted successfully", file=sys.stderr)
+
         except Exception as completion_error:
             print(f"ERROR: Failed to emit completion events: {completion_error}", file=sys.stderr)
         
         # Return updated state
-        print(f"DEBUG: About to return final state dictionary", file=sys.stderr)
+
         try:
             result = state.to_dict()
-            print(f"DEBUG: Final state converted to dict successfully, keys: {list(result.keys())}", file=sys.stderr)
+
             return result
         except Exception as dict_error:
             print(f"ERROR: Failed to convert final state to dict: {dict_error}", file=sys.stderr)
@@ -148,7 +136,6 @@ async def finalize_response_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
             print(f"ERROR: Failed to set error state: {state_error}", file=sys.stderr)
             return {"error": error_msg, "userMessage": state_dict.get("userMessage", ""), "metadata": state_dict.get("metadata", {})}
 
-
 def count_document_sections(content: str) -> int:
     """Count the number of sections in the document (based on markdown headers)"""
     if not content:
@@ -158,7 +145,6 @@ def count_document_sections(content: str) -> int:
     import re
     headers = re.findall(r'^#+\s+', content, re.MULTILINE)
     return len(headers)
-
 
 # For testing/development
 if __name__ == "__main__":

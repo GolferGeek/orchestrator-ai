@@ -58,9 +58,7 @@ export class CIDAFMService {
       const uuidRegex =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(userId)) {
-        this.logger.warn(
-          `Skipping user commands for invalid user ID: ${userId}`,
-        );
+
       } else {
         let userQuery = client
           .from('user_cidafm_commands')

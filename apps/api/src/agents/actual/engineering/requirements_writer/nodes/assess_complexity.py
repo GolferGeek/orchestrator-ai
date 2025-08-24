@@ -34,20 +34,14 @@ except ImportError as e:
             return "Fallback response - LLM service not available"
     llm_client = LLMClient()
 
-
 async def assess_complexity_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Node: Assess the complexity of the requirements using AI analysis"""
-    
-    print(f"DEBUG: assess_complexity_node started with keys: {list(state_dict.keys())}", file=sys.stderr)
-    
+
     state = RequirementsWriterState(state_dict)
-    
-    print(f"DEBUG: RequirementsWriterState created, task_id: {state.task_id}", file=sys.stderr)
-    print(f"DEBUG: Current features count: {len(state.features) if hasattr(state, 'features') and state.features else 0}", file=sys.stderr)
-    
+
     try:
         # Emit start event
-        print(f"DEBUG: About to emit progress for assess_complexity", file=sys.stderr)
+
         emit_progress(
             state.task_id,
             "assess_complexity",
@@ -56,13 +50,12 @@ async def assess_complexity_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
             "in_progress",
             "Using AI to assess project complexity and estimate implementation effort..."
         )
-        print(f"DEBUG: Progress emitted successfully", file=sys.stderr)
-        
+
         # Create LLM options
-        print(f"DEBUG: About to create LLM options from preferences: {state.llm_preferences}", file=sys.stderr)
+
         try:
             llm_options = llm_client.create_options(**state.llm_preferences)
-            print(f"DEBUG: LLM options created: {llm_options}", file=sys.stderr)
+
         except Exception as e:
             print(f"ERROR: Failed to create LLM options: {e}", file=sys.stderr)
             llm_options = {}
@@ -121,8 +114,6 @@ Respond with JSON:
 
 Provide a comprehensive complexity assessment including effort estimates and recommendations."""
 
-        print(f"DEBUG: About to call LLM service with prompts (system: {len(system_prompt)} chars, user: {len(user_prompt)} chars)", file=sys.stderr)
-        
         # Make real LLM call
         start_time = datetime.now()
         try:
@@ -133,8 +124,7 @@ Provide a comprehensive complexity assessment including effort estimates and rec
             )
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
-            print(f"DEBUG: LLM call completed in {duration:.2f}s, response length: {len(response)} chars", file=sys.stderr)
-            print(f"DEBUG: LLM response preview: {response[:200]}...", file=sys.stderr)
+
         except Exception as e:
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
@@ -142,7 +132,7 @@ Provide a comprehensive complexity assessment including effort estimates and rec
             response = f"ERROR: LLM call failed: {e}"
         
         # Parse LLM response
-        print(f"DEBUG: Attempting to parse complexity assessment from LLM response", file=sys.stderr)
+
         try:
             import json
             complexity_analysis = json.loads(response)
@@ -150,18 +140,13 @@ Provide a comprehensive complexity assessment including effort estimates and rec
             complexity = complexity_analysis.get('overall_complexity', 'medium')
             effort_estimate = complexity_analysis.get('effort_estimate', '3-6 weeks')
             risk_level = complexity_analysis.get('risk_level', 'medium')
-            
-            print(f"DEBUG: Successfully parsed JSON response: {complexity} complexity, {effort_estimate} effort", file=sys.stderr)
-            
+
         except Exception as parse_error:
-            print(f"DEBUG: JSON parsing failed ({parse_error}), using fallback assessment", file=sys.stderr)
-            
+
             # Fallback complexity assessment
             feature_count = len(state.features) if hasattr(state, 'features') and state.features else 0
             analysis_scope = state.analysis.get('scope', 'medium') if hasattr(state, 'analysis') and state.analysis else 'medium'
-            
-            print(f"DEBUG: Fallback assessment with {feature_count} features, scope: {analysis_scope}", file=sys.stderr)
-            
+
             # Simple heuristic-based assessment
             if feature_count <= 3 and analysis_scope == 'small':
                 complexity = 'low'
@@ -179,9 +164,7 @@ Provide a comprehensive complexity assessment including effort estimates and rec
                 complexity = 'enterprise'
                 effort_estimate = '6+ months'
                 risk_level = 'high'
-            
-            print(f"DEBUG: Fallback complexity determined: {complexity} (effort: {effort_estimate})", file=sys.stderr)
-            
+
             complexity_analysis = {
                 'overall_complexity': complexity,
                 'effort_estimate': effort_estimate,
@@ -193,16 +176,16 @@ Provide a comprehensive complexity assessment including effort estimates and rec
             }
         
         # Update state
-        print(f"DEBUG: About to update state with complexity: {complexity}", file=sys.stderr)
+
         try:
             state.set_complexity(complexity)
             state.update_step_result('assess_complexity', complexity_analysis)
-            print(f"DEBUG: State updated successfully with complexity", file=sys.stderr)
+
         except Exception as state_error:
             print(f"ERROR: Failed to update state: {state_error}", file=sys.stderr)
         
         # Emit completion event
-        print(f"DEBUG: About to emit completion progress", file=sys.stderr)
+
         try:
             emit_progress(
                 state.task_id,
@@ -212,15 +195,15 @@ Provide a comprehensive complexity assessment including effort estimates and rec
                 "completed",
                 f"Complexity assessed: {complexity.upper()} - {effort_estimate} estimated effort"
             )
-            print(f"DEBUG: Completion progress emitted successfully", file=sys.stderr)
+
         except Exception as progress_error:
             print(f"ERROR: Failed to emit completion progress: {progress_error}", file=sys.stderr)
         
         # Return updated state
-        print(f"DEBUG: About to return state dictionary", file=sys.stderr)
+
         try:
             result = state.to_dict()
-            print(f"DEBUG: State converted to dict successfully, keys: {list(result.keys())}", file=sys.stderr)
+
             return result
         except Exception as dict_error:
             print(f"ERROR: Failed to convert state to dict: {dict_error}", file=sys.stderr)

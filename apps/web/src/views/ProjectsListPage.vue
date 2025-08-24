@@ -24,26 +24,22 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content :fullscreen="true">
       <ion-header collapse="condense">
         <ion-toolbar>
           <ion-title size="large">Projects</ion-title>
         </ion-toolbar>
       </ion-header>
-
       <!-- Refresher -->
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh">
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
-
       <div class="projects-container">
         <!-- Loading state -->
         <div v-if="isLoading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
           <p>Loading projects...</p>
         </div>
-
         <!-- Error state -->
         <div v-if="error && !isLoading" class="error-container">
           <ion-icon :icon="alertCircleOutline" color="danger" class="error-icon"></ion-icon>
@@ -54,7 +50,6 @@
             Retry
           </ion-button>
         </div>
-
         <!-- Empty state -->
         <div v-if="!isLoading && !error && projects.length === 0" class="empty-state">
           <ion-icon :icon="folderOutline" class="empty-icon"></ion-icon>
@@ -65,7 +60,6 @@
             Create First Project
           </ion-button>
         </div>
-
         <!-- Projects List -->
         <div v-if="!isLoading && !error && projects.length > 0" class="projects-list">
           <!-- Filter and Sort Controls -->
@@ -81,7 +75,6 @@
                 <ion-label>Tree</ion-label>
               </ion-segment-button>
             </ion-segment>
-            
             <ion-segment v-model="statusFilter" @ionChange="filterProjects">
               <ion-segment-button value="all">
                 <ion-label>All</ion-label>
@@ -96,7 +89,6 @@
                 <ion-label>Paused</ion-label>
               </ion-segment-button>
             </ion-segment>
-            
             <ion-select 
               v-model="sortBy" 
               placeholder="Sort by"
@@ -110,7 +102,6 @@
               <ion-select-option value="status_asc">Status</ion-select-option>
             </ion-select>
           </div>
-
           <!-- Project Cards -->
           <div class="projects-grid" :class="{ 'hierarchical-view': viewMode === 'hierarchical' }">
             <ion-card 
@@ -131,11 +122,9 @@
                     <div v-if="viewMode === 'hierarchical' && project.hierarchyLevel && project.hierarchyLevel > 0" class="hierarchy-indicator">
                       <span v-for="level in project.hierarchyLevel" :key="level" class="hierarchy-level">└─</span>
                     </div>
-                    
                     <div class="title-content">
                       <ion-card-title>{{ project.name }}</ion-card-title>
                       <ion-card-subtitle>{{ project.description || 'No description' }}</ion-card-subtitle>
-                      
                       <!-- Project hierarchy info -->
                       <div v-if="viewMode === 'hierarchical'" class="hierarchy-info">
                         <span v-if="project.parentProjectId" class="hierarchy-badge parent">
@@ -157,7 +146,6 @@
                   </ion-badge>
                 </div>
               </ion-card-header>
-
               <ion-card-content>
                 <div class="project-meta">
                   <div class="meta-item">
@@ -173,7 +161,6 @@
                     <span>{{ formatRelativeTime(new Date(project.updatedAt)) }}</span>
                   </div>
                 </div>
-
                 <!-- Progress Bar -->
                 <div class="progress-section" v-if="project.status === 'running' || project.status === 'completed'">
                   <div class="progress-info">
@@ -185,7 +172,6 @@
                     :color="project.status === 'completed' ? 'success' : 'primary'"
                   ></ion-progress-bar>
                 </div>
-
                 <!-- Quick Actions -->
                 <div class="project-actions">
                   <ion-button 
@@ -196,7 +182,6 @@
                     <ion-icon :icon="eyeOutline" slot="start"></ion-icon>
                     View
                   </ion-button>
-                  
                   <!-- Hierarchical actions -->
                   <ion-button 
                     v-if="project.subprojectCount && project.subprojectCount > 0"
@@ -208,7 +193,6 @@
                     <ion-icon :icon="addOutline" slot="start"></ion-icon>
                     Add Sub
                   </ion-button>
-                  
                   <ion-button 
                     v-if="project.status === 'running'"
                     fill="clear" 
@@ -238,7 +222,6 @@
     </ion-content>
   </ion-page>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import {
@@ -288,17 +271,13 @@ import {
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { projectsService, type Project } from '@/services/projectsService';
-
 const router = useRouter();
-
 // Dark mode state and functionality
 const isDarkMode = ref(false);
-
 // Initialize theme on component mount
 const initializeTheme = () => {
   const savedTheme = localStorage.getItem('theme');
   const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  
   if (savedTheme) {
     isDarkMode.value = savedTheme === 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -309,22 +288,18 @@ const initializeTheme = () => {
     }
   }
 };
-
 const toggleDarkMode = () => {
   const newTheme = isDarkMode.value ? 'light' : 'dark';
   isDarkMode.value = !isDarkMode.value;
-  
   document.documentElement.setAttribute('data-theme', newTheme);
   localStorage.setItem('theme', newTheme);
 };
-
 // Display interface for projects with converted dates
 interface DisplayProject extends Omit<Project, 'createdAt' | 'updatedAt'> {
   createdAt: Date;
   updatedAt: Date;
   displayStatus: string;
 }
-
 // Reactive state
 const projects = ref<DisplayProject[]>([]);
 const isLoading = ref(false);
@@ -332,19 +307,16 @@ const error = ref<string | null>(null);
 const statusFilter = ref('all');
 const sortBy = ref('created_desc');
 const viewMode = ref<'flat' | 'hierarchical'>('flat');
-
 // Additional computed properties for project statistics
 const totalProjects = ref(0);
 const currentPage = ref(0);
 const itemsPerPage = ref(20);
-
 // Computed properties
 const filteredProjects = computed(() => {
   // Since filtering and sorting is now done by the backend API,
   // we just return the projects as-is
   return projects.value;
 });
-
 // Display projects based on view mode
 const displayProjects = computed(() => {
   if (viewMode.value === 'hierarchical') {
@@ -352,7 +324,6 @@ const displayProjects = computed(() => {
   }
   return projects.value;
 });
-
 // Map status filter values to API status values
 const mapStatusFilter = (filter: string): Project['status'] | undefined => {
   const statusMap: Record<string, Project['status']> = {
@@ -362,7 +333,6 @@ const mapStatusFilter = (filter: string): Project['status'] | undefined => {
   };
   return filter === 'all' ? undefined : statusMap[filter];
 };
-
 // Map sort values to API sort values
 const mapSortValue = (sort: string) => {
   const [field, order] = sort.split('_');
@@ -376,14 +346,12 @@ const mapSortValue = (sort: string) => {
     sortOrder: order as 'asc' | 'desc'
   };
 };
-
 // Helper functions for hierarchical display
 const buildHierarchicalProjects = (projectList: DisplayProject[]): DisplayProject[] => {
   // Sort projects by hierarchy level first, then by creation date
   return projectList.sort((a, b) => {
     const aLevel = a.hierarchyLevel || 0;
     const bLevel = b.hierarchyLevel || 0;
-    
     if (aLevel !== bLevel) {
       return aLevel - bLevel;
     }
@@ -394,16 +362,13 @@ const buildHierarchicalProjects = (projectList: DisplayProject[]): DisplayProjec
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 };
-
 // Methods
 const fetchProjects = async () => {
   isLoading.value = true;
   error.value = null;
-  
   try {
     const { sortBy: apiSortBy, sortOrder } = mapSortValue(sortBy.value);
     const status = mapStatusFilter(statusFilter.value);
-    
     const response = await projectsService.getProjects({
       status,
       limit: itemsPerPage.value,
@@ -413,7 +378,6 @@ const fetchProjects = async () => {
       // For hierarchical view, include subprojects
       includeSubprojects: viewMode.value === 'hierarchical'
     });
-    
     projects.value = response.projects.map(project => ({
       ...project,
       createdAt: new Date(project.createdAt),
@@ -421,16 +385,14 @@ const fetchProjects = async () => {
       // Map backend status to frontend status for display
       displayStatus: mapBackendStatus(project.status)
     }));
-    
     totalProjects.value = response.total;
   } catch (err) {
-    console.error('Failed to fetch projects:', err);
+
     error.value = err instanceof Error ? err.message : 'Failed to load projects';
   } finally {
     isLoading.value = false;
   }
 };
-
 // Map backend status to frontend display status
 const mapBackendStatus = (status: Project['status']) => {
   const statusMap: Record<Project['status'], string> = {
@@ -443,20 +405,16 @@ const mapBackendStatus = (status: Project['status']) => {
   };
   return statusMap[status] || status;
 };
-
 const handleRefresh = async (event: CustomEvent) => {
   await fetchProjects();
   event.detail.complete();
 };
-
 const createNewProject = () => {
   router.push('/projects/new');
 };
-
 const openProject = (project: DisplayProject) => {
   router.push(`/projects/${project.id}`);
 };
-
 const pauseProject = async (project: DisplayProject) => {
   const alert = await alertController.create({
     header: 'Pause Project',
@@ -475,7 +433,7 @@ const pauseProject = async (project: DisplayProject) => {
             // Refresh projects list
             await fetchProjects();
           } catch (err) {
-            console.error('Failed to pause project:', err);
+
             error.value = 'Failed to pause project';
           }
         }
@@ -484,7 +442,6 @@ const pauseProject = async (project: DisplayProject) => {
   });
   await alert.present();
 };
-
 const resumeProject = async (project: DisplayProject) => {
   const alert = await alertController.create({
     header: 'Resume Project',
@@ -502,7 +459,7 @@ const resumeProject = async (project: DisplayProject) => {
             // Refresh projects list
             await fetchProjects();
           } catch (err) {
-            console.error('Failed to resume project:', err);
+
             error.value = 'Failed to resume project';
           }
         }
@@ -511,26 +468,21 @@ const resumeProject = async (project: DisplayProject) => {
   });
   await alert.present();
 };
-
 const filterProjects = () => {
   // Filtering is now done by the backend API, so refresh projects
   fetchProjects();
 };
-
 const sortProjects = () => {
   // Sorting is now done by the backend API, so refresh projects
   fetchProjects();
 };
-
 const toggleViewMode = () => {
   // Refresh projects when view mode changes to get appropriate data
   fetchProjects();
 };
-
 const createSubproject = (parentProject: DisplayProject) => {
   router.push(`/projects/new?parentId=${parentProject.id}&parentName=${encodeURIComponent(parentProject.name || 'Unnamed Project')}`);
 };
-
 const getStatusColor = (status: string) => {
   const colors = {
     active: 'success',
@@ -540,45 +492,38 @@ const getStatusColor = (status: string) => {
   };
   return colors[status as keyof typeof colors] || 'medium';
 };
-
 const getProgressColor = (progress: number) => {
   if (progress >= 0.8) return 'success';
   if (progress >= 0.5) return 'primary';
   if (progress >= 0.2) return 'warning';
   return 'danger';
 };
-
 const formatDate = (date: Date) => {
   return date.toLocaleDateString();
 };
-
 const formatRelativeTime = (date: Date) => {
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor(diff / (1000 * 60));
-  
   if (days > 0) return `${days}d ago`;
   if (hours > 0) return `${hours}h ago`;
   if (minutes > 0) return `${minutes}m ago`;
   return 'Just now';
 };
-
 // Lifecycle
 onMounted(() => {
   initializeTheme();
   fetchProjects();
 });
 </script>
-
 <style scoped>
 .projects-container {
   padding: 1rem;
   max-width: 1200px;
   margin: 0 auto;
 }
-
 .loading-container,
 .error-container,
 .empty-state {
@@ -589,29 +534,24 @@ onMounted(() => {
   padding: 3rem 1rem;
   text-align: center;
 }
-
 .error-icon,
 .empty-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
 }
-
 .empty-icon {
   color: var(--ion-color-medium);
 }
-
 .empty-state h2 {
   color: var(--ion-color-primary);
   margin-bottom: 0.5rem;
 }
-
 .empty-state p {
   color: var(--ion-color-medium);
   margin-bottom: 2rem;
   max-width: 400px;
   line-height: 1.6;
 }
-
 .controls-bar {
   display: flex;
   gap: 1rem;
@@ -619,64 +559,53 @@ onMounted(() => {
   align-items: center;
   flex-wrap: wrap;
 }
-
 .controls-bar ion-segment {
   flex: 1;
   min-width: 300px;
 }
-
 .controls-bar ion-select {
   min-width: 150px;
 }
-
 .projects-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 1rem;
 }
-
 .projects-grid.hierarchical-view {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
-
 .project-card {
   margin: 0;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 .project-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
-
 .project-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
 }
-
 .project-title-section {
   flex: 1;
   min-width: 0;
 }
-
 .status-badge {
   flex-shrink: 0;
   font-size: 0.75rem;
   font-weight: 600;
 }
-
 .project-meta {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
-
 .meta-item {
   display: flex;
   align-items: center;
@@ -684,85 +613,69 @@ onMounted(() => {
   font-size: 0.85rem;
   color: var(--ion-color-medium);
 }
-
 .meta-item ion-icon {
   font-size: 1rem;
 }
-
 .progress-section {
   margin-bottom: 1rem;
 }
-
 .progress-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
 }
-
 .progress-label {
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--ion-color-dark);
 }
-
 .progress-stats {
   font-size: 0.8rem;
   color: var(--ion-color-medium);
 }
-
 .project-actions {
   display: flex;
   gap: 0.5rem;
   padding-top: 0.5rem;
   border-top: 1px solid var(--ion-color-step-150);
 }
-
 /* Responsive design */
 @media (max-width: 768px) {
   .projects-container {
     padding: 0.5rem;
   }
-  
   .projects-grid {
     grid-template-columns: 1fr;
   }
-  
   .controls-bar {
     flex-direction: column;
     align-items: stretch;
   }
-  
   .controls-bar ion-segment {
     min-width: auto;
   }
 }
-
 /* Hierarchical project styles */
 .project-card--hierarchical {
   margin-left: 0;
   border-left: 3px solid transparent;
 }
-
 .project-card--level-0 {
   border-left-color: var(--ion-color-primary);
 }
-
 .project-card--level-1 {
   border-left-color: var(--ion-color-secondary);
   margin-left: 2rem;
 }
-
 .project-card--level-2 {
   border-left-color: var(--ion-color-tertiary);
   margin-left: 4rem;
 }
-
 .project-card--level-3 {
   border-left-color: var(--ion-color-warning);
   margin-left: 6rem;
 }
-
 .hierarchy-indicator {
   display: flex;
   align-items: center;
@@ -771,28 +684,23 @@ onMounted(() => {
   font-family: monospace;
   font-size: 0.8rem;
 }
-
 .hierarchy-level {
   margin-right: 0.25rem;
 }
-
 .title-content {
   flex: 1;
 }
-
 .project-title-section {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
 }
-
 .hierarchy-info {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.5rem;
   flex-wrap: wrap;
 }
-
 .hierarchy-badge {
   display: flex;
   align-items: center;
@@ -802,36 +710,29 @@ onMounted(() => {
   border-radius: 0.25rem;
   color: var(--ion-color-dark);
 }
-
 .hierarchy-badge.parent {
   background-color: var(--ion-color-primary-tint);
   color: var(--ion-color-primary-shade);
 }
-
 .hierarchy-badge.children {
   background-color: var(--ion-color-secondary-tint);
   color: var(--ion-color-secondary-shade);
 }
-
 .hierarchy-badge ion-icon {
   font-size: 0.8rem;
 }
-
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .project-card:hover {
     box-shadow: 0 8px 24px rgba(255, 255, 255, 0.1);
   }
-  
   .project-actions {
     border-top-color: var(--ion-color-step-200);
   }
-  
   .hierarchy-badge.parent {
     background-color: var(--ion-color-primary-shade);
     color: var(--ion-color-primary-tint);
   }
-  
   .hierarchy-badge.children {
     background-color: var(--ion-color-secondary-shade);
     color: var(--ion-color-secondary-tint);

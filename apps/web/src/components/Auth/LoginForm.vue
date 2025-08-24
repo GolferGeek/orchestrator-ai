@@ -16,19 +16,15 @@
     </div>
   </form>
 </template>
-
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { IonList, IonItem, IonLabel, IonInput, IonButton, IonText } from '@ionic/vue';
-
 const email = ref('');
 const password = ref('');
 const error = ref<string | null>(null);
 const loading = ref(false);
-
 // Define emits for when login is successful or fails
 const emit = defineEmits(['login-success', 'login-failed']);
-
 const handleLogin = async () => {
   error.value = null;
   loading.value = true;
@@ -47,10 +43,8 @@ const handleLogin = async () => {
     // Simulate error for now, or a success to test flow
     // error.value = 'Login failed: Invalid credentials (Simulated)'; 
     // emit('login-failed', error.value);
-
     // To simulate success:
     emit('login-success', { token: 'fake-jwt-token', user: { email: email.value } });
-
   } catch (e: any) {
     error.value = e.message || 'An unexpected error occurred.';
     emit('login-failed', error.value);
@@ -59,7 +53,6 @@ const handleLogin = async () => {
   }
 };
 </script>
-
 <style scoped>
 .ion-padding {
   padding-top: 16px;

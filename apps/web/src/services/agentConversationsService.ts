@@ -1,5 +1,4 @@
 import { apiService } from './apiService';
-
 // Agent organizational categories - supports business-aligned structure
 type AgentType = 
   | 'orchestrator'    // Special type for delegation and management
@@ -13,7 +12,6 @@ type AgentType =
   | 'engineering'     // Engineering and technical agents
   | 'product'         // Product management agents
   | 'research';       // Research and analytics agents
-
 interface AgentConversation {
   id: string;
   userId: string;
@@ -30,13 +28,11 @@ interface AgentConversation {
   failedTasks?: number;
   activeTasks?: number;
 }
-
 interface CreateAgentConversationDto {
   agentName: string;
   agentType: AgentType;
   metadata?: Record<string, any>;
 }
-
 interface AgentConversationQueryParams {
   userId?: string;
   agentName?: string;
@@ -45,35 +41,28 @@ interface AgentConversationQueryParams {
   limit?: number;
   offset?: number;
 }
-
 interface ListConversationsResponse {
   conversations: AgentConversation[];
   total: number;
 }
-
 class AgentConversationsService {
   private readonly baseUrl = '/agent-conversations';
-
   /**
    * List agent conversations
    */
   async listConversations(params?: AgentConversationQueryParams): Promise<ListConversationsResponse> {
     const queryParams = new URLSearchParams();
-    
     if (params?.agentName) queryParams.append('agentName', params.agentName);
     if (params?.agentType) queryParams.append('agentType', params.agentType);
     if (params?.activeOnly) queryParams.append('activeOnly', 'true');
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
-
     const url = queryParams.toString() 
       ? `${this.baseUrl}?${queryParams.toString()}`
       : this.baseUrl;
-
     const response = await apiService.get(url);
     return response;
   }
-
   /**
    * Get conversation by ID
    */
@@ -81,7 +70,6 @@ class AgentConversationsService {
     const response = await apiService.get(`${this.baseUrl}/${conversationId}`);
     return response;
   }
-
   /**
    * Create a new conversation
    */
@@ -89,7 +77,6 @@ class AgentConversationsService {
     const response = await apiService.post(this.baseUrl, dto);
     return response;
   }
-
   /**
    * End a conversation
    */
@@ -97,7 +84,6 @@ class AgentConversationsService {
     const response = await apiService.put(`${this.baseUrl}/${conversationId}/end`);
     return response;
   }
-
   /**
    * Delete a conversation
    */
@@ -105,7 +91,6 @@ class AgentConversationsService {
     const response = await apiService.delete(`${this.baseUrl}/${conversationId}`);
     return response;
   }
-
   /**
    * Update conversation metadata
    */
@@ -116,7 +101,6 @@ class AgentConversationsService {
     const response = await apiService.put(`${this.baseUrl}/${conversationId}/metadata`, metadata);
     return response;
   }
-
   /**
    * Get active conversations
    */
@@ -125,7 +109,6 @@ class AgentConversationsService {
     return response;
   }
 }
-
 export const agentConversationsService = new AgentConversationsService();
 export default agentConversationsService;
 export type { AgentType };

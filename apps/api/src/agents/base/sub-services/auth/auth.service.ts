@@ -31,11 +31,7 @@ export class AuthService {
   validateAuthContext(authContext: AuthContext): boolean {
     // Basic validation - can be extended with more sophisticated checks
     if (!authContext.currentUser || !authContext.authToken) {
-      this.logger.warn('Incomplete authentication context', {
-        hasUser: !!authContext.currentUser,
-        hasToken: !!authContext.authToken,
-        sessionId: authContext.sessionId,
-      });
+
       return false;
     }
 
@@ -46,16 +42,7 @@ export class AuthService {
    * Log authentication events
    */
   logAuthEvent(event: string, authContext: AuthContext, details?: any): void {
-    this.logger.log(`Auth event: ${event}`, {
-      event,
-      userId: authContext.currentUser?.id,
-      userEmail: authContext.currentUser?.email,
-      sessionId: authContext.sessionId,
-      hasToken: !!authContext.authToken,
-      tokenLength: authContext.authToken?.length,
-      timestamp: authContext.timestamp?.toISOString(),
-      ...details,
-    });
+
   }
 
   /**

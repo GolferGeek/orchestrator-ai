@@ -1,14 +1,12 @@
 import { defineStore } from 'pinia';
 import { AgentInfo } from '../types/chat';
 import { apiService } from '../services/apiService'; // Import the API service
-
 export interface AgentsState {
   availableAgents: AgentInfo[];
   agentHierarchy: any | null;
   isLoading: boolean;
   error: string | null;
 }
-
 export const useAgentsStore = defineStore('agents', {
   state: (): AgentsState => ({
     availableAgents: [],

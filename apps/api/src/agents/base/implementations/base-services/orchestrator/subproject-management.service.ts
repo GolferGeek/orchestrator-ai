@@ -103,7 +103,6 @@ export class SubprojectManagementService {
     reasoning: string;
     complexity: 'low' | 'medium' | 'high';
   }> {
-    this.logger.log('Analyzing project for subproject opportunities');
 
     const availableOrchestrators = this.getAvailableOrchestrators();
     const departmentCapacities = await this.analyzeDepartmentCapacities();
@@ -165,13 +164,10 @@ Respond in JSON format:
       );
 
       const analysis = JSON.parse(response);
-      this.logger.log(
-        `Subproject analysis completed: ${analysis.requiresDecomposition ? 'Decomposition recommended' : 'Single project approach'}`,
-      );
 
       return analysis;
     } catch (error) {
-      this.logger.error('Error analyzing project for subprojects:', error);
+
       throw new Error(
         `Subproject analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -187,9 +183,6 @@ Respond in JSON format:
     subprojectScopes: SubprojectScope[],
     input: OrchestratorInput,
   ): Promise<SubprojectPlan[]> {
-    this.logger.log(
-      `Creating ${subprojectScopes.length} subprojects for parent project ${parentProjectId}`,
-    );
 
     const subprojects: SubprojectPlan[] = [];
 
@@ -203,10 +196,7 @@ Respond in JSON format:
         );
         subprojects.push(subproject);
       } catch (error) {
-        this.logger.error(
-          `Error creating subproject for ${scope.department}:`,
-          error,
-        );
+
         throw error;
       }
     }
@@ -214,7 +204,6 @@ Respond in JSON format:
     // Validate dependencies and timeline coordination
     await this.validateSubprojectCoordination(subprojects);
 
-    this.logger.log(`Successfully created ${subprojects.length} subprojects`);
     return subprojects;
   }
 
@@ -307,10 +296,9 @@ Respond in JSON format:
         communicationPlan: planDetails.communicationPlan,
       };
 
-      this.logger.log(`Created subproject plan: ${subproject.name}`);
       return subproject;
     } catch (error) {
-      this.logger.error('Error creating subproject plan:', error);
+
       throw new Error(
         `Subproject planning failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -324,9 +312,6 @@ Respond in JSON format:
     subproject: SubprojectPlan,
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-    this.logger.log(
-      `Delegating subproject ${subproject.name} to ${subproject.assignedOrchestrator}`,
-    );
 
     // Prepare delegation context with subproject details
     const delegationPrompt = `
@@ -389,10 +374,6 @@ Original user request context: ${input.prompt}
         },
       };
 
-      this.logger.log(
-        `Subproject successfully delegated to ${subproject.assignedOrchestrator}`,
-      );
-
       return {
         success: true,
         message: `Subproject "${subproject.name}" delegated to ${subproject.assignedOrchestrator}`,
@@ -412,7 +393,7 @@ Original user request context: ${input.prompt}
         },
       };
     } catch (error) {
-      this.logger.error('Error delegating subproject:', error);
+
       throw new Error(
         `Subproject delegation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -441,9 +422,6 @@ Original user request context: ${input.prompt}
       mitigationActions: string[];
     };
   }> {
-    this.logger.log(
-      `Aggregating progress for ${subprojects.length} subprojects`,
-    );
 
     const now = new Date();
     const completedSubprojects = subprojects.filter(
@@ -543,7 +521,6 @@ Original user request context: ${input.prompt}
   private async validateSubprojectCoordination(
     subprojects: SubprojectPlan[],
   ): Promise<void> {
-    this.logger.log('Validating subproject coordination');
 
     // Check for circular dependencies
     const dependencyGraph = new Map<string, string[]>();
@@ -556,7 +533,6 @@ Original user request context: ${input.prompt}
     // Validate timeline coordination
     this.validateTimelineCoordination(subprojects);
 
-    this.logger.log('Subproject coordination validation completed');
   }
 
   /**
@@ -721,9 +697,7 @@ Original user request context: ${input.prompt}
       sp.scope.dependencies.forEach((depId) => {
         const depTimeline = projectTimelines.get(depId);
         if (depTimeline && currentTimeline.start < depTimeline.end) {
-          this.logger.warn(
-            `Timeline conflict: ${sp.id} starts before dependency ${depId} completes`,
-          );
+
         }
       });
     });

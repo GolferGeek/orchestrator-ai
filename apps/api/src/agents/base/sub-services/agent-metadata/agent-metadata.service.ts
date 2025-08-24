@@ -133,10 +133,6 @@ export class AgentMetadataService {
     this.cardCache = new Map<string, AgentCard>();
     this.structureCache = new Map<string, AgentStructure>();
 
-    this.logger.debug('AgentMetadataService initialized', {
-      cacheMaxSize: options.maxSize,
-      cacheTtl: options.ttl,
-    });
   }
 
   /**
@@ -150,7 +146,7 @@ export class AgentMetadataService {
     const cacheKey = `card:${agentConfig.name || 'unknown'}:${baseUrl}`;
     const cached = this.cardCache.get(cacheKey);
     if (cached) {
-      this.logger.debug(`Returning cached agent card for ${agentConfig.name}`);
+
       return cached;
     }
 
@@ -186,11 +182,6 @@ export class AgentMetadataService {
     // Cache the generated card
     this.cardCache.set(cacheKey, card);
 
-    this.logger.debug(`Generated agent card for ${card.name}`, {
-      skillCount: card.skills.length,
-      capabilities: card.capabilities,
-    });
-
     return card;
   }
 
@@ -216,14 +207,6 @@ export class AgentMetadataService {
         ...config.authenticatedSecuritySchemes,
       };
     }
-
-    this.logger.debug(
-      `Generated authenticated agent card for ${baseCard.name}`,
-      {
-        totalSkills: baseCard.skills.length,
-        securitySchemes: Object.keys(baseCard.securitySchemes || {}),
-      },
-    );
 
     return baseCard;
   }
@@ -345,22 +328,9 @@ export class AgentMetadataService {
       // Cache the result
       this.structureCache.set(cacheKey, structure);
 
-      this.logger.debug(`Analyzed directory structure for ${directoryPath}`, {
-        agentType: structure.agentType,
-        filesFound: {
-          context: structure.hasContextFile,
-          function: structure.hasFunctionFile,
-          python: structure.hasPythonFunction,
-          service: structure.hasServiceFile,
-        },
-      });
-
       return structure;
     } catch (error) {
-      this.logger.error(
-        `Failed to analyze directory structure: ${directoryPath}`,
-        error,
-      );
+
       return {
         hasContextFile: false,
         hasFunctionFile: false,
@@ -387,10 +357,7 @@ export class AgentMetadataService {
       try {
         metadata = await this.extractMetadataFromContext(structure.contextPath);
       } catch (error) {
-        this.logger.warn(
-          `Failed to extract metadata from context file: ${structure.contextPath}`,
-          error,
-        );
+
       }
     }
 
@@ -414,7 +381,7 @@ export class AgentMetadataService {
    */
   cacheMetadata(agentId: string, metadata: AgentMetadata): void {
     this.metadataCache.set(agentId, metadata);
-    this.logger.debug(`Cached metadata for agent: ${agentId}`);
+
   }
 
   /**
@@ -424,7 +391,7 @@ export class AgentMetadataService {
     this.metadataCache.clear();
     this.cardCache.clear();
     this.structureCache.clear();
-    this.logger.debug('All metadata caches cleared');
+
   }
 
   /**

@@ -94,7 +94,7 @@ export class HealthService {
       const status = await this.getHealthStatus();
       return status.status === 'healthy';
     } catch (error) {
-      this.logger.error('Health check failed:', error);
+
       return false;
     }
   }

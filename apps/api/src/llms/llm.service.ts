@@ -50,21 +50,15 @@ export class LLMService {
     private readonly supabaseService: SupabaseService,
     private readonly cidafmService: CIDAFMService,
   ) {
-    this.logger.log('🔄 LLMService constructor starting...');
-    this.logger.log(
-      `- OpenAI API Key available: ${!!process.env.OPENAI_API_KEY}`,
-    );
 
     // Initialize OpenAI client only if API key is available
     if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       });
-      this.logger.log('✅ OpenAI client created');
+
     } else {
-      this.logger.log(
-        '⚠️ OpenAI API key not found - OpenAI client not initialized',
-      );
+
     }
 
     // Initialize system LLM configurations for different orchestrator operations
@@ -144,15 +138,10 @@ export class LLMService {
       },
     };
 
-    this.logger.log('✅ System LLM configurations initialized:');
     Object.entries(this.systemLLMConfigs).forEach(([operation, config]) => {
-      this.logger.log(
-        `- ${operation}: ${config.model} (temp: ${config.temperature}, tokens: ${config.maxTokens})`,
-      );
+
     });
-    this.logger.log(
-      '✅ LLMService initialized - LangChain LLMs will automatically trace to LangSmith',
-    );
+
   }
 
   /**
@@ -176,20 +165,9 @@ export class LLMService {
   ): Promise<string | any> {
     try {
       // Debug LLM options being received
-      this.logger.debug(`🔍 LLM Service Debug - Options received:`, {
-        providerId: options?.providerId,
-        modelId: options?.modelId,
-        provider: options?.provider,
-        temperature: options?.temperature,
-        maxTokens: options?.maxTokens,
-        hasCurrentUser: !!options?.currentUser,
-      });
 
       // If providerId/modelId are provided, delegate to enhanced response for proper DB lookup
       if (options?.providerId || options?.modelId || options?.cidafmOptions) {
-        this.logger.log(
-          `🎯 LLM preferences with providerId/modelId detected, delegating to enhanced response method`,
-        );
 
         // Extract user ID from currentUser object or use 'system' as fallback
         const userId = options.currentUser?.id || 'system';
@@ -213,12 +191,6 @@ export class LLMService {
       }
 
       // Original simple implementation for backward compatibility
-      this.logger.log(
-        `🔄 generateResponse called - using LangChain LLM for automatic LangSmith tracing`,
-      );
-      this.logger.debug(
-        `Generating LLM response for message: ${userMessage.substring(0, 100)}...`,
-      );
 
       // Use LangChain LLM instead of raw OpenAI - this gets automatic LangSmith tracing
       const llm =
@@ -236,21 +208,14 @@ export class LLMService {
         { role: 'user' as const, content: userMessage },
       ];
 
-      this.logger.log(
-        `✅ Using LangChain ChatOpenAI for automatic LangSmith tracing`,
-      );
-
       const response = await llm.invoke(messages);
       const content =
         (response.content as string) ||
         'I apologize, but I was unable to generate a response.';
 
-      this.logger.debug(
-        `LLM response generated successfully (${content.length} characters)`,
-      );
       return content;
     } catch (error) {
-      this.logger.error('Error generating LLM response:', error);
+
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       throw new Error(`LLM service error: ${errorMessage}`);
@@ -292,9 +257,6 @@ export class LLMService {
     const startTime = Date.now();
 
     try {
-      this.logger.log(
-        '🔄 generateEnhancedResponse called with dynamic LLM selection',
-      );
 
       // Get provider and model information from database
       const { provider, model } = await this.getProviderAndModel(
@@ -339,10 +301,6 @@ export class LLMService {
         { role: 'user' as const, content: processedPrompt },
       ];
 
-      this.logger.log(
-        `✅ Using ${model.name} (${provider.name}) for enhanced response`,
-      );
-
       // Generate response with token counting
       const response = await llm.invoke(messages);
       const content =
@@ -374,10 +332,6 @@ export class LLMService {
         // langsmithRunId would be extracted from LangSmith tracing
       };
 
-      this.logger.debug(
-        `Enhanced response generated: ${content.length} chars, ${inputTokens + outputTokens} tokens, $${costCalculation.totalCost.toFixed(6)}`,
-      );
-
       return {
         content,
         usage,
@@ -396,7 +350,7 @@ export class LLMService {
         },
       };
     } catch (error) {
-      this.logger.error('Error generating enhanced LLM response:', error);
+
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       throw new Error(`Enhanced LLM service error: ${errorMessage}`);
@@ -412,12 +366,6 @@ export class LLMService {
     currentMessage: string,
   ): Promise<string> {
     try {
-      this.logger.log(
-        `🔄 generateResponseWithHistory called - using LangChain LLM for automatic LangSmith tracing`,
-      );
-      this.logger.debug(
-        `Generating LLM response with history (${conversationHistory.length} messages) for: ${currentMessage.substring(0, 100)}...`,
-      );
 
       // Use LangChain LLM instead of raw OpenAI - this gets automatic LangSmith tracing
       const llm = this.getLangGraphLLM('openai');
@@ -447,21 +395,14 @@ export class LLMService {
         content: currentMessage,
       });
 
-      this.logger.log(
-        `✅ Using LangChain ChatOpenAI with history for automatic LangSmith tracing`,
-      );
-
       const response = await llm.invoke(messages);
       const content =
         (response.content as string) ||
         'I apologize, but I was unable to generate a response.';
 
-      this.logger.debug(
-        `LLM response with history generated successfully (${content.length} characters)`,
-      );
       return content;
     } catch (error) {
-      this.logger.error('Error generating LLM response with history:', error);
+
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       throw new Error(`LLM service error: ${errorMessage}`);
@@ -481,9 +422,7 @@ export class LLMService {
       const config = this.systemLLMConfigs[operationType];
 
       if (!config.enabled) {
-        this.logger.warn(
-          `System operation type '${operationType}' is disabled, using default`,
-        );
+
         const defaultConfig = this.systemLLMConfigs.default;
         if (!defaultConfig.enabled) {
           throw new Error('All system LLM configurations are disabled');
@@ -493,10 +432,6 @@ export class LLMService {
       const activeConfig = config.enabled
         ? config
         : this.systemLLMConfigs.default;
-
-      this.logger.log(
-        `🔧 System operation '${operationType}' using ${activeConfig.model} (temp: ${activeConfig.temperature})`,
-      );
 
       // Create LLM instance with system configuration
       const llm = this.createCustomLangGraphLLM({
@@ -516,13 +451,9 @@ export class LLMService {
         (response.content as string) ||
         'I apologize, but I was unable to generate a system response.';
 
-      this.logger.debug(
-        `System operation '${operationType}' completed (${content.length} characters)`,
-      );
-
       return content;
     } catch (error) {
-      this.logger.error(`Error in system operation '${operationType}':`, error);
+
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       throw new Error(`System LLM operation error: ${errorMessage}`);
@@ -557,7 +488,6 @@ export class LLMService {
     };
   }> {
     try {
-      this.logger.log('🎨 User content generation with preferences');
 
       // Delegate to the existing enhanced response method
       return await this.generateEnhancedResponse(
@@ -574,7 +504,7 @@ export class LLMService {
         },
       );
     } catch (error) {
-      this.logger.error('Error generating user content response:', error);
+
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       throw new Error(`User content LLM error: ${errorMessage}`);
@@ -627,19 +557,14 @@ export class LLMService {
           break;
 
         default:
-          this.logger.warn(
-            `Unknown provider: ${provider}, falling back to OpenAI`,
-          );
+
           llm = this.getLangGraphLLM('openai');
       }
 
       // LangSmith will automatically trace this LangChain LLM if environment variables are set
       return llm;
     } catch (error) {
-      this.logger.error(
-        `Error creating LangGraph LLM for provider ${provider}:`,
-        error,
-      );
+
       throw new Error(
         `Failed to create LangGraph LLM: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -723,7 +648,7 @@ export class LLMService {
       // LangSmith will automatically trace this LangChain LLM if environment variables are set
       return llm;
     } catch (error) {
-      this.logger.error(`Error creating custom LangGraph LLM:`, error);
+
       throw new Error(
         `Failed to create custom LangGraph LLM: ${error instanceof Error ? error.message : String(error)}`,
       );

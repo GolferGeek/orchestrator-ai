@@ -10,13 +10,11 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    
     <ion-content class="ion-padding">
       <div class="gallery-intro">
         <h1>The Complete Picture</h1>
         <p>Raw, unpolished demos showing exactly how our AI workforce platform works. No marketing fluff - just real functionality.</p>
       </div>
-
       <!-- Video Categories -->
       <div class="video-categories">
         <!-- Quick Demos -->
@@ -30,7 +28,6 @@
                 <p><em>Recording in progress...</em></p>
               </div>
             </div>
-            
             <div class="video-card">
               <div class="video-placeholder">
                 <h3>🗣️ Voice + Agent Builder Demo</h3>
@@ -38,7 +35,6 @@
                 <p><em>Recording in progress...</em></p>
               </div>
             </div>
-            
             <div class="video-card">
               <div class="video-placeholder">
                 <h3>📊 SQL Generation Live</h3>
@@ -48,7 +44,6 @@
             </div>
           </div>
         </div>
-
         <!-- Deep Dives -->
         <div class="category-section">
           <h2>Deep Dives (5+ min)</h2>
@@ -60,7 +55,6 @@
                 <p><em>Recording in progress...</em></p>
               </div>
             </div>
-            
             <div class="video-card">
               <div class="video-placeholder">
                 <h3>⚙️ Agent Customization Process</h3>
@@ -68,7 +62,6 @@
                 <p><em>Recording in progress...</em></p>
               </div>
             </div>
-            
             <div class="video-card">
               <div class="video-placeholder">
                 <h3>🔄 Project Orchestration Preview</h3>
@@ -79,7 +72,6 @@
           </div>
         </div>
       </div>
-
       <!-- CTA -->
       <div class="gallery-cta">
         <h2>Ready to See This Running for Your Business?</h2>
@@ -91,39 +83,32 @@
     </ion-content>
   </ion-page>
 </template>
-
 <script setup lang="ts">
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonButtons, IonIcon } from '@ionic/vue';
 import { arrowBackOutline, rocketOutline } from 'ionicons/icons';
 </script>
-
 <style scoped>
 .video-gallery-page {
   --ion-background-color: var(--landing-light);
 }
-
 .gallery-intro {
   text-align: center;
   margin-bottom: 3rem;
 }
-
 .gallery-intro h1 {
   font-size: 2.5rem;
   color: var(--landing-dark);
   margin-bottom: 1rem;
 }
-
 .gallery-intro p {
   font-size: 1.1rem;
   color: #6b7280;
   max-width: 600px;
   margin: 0 auto;
 }
-
 .category-section {
   margin-bottom: 3rem;
 }
-
 .category-section h2 {
   color: var(--landing-primary);
   font-size: 1.5rem;
@@ -131,13 +116,11 @@ import { arrowBackOutline, rocketOutline } from 'ionicons/icons';
   border-bottom: 2px solid var(--landing-primary);
   padding-bottom: 0.5rem;
 }
-
 .video-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 2rem;
 }
-
 .video-card {
   background: white;
   border-radius: 12px;
@@ -145,12 +128,10 @@ import { arrowBackOutline, rocketOutline } from 'ionicons/icons';
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   transition: var(--transition-smooth);
 }
-
 .video-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 40px rgba(0,0,0,0.15);
 }
-
 .video-placeholder {
   padding: 2rem;
   text-align: center;
@@ -161,23 +142,19 @@ import { arrowBackOutline, rocketOutline } from 'ionicons/icons';
   flex-direction: column;
   justify-content: center;
 }
-
 .video-placeholder h3 {
   color: var(--landing-dark);
   margin-bottom: 0.5rem;
   font-size: 1.1rem;
 }
-
 .video-placeholder p {
   color: #6b7280;
   margin-bottom: 0.5rem;
 }
-
 .video-placeholder em {
   color: var(--landing-primary);
   font-style: italic;
 }
-
 .gallery-cta {
   text-align: center;
   padding: 3rem 0;
@@ -186,11 +163,9 @@ import { arrowBackOutline, rocketOutline } from 'ionicons/icons';
   color: white;
   margin-top: 3rem;
 }
-
 .gallery-cta h2 {
   margin-bottom: 1.5rem;
 }
-
 .gallery-cta ion-button {
   --background: var(--landing-accent);
   --color: white;

@@ -148,9 +148,6 @@ export class EvaluationWrapperService {
     this.performanceSnapshots = new Map<string, PerformanceSnapshot>();
     this.errorTrackingCache = new Map<string, ErrorTrackingEntry>();
 
-    this.logger.debug('EvaluationWrapperService initialized', {
-      config: this.config,
-    });
   }
 
   /**
@@ -162,7 +159,6 @@ export class EvaluationWrapperService {
     this.requestCount++;
     this.activeTasks++;
 
-    this.logger.debug(`Task started: ${taskId}`, { method });
   }
 
   /**
@@ -205,11 +201,6 @@ export class EvaluationWrapperService {
       );
     }
 
-    this.logger.debug(`Task completed: ${taskId}`, {
-      method,
-      responseTime,
-      success,
-    });
   }
 
   /**
@@ -303,12 +294,6 @@ export class EvaluationWrapperService {
         context,
       },
     };
-
-    this.logger.debug('Response evaluated', {
-      score: finalScore,
-      passed,
-      criteriaCount: criteria.length,
-    });
 
     return result;
   }
@@ -419,12 +404,6 @@ export class EvaluationWrapperService {
 
     this.errorTrackingCache.set(errorEntry.id, errorEntry);
 
-    this.logger.error(`Error tracked: ${errorType}`, {
-      taskId,
-      method,
-      severity,
-      message: errorMessage,
-    });
   }
 
   /**
@@ -476,7 +455,7 @@ export class EvaluationWrapperService {
    */
   updateConfig(newConfig: Partial<EvaluationConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    this.logger.debug('Configuration updated', { config: this.config });
+
   }
 
   /**
@@ -500,7 +479,6 @@ export class EvaluationWrapperService {
     this.completedTasks = 0;
     this.activeTasks = 0;
 
-    this.logger.debug('EvaluationWrapperService reset');
   }
 
   /**

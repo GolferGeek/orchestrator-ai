@@ -2,15 +2,12 @@
  * Token Manager Service
  * Handles proactive token refresh and automatic token management
  */
-
 import { authService } from './authService';
 import { isTokenExpiredOrExpiringSoon, getTokenTimeRemaining } from '@/utils/tokenUtils';
-
 class TokenManager {
   private refreshInterval: number | null = null;
   private isRefreshing = false;
   private refreshCallbacks: Array<(success: boolean) => void> = [];
-
   /**
    * Start automatic token refresh monitoring
    * Checks every minute if token needs refresh
@@ -18,17 +15,13 @@ class TokenManager {
   startMonitoring(): void {
     // Clear any existing interval
     this.stopMonitoring();
-
     // Check immediately
     this.checkAndRefreshToken();
-
     // Set up periodic checking (every minute)
     this.refreshInterval = window.setInterval(() => {
       this.checkAndRefreshToken();
     }, 60000); // 60 seconds
-
   }
-
   /**
    * Stop automatic token refresh monitoring
    */
@@ -38,7 +31,6 @@ class TokenManager {
       this.refreshInterval = null;
     }
   }
-
   /**
    * Check if token needs refresh and refresh if needed
    */
@@ -47,15 +39,12 @@ class TokenManager {
     if (!token) {
       return; // No token to refresh
     }
-
     // Check if token is expired or expiring soon (within 5 minutes)
     if (isTokenExpiredOrExpiringSoon(token, 5)) {
       const timeRemaining = getTokenTimeRemaining(token);
-      
       await this.refreshToken();
     }
   }
-
   /**
    * Refresh token with deduplication (only one refresh at a time)
    * @returns Promise that resolves to true if refresh was successful
@@ -67,10 +56,8 @@ class TokenManager {
         this.refreshCallbacks.push(resolve);
       });
     }
-
     this.isRefreshing = true;
     let success = false;
-
     try {
       await authService.refreshToken();
       success = true;
@@ -78,22 +65,18 @@ class TokenManager {
       success = false;
     } finally {
       this.isRefreshing = false;
-      
       // Notify all waiting callbacks
       this.refreshCallbacks.forEach(callback => callback(success));
       this.refreshCallbacks = [];
     }
-
     return success;
   }
-
   /**
    * Check if currently refreshing a token
    */
   isCurrentlyRefreshing(): boolean {
     return this.isRefreshing;
   }
-
   /**
    * Get current token status information
    */
@@ -104,7 +87,6 @@ class TokenManager {
     isExpiringSoon: boolean;
   } {
     const token = authService.getToken();
-    
     if (!token) {
       return {
         hasToken: false,
@@ -113,10 +95,8 @@ class TokenManager {
         isExpiringSoon: false,
       };
     }
-
     const timeRemaining = getTokenTimeRemaining(token);
     const isExpiringSoon = isTokenExpiredOrExpiringSoon(token, 5);
-
     return {
       hasToken: true,
       isValid: timeRemaining > 0,
@@ -125,10 +105,8 @@ class TokenManager {
     };
   }
 }
-
 // Export singleton instance
 export const tokenManager = new TokenManager();
-
 // Auto-start monitoring when the module is imported (if user is authenticated)
 if (authService.getToken()) {
   tokenManager.startMonitoring();

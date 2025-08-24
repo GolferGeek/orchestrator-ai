@@ -28,10 +28,6 @@ export class MarketResearchWorkflow {
   ): Promise<MarketAnalysis> {
     const { workflowState } = context;
 
-    this.logger.log(
-      `Starting market research workflow for ${launchPlan.productName}`,
-    );
-
     messageEmitter.emit(
       '🔍 Starting market research and validation phase...',
       'progress',
@@ -99,7 +95,7 @@ export class MarketResearchWorkflow {
         threats: marketSizeData.threats,
       };
     } catch (error) {
-      this.logger.error('Market research workflow failed:', error);
+
       messageEmitter.emit(
         `❌ Market research failed: ${error instanceof Error ? error.message : String(error)}`,
         'error',

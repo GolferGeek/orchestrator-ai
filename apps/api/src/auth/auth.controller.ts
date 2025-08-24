@@ -93,7 +93,7 @@ export class AuthController {
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
-      this.logger.error('No token found in logout request');
+
       throw new Error('No token provided');
     }
 
@@ -155,7 +155,7 @@ export class AuthController {
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
-      this.logger.error('No token found in getCurrentUser request');
+
       throw new Error('No token provided');
     }
 

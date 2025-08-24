@@ -1,7 +1,6 @@
 // API Configuration Types
 export type ApiVersion = 'v1' | 'v2';
 export type ApiTechnology = 'typescript-nestjs';
-
 export interface ApiEndpoint {
   version: ApiVersion;
   technology: ApiTechnology;
@@ -11,13 +10,11 @@ export interface ApiEndpoint {
   features: string[];
   isAvailable: boolean;
 }
-
 export interface ApiConfiguration {
   currentEndpoint: ApiEndpoint;
   availableEndpoints: ApiEndpoint[];
   defaultEndpoint: ApiEndpoint;
 }
-
 // API Client Interface
 export interface ApiClient {
   // Core methods that all API versions should support
@@ -27,18 +24,14 @@ export interface ApiClient {
     conversationHistory?: Array<{role: string, content: string, metadata?: any}>
   ): Promise<any>;
   getAvailableAgents(): Promise<any[]>;
-  
   // Authentication
   setAuthToken?(token: string | null): void;
-  
   // Metadata
   getEndpointInfo(): ApiEndpoint;
   isFeatureSupported(feature: string): boolean;
-  
   // Health check
   healthCheck(): Promise<boolean>;
 }
-
 // Feature flags for different API capabilities
 export const API_FEATURES = {
   ORCHESTRATOR: 'orchestrator',
@@ -50,9 +43,7 @@ export const API_FEATURES = {
   VOICE_SUPPORT: 'voice_support',
   MULTI_MODAL: 'multi_modal'
 } as const;
-
 export type ApiFeature = typeof API_FEATURES[keyof typeof API_FEATURES];
-
 // Error handling
 export interface ApiError {
   message: string;
@@ -61,7 +52,6 @@ export interface ApiError {
   details?: any;
   endpoint?: string;
 }
-
 // Response wrapper for consistent error handling
 export interface ApiResponse<T> {
   success: boolean;

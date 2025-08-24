@@ -247,9 +247,6 @@ export class LangGraphStateManagementService {
     projectDefinition: PlanDefinition,
     input: OrchestratorInput,
   ): Promise<LangGraphState> {
-    this.logger.log(
-      `Initializing LangGraph state for project: ${projectDefinition.projectName}`,
-    );
 
     // Create Tier 1: Plan State
     const planState: PlanState = await this.createPlanState(
@@ -350,9 +347,6 @@ export class LangGraphStateManagementService {
     // Cache in memory for fast access
     this.stateCache.set(planState.projectId, langGraphState);
 
-    this.logger.log(
-      `LangGraph state initialized for project ${planState.projectId} with ${stepResults.size} steps`,
-    );
     return langGraphState;
   }
 
@@ -365,7 +359,6 @@ export class LangGraphStateManagementService {
     update: Partial<StepResultsState>,
     trigger: StateTransition['trigger'] = 'agent_completion',
   ): Promise<StepResultsState> {
-    this.logger.log(`Updating step state: ${projectId}/${stepId}`);
 
     const currentState = await this.getState(projectId);
     const stepState = currentState.stepResults.get(stepId);
@@ -406,9 +399,6 @@ export class LangGraphStateManagementService {
     await this.persistState(currentState);
     this.stateCache.set(projectId, currentState);
 
-    this.logger.log(
-      `Step state updated: ${stepId} -> ${update.status || 'partial_update'}`,
-    );
     return updatedStep;
   }
 
@@ -441,7 +431,6 @@ export class LangGraphStateManagementService {
     stepId: string,
     input: OrchestratorInput,
   ): Promise<OrchestratorResponse> {
-    this.logger.log(`Executing workflow step: ${projectId}/${stepId}`);
 
     const state = await this.getState(projectId);
     const stepState = state.stepResults.get(stepId);
@@ -544,7 +533,6 @@ export class LangGraphStateManagementService {
         },
       };
     } catch (error) {
-      this.logger.error(`Error executing step ${stepId}:`, error);
 
       await this.updateStepState(
         projectId,
@@ -576,9 +564,6 @@ export class LangGraphStateManagementService {
     interruptType: 'approval_required' | 'user_input_needed' | 'error_recovery',
     context: Record<string, any>,
   ): Promise<void> {
-    this.logger.log(
-      `Handling workflow interrupt: ${projectId}/${stepId} - ${interruptType}`,
-    );
 
     await this.updateStepState(
       projectId,
@@ -624,9 +609,6 @@ export class LangGraphStateManagementService {
     resolution: 'approved' | 'rejected' | 'modified',
     resolutionData?: Record<string, any>,
   ): Promise<void> {
-    this.logger.log(
-      `Resuming workflow: ${projectId}/${stepId} - ${resolution}`,
-    );
 
     if (resolution === 'approved') {
       await this.updateStepState(
@@ -671,9 +653,6 @@ export class LangGraphStateManagementService {
     targetVersion: number,
     reason: string,
   ): Promise<LangGraphState> {
-    this.logger.log(
-      `Rolling back state: ${projectId} to version ${targetVersion} - ${reason}`,
-    );
 
     // Load historical state
     const historicalState = await this.loadStateVersion(
@@ -708,9 +687,6 @@ export class LangGraphStateManagementService {
     await this.persistState(historicalState);
     this.stateCache.set(projectId, historicalState);
 
-    this.logger.log(
-      `State rolled back successfully: ${projectId} -> version ${historicalState.stateVersion}`,
-    );
     return historicalState;
   }
 
@@ -834,9 +810,6 @@ export class LangGraphStateManagementService {
     planDefinition: PlanDefinition,
     input: OrchestratorInput,
   ): Promise<any> {
-    this.logger.log(
-      `Building dynamic StateGraph for project ${projectId} with ${planDefinition.steps.length} steps`,
-    );
 
     // Define state schema for this specific plan
     const StateAnnotation = Annotation.Root({
@@ -880,7 +853,6 @@ export class LangGraphStateManagementService {
 
     // Add END node
     workflow.addNode('end', async (state) => {
-      this.logger.log(`Completing workflow for project ${projectId}`);
 
       // Final checkpoint
       const finalState = {
@@ -906,9 +878,6 @@ export class LangGraphStateManagementService {
       checkpointer: await this.createSupabaseCheckpointer(projectId),
     });
 
-    this.logger.log(
-      `Dynamic StateGraph built successfully for project ${projectId}`,
-    );
     return app;
   }
 
@@ -922,7 +891,6 @@ export class LangGraphStateManagementService {
     input: OrchestratorInput,
   ): Promise<void> {
     workflow.addNode(step.stepId, async (state) => {
-      this.logger.log(`Executing step ${step.stepId}: ${step.stepName}`);
 
       try {
         // Update status to running and create checkpoint
@@ -955,7 +923,6 @@ export class LangGraphStateManagementService {
 
         return completedState;
       } catch (error) {
-        this.logger.error(`Step ${step.stepId} failed:`, error);
 
         // Handle error with recovery options
         const errorState = await this.handleStepError(
@@ -1003,7 +970,6 @@ export class LangGraphStateManagementService {
     projectId: string,
     state: any,
   ): Promise<any> {
-    this.logger.log(`Human approval required for step ${step.stepId}`);
 
     // Set approval status and create interrupt
     const approvalState = {
@@ -1141,11 +1107,8 @@ export class LangGraphStateManagementService {
         created_at: new Date().toISOString(),
       });
 
-      this.logger.debug(
-        `Checkpoint saved: ${projectId}/${stepId} v${state.checkpointVersion}`,
-      );
     } catch (error) {
-      this.logger.error(`Failed to save checkpoint:`, error);
+
       throw error;
     }
   }
@@ -1301,7 +1264,6 @@ Respond in JSON format:
 
       return planState;
     } catch (error) {
-      this.logger.error('Error enhancing plan state with LLM:', error);
 
       // Fallback to basic plan state
       return {
@@ -1464,7 +1426,7 @@ Respond in JSON format:
     });
 
     if (error) {
-      this.logger.error('Error persisting LangGraph state:', error);
+
       throw new Error(`Failed to persist state: ${error.message}`);
     }
   }
@@ -1532,10 +1494,7 @@ Respond in JSON format:
               userId: 'system',
               conversationId: projectId,
             }).catch((error) => {
-              this.logger.error(
-                `Error continuing workflow step ${stepId}:`,
-                error,
-              );
+
             });
           }, 100);
         }
@@ -1548,7 +1507,7 @@ Respond in JSON format:
     event: any,
   ): Promise<void> {
     // Emit events to WebSocket or other notification systems
-    this.logger.log(`Workflow event: ${projectId} - ${event.type}`);
+
     // Implementation would integrate with WebSocket service
   }
 }

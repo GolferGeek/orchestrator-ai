@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { ApiEndpoint, ApiVersion, ApiTechnology } from '../types/api';
 import { apiService } from '../services/apiService';
-
 /**
  * Generate a UUID - polyfill for crypto.randomUUID()
  */
@@ -10,7 +9,6 @@ function generateUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  
   // Fallback implementation for browsers that don't support crypto.randomUUID()
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
@@ -18,26 +16,22 @@ function generateUUID(): string {
     return v.toString(16);
   });
 }
-
 interface UserPreferences {
   // API Preferences
   preferredApiVersion: ApiVersion;
   preferredTechnology: ApiTechnology;
   autoSwitchToHealthyEndpoint: boolean;
   rememberApiSelection: boolean;
-  
   // UI Preferences
   theme: 'light' | 'dark' | 'auto';
   language: string;
   showAdvancedOptions: boolean;
   enableDebugMode: boolean;
-  
   // Chat Preferences
   enableAutoScroll: boolean;
   showTimestamps: boolean;
   enableSoundNotifications: boolean;
   messageHistory: number; // Number of messages to keep in history
-  
   // Task Execution Preferences
   defaultExecutionMode: 'immediate' | 'polling' | 'websocket';
   pollingInterval: number; // seconds
@@ -46,28 +40,23 @@ interface UserPreferences {
   immediateTimeoutDuration: number; // seconds
   showExecutionModeIndicator: boolean;
   enableQuickModeToggle: boolean;
-  
   // Performance Preferences
   enableCaching: boolean;
   cacheDuration: number; // In minutes
   enableOfflineMode: boolean;
-  
   // Developer Preferences
   showApiMetadata: boolean;
   enableRequestLogging: boolean;
   showHealthStatus: boolean;
-  
   // Accessibility Preferences
   enableHighContrast: boolean;
   fontSize: 'small' | 'medium' | 'large';
   enableScreenReader: boolean;
-  
   // Session Management
   persistSessions: boolean;
   autoSaveInterval: number; // In seconds
   maxSessions: number;
 }
-
 interface UserProfile {
   id: string;
   name: string;
@@ -77,26 +66,22 @@ interface UserProfile {
   createdAt: Date;
   lastActive: Date;
 }
-
 const DEFAULT_PREFERENCES: UserPreferences = {
   // API Preferences
   preferredApiVersion: 'v1',
   preferredTechnology: 'typescript-nestjs',
   autoSwitchToHealthyEndpoint: true,
   rememberApiSelection: true,
-  
   // UI Preferences
   theme: 'auto',
   language: 'en',
   showAdvancedOptions: false,
   enableDebugMode: false,
-  
   // Chat Preferences
   enableAutoScroll: true,
   showTimestamps: true,
   enableSoundNotifications: false,
   messageHistory: 100,
-  
   // Task Execution Preferences
   defaultExecutionMode: 'immediate',
   pollingInterval: 2,
@@ -105,35 +90,29 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   immediateTimeoutDuration: 30,
   showExecutionModeIndicator: true,
   enableQuickModeToggle: true,
-  
   // Performance Preferences
   enableCaching: true,
   cacheDuration: 30,
   enableOfflineMode: false,
-  
   // Developer Preferences
   showApiMetadata: false,
   enableRequestLogging: false,
   showHealthStatus: true,
-  
   // Accessibility Preferences
   enableHighContrast: false,
   fontSize: 'medium',
   enableScreenReader: false,
-  
   // Session Management
   persistSessions: true,
   autoSaveInterval: 30,
   maxSessions: 10,
 };
-
 export const useUserPreferencesStore = defineStore('userPreferences', () => {
   // Reactive state
   const currentUser = ref<UserProfile | null>(null);
   const preferences = ref<UserPreferences>({ ...DEFAULT_PREFERENCES });
   const isLoading = ref(false);
   const lastSaved = ref<Date | null>(null);
-
   // Computed properties
   const effectiveTheme = computed(() => {
     if (preferences.value.theme === 'auto') {
@@ -141,7 +120,6 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     }
     return preferences.value.theme;
   });
-
   const preferredEndpoint = computed(() => {
     const available = [{ version: 'v1', technology: 'typescript-nestjs' }]; // Simplified for unified API
     return available.find(ep => 
@@ -149,39 +127,32 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       ep.technology === preferences.value.preferredTechnology
     ) || available[0];
   });
-
   const isAdvancedUser = computed(() => {
     return currentUser.value?.role === 'developer' || 
            currentUser.value?.role === 'admin' ||
            preferences.value.showAdvancedOptions;
   });
-
   // Watchers for automatic preference application
   // API version switching removed - only NestJS v1 is supported
-
   watch(
     () => preferences.value.theme,
     (newTheme) => {
       applyTheme(newTheme);
     }
   );
-
   // Actions
   const initializePreferences = async () => {
     isLoading.value = true;
-    
     try {
       await loadUserProfile();
       await loadPreferences();
       applyPreferences();
       setupAutoSave();
-      
     } catch (error) {
     } finally {
       isLoading.value = false;
     }
   };
-
   const loadUserProfile = async () => {
     try {
       const saved = localStorage.getItem('userProfile');
@@ -214,7 +185,6 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       };
     }
   };
-
   const loadPreferences = async () => {
     try {
       const saved = localStorage.getItem('userPreferences');
@@ -227,12 +197,10 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       preferences.value = { ...DEFAULT_PREFERENCES };
     }
   };
-
   const savePreferences = () => {
     try {
       localStorage.setItem('userPreferences', JSON.stringify(preferences.value));
       lastSaved.value = new Date();
-      
       // Update user profile with current preferences
       if (currentUser.value) {
         currentUser.value.preferences = { ...preferences.value };
@@ -242,7 +210,6 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     } catch (error) {
     }
   };
-
   const saveUserProfile = () => {
     try {
       if (currentUser.value) {
@@ -251,7 +218,6 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     } catch (error) {
     }
   };
-
   const updatePreference = <K extends keyof UserPreferences>(
     key: K, 
     value: UserPreferences[K]
@@ -259,17 +225,14 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     preferences.value[key] = value;
     savePreferences();
   };
-
   const updateMultiplePreferences = (updates: Partial<UserPreferences>) => {
     Object.assign(preferences.value, updates);
     savePreferences();
   };
-
   const resetPreferences = () => {
     preferences.value = { ...DEFAULT_PREFERENCES };
     savePreferences();
   };
-
   const resetToDefaults = (category?: keyof UserPreferences) => {
     if (category) {
       (preferences.value as any)[category] = (DEFAULT_PREFERENCES as any)[category];
@@ -278,25 +241,20 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     }
     savePreferences();
   };
-
   const applyPreferences = () => {
     applyTheme(preferences.value.theme);
     applyApiPreferences();
     applyAccessibilityPreferences();
     applyPerformancePreferences();
   };
-
   const applyTheme = (theme: 'light' | 'dark' | 'auto') => {
     const body = document.body;
     body.classList.remove('theme-light', 'theme-dark');
-    
     let effectiveTheme = theme;
     if (theme === 'auto') {
       effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-    
     body.classList.add(`theme-${effectiveTheme}`);
-    
     // Update meta theme-color for mobile browsers
     let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
     if (!themeColorMeta) {
@@ -304,10 +262,8 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       themeColorMeta.name = 'theme-color';
       document.head.appendChild(themeColorMeta);
     }
-    
     themeColorMeta.content = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
   };
-
   const applyApiPreferences = async () => {
     if (preferences.value.rememberApiSelection && preferredEndpoint.value) {
       try {
@@ -316,17 +272,13 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       }
     }
   };
-
   const applyAccessibilityPreferences = () => {
     const body = document.body;
-    
     // High contrast mode
     body.classList.toggle('high-contrast', preferences.value.enableHighContrast);
-    
     // Font size
     body.classList.remove('font-small', 'font-medium', 'font-large');
     body.classList.add(`font-${preferences.value.fontSize}`);
-    
     // Screen reader support
     if (preferences.value.enableScreenReader) {
       body.setAttribute('data-screen-reader', 'true');
@@ -334,33 +286,27 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       body.removeAttribute('data-screen-reader');
     }
   };
-
   const applyPerformancePreferences = () => {
     // Configure caching behavior
     if (preferences.value.enableCaching) {
       // Could set cache headers or configure service worker
     }
-    
     // Configure offline mode
     if (preferences.value.enableOfflineMode) {
       // Could register service worker for offline functionality
     }
   };
-
   let autoSaveInterval: number | null = null;
-
   const setupAutoSave = () => {
     if (autoSaveInterval) {
       clearInterval(autoSaveInterval);
     }
-    
     if (preferences.value.autoSaveInterval > 0) {
       autoSaveInterval = window.setInterval(() => {
         savePreferences();
       }, preferences.value.autoSaveInterval * 1000);
     }
   };
-
   const exportPreferences = () => {
     return {
       userProfile: currentUser.value,
@@ -369,13 +315,11 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       version: '1.0.0',
     };
   };
-
   const importPreferences = (data: any) => {
     try {
       if (data.preferences) {
         preferences.value = { ...DEFAULT_PREFERENCES, ...data.preferences };
       }
-      
       if (data.userProfile) {
         currentUser.value = {
           ...data.userProfile,
@@ -383,15 +327,12 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
           lastActive: new Date(),
         };
       }
-      
       savePreferences();
       applyPreferences();
-      
     } catch (error) {
       throw error;
     }
   };
-
   // Quick access methods for common preferences
   const setApiVersion = async (version: ApiVersion) => {
     updatePreference('preferredApiVersion', version);
@@ -399,40 +340,31 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       await applyApiPreferences();
     }
   };
-
   const setTheme = (theme: 'light' | 'dark' | 'auto') => {
     updatePreference('theme', theme);
   };
-
   const toggleAdvancedMode = () => {
     updatePreference('showAdvancedOptions', !preferences.value.showAdvancedOptions);
   };
-
   const toggleDebugMode = () => {
     updatePreference('enableDebugMode', !preferences.value.enableDebugMode);
   };
-
   // Task execution convenience methods
   const setExecutionMode = (mode: 'immediate' | 'polling' | 'websocket') => {
     updatePreference('defaultExecutionMode', mode);
   };
-
   const toggleProgressIndicators = () => {
     updatePreference('enableProgressIndicators', !preferences.value.enableProgressIndicators);
   };
-
   const toggleQuickModeToggle = () => {
     updatePreference('enableQuickModeToggle', !preferences.value.enableQuickModeToggle);
   };
-
   const setPollingInterval = (seconds: number) => {
     updatePreference('pollingInterval', Math.max(1, Math.min(60, seconds)));
   };
-
   const setImmediateTimeout = (seconds: number) => {
     updatePreference('immediateTimeoutDuration', Math.max(5, Math.min(300, seconds)));
   };
-
   // Listen for system theme changes
   if (typeof window !== 'undefined') {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
@@ -441,19 +373,16 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       }
     });
   }
-
   return {
     // State
     currentUser,
     preferences,
     isLoading,
     lastSaved,
-    
     // Computed
     effectiveTheme,
     preferredEndpoint,
     isAdvancedUser,
-    
     // Actions
     initializePreferences,
     loadUserProfile,
@@ -466,13 +395,11 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     applyPreferences,
     exportPreferences,
     importPreferences,
-    
     // Quick access
     setApiVersion,
     setTheme,
     toggleAdvancedMode,
     toggleDebugMode,
-    
     // Task execution quick access
     setExecutionMode,
     toggleProgressIndicators,

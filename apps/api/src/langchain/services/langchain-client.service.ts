@@ -48,9 +48,7 @@ export class LangChainClientService {
     }
 
     // Fallback to OpenAI
-    this.logger.warn(
-      `Provider ${provider} not supported, falling back to OpenAI`,
-    );
+
     return new ChatOpenAI({
       modelName: 'gpt-4',
       temperature,
@@ -87,7 +85,7 @@ export class LangChainClientService {
       const response = await llm.invoke(messages);
       return response.content as string;
     } catch (error) {
-      this.logger.error('Failed to execute LLM call:', error);
+
       throw error;
     }
   }
@@ -99,9 +97,7 @@ export class LangChainClientService {
     const hasOpenAIKey = !!this.configService.get<string>('OPENAI_API_KEY');
 
     if (!hasOpenAIKey) {
-      this.logger.warn(
-        'OpenAI API key not configured - LangChain functionality will be limited',
-      );
+
     }
 
     return hasOpenAIKey;

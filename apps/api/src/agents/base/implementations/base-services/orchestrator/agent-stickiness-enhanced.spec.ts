@@ -207,8 +207,6 @@ describe('Enhanced Agent Stickiness - Capability Query Tests', () => {
         currentPrompt,
       );
 
-      console.log(`🔍 Fallback Analysis:`, JSON.stringify(analysis, null, 2));
-
       expect(analysis).toBeDefined();
       expect(analysis.currentAgent).toBeUndefined(); // No sticky agent found
       expect(analysis.shouldContinue).toBe(false);
@@ -242,8 +240,6 @@ describe('Enhanced Agent Stickiness - Capability Query Tests', () => {
       // No current prompt provided
       const analysis =
         await delegationService.analyzeAgentContext(conversationHistory);
-
-      console.log(`🔍 No Prompt Analysis:`, JSON.stringify(analysis, null, 2));
 
       expect(analysis).toBeDefined();
       // Should fall back to existing quick analysis logic

@@ -71,10 +71,7 @@ export class ProjectsService {
           .single();
 
         if (parentError) {
-          this.logger.error(
-            'Failed to fetch parent project for hierarchy calculation:',
-            parentError,
-          );
+
           throw new Error(
             `Failed to create subproject: Parent project not found`,
           );
@@ -110,7 +107,7 @@ export class ProjectsService {
         .single();
 
       if (error) {
-        this.logger.error('Failed to create project:', error);
+
         throw new Error(`Failed to create project: ${error.message}`);
       }
 
@@ -125,12 +122,9 @@ export class ProjectsService {
         timestamp: new Date().toISOString(),
       });
 
-      this.logger.log(
-        `Created project ${project.id} for user ${params.userId}`,
-      );
       return project;
     } catch (error) {
-      this.logger.error('Failed to create project:', error);
+
       throw error;
     }
   }
@@ -171,7 +165,7 @@ export class ProjectsService {
       const { data, error, count } = await query;
 
       if (error) {
-        this.logger.error('Failed to get user projects:', error);
+
         throw new Error(`Failed to get projects: ${error.message}`);
       }
 
@@ -182,7 +176,7 @@ export class ProjectsService {
         offset: params.offset,
       };
     } catch (error) {
-      this.logger.error('Failed to get user projects:', error);
+
       throw error;
     }
   }
@@ -204,13 +198,13 @@ export class ProjectsService {
         if (error.code === 'PGRST116') {
           return null; // Not found
         }
-        this.logger.error(`Failed to get project ${projectId}:`, error);
+
         throw new Error(`Failed to get project: ${error.message}`);
       }
 
       return this.mapDatabaseToProject(data);
     } catch (error) {
-      this.logger.error(`Failed to get project ${projectId}:`, error);
+
       throw error;
     }
   }
@@ -248,7 +242,7 @@ export class ProjectsService {
         .single();
 
       if (error) {
-        this.logger.error(`Failed to update project ${projectId}:`, error);
+
         throw new Error(`Failed to update project: ${error.message}`);
       }
 
@@ -265,10 +259,9 @@ export class ProjectsService {
         });
       }
 
-      this.logger.log(`Updated project ${projectId}`);
       return project;
     } catch (error) {
-      this.logger.error(`Failed to update project ${projectId}:`, error);
+
       throw error;
     }
   }
@@ -286,13 +279,12 @@ export class ProjectsService {
         .eq('id', projectId);
 
       if (error) {
-        this.logger.error(`Failed to delete project ${projectId}:`, error);
+
         throw new Error(`Failed to delete project: ${error.message}`);
       }
 
-      this.logger.log(`Deleted project ${projectId}`);
     } catch (error) {
-      this.logger.error(`Failed to delete project ${projectId}:`, error);
+
       throw error;
     }
   }
@@ -317,10 +309,7 @@ export class ProjectsService {
 
       return !!data;
     } catch (error) {
-      this.logger.error(
-        `Failed to check project access for ${projectId}:`,
-        error,
-      );
+
       return false;
     }
   }
@@ -339,16 +328,13 @@ export class ProjectsService {
         .order('step_index', { ascending: true });
 
       if (error) {
-        this.logger.error(
-          `Failed to get project steps for ${projectId}:`,
-          error,
-        );
+
         throw new Error(`Failed to get project steps: ${error.message}`);
       }
 
       return (data || []).map(this.mapDatabaseToProjectStep);
     } catch (error) {
-      this.logger.error(`Failed to get project steps for ${projectId}:`, error);
+
       throw error;
     }
   }
@@ -442,10 +428,7 @@ export class ProjectsService {
 
       return { project, steps, timeline };
     } catch (error) {
-      this.logger.error(
-        `Failed to get project history for ${projectId}:`,
-        error,
-      );
+
       throw error;
     }
   }
@@ -468,9 +451,8 @@ export class ProjectsService {
         },
       });
 
-      this.logger.log(`Resumed project ${projectId}`);
     } catch (error) {
-      this.logger.error(`Failed to resume project ${projectId}:`, error);
+
       throw error;
     }
   }
@@ -502,11 +484,8 @@ export class ProjectsService {
         },
       });
 
-      this.logger.log(
-        `Retrying project ${projectId} from step ${targetStepId}`,
-      );
     } catch (error) {
-      this.logger.error(`Failed to retry project ${projectId}:`, error);
+
       throw error;
     }
   }
@@ -533,10 +512,9 @@ export class ProjectsService {
         planJson: originalProject.planJson,
       });
 
-      this.logger.log(`Forked project ${projectId} to ${forkedProject.id}`);
       return forkedProject;
     } catch (error) {
-      this.logger.error(`Failed to fork project ${projectId}:`, error);
+
       throw error;
     }
   }
@@ -558,9 +536,8 @@ export class ProjectsService {
         },
       });
 
-      this.logger.log(`Aborted project ${projectId}`);
     } catch (error) {
-      this.logger.error(`Failed to abort project ${projectId}:`, error);
+
       throw error;
     }
   }
@@ -700,10 +677,7 @@ export class ProjectsService {
         recommendations,
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to get project analytics for ${projectId}:`,
-        error,
-      );
+
       throw error;
     }
   }
@@ -723,7 +697,7 @@ export class ProjectsService {
         .to('projects')
         .emit('project_event', message);
     } catch (error) {
-      this.logger.error('Failed to emit project event:', error);
+
     }
   }
 

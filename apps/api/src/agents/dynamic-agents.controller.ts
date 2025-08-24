@@ -46,7 +46,6 @@ export class DynamicAgentsController {
   @Get('.well-known/hierarchy')
   @Public()
   async getAgentHierarchy() {
-    this.logger.debug('Getting agent hierarchy');
 
     try {
       // Ensure agents are discovered and hierarchy is built
@@ -64,7 +63,6 @@ export class DynamicAgentsController {
         },
       };
     } catch (error) {
-      this.logger.error('Failed to get agent hierarchy:', error);
 
       return {
         success: false,
@@ -93,16 +91,12 @@ export class DynamicAgentsController {
     @CurrentUser() currentUser: SupabaseAuthUserDto,
     @Request() req: any,
   ) {
-    this.logger.debug(
-      `Processing task for ${agentType}/${agentName} for user ${currentUser.id}`,
-    );
 
     // Check if this is a JSON-RPC request and convert it to CreateTaskDto format
     let normalizedTaskRequest: CreateTaskDto;
 
     if (taskRequest && taskRequest.jsonrpc === '2.0' && taskRequest.method) {
       // This is a JSON-RPC request - convert to CreateTaskDto format
-      this.logger.debug('Converting JSON-RPC request to CreateTaskDto format');
 
       const params = taskRequest.params || {};
       normalizedTaskRequest = {
@@ -216,9 +210,7 @@ export class DynamicAgentsController {
             { type: wp.type, id: wp.id },
           );
         } catch (e) {
-          this.logger.warn(
-            `Work product binding skipped for conversation ${task.agentConversationId}: ${e instanceof Error ? e.message : e}`,
-          );
+
         }
       }
 
@@ -235,10 +227,6 @@ export class DynamicAgentsController {
         metadata: normalizedTaskRequest.metadata, // Pass metadata for deliverable operations
       };
 
-      this.logger.debug(
-        `Processing task ${task.id} with agent ${agentType}/${agentName}`,
-      );
-
       // Determine processing mode based on execution mode and pre-generated task ID
       const executionMode = normalizedTaskRequest.executionMode;
       const hasPreGeneratedTaskId = normalizedTaskRequest.taskId;
@@ -246,9 +234,6 @@ export class DynamicAgentsController {
         executionMode === 'websocket' || executionMode === 'polling';
 
       if (shouldProcessAsync) {
-        this.logger.debug(
-          `${executionMode} mode detected for task ${task.id}${hasPreGeneratedTaskId ? ' (pre-generated for early WebSocket subscription)' : ''}. Processing asynchronously for real-time updates.`,
-        );
 
         // Process asynchronously (don't await) - agent will handle completion via TaskStatusService
         this.processTaskAsync(task, authenticatedTaskRequest, agentInstance);
@@ -262,17 +247,8 @@ export class DynamicAgentsController {
         };
       }
 
-      this.logger.debug(
-        `🔍 DEBUG - Using immediate/synchronous mode for task ${task.id}`,
-      );
-      this.logger.debug(`🔍 DEBUG - About to call agentInstance.processTask`);
-
       // For synchronous processing, await the result
       const result = await agentInstance.processTask(authenticatedTaskRequest);
-
-      this.logger.debug(
-        `🔍 DEBUG - Task ${task.id} completed with result: ${JSON.stringify(result, null, 2)}`,
-      );
 
       // Store the result in the task record with deliverable auto-creation
       // Use the agent's completeTask method to enable deliverable creation
@@ -282,10 +258,6 @@ export class DynamicAgentsController {
         // Fallback to direct task completion if agent doesn't have completeTask method
         await this.taskStatusService.completeTask(task.id, currentUser.id, result);
       }
-
-      this.logger.debug(
-        `🔍 DEBUG - Task ${task.id} marked as completed in database`,
-      );
 
       // Return the result for immediate response
       return {
@@ -302,7 +274,6 @@ export class DynamicAgentsController {
         error instanceof Error ? error.message : 'Unknown error',
       );
 
-      this.logger.error(`Task ${task.id} failed:`, error);
       throw error;
     }
   }
@@ -331,7 +302,6 @@ export class DynamicAgentsController {
     @Param('agentType') agentType: string,
     @Param('agentName') agentName: string,
   ) {
-    this.logger.debug(`Getting agent card for ${agentType}/${agentName}`);
 
     // Find the agent instance
     const agentInstance = this.findAgentInstance(agentType, agentName);
@@ -352,7 +322,6 @@ export class DynamicAgentsController {
     @Param('agentType') agentType: string,
     @Param('agentName') agentName: string,
   ) {
-    this.logger.debug(`Getting health status for ${agentType}/${agentName}`);
 
     // Find the agent instance
     const agentInstance = this.findAgentInstance(agentType, agentName);
@@ -388,15 +357,7 @@ export class DynamicAgentsController {
     });
 
     if (agentIndex === -1) {
-      this.logger.debug(`Agent not found. Looking for: ${expectedPath}`);
-      this.logger.debug(
-        `Available agents:`,
-        discoveredAgents.map((a) => a.path || `${a.type}/${a.name}`),
-      );
-      this.logger.debug(
-        `Available agent types and names:`,
-        discoveredAgents.map((a) => `${a.type}/${a.name}`),
-      );
+
       return null;
     }
 
@@ -413,17 +374,11 @@ export class DynamicAgentsController {
     agentInstance: any,
   ): Promise<void> {
     try {
-      this.logger.debug(
-        `Processing task ${task.id} asynchronously - agent will handle completion via TaskStatusService`,
-      );
 
       // Let the agent handle the task and all status updates
       // Agent will use TaskStatusService methods to update progress and completion
       await agentInstance.processTask(authenticatedTaskRequest);
 
-      this.logger.debug(
-        `Async task ${task.id} processing completed - agent handled status updates`,
-      );
     } catch (error) {
       // Agent should have handled error via TaskStatusService failTask() method
       // But as a fallback, ensure task is marked as failed
@@ -434,13 +389,9 @@ export class DynamicAgentsController {
           error instanceof Error ? error.message : 'Unknown error',
         );
       } catch (statusError) {
-        this.logger.error(
-          `Failed to update task status for error:`,
-          statusError,
-        );
+
       }
 
-      this.logger.error(`Async task ${task.id} failed:`, error);
     }
   }
 

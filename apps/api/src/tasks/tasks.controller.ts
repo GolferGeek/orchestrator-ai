@@ -46,7 +46,6 @@ export class TasksController {
     @Query() query: TaskQueryParams,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(`Listing tasks for user ${currentUser.id}`, query);
 
     // Ensure user can only see their own tasks
     const params = {
@@ -66,7 +65,6 @@ export class TasksController {
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(`Getting task ${taskId} for user ${currentUser.id}`);
 
     const task = await this.tasksService.getTaskById(taskId, currentUser.id);
 
@@ -88,7 +86,6 @@ export class TasksController {
     @Body() updates: UpdateTaskDto,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(`Updating task ${taskId} for user ${currentUser.id}`);
 
     return this.tasksService.updateTask(taskId, currentUser.id, updates);
   }
@@ -103,7 +100,6 @@ export class TasksController {
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(`Cancelling task ${taskId} for user ${currentUser.id}`);
 
     await this.tasksService.cancelTask(taskId, currentUser.id);
     return { success: true, message: 'Task cancelled' };
@@ -115,7 +111,6 @@ export class TasksController {
    */
   @Get('active')
   async getActiveTasks(@CurrentUser() currentUser: SupabaseAuthUserDto) {
-    this.logger.debug(`Getting active tasks for user ${currentUser.id}`);
 
     return this.tasksService.getActiveTasks(currentUser.id);
   }
@@ -129,9 +124,6 @@ export class TasksController {
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(
-      `Getting status for task ${taskId} for user ${currentUser.id}`,
-    );
 
     const status = this.taskStatusService.getTaskStatus(taskId, currentUser.id);
 
@@ -152,9 +144,6 @@ export class TasksController {
     @CurrentUser() currentUser: SupabaseAuthUserDto,
     @Res() response: Response,
   ) {
-    this.logger.debug(
-      `Streaming progress for task ${taskId} for user ${currentUser.id}`,
-    );
 
     // Set SSE headers
     response.writeHead(200, {
@@ -184,7 +173,7 @@ export class TasksController {
         }
       }
     } catch (error) {
-      this.logger.error('Error streaming task progress:', error);
+
       response.write(
         `data: ${JSON.stringify({
           error: 'Failed to stream progress',
@@ -205,9 +194,6 @@ export class TasksController {
     @Param('id') taskId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(
-      `Getting messages for task ${taskId} for user ${currentUser.id}`,
-    );
 
     // Use TaskStatusService for live messages first
     const liveMessages = this.taskStatusService.getTaskMessages(
@@ -215,16 +201,12 @@ export class TasksController {
       currentUser.id,
     );
     if (liveMessages.length > 0) {
-      this.logger.debug(
-        `Returning ${liveMessages.length} live messages for task ${taskId}`,
-      );
+
       return liveMessages;
     }
 
     // Fallback to database (for task recovery/hydration)
-    this.logger.debug(
-      `No live messages found, checking database for task ${taskId}`,
-    );
+
     return this.tasksService.getTaskMessages(taskId, currentUser.id);
   }
 
@@ -239,9 +221,6 @@ export class TasksController {
     @Body() body: { progress: number; message?: string },
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(
-      `Updating progress for task ${taskId}: ${body.progress}%`,
-    );
 
     await this.tasksService.updateTaskProgress(
       taskId,

@@ -74,8 +74,6 @@ describe('IntentRecognitionService - Real LLM Tests', () => {
         '🔍 Intent Classification Result:',
         JSON.stringify(result, null, 2),
       );
-      console.log('🔍 Result action:', result.action);
-      console.log('🔍 Expected actions:', ['DELEGATE', 'CREATE_PROJECT']);
 
       expect(['DELEGATE', 'CREATE_PROJECT']).toContain(result.action);
       expect(result.confidence).toBeGreaterThan(0.5);

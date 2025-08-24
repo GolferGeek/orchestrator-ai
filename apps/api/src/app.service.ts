@@ -16,56 +16,32 @@ export class AppService implements OnModuleInit {
     private readonly agentPoolService: AgentPoolService,
     private readonly llmService: LLMService,
   ) {
-    this.logger.log(
-      '🔥 AppService constructor - Services injected successfully!',
-    );
-    this.logger.log(`LLMService available: ${!!this.llmService}`);
-    this.logger.log(`AgentFactoryService available: ${!!this.agentFactory}`);
+
   }
 
   async onModuleInit() {
-    this.logger.log('🔍 Agent system starting...');
 
     try {
       // Step 1: Discover all agents
-      this.logger.log('📁 Step 1: Discovering agents...');
+
       this.discoveredAgents = await this.agentDiscovery.discoverAgents();
 
       if (this.discoveredAgents.length === 0) {
-        this.logger.warn('⚠️ No agent services discovered');
+
         return;
       }
 
-      this.logger.log(`✅ Discovered ${this.discoveredAgents.length} agents`);
-
       // Step 2: Create agent instances using factory
-      this.logger.log('🏭 Step 2: Creating agent instances...');
-      this.logger.debug(`📋 Discovered agents list:`);
+
       this.discoveredAgents.forEach((agent, index) => {
-        this.logger.debug(
-          `   ${index + 1}. ${agent.name} (type: ${agent.type}, path: ${agent.path})`,
-        );
+
       });
 
       this.agentInstances = [];
 
       for (const discoveredAgent of this.discoveredAgents) {
         try {
-          this.logger.debug(
-            `🔧 Processing discovered agent: ${discoveredAgent.name}`,
-          );
-          this.logger.debug(`   - Agent type: ${discoveredAgent.type}`);
-          this.logger.debug(`   - Agent path: ${discoveredAgent.path}`);
-          this.logger.debug(
-            `   - Service path: ${discoveredAgent.servicePath}`,
-          );
-          this.logger.debug(
-            `   - Python function path: ${discoveredAgent.pythonFunctionPath || 'None'}`,
-          );
 
-          this.logger.debug(
-            `🔧 About to call createAgent for: ${discoveredAgent.name}`,
-          );
           const serviceInstance =
             await this.agentFactory.createAgent(discoveredAgent);
 
@@ -74,32 +50,22 @@ export class AppService implements OnModuleInit {
 
           this.agentInstances.push(serviceInstance);
 
-          this.logger.log(
-            `✅ Successfully created and registered: ${discoveredAgent.name}`,
-          );
         } catch (error: any) {
-          this.logger.error(
-            `❌ Failed to create agent ${discoveredAgent.name}:`,
-            error.message,
-          );
+
           // Continue with other agents
         }
       }
 
-      this.logger.log(
-        `🚀 ${this.agentInstances.length} agent services are running and registered`,
-      );
-
       // Summary log
       if (this.discoveredAgents.length > 0) {
-        this.logger.log('✅ Agent system startup complete:');
+
         this.discoveredAgents.forEach((agent) => {
           const status = agent.serviceInstance ? '✅' : '❌';
-          this.logger.log(`   ${status} ${agent.type}: ${agent.name}`);
+
         });
       }
     } catch (error: any) {
-      this.logger.error('❌ Failed to initialize agent system:', error.message);
+
       throw error;
     }
   }
@@ -112,9 +78,6 @@ export class AppService implements OnModuleInit {
     discoveredAgent: any,
   ): Promise<void> {
     try {
-      this.logger.debug(
-        `📝 Registering ${discoveredAgent.name} with agent pool...`,
-      );
 
       // Get agent card information from the service instance (includes YAML description)
       let agentCard = null;
@@ -126,10 +89,7 @@ export class AppService implements OnModuleInit {
           agentCard = await serviceInstance.getAgentCard();
         }
       } catch (error) {
-        this.logger.warn(
-          `Failed to get agent card for ${discoveredAgent.name}:`,
-          error,
-        );
+
       }
 
       // Build agent registration object
@@ -170,14 +130,8 @@ export class AppService implements OnModuleInit {
       // Register with internal agent pool
       await this.agentPoolService.registerAgent(agentRegistration);
 
-      this.logger.debug(
-        `✅ Successfully registered ${discoveredAgent.name} with agent pool`,
-      );
     } catch (error: any) {
-      this.logger.error(
-        `❌ Failed to register ${discoveredAgent.name} with agent pool:`,
-        error.message,
-      );
+
       throw error;
     }
   }
@@ -206,10 +160,7 @@ export class AppService implements OnModuleInit {
             }
           }
         } catch (error) {
-          this.logger.warn(
-            `Failed to get agent card for ${agent.name}:`,
-            error,
-          );
+
         }
 
         return {
