@@ -46,9 +46,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   setContextData(contextData: string): void {
     this.contextData = contextData;
-    this.contextLogger.debug(
-      `Context data set, length: ${contextData?.length || 0}`,
-    );
   }
 
   /**
@@ -63,17 +60,8 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       const userMessage = this.extractUserMessage(params);
 
       // Check for metadata-driven routing first
-      this.contextLogger.debug(`🎯 Context agent executeTask - checking metadata:`, {
-        hasMetadata: !!params.metadata,
-        metadata: params.metadata,
-        hasContext: !!params.metadata?.context,
-        hasMethod: !!params.metadata?.method,
-        context: params.metadata?.context,
-        method: params.metadata?.method
-      });
       
       if (params.metadata?.context && params.metadata?.method) {
-        this.contextLogger.debug(`🎯 Routing to metadata handler for ${params.metadata.context}/${params.metadata.method}`);
         return await this.handleMetadataRouting(params.metadata, userMessage, params);
       }
 
@@ -110,10 +98,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           role: msg.role === 'assistant' ? 'assistant' : 'user',
           content: msg.content,
         }));
-
-        this.contextLogger.debug(
-          `Processing with ${conversationHistory.length} conversation history messages`,
-        );
 
         llmResult = await this.services.llmService.generateResponseWithHistory(
           systemPrompt,
@@ -157,20 +141,9 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       };
 
       // Report task completion to TaskStatusService for async execution modes
-      this.contextLogger.debug('Context agent executeTask completion check:', {
-        hasTaskId: !!params.taskId,
-        hasCurrentUser: !!params.currentUser,
-        hasTaskStatusService: !!this.services.taskStatusService,
-        hasTasksService: !!this.services.tasksService,
-        taskId: params.taskId,
-        userId: params.currentUser?.id,
-      });
 
       if (params.taskId && params.currentUser?.id) {
         try {
-          this.contextLogger.debug(
-            `Reporting task completion for ${params.taskId}`,
-          );
 
           // Use completeTaskWithDeliverableContext to enable auto-deliverable creation
           await this.completeTaskWithDeliverableContext(
@@ -208,9 +181,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       // Report task failure to TaskStatusService for async execution modes
       if (params.taskId && params.currentUser?.id) {
         try {
-          this.contextLogger.debug(
-            `Reporting task failure for ${params.taskId}`,
-          );
           await this.failTask(
             params.taskId,
             params.currentUser.id,
@@ -329,9 +299,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     agentName: string,
     agentType: string,
   ): Promise<any> {
-    this.contextLogger.debug(
-      `No context available for ${agentName}, using fallback`,
-    );
 
     return {
       success: true,
@@ -352,7 +319,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   setDiscoveredPath(path: string): void {
     this.agentPath = path;
-    this.contextLogger.debug(`Agent path set to: ${path}`);
   }
 
   /**
@@ -389,9 +355,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   async initializeContext(agentDirectory: string): Promise<void> {
     try {
       await this.agentContextService.initialize(agentDirectory);
-      this.contextLogger.debug(
-        `Context initialized for ${this.agentContextService.name}, skills: ${this.agentContextService.skills.length}`,
-      );
     } catch (error) {
       this.contextLogger.error('Failed to initialize agent context:', error);
     }
@@ -406,9 +369,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     result: any,
   ): Promise<void> {
     if (!this.services.tasksService) {
-      this.contextLogger.debug(
-        `Cannot save result - TasksService not available`,
-      );
       return;
     }
 
@@ -420,16 +380,8 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         responseMetadata: result.metadata || {},
       };
 
-      this.contextLogger.debug(`Saving context task result to database:`, {
-        taskId,
-        userId,
-      });
-
       await this.services.tasksService.updateTask(taskId, userId, updateData);
 
-      this.contextLogger.debug(
-        `Task ${taskId} marked as completed in database`,
-      );
     } catch (error) {
       this.contextLogger.error(
         `Error saving task result for ${taskId}:`,

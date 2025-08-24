@@ -21,7 +21,6 @@
         </ion-button>
       </div>
     </div>
-
     <!-- Category Tabs -->
     <ion-segment 
       v-model="activeCategory" 
@@ -57,11 +56,9 @@
         <ion-label>Developer</ion-label>
       </ion-segment-button>
     </ion-segment>
-
     <!-- API Preferences -->
     <div v-if="activeCategory === 'api'" class="preference-section">
       <h3>API Configuration</h3>
-      
       <div class="preference-item">
         <ion-label>
           <h4>Preferred API Version</h4>
@@ -76,7 +73,6 @@
           <ion-select-option value="v2">V2 (Enhanced)</ion-select-option>
         </ion-select>
       </div>
-
       <div class="preference-item">
         <ion-label>
           <h4>Technology Stack</h4>
@@ -90,7 +86,6 @@
           <ion-select-option value="typescript-nestjs">TypeScript NestJS</ion-select-option>
         </ion-select>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.autoSwitchToHealthyEndpoint"
@@ -101,7 +96,6 @@
           <p>Automatically switch to available endpoints when current one fails</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.rememberApiSelection"
@@ -113,11 +107,9 @@
         </ion-label>
       </div>
     </div>
-
     <!-- UI Preferences -->
     <div v-if="activeCategory === 'ui'" class="preference-section">
       <h3>Interface Settings</h3>
-      
       <div class="preference-item">
         <ion-label>
           <h4>Theme</h4>
@@ -141,7 +133,6 @@
           </ion-segment-button>
         </ion-segment>
       </div>
-
       <div class="preference-item">
         <ion-label>
           <h4>Language</h4>
@@ -158,7 +149,6 @@
           <ion-select-option value="de">Deutsch</ion-select-option>
         </ion-select>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.showAdvancedOptions"
@@ -169,7 +159,6 @@
           <p>Display developer and advanced user features</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.enableDebugMode"
@@ -181,11 +170,9 @@
         </ion-label>
       </div>
     </div>
-
     <!-- Chat Preferences -->
     <div v-if="activeCategory === 'chat'" class="preference-section">
       <h3>Chat Settings</h3>
-      
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.enableAutoScroll"
@@ -196,7 +183,6 @@
           <p>Automatically scroll to new messages</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.showTimestamps"
@@ -207,7 +193,6 @@
           <p>Display message timestamps</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.enableSoundNotifications"
@@ -218,7 +203,6 @@
           <p>Play sound for new messages</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-label>
           <h4>Message History</h4>
@@ -235,11 +219,9 @@
         />
       </div>
     </div>
-
     <!-- Task Execution Preferences -->
     <div v-if="activeCategory === 'execution'" class="preference-section">
       <h3>Task Execution Settings</h3>
-      
       <div class="preference-item">
         <ion-label>
           <h4>Default Execution Mode</h4>
@@ -255,7 +237,6 @@
           <ion-select-option value="websocket">WebSocket (Real-time updates)</ion-select-option>
         </ion-select>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.autoSwitchToWebSocketForWorkflows"
@@ -266,7 +247,6 @@
           <p>Automatically use real-time updates for multi-step tasks</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.enableProgressIndicators"
@@ -277,7 +257,6 @@
           <p>Display progress bars and step indicators</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.showExecutionModeIndicator"
@@ -288,7 +267,6 @@
           <p>Display current execution mode in chat interface</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.enableQuickModeToggle"
@@ -299,7 +277,6 @@
           <p>Show quick toggle buttons in chat header</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-label>
           <h4>Polling Interval</h4>
@@ -319,7 +296,6 @@
           <ion-label slot="end">60s</ion-label>
         </ion-range>
       </div>
-
       <div class="preference-item">
         <ion-label>
           <h4>Immediate Mode Timeout</h4>
@@ -340,11 +316,9 @@
         </ion-range>
       </div>
     </div>
-
     <!-- Performance Preferences -->
     <div v-if="activeCategory === 'performance'" class="preference-section">
       <h3>Performance Settings</h3>
-      
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.enableCaching"
@@ -355,7 +329,6 @@
           <p>Cache API responses for better performance</p>
         </ion-label>
       </div>
-
       <div class="preference-item" v-if="preferences.enableCaching">
         <ion-label>
           <h4>Cache Duration</h4>
@@ -371,7 +344,6 @@
           color="primary"
         />
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.enableOfflineMode"
@@ -382,7 +354,6 @@
           <p>Enable offline functionality when available</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-label>
           <h4>Auto-save Interval</h4>
@@ -399,11 +370,9 @@
         />
       </div>
     </div>
-
     <!-- Accessibility Preferences -->
     <div v-if="activeCategory === 'accessibility'" class="preference-section">
       <h3>Accessibility Settings</h3>
-      
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.enableHighContrast"
@@ -414,7 +383,6 @@
           <p>Increase contrast for better visibility</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-label>
           <h4>Font Size</h4>
@@ -435,7 +403,6 @@
           </ion-segment-button>
         </ion-segment>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.enableScreenReader"
@@ -447,11 +414,9 @@
         </ion-label>
       </div>
     </div>
-
     <!-- Developer Preferences -->
     <div v-if="activeCategory === 'developer' && isAdvancedUser" class="preference-section">
       <h3>Developer Settings</h3>
-      
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.showApiMetadata"
@@ -462,7 +427,6 @@
           <p>Display API endpoints, versions, and technical details</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.enableRequestLogging"
@@ -473,7 +437,6 @@
           <p>Log all API requests and responses to console</p>
         </ion-label>
       </div>
-
       <div class="preference-item">
         <ion-checkbox 
           v-model="preferences.showHealthStatus"
@@ -485,7 +448,6 @@
         </ion-label>
       </div>
     </div>
-
     <!-- Action Buttons -->
     <div class="panel-actions">
       <ion-button 
@@ -496,7 +458,6 @@
       >
         Reset {{ activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1) }} Settings
       </ion-button>
-      
       <ion-button 
         expand="block" 
         fill="outline" 
@@ -506,7 +467,6 @@
         Reset All Settings
       </ion-button>
     </div>
-
     <!-- Hidden file input for import -->
     <input
       ref="fileInput"
@@ -517,7 +477,6 @@
     />
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import {
@@ -546,45 +505,35 @@ import {
   contrast,
   playCircle
 } from 'ionicons/icons';
-
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
-
 // Props
 interface Props {
   initialCategory?: string;
 }
-
 const props = withDefaults(defineProps<Props>(), {
   initialCategory: 'api'
 });
-
 // Emits
 const emit = defineEmits<{
   preferencesChanged: [category: string, preferences: any];
   preferencesReset: [category: string];
 }>();
-
 // Store
 const userPreferencesStore = useUserPreferencesStore();
-
 // Local state
 const activeCategory = ref(props.initialCategory);
 const fileInput = ref<HTMLInputElement>();
-
 // Computed properties
 const preferences = computed(() => userPreferencesStore.preferences);
 const isAdvancedUser = computed(() => userPreferencesStore.isAdvancedUser);
-
 // Methods
 const handleCategoryChange = (event: any) => {
   activeCategory.value = event.detail.value;
 };
-
 const updatePreference = (key: string, value: any) => {
   userPreferencesStore.updatePreference(key as any, value);
   emit('preferencesChanged', activeCategory.value, preferences.value);
 };
-
 const resetCategory = async () => {
   const alert = await alertController.create({
     header: 'Reset Settings',
@@ -605,10 +554,8 @@ const resetCategory = async () => {
       }
     ]
   });
-
   await alert.present();
 };
-
 const resetAllPreferences = async () => {
   const alert = await alertController.create({
     header: 'Reset All Settings',
@@ -628,15 +575,12 @@ const resetAllPreferences = async () => {
       }
     ]
   });
-
   await alert.present();
 };
-
 const exportSettings = () => {
   const data = userPreferencesStore.exportPreferences();
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  
   const a = document.createElement('a');
   a.href = url;
   a.download = `preferences-${new Date().toISOString().split('T')[0]}.json`;
@@ -645,27 +589,21 @@ const exportSettings = () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
-
 const triggerImport = () => {
   fileInput.value?.click();
 };
-
 const handleFileImport = async (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) return;
-
   try {
     const text = await file.text();
     const data = JSON.parse(text);
-    
     userPreferencesStore.importPreferences(data);
-    
     const alert = await alertController.create({
       header: 'Import Successful',
       message: 'Your preferences have been imported successfully.',
       buttons: ['OK']
     });
-    
     await alert.present();
   } catch (error) {
     const alert = await alertController.create({
@@ -673,19 +611,16 @@ const handleFileImport = async (event: Event) => {
       message: 'Failed to import preferences. Please check the file format and try again.',
       buttons: ['OK']
     });
-    
     await alert.present();
   }
 };
 </script>
-
 <style scoped>
 .preferences-panel {
   max-width: 800px;
   margin: 0 auto;
   padding: 16px;
 }
-
 .panel-header {
   display: flex;
   justify-content: space-between;
@@ -694,32 +629,26 @@ const handleFileImport = async (event: Event) => {
   padding-bottom: 16px;
   border-bottom: 1px solid var(--ion-color-light);
 }
-
 .panel-header h2 {
   margin: 0;
   color: var(--ion-color-dark);
 }
-
 .header-actions {
   display: flex;
   gap: 8px;
 }
-
 .category-segment {
   margin-bottom: 24px;
 }
-
 .preference-section {
   margin-bottom: 32px;
 }
-
 .preference-section h3 {
   margin: 0 0 16px 0;
   color: var(--ion-color-dark);
   font-size: 1.2em;
   font-weight: 600;
 }
-
 .preference-item {
   display: flex;
   align-items: center;
@@ -730,34 +659,28 @@ const handleFileImport = async (event: Event) => {
   border: 1px solid var(--ion-color-light);
   gap: 16px;
 }
-
 .preference-item ion-label {
   flex: 1;
 }
-
 .preference-item ion-label h4 {
   margin: 0 0 4px 0;
   font-size: 1em;
   font-weight: 500;
   color: var(--ion-color-dark);
 }
-
 .preference-item ion-label p {
   margin: 0;
   font-size: 0.9em;
   color: var(--ion-color-medium);
 }
-
 .preference-item ion-select,
 .preference-item ion-segment,
 .preference-item ion-range {
   min-width: 200px;
 }
-
 .preference-item ion-checkbox {
   margin-right: 16px;
 }
-
 .panel-actions {
   display: flex;
   flex-direction: column;
@@ -766,7 +689,6 @@ const handleFileImport = async (event: Event) => {
   padding-top: 24px;
   border-top: 1px solid var(--ion-color-light);
 }
-
 /* Responsive design */
 @media (max-width: 768px) {
   .preference-item {
@@ -774,35 +696,29 @@ const handleFileImport = async (event: Event) => {
     align-items: stretch;
     gap: 12px;
   }
-  
   .preference-item ion-checkbox {
     margin-right: 0;
     order: -1;
   }
-  
   .preference-item ion-select,
   .preference-item ion-segment,
   .preference-item ion-range {
     min-width: unset;
   }
-  
   .panel-header {
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
   }
-  
   .header-actions {
     justify-content: center;
   }
 }
-
 /* Dark theme support */
 .theme-dark .preference-item {
   background: var(--ion-color-dark);
   border-color: var(--ion-color-medium-shade);
 }
-
 .theme-dark .panel-header,
 .theme-dark .panel-actions {
   border-color: var(--ion-color-medium-shade);

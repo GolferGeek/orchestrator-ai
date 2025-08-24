@@ -37,19 +37,9 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     input: OrchestratorInput,
     delegationContext?: string,
   ): Promise<IntentDirective> {
-    this.logger.log(
-      `Classifying intent for prompt: "${input.prompt.substring(0, 100)}..."`,
-    );
-    this.logger.log(
-      `🔍 DEBUG - Delegation context provided: ${!!delegationContext}`,
-    );
+
     if (delegationContext) {
-      this.logger.log(
-        `🔍 DEBUG - Delegation context length: ${delegationContext.length}`,
-      );
-      this.logger.log(
-        `🔍 DEBUG - Delegation context preview: ${delegationContext.substring(0, 500)}...`,
-      );
+
     }
 
     try {
@@ -74,12 +64,8 @@ export class IntentRecognitionService implements IIntentRecognitionService {
         delegationContext,
       );
 
-      this.logger.log(
-        `Intent classified as: ${classification.action} (confidence: ${classification.confidence})`,
-      );
       return classification;
     } catch (error) {
-      this.logger.error('Intent classification failed:', error);
 
       // Fallback to safe conversation mode
       return {
@@ -238,12 +224,6 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     const userMessage = this.buildUserAnalysisMessage(input, context);
 
     try {
-      this.logger.log(
-        `🔍 DEBUG - About to call LLM with system prompt containing: ${systemPrompt.substring(0, 300)}...`,
-      );
-      this.logger.log(
-        `🔍 DEBUG - User message: ${userMessage.substring(0, 500)}...`,
-      );
 
       const response = await this.llmService.generateResponse(
         systemPrompt,
@@ -255,19 +235,9 @@ export class IntentRecognitionService implements IIntentRecognitionService {
         },
       );
 
-      this.logger.log(
-        `🔍 DEBUG - LLM response received: ${response.substring(0, 500)}...`,
-      );
-      this.logger.debug(
-        `Intent classification request: ${userMessage.substring(0, 200)}...`,
-      );
-      this.logger.debug(
-        `Intent classification response: ${response.substring(0, 300)}...`,
-      );
-
       return this.parseIntentResponse(response);
     } catch (error) {
-      this.logger.error('LLM intent classification failed:', error);
+
       throw new Error(
         `LLM classification failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -284,9 +254,7 @@ export class IntentRecognitionService implements IIntentRecognitionService {
     // Extract available agents from delegation context
     let availableAgents: string[] = [];
     if (delegationContext) {
-      this.logger.log(
-        `🔍 Delegation context received: ${delegationContext.substring(0, 200)}...`,
-      );
+
       // Parse delegation context to extract agent names
       // Look for lines starting with agent_name: (new simple format)
       const lines = delegationContext.split('\n');
@@ -297,7 +265,6 @@ export class IntentRecognitionService implements IIntentRecognitionService {
           !line.includes('Authority') &&
           !line.includes('Role'),
       );
-      this.logger.log(`🔍 Agent lines found: ${JSON.stringify(agentLines)}`);
 
       if (agentLines.length > 0) {
         availableAgents = agentLines
@@ -307,11 +274,9 @@ export class IntentRecognitionService implements IIntentRecognitionService {
           })
           .filter((name): name is string => name !== null);
       }
-      this.logger.log(`🔍 Extracted agents: ${availableAgents.join(', ')}`);
+
     } else {
-      this.logger.warn(
-        '🔍 No delegation context provided to intent recognition',
-      );
+
     }
 
     return `You are an enterprise orchestrator intent classifier. Your PRIMARY job is to identify task requests and DELEGATE them to specialist agents.
@@ -419,10 +384,7 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
       const cleanedResponse = response.replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
       const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        this.logger.warn(
-          'No JSON found in LLM response, trying full response as JSON',
-        );
-        this.logger.debug(`Response content: ${response.substring(0, 500)}...`);
+
         throw new Error('No JSON found in response');
       }
 
@@ -460,8 +422,6 @@ ${input.delegationContext.substring(0, 300)}${input.delegationContext.length > 3
         subprojectScope: parsed.subprojectScope,
       };
     } catch (error) {
-      this.logger.error('Failed to parse intent response:', error);
-      this.logger.debug('Raw response:', response);
 
       // Return safe fallback
       return {

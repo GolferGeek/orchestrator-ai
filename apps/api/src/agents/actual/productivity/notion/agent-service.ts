@@ -43,7 +43,6 @@ export class NotionAgentService extends FunctionAgentBaseService {
       await this.updateProgress(1, 'Analyzing Notion request...');
 
       const userMessage = params.userMessage || '';
-      this.logger.log(`Processing Notion request: "${userMessage}"`);
 
       if (!this.langchainNotion) {
         throw new Error('LangChain Notion service not available');
@@ -56,7 +55,7 @@ export class NotionAgentService extends FunctionAgentBaseService {
 
       return await this.handleNotionRequest(userMessage, params);
     } catch (error) {
-      this.logger.error('Error in Notion agent execution:', error);
+
       await this.updateProgress(4, 'Processing failed', 'error');
 
       return {
@@ -168,7 +167,7 @@ export class NotionAgentService extends FunctionAgentBaseService {
         },
       };
     } catch (error) {
-      this.logger.error('Notion request processing failed:', error);
+
       throw error;
     }
   }
@@ -267,6 +266,6 @@ export class NotionAgentService extends FunctionAgentBaseService {
     status: 'in_progress' | 'completed' | 'error' = 'in_progress',
   ): Promise<void> {
     // TaskProgressGateway.emitProgress method not available - progress updates disabled
-    this.logger.debug(`Progress: Step ${step}/4 - ${message} (${status})`);
+
   }
 }

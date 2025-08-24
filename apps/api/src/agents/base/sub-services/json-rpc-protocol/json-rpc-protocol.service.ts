@@ -81,10 +81,6 @@ export class JsonRpcProtocolService {
     notificationHandler?: JsonRpcNotificationHandler,
     options: JsonRpcProcessingOptions = {},
   ): Promise<JsonRpcResponse | JsonRpcResponse[] | null> {
-    this.logger.debug('Processing JSON-RPC request', {
-      isBatch: Array.isArray(request),
-      method: Array.isArray(request) ? 'batch' : request?.method,
-    });
 
     // Handle batch requests
     if (Array.isArray(request)) {
@@ -139,10 +135,7 @@ export class JsonRpcProtocolService {
         try {
           await notificationHandler(jsonRpcRequest as JsonRpcNotification);
         } catch (error) {
-          this.logger.error('Notification handler error', {
-            method: jsonRpcRequest.method,
-            error: (error as Error).message,
-          });
+
         }
       }
       return null;
@@ -176,9 +169,6 @@ export class JsonRpcProtocolService {
     notificationHandler?: JsonRpcNotificationHandler,
     options: JsonRpcProcessingOptions = {},
   ): Promise<JsonRpcResponse[]> {
-    this.logger.debug('Processing batch request', {
-      count: batchRequest.length,
-    });
 
     // Validate batch size
     if (batchRequest.length === 0) {
@@ -336,8 +326,6 @@ export class JsonRpcProtocolService {
     id: string | number | null,
   ): JsonRpcResponse {
     const errorMessage = error instanceof Error ? error.message : String(error);
-
-    this.logger.error('Method execution error', { error: errorMessage, id });
 
     // Map specific error types to JSON-RPC error codes
     if (

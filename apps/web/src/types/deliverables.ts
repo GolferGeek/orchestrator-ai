@@ -11,10 +11,8 @@ export {
   type DeliverableSearchResult,
   type DeliverableSearchResponse
 } from '@/services/deliverablesService';
-
 // Import types for use in interfaces
 import type { Deliverable, DeliverableVersion } from '@/services/deliverablesService';
-
 // Additional frontend-specific types
 export interface DeliverableUIState {
   isViewing: boolean;
@@ -26,7 +24,6 @@ export interface DeliverableUIState {
   compareVersion?: DeliverableVersion;
   isCreatingVersion: boolean;
 }
-
 export interface DeliverableAction {
   id: string;
   label: string;
@@ -35,7 +32,6 @@ export interface DeliverableAction {
   disabled?: boolean;
   destructive?: boolean;
 }
-
 export interface ConversationDeliverableContext {
   conversationId: string;
   taskId?: string;
@@ -43,7 +39,6 @@ export interface ConversationDeliverableContext {
   canEnhance: boolean;
   enhancementSource?: string;
 }
-
 export interface VersionHistoryItem {
   version: DeliverableVersion;
   isActive: boolean;
@@ -51,7 +46,6 @@ export interface VersionHistoryItem {
   canRevert: boolean;
   canDelete: boolean;
 }
-
 // Agent response interfaces that include deliverable information
 export interface AgentResponseWithDeliverable {
   success: boolean;
@@ -65,7 +59,6 @@ export interface AgentResponseWithDeliverable {
     [key: string]: any;
   };
 }
-
 // Task request interfaces that include deliverable context
 export interface TaskRequestWithDeliverable {
   method: string;
@@ -80,6 +73,5 @@ export interface TaskRequestWithDeliverable {
   conversationHistory?: any[];
   [key: string]: any;
 }
-
 // Legacy type aliases for backward compatibility
 export type DeliverableSearchItem = DeliverableSearchResult;

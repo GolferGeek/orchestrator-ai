@@ -9,19 +9,16 @@ import {
   type CreateVersionDto,
   type DeliverableFilters 
 } from '@/services/deliverablesService';
-
 /**
  * Composable for deliverable management with chat integration
  * Provides a convenient interface for working with deliverables in components
  */
 export function useDeliverables() {
   const store = useDeliverablesStore();
-
   // UI state
   const showDeliverableModal = ref(false);
   const selectedDeliverable = ref<Deliverable | null>(null);
   const isCreatingDeliverable = ref(false);
-
   // Computed properties
   const hasDeliverables = computed(() => store.hasDeliverables);
   const recentDeliverables = computed(() => store.recentDeliverables);
@@ -30,16 +27,13 @@ export function useDeliverables() {
   const deliverablesByType = computed(() => store.deliverables);
   const isEnhancing = computed(() => false); // Enhancement context disabled for now
   const enhancementSource = computed(() => null as string | null);
-
   // Actions
-
   /**
    * Initialize deliverables (load recent deliverables)
    */
   async function initialize(): Promise<void> {
     await store.loadDeliverables();
   }
-
   /**
    * Process agent response for deliverable information
    * Call this when agents return responses with deliverable IDs
@@ -52,14 +46,11 @@ export function useDeliverables() {
     if (!response || typeof response !== 'object') {
       return;
     }
-
     // Check if response contains deliverable ID
     if (response.deliverableId) {
       // Process agent deliverable - simplified for now
-      console.log('Processing agent deliverable:', response.deliverableId);
     }
   }
-
   /**
    * Prepare enhancement context for agent request
    * Call this before sending enhancement requests to agents
@@ -74,15 +65,12 @@ export function useDeliverables() {
     const existingDeliverable = messageId 
       ? conversationDeliverables.find(d => d.currentVersion?.metadata?.messageId === messageId)
       : conversationDeliverables[0];
-    
     if (existingDeliverable) {
       store.startEnhancement(existingDeliverable.id);
       return { deliverableId: existingDeliverable.id };
     }
-
     return {};
   }
-
   /**
    * Get enhancement parameters for agent requests
    * Returns parameters to include in agent task requests
@@ -97,7 +85,6 @@ export function useDeliverables() {
     // }
     return {};
   }
-
   /**
    * Create a new deliverable manually
    */
@@ -133,12 +120,10 @@ export function useDeliverables() {
         ...options.metadata
       }
     };
-
     // Create via store which handles service calls
     const newDeliverable = await store.createDeliverable(data);
     return newDeliverable;
   }
-
   /**
    * Enhance an existing deliverable
    */
@@ -162,18 +147,14 @@ export function useDeliverables() {
         ...options.metadata
       }
     };
-    
     return await store.createVersion(sourceId, versionData);
   }
-
   /**
    * Search deliverables
    */
   async function search(query: string, filters?: DeliverableFilters): Promise<void> {
     // Search functionality to be implemented
-    console.log('Search deliverables:', query, filters);
   }
-
   /**
    * Get deliverables for a conversation
    */
@@ -197,17 +178,14 @@ export function useDeliverables() {
       versionId: d.currentVersion?.id
     } as DeliverableSearchResult));
   }
-
   /**
    * Show deliverable in modal
    */
   function showDeliverable(deliverable: Deliverable): void {
     selectedDeliverable.value = deliverable;
     // Set current deliverable - to be implemented
-    console.log('Setting current deliverable:', deliverable);
     showDeliverableModal.value = true;
   }
-
   /**
    * Hide deliverable modal
    */
@@ -215,9 +193,7 @@ export function useDeliverables() {
     showDeliverableModal.value = false;
     selectedDeliverable.value = null;
     // Clear current deliverable
-    console.log('Clearing current deliverable');
   }
-
   /**
    * Start creating a new deliverable
    */
@@ -225,7 +201,6 @@ export function useDeliverables() {
     isCreatingDeliverable.value = true;
     showDeliverableModal.value = true;
   }
-
   /**
    * Cancel creating deliverable
    */
@@ -233,7 +208,6 @@ export function useDeliverables() {
     isCreatingDeliverable.value = false;
     showDeliverableModal.value = false;
   }
-
   /**
    * Delete a deliverable with confirmation
    */
@@ -246,13 +220,12 @@ export function useDeliverables() {
         }
         return true;
       } catch (error) {
-        console.error('Failed to delete deliverable:', error);
+
         return false;
       }
     }
     return false;
   }
-
   /**
    * Get display icon for deliverable type
    */
@@ -266,7 +239,6 @@ export function useDeliverables() {
     };
     return icons[type] || '📄';
   }
-
   /**
    * Get display name for deliverable type
    */
@@ -280,7 +252,6 @@ export function useDeliverables() {
     };
     return names[type] || 'Document';
   }
-
   /**
    * Format deliverable date for display
    */
@@ -289,7 +260,6 @@ export function useDeliverables() {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
     if (diffDays === 0) {
       return 'Today';
     } else if (diffDays === 1) {
@@ -300,20 +270,17 @@ export function useDeliverables() {
       return date.toLocaleDateString();
     }
   }
-
   /**
    * Get versions for a deliverable
    */
   async function getVersions(deliverableId: string) {
     return await store.getDeliverableVersions(deliverableId);
   }
-
   return {
     // State
     showDeliverableModal,
     selectedDeliverable,
     isCreatingDeliverable,
-
     // Computed
     hasDeliverables,
     recentDeliverables,
@@ -322,7 +289,6 @@ export function useDeliverables() {
     deliverablesByType,
     isEnhancing,
     enhancementSource,
-
     // Actions
     initialize,
     processAgentResponse,
@@ -338,12 +304,10 @@ export function useDeliverables() {
     cancelCreating,
     deleteDeliverable,
     getVersions,
-
     // Utilities
     getTypeIcon,
     getTypeName,
     formatDate,
-
     // Store access (for advanced usage)
     store
   };

@@ -1,7 +1,6 @@
 import { BaseApiClient } from './baseApiClient';
 import { ApiEndpoint } from '../../types/api';
 import { TaskResponse, AgentInfo } from '../../types/chat';
-
 interface JsonRpcResponse {
   jsonrpc: '2.0';
   result?: any;
@@ -12,12 +11,10 @@ interface JsonRpcResponse {
   };
   id: string | number | null;
 }
-
 export class ApiClient extends BaseApiClient {
   constructor(endpoint: ApiEndpoint) {
     super(endpoint);
   }
-
   async postTaskToOrchestrator(
     userInputText: string, 
     sessionId?: string | null,
@@ -26,7 +23,6 @@ export class ApiClient extends BaseApiClient {
     try {
       // Get the current auth token from localStorage to pass to orchestrator
       const authToken = localStorage.getItem('authToken');
-      
       // Get current user information for proper database RLS
       let currentUser = null;
       if (authToken) {
@@ -42,7 +38,6 @@ export class ApiClient extends BaseApiClient {
           // Failed to fetch current user for orchestrator
         }
       }
-      
       // NestJS JSON-RPC 2.0 format
       const requestPayload = {
         jsonrpc: '2.0',
@@ -56,22 +51,17 @@ export class ApiClient extends BaseApiClient {
         },
         id: Date.now() // Use timestamp as unique ID
       };
-
       const response = await this.axiosInstance.post<JsonRpcResponse>(
         '/agents/orchestrator/orchestrator/tasks', 
         requestPayload
       );
-      
       // Extract the result field and convert to TaskResponse
       const jsonRpcResponse = response.data;
-      
       if (jsonRpcResponse.error) {
         throw new Error(`JSON-RPC Error ${jsonRpcResponse.error.code}: ${jsonRpcResponse.error.message}`);
       }
-
       if (jsonRpcResponse.result) {
         const result = jsonRpcResponse.result;
-        
         // Extract agent name from various possible metadata fields
         let respondingAgentName = 'Orchestrator Agent'; // default
         if (result.metadata) {
@@ -82,7 +72,6 @@ export class ApiClient extends BaseApiClient {
                               result.metadata.respondingAgentName ||
                               'Orchestrator Agent';
         }
-
         return {
           id: jsonRpcResponse.id?.toString() || Date.now().toString(),
           status: {
@@ -111,13 +100,11 @@ export class ApiClient extends BaseApiClient {
           session_id: sessionId || null
         };
       }
-      
       throw new Error('No result received from orchestrator');
     } catch (error) {
       throw error; // Re-throw as it's already processed by the interceptor
     }
   }
-
   async getAvailableAgents(): Promise<AgentInfo[]> {
     try {
       const response = await this.axiosInstance.get<{ agents: AgentInfo[] }>('/agents');
@@ -126,7 +113,6 @@ export class ApiClient extends BaseApiClient {
       throw error; // Re-throw as it's already processed by the interceptor
     }
   }
-
   // V1-specific methods can be added here
   async getAgentDetails(agentId: string): Promise<AgentInfo> {
     try {
@@ -136,7 +122,6 @@ export class ApiClient extends BaseApiClient {
       throw error;
     }
   }
-
   async getTaskHistory(sessionId: string): Promise<TaskResponse[]> {
     try {
       const response = await this.axiosInstance.get<TaskResponse[]>(`/sessions/${sessionId}/tasks`);

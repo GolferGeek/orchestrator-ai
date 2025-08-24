@@ -23,21 +23,15 @@ export class ContextLoaderService {
       const contextPath = path.join(agentDirectory, 'context.md');
 
       if (!fs.existsSync(contextPath)) {
-        this.logger.warn(`No context.md found at: ${contextPath}`);
+
         return null;
       }
 
       const rawContent = fs.readFileSync(contextPath, 'utf8');
-      this.logger.debug(
-        `Loaded context.md content length: ${rawContent.length}`,
-      );
 
       return this.parseContextContent(rawContent);
     } catch (error) {
-      this.logger.error(
-        `Failed to load context.md from ${agentDirectory}:`,
-        error,
-      );
+
       return null;
     }
   }

@@ -44,14 +44,13 @@ export class AgentDiscoveryService {
   private hierarchyCache: Map<string, AgentHierarchy> = new Map();
 
   constructor() {
-    this.logger.log('🔍 AgentDiscoveryService initialized');
+
   }
 
   /**
    * Discover all agent services in the file system
    */
   async discoverAgents(): Promise<DiscoveredAgent[]> {
-    this.logger.log('🔍 Starting agent discovery...');
 
     // Handle both monorepo (apps/api/src) and standalone (src) structures
     const agentsBasePath = process.cwd().includes('/apps/api')
@@ -68,7 +67,6 @@ export class AgentDiscoveryService {
     await this.loadAgentConfigurations();
     this.buildAgentHierarchy();
 
-    this.logger.log(`✅ Discovered ${this.discoveredAgents.length} agents`);
     return this.discoveredAgents;
   }
 
@@ -78,7 +76,7 @@ export class AgentDiscoveryService {
   private async traverseDirectory(dirPath: string): Promise<void> {
     try {
       if (!fs.existsSync(dirPath)) {
-        this.logger.warn(`Directory does not exist: ${dirPath}`);
+
         return;
       }
 
@@ -95,9 +93,7 @@ export class AgentDiscoveryService {
             process.env.ENABLE_EXTERNAL_AGENTS !== 'false';
 
           if (isExternalDir && !enableExternalAgents) {
-            this.logger.log(
-              `⏭️  Skipping external agents directory (ENABLE_EXTERNAL_AGENTS=false)`,
-            );
+
             continue;
           }
 
@@ -109,10 +105,7 @@ export class AgentDiscoveryService {
         }
       }
     } catch (error: any) {
-      this.logger.error(
-        `Error traversing directory ${dirPath}:`,
-        error.message,
-      );
+
     }
   }
 
@@ -121,7 +114,6 @@ export class AgentDiscoveryService {
    */
   private processAgentService(servicePath: string): void {
     try {
-      this.logger.debug(`📁 Processing agent service: ${servicePath}`);
 
       // Extract agent information from path
       const pathParts = servicePath.split('/');
@@ -154,20 +146,15 @@ export class AgentDiscoveryService {
           };
 
           this.discoveredAgents.push(agent);
-          this.logger.log(`📁 Found agent: ${agentPath} at ${servicePath}`);
+
         } else {
-          this.logger.warn(
-            `Could not parse agent path structure from: ${servicePath}`,
-          );
+
         }
       } else {
-        this.logger.warn(`Invalid agent path structure: ${servicePath}`);
+
       }
     } catch (error: any) {
-      this.logger.error(
-        `❌ Error processing agent service ${servicePath}:`,
-        error,
-      );
+
     }
   }
 
@@ -175,7 +162,6 @@ export class AgentDiscoveryService {
    * Discover agent functions (TypeScript and Python)
    */
   private discoverAgentFunctions(): void {
-    this.logger.debug('🔍 Discovering agent functions...');
 
     for (const agent of this.discoveredAgents) {
       try {
@@ -188,32 +174,24 @@ export class AgentDiscoveryService {
         const functionPath = join(agentDirectory, 'agent-function.ts');
         if (fs.existsSync(functionPath)) {
           agent.functionPath = functionPath;
-          this.logger.debug(
-            `📄 Found TypeScript function for ${agent.name}: ${functionPath}`,
-          );
+
         }
 
         // Look for Python function
         const pythonFunctionPath = join(agentDirectory, 'agent-function.py');
         if (fs.existsSync(pythonFunctionPath)) {
           agent.pythonFunctionPath = pythonFunctionPath;
-          this.logger.debug(
-            `🐍 Found Python function for ${agent.name}: ${pythonFunctionPath}`,
-          );
+
         }
       } catch (error: any) {
-        this.logger.warn(
-          `⚠️ Could not discover functions for ${agent.name}: ${error.message}`,
-        );
+
       }
     }
 
     const withFunctions = this.discoveredAgents.filter(
       (a) => a.functionPath || a.pythonFunctionPath,
     );
-    this.logger.log(
-      `📄 Discovered ${withFunctions.length} agents with function files`,
-    );
+
   }
 
   /**
@@ -227,7 +205,6 @@ export class AgentDiscoveryService {
    * Load agent configurations and parse metadata
    */
   private async loadAgentConfigurations(): Promise<void> {
-    this.logger.debug('🔍 Loading agent configurations...');
 
     for (const agent of this.discoveredAgents) {
       try {
@@ -295,13 +272,8 @@ export class AgentDiscoveryService {
               version: metadata.version,
             };
 
-            this.logger.debug(
-              `📄 Loaded config for ${agent.name}: ${configPath}`,
-            );
           } catch (configError) {
-            this.logger.warn(
-              `⚠️ Failed to parse config for ${agent.name}: ${configError instanceof Error ? configError.message : 'Unknown error'}`,
-            );
+
           }
         } else {
           // Set default metadata
@@ -311,23 +283,18 @@ export class AgentDiscoveryService {
           };
         }
       } catch (error) {
-        this.logger.warn(
-          `⚠️ Could not load config for ${agent.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
+
       }
     }
 
     const withConfigs = this.discoveredAgents.filter((a) => a.configPath);
-    this.logger.log(
-      `📄 Loaded configurations for ${withConfigs.length} agents`,
-    );
+
   }
 
   /**
    * Build agent hierarchy from discovered agents
    */
   private buildAgentHierarchy(): void {
-    this.logger.debug('🏗️ Building agent hierarchy...');
 
     // Clear previous hierarchy
     this.agentHierarchy = [];
@@ -368,11 +335,9 @@ export class AgentDiscoveryService {
 
         if (parentNode) {
           parentNode.children.push(node);
-          this.logger.debug(`📊 ${node.name} reports to ${parentNode.name}`);
+
         } else {
-          this.logger.warn(
-            `⚠️ Parent not found for ${agent.name} (reportsTo: ${agent.reportsTo})`,
-          );
+
           rootNodes.push(node);
         }
       } else {
@@ -401,9 +366,6 @@ export class AgentDiscoveryService {
     sortHierarchy(rootNodes);
     this.agentHierarchy = rootNodes;
 
-    this.logger.log(
-      `🏗️ Built hierarchy with ${rootNodes.length} root nodes and ${this.discoveredAgents.length} total agents`,
-    );
   }
 
   /**

@@ -1848,7 +1848,7 @@ export class EvaluationService {
       .in('id', userIds);
 
     if (error) {
-      console.warn('Failed to fetch users for admin evaluations:', error);
+
       return new Map();
     }
 
@@ -1872,7 +1872,7 @@ export class EvaluationService {
       .in('id', providerIds);
 
     if (error) {
-      console.warn('Failed to fetch providers for admin evaluations:', error);
+
       return new Map();
     }
 
@@ -1895,7 +1895,7 @@ export class EvaluationService {
       .in('id', modelIds);
 
     if (error) {
-      console.warn('Failed to fetch models for admin evaluations:', error);
+
       return new Map();
     }
 

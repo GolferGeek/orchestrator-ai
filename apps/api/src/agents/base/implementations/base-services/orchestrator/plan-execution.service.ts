@@ -38,15 +38,10 @@ export class PlanExecutionService implements IPlanExecutionService {
     @Inject('ILangGraphStateManagementService')
     private readonly stateManagementService: ILangGraphStateManagementService,
   ) {
-    this.logger.log(
-      'PlanExecutionService initialized with LangGraph StateGraph integration',
-    );
+
   }
 
   async startProject(project: Project): Promise<void> {
-    this.logger.log(
-      `Starting project execution with LangGraph StateGraph: ${project.id}`,
-    );
 
     try {
       // Validate project has a plan
@@ -57,7 +52,7 @@ export class PlanExecutionService implements IPlanExecutionService {
       }
 
       // Initialize LangGraph state with 3-tier architecture
-      this.logger.log(`Initializing LangGraph state for project ${project.id}`);
+
       const orchestratorInput: OrchestratorInput = {
         prompt: `Execute project: ${project.name}`,
         userId: project.metadata.createdBy || 'system',
@@ -89,11 +84,7 @@ export class PlanExecutionService implements IPlanExecutionService {
         orchestratorInput,
       );
 
-      this.logger.log(
-        `Project ${project.id} execution started successfully with StateGraph`,
-      );
     } catch (error) {
-      this.logger.error(`Failed to start project ${project.id}:`, error);
 
       // Update project status to error
       await this.updateProjectStatus(project.id, 'paused_on_error', {
@@ -106,7 +97,6 @@ export class PlanExecutionService implements IPlanExecutionService {
   }
 
   async resumeProject(projectId: string): Promise<void> {
-    this.logger.log(`Resuming project execution with StateGraph: ${projectId}`);
 
     try {
       // Load project and steps
@@ -141,19 +131,13 @@ export class PlanExecutionService implements IPlanExecutionService {
         orchestratorInput,
       );
 
-      this.logger.log(
-        `Project ${projectId} resumed successfully with StateGraph`,
-      );
     } catch (error) {
-      this.logger.error(`Failed to resume project ${projectId}:`, error);
+
       throw error;
     }
   }
 
   async retryStep(projectId: string, stepId: string): Promise<void> {
-    this.logger.log(
-      `Retrying step ${stepId} in project ${projectId} with StateGraph`,
-    );
 
     try {
       // Reset step status to pending
@@ -189,15 +173,13 @@ export class PlanExecutionService implements IPlanExecutionService {
         orchestratorInput,
       );
 
-      this.logger.log(`Step ${stepId} retry completed with StateGraph`);
     } catch (error) {
-      this.logger.error(`Failed to retry step ${stepId}:`, error);
+
       throw error;
     }
   }
 
   async abortProject(projectId: string): Promise<void> {
-    this.logger.log(`Aborting project: ${projectId}`);
 
     try {
       // Update project status to aborted
@@ -209,9 +191,8 @@ export class PlanExecutionService implements IPlanExecutionService {
       // Mark any running/pending steps as skipped
       await this.abortAllProjectSteps(projectId);
 
-      this.logger.log(`Project ${projectId} aborted successfully`);
     } catch (error) {
-      this.logger.error(`Failed to abort project ${projectId}:`, error);
+
       throw error;
     }
   }
@@ -260,14 +241,12 @@ export class PlanExecutionService implements IPlanExecutionService {
         step.status === 'pending' && this.areDependenciesCompleted(step, steps),
     );
 
-    this.logger.log(`Found ${readySteps.length} ready steps to execute`);
-
     // Execute ready steps (could be done in parallel for independent steps)
     for (const step of readySteps) {
       try {
         await this.executeStep(projectId, step);
       } catch (error) {
-        this.logger.error(`Step ${step.stepId} execution failed:`, error);
+
         // Continue with other steps, handle error appropriately
         await this.updateStepStatus(projectId, step.stepId, 'failed', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -295,16 +274,9 @@ export class PlanExecutionService implements IPlanExecutionService {
         step.status === 'pending' && this.areDependenciesCompleted(step, steps),
     );
 
-    this.logger.log(
-      `Found ${readySteps.length} ready steps to execute with StateGraph`,
-    );
-
     // Execute ready steps through StateGraph workflow
     for (const step of readySteps) {
       try {
-        this.logger.log(
-          `Executing step ${step.stepId} through StateGraph: ${step.stepName}`,
-        );
 
         // Execute step through StateGraph state management
         await this.stateManagementService.executeWorkflowStep(
@@ -323,14 +295,7 @@ export class PlanExecutionService implements IPlanExecutionService {
           },
         );
 
-        this.logger.log(
-          `Step ${step.stepId} executed successfully through StateGraph`,
-        );
       } catch (error) {
-        this.logger.error(
-          `Step ${step.stepId} execution failed through StateGraph:`,
-          error,
-        );
 
         // Handle workflow interrupts for error recovery
         await this.stateManagementService.handleWorkflowInterrupt(
@@ -369,7 +334,6 @@ export class PlanExecutionService implements IPlanExecutionService {
   }
 
   private async executeStep(projectId: string, step: any): Promise<void> {
-    this.logger.log(`Executing step ${step.stepId}: ${step.stepName}`);
 
     // Update step status to running
     await this.updateStepStatus(projectId, step.stepId, 'running', {
@@ -419,9 +383,6 @@ export class PlanExecutionService implements IPlanExecutionService {
           },
         );
 
-        this.logger.log(
-          `Project ${projectId} paused for human approval on step ${step.stepId}`,
-        );
         return; // Don't mark as completed, wait for approval
       }
 
@@ -431,7 +392,6 @@ export class PlanExecutionService implements IPlanExecutionService {
         result: result,
       });
 
-      this.logger.log(`Step ${step.stepId} completed successfully`);
     } catch (error) {
       await this.updateStepStatus(projectId, step.stepId, 'failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -457,7 +417,7 @@ export class PlanExecutionService implements IPlanExecutionService {
       await this.updateProjectStatus(projectId, 'completed', {
         completedAt: new Date().toISOString(),
       });
-      this.logger.log(`Project ${projectId} completed successfully`);
+
     }
   }
 

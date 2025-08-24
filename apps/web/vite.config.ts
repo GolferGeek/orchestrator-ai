@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   // Load env file based on mode - try project root first, then current directory
   const env = loadEnv(mode, '../../', '') || loadEnv(mode, '.', '') || {}
   
-  console.log('Vite config - mode:', mode)
+
   
   // Set HMR environment variables based on mode
   if (mode === 'production') {

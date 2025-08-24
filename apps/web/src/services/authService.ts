@@ -1,5 +1,4 @@
 import { apiService } from './apiService';
-
 // Define BackendErrorDetail interface here since it's no longer exported from apiService
 interface BackendErrorDetail {
   message: string;
@@ -7,17 +6,14 @@ interface BackendErrorDetail {
   field?: string;
 }
 import { AxiosError } from 'axios';
-
 interface UserCredentials {
   email: string;
   password: string;
 }
-
 interface SignupData extends UserCredentials {
   displayName?: string;
   // Add any other signup-specific fields here
 }
-
 export interface AuthResponse {
   accessToken: string;
   refreshToken?: string;
@@ -26,10 +22,8 @@ export interface AuthResponse {
   // You might also want to include basic user info here if your API returns it
   // user?: { id: string; email: string; displayName?: string };
 }
-
 const AUTH_TOKEN_KEY = 'authToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
-
 export const authService = {
   async login(credentials: UserCredentials): Promise<AuthResponse> {
     try {
@@ -39,10 +33,8 @@ export const authService = {
         if (responseData.refreshToken) {
             localStorage.setItem(REFRESH_TOKEN_KEY, responseData.refreshToken);
         }
-        
         // Set auth token on API service
         apiService.setAuthToken(responseData.accessToken);
-        
       } else {
         throw new Error('Login completed but no token was provided by the server.');
       }
@@ -58,7 +50,6 @@ export const authService = {
       throw new Error(errorMessage);
     }
   },
-
   async signup(data: SignupData): Promise<AuthResponse> {
     try {
       const responseData = await apiService.signup(data);
@@ -67,10 +58,8 @@ export const authService = {
         if (responseData.refreshToken) {
             localStorage.setItem(REFRESH_TOKEN_KEY, responseData.refreshToken);
         }
-        
         // Set auth token on API service
         apiService.setAuthToken(responseData.accessToken);
-        
       } else {
         throw new Error('Signup completed but no token was provided by the server.');
       }
@@ -91,45 +80,35 @@ export const authService = {
       throw new Error(errorMessage);
     }
   },
-
   logout(): void {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
-    
     // Clear auth from API service
     apiService.clearAuth();
-    
     // Optional: Call backend /auth/logout endpoint. If so, make this async.
     // apiService.post('/auth/logout').catch(err => /* Backend logout call failed */);
   },
-
   getToken(): string | null {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     return token;
   },
-
   getRefreshToken(): string | null {
     return localStorage.getItem(REFRESH_TOKEN_KEY);
   },
-
   async refreshToken(): Promise<AuthResponse> {
     try {
       const refreshToken = this.getRefreshToken();
       if (!refreshToken) {
         throw new Error('No refresh token available');
       }
-
       const responseData = await apiService.refreshToken(refreshToken);
-      
       if (responseData.accessToken) {
         localStorage.setItem(AUTH_TOKEN_KEY, responseData.accessToken);
         if (responseData.refreshToken) {
           localStorage.setItem(REFRESH_TOKEN_KEY, responseData.refreshToken);
         }
-        
         // Set auth token on API service
         apiService.setAuthToken(responseData.accessToken);
-        
         return responseData;
       } else {
         throw new Error('Token refresh completed but no new token was provided by the server.');
@@ -140,16 +119,13 @@ export const authService = {
       throw error;
     }
   },
-
   initializeAuthHeader(): void {
     const token = this.getToken();
     if (token) {
       // Set on API service
       apiService.setAuthToken(token);
-      
     } else {
     }
   }
 };
-
 authService.initializeAuthHeader(); 

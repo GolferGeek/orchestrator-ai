@@ -10,10 +10,8 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    
     <ion-content class="ion-padding">
       <div class="metadata-container" v-if="taskData">
-        
         <!-- Task Information Section -->
         <div class="metadata-section">
           <h3>Task Information</h3>
@@ -44,7 +42,6 @@
             </div>
           </div>
         </div>
-
         <!-- Agent Information Section -->
         <div class="metadata-section" v-if="hasAgentInfo">
           <h3>Agent Information</h3>
@@ -75,7 +72,6 @@
             </div>
           </div>
         </div>
-
         <!-- LLM Information Section -->
         <div class="metadata-section" v-if="hasLLMInfo">
           <h3>LLM Information</h3>
@@ -106,7 +102,6 @@
             </div>
           </div>
         </div>
-
         <!-- CIDAFM Information Section -->
         <div class="metadata-section" v-if="hasCIDAFMInfo">
           <h3>CIDAFM (Behavior Modification)</h3>
@@ -125,7 +120,6 @@
             </div>
           </div>
         </div>
-
         <!-- Token Usage Section -->
         <div class="metadata-section" v-if="hasUsageInfo">
           <h3>Token Usage</h3>
@@ -144,7 +138,6 @@
             </div>
           </div>
         </div>
-
         <!-- Cost Information Section -->
         <div class="metadata-section" v-if="hasCostInfo">
           <h3>Cost Information</h3>
@@ -167,7 +160,6 @@
             </div>
           </div>
         </div>
-
         <!-- Task Evaluation Section -->
         <div class="metadata-section" v-if="hasEvaluationInfo">
           <h3>Task Evaluation</h3>
@@ -194,7 +186,6 @@
             </div>
           </div>
         </div>
-
         <!-- Timing Information Section -->
         <div class="metadata-section" v-if="hasTimingInfo">
           <h3>Timing Information</h3>
@@ -221,7 +212,6 @@
             </div>
           </div>
         </div>
-
         <!-- Error Information Section -->
         <div class="metadata-section" v-if="hasErrorInfo">
           <h3>Error Information</h3>
@@ -236,7 +226,6 @@
             </div>
           </div>
         </div>
-
         <!-- Task Parameters Section -->
         <div class="metadata-section" v-if="taskData.params">
           <h3>Task Parameters</h3>
@@ -244,7 +233,6 @@
             <pre>{{ JSON.stringify(taskData.params, null, 2) }}</pre>
           </div>
         </div>
-
         <!-- Raw Task Data Section (for debugging) -->
         <div class="metadata-section">
           <h3>Raw Task Data (Debug)</h3>
@@ -252,9 +240,7 @@
             <pre>{{ JSON.stringify(taskData, null, 2) }}</pre>
           </div>
         </div>
-
       </div>
-      
       <!-- Loading State -->
       <div v-else class="loading-container">
         <ion-spinner></ion-spinner>
@@ -263,7 +249,6 @@
     </ion-content>
   </ion-modal>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import {
@@ -280,57 +265,44 @@ import {
 import { closeOutline } from 'ionicons/icons';
 import { tasksService } from '../services/tasksService';
 import { useLLMStore } from '../stores/llmStore';
-
 interface Props {
   isOpen: boolean;
   taskId: string;
 }
-
 const props = defineProps<Props>();
-
 const emit = defineEmits<{
   close: [];
 }>();
-
 const taskData = ref<any>(null);
 const isLoading = ref(false);
 const llmStore = useLLMStore();
-
 const handleClose = () => {
   emit('close');
 };
-
 // Initialize LLM store when component mounts
 onMounted(async () => {
   await llmStore.initialize();
 });
-
 const loadTaskData = async () => {
   if (!props.taskId) return;
-  
   try {
     isLoading.value = true;
-    
     // Ensure LLM store is initialized before loading task data
     if (llmStore.providers.length === 0) {
       await llmStore.initialize();
     }
-    
     taskData.value = await tasksService.getTaskById(props.taskId);
-    
   } catch (error) {
   } finally {
     isLoading.value = false;
   }
 };
-
 // Watch for modal opening - only load data when modal is actually opened
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen && props.taskId) {
     loadTaskData();
   }
 });
-
 const hasAgentInfo = computed(() => {
   return taskData.value?.metadata?.agentName || 
          taskData.value?.metadata?.agentType || 
@@ -339,38 +311,30 @@ const hasAgentInfo = computed(() => {
          taskData.value?.metadata?.delegationReason || 
          taskData.value?.metadata?.confidence;
 });
-
 const hasLLMInfo = computed(() => {
   const hasInfo = taskData.value?.llmMetadata?.originalLLMSelection || taskData.value?.metadata?.llmMetadata?.originalLLMSelection;
   return hasInfo;
 });
-
 const hasCIDAFMInfo = computed(() => {
   const llmMeta = taskData.value?.llmMetadata?.originalLLMSelection || taskData.value?.metadata?.llmMetadata?.originalLLMSelection;
   return llmMeta?.cidafmOptions;
 });
-
 const hasUsageInfo = computed(() => {
   return taskData.value?.responseMetadata?.usage;
 });
-
 const hasCostInfo = computed(() => {
   return taskData.value?.responseMetadata?.costCalculation;
 });
-
 const hasEvaluationInfo = computed(() => {
   const hasInfo = taskData.value?.evaluation;
   return hasInfo;
 });
-
 const hasTimingInfo = computed(() => {
   return taskData.value?.createdAt || taskData.value?.startedAt || taskData.value?.completedAt || taskData.value?.updatedAt;
 });
-
 const hasErrorInfo = computed(() => {
   return taskData.value?.errorCode || taskData.value?.errorMessage;
 });
-
 const getStatusClass = (status: string): string => {
   switch (status) {
     case 'completed':
@@ -385,23 +349,19 @@ const getStatusClass = (status: string): string => {
       return 'status-pending';
   }
 };
-
 const formatCost = (cost: number): string => {
   if (cost < 0.01) {
     return cost.toFixed(6);
   }
   return cost.toFixed(4);
 };
-
 const formatTimestamp = (timestamp: string): string => {
   return new Date(timestamp).toLocaleString();
 };
-
 const calculateExecutionTime = (startTime: string, endTime: string): string => {
   const start = new Date(startTime);
   const end = new Date(endTime);
   const diff = end.getTime() - start.getTime();
-  
   if (diff < 1000) {
     return `${diff}ms`;
   } else if (diff < 60000) {
@@ -410,63 +370,48 @@ const calculateExecutionTime = (startTime: string, endTime: string): string => {
     return `${(diff / 60000).toFixed(1)}min`;
   }
 };
-
 // Helper to get LLM metadata from the correct location
 const getLLMMetadata = () => {
   // The LLM metadata is nested under originalLLMSelection
   const llmMeta = taskData.value?.llmMetadata?.originalLLMSelection || taskData.value?.metadata?.llmMetadata?.originalLLMSelection;
   return llmMeta;
 };
-
 const getLLMProviderName = (): string => {
   const llmMetadata = getLLMMetadata();
   if (!llmMetadata) return '';
-  
   // First try direct name fields
   if (llmMetadata.providerName) return llmMetadata.providerName;
   if (llmMetadata.provider) return llmMetadata.provider;
-  
   // Try to get provider by ID from store
   if (llmMetadata.providerId) {
     const provider = llmStore.getProviderById(llmMetadata.providerId);
     if (provider) return provider.name;
-    
-    
     // If store lookup fails, show ID as fallback
     return `Provider ID: ${llmMetadata.providerId}`;
   }
-  
   return '';
 };
-
 const getLLMModelName = (): string => {
   const llmMetadata = getLLMMetadata();
   if (!llmMetadata) return '';
-  
   // First try direct name fields
   if (llmMetadata.modelName) return llmMetadata.modelName;
   if (llmMetadata.model) return llmMetadata.model;
-  
   // Try to get model by ID from store
   if (llmMetadata.modelId) {
     const model = llmStore.getModelById(llmMetadata.modelId);
     if (model) return model.name;
-    
-    
     // If store lookup fails, show ID as fallback
     return `Model ID: ${llmMetadata.modelId}`;
   }
-  
   return '';
 };
 </script>
-
 <style scoped>
 .metadata-container {
   max-width: 800px;
   margin: 0 auto;
 }
-
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -474,7 +419,6 @@ const getLLMModelName = (): string => {
   gap: 16px;
   padding: 40px;
 }
-
 .metadata-section {
   margin-bottom: 24px;
   padding: 16px;
@@ -482,20 +426,17 @@ const getLLMModelName = (): string => {
   border-radius: 8px;
   border-left: 4px solid var(--ion-color-primary);
 }
-
 .metadata-section h3 {
   margin: 0 0 16px 0;
   color: var(--ion-color-primary);
   font-size: 1.1rem;
   font-weight: 600;
 }
-
 .metadata-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 12px;
 }
-
 .metadata-item {
   display: flex;
   justify-content: space-between;
@@ -505,49 +446,39 @@ const getLLMModelName = (): string => {
   border-radius: 4px;
   border: 1px solid var(--ion-color-light-shade);
 }
-
 .label {
   font-weight: 600;
   color: var(--ion-color-dark);
   margin-right: 8px;
 }
-
 .value {
   font-family: 'Courier New', monospace;
   color: var(--ion-color-medium-shade);
   text-align: right;
   word-break: break-word;
 }
-
 .total-cost {
   font-weight: 700;
   color: var(--ion-color-success);
 }
-
 .error-text {
   color: var(--ion-color-danger);
 }
-
 .status-completed {
   color: var(--ion-color-success);
 }
-
 .status-failed {
   color: var(--ion-color-danger);
 }
-
 .status-cancelled {
   color: var(--ion-color-warning);
 }
-
 .status-running {
   color: var(--ion-color-primary);
 }
-
 .status-pending {
   color: var(--ion-color-medium);
 }
-
 .raw-metadata {
   background: var(--ion-color-dark);
   color: var(--ion-color-light);
@@ -555,44 +486,37 @@ const getLLMModelName = (): string => {
   border-radius: 4px;
   overflow-x: auto;
 }
-
 .raw-metadata pre {
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.4;
   white-space: pre-wrap;
 }
-
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .metadata-section {
     background: var(--ion-color-dark-shade);
     border-left-color: var(--ion-color-primary-tint);
   }
-  
   .metadata-item {
     background: var(--ion-color-dark-tint);
     border-color: var(--ion-color-dark);
   }
-  
   .raw-metadata {
     background: var(--ion-color-step-800);
     color: var(--ion-color-light);
   }
 }
-
 /* Mobile responsive */
 @media (max-width: 768px) {
   .metadata-grid {
     grid-template-columns: 1fr;
   }
-  
   .metadata-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
-  
   .value {
     text-align: left;
   }

@@ -344,9 +344,7 @@ export abstract class A2AAgentBaseService
           }
         }
       } catch (error) {
-        this.logger.debug(
-          `Could not load YAML configuration for ${this.getAgentName()}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
+
       }
     }
 
@@ -408,7 +406,7 @@ export abstract class A2AAgentBaseService
    */
   setDiscoveredPath(path: string): void {
     this.agentPath = path;
-    this.logger.debug(`Agent path set to: ${path}`);
+
   }
 
   // ============================================================================
@@ -480,12 +478,9 @@ export abstract class A2AAgentBaseService
       };
 
       await this.agentRegistrationService.registerAgent(agentInfo);
-      this.logger.log(`Agent ${this.getAgentName()} registered successfully`);
+
     } catch (error) {
-      this.logger.error(
-        `Failed to register agent ${this.getAgentName()}:`,
-        error,
-      );
+
       throw error;
     }
   }
@@ -514,9 +509,7 @@ export abstract class A2AAgentBaseService
     userId: string,
   ): Promise<void> {
     if (!this.taskStatusService) {
-      this.logger.warn(
-        'TaskStatusService not available - task status will not be tracked',
-      );
+
       return;
     }
 
@@ -528,7 +521,6 @@ export abstract class A2AAgentBaseService
       agentType: this.getAgentType(),
     });
 
-    this.logger.debug(`Task ${taskId} created for agent: ${agentIdentifier}`);
   }
 
   /**
@@ -543,9 +535,7 @@ export abstract class A2AAgentBaseService
     additionalData?: Record<string, any>,
   ): Promise<void> {
     if (!this.taskStatusService) {
-      this.logger.warn(
-        'TaskStatusService not available - progress update ignored',
-      );
+
       return;
     }
 
@@ -569,15 +559,13 @@ export abstract class A2AAgentBaseService
     enhanceDeliverableId?: string,
   ): Promise<void> {
     if (!this.taskStatusService) {
-      this.logger.warn(
-        'TaskStatusService not available - task completion not tracked',
-      );
+
       return;
     }
 
     // Auto-persist deliverable if result contains deliverable content
     // This must happen BEFORE marking task complete so we can attach deliverable ID
-    this.logger.debug(`📄 Attempting deliverable creation for task ${taskId}`);
+
     const deliverableId = await this.persistDeliverableIfPresent(
       result,
       userId,
@@ -586,9 +574,9 @@ export abstract class A2AAgentBaseService
     );
 
     if (deliverableId) {
-      this.logger.log(`📄 Deliverable ${deliverableId} created for task ${taskId}`);
+
     } else {
-      this.logger.debug(`📄 No deliverable created for task ${taskId}`);
+
     }
 
     // If deliverable was created, attach ID to the result
@@ -623,9 +611,6 @@ export abstract class A2AAgentBaseService
       );
     }
 
-    this.logger.debug(
-      `Task ${taskId} marked as completed${deliverableId ? ` with deliverable ${deliverableId}` : ''}${enhanceDeliverableId ? ` (enhanced from ${enhanceDeliverableId})` : ''}`,
-    );
   }
 
   /**
@@ -639,9 +624,7 @@ export abstract class A2AAgentBaseService
     additionalData?: Record<string, any>,
   ): Promise<void> {
     if (!this.taskStatusService) {
-      this.logger.warn(
-        'TaskStatusService not available - task failure not tracked',
-      );
+
       return;
     }
 
@@ -655,7 +638,6 @@ export abstract class A2AAgentBaseService
       );
     }
 
-    this.logger.debug(`Task ${taskId} marked as failed: ${error}`);
   }
 
   /**
@@ -668,9 +650,7 @@ export abstract class A2AAgentBaseService
     statusUpdate: Record<string, any>,
   ): Promise<void> {
     if (!this.taskStatusService) {
-      this.logger.warn(
-        'TaskStatusService not available - status update ignored',
-      );
+
       return;
     }
 
@@ -689,14 +669,14 @@ export abstract class A2AAgentBaseService
     userId: string,
   ): Promise<{ conversationId?: string; projectStepId?: string }> {
     if (!this.tasksService) {
-      this.logger.debug('TasksService not available - cannot get task context');
+
       return {};
     }
 
     try {
       const task = await this.tasksService.getTaskById(taskId, userId);
       if (!task) {
-        this.logger.debug(`Task ${taskId} not found or not accessible by user ${userId}`);
+
         return {};
       }
 
@@ -714,7 +694,7 @@ export abstract class A2AAgentBaseService
         projectStepId,
       };
     } catch (error) {
-      this.logger.warn(`Failed to get task context for ${taskId}:`, error);
+
       return {};
     }
   }
@@ -731,9 +711,7 @@ export abstract class A2AAgentBaseService
     enhanceDeliverableId?: string,
   ): Promise<string | null> {
     if (!this.deliverablesService) {
-      this.logger.debug(
-        'DeliverablesService not available - skipping deliverable persistence',
-      );
+
       return null;
     }
 
@@ -741,34 +719,28 @@ export abstract class A2AAgentBaseService
       // Extract content from various result formats
       const content = this.extractContentFromResult(result);
       if (!content) {
-        this.logger.debug(`📄 No content extracted from result for task ${taskId}`);
+
         return null;
       }
-
-      this.logger.debug(`📄 Content extracted (${content.length} chars) for task ${taskId}: ${content.substring(0, 200)}...`);
 
       // Check if content contains deliverable markers
       if (!this.isDeliverableContent(content)) {
-        this.logger.debug(`📄 Content does not qualify as deliverable for task ${taskId}`);
+
         return null;
       }
-
-      this.logger.debug(`📄 Content qualifies as deliverable for task ${taskId}`);
 
       // Extract deliverable information
       const deliverableData = this.extractDeliverableFromContent(content);
       if (!deliverableData) {
-        this.logger.debug(`📄 Failed to extract deliverable data for task ${taskId}`);
+
         return null;
       }
-
-      this.logger.debug(`📄 Deliverable data extracted: ${deliverableData.title}`);
 
       // Get conversation context from task if available
       let taskContext: { conversationId?: string; projectStepId?: string } = {};
       if (taskId) {
         taskContext = await this.getTaskContext(taskId, userId);
-        this.logger.debug(`📄 Task context for ${taskId}: conversationId=${taskContext.conversationId}, projectStepId=${taskContext.projectStepId}`);
+
       }
 
       // Create new deliverable or enhance existing one
@@ -798,16 +770,11 @@ export abstract class A2AAgentBaseService
           userId,
         );
 
-        this.logger.log(
-          `📄 Deliverable enhanced: Version ${deliverable.versionNumber} (Version ID: ${deliverable.id}, Enhanced from: ${enhanceDeliverableId})`,
-        );
       } else {
         // Creating a new deliverable
         // Require either conversationId or projectStepId (deliverable must belong to something)
         if (!taskContext.conversationId && !taskContext.projectStepId) {
-          this.logger.warn(
-            `Cannot create deliverable without conversationId or projectStepId. Task ${taskId} has no context.`,
-          );
+
           return null;
         }
 
@@ -835,14 +802,11 @@ export abstract class A2AAgentBaseService
           userId,
         );
 
-        this.logger.log(
-          `📄 Deliverable auto-persisted: ${deliverable.title} (ID: ${deliverable.id})`,
-        );
       }
 
       return deliverable.id;
     } catch (error) {
-      this.logger.error('Failed to auto-persist deliverable:', error);
+
       // Don't throw - deliverable persistence shouldn't break task completion
       return null;
     }
@@ -867,19 +831,18 @@ export abstract class A2AAgentBaseService
         result.response || result.message || result.content || result.data;
 
       if (typeof content === 'string') {
-        this.logger.debug(`📄 Extracted content from field: ${Object.keys(result).find(key => result[key] === content)}`);
+
         return content;
       }
 
       // If it's still an object, stringify it for analysis
       if (typeof content === 'object') {
         const stringified = JSON.stringify(content, null, 2);
-        this.logger.debug(`📄 Stringified object content for analysis`);
+
         return stringified;
       }
     }
 
-    this.logger.debug(`📄 Could not extract content from result type: ${typeof result}`);
     return null;
   }
 
@@ -905,8 +868,6 @@ export abstract class A2AAgentBaseService
     // Lowered threshold to catch more content as deliverables
     const hasStructure = content.includes('\n\n') || content.length > 300;
     const hasMarkers = deliverableMarkers.some(marker => marker.test(content));
-
-    this.logger.debug(`🔍 Deliverable detection for content (${content.length} chars): hasStructure=${hasStructure}, hasMarkers=${hasMarkers}`);
 
     return hasStructure || hasMarkers;
   }
@@ -953,7 +914,7 @@ export abstract class A2AAgentBaseService
         },
       };
     } catch (error) {
-      this.logger.error('Failed to extract deliverable from content:', error);
+
       return null;
     }
   }
@@ -1163,7 +1124,7 @@ export abstract class A2AAgentBaseService
     );
 
     if (!fs.existsSync(yamlPath)) {
-      this.logger.debug(`No agent.yaml found at: ${yamlPath}`);
+
       return null;
     }
 
@@ -1173,10 +1134,7 @@ export abstract class A2AAgentBaseService
 
       return parsed;
     } catch (error) {
-      this.logger.warn(
-        `Failed to parse agent.yaml at ${yamlPath}:`,
-        error,
-      );
+
       return null;
     }
   }

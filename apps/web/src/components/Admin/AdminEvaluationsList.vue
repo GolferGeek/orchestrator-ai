@@ -28,7 +28,6 @@
                 </ion-select>
               </ion-item>
             </ion-col>
-            
             <ion-col size="12" size-md="6" size-lg="3">
               <ion-item>
                 <ion-select 
@@ -45,7 +44,6 @@
                 </ion-select>
               </ion-item>
             </ion-col>
-
             <!-- Agent and User Filters -->
             <ion-col size="12" size-md="6" size-lg="3">
               <ion-item>
@@ -56,7 +54,6 @@
                 ></ion-input>
               </ion-item>
             </ion-col>
-            
             <ion-col size="12" size-md="6" size-lg="3">
               <ion-item>
                 <ion-input 
@@ -67,7 +64,6 @@
               </ion-item>
             </ion-col>
           </ion-row>
-          
           <ion-row>
             <!-- Date Filters -->
             <ion-col size="12" size-md="6">
@@ -80,7 +76,6 @@
                 ></ion-input>
               </ion-item>
             </ion-col>
-            
             <ion-col size="12" size-md="6">
               <ion-item>
                 <ion-input 
@@ -92,7 +87,6 @@
               </ion-item>
             </ion-col>
           </ion-row>
-          
           <ion-row>
             <!-- Boolean Filters -->
             <ion-col size="12" size-md="4">
@@ -104,7 +98,6 @@
                 <ion-label class="ion-margin-start">Has Notes</ion-label>
               </ion-item>
             </ion-col>
-            
             <ion-col size="12" size-md="4">
               <ion-item>
                 <ion-checkbox 
@@ -114,7 +107,6 @@
                 <ion-label class="ion-margin-start">Has Workflow</ion-label>
               </ion-item>
             </ion-col>
-            
             <ion-col size="12" size-md="4">
               <ion-item>
                 <ion-checkbox 
@@ -125,7 +117,6 @@
               </ion-item>
             </ion-col>
           </ion-row>
-          
           <ion-row>
             <ion-col size="12" class="ion-text-right">
               <ion-button 
@@ -141,13 +132,11 @@
         </ion-grid>
       </ion-card-content>
     </ion-card>
-
     <!-- Loading State -->
     <div v-if="isLoading && !evaluations.length" class="ion-text-center ion-padding">
       <ion-spinner name="crescent"></ion-spinner>
       <p>Loading evaluations...</p>
     </div>
-
     <!-- Evaluations List -->
     <div v-else-if="evaluations.length > 0">
       <!-- Results Info -->
@@ -159,7 +148,6 @@
           </p>
         </ion-label>
       </ion-item>
-
       <!-- Evaluation Cards -->
       <ion-card 
         v-for="evaluation in evaluations" 
@@ -182,7 +170,6 @@
                 {{ truncateContent(evaluation.task.prompt) }}
               </ion-card-title>
             </ion-col>
-            
             <!-- Rating and Date -->
             <ion-col size="12" size-md="4" class="ion-text-right">
               <div class="rating-display">
@@ -200,7 +187,6 @@
             </ion-col>
           </ion-row>
         </ion-card-header>
-        
         <ion-card-content>
           <!-- User Notes -->
           <ion-row v-if="evaluation.evaluation.userNotes">
@@ -210,7 +196,6 @@
               </ion-text>
             </ion-col>
           </ion-row>
-          
           <!-- Ratings Row -->
           <ion-row>
             <ion-col size="6" v-if="evaluation.evaluation.speedRating">
@@ -226,7 +211,6 @@
               </ion-chip>
             </ion-col>
           </ion-row>
-          
           <!-- Metadata Row -->
           <ion-row>
             <ion-col size="6">
@@ -246,7 +230,6 @@
               </ion-text>
             </ion-col>
           </ion-row>
-          
           <!-- Workflow and Constraints Indicators -->
           <ion-row v-if="evaluation.workflowSteps || evaluation.llmConstraints">
             <ion-col>
@@ -260,7 +243,6 @@
                   <ion-icon :icon="gitNetworkOutline"></ion-icon>
                   <ion-label>{{ evaluation.workflowSteps.completedSteps }}/{{ evaluation.workflowSteps.totalSteps }} steps</ion-label>
                 </ion-chip>
-                
                 <ion-chip 
                   v-if="evaluation.llmConstraints" 
                   size="small" 
@@ -275,7 +257,6 @@
           </ion-row>
         </ion-card-content>
       </ion-card>
-
       <!-- Pagination Controls -->
       <ion-card class="pagination-controls">
         <ion-card-content>
@@ -290,13 +271,11 @@
                 Previous
               </ion-button>
             </ion-col>
-            
             <ion-col class="ion-text-center">
               <ion-text>
                 <strong>Page {{ pagination.page }} of {{ pagination.totalPages }}</strong>
               </ion-text>
             </ion-col>
-            
             <ion-col size="auto">
               <ion-button 
                 fill="clear" 
@@ -311,7 +290,6 @@
         </ion-card-content>
       </ion-card>
     </div>
-
     <!-- Empty State -->
     <ion-card v-else class="ion-text-center">
       <ion-card-content>
@@ -323,12 +301,10 @@
         </ion-button>
       </ion-card-content>
     </ion-card>
-
     <!-- Loading overlay for pagination -->
     <div v-if="isLoading && evaluations.length > 0" class="loading-overlay">
       <ion-spinner name="crescent"></ion-spinner>
     </div>
-
     <!-- Evaluation Details Modal -->
     <AdminEvaluationDetailsModal 
       :is-open="showDetailsModal"
@@ -337,7 +313,6 @@
     />
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
 import {
@@ -361,7 +336,6 @@ import {
   IonChip,
   IonCardSubtitle
 } from '@ionic/vue';
-
 import {
   filterOutline,
   closeOutline,
@@ -376,46 +350,35 @@ import {
   chevronBackOutline,
   chevronForwardOutline
 } from 'ionicons/icons';
-
 import AdminEvaluationDetailsModal from './AdminEvaluationDetailsModal.vue';
-
 interface Props {
   evaluations: any[];
   pagination: any;
   isLoading: boolean;
   filters: any;
 }
-
 const props = defineProps<Props>();
-
 const emit = defineEmits<{
   filterChange: [filters: any];
   pageChange: [page: number];
   refresh: [];
 }>();
-
 const localFilters = reactive({ ...props.filters });
 const showDetailsModal = ref(false);
 const selectedEvaluation = ref(null);
-
 let filterTimeout: NodeJS.Timeout | null = null;
-
 const starIcon = computed(() => star);
-
 function onFilterChange() {
   emit('filterChange', { ...localFilters });
 }
-
 function debounceFilter() {
   if (filterTimeout) {
     clearTimeout(filterTimeout);
   }
-  
   filterTimeout = setTimeout(() => {
     onFilterChange();
   }, 500);
 }
-
 function clearFilters() {
   Object.keys(localFilters).forEach(key => {
     if (key === 'page') {
@@ -428,44 +391,36 @@ function clearFilters() {
   });
   onFilterChange();
 }
-
 function previousPage() {
   if (props.pagination.page > 1) {
     emit('pageChange', props.pagination.page - 1);
   }
 }
-
 function nextPage() {
   if (props.pagination.page < props.pagination.totalPages) {
     emit('pageChange', props.pagination.page + 1);
   }
 }
-
 function openEvaluationDetails(evaluation: any) {
   selectedEvaluation.value = evaluation;
   showDetailsModal.value = true;
 }
-
 function closeEvaluationDetails() {
   showDetailsModal.value = false;
   selectedEvaluation.value = null;
 }
-
 function truncateContent(content: string, maxLength: number = 100): string {
   if (!content || content.length <= maxLength) return content || '';
   return content.substring(0, maxLength) + '...';
 }
-
 function truncateNotes(notes: string, maxLength: number = 150): string {
   if (!notes || notes.length <= maxLength) return notes || '';
   return notes.substring(0, maxLength) + '...';
 }
-
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
-
 function getTotalConstraints(constraints: any): number {
   if (!constraints) return 0;
   return (constraints.activeStateModifiers?.length || 0) + 
@@ -473,68 +428,56 @@ function getTotalConstraints(constraints: any): number {
          (constraints.executedCommands?.length || 0);
 }
 </script>
-
 <style scoped>
 .admin-evaluations-list {
   max-width: 1200px;
   margin: 0 auto;
 }
-
 .filters-card {
   margin-bottom: 1rem;
 }
-
 .results-info {
   margin-bottom: 1rem;
   --background: transparent;
 }
-
 .evaluation-card {
   margin-bottom: 1rem;
   cursor: pointer;
   transition: transform 0.2s ease;
 }
-
 .evaluation-card:hover {
   transform: translateY(-2px);
 }
-
 .evaluation-title {
   font-size: 1rem;
   line-height: 1.4;
   margin-top: 0.5rem;
 }
-
 .user-info {
   margin-left: 8px;
   color: var(--ion-color-medium);
   font-size: 0.9rem;
 }
-
 .rating-display {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 0.5rem;
 }
-
 .notes-preview {
   font-style: italic;
   margin: 0;
   font-size: 0.9rem;
 }
-
 .feature-indicators {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
-
 .pagination-controls {
   margin-top: 1rem;
   position: sticky;
   bottom: 1rem;
 }
-
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -547,22 +490,18 @@ function getTotalConstraints(constraints: any): number {
   justify-content: center;
   z-index: 9999;
 }
-
 ion-chip {
   margin: 2px;
 }
-
 @media (max-width: 768px) {
   .evaluation-title {
     font-size: 0.9rem;
   }
-  
   .user-info {
     display: block;
     margin-left: 0;
     margin-top: 4px;
   }
-  
   .rating-display {
     justify-content: flex-start;
     margin-top: 1rem;

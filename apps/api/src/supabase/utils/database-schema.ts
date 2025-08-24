@@ -82,8 +82,6 @@ function getSupabaseClient() {
 async function discoverFullSchema(): Promise<void> {
   const client = getSupabaseClient();
 
-  console.log('🔍 Discovering database schema...');
-
   // Get all table information
   const { data: tableInfoData, error: tableInfoError } =
     await client.rpc('get_table_info');

@@ -157,8 +157,6 @@ describe('Marketing Manager Orchestrator - Comprehensive LLM Tests', () => {
         researchRequest,
       );
 
-      console.log(`🔍 DEBUG - Full result: ${JSON.stringify(result, null, 2)}`);
-
       expect(result.success).toBe(true);
 
       // Check for either response or message field (delegation vs conversation)

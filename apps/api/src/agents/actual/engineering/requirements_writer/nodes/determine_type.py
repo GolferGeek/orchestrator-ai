@@ -34,19 +34,14 @@ except ImportError as e:
             return "Fallback response - LLM service not available"
     llm_client = LLMClient()
 
-
 async def determine_document_type_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Node: Determine the type of document to generate using AI analysis"""
-    
-    print(f"DEBUG: determine_document_type_node started with keys: {list(state_dict.keys())}", file=sys.stderr)
-    
+
     state = RequirementsWriterState(state_dict)
-    
-    print(f"DEBUG: RequirementsWriterState created, task_id: {state.task_id}", file=sys.stderr)
-    
+
     try:
         # Emit start event
-        print(f"DEBUG: About to emit progress for determine_document_type", file=sys.stderr)
+
         emit_progress(
             state.task_id,
             "determine_document_type",
@@ -55,13 +50,12 @@ async def determine_document_type_node(state_dict: Dict[str, Any]) -> Dict[str, 
             "in_progress",
             "Using AI to determine optimal document type based on requirements analysis..."
         )
-        print(f"DEBUG: Progress emitted successfully", file=sys.stderr)
-        
+
         # Create LLM options
-        print(f"DEBUG: About to create LLM options from preferences: {state.llm_preferences}", file=sys.stderr)
+
         try:
             llm_options = llm_client.create_options(**state.llm_preferences)
-            print(f"DEBUG: LLM options created: {llm_options}", file=sys.stderr)
+
         except Exception as e:
             print(f"ERROR: Failed to create LLM options: {e}", file=sys.stderr)
             llm_options = {}
@@ -110,8 +104,6 @@ Original Request: "{state.user_message}"
 
 What type of requirements document should be generated?"""
 
-        print(f"DEBUG: About to call LLM service with prompts (system: {len(system_prompt)} chars, user: {len(user_prompt)} chars)", file=sys.stderr)
-        
         # Make real LLM call
         start_time = datetime.now()
         try:
@@ -122,8 +114,7 @@ What type of requirements document should be generated?"""
             )
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
-            print(f"DEBUG: LLM call completed in {duration:.2f}s, response length: {len(response)} chars", file=sys.stderr)
-            print(f"DEBUG: LLM response preview: {response[:200]}...", file=sys.stderr)
+
         except Exception as e:
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
@@ -131,16 +122,16 @@ What type of requirements document should be generated?"""
             response = f"ERROR: LLM call failed: {e}"
         
         # Parse LLM response
-        print(f"DEBUG: Attempting to parse document type from LLM response", file=sys.stderr)
+
         try:
             import json
             type_analysis = json.loads(response)
             document_type = type_analysis.get('document_type', 'general')
             confidence = type_analysis.get('confidence', 0.8)
             reasoning = type_analysis.get('reasoning', 'AI-determined document type')
-            print(f"DEBUG: Successfully parsed JSON response: {document_type} (confidence: {confidence:.2f})", file=sys.stderr)
+
         except Exception as parse_error:
-            print(f"DEBUG: JSON parsing failed ({parse_error}), using fallback analysis", file=sys.stderr)
+
             # Fallback logic if JSON parsing fails
             response_lower = response.lower()
             document_type = 'general'
@@ -158,9 +149,7 @@ What type of requirements document should be generated?"""
                 document_type = 'user_story'
             elif any(keyword in response_lower for keyword in ['architecture', 'component', 'design']):
                 document_type = 'architecture'
-            
-            print(f"DEBUG: Fallback document type determined: {document_type}", file=sys.stderr)
-            
+
             type_analysis = {
                 'document_type': document_type,
                 'confidence': confidence,
@@ -170,16 +159,16 @@ What type of requirements document should be generated?"""
             }
         
         # Update state
-        print(f"DEBUG: About to update state with document type: {document_type}", file=sys.stderr)
+
         try:
             state.set_document_type(document_type)
             state.update_step_result('determine_document_type', type_analysis)
-            print(f"DEBUG: State updated successfully with document type", file=sys.stderr)
+
         except Exception as state_error:
             print(f"ERROR: Failed to update state: {state_error}", file=sys.stderr)
         
         # Emit completion event
-        print(f"DEBUG: About to emit completion progress", file=sys.stderr)
+
         try:
             emit_progress(
                 state.task_id,
@@ -189,15 +178,15 @@ What type of requirements document should be generated?"""
                 "completed",
                 f"Document type determined: {document_type.upper()} (confidence: {confidence:.1%})"
             )
-            print(f"DEBUG: Completion progress emitted successfully", file=sys.stderr)
+
         except Exception as progress_error:
             print(f"ERROR: Failed to emit completion progress: {progress_error}", file=sys.stderr)
         
         # Return updated state
-        print(f"DEBUG: About to return state dictionary", file=sys.stderr)
+
         try:
             result = state.to_dict()
-            print(f"DEBUG: State converted to dict successfully, keys: {list(result.keys())}", file=sys.stderr)
+
             return result
         except Exception as dict_error:
             print(f"ERROR: Failed to convert state to dict: {dict_error}", file=sys.stderr)
@@ -221,7 +210,6 @@ What type of requirements document should be generated?"""
         except Exception as state_error:
             print(f"ERROR: Failed to set error state: {state_error}", file=sys.stderr)
             return {"error": error_msg, "userMessage": state_dict.get("userMessage", ""), "metadata": state_dict.get("metadata", {})}
-
 
 # For testing/development
 if __name__ == "__main__":

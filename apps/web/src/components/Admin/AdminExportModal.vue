@@ -8,7 +8,6 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content class="ion-padding">
       <!-- Export Format Selection -->
       <ion-card>
@@ -34,7 +33,6 @@
           </ion-radio-group>
         </ion-card-content>
       </ion-card>
-
       <!-- Data Range Selection -->
       <ion-card>
         <ion-card-header>
@@ -65,7 +63,6 @@
           </ion-grid>
         </ion-card-content>
       </ion-card>
-
       <!-- Data Inclusion Options -->
       <ion-card>
         <ion-card-header>
@@ -83,7 +80,6 @@
                 <p>Email, name, roles (respects privacy settings)</p>
               </ion-label>
             </ion-item>
-            
             <ion-item>
               <ion-checkbox 
                 v-model="exportOptions.includeContent" 
@@ -94,7 +90,6 @@
                 <p>Task prompts, responses, and user notes</p>
               </ion-label>
             </ion-item>
-            
             <ion-item>
               <ion-checkbox 
                 v-model="exportOptions.includeWorkflows" 
@@ -105,7 +100,6 @@
                 <p>Step details, durations, and failure points</p>
               </ion-label>
             </ion-item>
-            
             <ion-item>
               <ion-checkbox 
                 v-model="exportOptions.includeConstraints" 
@@ -116,7 +110,6 @@
                 <p>CIDAFM constraints and effectiveness scores</p>
               </ion-label>
             </ion-item>
-            
             <ion-item>
               <ion-checkbox 
                 v-model="exportOptions.includeLLMInfo" 
@@ -130,7 +123,6 @@
           </ion-list>
         </ion-card-content>
       </ion-card>
-
       <!-- User Role Filter -->
       <ion-card>
         <ion-card-header>
@@ -152,7 +144,6 @@
           </ion-item>
         </ion-card-content>
       </ion-card>
-
       <!-- Privacy & Security Notice -->
       <ion-card color="warning">
         <ion-card-header>
@@ -190,7 +181,6 @@
           </ion-list>
         </ion-card-content>
       </ion-card>
-
       <!-- Export Preview -->
       <ion-card v-if="showPreview">
         <ion-card-header>
@@ -219,7 +209,6 @@
           </ion-list>
         </ion-card-content>
       </ion-card>
-
       <!-- Action Buttons -->
       <div class="export-actions">
         <ion-button 
@@ -231,7 +220,6 @@
           <ion-icon :icon="eyeOutline" slot="start"></ion-icon>
           {{ isGeneratingPreview ? 'Generating Preview...' : 'Preview Export' }}
         </ion-button>
-        
         <ion-button 
           expand="block" 
           color="primary" 
@@ -243,7 +231,6 @@
           <ion-spinner v-if="isExporting" name="crescent" slot="end"></ion-spinner>
         </ion-button>
       </div>
-
       <!-- Export Progress -->
       <ion-card v-if="exportProgress.show" color="primary">
         <ion-card-content>
@@ -258,7 +245,6 @@
         </ion-card-content>
       </ion-card>
     </ion-content>
-
     <!-- Confirmation Alert -->
     <ion-alert
       :is-open="showConfirmation"
@@ -272,7 +258,6 @@
     ></ion-alert>
   </ion-modal>
 </template>
-
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
 import {
@@ -304,7 +289,6 @@ import {
   IonCol,
   IonAlert
 } from '@ionic/vue';
-
 import {
   downloadOutline,
   eyeOutline,
@@ -314,18 +298,14 @@ import {
   trashOutline,
   businessOutline
 } from 'ionicons/icons';
-
 interface Props {
   isOpen: boolean;
 }
-
 defineProps<Props>();
-
 const emit = defineEmits<{
   dismiss: [];
   export: [options: any];
 }>();
-
 const exportOptions = reactive({
   format: 'json',
   startDate: '',
@@ -337,24 +317,20 @@ const exportOptions = reactive({
   includeLLMInfo: true,
   userRole: [] as string[]
 });
-
 const showPreview = ref(false);
 const isGeneratingPreview = ref(false);
 const isExporting = ref(false);
 const showConfirmation = ref(false);
-
 const previewData = reactive({
   estimatedRecords: 0,
   estimatedSize: '',
   includedFields: [] as string[]
 });
-
 const exportProgress = reactive({
   show: false,
   percent: 0,
   message: ''
 });
-
 const isValidExport = computed(() => {
   // Basic validation
   return exportOptions.format && 
@@ -364,66 +340,52 @@ const isValidExport = computed(() => {
           exportOptions.includeConstraints || 
           exportOptions.includeLLMInfo);
 });
-
 const confirmationMessage = computed(() => {
   const recordCount = previewData.estimatedRecords;
   const fileSize = previewData.estimatedSize;
   const format = exportOptions.format.toUpperCase();
-  
   return `Export ${recordCount} evaluation records as ${format}? 
           Estimated file size: ${fileSize}. 
           This action will be logged for audit purposes.`;
 });
-
 function getIncludedFields(): string[] {
   const fields: string[] = ['Basic Evaluation Data'];
-  
   if (exportOptions.includeUserData) fields.push('User Information');
   if (exportOptions.includeContent) fields.push('Content & Notes');
   if (exportOptions.includeWorkflows) fields.push('Workflow Data');
   if (exportOptions.includeConstraints) fields.push('Constraint Data');
   if (exportOptions.includeLLMInfo) fields.push('LLM Metadata');
-  
   return fields;
 }
-
 async function generatePreview() {
   isGeneratingPreview.value = true;
-  
   try {
     // Simulate API call to get export preview
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
     // Mock preview data - in real implementation, this would come from API
     previewData.estimatedRecords = Math.floor(Math.random() * 1000) + 100;
     previewData.estimatedSize = getEstimatedFileSize();
     previewData.includedFields = getIncludedFields();
-    
     showPreview.value = true;
   } catch (error) {
-    console.error('Failed to generate preview:', error);
+
   } finally {
     isGeneratingPreview.value = false;
   }
 }
-
 function getEstimatedFileSize(): string {
   let baseSize = previewData.estimatedRecords * 0.5; // KB per record base
-  
   if (exportOptions.includeContent) baseSize *= 3;
   if (exportOptions.includeWorkflows) baseSize *= 1.5;
   if (exportOptions.includeConstraints) baseSize *= 1.2;
   if (exportOptions.includeLLMInfo) baseSize *= 1.1;
-  
   if (exportOptions.format === 'json') baseSize *= 1.3;
-  
   if (baseSize < 1024) {
     return `${Math.round(baseSize)} KB`;
   } else {
     return `${(baseSize / 1024).toFixed(1)} MB`;
   }
 }
-
 function confirmExport() {
   if (!showPreview.value) {
     generatePreview().then(() => {
@@ -433,13 +395,11 @@ function confirmExport() {
     showConfirmation.value = true;
   }
 }
-
 async function performExport() {
   isExporting.value = true;
   exportProgress.show = true;
   exportProgress.percent = 0;
   exportProgress.message = 'Preparing export...';
-  
   try {
     // Simulate export progress
     const progressSteps = [
@@ -449,16 +409,13 @@ async function performExport() {
       { percent: 80, message: 'Formatting export file...' },
       { percent: 100, message: 'Export complete!' }
     ];
-    
     for (const step of progressSteps) {
       await new Promise(resolve => setTimeout(resolve, 800));
       exportProgress.percent = step.percent;
       exportProgress.message = step.message;
     }
-    
     // Emit export event with options
     emit('export', exportOptions);
-    
     // Reset state
     setTimeout(() => {
       exportProgress.show = false;
@@ -466,16 +423,14 @@ async function performExport() {
       showPreview.value = false;
       emit('dismiss');
     }, 1500);
-    
   } catch (error) {
-    console.error('Export failed:', error);
+
     exportProgress.message = 'Export failed!';
   } finally {
     isExporting.value = false;
   }
 }
 </script>
-
 <style scoped>
 .export-actions {
   margin: 24px 0;
@@ -483,45 +438,36 @@ async function performExport() {
   flex-direction: column;
   gap: 12px;
 }
-
 .export-progress {
   text-align: center;
 }
-
 .export-progress h4 {
   margin: 0 0 12px 0;
   color: white;
 }
-
 .export-progress p {
   margin: 8px 0 0 0;
   color: rgba(255, 255, 255, 0.8);
   font-size: 0.9rem;
 }
-
 ion-card {
   margin-bottom: 16px;
 }
-
 ion-item {
   --padding-start: 16px;
   --padding-end: 16px;
 }
-
 .privacy-notice ion-item {
   --padding-start: 0;
 }
-
 .privacy-notice ion-item ion-label p {
   font-size: 0.9rem;
   margin: 0;
 }
-
 @media (max-width: 768px) {
   .export-actions {
     margin: 16px 0;
   }
-  
   ion-modal {
     --height: 90%;
   }

@@ -10,10 +10,8 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    
     <ion-content class="ion-padding">
       <div class="metadata-container">
-        
         <!-- Agent Information Section -->
         <div class="metadata-section" v-if="hasAgentInfo">
           <h3>Agent Information</h3>
@@ -40,7 +38,6 @@
             </div>
           </div>
         </div>
-
         <!-- LLM Information Section -->
         <div class="metadata-section" v-if="hasLLMInfo">
           <h3>LLM Information</h3>
@@ -75,7 +72,6 @@
             </div>
           </div>
         </div>
-
         <!-- Token Usage Section -->
         <div class="metadata-section" v-if="hasUsageInfo">
           <h3>Token Usage</h3>
@@ -94,7 +90,6 @@
             </div>
           </div>
         </div>
-
         <!-- Cost Information Section -->
         <div class="metadata-section" v-if="hasCostInfo">
           <h3>Cost Information</h3>
@@ -117,7 +112,6 @@
             </div>
           </div>
         </div>
-
         <!-- User Preferences Section -->
         <div class="metadata-section" v-if="hasUserPreferences">
           <h3>User LLM Preferences</h3>
@@ -140,7 +134,6 @@
             </div>
           </div>
         </div>
-
         <!-- Processing Information Section -->
         <div class="metadata-section" v-if="hasProcessingInfo">
           <h3>Processing Information</h3>
@@ -167,7 +160,6 @@
             </div>
           </div>
         </div>
-
         <!-- Context Information Section -->
         <div class="metadata-section" v-if="hasContextInfo">
           <h3>Context Information</h3>
@@ -186,7 +178,6 @@
             </div>
           </div>
         </div>
-
         <!-- Raw Metadata Section (for debugging) -->
         <div class="metadata-section">
           <h3>Raw Metadata (Debug)</h3>
@@ -194,12 +185,10 @@
             <pre>{{ JSON.stringify(metadata, null, 2) }}</pre>
           </div>
         </div>
-
       </div>
     </ion-content>
   </ion-modal>
 </template>
-
 <script setup lang="ts">
 import { computed } from 'vue';
 import {
@@ -213,68 +202,53 @@ import {
   IonContent,
 } from '@ionic/vue';
 import { closeOutline } from 'ionicons/icons';
-
 interface Props {
   isOpen: boolean;
   metadata: any;
 }
-
 const props = defineProps<Props>();
-
 const emit = defineEmits<{
   close: [];
 }>();
-
 const handleClose = () => {
   emit('close');
 };
-
 const hasAgentInfo = computed(() => {
   return props.metadata?.agentName || props.metadata?.agentType || props.metadata?.delegatedTo || props.metadata?.delegationReason || props.metadata?.confidence;
 });
-
 const hasLLMInfo = computed(() => {
   return props.metadata?.llmOptions;
 });
-
 const hasUsageInfo = computed(() => {
   return props.metadata?.usage;
 });
-
 const hasCostInfo = computed(() => {
   return props.metadata?.costCalculation;
 });
-
 const hasUserPreferences = computed(() => {
   return props.metadata?.userLLMPreferences;
 });
-
 const hasProcessingInfo = computed(() => {
   return props.metadata?.processedAt || props.metadata?.processingAgentName || props.metadata?.messageType || props.metadata?.isDelegated !== undefined || props.metadata?.isTemplateResponse !== undefined;
 });
-
 const hasContextInfo = computed(() => {
   return props.metadata?.stickyContext || props.metadata?.continuityReason || props.metadata?.agentContext;
 });
-
 const formatCost = (cost: number): string => {
   if (cost < 0.01) {
     return cost.toFixed(6);
   }
   return cost.toFixed(4);
 };
-
 const formatTimestamp = (timestamp: string): string => {
   return new Date(timestamp).toLocaleString();
 };
 </script>
-
 <style scoped>
 .metadata-container {
   max-width: 800px;
   margin: 0 auto;
 }
-
 .metadata-section {
   margin-bottom: 24px;
   padding: 16px;
@@ -282,20 +256,17 @@ const formatTimestamp = (timestamp: string): string => {
   border-radius: 8px;
   border-left: 4px solid var(--ion-color-primary);
 }
-
 .metadata-section h3 {
   margin: 0 0 16px 0;
   color: var(--ion-color-primary);
   font-size: 1.1rem;
   font-weight: 600;
 }
-
 .metadata-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 12px;
 }
-
 .metadata-item {
   display: flex;
   justify-content: space-between;
@@ -305,25 +276,21 @@ const formatTimestamp = (timestamp: string): string => {
   border-radius: 4px;
   border: 1px solid var(--ion-color-light-shade);
 }
-
 .label {
   font-weight: 600;
   color: var(--ion-color-dark);
   margin-right: 8px;
 }
-
 .value {
   font-family: 'Courier New', monospace;
   color: var(--ion-color-medium-shade);
   text-align: right;
   word-break: break-word;
 }
-
 .total-cost {
   font-weight: 700;
   color: var(--ion-color-success);
 }
-
 .raw-metadata {
   background: var(--ion-color-dark);
   color: var(--ion-color-light);
@@ -331,44 +298,37 @@ const formatTimestamp = (timestamp: string): string => {
   border-radius: 4px;
   overflow-x: auto;
 }
-
 .raw-metadata pre {
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.4;
   white-space: pre-wrap;
 }
-
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .metadata-section {
     background: var(--ion-color-dark-shade);
     border-left-color: var(--ion-color-primary-tint);
   }
-  
   .metadata-item {
     background: var(--ion-color-dark-tint);
     border-color: var(--ion-color-dark);
   }
-  
   .raw-metadata {
     background: var(--ion-color-step-800);
     color: var(--ion-color-light);
   }
 }
-
 /* Mobile responsive */
 @media (max-width: 768px) {
   .metadata-grid {
     grid-template-columns: 1fr;
   }
-  
   .metadata-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
-  
   .value {
     text-align: left;
   }

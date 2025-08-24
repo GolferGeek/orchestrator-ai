@@ -1,7 +1,5 @@
 // Types for message evaluation system
-
 export type UserRatingScale = 1 | 2 | 3 | 4 | 5;
-
 export interface MessageEvaluation {
   userRating?: UserRatingScale;
   speedRating?: UserRatingScale;
@@ -15,7 +13,6 @@ export interface MessageEvaluation {
     modelConfidence?: number;
   };
 }
-
 export interface EvaluationRequest {
   userRating?: UserRatingScale;
   speedRating?: UserRatingScale;
@@ -29,7 +26,6 @@ export interface EvaluationRequest {
     modelConfidence?: number;
   };
 }
-
 export interface EvaluationResponse {
   id: string;
   messageId: string;
@@ -42,7 +38,6 @@ export interface EvaluationResponse {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface AllEvaluationsFilters {
   page?: number;
   limit?: number;
@@ -50,7 +45,6 @@ export interface AllEvaluationsFilters {
   hasNotes?: boolean;
   agentName?: string;
 }
-
 export interface EvaluationWithMessage {
   id: string;
   content: string;
@@ -99,7 +93,6 @@ export interface EvaluationWithMessage {
     providerId: string;
   };
 }
-
 export interface AllEvaluationsResponse {
   evaluations: EvaluationWithMessage[];
   pagination: {

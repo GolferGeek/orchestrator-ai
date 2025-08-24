@@ -1,8 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
-
 // API endpoint configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:9000';
-
 // Deliverable types and interfaces
 export enum DeliverableType {
   DOCUMENT = 'document',
@@ -11,21 +9,18 @@ export enum DeliverableType {
   PLAN = 'plan',
   REQUIREMENTS = 'requirements'
 }
-
 export enum DeliverableFormat {
   MARKDOWN = 'markdown',
   TEXT = 'text',
   JSON = 'json',
   HTML = 'html'
 }
-
 export enum DeliverableVersionCreationType {
   AI_RESPONSE = 'ai_response',
   MANUAL_EDIT = 'manual_edit',
   AI_ENHANCEMENT = 'ai_enhancement',
   USER_REQUEST = 'user_request',
 }
-
 export interface Deliverable {
   id: string;
   userId: string;
@@ -40,7 +35,6 @@ export interface Deliverable {
   currentVersion?: DeliverableVersion;
   versions?: DeliverableVersion[];
 }
-
 export interface DeliverableVersion {
   id: string;
   deliverableId: string;
@@ -55,7 +49,6 @@ export interface DeliverableVersion {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface CreateDeliverableDto {
   title: string;
   description?: string;
@@ -69,7 +62,6 @@ export interface CreateDeliverableDto {
   initialTaskId?: string;
   initialMetadata?: Record<string, any>;
 }
-
 export interface CreateVersionDto {
   content: string;
   format?: DeliverableFormat;
@@ -77,7 +69,6 @@ export interface CreateVersionDto {
   taskId?: string;
   metadata?: Record<string, any>;
 }
-
 export interface DeliverableFilters {
   type?: DeliverableType;
   format?: DeliverableFormat;
@@ -87,7 +78,6 @@ export interface DeliverableFilters {
   latestOnly?: boolean;
   standalone?: boolean;
 }
-
 export interface DeliverableSearchResult {
   id: string;
   userId: string;
@@ -106,7 +96,6 @@ export interface DeliverableSearchResult {
   isCurrentVersion?: boolean;
   versionId?: string;
 }
-
 export interface DeliverableSearchResponse {
   items: DeliverableSearchResult[];
   total: number;
@@ -114,13 +103,11 @@ export interface DeliverableSearchResponse {
   offset: number;
   hasMore: boolean;
 }
-
 /**
  * Service for managing deliverables - interfaces with the backend deliverables API
  */
 class DeliverablesService {
   private axiosInstance: AxiosInstance;
-
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: API_BASE_URL,
@@ -129,7 +116,6 @@ class DeliverablesService {
       },
       timeout: 60000,
     });
-
     // Add auth token to requests
     this.axiosInstance.interceptors.request.use((config) => {
       const token = localStorage.getItem('authToken');
@@ -139,13 +125,11 @@ class DeliverablesService {
       return config;
     });
   }
-
   /**
    * Get all deliverables for the current user with optional filtering
    */
   async getDeliverables(filters?: DeliverableFilters): Promise<DeliverableSearchResponse> {
     const params = new URLSearchParams();
-    
     if (filters) {
       if (filters.type) params.append('type', filters.type);
       if (filters.format) params.append('format', filters.format);
@@ -155,29 +139,16 @@ class DeliverablesService {
       if (filters.latestOnly !== undefined) params.append('latestOnly', filters.latestOnly.toString());
       if (filters.standalone !== undefined) params.append('standalone', filters.standalone.toString());
     }
-
     const response = await this.axiosInstance.get(`/deliverables?${params.toString()}`);
     return response.data;
   }
-
   /**
    * Get a specific deliverable by ID
    */
   async getDeliverable(id: string): Promise<Deliverable> {
-    console.log('🎭 deliverablesService.getDeliverable called with:', {
-      id,
-      idType: typeof id,
-      idValue: JSON.stringify(id),
-      isUndefined: id === undefined,
-      isNull: id === null,
-      isEmpty: id === '',
-      url: `/deliverables/${id}`
-    });
-    
     const response = await this.axiosInstance.get(`/deliverables/${id}`);
     return response.data;
   }
-
   /**
    * Create a new deliverable
    */
@@ -185,7 +156,6 @@ class DeliverablesService {
     const response = await this.axiosInstance.post('/deliverables', data);
     return response.data;
   }
-
   /**
    * Create a new version of an existing deliverable
    */
@@ -193,7 +163,6 @@ class DeliverablesService {
     const response = await this.axiosInstance.post(`/deliverable-versions/${deliverableId}`, data);
     return response.data;
   }
-
   /**
    * Update an existing deliverable (metadata only)
    */
@@ -201,14 +170,12 @@ class DeliverablesService {
     const response = await this.axiosInstance.patch(`/deliverables/${id}`, updates);
     return response.data;
   }
-
   /**
    * Delete a deliverable
    */
   async deleteDeliverable(id: string): Promise<void> {
     await this.axiosInstance.delete(`/deliverables/${id}`);
   }
-
   /**
    * Get all versions of a deliverable
    */
@@ -216,7 +183,6 @@ class DeliverablesService {
     const response = await this.axiosInstance.get(`/deliverable-versions/${deliverableId}/history`);
     return response.data;
   }
-
   /**
    * Get the current version of a deliverable
    */
@@ -224,7 +190,6 @@ class DeliverablesService {
     const response = await this.axiosInstance.get(`/deliverable-versions/${deliverableId}/current`);
     return response.data;
   }
-
   /**
    * Get a specific version by its ID
    */
@@ -232,7 +197,6 @@ class DeliverablesService {
     const response = await this.axiosInstance.get(`/deliverable-versions/version/${versionId}`);
     return response.data;
   }
-
   /**
    * Set a specific version as the current version
    */
@@ -240,21 +204,18 @@ class DeliverablesService {
     const response = await this.axiosInstance.patch(`/deliverable-versions/version/${versionId}/set-current`);
     return response.data;
   }
-
   /**
    * Delete a specific version
    */
   async deleteVersion(versionId: string): Promise<void> {
     await this.axiosInstance.delete(`/deliverable-versions/version/${versionId}`);
   }
-
   /**
    * Search deliverables with advanced query options
    */
   async searchDeliverables(query: string, filters?: Omit<DeliverableFilters, 'search'>): Promise<DeliverableSearchResponse> {
     return this.getDeliverables({ ...filters, search: query });
   }
-
   /**
    * Get deliverables for a specific conversation
    */
@@ -262,7 +223,6 @@ class DeliverablesService {
     const response = await this.axiosInstance.get(`/deliverables/conversation/${conversationId}`);
     return response.data;
   }
-
   /**
    * Get deliverables created by a specific agent (by searching version metadata)
    */
@@ -272,7 +232,6 @@ class DeliverablesService {
     // For now, return all deliverables - this could be enhanced with server-side filtering
     return result.items;
   }
-
   /**
    * Check if a deliverable exists for the current conversation/task context
    * This helps with enhancement workflows
@@ -280,7 +239,6 @@ class DeliverablesService {
   async findExistingDeliverable(conversationId: string, taskId?: string): Promise<Deliverable | null> {
     try {
       const deliverables = await this.getConversationDeliverables(conversationId);
-      
       if (taskId) {
         // Look for deliverable with matching task ID in any of its versions
         for (const deliverable of deliverables) {
@@ -293,15 +251,13 @@ class DeliverablesService {
         }
         return null;
       }
-      
       // Return the most recent deliverable from this conversation
       return deliverables.length > 0 ? deliverables[0] : null;
     } catch (error) {
-      console.error('Error finding existing deliverable:', error);
+
       return null;
     }
   }
-
   /**
    * Create an editing conversation for a standalone deliverable
    */
@@ -316,12 +272,10 @@ class DeliverablesService {
     const response = await this.axiosInstance.post(`/deliverables/${deliverableId}/conversations`, options);
     return response.data;
   }
-
   // Legacy method aliases for backward compatibility
   async getVersions(deliverableId: string): Promise<DeliverableVersion[]> {
     return this.getVersionHistory(deliverableId);
   }
 }
-
 // Export singleton instance
 export const deliverablesService = new DeliverablesService();

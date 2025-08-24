@@ -28,9 +28,6 @@ export class LLMController {
       };
     },
   ): Promise<{ response: string }> {
-    this.logger.debug(
-      `LLM generate request: systemPrompt=${request.systemPrompt?.length || 0} chars, userPrompt=${request.userPrompt?.length || 0} chars`,
-    );
 
     try {
       const response = await this.llmService.generateResponse(
@@ -43,10 +40,9 @@ export class LLMController {
         },
       );
 
-      this.logger.debug(`LLM generate response: ${response.length} chars`);
       return { response };
     } catch (error) {
-      this.logger.error('Error in LLM generate:', error);
+
       throw error;
     }
   }

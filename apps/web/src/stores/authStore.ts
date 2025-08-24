@@ -3,7 +3,6 @@ import { ref, computed } from 'vue';
 import { authService } from '@/services/authService'; // Removed AuthResponse import from here
 import { apiService } from '@/services/apiService';
 import { tokenManager } from '@/services/tokenManager';
-
 // Interface for the token data expected from authService login/signup
 interface TokenData {
   accessToken: string;
@@ -11,7 +10,6 @@ interface TokenData {
   tokenType: string;
   expiresIn?: number;
 }
-
 // Define a shape for the user object you want to store (fetched from /auth/me)
 // This should align with what AuthenticatedUserResponse from backend auth/schemas.py provides
 interface UserProfile {
@@ -20,16 +18,13 @@ interface UserProfile {
   displayName?: string;
   // Add other relevant user properties from your /auth/me endpoint
 }
-
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('authToken'));
   const refreshToken = ref<string | null>(localStorage.getItem('refreshToken'));
   const user = ref<UserProfile | null>(null); // Store more detailed user info
   const isLoading = ref(false);
   const error = ref<string | null>(null);
-
   const isAuthenticated = computed(() => !!token.value);
-
   // This function is primarily for internal state update after successful token acquisition
   function setTokenData(tokenData: TokenData) {
     token.value = tokenData.accessToken;
@@ -38,13 +33,10 @@ export const useAuthStore = defineStore('auth', () => {
       refreshToken.value = tokenData.refreshToken;
       localStorage.setItem('refreshToken', tokenData.refreshToken);
     }
-    
     // Set auth token on API service
     apiService.setAuthToken(tokenData.accessToken);
-    
     error.value = null; // Clear error on successful token set
   }
-
   function clearAuthData() {
     token.value = null;
     refreshToken.value = null;
@@ -52,37 +44,28 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userData');
-    
     // Clear auth from API service
     apiService.clearAuth();
   }
-
   async function login(credentials: { email: string; password: string }) {
-    console.log('🔍 Login attempt for:', credentials.email);
     isLoading.value = true;
     error.value = null;
     try {
       const tokenData = await authService.login(credentials);
-      console.log('🔍 Login successful, token received:', !!tokenData.accessToken);
       setTokenData(tokenData);
-      console.log('🔍 About to fetch current user...');
       await fetchCurrentUser();
-      
       // Start token monitoring after successful login
       tokenManager.startMonitoring();
-      
       isLoading.value = false;
-      console.log('🔍 Login process completed successfully');
       return true;
     } catch (e: any) {
-      console.error('🔍 Login failed:', e);
+
       error.value = e.message || 'Login failed in store.';
       clearAuthData();
       isLoading.value = false;
       return false;
     }
   }
-
   async function signupAndLogin(signupData: any) {
     isLoading.value = true;
     error.value = null;
@@ -90,10 +73,8 @@ export const useAuthStore = defineStore('auth', () => {
       const tokenData = await authService.signup(signupData);
       setTokenData(tokenData);
       await fetchCurrentUser();
-      
       // Start token monitoring after successful signup
       tokenManager.startMonitoring();
-      
       isLoading.value = false;
       return { success: true };
     } catch (e: any) {
@@ -107,32 +88,25 @@ export const useAuthStore = defineStore('auth', () => {
       return { success: false, message: error.value };
     }
   }
-
   async function logout() {
     // isLoading.value = true; // Logout is usually quick, maybe not needed
     try {
       await authService.logout(); 
     } catch (e: any) {
     }
-    
     // Stop token monitoring before clearing auth data
     tokenManager.stopMonitoring();
-    
     clearAuthData(); 
     // isLoading.value = false;
   }
-
   async function refreshAuthToken(): Promise<boolean> {
     try {
       isLoading.value = true;
       error.value = null;
-      
       const tokenData = await authService.refreshToken();
       setTokenData(tokenData);
-      
       // Fetch updated user data
       await fetchCurrentUser();
-      
       return true;
     } catch (e: any) {
       error.value = "Could not refresh authentication token.";
@@ -142,9 +116,7 @@ export const useAuthStore = defineStore('auth', () => {
       isLoading.value = false;
     }
   }
-
   async function fetchCurrentUser() {
-    console.log('🔍 fetchCurrentUser called, token exists:', !!token.value);
     if (!token.value) {
       user.value = null;
       localStorage.removeItem('userData');
@@ -152,16 +124,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
     // isLoading.value = true; // This can be a separate loading state if desired, or rely on component
     try {
-      console.log('🔍 Calling apiService.getCurrentUser()');
       const userData = await apiService.getCurrentUser(); 
-      console.log('🔍 User data received:', userData);
       user.value = userData;
       // Store user data in localStorage for router access
       localStorage.setItem('userData', JSON.stringify(userData));
-      console.log('🔍 User data stored in localStorage');
       error.value = null; // Clear previous errors if user fetch is successful
     } catch (e: any) {
-      console.error('🔍 Error fetching user data:', e);
+
       error.value = "Could not fetch user details.";
       if ((e as any).response && (e as any).response.status === 401) {
         clearAuthData(); 
@@ -171,19 +140,14 @@ export const useAuthStore = defineStore('auth', () => {
     //   isLoading.value = false;
     // }
   }
-  
   if (token.value) {
     authService.initializeAuthHeader();
-    
     // Initialize auth token on NestJS API service
     apiService.setAuthToken(token.value);
-    
     // Start token monitoring for existing sessions
     tokenManager.startMonitoring();
-    
     fetchCurrentUser();
   }
-
   return {
     token,
     refreshToken, // Store value

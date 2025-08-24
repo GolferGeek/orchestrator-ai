@@ -13,7 +13,6 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content>
       <form @submit.prevent="createTask" class="create-task-form">
         <div class="form-content">
@@ -34,7 +33,6 @@
               <ion-select-option value="custom">Custom</ion-select-option>
             </ion-select>
           </ion-item>
-
           <!-- Custom Method Input -->
           <ion-item v-if="taskData.method === 'custom'">
             <ion-input
@@ -45,7 +43,6 @@
               :disabled="creating"
             />
           </ion-item>
-
           <!-- Prompt Input -->
           <ion-item>
             <ion-textarea
@@ -58,7 +55,6 @@
               required
             />
           </ion-item>
-
           <!-- Advanced Options -->
           <ion-accordion-group>
             <ion-accordion value="advanced">
@@ -71,13 +67,11 @@
                   <h4>LLM Configuration</h4>
                   <LLMSelector :disabled="creating" />
                 </div>
-
                 <!-- CIDAFM Controls -->
                 <div class="cidafm-section">
                   <h4>Behavior Modification (CIDAFM)</h4>
                   <CIDAFMControls :disabled="creating" />
                 </div>
-
                 <!-- Timeout -->
                 <ion-item>
                   <ion-input
@@ -91,7 +85,6 @@
                     :disabled="creating"
                   />
                 </ion-item>
-
                 <!-- Parameters -->
                 <ion-item>
                   <ion-textarea
@@ -103,7 +96,6 @@
                     :disabled="creating"
                   />
                 </ion-item>
-
                 <!-- Parameter Helper -->
                 <div class="parameter-helper">
                   <h4>Common Parameters:</h4>
@@ -119,7 +111,6 @@
               </div>
             </ion-accordion>
           </ion-accordion-group>
-
           <!-- Error Display -->
           <ion-item v-if="error" lines="none" class="error-item">
             <ion-icon :icon="alertCircleOutline" color="danger" slot="start" />
@@ -128,7 +119,6 @@
             </ion-label>
           </ion-item>
         </div>
-
         <!-- Actions -->
         <div class="form-actions">
           <ion-button
@@ -152,7 +142,6 @@
     </ion-content>
   </ion-modal>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import {
@@ -180,52 +169,43 @@ import { tasksService } from '@/services/tasksService';
 import LLMSelector from './LLMSelector.vue';
 import CIDAFMControls from './CIDAFMControls.vue';
 import { useLLMStore } from '@/stores/llmStore';
-
 interface Conversation {
   id: string;
   agentName: string;
   agentType: string;
 }
-
 interface TaskData {
   method: string;
   prompt: string;
   params?: Record<string, any>;
   timeoutSeconds?: number;
 }
-
 interface ParameterPreset {
   name: string;
   params: Record<string, any>;
 }
-
 // Props
 const props = defineProps<{
   isOpen: boolean;
   conversation: Conversation | null;
 }>();
-
 // Events
 const emit = defineEmits<{
   close: [];
   'task-created': [taskId: string];
 }>();
-
 // Reactive state
 const creating = ref(false);
 const error = ref<string | null>(null);
 const customMethod = ref('');
 const parametersJson = ref('');
-
 // Store
 const llmStore = useLLMStore();
-
 const taskData = ref<TaskData>({
   method: 'process',
   prompt: '',
   timeoutSeconds: 300,
 });
-
 // Parameter presets
 const parameterPresets: ParameterPreset[] = [
   {
@@ -253,20 +233,16 @@ const parameterPresets: ParameterPreset[] = [
     params: { temperature: 0.2, analytical: true, structured: true },
   },
 ];
-
 // Computed
 const isFormValid = computed(() => {
   const method = taskData.value.method === 'custom' ? customMethod.value : taskData.value.method;
   return method && taskData.value.prompt.trim().length > 0;
 });
-
 // Methods
 const createTask = async () => {
   if (!props.conversation || !isFormValid.value) return;
-
   creating.value = true;
   error.value = null;
-
   try {
     // Parse parameters JSON
     let params: Record<string, any> | undefined;
@@ -277,7 +253,6 @@ const createTask = async () => {
         throw new Error('Invalid JSON in parameters');
       }
     }
-
     // Prepare task data
     const method = taskData.value.method === 'custom' ? customMethod.value : taskData.value.method;
     const taskRequest = {
@@ -288,31 +263,25 @@ const createTask = async () => {
       timeoutSeconds: taskData.value.timeoutSeconds,
       llmSelection: llmStore.currentLLMSelection,
     };
-
     // Create task via direct agent call
     const result = await tasksService.createAgentTask(
       props.conversation.agentType,
       props.conversation.agentName,
       taskRequest
     );
-
     // Emit success
     emit('task-created', result.taskId);
-    
     // Reset form
     resetForm();
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to create task';
   } finally {
     creating.value = false;
   }
 };
-
 const applyParameterPreset = (preset: ParameterPreset) => {
   parametersJson.value = JSON.stringify(preset.params, null, 2);
 };
-
 const resetForm = () => {
   taskData.value = {
     method: 'process',
@@ -323,11 +292,9 @@ const resetForm = () => {
   parametersJson.value = '';
   error.value = null;
 };
-
 const formatAgentName = (name: string) => {
   return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
-
 // Watch for modal open/close
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
@@ -335,27 +302,22 @@ watch(() => props.isOpen, (isOpen) => {
   }
 });
 </script>
-
 <style scoped>
 .create-task-form {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
-
 .form-content {
   flex: 1;
   padding: 16px;
 }
-
 .advanced-options {
   padding: 16px;
 }
-
 .parameter-helper {
   margin-top: 16px;
 }
-
 .parameter-helper h4,
 .llm-section h4,
 .cidafm-section h4 {
@@ -363,7 +325,6 @@ watch(() => props.isOpen, (isOpen) => {
   color: var(--ion-color-step-600);
   font-size: 0.9em;
 }
-
 .llm-section,
 .cidafm-section {
   margin-bottom: 24px;
@@ -372,12 +333,10 @@ watch(() => props.isOpen, (isOpen) => {
   border-radius: 8px;
   border: 1px solid var(--ion-color-step-150);
 }
-
 .parameter-helper ion-chip {
   margin: 2px 4px 2px 0;
   cursor: pointer;
 }
-
 .error-item {
   --background: var(--ion-color-danger-tint);
   --border-color: var(--ion-color-danger);
@@ -385,7 +344,6 @@ watch(() => props.isOpen, (isOpen) => {
   border-radius: 8px;
   margin: 12px 0;
 }
-
 .form-actions {
   display: flex;
   gap: 12px;
@@ -393,7 +351,6 @@ watch(() => props.isOpen, (isOpen) => {
   border-top: 1px solid var(--ion-color-step-150);
   background: var(--ion-color-step-50);
 }
-
 .form-actions ion-button {
   flex: 1;
 }

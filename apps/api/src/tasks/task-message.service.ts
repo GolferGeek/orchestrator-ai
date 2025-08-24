@@ -62,7 +62,7 @@ export class TaskMessageService {
         .single();
 
       if (error) {
-        this.logger.error('Error creating task message:', error);
+
         throw new Error(`Failed to create task message: ${error.message}`);
       }
 
@@ -89,7 +89,7 @@ export class TaskMessageService {
 
       return taskMessage;
     } catch (error) {
-      this.logger.error('Error in createTaskMessage:', error);
+
       throw error;
     }
   }
@@ -125,7 +125,7 @@ export class TaskMessageService {
       const { data, error, count } = await query;
 
       if (error) {
-        this.logger.error('Error fetching task messages:', error);
+
         throw new Error(`Failed to fetch task messages: ${error.message}`);
       }
 
@@ -134,7 +134,7 @@ export class TaskMessageService {
         total: count || 0,
       };
     } catch (error) {
-      this.logger.error('Error in getTaskMessages:', error);
+
       throw error;
     }
   }
@@ -168,7 +168,7 @@ export class TaskMessageService {
       const { data, error, count } = await query;
 
       if (error) {
-        this.logger.error('Error fetching recent messages:', error);
+
         throw new Error(`Failed to fetch recent messages: ${error.message}`);
       }
 
@@ -177,7 +177,7 @@ export class TaskMessageService {
         total: count || 0,
       };
     } catch (error) {
-      this.logger.error('Error in getRecentMessages:', error);
+
       throw error;
     }
   }
@@ -195,13 +195,12 @@ export class TaskMessageService {
         .eq('user_id', userId);
 
       if (error) {
-        this.logger.error('Error deleting task messages:', error);
+
         throw new Error(`Failed to delete task messages: ${error.message}`);
       }
 
-      this.logger.debug(`Deleted messages for task ${taskId}`);
     } catch (error) {
-      this.logger.error('Error in deleteTaskMessages:', error);
+
       throw error;
     }
   }
@@ -229,7 +228,7 @@ export class TaskMessageService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        this.logger.error('Error fetching task message stats:', error);
+
         throw new Error(`Failed to fetch task message stats: ${error.message}`);
       }
 
@@ -252,7 +251,7 @@ export class TaskMessageService {
         lastMessage: messages[0], // Most recent message
       };
     } catch (error) {
-      this.logger.error('Error in getTaskMessageStats:', error);
+
       throw error;
     }
   }

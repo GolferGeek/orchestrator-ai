@@ -5,7 +5,6 @@
       <ion-spinner name="crescent"></ion-spinner>
       <p>Loading analytics...</p>
     </div>
-
     <!-- Analytics Cards -->
     <div v-else-if="analytics">
       <!-- Key Metrics Row -->
@@ -20,7 +19,6 @@
               </ion-card-content>
             </ion-card>
           </ion-col>
-          
           <ion-col size="12" size-md="6" size-lg="3">
             <ion-card class="metric-card">
               <ion-card-content class="ion-text-center">
@@ -30,7 +28,6 @@
               </ion-card-content>
             </ion-card>
           </ion-col>
-          
           <ion-col size="12" size-md="6" size-lg="3">
             <ion-card class="metric-card">
               <ion-card-content class="ion-text-center">
@@ -40,7 +37,6 @@
               </ion-card-content>
             </ion-card>
           </ion-col>
-          
           <ion-col size="12" size-md="6" size-lg="3">
             <ion-card class="metric-card">
               <ion-card-content class="ion-text-center">
@@ -52,7 +48,6 @@
           </ion-col>
         </ion-row>
       </ion-grid>
-
       <!-- Rating Distribution Chart -->
       <ion-card>
         <ion-card-header>
@@ -77,7 +72,6 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- Top Performing Agents -->
       <ion-card>
         <ion-card-header>
@@ -100,7 +94,6 @@
           </ion-list>
         </ion-card-content>
       </ion-card>
-
       <!-- Most Effective Constraints -->
       <ion-card>
         <ion-card-header>
@@ -123,7 +116,6 @@
           </ion-list>
         </ion-card-content>
       </ion-card>
-
       <!-- Workflow Failure Points -->
       <ion-card v-if="analytics.workflowFailurePoints.length > 0">
         <ion-card-header>
@@ -146,7 +138,6 @@
           </ion-list>
         </ion-card-content>
       </ion-card>
-
       <!-- Performance Metrics -->
       <ion-grid>
         <ion-row>
@@ -180,7 +171,6 @@
               </ion-card-content>
             </ion-card>
           </ion-col>
-          
           <ion-col size="12" size-md="6">
             <ion-card>
               <ion-card-header>
@@ -205,7 +195,6 @@
         </ion-row>
       </ion-grid>
     </div>
-
     <!-- Empty State -->
     <ion-card v-else class="ion-text-center">
       <ion-card-content>
@@ -219,7 +208,6 @@
     </ion-card>
   </div>
 </template>
-
 <script setup lang="ts">
 import {
   IonCard,
@@ -237,7 +225,6 @@ import {
   IonChip,
   IonButton
 } from '@ionic/vue';
-
 import {
   barChartOutline,
   starOutline,
@@ -250,17 +237,14 @@ import {
   analyticsOutline,
   downloadOutline
 } from 'ionicons/icons';
-
 interface Props {
   analytics: any;
   isLoading: boolean;
 }
-
 defineProps<Props>();
 defineEmits<{
   refresh: []
 }>();
-
 function getRatingColor(rating: number): string {
   if (rating >= 4.5) return 'success';
   if (rating >= 4) return 'primary';
@@ -268,18 +252,15 @@ function getRatingColor(rating: number): string {
   return 'danger';
 }
 </script>
-
 <style scoped>
 .admin-overview {
   max-width: 1200px;
   margin: 0 auto;
 }
-
 .metric-card {
   height: 120px;
   margin-bottom: 1rem;
 }
-
 .metric-card ion-card-content {
   display: flex;
   flex-direction: column;
@@ -287,37 +268,31 @@ function getRatingColor(rating: number): string {
   align-items: center;
   height: 100%;
 }
-
 .metric-card h2 {
   margin: 0;
   font-size: 2rem;
   font-weight: 600;
 }
-
 .metric-card p {
   margin: 0.5rem 0;
   color: var(--ion-color-medium);
   font-size: 0.9rem;
 }
-
 .rating-chart {
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin: 16px 0;
 }
-
 .rating-bar {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
 .rating-label {
   width: 60px;
   font-weight: 500;
 }
-
 .rating-bar-container {
   flex: 1;
   height: 24px;
@@ -325,38 +300,31 @@ function getRatingColor(rating: number): string {
   border-radius: 12px;
   overflow: hidden;
 }
-
 .rating-bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--ion-color-warning), var(--ion-color-warning-shade));
   transition: width 0.3s ease;
 }
-
 .rating-count {
   width: 40px;
   text-align: right;
   font-weight: 500;
   color: var(--ion-color-dark);
 }
-
 ion-card {
   margin-bottom: 1rem;
 }
-
 @media (max-width: 768px) {
   .metric-card h2 {
     font-size: 1.5rem;
   }
-  
   .rating-bar {
     gap: 8px;
   }
-  
   .rating-label {
     width: 50px;
     font-size: 0.9rem;
   }
-  
   .rating-count {
     width: 30px;
     font-size: 0.9rem;

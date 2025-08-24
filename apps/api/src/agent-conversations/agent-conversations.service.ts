@@ -38,9 +38,7 @@ export class AgentConversationsService {
     }
 
     // Default to 'specialist' if type is not recognized
-    this.logger.warn(
-      `Unknown agent type "${agentType}", defaulting to "specialist"`,
-    );
+
     return 'specialist';
   }
 
@@ -71,13 +69,13 @@ export class AgentConversationsService {
         .single();
 
       if (error) {
-        this.logger.error('Error creating agent conversation:', error);
+
         throw new Error(`Failed to create conversation: ${error.message}`);
       }
 
       return this.mapToAgentConversation(data);
     } catch (error) {
-      this.logger.error('Error in createConversation:', error);
+
       throw error;
     }
   }
@@ -100,13 +98,13 @@ export class AgentConversationsService {
 
       if (error && error.code !== 'PGRST116') {
         // PGRST116 is "no rows found"
-        this.logger.error('Error fetching conversation:', error);
+
         throw new Error(`Failed to fetch conversation: ${error.message}`);
       }
 
       return data ? this.mapToAgentConversation(data) : null;
     } catch (error) {
-      this.logger.error('Error in getConversationById:', error);
+
       throw error;
     }
   }
@@ -138,9 +136,7 @@ export class AgentConversationsService {
         }
 
         // If provided conversation ID doesn't exist or doesn't match, log warning and create new
-        this.logger.warn(
-          `Conversation ${existingConversationId} not found or doesn't match user/agent, creating new conversation`,
-        );
+
       }
 
       // First try to find an active conversation
@@ -165,7 +161,7 @@ export class AgentConversationsService {
         agentType,
       });
     } catch (error) {
-      this.logger.error('Error in getOrCreateConversation:', error);
+
       throw error;
     }
   }
@@ -206,7 +202,7 @@ export class AgentConversationsService {
       const { data, error, count } = await query;
 
       if (error) {
-        this.logger.error('Error listing conversations:', error);
+
         throw new Error(`Failed to list conversations: ${error.message}`);
       }
 
@@ -217,7 +213,7 @@ export class AgentConversationsService {
         total: count || 0,
       };
     } catch (error) {
-      this.logger.error('Error in listConversations:', error);
+
       throw error;
     }
   }
@@ -238,11 +234,11 @@ export class AgentConversationsService {
         .eq('user_id', userId);
 
       if (error) {
-        this.logger.error('Error ending conversation:', error);
+
         throw new Error(`Failed to end conversation: ${error.message}`);
       }
     } catch (error) {
-      this.logger.error('Error in endConversation:', error);
+
       throw error;
     }
   }
@@ -279,7 +275,7 @@ export class AgentConversationsService {
         .is('agent_name', null); // Only update if agent_name is not already set
 
       if (deliverablesUpdateError) {
-        this.logger.warn('Warning: Could not preserve agent_name in deliverables:', deliverablesUpdateError);
+
         // Don't throw here - this is not critical enough to stop deletion
       }
 
@@ -292,7 +288,7 @@ export class AgentConversationsService {
         .eq('user_id', userId);
 
       if (tasksError) {
-        this.logger.error('Error deleting conversation tasks:', tasksError);
+
         throw new Error(
           `Failed to delete conversation tasks: ${tasksError.message}`,
         );
@@ -307,15 +303,12 @@ export class AgentConversationsService {
         .eq('user_id', userId);
 
       if (error) {
-        this.logger.error('Error deleting conversation:', error);
+
         throw new Error(`Failed to delete conversation: ${error.message}`);
       }
 
-      this.logger.debug(
-        `Successfully deleted conversation ${conversationId} for user ${userId}. Associated deliverables preserved as standalone.`,
-      );
     } catch (error) {
-      this.logger.error('Error in deleteConversation:', error);
+
       throw error;
     }
   }
@@ -340,13 +333,13 @@ export class AgentConversationsService {
         .eq('user_id', userId);
 
       if (error) {
-        this.logger.error('Error updating conversation metadata:', error);
+
         throw new Error(
           `Failed to update conversation metadata: ${error.message}`,
         );
       }
     } catch (error) {
-      this.logger.error('Error in updateConversationMetadata:', error);
+
       throw error;
     }
   }
@@ -365,7 +358,7 @@ export class AgentConversationsService {
         .order('last_active_at', { ascending: false });
 
       if (error) {
-        this.logger.error('Error fetching active conversations:', error);
+
         throw new Error(
           `Failed to fetch active conversations: ${error.message}`,
         );
@@ -373,7 +366,7 @@ export class AgentConversationsService {
 
       return data.map((item) => this.mapToAgentConversation(item));
     } catch (error) {
-      this.logger.error('Error in getActiveConversations:', error);
+
       throw error;
     }
   }
@@ -396,7 +389,7 @@ export class AgentConversationsService {
       .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
-      this.logger.error('Error finding conversation by work product:', error);
+
       throw new Error(
         `Failed to find conversation by work product: ${error.message}`,
       );
@@ -425,9 +418,7 @@ export class AgentConversationsService {
       .single();
 
     if (fetchError || !existing) {
-      this.logger.warn(
-        `Conversation ${conversationId} not found for user ${userId} when setting work product`,
-      );
+
       throw new Error('Conversation not found or access denied');
     }
 
@@ -442,9 +433,7 @@ export class AgentConversationsService {
       existingId &&
       (existingType !== workProduct.type || existingId !== workProduct.id)
     ) {
-      this.logger.warn(
-        `Immutable work product already set for conversation ${conversationId}. Existing ${existingType}:${existingId}, attempted ${workProduct.type}:${workProduct.id}`,
-      );
+
       throw new Error('Primary work product is immutable once set');
     }
 
@@ -468,9 +457,7 @@ export class AgentConversationsService {
       .eq('user_id', userId);
 
     if (updateError) {
-      this.logger.error(
-        `Failed to set primary work product for conversation ${conversationId}: ${updateError.message}`,
-      );
+
       throw new Error(
         updateError.message || 'Could not set primary work product',
       );

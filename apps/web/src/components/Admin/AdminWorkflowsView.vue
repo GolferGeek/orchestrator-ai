@@ -5,7 +5,6 @@
       <ion-spinner name="crescent"></ion-spinner>
       <p>Loading workflow analytics...</p>
     </div>
-
     <!-- Workflow Analytics Content -->
     <div v-else-if="workflowAnalytics">
       <!-- Workflow Overview Cards -->
@@ -20,7 +19,6 @@
               </ion-card-content>
             </ion-card>
           </ion-col>
-          
           <ion-col size="12" size-md="6" size-lg="3">
             <ion-card class="metric-card">
               <ion-card-content class="ion-text-center">
@@ -30,7 +28,6 @@
               </ion-card-content>
             </ion-card>
           </ion-col>
-          
           <ion-col size="12" size-md="6" size-lg="3">
             <ion-card class="metric-card">
               <ion-card-content class="ion-text-center">
@@ -40,7 +37,6 @@
               </ion-card-content>
             </ion-card>
           </ion-col>
-          
           <ion-col size="12" size-md="6" size-lg="3">
             <ion-card class="metric-card">
               <ion-card-content class="ion-text-center">
@@ -52,7 +48,6 @@
           </ion-col>
         </ion-row>
       </ion-grid>
-
       <!-- Workflow Filters -->
       <ion-card class="filters-card">
         <ion-card-header>
@@ -97,7 +92,6 @@
           </ion-grid>
         </ion-card-content>
       </ion-card>
-
       <!-- Step Performance Analysis -->
       <ion-card>
         <ion-card-header>
@@ -141,7 +135,6 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- Most Common Failure Points -->
       <ion-card v-if="workflowAnalytics.commonFailures && workflowAnalytics.commonFailures.length > 0">
         <ion-card-header>
@@ -180,7 +173,6 @@
           </ion-list>
         </ion-card-content>
       </ion-card>
-
       <!-- Workflow Duration Distribution -->
       <ion-card>
         <ion-card-header>
@@ -208,7 +200,6 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- Workflow Performance by Agent -->
       <ion-card>
         <ion-card-header>
@@ -252,7 +243,6 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- Recent Workflow Activity -->
       <ion-card>
         <ion-card-header>
@@ -286,7 +276,6 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- Export Actions -->
       <ion-card class="export-actions">
         <ion-card-content>
@@ -301,7 +290,6 @@
         </ion-card-content>
       </ion-card>
     </div>
-
     <!-- Empty State -->
     <ion-card v-else class="ion-text-center">
       <ion-card-content>
@@ -313,7 +301,6 @@
         </ion-button>
       </ion-card-content>
     </ion-card>
-
     <!-- Failure Details Modal -->
     <ion-modal :is-open="showFailureModal" @didDismiss="closeFailureModal">
       <ion-header>
@@ -328,12 +315,10 @@
         <h3>{{ selectedFailure.stepName }}</h3>
         <p><strong>Failure Rate:</strong> {{ selectedFailure.failureRate.toFixed(1) }}%</p>
         <p><strong>Failed:</strong> {{ selectedFailure.failureCount }} of {{ selectedFailure.totalAttempts }} attempts</p>
-        
         <h4>Common Error Message:</h4>
         <div class="error-message">
           {{ selectedFailure.commonError }}
         </div>
-        
         <h4>Suggested Actions:</h4>
         <ul>
           <li>Review step implementation for edge cases</li>
@@ -345,7 +330,6 @@
     </ion-modal>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import {
@@ -374,7 +358,6 @@ import {
   IonButtons,
   IonContent
 } from '@ionic/vue';
-
 import {
   gitNetworkOutline,
   checkmarkCircleOutline,
@@ -383,69 +366,55 @@ import {
   warningOutline,
   downloadOutline
 } from 'ionicons/icons';
-
 interface Props {
   workflowAnalytics: any;
   isLoading: boolean;
 }
-
 const props = defineProps<Props>();
 const emit = defineEmits<{
   refresh: []
 }>();
-
 const workflowFilters = reactive({
   stepName: '',
   agentName: '',
   status: ''
 });
-
 const showFailureModal = ref(false);
 const selectedFailure = ref<any>(null);
-
 let filterTimeout: NodeJS.Timeout | null = null;
-
 function debounceFilter() {
   if (filterTimeout) {
     clearTimeout(filterTimeout);
   }
-  
   filterTimeout = setTimeout(() => {
     refreshWorkflows();
   }, 500);
 }
-
 function refreshWorkflows() {
   emit('refresh');
 }
-
 function getSuccessRateColor(rate: number): string {
   if (rate >= 90) return 'success';
   if (rate >= 70) return 'warning';
   return 'danger';
 }
-
 function truncateError(error: string): string {
   if (!error) return 'No error details available';
   return error.length > 100 ? error.substring(0, 100) + '...' : error;
 }
-
 function showFailureDetails(failure: any) {
   selectedFailure.value = failure;
   showFailureModal.value = true;
 }
-
 function closeFailureModal() {
   showFailureModal.value = false;
   selectedFailure.value = null;
 }
-
 function formatTimestamp(timestamp: string): string {
   const date = new Date(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  
   if (diffHours < 1) {
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     return `${diffMinutes} minutes ago`;
@@ -455,24 +424,19 @@ function formatTimestamp(timestamp: string): string {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 }
-
 function exportWorkflowReport() {
-  console.log('Exporting workflow report...');
   // Implementation would depend on your export service
 }
 </script>
-
 <style scoped>
 .admin-workflows {
   max-width: 1200px;
   margin: 0 auto;
 }
-
 .metric-card {
   height: 120px;
   margin-bottom: 1rem;
 }
-
 .metric-card ion-card-content {
   display: flex;
   flex-direction: column;
@@ -480,30 +444,25 @@ function exportWorkflowReport() {
   align-items: center;
   height: 100%;
 }
-
 .metric-card h2 {
   margin: 0;
   font-size: 2rem;
   font-weight: 600;
 }
-
 .metric-card p {
   margin: 0.5rem 0;
   color: var(--ion-color-medium);
   font-size: 0.9rem;
 }
-
 .filters-card {
   margin-bottom: 1rem;
 }
-
 .step-item,
 .failure-item,
 .agent-workflow-item,
 .activity-item {
   margin-bottom: 8px;
 }
-
 .step-details,
 .failure-details,
 .agent-workflow-details {
@@ -511,7 +470,6 @@ function exportWorkflowReport() {
   color: var(--ion-color-medium);
   margin-top: 4px;
 }
-
 .error-snippet {
   font-family: monospace;
   background: var(--ion-color-light);
@@ -519,7 +477,6 @@ function exportWorkflowReport() {
   border-radius: 4px;
   font-size: 0.75rem;
 }
-
 .step-metrics,
 .failure-metrics,
 .agent-workflow-metrics {
@@ -528,31 +485,26 @@ function exportWorkflowReport() {
   align-items: flex-end;
   min-width: 120px;
 }
-
 .workflow-progress {
   width: 100px;
   margin-top: 4px;
 }
-
 .duration-chart {
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin: 16px 0;
 }
-
 .duration-bar {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
 .duration-label {
   width: 100px;
   font-weight: 500;
   font-size: 0.9rem;
 }
-
 .duration-bar-container {
   flex: 1;
   height: 20px;
@@ -560,13 +512,11 @@ function exportWorkflowReport() {
   border-radius: 10px;
   overflow: hidden;
 }
-
 .duration-bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--ion-color-primary), var(--ion-color-primary-shade));
   transition: width 0.3s ease;
 }
-
 .duration-count {
   width: 40px;
   text-align: right;
@@ -574,17 +524,14 @@ function exportWorkflowReport() {
   color: var(--ion-color-dark);
   font-size: 0.9rem;
 }
-
 .activity-timestamp {
   font-size: 0.75rem;
   color: var(--ion-color-medium);
   margin-top: 4px;
 }
-
 .export-actions {
   margin-top: 2rem;
 }
-
 .error-message {
   background: var(--ion-color-light);
   padding: 12px;
@@ -594,32 +541,26 @@ function exportWorkflowReport() {
   border-left: 4px solid var(--ion-color-danger);
   margin: 12px 0;
 }
-
 ion-card {
   margin-bottom: 1rem;
 }
-
 @media (max-width: 768px) {
   .metric-card h2 {
     font-size: 1.5rem;
   }
-  
   .step-metrics,
   .failure-metrics,
   .agent-workflow-metrics {
     min-width: 100px;
   }
-  
   .duration-label {
     width: 80px;
     font-size: 0.8rem;
   }
-  
   .duration-count {
     width: 30px;
     font-size: 0.8rem;
   }
-  
   .duration-bar {
     gap: 8px;
   }

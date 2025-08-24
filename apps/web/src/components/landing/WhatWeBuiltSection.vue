@@ -9,7 +9,6 @@
           with cutting-edge orchestration, real-time monitoring, and enterprise deployment.
         </p>
       </div>
-
       <!-- Feature Grid -->
       <div class="features-grid stagger-children" ref="featuresGrid">
         <!-- AI Workforce -->
@@ -25,7 +24,6 @@
             <span class="stat">⚡ Real-Time</span>
           </div>
         </div>
-
         <!-- Orchestration -->
         <div class="feature-card animate-on-scroll">
           <div class="feature-icon">
@@ -42,7 +40,6 @@
             </div>
           </div>
         </div>
-
         <!-- Real-Time Everything -->
         <div class="feature-card animate-on-scroll">
           <div class="feature-icon">
@@ -56,7 +53,6 @@
             <div class="feature-item">✓ Human-in-Loop</div>
           </div>
         </div>
-
         <!-- SQL Generation -->
         <div class="feature-card highlight animate-on-scroll">
           <div class="feature-icon">
@@ -73,7 +69,6 @@
             </div>
           </div>
         </div>
-
         <!-- Voice & Agent Builder -->
         <div class="feature-card animate-on-scroll">
           <div class="feature-icon">
@@ -90,7 +85,6 @@
             </div>
           </div>
         </div>
-
         <!-- Deliverables System -->
         <div class="feature-card animate-on-scroll">
           <div class="feature-icon">
@@ -104,7 +98,6 @@
             <div class="feature-item">⭐ Auto Evaluation</div>
           </div>
         </div>
-
         <!-- LLM Experimentation -->
         <div class="feature-card animate-on-scroll">
           <div class="feature-icon">
@@ -118,7 +111,6 @@
             <span class="stat">🔒 Local Privacy</span>
           </div>
         </div>
-
         <!-- On-Premise Deployment -->
         <div class="feature-card highlight animate-on-scroll">
           <div class="feature-icon">
@@ -135,7 +127,6 @@
             </div>
           </div>
         </div>
-
         <!-- MCP Integration (Coming Soon) -->
         <div class="feature-card coming-soon animate-on-scroll">
           <div class="feature-icon">
@@ -148,14 +139,12 @@
           </div>
         </div>
       </div>
-
       <!-- Agent Showcase Grid -->
       <div class="agent-showcase">
         <div class="showcase-header">
           <h3>Meet Your AI Workforce</h3>
           <p>39 specialized agents across 9 departments, ready to customize for your business</p>
         </div>
-        
         <div class="department-grid">
           <!-- Marketing Department -->
           <div class="department-card animate-on-scroll">
@@ -176,7 +165,6 @@
               <span class="agent-tag demo">+3 more</span>
             </div>
           </div>
-
           <!-- Operations Department -->
           <div class="department-card animate-on-scroll">
             <div class="department-header">
@@ -195,7 +183,6 @@
               <span class="agent-tag demo">+3 more</span>
             </div>
           </div>
-
           <!-- Engineering Department -->
           <div class="department-card animate-on-scroll">
             <div class="department-header">
@@ -214,7 +201,6 @@
               <span class="agent-tag demo">+2 more</span>
             </div>
           </div>
-
           <!-- Finance Department -->
           <div class="department-card animate-on-scroll">
             <div class="department-header">
@@ -233,7 +219,6 @@
               <span class="agent-tag demo">+1 more</span>
             </div>
           </div>
-
           <!-- Sales Department -->
           <div class="department-card animate-on-scroll">
             <div class="department-header">
@@ -252,7 +237,6 @@
               <span class="agent-tag demo">+1 more</span>
             </div>
           </div>
-
           <!-- HR Department -->
           <div class="department-card animate-on-scroll">
             <div class="department-header">
@@ -271,7 +255,6 @@
               <span class="agent-tag demo">+1 more</span>
             </div>
           </div>
-
           <!-- Research Department -->
           <div class="department-card animate-on-scroll">
             <div class="department-header">
@@ -290,7 +273,6 @@
               <span class="agent-tag demo">+1 more</span>
             </div>
           </div>
-
           <!-- Product Department -->
           <div class="department-card animate-on-scroll">
             <div class="department-header">
@@ -308,7 +290,6 @@
               <span class="agent-tag demo">+1 more</span>
             </div>
           </div>
-
           <!-- Legal Department -->
           <div class="department-card animate-on-scroll">
             <div class="department-header">
@@ -326,12 +307,10 @@
             </div>
           </div>
         </div>
-
         <div class="showcase-note">
           <p><strong>Demo Ready, Not Production Ready:</strong> Each agent needs customization and integration with your specific systems (email, CRM, databases) to work for your business. That's where we come in! 🚀</p>
         </div>
       </div>
-
       <!-- Bottom CTA -->
       <div class="section-cta">
         <h3>Ready to See It All Working?</h3>
@@ -348,7 +327,6 @@
     </div>
   </section>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { IonIcon, IonButton } from '@ionic/vue';
@@ -374,16 +352,12 @@ import {
   bulbOutline,
   documentTextOutline
 } from 'ionicons/icons';
-
 const featuresGrid = ref<HTMLElement>();
-
 defineEmits<{
   scrollToPricing: []
 }>();
-
 // Intersection Observer for scroll animations
 let observer: IntersectionObserver | null = null;
-
 onMounted(() => {
   // Set up intersection observer for scroll animations
   observer = new IntersectionObserver(
@@ -399,7 +373,6 @@ onMounted(() => {
       rootMargin: '0px 0px -50px 0px'
     }
   );
-
   // Observe all elements with animate-on-scroll class
   const animateElements = document.querySelectorAll('.animate-on-scroll');
   animateElements.forEach((el) => {
@@ -407,7 +380,6 @@ onMounted(() => {
       observer.observe(el);
     }
   });
-
   // Add stagger animation to features grid after a slight delay
   setTimeout(() => {
     if (featuresGrid.value) {
@@ -415,32 +387,27 @@ onMounted(() => {
     }
   }, 300);
 });
-
 onUnmounted(() => {
   if (observer) {
     observer.disconnect();
   }
 });
 </script>
-
 <style scoped>
 .what-we-built-section {
   background: white;
   padding: 4rem 0;
 }
-
 .section-header {
   text-align: center;
   margin-bottom: 4rem;
 }
-
 .section-header h2 {
   font-size: 2.5rem;
   color: var(--landing-dark);
   margin-bottom: 1rem;
   font-weight: 700;
 }
-
 .section-subtitle {
   font-size: 1.2rem;
   color: #6b7280;
@@ -448,14 +415,12 @@ onUnmounted(() => {
   margin: 0 auto;
   line-height: 1.6;
 }
-
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 2rem;
   margin-bottom: 4rem;
 }
-
 .feature-card {
   background: white;
   border-radius: 16px;
@@ -464,24 +429,20 @@ onUnmounted(() => {
   transition: var(--transition-smooth);
   position: relative;
 }
-
 .feature-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 40px rgba(0,0,0,0.15);
   border-color: var(--landing-primary);
 }
-
 .feature-card.highlight {
   border-color: var(--landing-primary);
   background: linear-gradient(135deg, #f8faff, white);
 }
-
 .feature-card.coming-soon {
   border-color: var(--landing-accent);
   background: linear-gradient(135deg, #fffbf0, white);
   opacity: 0.9;
 }
-
 .feature-icon {
   width: 60px;
   height: 60px;
@@ -492,31 +453,26 @@ onUnmounted(() => {
   justify-content: center;
   margin-bottom: 1.5rem;
 }
-
 .feature-icon ion-icon {
   font-size: 1.8rem;
   color: white;
 }
-
 .feature-card h3 {
   font-size: 1.3rem;
   color: var(--landing-dark);
   margin-bottom: 0.75rem;
   font-weight: 600;
 }
-
 .feature-card p {
   color: #6b7280;
   line-height: 1.6;
   margin-bottom: 1.5rem;
 }
-
 .feature-stats {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
 }
-
 .stat {
   background: var(--landing-light);
   color: var(--landing-primary);
@@ -525,28 +481,23 @@ onUnmounted(() => {
   font-size: 0.85rem;
   font-weight: 500;
 }
-
 .feature-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
-
 .feature-item {
   color: var(--landing-secondary);
   font-size: 0.9rem;
   font-weight: 500;
 }
-
 .feature-demo {
   margin-top: 1rem;
 }
-
 .video-embed-small {
   border-radius: 8px;
   overflow: hidden;
 }
-
 .video-placeholder-small {
   background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
   border: 1px dashed #d1d5db;
@@ -562,15 +513,12 @@ onUnmounted(() => {
   cursor: pointer;
   transition: var(--transition-smooth);
 }
-
 .video-placeholder-small:hover {
   background: linear-gradient(135deg, #e5e7eb, #d1d5db);
 }
-
 .video-placeholder-small ion-icon {
   font-size: 1.2rem;
 }
-
 .coming-soon-badge {
   background: var(--landing-accent);
   color: white;
@@ -581,7 +529,6 @@ onUnmounted(() => {
   display: inline-block;
   margin-top: 1rem;
 }
-
 .section-cta {
   text-align: center;
   padding: 3rem 2rem;
@@ -589,49 +536,40 @@ onUnmounted(() => {
   border-radius: 20px;
   color: white;
 }
-
 .section-cta h3 {
   font-size: 1.8rem;
   margin-bottom: 0.5rem;
 }
-
 .section-cta p {
   font-size: 1.1rem;
   margin-bottom: 2rem;
   opacity: 0.9;
 }
-
 .cta-button {
   --background: var(--landing-accent);
   --color: white;
   font-weight: 600;
   --border-radius: 8px;
 }
-
 /* Mobile responsive */
 @media (max-width: 768px) {
   .features-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
-  
   .feature-card {
     padding: 1.5rem;
   }
-  
   .section-header h2 {
     font-size: 2rem;
   }
-  
   .section-subtitle {
     font-size: 1rem;
   }
-  
   .feature-stats {
     justify-content: center;
   }
 }
-
 /* Agent Showcase Styles */
 .agent-showcase {
   margin: 4rem 0;
@@ -639,26 +577,22 @@ onUnmounted(() => {
   background: var(--landing-primary-50);
   border-radius: 24px;
 }
-
 .showcase-header {
   text-align: center;
   margin-bottom: 3rem;
 }
-
 .showcase-header h3 {
   font-size: 2rem;
   color: var(--landing-dark);
   margin-bottom: 0.5rem;
   font-weight: 700;
 }
-
 .showcase-header p {
   font-size: 1.1rem;
   color: var(--landing-gray);
   max-width: 600px;
   margin: 0 auto;
 }
-
 .department-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -666,7 +600,6 @@ onUnmounted(() => {
   margin-bottom: 2rem;
   padding: 0 2rem;
 }
-
 .department-card {
   background: var(--landing-white);
   border-radius: 16px;
@@ -675,20 +608,17 @@ onUnmounted(() => {
   transition: var(--transition-smooth);
   box-shadow: var(--shadow-sm);
 }
-
 .department-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
   border-color: var(--landing-secondary);
 }
-
 .department-header {
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
 }
-
 .department-icon {
   width: 48px;
   height: 48px;
@@ -698,7 +628,6 @@ onUnmounted(() => {
   justify-content: center;
   color: var(--landing-white);
 }
-
 .department-icon.marketing { background: linear-gradient(135deg, #f59e0b, #d97706); }
 .department-icon.operations { background: linear-gradient(135deg, var(--landing-primary), var(--landing-primary-light)); }
 .department-icon.engineering { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
@@ -708,30 +637,25 @@ onUnmounted(() => {
 .department-icon.research { background: linear-gradient(135deg, #06b6d4, #67e8f9); }
 .department-icon.product { background: linear-gradient(135deg, #84cc16, #a3e635); }
 .department-icon.legal { background: linear-gradient(135deg, #6b7280, #9ca3af); }
-
 .department-icon ion-icon {
   font-size: 1.5rem;
 }
-
 .department-info h4 {
   font-size: 1.2rem;
   color: var(--landing-dark);
   margin: 0;
   font-weight: 600;
 }
-
 .agent-count {
   font-size: 0.9rem;
   color: var(--landing-gray);
   font-weight: 500;
 }
-
 .agent-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
-
 .agent-tag {
   background: var(--landing-primary-100);
   color: var(--landing-primary-dark);
@@ -742,19 +666,16 @@ onUnmounted(() => {
   border: 1px solid var(--landing-primary-100);
   transition: var(--transition-smooth);
 }
-
 .agent-tag:hover {
   background: var(--landing-secondary-light);
   color: var(--landing-white);
   transform: translateY(-1px);
 }
-
 .agent-tag.demo {
   background: var(--landing-warning);
   color: var(--landing-white);
   font-weight: 600;
 }
-
 .showcase-note {
   text-align: center;
   padding: 2rem;
@@ -763,29 +684,24 @@ onUnmounted(() => {
   margin: 0 2rem;
   border: 2px solid var(--landing-secondary-light);
 }
-
 .showcase-note p {
   color: var(--landing-dark);
   font-size: 1rem;
   margin: 0;
   line-height: 1.6;
 }
-
 /* Mobile responsive for agent showcase */
 @media (max-width: 768px) {
   .department-grid {
     grid-template-columns: 1fr;
     padding: 0 1rem;
   }
-  
   .department-card {
     padding: 1.25rem;
   }
-  
   .showcase-header h3 {
     font-size: 1.5rem;
   }
-  
   .showcase-note {
     margin: 0 1rem;
     padding: 1.5rem;

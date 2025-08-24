@@ -12,7 +12,6 @@
         <ion-icon :icon="chevronDown" v-if="userPreferences.enableQuickModeToggle" />
       </ion-chip>
     </div>
-
     <!-- Quick Mode Toggle Buttons -->
     <div class="quick-mode-toggle" v-if="userPreferences.enableQuickModeToggle && showModeSelector">
       <ion-segment 
@@ -45,7 +44,6 @@
           <ion-label>Real-time</ion-label>
         </ion-segment-button>
       </ion-segment>
-      
       <!-- Reset button if overridden -->
       <ion-button 
         v-if="isExecutionModeOverride"
@@ -58,7 +56,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import {
@@ -79,36 +76,28 @@ import {
 } from 'ionicons/icons';
 import { useAgentChatStore } from '../stores/agentChatStore';
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
-
 // Store instances
 const agentChatStore = useAgentChatStore();
 const userPreferencesStore = useUserPreferencesStore();
-
 // Local state
 const showModeSelector = ref(false);
-
 // Computed properties
 const userPreferences = computed(() => userPreferencesStore.preferences);
 const currentMode = computed(() => agentChatStore.getEffectiveExecutionMode());
-
 const activeConversation = computed(() => agentChatStore.getActiveConversation());
 const isExecutionModeOverride = computed(() => activeConversation.value?.isExecutionModeOverride || false);
-
 const supportedModes = computed(() => {
   return activeConversation.value?.supportedExecutionModes || ['immediate'];
 });
-
 const isSingleModeAgent = computed(() => {
   const modes = supportedModes.value;
   return modes.length === 1 && modes[0] === 'immediate';
 });
-
 const showControls = computed(() => {
   return activeConversation.value?.agent && 
          (userPreferences.value.showExecutionModeIndicator || 
           userPreferences.value.enableQuickModeToggle);
 });
-
 // Helper functions
 const getModeColor = (mode: string) => {
   switch (mode) {
@@ -118,7 +107,6 @@ const getModeColor = (mode: string) => {
     default: return 'medium';
   }
 };
-
 const getModeIcon = (mode: string) => {
   switch (mode) {
     case 'immediate': return flash;
@@ -127,7 +115,6 @@ const getModeIcon = (mode: string) => {
     default: return speedometer;
   }
 };
-
 const getModeLabel = (mode: string) => {
   switch (mode) {
     case 'immediate': return 'Immediate';
@@ -136,20 +123,17 @@ const getModeLabel = (mode: string) => {
     default: return 'Auto';
   }
 };
-
 // Event handlers
 const handleModeChange = (event: CustomEvent) => {
   const newMode = event.detail.value as 'immediate' | 'polling' | 'websocket';
   agentChatStore.setExecutionMode(newMode);
   showModeSelector.value = false;
 };
-
 const resetToDefault = () => {
   agentChatStore.resetExecutionMode();
   showModeSelector.value = false;
 };
 </script>
-
 <style scoped>
 .task-execution-controls {
   display: flex;
@@ -157,21 +141,17 @@ const resetToDefault = () => {
   gap: 8px;
   align-items: flex-end;
 }
-
 .execution-mode-indicator {
   display: flex;
   align-items: center;
 }
-
 .execution-mode-indicator ion-chip {
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
 .execution-mode-indicator ion-chip:hover {
   transform: scale(1.05);
 }
-
 .quick-mode-toggle {
   display: flex;
   align-items: center;
@@ -182,16 +162,13 @@ const resetToDefault = () => {
   border: 1px solid var(--ion-color-medium);
   min-width: 300px;
 }
-
 .quick-mode-toggle ion-segment {
   flex: 1;
 }
-
 /* Animation for mode selector */
 .quick-mode-toggle {
   animation: slideDown 0.2s ease-out;
 }
-
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -202,19 +179,16 @@ const resetToDefault = () => {
     transform: translateY(0);
   }
 }
-
 /* Dark theme support */
 .theme-dark .quick-mode-toggle {
   background: var(--ion-color-dark);
   border-color: var(--ion-color-medium-shade);
 }
-
 /* Mobile responsive */
 @media (max-width: 768px) {
   .quick-mode-toggle {
     min-width: 250px;
   }
-  
   .quick-mode-toggle ion-segment-button ion-label {
     font-size: 0.8rem;
   }

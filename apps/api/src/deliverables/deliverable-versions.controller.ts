@@ -78,12 +78,10 @@ export class DeliverableVersionsController {
     @Param('deliverableId', ParseUUIDPipe) deliverableId: string,
     @Req() req: any,
   ): Promise<DeliverableVersion[]> {
-    console.log('🚨 CONTROLLER DEBUG: getVersionHistory called with deliverableId:', deliverableId);
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
       throw new Error('User not authenticated');
     }
-    console.log('🚨 CONTROLLER DEBUG: userId:', userId);
     return this.versionsService.getVersionHistory(deliverableId, userId);
   }
 
