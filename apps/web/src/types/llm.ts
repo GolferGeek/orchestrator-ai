@@ -1,9 +1,7 @@
 // LLM Evaluation Types for Frontend
-
 export type AuthType = 'api_key' | 'oauth' | 'none';
 export type ProviderStatus = 'active' | 'inactive' | 'maintenance';
 export type CIDAFMCommandType = '^' | '&' | '!';
-
 export interface Provider {
   id: string;
   name: string;
@@ -15,7 +13,6 @@ export interface Provider {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface Model {
   id: string;
   providerId: string;
@@ -35,7 +32,6 @@ export interface Model {
   // Populated when fetching with provider info
   provider?: Provider;
 }
-
 export interface CIDAFMCommand {
   id: string;
   type: CIDAFMCommandType;
@@ -48,14 +44,12 @@ export interface CIDAFMCommand {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface CIDAFMOptions {
   activeStateModifiers?: string[];
   responseModifiers?: string[];
   executedCommands?: string[];
   customOptions?: Record<string, any>;
 }
-
 export interface LLMSelection {
   providerId?: string;
   modelId?: string;
@@ -63,7 +57,6 @@ export interface LLMSelection {
   temperature?: number;
   maxTokens?: number;
 }
-
 export interface LLMUsageMetrics {
   input_tokens: number;
   output_tokens: number;
@@ -71,7 +64,6 @@ export interface LLMUsageMetrics {
   response_time_ms: number;
   langsmith_run_id?: string;
 }
-
 export interface CostCalculation {
   input_tokens: number;
   output_tokens: number;
@@ -80,7 +72,6 @@ export interface CostCalculation {
   total_cost: number;
   currency: string;
 }
-
 export interface MessageEvaluation {
   user_rating?: number;
   speed_rating?: number;
@@ -88,7 +79,6 @@ export interface MessageEvaluation {
   user_notes?: string;
   evaluation_timestamp?: string;
 }
-
 export interface EnhancedMessage {
   id: string;
   session_id: string;
@@ -98,7 +88,6 @@ export interface EnhancedMessage {
   timestamp: string;
   order: number;
   metadata?: any;
-  
   // LLM fields
   providerId?: string;
   modelId?: string;
@@ -107,31 +96,25 @@ export interface EnhancedMessage {
   total_cost?: number;
   response_time_ms?: number;
   langsmith_run_id?: string;
-  
   // Evaluation fields
   user_rating?: number;
   speed_rating?: number;
   accuracy_rating?: number;
   user_notes?: string;
   evaluation_timestamp?: string;
-  
   // CIDAFM and additional data
   cidafm_options?: CIDAFMOptions;
   evaluation_details?: any;
-  
   // Populated data
   provider?: Provider;
   model?: Model;
 }
-
 // API Request/Response types
 export interface SendMessageRequest {
   content: string;
   llmSelection?: LLMSelection;
 }
-
 export type SendMessageResponse = EnhancedMessage;
-
 export interface UsageStats {
   user_id: string;
   total_messages: number;
@@ -146,7 +129,6 @@ export interface UsageStats {
   created_at: string;
   updated_at: string;
 }
-
 // UI State types
 export interface LLMPreferencesState {
   selectedProvider?: Provider;
@@ -155,17 +137,14 @@ export interface LLMPreferencesState {
   customModifiers: string[];
   temperature: number;
   maxTokens?: number;
-  
   // Available options
   providers: Provider[];
   models: Model[];
   cidafmCommands: CIDAFMCommand[];
-  
   // Loading states
   loadingProviders: boolean;
   loadingModels: boolean;
   loadingCommands: boolean;
-  
   // Error states
   providerError?: string;
   modelError?: string;

@@ -99,7 +99,6 @@ except ImportError as e:
 
 # State is now managed by utils.state_manager.RequirementsWriterState
 
-
 class RequirementsWriterWorkflow:
     """Modular LangGraph workflow for requirements writing with real LLM calls"""
     
@@ -207,25 +206,22 @@ Please try again with a more specific request, or contact support if the issue p
         """Conditional edge function: Determine if error handling is needed"""
         return "error" if state.get("error") else "success"
 
-
 def main():
     """Main entry point for the modular requirements writer agent"""
     print("🔥 MAIN FUNCTION STARTED 🔥", file=sys.stderr)
     try:
         # Parse input from stdin
-        print(f"MAIN_DEBUG: About to read from stdin", file=sys.stderr)
+
         input_raw = sys.stdin.read().strip()
-        print(f"MAIN_DEBUG: Read {len(input_raw)} characters from stdin", file=sys.stderr)
-        
+
         if not input_raw:
             print(f"MAIN_ERROR: No input provided from stdin", file=sys.stderr)
             print(json.dumps({"error": "No input provided"}))
             return
-        
-        print(f"MAIN_DEBUG: About to parse JSON input", file=sys.stderr)
+
         try:
             input_data = json.loads(input_raw)
-            print(f"MAIN_DEBUG: Successfully parsed JSON input", file=sys.stderr)
+
         except Exception as json_error:
             print(f"MAIN_ERROR: Failed to parse JSON input: {json_error}", file=sys.stderr)
             print(f"MAIN_ERROR: Raw input was: {input_raw[:200]}...", file=sys.stderr)
@@ -233,25 +229,17 @@ def main():
             return
         
         # Debug: Print input data to stderr for debugging
-        print(f"MAIN_DEBUG: Input data keys: {list(input_data.keys())}", file=sys.stderr)
-        print(f"MAIN_DEBUG: userMessage: {input_data.get('userMessage', 'NOT_FOUND')}", file=sys.stderr)
-        print(f"MAIN_DEBUG: prompt in originalParams: {input_data.get('metadata', {}).get('originalParams', {}).get('prompt', 'NOT_FOUND')}", file=sys.stderr)
-        
+
         user_message = input_data.get('userMessage', '')
         session_id = input_data.get('sessionId', 'unknown')
         metadata = input_data.get('metadata', {})
         task_id = metadata.get('taskId', metadata.get('originalParams', {}).get('taskId', 'unknown'))
-        
-        print(f"MAIN_DEBUG: Extracted user_message: {user_message[:100]}...", file=sys.stderr)
-        print(f"MAIN_DEBUG: Extracted session_id: {session_id}", file=sys.stderr)
-        print(f"MAIN_DEBUG: Extracted task_id: {task_id}", file=sys.stderr)
-        print(f"MAIN_DEBUG: Metadata keys: {list(metadata.keys())}", file=sys.stderr)
-        
+
         # Initialize the modular LangGraph workflow
-        print(f"MAIN_DEBUG: About to initialize RequirementsWriterWorkflow", file=sys.stderr)
+
         try:
             workflow_instance = RequirementsWriterWorkflow(task_id=task_id)
-            print(f"MAIN_DEBUG: RequirementsWriterWorkflow initialized successfully", file=sys.stderr)
+
         except Exception as workflow_init_error:
             print(f"MAIN_ERROR: Failed to initialize workflow: {workflow_init_error}", file=sys.stderr)
             import traceback
@@ -266,15 +254,9 @@ def main():
             "workflow_step": "initialized",
             "task_id": task_id  # Add task_id to state for node access
         }
-        
-        print(f"MAIN_DEBUG: Prepared initial state with keys: {list(initial_state.keys())}", file=sys.stderr)
-        print(f"MAIN_DEBUG: Initial state userMessage length: {len(user_message)}", file=sys.stderr)
-        print(f"MAIN_DEBUG: LangGraph available: {LANGGRAPH_AVAILABLE}", file=sys.stderr)
-        print(f"MAIN_DEBUG: Workflow instance type: {type(workflow_instance)}", file=sys.stderr)
-        print(f"MAIN_DEBUG: Workflow instance workflow type: {type(workflow_instance.workflow)}", file=sys.stderr)
-        
+
         # Execute the modular LangGraph workflow
-        print(f"MAIN_DEBUG: About to execute workflow", file=sys.stderr)
+
         start_time = datetime.now()
         
         # Emit workflow start progress
@@ -282,8 +264,7 @@ def main():
         
         try:
             if LANGGRAPH_AVAILABLE:
-                print(f"MAIN_DEBUG: Executing with LangGraph using invoke()", file=sys.stderr)
-                
+
                 # Emit intermediate progress events (simulating workflow steps)
                 emit_progress(task_id, "analyzing_request", 1, 6, "in_progress", "Analyzing your request...")
                 
@@ -293,8 +274,7 @@ def main():
                     
                     # Start workflow execution
                     final_state = workflow_instance.workflow.invoke(initial_state)
-                    print(f"MAIN_DEBUG: LangGraph invoke() completed", file=sys.stderr)
-                    
+
                     # Emit additional progress based on workflow completion
                     emit_progress(task_id, "generating_content", 4, 6, "in_progress", "Generating requirements document content...")
                     
@@ -309,17 +289,16 @@ def main():
                     emit_progress(task_id, "workflow_error", 5, 6, "failed", f"Workflow execution failed: {langgraph_error}")
                     raise
             else:
-                print(f"MAIN_DEBUG: Executing with fallback workflow", file=sys.stderr)
+
                 # Fallback execution without LangGraph
                 import asyncio
-                print(f"MAIN_DEBUG: Creating new event loop for fallback", file=sys.stderr)
+
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
-                    print(f"MAIN_DEBUG: About to run fallback workflow with asyncio", file=sys.stderr)
+
                     final_state = loop.run_until_complete(workflow_instance.workflow._fallback_invoke(initial_state))
-                    print(f"MAIN_DEBUG: Fallback workflow completed", file=sys.stderr)
-                    
+
                     # Emit completion progress for fallback
                     emit_progress(task_id, "workflow_complete", 5, 6, "completed", "Requirements document generated successfully")
                     
@@ -332,17 +311,13 @@ def main():
                     raise
                 finally:
                     loop.close()
-                    print(f"MAIN_DEBUG: Event loop closed", file=sys.stderr)
-            
+
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
-            print(f"MAIN_DEBUG: Workflow completed in {duration:.2f}s", file=sys.stderr)
-            print(f"MAIN_DEBUG: Final state type: {type(final_state)}", file=sys.stderr)
-            print(f"MAIN_DEBUG: Final state keys: {list(final_state.keys()) if isinstance(final_state, dict) else 'Not a dict'}", file=sys.stderr)
+
             if isinstance(final_state, dict) and 'document_content' in final_state:
                 content_length = len(final_state['document_content']) if final_state['document_content'] else 0
-                print(f"MAIN_DEBUG: Document content length: {content_length}", file=sys.stderr)
-            
+
         except Exception as workflow_error:
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
@@ -351,20 +326,16 @@ def main():
             import traceback
             print(f"MAIN_ERROR: Workflow traceback: {traceback.format_exc()}", file=sys.stderr)
             final_state = {"error": f"Workflow execution failed: {workflow_error}", **initial_state}
-            print(f"MAIN_DEBUG: Created error final_state with keys: {list(final_state.keys())}", file=sys.stderr)
-        
+
         # Format response using modular structure
-        print(f"MAIN_DEBUG: About to format final response", file=sys.stderr)
-        
+
         document_content = final_state.get("document_content", "No content generated")
         analysis = final_state.get("analysis", {})
         document_type = final_state.get("document_type", "general")
         complexity = final_state.get("complexity", "medium")
         features = final_state.get("features", [])
         workflow_step = final_state.get("workflow_step", "unknown")
-        
-        print(f"MAIN_DEBUG: Response components - content: {len(document_content)} chars, type: {document_type}, features: {len(features)}, step: {workflow_step}", file=sys.stderr)
-        
+
         response = {
             "response": document_content,
             "analysis": analysis,
@@ -389,34 +360,30 @@ def main():
                 **final_state.get("metadata", {})
             }
         }
-        
-        print(f"MAIN_DEBUG: Formatted response with metadata keys: {list(response['metadata'].keys())}", file=sys.stderr)
-        
+
         # Handle errors in final state
         if final_state.get("error"):
-            print(f"MAIN_DEBUG: Final state contains error: {final_state['error']}", file=sys.stderr)
+
             response["metadata"]["error"] = final_state["error"]
             response["metadata"]["workflow_status"] = "error"
         else:
-            print(f"MAIN_DEBUG: Final state successful, no errors", file=sys.stderr)
+
             response["metadata"]["workflow_status"] = "success"
         
         # Emit final completion event
-        print(f"MAIN_DEBUG: About to emit final completion event", file=sys.stderr)
+
         try:
             emit_completion(
                 task_id,
                 "completed",
                 "Modular requirements writing workflow completed successfully"
             )
-            print(f"MAIN_DEBUG: Final completion event emitted successfully", file=sys.stderr)
+
         except Exception as completion_error:
             print(f"MAIN_ERROR: Failed to emit final completion: {completion_error}", file=sys.stderr)
-        
-        print(f"MAIN_DEBUG: About to output final JSON response", file=sys.stderr)
+
         print(json.dumps(response))
-        print(f"MAIN_DEBUG: JSON response output completed", file=sys.stderr)
-        
+
     except Exception as e:
         print(f"MAIN_ERROR: Fatal exception in main(): {str(e)}", file=sys.stderr)
         print(f"MAIN_ERROR: Fatal exception type: {type(e)}", file=sys.stderr)
@@ -434,10 +401,8 @@ def main():
                 "agent_type": "requirements_writer"
             }
         }
-        print(f"MAIN_DEBUG: About to output fatal error response", file=sys.stderr)
-        print(json.dumps(error_response))
-        print(f"MAIN_DEBUG: Fatal error response output completed", file=sys.stderr)
 
+        print(json.dumps(error_response))
 
 if __name__ == "__main__":
     print("=" * 50, file=sys.stderr)

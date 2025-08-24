@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger } from '@nestjs/common';
+import { Logger, LogLevel } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AgentPoolService } from './agent-pool/agent-pool.service';
 import * as express from 'express';
@@ -7,6 +7,8 @@ import * as dotenv from 'dotenv';
 import { join } from 'path';
 
 async function bootstrap() {
+  // Suppress punycode deprecation warning until dependencies are updated
+  (process as any).noDeprecation = true;
   // Load custom environment file if ENV_FILE is specified
   if (process.env.ENV_FILE) {
     const envFilePath = process.env.ENV_FILE.startsWith('/')
@@ -17,7 +19,7 @@ async function bootstrap() {
       dotenv.config({ path: envFilePath });
       console.log(`🔧 Loaded environment variables from: ${envFilePath}`);
     } catch (error) {
-      console.error(`❌ Failed to load environment file: ${envFilePath}`, error);
+
       process.exit(1);
     }
   }
@@ -31,11 +33,47 @@ async function bootstrap() {
   );
   if (enableExternalIdx !== -1) {
     process.env.ENABLE_EXTERNAL_AGENTS = 'true';
-    logger.log('🔧 External agents enabled via command line argument');
+
   }
+
+  // Configure logging levels based on environment
+  // 
+  // Environment Variables for Logging:
+  // LOG_LEVEL - Comma-separated list of levels: error,warn,log,debug,verbose
+  // NODE_ENV - Environment: production, development, test
+  //
+  // Examples:
+  // LOG_LEVEL=error,warn              (Production-like logging)
+  // LOG_LEVEL=error,warn,log          (Info logging without debug)
+  // LOG_LEVEL=error,warn,log,debug    (Full development logging - default in dev)
+  // LOG_LEVEL=error                   (Minimal logging)
+  //
+  const logLevels = (() => {
+    const nodeEnv = process.env.NODE_ENV;
+    const logLevel = process.env.LOG_LEVEL;
+    
+    // Valid NestJS log levels
+    const validLevels: LogLevel[] = ['error', 'warn', 'log', 'debug', 'verbose'];
+    
+    // If LOG_LEVEL is explicitly set, use it
+    if (logLevel) {
+      const levels = logLevel.toLowerCase().split(',').map(l => l.trim());
+      return levels.filter(level => validLevels.includes(level as LogLevel)) as LogLevel[];
+    }
+    
+    // Default levels based on environment
+    if (nodeEnv === 'production') {
+      return ['error', 'warn'] as LogLevel[]; // Only errors and warnings in production
+    } else if (nodeEnv === 'test') {
+      return ['error'] as LogLevel[]; // Only errors in test
+    } else {
+      return ['error', 'warn'] as LogLevel[]; // Development: minimal logging by default
+    }
+  })();
 
   const app = await NestFactory.create(AppModule, {
     bodyParser: false, // Disable default body parser to configure custom limits
+    logger: logLevels, // Configure logging levels
   });
 
   // Configure body parser with larger limits for conversation histories and metrics responses
@@ -78,8 +116,7 @@ async function bootstrap() {
       }
       
       // Log unrecognized origins for debugging
-      logger.warn(`CORS request from unrecognized origin: ${origin}`);
-      
+
       // In production, you might want to be more restrictive
       // For now, let's allow all orchestratorai.io subdomains
       if (origin.includes('orchestratorai.io')) {
@@ -95,26 +132,22 @@ async function bootstrap() {
 
   // Start the HTTP server
   const port = parseInt(process.env.API_PORT || '9000');
-  logger.log('🚀 Starting NestJS API server...');
+
   await app.listen(port);
-  logger.log(`✅ NestJS API server is running on http://localhost:${port}`);
 
   // Ensure agent pool service is ready
   app.get(AgentPoolService);
-  logger.log('🔧 Agent pool service is ready');
 
   // Agent discovery and instantiation is now handled by AppService.onModuleInit()
   // No need for manual calls here - the AppService will handle:
   // 1. AgentDiscoveryService.discoverAgents()
   // 2. AgentFactoryService.createAgent() for each discovered agent
   // 3. Registration with agent pool
-  logger.log('✅ Agent system initialization delegated to AppService');
 
-  logger.log('🎉 Application startup complete!');
 }
 
 bootstrap().catch((error) => {
   const logger = new Logger('Bootstrap');
-  logger.error('❌ Failed to start application:', error);
+
   process.exit(1);
 });

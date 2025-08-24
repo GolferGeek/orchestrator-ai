@@ -38,8 +38,6 @@ export class LangChainNotionService {
             throw new Error('Title is required to create a Notion page');
           }
 
-          this.logger.debug(`Creating Notion page: "${title}"`);
-
           // For now, return a mock response - this would integrate with actual Notion API
           // TODO: Implement actual Notion API integration or Zapier MCP integration
           const mockResponse = {
@@ -51,10 +49,9 @@ export class LangChainNotionService {
             createdAt: new Date().toISOString(),
           };
 
-          this.logger.log(`✅ Mock Notion page created: ${title}`);
           return JSON.stringify(mockResponse);
         } catch (error) {
-          this.logger.error('Failed to create Notion page:', error);
+
           return JSON.stringify({
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -80,8 +77,6 @@ export class LangChainNotionService {
             throw new Error('Database ID is required to query Notion');
           }
 
-          this.logger.debug(`Querying Notion database: ${databaseId}`);
-
           // Mock response - would integrate with actual Notion API
           const mockResponse = {
             success: true,
@@ -102,12 +97,9 @@ export class LangChainNotionService {
             hasMore: false,
           };
 
-          this.logger.log(
-            `✅ Mock Notion query completed for database: ${databaseId}`,
-          );
           return JSON.stringify(mockResponse);
         } catch (error) {
-          this.logger.error('Failed to query Notion database:', error);
+
           return JSON.stringify({
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -133,8 +125,6 @@ export class LangChainNotionService {
             throw new Error('Page ID is required to update a Notion page');
           }
 
-          this.logger.debug(`Updating Notion page: ${pageId}`);
-
           // Mock response - would integrate with actual Notion API
           const mockResponse = {
             success: true,
@@ -143,10 +133,9 @@ export class LangChainNotionService {
             updatedAt: new Date().toISOString(),
           };
 
-          this.logger.log(`✅ Mock Notion page updated: ${pageId}`);
           return JSON.stringify(mockResponse);
         } catch (error) {
-          this.logger.error('Failed to update Notion page:', error);
+
           return JSON.stringify({
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -213,7 +202,7 @@ Respond with JSON containing:
         response: `I understand you want to ${parsed.intent}. I'll ${parsed.action} for you.`,
       };
     } catch (error) {
-      this.logger.error('Failed to process Notion request:', error);
+
       return {
         intent: 'Unknown',
         action: 'error',

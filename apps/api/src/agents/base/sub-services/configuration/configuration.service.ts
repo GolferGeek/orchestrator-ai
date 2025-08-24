@@ -64,7 +64,6 @@ export class ConfigurationService {
     filePath: string,
     options: ConfigurationOptions = {},
   ): Promise<ParsedConfiguration<T>> {
-    this.logger.debug(`Parsing YAML file: ${filePath}`);
 
     // Resolve the file path
     const resolvedPath = this.resolveFilePath(filePath, options.baseDirectory);
@@ -76,7 +75,6 @@ export class ConfigurationService {
     try {
       // Read the file content
       const yamlContent = fs.readFileSync(resolvedPath, 'utf8');
-      this.logger.debug(`Loaded YAML content length: ${yamlContent.length}`);
 
       // Parse the YAML
       const parsed = yaml.load(yamlContent) as T;
@@ -104,12 +102,9 @@ export class ConfigurationService {
         result.substitutedVars = substitutionResult.substitutedVars;
       }
 
-      this.logger.debug(
-        `Successfully parsed YAML configuration from ${resolvedPath}`,
-      );
       return result;
     } catch (error) {
-      this.logger.error(`Failed to parse YAML file ${resolvedPath}:`, error);
+
       throw new Error(
         `Failed to parse YAML configuration: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -150,9 +145,7 @@ export class ConfigurationService {
     const data = substitute(config);
 
     if (substitutedVars.length > 0) {
-      this.logger.debug(
-        `Substituted environment variables: ${substitutedVars.join(', ')}`,
-      );
+
     }
 
     return { data, substitutedVars };
@@ -178,18 +171,14 @@ export class ConfigurationService {
         substitutedVars.push(fullVarName);
         return envValue;
       } else if (defaultValue !== undefined) {
-        this.logger.debug(
-          `Using default value for ${fullVarName}: ${defaultValue}`,
-        );
+
         return defaultValue;
       } else if (strict) {
         throw new Error(
           `Required environment variable not found: ${fullVarName}`,
         );
       } else {
-        this.logger.warn(
-          `Environment variable not found: ${fullVarName}, keeping original placeholder`,
-        );
+
         return match; // Keep the original placeholder
       }
     });
@@ -202,9 +191,6 @@ export class ConfigurationService {
     config: T,
     SchemaClass: new () => T,
   ): Promise<ValidationError[]> {
-    this.logger.debug(
-      `Validating configuration against schema: ${SchemaClass.name}`,
-    );
 
     try {
       // Create an instance of the schema class and copy properties
@@ -218,21 +204,17 @@ export class ConfigurationService {
       });
 
       if (errors.length > 0) {
-        this.logger.warn(
-          `Configuration validation failed with ${errors.length} errors`,
-        );
+
         errors.forEach((error) => {
-          this.logger.warn(
-            `Validation error for ${error.property}: ${Object.values(error.constraints || {}).join(', ')}`,
-          );
+
         });
       } else {
-        this.logger.debug('Configuration validation passed');
+
       }
 
       return errors;
     } catch (error) {
-      this.logger.error('Schema validation failed:', error);
+
       throw new Error(
         `Schema validation failed: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -254,7 +236,6 @@ export class ConfigurationService {
     // Resolve relative path
     const resolved = path.resolve(base, filePath);
 
-    this.logger.debug(`Resolved file path: ${filePath} -> ${resolved}`);
     return resolved;
   }
 
@@ -275,7 +256,7 @@ export class ConfigurationService {
     try {
       return fs.statSync(resolvedPath);
     } catch (error) {
-      this.logger.debug(`Failed to get file stats for ${resolvedPath}:`, error);
+
       return null;
     }
   }
@@ -287,7 +268,6 @@ export class ConfigurationService {
     yamlContent: string,
     options: ConfigurationOptions = {},
   ): ParsedConfiguration<T> {
-    this.logger.debug('Parsing YAML from string content');
 
     try {
       const parsed = yaml.load(yamlContent) as T;
@@ -314,10 +294,9 @@ export class ConfigurationService {
         result.substitutedVars = substitutionResult.substitutedVars;
       }
 
-      this.logger.debug('Successfully parsed YAML from string content');
       return result;
     } catch (error) {
-      this.logger.error('Failed to parse YAML string:', error);
+
       throw new Error(
         `Failed to parse YAML content: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -352,11 +331,8 @@ export class ConfigurationService {
       // Write the file
       fs.writeFileSync(resolvedPath, yamlContent, 'utf8');
 
-      this.logger.debug(
-        `Successfully wrote YAML configuration to ${resolvedPath}`,
-      );
     } catch (error) {
-      this.logger.error(`Failed to write YAML file ${resolvedPath}:`, error);
+
       throw new Error(
         `Failed to write YAML configuration: ${error instanceof Error ? error.message : String(error)}`,
       );

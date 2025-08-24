@@ -10,7 +10,6 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content class="ion-padding">
       <div class="delete-conversation-content">
         <!-- Warning Message -->
@@ -28,7 +27,6 @@
             This conversation has {{ activeTasks }} running task{{ activeTasks > 1 ? 's' : '' }} that will be cancelled.
           </p>
         </div>
-
         <!-- Deliverable Deletion Option -->
         <div v-if="hasDeliverables" class="deliverable-section">
           <ion-item lines="none" class="deliverable-checkbox">
@@ -42,7 +40,6 @@
             </ion-label>
           </ion-item>
         </div>
-
         <!-- Action Buttons -->
         <div class="button-section">
           <ion-button 
@@ -66,7 +63,6 @@
     </ion-content>
   </ion-modal>
 </template>
-
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import {
@@ -87,46 +83,31 @@ import {
   warningOutline,
   alertCircleOutline,
 } from 'ionicons/icons';
-
 interface Props {
   isOpen: boolean;
   agentDisplayName: string;
   activeTasks: number;
   hasDeliverables: boolean;
 }
-
 const props = defineProps<Props>();
-
 const emit = defineEmits<{
   cancel: [];
   confirm: [deleteDeliverables: boolean];
 }>();
-
 const deleteDeliverables = ref(false);
-
 // Debug logging
 watch(() => props.hasDeliverables, (hasDeliverables) => {
-  console.log('🗑️ Modal hasDeliverables changed:', hasDeliverables);
 });
-
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
-    console.log('🗑️ Modal opened with props:', {
-      agentDisplayName: props.agentDisplayName,
-      activeTasks: props.activeTasks,
-      hasDeliverables: props.hasDeliverables,
-    });
     // Reset checkbox when modal opens
     deleteDeliverables.value = false;
   }
 });
-
 const confirmDelete = () => {
-  console.log('🗑️ Modal confirmDelete called with deleteDeliverables:', deleteDeliverables.value);
   emit('confirm', deleteDeliverables.value);
 };
 </script>
-
 <style scoped>
 .delete-conversation-content {
   display: flex;
@@ -134,36 +115,30 @@ const confirmDelete = () => {
   height: 100%;
   gap: 24px;
 }
-
 .warning-section {
   text-align: center;
   padding: 24px 0;
 }
-
 .warning-icon {
   font-size: 48px;
   margin-bottom: 16px;
 }
-
 .warning-section h2 {
   color: var(--ion-color-danger);
   margin-bottom: 12px;
   font-size: 1.2em;
   font-weight: 600;
 }
-
 .conversation-info {
   font-size: 1.1em;
   margin-bottom: 16px;
   color: var(--ion-color-primary);
 }
-
 .warning-text {
   color: var(--ion-color-medium);
   line-height: 1.5;
   margin-bottom: 16px;
 }
-
 .active-tasks-warning {
   display: flex;
   align-items: center;
@@ -176,50 +151,41 @@ const confirmDelete = () => {
   border-radius: 8px;
   margin-top: 16px;
 }
-
 .deliverable-section {
   border-top: 1px solid var(--ion-color-light-shade);
   border-bottom: 1px solid var(--ion-color-light-shade);
   padding: 16px 0;
 }
-
 .deliverable-checkbox {
   --padding-start: 0;
   --padding-end: 0;
 }
-
 .deliverable-checkbox ion-label h3 {
   color: var(--ion-color-dark);
   font-weight: 500;
   margin-bottom: 4px;
 }
-
 .deliverable-checkbox ion-label p {
   color: var(--ion-color-medium);
   font-size: 0.9em;
   line-height: 1.4;
 }
-
 .button-section {
   display: flex;
   gap: 12px;
   margin-top: auto;
   padding-top: 24px;
 }
-
 .cancel-button {
   flex: 1;
 }
-
 .delete-button {
   flex: 2;
 }
-
 @media (max-width: 768px) {
   .button-section {
     flex-direction: column;
   }
-  
   .cancel-button,
   .delete-button {
     flex: none;

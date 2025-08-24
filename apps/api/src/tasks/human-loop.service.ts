@@ -74,7 +74,7 @@ export class HumanLoopService {
         .single();
 
       if (error) {
-        this.logger.error('Error creating human input:', error);
+
         throw new Error(`Failed to create human input: ${error.message}`);
       }
 
@@ -91,12 +91,9 @@ export class HumanLoopService {
         timeoutAt,
       });
 
-      this.logger.debug(
-        `Human input requested for task ${taskId}: ${humanInput.id}`,
-      );
       return humanInput;
     } catch (error) {
-      this.logger.error('Error in requestHumanInput:', error);
+
       throw error;
     }
   }
@@ -128,7 +125,7 @@ export class HumanLoopService {
         .single();
 
       if (error) {
-        this.logger.error('Error updating human input:', error);
+
         throw new Error(`Failed to update human input: ${error.message}`);
       }
 
@@ -153,12 +150,9 @@ export class HumanLoopService {
         userId,
       });
 
-      this.logger.debug(
-        `Human input completed for task ${humanInput.taskId}: ${inputId}`,
-      );
       return humanInput;
     } catch (error) {
-      this.logger.error('Error in submitHumanResponse:', error);
+
       throw error;
     }
   }
@@ -214,13 +208,13 @@ export class HumanLoopService {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        this.logger.error('Error fetching human input:', error);
+
         throw new Error(`Failed to fetch human input: ${error.message}`);
       }
 
       return data ? this.mapToHumanInput(data) : null;
     } catch (error) {
-      this.logger.error('Error in getHumanInputById:', error);
+
       throw error;
     }
   }
@@ -243,13 +237,13 @@ export class HumanLoopService {
         .order('created_at', { ascending: true });
 
       if (error) {
-        this.logger.error('Error fetching pending inputs:', error);
+
         throw new Error(`Failed to fetch pending inputs: ${error.message}`);
       }
 
       return data.map((item) => this.mapToHumanInput(item));
     } catch (error) {
-      this.logger.error('Error in getPendingInputsForTask:', error);
+
       throw error;
     }
   }
@@ -271,13 +265,12 @@ export class HumanLoopService {
         .eq('status', 'pending');
 
       if (error) {
-        this.logger.error('Error cancelling human input:', error);
+
         throw new Error(`Failed to cancel human input: ${error.message}`);
       }
 
-      this.logger.debug(`Human input cancelled: ${inputId}`);
     } catch (error) {
-      this.logger.error('Error in cancelHumanInput:', error);
+
       throw error;
     }
   }
@@ -300,7 +293,7 @@ export class HumanLoopService {
         .single();
 
       if (error) {
-        this.logger.error('Error handling timeout:', error);
+
         throw new Error(`Failed to handle timeout: ${error.message}`);
       }
 
@@ -319,10 +312,9 @@ export class HumanLoopService {
         userId: humanInput.userId,
       });
 
-      this.logger.debug(`Human input timed out: ${inputId}`);
       return humanInput;
     } catch (error) {
-      this.logger.error('Error in handleHumanInputTimeout:', error);
+
       throw error;
     }
   }
@@ -344,7 +336,7 @@ export class HumanLoopService {
         .select('id, task_id, user_id');
 
       if (error) {
-        this.logger.error('Error cleaning up expired inputs:', error);
+
         throw new Error(`Failed to cleanup expired inputs: ${error.message}`);
       }
 
@@ -364,12 +356,12 @@ export class HumanLoopService {
 
       const count = data?.length || 0;
       if (count > 0) {
-        this.logger.log(`Cleaned up ${count} expired human inputs`);
+
       }
 
       return count;
     } catch (error) {
-      this.logger.error('Error in cleanupExpiredInputs:', error);
+
       throw error;
     }
   }

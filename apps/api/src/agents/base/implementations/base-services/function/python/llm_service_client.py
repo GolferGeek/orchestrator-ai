@@ -29,7 +29,6 @@ def load_env_file():
 # Load environment on import
 load_env_file()
 
-
 class LLMServiceClient:
     """Client for making HTTP calls to the NestJS LLM service"""
     
@@ -98,7 +97,6 @@ class LLMServiceClient:
         
         return options
 
-
 def extract_user_preferences(metadata: Dict[str, Any]) -> Dict[str, Any]:
     """Extract LLM preferences from agent metadata"""
     llm_prefs = metadata.get('llmPreferences', {})
@@ -111,7 +109,6 @@ def extract_user_preferences(metadata: Dict[str, Any]) -> Dict[str, Any]:
         'authToken': metadata.get('authToken'),
         'sessionId': metadata.get('sessionId')
     }
-
 
 def merge_llm_preferences(
     base_options: Dict[str, Any],
@@ -131,7 +128,6 @@ def merge_llm_preferences(
             merged[key] = user_preferences[key]
     
     return merged
-
 
 # Global client instance
 llm_client = LLMServiceClient()

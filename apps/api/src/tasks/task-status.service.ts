@@ -58,7 +58,7 @@ export class TaskStatusService {
     private readonly eventEmitter: EventEmitter2,
     private readonly supabaseService: SupabaseService,
   ) {
-    this.logger.debug('TaskStatusService initialized');
+
   }
 
   /**
@@ -108,21 +108,15 @@ export class TaskStatusService {
           .eq('user_id', userId);
 
         if (error) {
-          this.logger.warn(
-            `Failed to persist task ${taskId} to database:`,
-            error,
-          );
+
         } else {
-          this.logger.debug(
-            `Task ${taskId} persisted to database (${normalizedTaskType})`,
-          );
+
         }
       } catch (error) {
-        this.logger.warn(`Failed to persist task ${taskId}:`, error);
+
       }
     }
 
-    this.logger.debug(`Task ${taskId} created with type: ${normalizedTaskType}`);
     this.emitStatusChange(taskId, taskStatus);
   }
 
@@ -137,15 +131,13 @@ export class TaskStatusService {
   ): Promise<void> {
     const currentStatus = this.activeTaskStatuses.get(taskId);
     if (!currentStatus) {
-      this.logger.warn(`Task ${taskId} not found in active tasks`);
+
       return;
     }
 
     // Verify user ownership
     if (currentStatus.userId !== userId) {
-      this.logger.warn(
-        `User ${userId} attempted to update task ${taskId} owned by ${currentStatus.userId}`,
-      );
+
       return;
     }
 
@@ -192,18 +184,12 @@ export class TaskStatusService {
           .eq('user_id', userId);
 
         if (error) {
-          this.logger.warn(`Failed to persist task ${taskId} update:`, error);
+
         }
       } catch (error) {
-        this.logger.warn(`Failed to persist task ${taskId} update:`, error);
+
       }
     }
-
-    this.logger.debug(`Task ${taskId} status updated:`, {
-      status: newStatus.status,
-      progress: newStatus.progress,
-      message: newStatus.progressMessage,
-    });
 
     // Emit status change event
     this.emitStatusChange(taskId, newStatus);
@@ -260,9 +246,7 @@ export class TaskStatusService {
     };
 
     messages.push(newMessage);
-    this.logger.debug(
-      `Added message to task ${taskId}: ${messageContent} (total: ${messages.length})`,
-    );
+
   }
 
   /**
@@ -283,17 +267,13 @@ export class TaskStatusService {
     // Check if user owns this task
     const taskStatus = this.getTaskStatus(taskId, userId);
     if (!taskStatus) {
-      this.logger.debug(
-        `Task ${taskId} not found or user ${userId} doesn't own it`,
-      );
+
       return [];
     }
 
     // Return live messages from cache
     const messages = this.activeTaskMessages.get(taskId) || [];
-    this.logger.debug(
-      `Retrieved ${messages.length} live messages for task ${taskId}`,
-    );
+
     return [...messages]; // Return copy to prevent mutations
   }
 
@@ -390,9 +370,6 @@ export class TaskStatusService {
 
     this.cleanupTimers.set(taskId, cleanupTimer);
 
-    this.logger.debug(
-      `Task ${taskId} scheduled for cleanup in ${cleanupDelayMs / 1000} seconds`,
-    );
   }
 
   /**
@@ -402,7 +379,7 @@ export class TaskStatusService {
     this.activeTaskStatuses.delete(taskId);
     this.activeTaskMessages.delete(taskId); // Clean up live messages too
     this.cleanupTimers.delete(taskId);
-    this.logger.debug(`Task ${taskId} cleaned up from active cache`);
+
   }
 
   /**

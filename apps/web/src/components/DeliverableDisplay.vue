@@ -14,7 +14,6 @@
           </ion-chip>
         </div>
       </div>
-      
       <div class="header-actions">
         <ion-button fill="clear" size="small" @click="showVersionHistory = !showVersionHistory">
           <ion-icon :icon="timeOutline" />
@@ -32,7 +31,6 @@
           <ion-icon :icon="createOutline" />
           Edit
         </ion-button>
-        
         <!-- Edit Mode Controls -->
         <div v-if="isEditing" class="edit-controls">
           <ion-button 
@@ -60,7 +58,6 @@
         </ion-button>
       </div>
     </div>
-
     <!-- Version Navigation -->
     <div class="version-section" v-if="totalVersions > 1 || showVersionHistory">
       <div class="version-info">
@@ -71,7 +68,6 @@
           by {{ formatCreationType(displayVersion.createdByType) }}
         </span>
       </div>
-      
       <div class="version-controls">
         <ion-button
           fill="clear"
@@ -81,7 +77,6 @@
         >
           <ion-icon :icon="chevronBackOutline" />
         </ion-button>
-        
         <ion-button
           v-if="selectedVersion && !selectedVersion.isCurrentVersion"
           fill="outline"
@@ -91,7 +86,6 @@
         >
           Set as Current
         </ion-button>
-        
         <ion-button
           fill="clear"
           size="small"
@@ -102,7 +96,6 @@
         </ion-button>
       </div>
     </div>
-
     <!-- Version History Timeline -->
     <ion-accordion-group v-if="showVersionHistory" class="version-history">
       <ion-accordion value="versions">
@@ -110,7 +103,6 @@
           <ion-icon :icon="gitBranchOutline" slot="start" />
           <ion-label>Version History ({{ totalVersions }})</ion-label>
         </ion-item>
-        
         <div slot="content" class="version-timeline">
           <div 
             v-for="version in sortedVersions"
@@ -140,7 +132,6 @@
         </div>
       </ion-accordion>
     </ion-accordion-group>
-
     <!-- Version Management Panel -->
     <VersionManagementPanel
       v-if="showVersionManagement"
@@ -149,7 +140,6 @@
       :current-version-id="currentVersion?.id"
       class="version-management"
     />
-
     <!-- Content Display -->
     <div class="content-section">
       <!-- Edit Mode -->
@@ -165,11 +155,9 @@
             class="title-editor"
           />
         </div>
-        
         <!-- Content Editing -->
         <div class="edit-field">
           <label class="edit-label">Content</label>
-          
           <!-- Markdown Toolbar -->
           <div class="markdown-toolbar">
             <div class="toolbar-group">
@@ -182,7 +170,6 @@
                 <ion-icon :icon="textOutline" />
                 <strong>B</strong>
               </ion-button>
-              
               <ion-button
                 fill="clear"
                 size="small"
@@ -193,7 +180,6 @@
                 <em>I</em>
               </ion-button>
             </div>
-            
             <div class="toolbar-group">
               <ion-button
                 fill="clear"
@@ -203,7 +189,6 @@
               >
                 H1
               </ion-button>
-              
               <ion-button
                 fill="clear"
                 size="small"
@@ -212,7 +197,6 @@
               >
                 H2
               </ion-button>
-              
               <ion-button
                 fill="clear"
                 size="small"
@@ -222,7 +206,6 @@
                 H3
               </ion-button>
             </div>
-            
             <div class="toolbar-group">
               <ion-button
                 fill="clear"
@@ -232,7 +215,6 @@
               >
                 <ion-icon :icon="listOutline" />
               </ion-button>
-              
               <ion-button
                 fill="clear"
                 size="small"
@@ -242,7 +224,6 @@
                 1.
               </ion-button>
             </div>
-            
             <div class="toolbar-group">
               <ion-button
                 fill="clear"
@@ -252,7 +233,6 @@
               >
                 <ion-icon :icon="linkOutline" />
               </ion-button>
-              
               <ion-button
                 fill="clear"
                 size="small"
@@ -261,7 +241,6 @@
               >
                 <ion-icon :icon="codeSlashOutline" />
               </ion-button>
-              
               <ion-button
                 fill="clear"
                 size="small"
@@ -271,7 +250,6 @@
                 ```
               </ion-button>
             </div>
-            
             <div class="toolbar-group">
               <ion-button
                 fill="clear"
@@ -281,7 +259,6 @@
               >
                 <ion-icon :icon="chatboxOutline" />
               </ion-button>
-              
               <ion-button
                 fill="clear"
                 size="small"
@@ -292,7 +269,6 @@
               </ion-button>
             </div>
           </div>
-          
           <ion-textarea
             ref="contentTextarea"
             v-model="editedContent"
@@ -302,14 +278,12 @@
             class="content-editor"
           />
         </div>
-        
         <!-- Edit Help Text -->
         <div class="edit-help">
           <ion-icon :icon="informationCircleOutline" />
           <span>You can use Markdown formatting in the content area</span>
         </div>
       </div>
-      
       <!-- Read-Only Mode -->
       <div v-else class="content-display" :class="`format-${displayVersion?.format || 'text'}`">
         <!-- Markdown Content -->
@@ -318,20 +292,17 @@
           class="markdown-content"
           v-html="renderedMarkdown"
         ></div>
-        
         <!-- JSON Content -->
         <pre 
           v-else-if="displayVersion?.format === 'json'"
           class="json-content"
         ><code>{{ formatJson(displayVersion?.content) }}</code></pre>
-        
         <!-- HTML Content -->
         <div 
           v-else-if="displayVersion?.format === 'html'"
           class="html-content"
           v-html="sanitizedHtml"
         ></div>
-        
         <!-- Plain Text Content -->
         <div 
           v-else
@@ -339,7 +310,6 @@
         >{{ displayVersion?.content || '' }}</div>
       </div>
     </div>
-
     <!-- Footer Info -->
     <div class="deliverable-footer">
       <div class="timestamps">
@@ -351,7 +321,6 @@
           This version: {{ formatDate(displayVersion.createdAt) }}
         </span>
       </div>
-      
       <!-- Task Rating (for the work that created this version) -->
       <div class="rating-section" v-if="displayVersion?.taskId">
         <div class="rating-label">Rate the agent's work on this version:</div>
@@ -364,7 +333,6 @@
         />
       </div>
     </div>
-    
     <!-- Deliverable Actions Input -->
     <div class="deliverable-actions">
       <form @submit.prevent="submitDeliverablePrompt">
@@ -390,7 +358,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
 import {
@@ -428,37 +395,30 @@ import DOMPurify from 'dompurify';
 import TaskRating from './TaskRating.vue';
 import VersionManagementPanel from './VersionManagementPanel.vue';
 import type { Deliverable, DeliverableVersion } from '@/types/deliverables';
-
 interface Props {
   deliverable: Deliverable | DeliverableVersion;
   conversationId?: string;
 }
-
 interface Emits {
   (e: 'version-changed', version: DeliverableVersion): void;
   (e: 'version-created', version: DeliverableVersion): void;
   (e: 'current-version-changed', version: DeliverableVersion): void;
   (e: 'edit-requested', deliverable: Deliverable): void;
 }
-
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
-
 // Store
 const deliverablesStore = useDeliverablesStore();
-
 // Helper computed properties to handle both Deliverable and DeliverableVersion objects
 const isVersionObject = computed(() => {
   // DeliverableVersion has 'deliverableId' and 'versionNumber', Deliverable does not
   return 'deliverableId' in props.deliverable && 'versionNumber' in props.deliverable;
 });
-
 const actualDeliverableId = computed(() => {
   return isVersionObject.value 
     ? (props.deliverable as DeliverableVersion).deliverableId 
     : (props.deliverable as Deliverable).id;
 });
-
 const displayTitle = computed(() => {
   // If it's a version object, we might not have the title, so we'll need to get it from store
   if (isVersionObject.value) {
@@ -467,7 +427,6 @@ const displayTitle = computed(() => {
   }
   return (props.deliverable as Deliverable).title || 'Untitled Deliverable';
 });
-
 // Reactive state
 const showVersionHistory = ref(false);
 const showVersionManagement = ref(false);
@@ -479,15 +438,12 @@ const editedTitle = ref('');
 const isSaving = ref(false);
 const deliverablePrompt = ref('');
 const contentTextarea = ref<any>(null);
-
 // Computed versions that reactively watches the store state
 const versions = computed(() => {
   // This will trigger whenever the store state changes
   return deliverablesStore.getDeliverableVersionsSync(actualDeliverableId.value);
 });
-
 const totalVersions = computed(() => versions.value.length);
-
 const currentVersion = computed(() => {
   if (isVersionObject.value) {
     // If we have a version object, it's the current version being displayed
@@ -496,39 +452,31 @@ const currentVersion = computed(() => {
   // If we have a deliverable object, get its current version
   return (props.deliverable as Deliverable).currentVersion || deliverablesStore.getCurrentVersion(actualDeliverableId.value);
 });
-
 const displayVersion = computed(() => {
   return selectedVersion.value || currentVersion.value;
 });
-
 const sortedVersions = computed(() => {
   return [...versions.value].sort((a, b) => b.versionNumber - a.versionNumber);
 });
-
 // Use sortedVersions for navigation to ensure consistent ordering
 const canGoPrevious = computed(() => {
   const currentDisplayVersion = displayVersion.value || currentVersion.value;
   if (!currentDisplayVersion || sortedVersions.value.length <= 1) return false;
-  
   const currentIndex = sortedVersions.value.findIndex(v => v.id === currentDisplayVersion.id);
   return currentIndex < sortedVersions.value.length - 1; // Can go to previous (older) version
 });
-
 const canGoNext = computed(() => {
   const currentDisplayVersion = displayVersion.value || currentVersion.value;
   if (!currentDisplayVersion || sortedVersions.value.length <= 1) return false;
-  
   const currentIndex = sortedVersions.value.findIndex(v => v.id === currentDisplayVersion.id);
   return currentIndex > 0; // Can go to next (newer) version
 });
-
 const hasUnsavedChanges = computed(() => {
   return isEditing.value && (
     editedContent.value !== (displayVersion.value?.content || '') ||
     editedTitle.value !== displayTitle.value
   );
 });
-
 const renderedMarkdown = computed(() => {
   if (displayVersion.value?.format !== 'markdown') return '';
   if (!displayVersion.value?.content || typeof displayVersion.value.content !== 'string') {
@@ -537,11 +485,10 @@ const renderedMarkdown = computed(() => {
   try {
     return marked(displayVersion.value.content);
   } catch (error) {
-    console.error('Failed to render markdown:', error);
+
     return displayVersion.value.content || '';
   }
 });
-
 const sanitizedHtml = computed(() => {
   if (displayVersion.value?.format !== 'html') return '';
   if (!displayVersion.value?.content || typeof displayVersion.value.content !== 'string') {
@@ -549,7 +496,6 @@ const sanitizedHtml = computed(() => {
   }
   return DOMPurify.sanitize(displayVersion.value.content);
 });
-
 // Methods
 const getTypeColor = (type: string) => {
   if (!type || typeof type !== 'string') {
@@ -564,7 +510,6 @@ const getTypeColor = (type: string) => {
   };
   return colors[type as keyof typeof colors] || 'medium';
 };
-
 const getFormatColor = (format: string) => {
   if (!format || typeof format !== 'string') {
     return 'medium'; // Default fallback
@@ -577,19 +522,16 @@ const getFormatColor = (format: string) => {
   };
   return colors[format as keyof typeof colors] || 'medium';
 };
-
 const formatType = (type: string) => {
   if (!type || typeof type !== 'string') {
     return 'Document'; // Default fallback
   }
   return type.charAt(0).toUpperCase() + type.slice(1);
 };
-
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-  
   if (diffInHours < 1) {
     return 'Just now';
   } else if (diffInHours < 24) {
@@ -604,27 +546,22 @@ const formatDate = (dateString: string) => {
     });
   }
 };
-
 const formatCreationType = (creationType: string) => {
   if (!creationType || typeof creationType !== 'string') {
     return 'Unknown'; // Default fallback
   }
-  
   const typeMap = {
     ai_response: 'AI Assistant',
     manual_edit: 'Manual Edit',
     ai_enhancement: 'AI Enhancement',
     user_request: 'User Request',
   };
-  
   return typeMap[creationType as keyof typeof typeMap] || creationType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
-
 const getContentPreview = (content: string) => {
   if (!content || typeof content !== 'string') {
     return 'No content available';
   }
-  
   // Remove markdown formatting and get first few lines
   const cleanContent = content
     .replace(/^#+\s+/gm, '') // Remove headers
@@ -633,72 +570,55 @@ const getContentPreview = (content: string) => {
     .replace(/`(.*?)`/g, '$1') // Remove inline code
     .replace(/```[\s\S]*?```/g, '[code block]') // Replace code blocks
     .trim();
-  
   // Get first 150 characters
   return cleanContent.length > 150 
     ? cleanContent.substring(0, 147) + '...'
     : cleanContent;
 };
-
 const startEditing = () => {
   isEditing.value = true;
   editedContent.value = displayVersion.value?.content || '';
   editedTitle.value = displayTitle.value || '';
 };
-
 const cancelEditing = () => {
   isEditing.value = false;
   editedContent.value = '';
   editedTitle.value = '';
 };
-
 const submitDeliverablePrompt = async () => {
   if (!deliverablePrompt.value.trim()) return;
-  
   const content = deliverablePrompt.value.trim();
   const originalPrompt = content;
   deliverablePrompt.value = '';
-  
   try {
     // Since we automatically have a conversation when viewing deliverables,
     // we can send the message through the existing conversation
     const { useAgentChatStore } = await import('@/stores/agentChatStore');
     const { useContextStore } = await import('@/stores/contextStore');
-    
     const agentChatStore = useAgentChatStore();
     const contextStore = useContextStore();
-    
     // Set deliverable context first
     contextStore.setDeliverableContext(actualDeliverableId.value);
-    
     // Get the currently displayed version ID to base the new version on
     const baseVersionId = displayVersion.value?.id;
     if (!baseVersionId) {
-      console.error('No current version found for deliverable');
+
       return;
     }
-    
-    console.log(`🎯 Sending prompt through conversation for deliverable ${actualDeliverableId.value}`);
-    
     // Create metadata for new version creation with base version ID
     const metadata = contextStore.createNewVersionMetadata(baseVersionId);
-    
     // Send message with version creation context to the active conversation
     await agentChatStore.sendMessageWithContext(content, metadata);
-    
   } catch (error) {
-    console.error('Failed to send deliverable prompt:', error);
+
     // Restore the input text on error
     deliverablePrompt.value = originalPrompt;
   }
 };
-
 const saveEdits = async () => {
   if (!hasUnsavedChanges.value || isSaving.value) return;
-  
   try {
     isSaving.value = true;
-    
     // Create a new version with proper DTO format
     const newVersion = await deliverablesStore.createVersion(actualDeliverableId.value, {
       content: editedContent.value,
@@ -710,18 +630,12 @@ const saveEdits = async () => {
         previousVersionNumber: currentVersion.value?.versionNumber
       }
     });
-    
-    console.log('✅ New version created:', newVersion);
-    
     // Reload the versions to get the updated list
     await deliverablesStore.loadDeliverableVersions(actualDeliverableId.value);
-    
     // The versions computed property will automatically update from the store
-    
     // Update the display to show the new version
     displayVersion.value = newVersion;
     selectedVersion.value = newVersion;
-    
     // Find the index of the new version in the versions array
     if (Array.isArray(versions.value)) {
       const newVersionIndex = versions.value.findIndex(v => v.id === newVersion.id);
@@ -729,61 +643,35 @@ const saveEdits = async () => {
         selectedVersionIndex.value = newVersionIndex;
       }
     }
-    
-    console.log('📊 Version display updated:', {
-      newVersionId: newVersion.id,
-      displayedContent: displayVersion.value?.content?.substring(0, 100),
-      versionsCount: versions.value.length,
-      totalVersions: totalVersions.value,
-      canGoPrevious: canGoPrevious.value,
-      canGoNext: canGoNext.value
-    });
-    
     // Force reactive updates with nextTick
     await nextTick();
-    
     // Emit an event to notify parent component that a new version was created
     emit('version-created', newVersion);
-    
     isEditing.value = false;
     editedContent.value = '';
     editedTitle.value = '';
   } catch (error: any) {
-    console.error('Failed to save deliverable:', {
-      error,
-      message: error.message,
-      response: error.response,
-      status: error.response?.status,
-      data: error.response?.data,
-      parentId: actualDeliverableId.value,
-      contentLength: editedContent.value.length
-    });
-    
+
     // Show error message to user
     alert(`Failed to save deliverable: ${error.message || 'Unknown error'}`);
   } finally {
     isSaving.value = false;
   }
 };
-
 // Markdown toolbar methods
 const insertMarkdown = (before: string, after: string, placeholder: string) => {
   const ionTextarea = contentTextarea.value;
   const textarea = ionTextarea?.$el?.querySelector('textarea') || ionTextarea?.querySelector?.('textarea');
   if (!textarea) return;
-  
   const start = textarea.selectionStart || 0;
   const end = textarea.selectionEnd || 0;
   const selectedText = editedContent.value.substring(start, end);
-  
   const textToInsert = selectedText || placeholder;
   const newText = before + textToInsert + after;
-  
   editedContent.value = 
     editedContent.value.substring(0, start) + 
     newText + 
     editedContent.value.substring(end);
-  
   // Move cursor to the right position
   nextTick(() => {
     const newStart = start + before.length;
@@ -792,57 +680,46 @@ const insertMarkdown = (before: string, after: string, placeholder: string) => {
     textarea.setSelectionRange(newStart, newEnd);
   });
 };
-
 const insertList = (type: 'bullet' | 'numbered') => {
   const ionTextarea = contentTextarea.value;
   const textarea = ionTextarea?.$el?.querySelector('textarea') || ionTextarea?.querySelector?.('textarea');
   if (!textarea) return;
-  
   const start = textarea.selectionStart || 0;
   const prefix = type === 'bullet' ? '- ' : '1. ';
   const listItem = `${prefix}List item`;
-  
   // If we're at the start of a line or the previous character is a newline
   const needsNewline = start === 0 || editedContent.value.charAt(start - 1) !== '\n';
   const insertion = (needsNewline ? '\n' : '') + listItem;
-  
   editedContent.value = 
     editedContent.value.substring(0, start) + 
     insertion + 
     editedContent.value.substring(start);
-  
   nextTick(() => {
     const newPos = start + insertion.length;
     textarea.focus();
     textarea.setSelectionRange(newPos, newPos);
   });
 };
-
 const insertCodeBlock = () => {
   const ionTextarea = contentTextarea.value;
   const textarea = ionTextarea?.$el?.querySelector('textarea') || ionTextarea?.querySelector?.('textarea');
   if (!textarea) return;
-  
   const start = textarea.selectionStart || 0;
   const end = textarea.selectionEnd || 0;
   const selectedText = editedContent.value.substring(start, end);
-  
   const codeBlock = selectedText 
     ? `\n\`\`\`\n${selectedText}\n\`\`\`\n`
     : `\n\`\`\`\ncode here\n\`\`\`\n`;
-  
   editedContent.value = 
     editedContent.value.substring(0, start) + 
     codeBlock + 
     editedContent.value.substring(end);
-  
   nextTick(() => {
     const newStart = start + 5; // Position after ```\n
     textarea.focus();
     textarea.setSelectionRange(newStart, newStart + (selectedText || 'code here').length);
   });
 };
-
 const formatJson = (content: string) => {
   if (!content || typeof content !== 'string') {
     return '';
@@ -854,7 +731,6 @@ const formatJson = (content: string) => {
     return content;
   }
 };
-
 const loadVersions = async () => {
   try {
     if (props.deliverable.parent_deliverable_id) {
@@ -868,20 +744,16 @@ const loadVersions = async () => {
     }
     // The versions computed property will automatically update from the store
   } catch (error) {
-    console.error('Failed to load versions:', error);
+
     // The computed property will handle the fallback through the store
   }
 };
-
 const goToPreviousVersion = async () => {
   if (!canGoPrevious.value) return;
-  
   // Find current version index in sortedVersions (newest first)
   const currentDisplayVersion = displayVersion.value || currentVersion.value;
   if (!Array.isArray(sortedVersions.value) || !currentDisplayVersion) return;
-  
   const currentIndex = sortedVersions.value.findIndex(v => v.id === currentDisplayVersion.id);
-  
   // Go to previous (older) version - next index in the sorted array
   if (currentIndex < sortedVersions.value.length - 1) {
     const previousVersion = sortedVersions.value[currentIndex + 1];
@@ -889,14 +761,11 @@ const goToPreviousVersion = async () => {
     await selectAndDisplayVersion(previousVersion);
   }
 };
-
 const goToNextVersion = async () => {
   if (!canGoNext.value) return;
-  
   // Find current version index in sortedVersions (newest first)
   const currentDisplayVersion = displayVersion.value || currentVersion.value;
   const currentIndex = sortedVersions.value.findIndex(v => v.id === currentDisplayVersion?.id);
-  
   // Go to next (newer) version - previous index in the sorted array
   if (currentIndex > 0) {
     const nextVersion = sortedVersions.value[currentIndex - 1];
@@ -904,18 +773,14 @@ const goToNextVersion = async () => {
     await selectAndDisplayVersion(nextVersion);
   }
 };
-
 const selectVersion = async (version: any) => {
   selectedVersion.value = version;
   await selectAndDisplayVersion(version);
 };
-
 const selectAndDisplayVersion = async (version: any) => {
   selectedVersion.value = version;
-  
   // Update the display version to show this version's content
   displayVersion.value = version;
-  
   // If this is not a full version object with content, load it
   if (!version.content && version.id) {
     try {
@@ -925,32 +790,25 @@ const selectAndDisplayVersion = async (version: any) => {
         selectedVersion.value = fullVersion;
       }
     } catch (error) {
-      console.error('Failed to load full version:', error);
+
     }
   }
 };
-
 const makeCurrentVersion = async () => {
   if (!selectedVersion.value) return;
-  
   try {
     // Call the backend to set this version as current
     await deliverablesStore.setCurrentVersion(selectedVersion.value.id);
-    
     // Reload versions to get updated current version status
     await deliverablesStore.loadDeliverableVersions(actualDeliverableId.value);
-    
     // Update local state
     selectedVersion.value.isCurrentVersion = true;
     emit('current-version-changed', selectedVersion.value);
-    
-    console.log('✅ Version set as current successfully');
   } catch (error) {
-    console.error('Failed to set current version:', error);
+
     alert(`Failed to set current version: ${error.message || 'Unknown error'}`);
   }
 };
-
 const loadAndEmitFullVersion = async (versionId: string) => {
   try {
     // Fetch the full deliverable for this version
@@ -959,7 +817,7 @@ const loadAndEmitFullVersion = async (versionId: string) => {
       emit('version-changed', fullVersion);
     }
   } catch (error) {
-    console.error('Failed to load full version:', error);
+
     // Fallback: still emit the limited version data
     const limitedVersion = versions.value.find(v => v.id === versionId);
     if (limitedVersion) {
@@ -967,14 +825,11 @@ const loadAndEmitFullVersion = async (versionId: string) => {
     }
   }
 };
-
 const downloadDeliverable = () => {
   const content = displayVersion.value?.content || '';
   const filename = `${displayTitle.value.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${getFileExtension()}`;
-  
   const blob = new Blob([content], { type: getMimeType() });
   const url = URL.createObjectURL(blob);
-  
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
@@ -983,7 +838,6 @@ const downloadDeliverable = () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
-
 const getFileExtension = () => {
   const format = displayVersion.value?.format || 'text';
   const extensions = {
@@ -994,7 +848,6 @@ const getFileExtension = () => {
   };
   return extensions[format as keyof typeof extensions] || 'txt';
 };
-
 const getMimeType = () => {
   const format = displayVersion.value?.format || 'text';
   const mimeTypes = {
@@ -1005,25 +858,21 @@ const getMimeType = () => {
   };
   return mimeTypes[format as keyof typeof mimeTypes] || 'text/plain';
 };
-
 // Watch for deliverable changes and reload versions
 watch(() => props.deliverable?.id, async () => {
   if (props.deliverable) {
     loadVersions();
-    
     // Set deliverable context for proper metadata handling
     try {
       const { useContextStore } = await import('@/stores/contextStore');
       const contextStore = useContextStore();
       contextStore.setDeliverableContext(actualDeliverableId.value);
-      console.log('🎯 Set deliverable context for:', actualDeliverableId.value);
     } catch (error) {
-      console.error('Failed to set deliverable context:', error);
+
     }
   }
 }, { immediate: true });
 </script>
-
 <style scoped>
 .deliverable-display {
   display: flex;
@@ -1033,7 +882,6 @@ watch(() => props.deliverable?.id, async () => {
   padding: 20px;
   overflow-y: auto;
 }
-
 .document-paper {
   background: white;
   border-radius: 12px;
@@ -1048,7 +896,6 @@ watch(() => props.deliverable?.id, async () => {
   margin: 0 auto;
   position: relative;
 }
-
 /* Add subtle paper texture */
 .document-paper::before {
   content: '';
@@ -1063,7 +910,6 @@ watch(() => props.deliverable?.id, async () => {
   pointer-events: none;
   border-radius: 12px;
 }
-
 .deliverable-header {
   display: flex;
   flex-direction: column;
@@ -1075,7 +921,6 @@ watch(() => props.deliverable?.id, async () => {
   position: relative;
   z-index: 1;
 }
-
 @media (min-width: 768px) {
   .deliverable-header {
     flex-direction: row;
@@ -1084,11 +929,9 @@ watch(() => props.deliverable?.id, async () => {
     gap: 16px;
   }
 }
-
 .title-section {
   flex: 1;
 }
-
 .deliverable-title {
   margin: 0 0 8px 0;
   font-size: 1.2em;
@@ -1100,13 +943,11 @@ watch(() => props.deliverable?.id, async () => {
   hyphens: auto;
   max-width: 100%;
 }
-
 .metadata {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
-
 .header-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1114,54 +955,45 @@ watch(() => props.deliverable?.id, async () => {
   align-items: center;
   justify-content: flex-end;
 }
-
 @media (max-width: 767px) {
   .header-actions {
     justify-content: flex-start;
     width: 100%;
   }
 }
-
 .version-section {
   padding: 12px 16px;
   border-bottom: 1px solid var(--ion-color-light-shade);
   background: var(--ion-color-step-50);
 }
-
 .version-info {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
 }
-
 .version-label {
   font-weight: 500;
   color: var(--ion-color-dark);
 }
-
 .created-by {
   font-size: 0.9em;
   color: var(--ion-color-medium);
 }
-
 .version-controls {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
 }
-
 .version-history {
   border-bottom: 1px solid var(--ion-color-light-shade);
 }
-
 .version-timeline {
   padding: 16px;
   max-height: 300px;
   overflow-y: auto;
 }
-
 .version-item {
   display: flex;
   align-items: flex-start;
@@ -1170,18 +1002,15 @@ watch(() => props.deliverable?.id, async () => {
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
 .version-item:last-child {
   border-bottom: none;
 }
-
 .version-item:hover {
   background: var(--ion-color-step-50);
   margin: 0 -16px;
   padding: 12px 16px;
   border-radius: 8px;
 }
-
 .version-item.active {
   background: #e3f2fd;
   margin: 0 -16px;
@@ -1189,12 +1018,10 @@ watch(() => props.deliverable?.id, async () => {
   border-radius: 8px;
   border-color: #bbdefb;
 }
-
 .version-marker {
   margin-right: 12px;
   margin-top: 4px;
 }
-
 .version-dot {
   width: 12px;
   height: 12px;
@@ -1203,33 +1030,27 @@ watch(() => props.deliverable?.id, async () => {
   border: 2px solid white;
   box-shadow: 0 0 0 2px var(--ion-color-medium);
 }
-
 .version-dot.latest {
   background: var(--ion-color-success);
   box-shadow: 0 0 0 2px var(--ion-color-success);
 }
-
 .version-details {
   flex: 1;
 }
-
 .version-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
 }
-
 .version-number {
   font-weight: 600;
   color: var(--ion-color-dark);
 }
-
 .version-date {
   font-size: 0.85em;
   color: var(--ion-color-medium);
 }
-
 .version-preview {
   margin: 4px 0;
   font-size: 0.9em;
@@ -1240,26 +1061,22 @@ watch(() => props.deliverable?.id, async () => {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
 .version-meta {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 4px;
 }
-
 .agent-name {
   font-size: 0.8em;
   color: var(--ion-color-medium);
 }
-
 .content-section {
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
-
 .content-display {
   flex: 1;
   overflow-y: auto;
@@ -1268,14 +1085,12 @@ watch(() => props.deliverable?.id, async () => {
   position: relative;
   z-index: 1;
 }
-
 .markdown-content {
   line-height: 1.7;
   color: #1f2937;
   font-size: 16px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
-
 .markdown-content :deep(h1),
 .markdown-content :deep(h2),
 .markdown-content :deep(h3),
@@ -1286,34 +1101,29 @@ watch(() => props.deliverable?.id, async () => {
   margin-top: 24px;
   margin-bottom: 12px;
 }
-
 .markdown-content :deep(h1):first-child,
 .markdown-content :deep(h2):first-child,
 .markdown-content :deep(h3):first-child {
   margin-top: 0;
 }
-
 .markdown-content :deep(pre) {
   background: var(--ion-color-step-100);
   padding: 12px;
   border-radius: 8px;
   overflow-x: auto;
 }
-
 .markdown-content :deep(code) {
   background: var(--ion-color-step-100);
   padding: 2px 6px;
   border-radius: 4px;
   font-family: 'Courier New', monospace;
 }
-
 .markdown-content :deep(blockquote) {
   border-left: 4px solid var(--ion-color-primary);
   padding-left: 16px;
   margin: 16px 0;
   color: var(--ion-color-medium);
 }
-
 .json-content,
 .text-content {
   white-space: pre-wrap;
@@ -1322,19 +1132,16 @@ watch(() => props.deliverable?.id, async () => {
   line-height: 1.5;
   color: var(--ion-color-dark);
 }
-
 .json-content {
   background: var(--ion-color-step-50);
   padding: 16px;
   border-radius: 8px;
   overflow-x: auto;
 }
-
 .html-content {
   line-height: 1.6;
   color: var(--ion-color-dark);
 }
-
 .deliverable-footer {
   padding: 20px 24px;
   border-top: 2px solid #e2e8f0;
@@ -1343,54 +1150,45 @@ watch(() => props.deliverable?.id, async () => {
   position: relative;
   z-index: 1;
 }
-
 .timestamps {
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin-bottom: 12px;
 }
-
 .created,
 .updated {
   font-size: 0.85em;
   color: var(--ion-color-medium);
 }
-
 .tags-section {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 16px;
 }
-
 .rating-section {
   border-top: 1px solid var(--ion-color-light-shade);
   padding-top: 16px;
 }
-
 .rating-label {
   font-size: 0.9em;
   font-weight: 600;
   color: var(--ion-color-dark);
   margin-bottom: 4px;
 }
-
 .rating-context {
   font-size: 0.8em;
   color: var(--ion-color-medium);
   margin-bottom: 8px;
 }
-
 /* Edit Mode Styles */
 .edit-mode-content {
   padding: 16px;
 }
-
 .edit-field {
   margin-bottom: 16px;
 }
-
 .edit-label {
   display: block;
   font-size: 0.9em;
@@ -1398,12 +1196,10 @@ watch(() => props.deliverable?.id, async () => {
   color: var(--ion-color-dark);
   margin-bottom: 8px;
 }
-
 .title-editor {
   --background: white;
   --color: var(--ion-color-dark);
 }
-
 .content-editor {
   --background: white;
   --color: var(--ion-color-dark);
@@ -1411,14 +1207,12 @@ watch(() => props.deliverable?.id, async () => {
   font-size: 0.9em;
   line-height: 1.5;
 }
-
 .edit-controls {
   display: flex;
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
 }
-
 .edit-help {
   display: flex;
   align-items: center;
@@ -1430,11 +1224,9 @@ watch(() => props.deliverable?.id, async () => {
   background: var(--ion-color-step-100);
   border-radius: 6px;
 }
-
 .edit-help ion-icon {
   font-size: 1.1em;
 }
-
 .markdown-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1445,13 +1237,11 @@ watch(() => props.deliverable?.id, async () => {
   border-radius: 6px;
   margin-bottom: 8px;
 }
-
 .toolbar-group {
   display: flex;
   gap: 4px;
   align-items: center;
 }
-
 .toolbar-group:not(:last-child)::after {
   content: '';
   width: 1px;
@@ -1459,7 +1249,6 @@ watch(() => props.deliverable?.id, async () => {
   background: var(--ion-color-light);
   margin-left: 4px;
 }
-
 .markdown-toolbar ion-button {
   --color: var(--ion-color-medium);
   --padding-start: 6px;
@@ -1469,23 +1258,19 @@ watch(() => props.deliverable?.id, async () => {
   font-size: 0.85em;
   font-weight: 600;
 }
-
 .markdown-toolbar ion-button:hover {
   --color: var(--ion-color-primary);
   --background: var(--ion-color-primary-tint);
 }
-
 .markdown-toolbar ion-button ion-icon {
   font-size: 0.9em;
   margin-right: 2px;
 }
-
 .markdown-toolbar ion-button strong,
 .markdown-toolbar ion-button em {
   font-size: 0.9em;
   margin-left: 2px;
 }
-
 /* Dark theme support */
 @media (prefers-color-scheme: dark), 
 html[data-theme="dark"] {
@@ -1493,7 +1278,6 @@ html[data-theme="dark"] {
     background: #0f172a;
     color: #e2e8f0;
   }
-  
   .document-paper {
     background: #1e293b;
     box-shadow: 
@@ -1501,61 +1285,49 @@ html[data-theme="dark"] {
       0 1px 3px rgba(0, 0, 0, 0.3),
       inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
-  
   .document-paper::before {
     background: 
       linear-gradient(90deg, transparent 79px, rgba(255,255,255,0.03) 79px, rgba(255,255,255,0.03) 81px, transparent 81px),
       repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(255,255,255,0.02) 24px, rgba(255,255,255,0.02) 25px);
   }
-  
   .deliverable-header {
     background: linear-gradient(to bottom, #334155, #1e293b);
     border-color: #475569;
     color: #f7fafc;
   }
-  
   .content-display {
     background: #1e293b;
   }
-  
   .deliverable-header h2 {
     color: #f7fafc;
   }
-  
   .deliverable-meta {
     color: #a0aec0;
   }
-  
   .version-section {
     background: #2d3748;
     border-color: #4a5568;
   }
-  
   .version-item {
     background: #374151;
     border-color: #4b5563;
     color: #d1d5db;
   }
-  
   .version-item:hover {
     background: #4b5563;
   }
-  
   .version-item.active {
     background: #1e40af;
     border-color: #3b82f6;
     color: #dbeafe;
   }
-  
   .deliverable-content {
     background: #1a202c;
     color: #e2e8f0;
   }
-  
   .markdown-content {
     color: #e2e8f0;
   }
-  
   .markdown-content :deep(h1),
   .markdown-content :deep(h2),
   .markdown-content :deep(h3),
@@ -1564,93 +1336,75 @@ html[data-theme="dark"] {
   .markdown-content :deep(h6) {
     color: #f7fafc;
   }
-  
   .markdown-content :deep(strong),
   .markdown-content :deep(b) {
     color: #f7fafc;
   }
-  
   .markdown-content :deep(pre) {
     background: #111827;
     color: #e5e7eb;
     border: 1px solid #374151;
   }
-  
   .markdown-content :deep(code) {
     background: #111827;
     color: #68d391;
     border: 1px solid #374151;
   }
-  
   .markdown-content :deep(blockquote) {
     border-left-color: #4b5563;
     background-color: rgba(255, 255, 255, 0.02);
     color: #cbd5e0;
   }
-  
   .markdown-content :deep(a) {
     color: #63b3ed;
   }
-  
   .json-content {
     background: #111827;
     color: #e5e7eb;
     border: 1px solid #374151;
   }
-  
   .deliverable-footer {
     background: linear-gradient(to top, #334155, #1e293b);
     border-color: #475569;
     color: #a0aec0;
   }
-  
   .rating-label {
     color: #f7fafc;
   }
-  
   .rating-context {
     color: #a0aec0;
   }
-  
   .title-editor,
   .content-editor {
     --background: #374151;
     --color: #e2e8f0;
     --border-color: #4a5568;
   }
-  
   .edit-help {
     background: #2d3748;
     color: #a0aec0;
   }
-  
   .markdown-toolbar {
     background: #2d3748;
     border-color: #4a5568;
   }
-  
   .toolbar-group:not(:last-child)::after {
     background: #4a5568;
   }
-  
   .markdown-toolbar ion-button {
     --color: #d1d5db;
   }
-  
   .markdown-toolbar ion-button:hover {
     --color: #60a5fa;
     --background: #374151;
   }
 }
-
 html[data-theme="dark"] .rating-label {
   color: #f7fafc;
 }
-
 html[data-theme="dark"] .rating-context {
   color: #a0aec0;
 }
-
 .deliverable-actions {
   padding: 16px;
   border-top: 1px solid var(--ion-color-light-shade);

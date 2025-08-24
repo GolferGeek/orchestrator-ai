@@ -34,19 +34,14 @@ except ImportError as e:
             return "Fallback response - LLM service not available"
     llm_client = LLMClient()
 
-
 async def extract_features_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Node: Extract key features and components from the request using AI analysis"""
-    
-    print(f"DEBUG: extract_features_node started with keys: {list(state_dict.keys())}", file=sys.stderr)
-    
+
     state = RequirementsWriterState(state_dict)
-    
-    print(f"DEBUG: RequirementsWriterState created, task_id: {state.task_id}", file=sys.stderr)
-    
+
     try:
         # Emit start event
-        print(f"DEBUG: About to emit progress for extract_features", file=sys.stderr)
+
         emit_progress(
             state.task_id,
             "extract_features",
@@ -55,13 +50,12 @@ async def extract_features_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
             "in_progress",
             "Using AI to identify key features and components from requirements..."
         )
-        print(f"DEBUG: Progress emitted successfully", file=sys.stderr)
-        
+
         # Create LLM options
-        print(f"DEBUG: About to create LLM options from preferences: {state.llm_preferences}", file=sys.stderr)
+
         try:
             llm_options = llm_client.create_options(**state.llm_preferences)
-            print(f"DEBUG: LLM options created: {llm_options}", file=sys.stderr)
+
         except Exception as e:
             print(f"ERROR: Failed to create LLM options: {e}", file=sys.stderr)
             llm_options = {}
@@ -118,8 +112,6 @@ Respond with a JSON object:
 
 Please identify all key features, components, and capabilities that would need to be implemented."""
 
-        print(f"DEBUG: About to call LLM service with prompts (system: {len(system_prompt)} chars, user: {len(user_prompt)} chars)", file=sys.stderr)
-        
         # Make real LLM call
         start_time = datetime.now()
         try:
@@ -130,8 +122,7 @@ Please identify all key features, components, and capabilities that would need t
             )
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
-            print(f"DEBUG: LLM call completed in {duration:.2f}s, response length: {len(response)} chars", file=sys.stderr)
-            print(f"DEBUG: LLM response preview: {response[:200]}...", file=sys.stderr)
+
         except Exception as e:
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
@@ -139,7 +130,7 @@ Please identify all key features, components, and capabilities that would need t
             response = f"ERROR: LLM call failed: {e}"
         
         # Parse LLM response
-        print(f"DEBUG: Attempting to parse features from LLM response", file=sys.stderr)
+
         try:
             import json
             feature_analysis = json.loads(response)
@@ -155,17 +146,13 @@ Please identify all key features, components, and capabilities that would need t
                 )
             
             complexity = feature_analysis.get('estimated_complexity', 'medium')
-            print(f"DEBUG: Successfully parsed JSON response: {len(features)} features, complexity: {complexity}", file=sys.stderr)
-            
+
         except Exception as parse_error:
-            print(f"DEBUG: JSON parsing failed ({parse_error}), using fallback extraction", file=sys.stderr)
-            
+
             # Fallback feature extraction using keyword analysis
             features = extract_features_fallback(state.user_message, response)
             complexity = 'medium'
-            
-            print(f"DEBUG: Fallback extraction resulted in {len(features)} features", file=sys.stderr)
-            
+
             feature_analysis = {
                 'all_features': features,
                 'estimated_complexity': complexity,
@@ -175,16 +162,16 @@ Please identify all key features, components, and capabilities that would need t
             }
         
         # Update state
-        print(f"DEBUG: About to update state with {len(features)} features", file=sys.stderr)
+
         try:
             state.set_features(features)
             state.update_step_result('extract_features', feature_analysis)
-            print(f"DEBUG: State updated successfully with features", file=sys.stderr)
+
         except Exception as state_error:
             print(f"ERROR: Failed to update state: {state_error}", file=sys.stderr)
         
         # Emit completion event
-        print(f"DEBUG: About to emit completion progress", file=sys.stderr)
+
         try:
             emit_progress(
                 state.task_id,
@@ -194,15 +181,15 @@ Please identify all key features, components, and capabilities that would need t
                 "completed", 
                 f"Extracted {len(features)} key features and components ({complexity} complexity)"
             )
-            print(f"DEBUG: Completion progress emitted successfully", file=sys.stderr)
+
         except Exception as progress_error:
             print(f"ERROR: Failed to emit completion progress: {progress_error}", file=sys.stderr)
         
         # Return updated state
-        print(f"DEBUG: About to return state dictionary", file=sys.stderr)
+
         try:
             result = state.to_dict()
-            print(f"DEBUG: State converted to dict successfully, keys: {list(result.keys())}", file=sys.stderr)
+
             return result
         except Exception as dict_error:
             print(f"ERROR: Failed to convert state to dict: {dict_error}", file=sys.stderr)
@@ -226,7 +213,6 @@ Please identify all key features, components, and capabilities that would need t
         except Exception as state_error:
             print(f"ERROR: Failed to set error state: {state_error}", file=sys.stderr)
             return {"error": error_msg, "userMessage": state_dict.get("userMessage", ""), "metadata": state_dict.get("metadata", {})}
-
 
 def extract_features_fallback(user_message: str, llm_response: str) -> List[str]:
     """Fallback feature extraction using keyword analysis"""
@@ -265,7 +251,6 @@ def extract_features_fallback(user_message: str, llm_response: str) -> List[str]
         found_features = potential_features[:10]  # Limit to 10
     
     return found_features[:15]  # Return max 15 features
-
 
 # For testing/development
 if __name__ == "__main__":

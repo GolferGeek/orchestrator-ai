@@ -1,5 +1,4 @@
 import { apiService } from './apiService';
-
 // Types matching the backend API
 export interface Project {
   id: string;
@@ -18,7 +17,6 @@ export interface Project {
   hierarchyLevel?: number;
   subprojectCount?: number;
 }
-
 export interface ProjectStep {
   id: string;
   projectId: string;
@@ -38,7 +36,6 @@ export interface ProjectStep {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface CreateProjectDto {
   name?: string;
   description?: string;
@@ -47,7 +44,6 @@ export interface CreateProjectDto {
   // Hierarchical project support
   parentProjectId?: string;
 }
-
 export interface UpdateProjectDto {
   name?: string;
   description?: string;
@@ -57,7 +53,6 @@ export interface UpdateProjectDto {
   errorDetails?: any;
   metadata?: any;
 }
-
 export interface ProjectQueryDto {
   status?: Project['status'];
   limit?: number;
@@ -69,122 +64,85 @@ export interface ProjectQueryDto {
   hierarchyLevel?: number;
   includeSubprojects?: boolean;
 }
-
 export interface ProjectsResponse {
   projects: Project[];
   total: number;
   limit: number;
   offset: number;
 }
-
 export interface ProjectHierarchyNode {
   id: string;
   name?: string;
   hierarchyLevel: number;
 }
-
 export interface ProjectWithHierarchy extends Project {
   hierarchyPath?: ProjectHierarchyNode[];
   subprojects?: Project[];
 }
-
 export class ProjectsService {
   private baseUrl = '/projects';
-
   /**
    * Get all projects for the current user
    */
   async getProjects(query?: ProjectQueryDto): Promise<ProjectsResponse> {
     const params = new URLSearchParams();
-    
     if (query?.status) params.append('status', query.status);
     if (query?.limit) params.append('limit', query.limit.toString());
     if (query?.offset) params.append('offset', query.offset.toString());
     if (query?.sortBy) params.append('sortBy', query.sortBy);
     if (query?.sortOrder) params.append('sortOrder', query.sortOrder);
-    
     // Hierarchical filtering
     if (query?.parentProjectId) params.append('parentProjectId', query.parentProjectId);
     if (query?.hierarchyLevel !== undefined) params.append('hierarchyLevel', query.hierarchyLevel.toString());
     if (query?.includeSubprojects) params.append('includeSubprojects', 'true');
-    
     const url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
-    
     const response = await apiService.get(url);
-    
     // TEMPORARY FIX: If apiService.get is returning the projects data directly instead of response.data
     if (response && response.projects && !response.data) {
-      console.log('DETECTED: apiService.get returned projects data directly instead of axios response');
       return response; // Return the projects data directly
     }
-    
     return response.data;
   }
-
   /**
    * Get a specific project by ID
    */
   async getProject(projectId: string): Promise<Project> {
-    console.log('ProjectsService.getProject called with projectId:', projectId);
-    
     try {
       const response = await apiService.get(`${this.baseUrl}/${projectId}`);
-      console.log('Raw API response for getProject:', response);
-      console.log('Response data:', response.data);
-      console.log('Response data type:', typeof response.data);
-      
       // TEMPORARY FIX: If apiService.get is returning the project directly instead of response.data
       if (response && response.id && !response.data) {
-        console.log('DETECTED: apiService.get returned project directly instead of axios response');
         return response; // Return the project object directly
       }
-      
       if (response.data) {
-        console.log('Response data keys:', Object.keys(response.data));
         return response.data;
       }
-      
-      console.error('No valid response data found for getProject:', response);
+
       throw new Error('Invalid API response format for getProject');
-      
     } catch (error) {
-      console.error('ProjectsService.getProject error:', error);
+
       throw error;
     }
   }
-
   /**
    * Create a new project
    */
   async createProject(data: CreateProjectDto): Promise<Project> {
-    console.log('ProjectsService.createProject called with data:', data);
-    
     try {
       const response = await apiService.post(this.baseUrl, data);
-      console.log('Raw API response for createProject:', response);
-      console.log('Response data:', response.data);
-      console.log('Response data type:', typeof response.data);
-      
       // TEMPORARY FIX: If apiService.post is returning the project directly instead of response.data
       if (response && response.id && !response.data) {
-        console.log('DETECTED: apiService.post returned project directly instead of axios response');
         return response; // Return the project object directly
       }
-      
       if (response.data) {
-        console.log('Response data keys:', Object.keys(response.data));
         return response.data;
       }
-      
-      console.error('No valid response data found:', response);
+
       throw new Error('Invalid API response format');
-    
     } catch (error) {
-      console.error('ProjectsService.createProject error:', error);
+
       throw error;
     }
   }
-
   /**
    * Update a project
    */
@@ -192,7 +150,6 @@ export class ProjectsService {
     const response = await apiService.put(`${this.baseUrl}/${projectId}`, data);
     return response.data;
   }
-
   /**
    * Delete a project
    */
@@ -200,7 +157,6 @@ export class ProjectsService {
     const response = await apiService.delete(`${this.baseUrl}/${projectId}`);
     return response.data;
   }
-
   /**
    * Get project steps
    */
@@ -208,7 +164,6 @@ export class ProjectsService {
     const response = await apiService.get(`${this.baseUrl}/${projectId}/steps`);
     return response.data;
   }
-
   /**
    * Get project history and timeline
    */
@@ -225,7 +180,6 @@ export class ProjectsService {
     const response = await apiService.get(`${this.baseUrl}/${projectId}/history`);
     return response.data;
   }
-
   /**
    * Resume a paused project
    */
@@ -237,7 +191,6 @@ export class ProjectsService {
     const response = await apiService.post(`${this.baseUrl}/${projectId}/resume`, options || {});
     return response.data;
   }
-
   /**
    * Retry a failed project
    */
@@ -249,7 +202,6 @@ export class ProjectsService {
     const response = await apiService.post(`${this.baseUrl}/${projectId}/retry`, options || {});
     return response.data;
   }
-
   /**
    * Fork a project (create a copy from a specific checkpoint)
    */
@@ -262,7 +214,6 @@ export class ProjectsService {
     const response = await apiService.post(`${this.baseUrl}/${projectId}/fork`, options || {});
     return response.data;
   }
-
   /**
    * Abort a running project
    */
@@ -273,7 +224,6 @@ export class ProjectsService {
     const response = await apiService.post(`${this.baseUrl}/${projectId}/abort`, options || {});
     return response.data;
   }
-
   /**
    * Get project analytics and progress metrics
    */
@@ -304,11 +254,9 @@ export class ProjectsService {
     const response = await apiService.get(`${this.baseUrl}/${projectId}/analytics`);
     return response.data;
   }
-
   // ============================================================================
   // HIERARCHICAL PROJECT METHODS
   // ============================================================================
-
   /**
    * Get subprojects of a parent project
    */
@@ -316,7 +264,6 @@ export class ProjectsService {
     const response = await this.getProjects({ parentProjectId });
     return response.projects;
   }
-
   /**
    * Get root projects (top-level, no parent)
    */
@@ -326,7 +273,6 @@ export class ProjectsService {
       hierarchyLevel: 0,
     });
   }
-
   /**
    * Get project hierarchy path (breadcrumb trail)
    */
@@ -334,7 +280,6 @@ export class ProjectsService {
     const response = await apiService.get(`${this.baseUrl}/${projectId}/hierarchy-path`);
     return response.data;
   }
-
   /**
    * Get project with full hierarchy context
    */
@@ -342,7 +287,6 @@ export class ProjectsService {
     const response = await apiService.get(`${this.baseUrl}/${projectId}/with-hierarchy`);
     return response.data;
   }
-
   /**
    * Create a subproject under a parent project
    */
@@ -352,7 +296,6 @@ export class ProjectsService {
       parentProjectId,
     });
   }
-
   /**
    * Get project tree structure starting from a root project
    */
@@ -360,7 +303,6 @@ export class ProjectsService {
     const response = await apiService.get(`${this.baseUrl}/${rootProjectId}/tree`);
     return response.data;
   }
-
   /**
    * Move project to different parent (reparent)
    */
@@ -370,7 +312,6 @@ export class ProjectsService {
     });
     return response.data;
   }
-
   /**
    * Get hierarchical project statistics
    */
@@ -389,6 +330,5 @@ export class ProjectsService {
     return response.data;
   }
 }
-
 // Export singleton instance
 export const projectsService = new ProjectsService();

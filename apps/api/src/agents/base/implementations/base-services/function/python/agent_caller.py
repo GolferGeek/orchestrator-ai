@@ -5,7 +5,6 @@ import json
 import sys
 from typing import Dict, Any, Optional
 
-
 async def call_specialist_agent(
     agent_type: str,
     agent_category: str, 
@@ -39,7 +38,6 @@ async def call_specialist_agent(
             "fallback": True
         }
 
-
 async def call_agent_endpoint(
     endpoint: str,
     payload: Dict[str, Any],
@@ -62,7 +60,6 @@ async def call_agent_endpoint(
             "fallback": True
         }
 
-
 def create_agent_task_data(
     user_message: str,
     session_id: str,
@@ -79,7 +76,6 @@ def create_agent_task_data(
         task_data.update(additional_context)
     
     return task_data
-
 
 # Specialist agent call functions
 # These are designed to work both now (with fallbacks) and later (with real specialists)
@@ -101,7 +97,6 @@ async def call_writer_specialist(
     
     return result.get("response", "")
 
-
 async def call_analyst_specialist(
     analyst_type: str,
     task_data: Dict[str, Any]
@@ -118,7 +113,6 @@ async def call_analyst_specialist(
         return {"analysis": f"Error calling {analyst_type} analyst: {result.get('response', 'Unknown error')}"}
     
     return result
-
 
 async def call_validator_specialist(
     validator_type: str,
@@ -137,7 +131,6 @@ async def call_validator_specialist(
     
     return result
 
-
 # Convenience functions for common specialist calls
 # These will be updated when actual specialists are implemented
 
@@ -145,26 +138,21 @@ async def call_prd_writer(requirements_data: Dict[str, Any]) -> str:
     """Call PRD Writer specialist agent"""
     return await call_writer_specialist("prd_writer", requirements_data)
 
-
 async def call_technical_writer(requirements_data: Dict[str, Any]) -> str:
     """Call Technical Requirements Writer specialist agent"""
     return await call_writer_specialist("technical_writer", requirements_data)
-
 
 async def call_api_designer(requirements_data: Dict[str, Any]) -> str:
     """Call API Designer specialist agent"""
     return await call_writer_specialist("api_designer", requirements_data)
 
-
 async def call_requirements_analyst(analysis_data: Dict[str, Any]) -> Dict[str, Any]:
     """Call Requirements Analyst specialist agent"""
     return await call_analyst_specialist("requirements_analyst", analysis_data)
 
-
 async def call_complexity_assessor(assessment_data: Dict[str, Any]) -> Dict[str, Any]:
     """Call Complexity Assessor specialist agent"""
     return await call_analyst_specialist("complexity_assessor", assessment_data)
-
 
 async def call_requirements_validator(validation_data: Dict[str, Any]) -> Dict[str, Any]:
     """Call Requirements Validator specialist agent"""

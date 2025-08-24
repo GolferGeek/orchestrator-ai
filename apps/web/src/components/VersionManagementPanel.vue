@@ -11,7 +11,6 @@
         <ion-icon :icon="addOutline" slot="start" />
         New Version from Task
       </ion-button>
-
       <ion-button
         @click="showMergeDialog = true"
         fill="outline"
@@ -22,7 +21,6 @@
         <ion-icon :icon="gitMergeOutline" slot="start" />
         Merge Versions
       </ion-button>
-
       <ion-button
         @click="showDeleteDialog = true"
         fill="outline"
@@ -34,7 +32,6 @@
         Delete Selected
       </ion-button>
     </div>
-
     <!-- Version Selection List -->
     <div class="version-list" v-if="versions.length > 0">
       <div class="list-header">
@@ -48,7 +45,6 @@
           Clear Selection
         </ion-button>
       </div>
-
       <div 
         v-for="version in sortedVersions"
         :key="version.id"
@@ -64,7 +60,6 @@
           :disabled="version.isCurrentVersion && isDeleteMode"
           @click.stop="toggleVersionSelection(version.id)"
         />
-        
         <div class="version-info">
           <div class="version-header">
             <span class="version-number">v{{ version.versionNumber }}</span>
@@ -72,17 +67,14 @@
               Current
             </ion-chip>
           </div>
-          
           <div class="version-meta">
             <span class="version-date">{{ formatDate(version.createdAt) }}</span>
             <span class="version-type">{{ getVersionTypeLabel(version.createdByType) }}</span>
           </div>
-          
           <div class="version-preview">
             {{ getContentPreview(version.content) }}
           </div>
         </div>
-
         <ion-button
           v-if="!version.isCurrentVersion"
           fill="clear"
@@ -95,13 +87,11 @@
         </ion-button>
       </div>
     </div>
-
     <!-- Empty State -->
     <div v-else class="empty-state">
       <ion-icon :icon="documentTextOutline" />
       <p>No versions available</p>
     </div>
-
     <!-- Delete Confirmation Dialog -->
     <ion-alert
       :is-open="showDeleteDialog"
@@ -110,7 +100,6 @@
       :buttons="deleteAlertButtons"
       @didDismiss="showDeleteDialog = false"
     />
-
     <!-- Merge Versions Dialog -->
     <ion-modal :is-open="showMergeDialog" @will-dismiss="showMergeDialog = false">
       <ion-header>
@@ -121,11 +110,9 @@
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
-      
       <ion-content class="merge-dialog-content">
         <div class="merge-instructions">
           <h4>Select versions to merge:</h4>
-          
           <div class="merge-version-list">
             <ion-item v-for="version in versions" :key="version.id">
               <ion-checkbox
@@ -139,7 +126,6 @@
               </ion-label>
             </ion-item>
           </div>
-
           <div class="merge-prompt-section">
             <h4>Merge Instructions:</h4>
             <ion-textarea
@@ -148,7 +134,6 @@
               :rows="3"
             />
           </div>
-
           <div class="merge-actions">
             <ion-button
               @click="executeMerge"
@@ -164,7 +149,6 @@
     </ion-modal>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import {
@@ -192,20 +176,16 @@ import {
 import { useContextStore } from '@/stores/contextStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import type { DeliverableVersion } from '@/services/deliverablesService';
-
 // Props
 interface Props {
   deliverableId: string;
   versions: DeliverableVersion[];
   currentVersionId?: string;
 }
-
 const props = defineProps<Props>();
-
 // Stores
 const contextStore = useContextStore();
 const agentChatStore = useAgentChatStore();
-
 // Reactive state
 const selectedVersions = ref<string[]>([]);
 const mergeSelectedVersions = ref<string[]>([]);
@@ -213,16 +193,13 @@ const showDeleteDialog = ref(false);
 const showMergeDialog = ref(false);
 const mergePrompt = ref('');
 const isDeleteMode = ref(false);
-
 // Computed properties
 const sortedVersions = computed(() => 
   [...props.versions].sort((a, b) => b.versionNumber - a.versionNumber)
 );
-
 const isCurrentVersionSelected = computed(() => 
   selectedVersions.value.includes(props.currentVersionId || '')
 );
-
 const deleteConfirmationMessage = computed(() => {
   const count = selectedVersions.value.length;
   if (count === 1) {
@@ -230,7 +207,6 @@ const deleteConfirmationMessage = computed(() => {
   }
   return `Are you sure you want to delete ${count} versions? This action cannot be undone.`;
 });
-
 const deleteAlertButtons = computed(() => [
   {
     text: 'Cancel',
@@ -247,7 +223,6 @@ const deleteAlertButtons = computed(() => [
     }
   }
 ]);
-
 // Methods
 const toggleVersionSelection = (versionId: string) => {
   const index = selectedVersions.value.indexOf(versionId);
@@ -257,7 +232,6 @@ const toggleVersionSelection = (versionId: string) => {
     selectedVersions.value.push(versionId);
   }
 };
-
 const toggleMergeSelection = (versionId: string) => {
   const index = mergeSelectedVersions.value.indexOf(versionId);
   if (index >= 0) {
@@ -266,19 +240,15 @@ const toggleMergeSelection = (versionId: string) => {
     mergeSelectedVersions.value.push(versionId);
   }
 };
-
 const clearSelection = () => {
   selectedVersions.value = [];
 };
-
 const createNewVersion = () => {
   // Set deliverable context and focus the prompt input
   contextStore.setDeliverableContext(props.deliverableId);
-  
   // The context-aware prompt input will now be in deliverable mode
   // User can type their modification request there
 };
-
 const deleteVersion = async (versionId: string) => {
   // Single version deletion
   await agentChatStore.sendMessageWithContext(
@@ -286,38 +256,30 @@ const deleteVersion = async (versionId: string) => {
     contextStore.createDeleteMetadata([versionId])
   );
 };
-
 const executeDelete = async () => {
   if (selectedVersions.value.length === 0) return;
-
   await agentChatStore.sendMessageWithContext(
     `Deleting ${selectedVersions.value.length} selected version(s)`,
     contextStore.createDeleteMetadata(selectedVersions.value)
   );
-
   selectedVersions.value = [];
   showDeleteDialog.value = false;
 };
-
 const executeMerge = async () => {
   if (mergeSelectedVersions.value.length < 2 || !mergePrompt.value.trim()) return;
-
   await agentChatStore.sendMessageWithContext(
     mergePrompt.value,
     contextStore.createMergeMetadata(mergeSelectedVersions.value)
   );
-
   mergeSelectedVersions.value = [];
   mergePrompt.value = '';
   showMergeDialog.value = false;
 };
-
 // Helper methods
 const getVersionNumber = (versionId: string): number => {
   const version = props.versions.find(v => v.id === versionId);
   return version?.versionNumber || 0;
 };
-
 const getVersionTypeLabel = (type: string): string => {
   switch (type) {
     case 'conversation_task':
@@ -332,17 +294,14 @@ const getVersionTypeLabel = (type: string): string => {
       return 'Standard';
   }
 };
-
 const formatDate = (dateString: string): string => {
   return new Date(dateString).toLocaleDateString();
 };
-
 const getContentPreview = (content?: string): string => {
   if (!content) return 'No content';
   return content.length > 100 ? content.substring(0, 100) + '...' : content;
 };
 </script>
-
 <style scoped>
 .version-management-panel {
   padding: 16px;
@@ -350,32 +309,27 @@ const getContentPreview = (content?: string): string => {
   border-radius: 8px;
   margin-bottom: 16px;
 }
-
 .version-actions {
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
-
 .list-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
 }
-
 .list-header h4 {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
 }
-
 .version-list {
   max-height: 300px;
   overflow-y: auto;
 }
-
 .version-item {
   display: flex;
   align-items: flex-start;
@@ -388,37 +342,30 @@ const getContentPreview = (content?: string): string => {
   transition: all 0.2s ease;
   position: relative;
 }
-
 .version-item:hover {
   background: var(--ion-color-light-tint);
 }
-
 .version-item.selected {
   background: var(--ion-color-primary-tint);
   border-color: var(--ion-color-primary);
 }
-
 .version-item.current {
   border-color: var(--ion-color-success);
   background: var(--ion-color-success-tint);
 }
-
 .version-info {
   flex: 1;
 }
-
 .version-header {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
 }
-
 .version-number {
   font-weight: 600;
   font-size: 14px;
 }
-
 .version-meta {
   display: flex;
   gap: 12px;
@@ -426,63 +373,51 @@ const getContentPreview = (content?: string): string => {
   font-size: 12px;
   color: var(--ion-color-medium);
 }
-
 .version-preview {
   font-size: 12px;
   color: var(--ion-color-dark);
   line-height: 1.4;
 }
-
 .delete-single-btn {
   position: absolute;
   top: 8px;
   right: 8px;
 }
-
 .empty-state {
   text-align: center;
   padding: 32px;
   color: var(--ion-color-medium);
 }
-
 .empty-state ion-icon {
   font-size: 48px;
   margin-bottom: 16px;
 }
-
 .merge-dialog-content {
   padding: 16px;
 }
-
 .merge-instructions h4 {
   margin: 16px 0 8px 0;
 }
-
 .merge-version-list {
   margin-bottom: 16px;
 }
-
 .merge-prompt-section {
   margin-bottom: 16px;
 }
-
 .merge-actions {
   display: flex;
   justify-content: flex-end;
 }
-
 .content-preview {
   font-size: 12px;
   color: var(--ion-color-medium);
   margin-top: 4px;
 }
-
 /* Responsive design */
 @media (max-width: 768px) {
   .version-actions {
     flex-direction: column;
   }
-  
   .version-meta {
     flex-direction: column;
     gap: 4px;

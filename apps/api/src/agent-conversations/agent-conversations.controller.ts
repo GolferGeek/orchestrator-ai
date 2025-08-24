@@ -39,10 +39,6 @@ export class AgentConversationsController {
     @Query() query: AgentConversationQueryParams,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(
-      `Listing conversations for user ${currentUser.id}`,
-      query,
-    );
 
     // Ensure user can only see their own conversations
     const params = {
@@ -62,9 +58,6 @@ export class AgentConversationsController {
     @Param('id') conversationId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(
-      `Getting conversation ${conversationId} for user ${currentUser.id}`,
-    );
 
     const conversation =
       await this.agentConversationsService.getConversationById(
@@ -89,7 +82,6 @@ export class AgentConversationsController {
     @Body() dto: CreateAgentConversationDto,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(`Creating conversation for user ${currentUser.id}`, dto);
 
     return this.agentConversationsService.createConversation(
       currentUser.id,
@@ -107,9 +99,6 @@ export class AgentConversationsController {
     @Param('id') conversationId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(
-      `Ending conversation ${conversationId} for user ${currentUser.id}`,
-    );
 
     await this.agentConversationsService.endConversation(
       conversationId,
@@ -130,9 +119,6 @@ export class AgentConversationsController {
     @Body() metadata: Record<string, any>,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(
-      `Updating metadata for conversation ${conversationId} for user ${currentUser.id}`,
-    );
 
     await this.agentConversationsService.updateConversationMetadata(
       conversationId,
@@ -153,9 +139,6 @@ export class AgentConversationsController {
     @Param('id') conversationId: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(
-      `Deleting conversation ${conversationId} for user ${currentUser.id}`,
-    );
 
     await this.agentConversationsService.deleteConversation(
       conversationId,
@@ -173,9 +156,6 @@ export class AgentConversationsController {
   async getActiveConversations(
     @CurrentUser() currentUser: SupabaseAuthUserDto,
   ) {
-    this.logger.debug(
-      `Getting active conversations for user ${currentUser.id}`,
-    );
 
     return this.agentConversationsService.getActiveConversations(
       currentUser.id,

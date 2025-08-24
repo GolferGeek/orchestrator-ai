@@ -28,7 +28,6 @@ export class HierarchyController {
   @Get('agents')
   @Public()
   async getAgentHierarchy() {
-    this.logger.debug('Getting agent hierarchy');
 
     try {
       // Ensure agents are discovered and hierarchy is built
@@ -46,7 +45,6 @@ export class HierarchyController {
         },
       };
     } catch (error) {
-      this.logger.error('Failed to get agent hierarchy:', error);
 
       return {
         success: false,

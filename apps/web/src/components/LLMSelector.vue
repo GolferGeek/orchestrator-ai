@@ -22,7 +22,6 @@
         {{ llmStore.providerError }}
       </div>
     </div>
-
     <!-- Model Selection -->
     <div class="selection-group">
       <label class="selection-label">Model</label>
@@ -48,24 +47,20 @@
         {{ llmStore.modelError }}
       </div>
     </div>
-
     <!-- Model Info Display -->
     <div v-if="selectedModel" class="model-info">
       <div class="model-info-header">
         <h4>{{ selectedModel.name }}</h4>
         <span class="provider-badge">{{ (selectedProvider && typeof selectedProvider === 'object') ? selectedProvider.name : '' }}</span>
       </div>
-      
       <p v-if="selectedModel.description" class="model-description">
         {{ selectedModel.description }}
       </p>
-      
       <div class="model-details">
         <div v-if="selectedModel.maxTokens" class="detail-item">
           <span class="detail-label">Max Tokens:</span>
           <span class="detail-value">{{ selectedModel.maxTokens?.toLocaleString() }}</span>
         </div>
-        
         <div v-if="selectedModel.pricingInputPer1k" class="detail-item">
           <span class="detail-label">Pricing:</span>
           <span class="detail-value">
@@ -73,7 +68,6 @@
             ${{ selectedModel.pricingOutputPer1k }}/1k output
           </span>
         </div>
-        
         <div class="detail-item">
           <span class="detail-label">Features:</span>
           <span class="detail-value">
@@ -82,7 +76,6 @@
           </span>
         </div>
       </div>
-
       <!-- Strengths and Use Cases -->
       <div v-if="selectedModel.strengths?.length" class="model-tags">
         <span class="tags-label">Strengths:</span>
@@ -94,7 +87,6 @@
           {{ strength }}
         </span>
       </div>
-
       <div v-if="selectedModel.useCases?.length" class="model-tags">
         <span class="tags-label">Best for:</span>
         <span 
@@ -106,7 +98,6 @@
         </span>
       </div>
     </div>
-
     <!-- Advanced Settings -->
     <div v-if="showAdvanced" class="advanced-settings">
       <div class="setting-group">
@@ -126,7 +117,6 @@
           Lower values = more focused, Higher values = more creative
         </div>
       </div>
-
       <div class="setting-group">
         <label class="setting-label">Max Tokens (optional)</label>
         <input 
@@ -140,7 +130,6 @@
         >
       </div>
     </div>
-
     <!-- Toggle Advanced Settings -->
     <button 
       @click="showAdvanced = !showAdvanced" 
@@ -150,44 +139,35 @@
     </button>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useLLMStore } from '../stores/llmStore';
 import type { Provider, Model } from '../types/llm';
-
 const llmStore = useLLMStore();
 const showAdvanced = ref(false);
-
 // Local reactive state for v-model
 const selectedProvider = ref<Provider | ''>('');
 const selectedModel = ref<Model | ''>('');
 const temperature = ref(0.7);
 const maxTokens = ref<number | undefined>(undefined);
-
 // Initialize store and sync local state
 onMounted(async () => {
   await llmStore.initialize();
-  
   // Sync with store state
   selectedProvider.value = llmStore.selectedProvider || '';
   selectedModel.value = llmStore.selectedModel || '';
   temperature.value = llmStore.temperature;
   maxTokens.value = llmStore.maxTokens;
-  
   // Load saved preferences
   llmStore.loadFromLocalStorage();
 });
-
 // Watch store changes and sync to local state
 watch(() => llmStore.selectedProvider, (newProvider) => {
   selectedProvider.value = newProvider || '';
 });
-
 watch(() => llmStore.selectedModel, (newModel) => {
   selectedModel.value = newModel || '';
 });
-
 // Event handlers
 const onProviderChange = () => {
   if (selectedProvider.value && typeof selectedProvider.value === 'object') {
@@ -195,34 +175,28 @@ const onProviderChange = () => {
     llmStore.saveToLocalStorage();
   }
 };
-
 const onModelChange = () => {
   if (selectedModel.value && typeof selectedModel.value === 'object') {
     llmStore.setModel(selectedModel.value);
     llmStore.saveToLocalStorage();
   }
 };
-
 const onTemperatureChange = () => {
   llmStore.setTemperature(temperature.value);
   llmStore.saveToLocalStorage();
 };
-
 const onMaxTokensChange = () => {
   llmStore.setMaxTokens(maxTokens.value);
   llmStore.saveToLocalStorage();
 };
-
 // Computed properties
 const isLoading = computed(() => 
   llmStore.loadingProviders || llmStore.loadingModels
 );
-
 const hasErrors = computed(() => 
   llmStore.providerError || llmStore.modelError
 );
 </script>
-
 <style scoped>
 .llm-selector {
   padding: 1rem;
@@ -231,18 +205,15 @@ const hasErrors = computed(() =>
   background: #fafafa;
   margin-bottom: 1rem;
 }
-
 .selection-group {
   margin-bottom: 1rem;
 }
-
 .selection-label {
   display: block;
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: #333;
 }
-
 .selection-dropdown {
   width: 100%;
   padding: 0.5rem;
@@ -251,18 +222,15 @@ const hasErrors = computed(() =>
   background: white;
   font-size: 0.9rem;
 }
-
 .selection-dropdown:disabled {
   background: #f5f5f5;
   cursor: not-allowed;
 }
-
 .error-message {
   color: #e74c3c;
   font-size: 0.8rem;
   margin-top: 0.25rem;
 }
-
 .model-info {
   margin-top: 1rem;
   padding: 1rem;
@@ -270,19 +238,16 @@ const hasErrors = computed(() =>
   border-radius: 6px;
   border: 1px solid #e0e0e0;
 }
-
 .model-info-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
 }
-
 .model-info-header h4 {
   margin: 0;
   color: #2c3e50;
 }
-
 .provider-badge {
   background: #3498db;
   color: white;
@@ -291,34 +256,28 @@ const hasErrors = computed(() =>
   font-size: 0.75rem;
   font-weight: 500;
 }
-
 .model-description {
   color: #666;
   font-size: 0.9rem;
   margin-bottom: 1rem;
 }
-
 .model-details {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
-
 .detail-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-
 .detail-label {
   font-weight: 500;
   color: #555;
 }
-
 .detail-value {
   color: #333;
 }
-
 .feature-tag {
   background: #27ae60;
   color: white;
@@ -327,17 +286,14 @@ const hasErrors = computed(() =>
   font-size: 0.7rem;
   margin-left: 0.25rem;
 }
-
 .model-tags {
   margin-top: 1rem;
 }
-
 .tags-label {
   font-weight: 500;
   color: #555;
   margin-right: 0.5rem;
 }
-
 .tag {
   display: inline-block;
   padding: 0.25rem 0.5rem;
@@ -346,22 +302,18 @@ const hasErrors = computed(() =>
   font-size: 0.75rem;
   font-weight: 500;
 }
-
 .strength-tag {
   background: #e8f5e8;
   color: #27ae60;
 }
-
 .use-case-tag {
   background: #e8f4fd;
   color: #3498db;
 }
-
 .model-pricing {
   color: #666;
   font-size: 0.8rem;
 }
-
 .advanced-settings {
   margin-top: 1rem;
   padding: 1rem;
@@ -369,36 +321,30 @@ const hasErrors = computed(() =>
   border-radius: 6px;
   border: 1px solid #e0e0e0;
 }
-
 .setting-group {
   margin-bottom: 1rem;
 }
-
 .setting-label {
   display: block;
   font-weight: 500;
   margin-bottom: 0.5rem;
   color: #555;
 }
-
 .setting-slider {
   width: 100%;
   margin-bottom: 0.25rem;
 }
-
 .setting-input {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
-
 .setting-description {
   font-size: 0.8rem;
   color: #666;
   font-style: italic;
 }
-
 .toggle-advanced {
   background: #3498db;
   color: white;
@@ -409,7 +355,6 @@ const hasErrors = computed(() =>
   font-size: 0.9rem;
   margin-top: 1rem;
 }
-
 .toggle-advanced:hover {
   background: #2980b9;
 }

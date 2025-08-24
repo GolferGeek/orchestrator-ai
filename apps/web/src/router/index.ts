@@ -5,7 +5,6 @@ import AgentsPage from '../views/AgentsPage.vue';
 import HomePage from '../views/HomePage.vue';
 import LoginPage from '../views/LoginPage.vue';
 import EvaluationsPage from '../views/EvaluationsPage.vue';
-
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
@@ -90,12 +89,10 @@ const routes: Array<RouteRecordRaw> = [
     component: LoginPage
   }
 ];
-
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes
 });
-
 // Navigation guard for authentication and roles
 router.beforeEach(async (to, from, next) => {
   // Check if route requires auth
@@ -109,7 +106,6 @@ router.beforeEach(async (to, from, next) => {
       });
       return;
     }
-
     // Check if route requires specific roles
     const requiredRoles = to.meta.requiresRole as string[] | undefined;
     if (requiredRoles && requiredRoles.length > 0) {
@@ -119,10 +115,8 @@ router.beforeEach(async (to, from, next) => {
         if (userDataStr) {
           const userData = JSON.parse(userDataStr);
           const userRoles = userData.roles || ['user'];
-          
           // Check if user has any of the required roles
           const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role));
-          
           if (!hasRequiredRole) {
             next({ path: '/app/home' }); // Redirect to home if insufficient permissions
             return;
@@ -133,16 +127,14 @@ router.beforeEach(async (to, from, next) => {
           return;
         }
       } catch (error) {
-        console.error('Error checking user roles:', error);
+
         next({ path: '/login', query: { redirect: to.fullPath } });
         return;
       }
     }
-    
     next();
   } else {
     next();
   }
 });
-
 export default router;

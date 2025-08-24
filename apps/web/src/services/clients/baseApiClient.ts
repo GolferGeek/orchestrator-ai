@@ -1,10 +1,8 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { ApiClient, ApiEndpoint, ApiError, ApiResponse, ApiFeature } from '../../types/api';
-
 export abstract class BaseApiClient implements ApiClient {
   protected axiosInstance: AxiosInstance;
   protected endpoint: ApiEndpoint;
-
   constructor(endpoint: ApiEndpoint) {
     this.endpoint = endpoint;
     this.axiosInstance = axios.create({
@@ -14,7 +12,6 @@ export abstract class BaseApiClient implements ApiClient {
       },
       timeout: 60000, // 60 second timeout for complex operations like blog generation
     });
-
     // Add response interceptor for consistent error handling
     this.axiosInstance.interceptors.response.use(
       (response) => response,
@@ -23,7 +20,6 @@ export abstract class BaseApiClient implements ApiClient {
         return Promise.reject(apiError);
       }
     );
-
     // Add request interceptor to automatically include auth token
     this.axiosInstance.interceptors.request.use(
       (config) => {
@@ -38,12 +34,10 @@ export abstract class BaseApiClient implements ApiClient {
       }
     );
   }
-
   // Get the current auth token from localStorage
   private getAuthToken(): string | null {
     return localStorage.getItem('authToken');
   }
-
   // Update the authorization header for this client instance
   setAuthToken(token: string | null): void {
     if (token) {
@@ -52,7 +46,6 @@ export abstract class BaseApiClient implements ApiClient {
       delete this.axiosInstance.defaults.headers.common['Authorization'];
     }
   }
-
   // Abstract methods that must be implemented by specific API clients
   abstract postTaskToOrchestrator(
     userInputText: string, 
@@ -60,16 +53,13 @@ export abstract class BaseApiClient implements ApiClient {
     conversationHistory?: Array<{role: string, content: string, metadata?: any}>
   ): Promise<any>;
   abstract getAvailableAgents(): Promise<any[]>;
-
   // Concrete implementations
   getEndpointInfo(): ApiEndpoint {
     return { ...this.endpoint };
   }
-
   isFeatureSupported(feature: ApiFeature): boolean {
     return this.endpoint.features.includes(feature);
   }
-
   async healthCheck(): Promise<boolean> {
     try {
       const response = await this.axiosInstance.get('/health');
@@ -78,21 +68,17 @@ export abstract class BaseApiClient implements ApiClient {
       return false;
     }
   }
-
   // Utility methods
   protected handleAxiosError(error: AxiosError): ApiError {
     const apiError: ApiError = {
       message: 'An error occurred while communicating with the API',
       endpoint: this.endpoint.name,
     };
-
-
     if (error.response) {
       // Server responded with error status
       apiError.statusCode = error.response.status;
       apiError.message = this.extractErrorMessage(error.response.data);
       apiError.details = error.response.data;
-      
       // Special handling for authentication errors
       if (error.response.status === 401) {
         apiError.message = 'Authentication failed. Please try logging in again.';
@@ -105,15 +91,12 @@ export abstract class BaseApiClient implements ApiClient {
       // Something else happened
       apiError.message = error.message;
     }
-
     return apiError;
   }
-
   private extractErrorMessage(data: any): string {
     if (typeof data === 'string') {
       return data;
     }
-    
     if (data && typeof data === 'object') {
       // Try common error message fields
       if (data.detail) return data.detail;
@@ -121,10 +104,8 @@ export abstract class BaseApiClient implements ApiClient {
       if (data.error) return data.error;
       if (data.msg) return data.msg;
     }
-
     return 'An unexpected error occurred';
   }
-
   protected createSuccessResponse<T>(data: T): ApiResponse<T> {
     return {
       success: true,
@@ -136,7 +117,6 @@ export abstract class BaseApiClient implements ApiClient {
       },
     };
   }
-
   protected createErrorResponse(error: ApiError): ApiResponse<never> {
     return {
       success: false,

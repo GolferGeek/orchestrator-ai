@@ -19,9 +19,7 @@ export class AgentFactoryServicePure {
     // @Optional() private readonly marketingManagerOrchestratorService?: MarketingManagerOrchestratorService,
     // ... other orchestrators
   ) {
-    this.logger.log(
-      '🏭 Pure AgentFactoryService initialized with service container',
-    );
+
   }
 
   /**
@@ -29,31 +27,23 @@ export class AgentFactoryServicePure {
    */
   private async instantiateAgent(ServiceClass: any, config: any): Promise<any> {
     const serviceName = ServiceClass.name;
-    this.logger.debug(
-      `🏗️ Instantiating ${serviceName} as type: ${config.type}`,
-    );
 
     try {
       switch (config.type) {
         case 'orchestrator': {
           // Orchestrators still handled by NestJS DI (no change needed)
-          this.logger.debug(
-            `🎯 Getting orchestrator agent from DI container: ${serviceName}`,
-          );
+
           // ... orchestrator logic stays the same (return from DI container)
           break;
         }
 
         case 'function': {
-          this.logger.debug(`⚙️ Creating TypeScript function agent`);
+
           // For function agents, you could create a FunctionAgentServicesContext too
           return new ServiceClass(this.agentServices);
         }
 
         case 'context': {
-          this.logger.debug(
-            `📝 Creating context agent with pure service container`,
-          );
 
           // 🎉 THE MAGIC: No matter how many services you add to AgentServicesContext,
           // this line never changes! All context agents get all services automatically.
@@ -61,13 +51,13 @@ export class AgentFactoryServicePure {
         }
 
         case 'api': {
-          this.logger.debug(`🌐 Creating API agent`);
+
           // For API agents, you could create an ApiAgentServicesContext
           return new ServiceClass(this.agentServices);
         }
 
         case 'python-function': {
-          this.logger.debug(`🐍 Creating Python function agent`);
+
           // Python agents might need different services
           return new ServiceClass(
             this.agentServices.httpService,
@@ -79,7 +69,7 @@ export class AgentFactoryServicePure {
         }
 
         case 'external': {
-          this.logger.debug(`🔗 Creating external A2A agent`);
+
           return new ServiceClass(
             this.agentServices.httpService,
             this.agentServices.configurationService,
@@ -88,14 +78,12 @@ export class AgentFactoryServicePure {
         }
 
         default: {
-          this.logger.warn(
-            `❓ Unknown agent type: ${config.type}, using minimal dependencies`,
-          );
+
           return new ServiceClass(this.agentServices.httpService);
         }
       }
     } catch (error: any) {
-      this.logger.error(`Failed to instantiate ${serviceName}:`, error.message);
+
       throw error;
     }
   }

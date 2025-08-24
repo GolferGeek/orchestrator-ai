@@ -20,33 +20,28 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content :fullscreen="true">
       <ion-header collapse="condense">
         <ion-toolbar>
           <ion-title size="large">{{ pageTitle }}</ion-title>
         </ion-toolbar>
       </ion-header>
-
       <!-- Authentication Check -->
       <div v-if="!auth.isAuthenticated" class="auth-required">
         <ion-icon :icon="lockClosedOutline" class="auth-icon"></ion-icon>
         <h2>Authentication Required</h2>
         <p>Please <router-link to="/login">log in</router-link> to access your conversations and projects.</p>
       </div>
-
       <!-- Agent Conversation View or Deliverable View -->
       <div v-else-if="agentChatStore.hasActiveConversation || route.query.deliverableId" class="conversation-container">
         <ConversationTabs />
       </div>
-
       <!-- Welcome/Empty State -->
       <div v-else class="welcome-container">
         <div class="welcome-content">
           <ion-icon :icon="chatbubblesOutline" class="welcome-icon"></ion-icon>
           <h2>Welcome to Orchestrator AI</h2>
           <p>Start a conversation with any agent from the sidebar, or create a new project to begin orchestrated workflows.</p>
-          
           <div class="quick-nav">
             <ion-button 
               @click="navigateToProjects"
@@ -62,8 +57,6 @@
     </ion-content>
   </ion-page>
 </template>
-
-
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue';
 import {
@@ -87,14 +80,11 @@ import {
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
-
 import ConversationTabs from '@/components/ConversationTabs.vue';
-
 const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
 const agentChatStore = useAgentChatStore();
-
 // Computed properties
 const pageTitle = computed(() => {
   const activeConversation = agentChatStore.getActiveConversation();
@@ -103,21 +93,15 @@ const pageTitle = computed(() => {
   }
   return 'Orchestrator AI';
 });
-
 // Dark mode state and functionality
 const isDarkMode = ref(false);
-
 // Handle conversation opening from query parameters
 const handleConversationFromQuery = async () => {
   const conversationId = route.query.conversationId as string;
-  
   if (conversationId && auth.isAuthenticated) {
     try {
-      console.log('🔗 Opening conversation from query parameter:', conversationId);
-      
       // Check if conversation is already open
       const existingConversation = agentChatStore.conversations.find(conv => conv.id === conversationId);
-      
       if (existingConversation) {
         // Just switch to it
         agentChatStore.switchToConversation(conversationId);
@@ -125,28 +109,23 @@ const handleConversationFromQuery = async () => {
         // Open the conversation
         await agentChatStore.openExistingConversation(conversationId);
       }
-      
       // Clear the query parameter to avoid re-opening on refresh
       router.replace({ 
         name: route.name as string, 
         params: route.params,
         query: { ...route.query, conversationId: undefined }
       });
-      
     } catch (error) {
-      console.error('Failed to open conversation from query:', error);
+
     }
   }
 };
-
 // Watch for query parameter changes
 watch(() => route.query.conversationId, handleConversationFromQuery, { immediate: true });
-
 // Initialize theme on component mount
 onMounted(async () => {
   const savedTheme = localStorage.getItem('theme');
   const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  
   if (savedTheme) {
     isDarkMode.value = savedTheme === 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -156,32 +135,19 @@ onMounted(async () => {
       document.documentElement.setAttribute('data-theme', 'dark');
     }
   }
-
-
 });
-
 const toggleDarkMode = () => {
   const newTheme = isDarkMode.value ? 'light' : 'dark';
   isDarkMode.value = !isDarkMode.value;
-  
-  console.log('🎭 Toggling dark mode:', { newTheme, isDarkMode: isDarkMode.value });
-  
   document.documentElement.setAttribute('data-theme', newTheme);
   localStorage.setItem('theme', newTheme);
-  
   // Debug: check if attribute was set
-  console.log('🎭 HTML data-theme attribute:', document.documentElement.getAttribute('data-theme'));
 };
-
 // Methods
 const navigateToProjects = () => {
   router.push('/projects');
 };
-
-
-
 </script>
-
 <style scoped>
 .auth-required,
 .welcome-container {
@@ -192,18 +158,15 @@ const navigateToProjects = () => {
   padding: 2rem;
   text-align: center;
 }
-
 .welcome-content {
   max-width: 500px;
 }
-
 .auth-icon,
 .welcome-icon {
   font-size: 4rem;
   color: var(--ion-color-primary);
   margin-bottom: 1.5rem;
 }
-
 .auth-required h2,
 .welcome-content h2 {
   color: var(--ion-color-primary);
@@ -211,7 +174,6 @@ const navigateToProjects = () => {
   font-size: 2rem;
   font-weight: 600;
 }
-
 .auth-required p,
 .welcome-content p {
   color: var(--ion-color-medium);
@@ -219,14 +181,12 @@ const navigateToProjects = () => {
   font-size: 1.1rem;
   line-height: 1.6;
 }
-
 .quick-nav {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   align-items: center;
 }
-
 .quick-nav ion-button {
   width: 100%;
   max-width: 300px;
@@ -234,35 +194,29 @@ const navigateToProjects = () => {
   --padding-top: 1rem;
   --padding-bottom: 1rem;
 }
-
 .conversation-container {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
-
 /* Responsive design */
 @media (max-width: 768px) {
   .auth-required,
   .welcome-container {
     padding: 1rem;
   }
-  
   .auth-required h2,
   .welcome-content h2 {
     font-size: 1.5rem;
   }
-  
   .auth-required p,
   .welcome-content p {
     font-size: 1rem;
   }
-  
   .quick-nav {
     gap: 0.75rem;
   }
 }
-
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .auth-icon,

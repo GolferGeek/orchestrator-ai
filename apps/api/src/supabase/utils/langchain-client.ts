@@ -35,7 +35,7 @@ export function initializeLangChain(): void {
     console.log('✅ LangChain client initialized with OpenAI');
     langchainInitialized = true;
   } catch (error) {
-    console.error('❌ LangChain initialization failed:', error);
+
     throw error;
   }
 }
@@ -72,7 +72,7 @@ export function getLLM(options?: {
   }
 
   // Fallback to OpenAI
-  console.warn(`Provider ${provider} not supported, falling back to OpenAI`);
+
   return new ChatOpenAI({
     modelName: 'gpt-4',
     temperature,
@@ -110,7 +110,7 @@ export async function executeSimpleCall(
     const response = await llm.invoke(messages);
     return response.content as string;
   } catch (error) {
-    console.error('Failed to execute LLM call:', error);
+
     throw error;
   }
 }
@@ -123,9 +123,7 @@ export function isLangChainConfigured(): boolean {
     getOpenAIApiKey();
     return true;
   } catch {
-    console.warn(
-      'OpenAI API key not configured - LangChain functionality will be limited',
-    );
+
     return false;
   }
 }

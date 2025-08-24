@@ -80,7 +80,6 @@ export class Deliverable {
   @ApiProperty({ description: 'Title of the deliverable' })
   title!: string;
 
-
   @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
   type?: DeliverableType;
 
@@ -114,7 +113,6 @@ export class DeliverableSearchResult {
 
   @ApiProperty({ description: 'Deliverable title' })
   title!: string;
-
 
   @ApiPropertyOptional({ enum: DeliverableType, description: 'Type of deliverable' })
   type?: DeliverableType;

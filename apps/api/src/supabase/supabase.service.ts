@@ -42,32 +42,25 @@ export class SupabaseService implements OnModuleInit {
       this.configService.get<string>('SUPABASE_COMPANY_SCHEMA');
 
     if (!coreSchema || !companySchema) {
-      this.logger.error('SUPABASE_CORE_SCHEMA and SUPABASE_COMPANY_SCHEMA must be set in environment');
+
       throw new Error('SUPABASE_CORE_SCHEMA and SUPABASE_COMPANY_SCHEMA must be set in environment');
     }
 
     // Log the configuration
-    this.logger.log(`🔧 Initializing Supabase client`);
-    this.logger.log(`📊 Core schema: ${coreSchema}, Company schema: ${companySchema}`);
-    this.logger.log(`🔗 Database URL: ${url}`);
-    
+
     // Store schema configuration for easy access
     this.coreSchema = coreSchema;
     this.companySchema = companySchema;
 
     if (!url) {
-      this.logger.warn(
-        'SUPABASE_URL is not configured - Supabase features will be disabled',
-      );
+
       return;
     }
 
     // Initialize anonymous client (for RLS-compliant operations)
     if (anonKey) {
       try {
-        this.logger.log(
-          `Attempting to create Supabase anon client for URL: ${url.substring(0, 20)}...`,
-        );
+
         this.anonClient = createClient(url, anonKey, {
           global: {
             fetch: (url, options = {}) => {
@@ -78,29 +71,22 @@ export class SupabaseService implements OnModuleInit {
             },
           },
         });
-        this.logger.log('Supabase anon client created successfully');
+
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         const errorStack = error instanceof Error ? error.stack : undefined;
-        this.logger.error(
-          `Error creating Supabase anon client: ${errorMessage}`,
-          errorStack,
-        );
+
         throw error;
       }
     } else {
-      this.logger.warn(
-        'SUPABASE_ANON_KEY not configured. Anonymous client not available.',
-      );
+
     }
 
     // Initialize service client (bypasses RLS - use with caution)
     if (serviceKey) {
       try {
-        this.logger.log(
-          `Attempting to create Supabase service client for URL: ${url.substring(0, 20)}...`,
-        );
+
         this.serviceClient = createClient(url, serviceKey, {
           global: {
             fetch: (url, options = {}) => {
@@ -111,21 +97,16 @@ export class SupabaseService implements OnModuleInit {
             },
           },
         });
-        this.logger.log('Supabase service client created successfully');
+
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         const errorStack = error instanceof Error ? error.stack : undefined;
-        this.logger.error(
-          `Error creating Supabase service client: ${errorMessage}`,
-          errorStack,
-        );
+
         throw error;
       }
     } else {
-      this.logger.warn(
-        'SUPABASE_SERVICE_ROLE_KEY not configured. Service client not available.',
-      );
+
     }
   }
 
@@ -135,9 +116,7 @@ export class SupabaseService implements OnModuleInit {
    */
   getAnonClient(): SupabaseClient {
     if (!this.anonClient) {
-      this.logger.error(
-        'Supabase anonymous client is not available. Check configuration.',
-      );
+
       throw new HttpException(
         'Supabase client is not available. Check server configuration.',
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -152,9 +131,7 @@ export class SupabaseService implements OnModuleInit {
    */
   getServiceClient(): SupabaseClient {
     if (!this.serviceClient) {
-      this.logger.error(
-        'Supabase service client is not available. Check configuration.',
-      );
+
       throw new HttpException(
         'Supabase service client is not available. Check server configuration.',
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -176,9 +153,7 @@ export class SupabaseService implements OnModuleInit {
       this.configService.get<string>('SUPABASE_ANON_KEY');
 
     if (!url || !anonKey) {
-      this.logger.error(
-        'Supabase URL or Anon Key not configured for authenticated client creation',
-      );
+
       throw new HttpException(
         'Authentication service configuration error.',
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -194,19 +169,12 @@ export class SupabaseService implements OnModuleInit {
         },
       });
 
-      this.logger.log(
-        `Created authenticated client instance for token: ${token.substring(0, 20)}...`,
-      );
-
       return authenticatedClient;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(
-        `Error creating authenticated Supabase client: ${errorMessage}`,
-        errorStack,
-      );
+
       throw new HttpException(
         'Could not create authenticated client.',
         HttpStatus.UNAUTHORIZED,
@@ -232,10 +200,7 @@ export class SupabaseService implements OnModuleInit {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(
-        `Database operation failed: ${errorMessage}`,
-        errorStack,
-      );
+
       throw error;
     }
   }
@@ -311,7 +276,7 @@ export class SupabaseService implements OnModuleInit {
         .limit(1);
 
       if (error) {
-        this.logger.warn(`Health check query failed: ${error.message}`);
+
         return { status: 'error', message: error.message };
       }
 
@@ -320,7 +285,7 @@ export class SupabaseService implements OnModuleInit {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Health check failed: ${errorMessage}`, errorStack);
+
       return { status: 'error', message: errorMessage };
     }
   }

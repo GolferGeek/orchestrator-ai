@@ -60,7 +60,6 @@ export async function execute(
     console.log('✅ Database connection established');
 
     // Step 1.5: Validate database access with KPI-focused query
-    console.log('🔍 VALIDATING: Testing KPI database connectivity...');
     const requiredTables = [
       'companies',
       'departments',
@@ -186,7 +185,6 @@ Respond with JSON only:
     );
 
     // Generate and execute SQL for the user's specific question using LangChain
-    console.log('🔍 Generating and executing SQL for user question...');
     progressCallback?.(
       'SQL Generation',
       2.5,
@@ -317,7 +315,6 @@ Answer the user's specific question directly and provide insights from the data.
       },
     };
   } catch (error) {
-    console.error('Metrics Agent LangChain Error:', error);
 
     // Report error in progress
     progressCallback?.(

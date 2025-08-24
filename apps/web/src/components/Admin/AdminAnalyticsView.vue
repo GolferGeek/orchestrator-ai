@@ -5,7 +5,6 @@
       <ion-spinner name="crescent"></ion-spinner>
       <p>Loading detailed analytics...</p>
     </div>
-
     <!-- Analytics Content -->
     <div v-else>
       <!-- Time Range Selector -->
@@ -54,7 +53,6 @@
           </ion-grid>
         </ion-card-content>
       </ion-card>
-
       <!-- Main Analytics Dashboard -->
       <ion-grid>
         <ion-row>
@@ -74,7 +72,6 @@
                       color="success"
                     ></ion-progress-bar>
                   </div>
-                  
                   <div class="metric-item">
                     <h3>{{ analytics?.averageSpeedRating?.toFixed(1) || 'N/A' }}</h3>
                     <p>Speed Rating</p>
@@ -83,7 +80,6 @@
                       color="primary"
                     ></ion-progress-bar>
                   </div>
-                  
                   <div class="metric-item">
                     <h3>{{ analytics?.averageAccuracyRating?.toFixed(1) || 'N/A' }}</h3>
                     <p>Accuracy Rating</p>
@@ -92,7 +88,6 @@
                       color="warning"
                     ></ion-progress-bar>
                   </div>
-                  
                   <div class="metric-item">
                     <h3>{{ Math.round(analytics?.averageResponseTime || 0) }}ms</h3>
                     <p>Avg Response Time</p>
@@ -107,7 +102,6 @@
               </ion-card-content>
             </ion-card>
           </ion-col>
-
           <!-- Cost Analysis -->
           <ion-col size="12" size-lg="6">
             <ion-card>
@@ -123,7 +117,6 @@
                     </ion-label>
                     <ion-icon :icon="cardOutline" slot="end" color="medium"></ion-icon>
                   </ion-item>
-                  
                   <ion-item lines="none">
                     <ion-label>
                       <h3>Total Estimated Cost</h3>
@@ -131,7 +124,6 @@
                     </ion-label>
                     <ion-icon :icon="cashOutline" slot="end" color="success"></ion-icon>
                   </ion-item>
-                  
                   <ion-item lines="none">
                     <ion-label>
                       <h3>Cost per Rating Point</h3>
@@ -145,7 +137,6 @@
           </ion-col>
         </ion-row>
       </ion-grid>
-
       <!-- Workflow Analytics -->
       <ion-card v-if="workflowAnalytics">
         <ion-card-header>
@@ -175,7 +166,6 @@
               </ion-col>
             </ion-row>
           </ion-grid>
-          
           <!-- Top Workflow Issues -->
           <div v-if="analytics?.workflowFailurePoints?.length > 0" class="workflow-issues">
             <h4>Most Problematic Steps</h4>
@@ -197,7 +187,6 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- Constraint Analytics -->
       <ion-card v-if="constraintAnalytics">
         <ion-card-header>
@@ -227,7 +216,6 @@
                   </ion-item>
                 </ion-list>
               </ion-col>
-              
               <!-- Constraint Usage Stats -->
               <ion-col size="12" size-lg="6">
                 <h4>Usage Statistics</h4>
@@ -250,7 +238,6 @@
           </ion-grid>
         </ion-card-content>
       </ion-card>
-
       <!-- Agent Performance Comparison -->
       <ion-card>
         <ion-card-header>
@@ -281,7 +268,6 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- Export Actions -->
       <ion-card class="export-actions">
         <ion-card-content>
@@ -294,7 +280,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
 import {
@@ -317,218 +302,178 @@ import {
   IonList,
   IonButton
 } from '@ionic/vue';
-
 import {
   cardOutline,
   cashOutline,
   trendingUpOutline,
   downloadOutline
 } from 'ionicons/icons';
-
 interface Props {
   analytics: any;
   workflowAnalytics: any;
   constraintAnalytics: any;
   isLoading: boolean;
 }
-
 const props = defineProps<Props>();
 const emit = defineEmits<{
   refresh: []
 }>();
-
 const analyticsFilters = reactive({
   startDate: '',
   endDate: '',
   userRole: ''
 });
-
 function refreshAnalytics() {
   emit('refresh');
 }
-
 function getResponseTimeColor(time: number): string {
   if (time < 1000) return 'success';
   if (time < 3000) return 'warning';
   return 'danger';
 }
-
 function getResponseTimeLabel(time: number): string {
   if (time < 1000) return 'Fast';
   if (time < 3000) return 'Moderate';
   return 'Slow';
 }
-
 function getRatingColor(rating: number): string {
   if (rating >= 4.5) return 'success';
   if (rating >= 4) return 'primary';
   if (rating >= 3) return 'warning';
   return 'danger';
 }
-
 function getEffectivenessColor(score: number): string {
   if (score >= 8) return 'success';
   if (score >= 6) return 'primary';
   if (score >= 4) return 'warning';
   return 'danger';
 }
-
 function getCostPerRatingPoint(): number {
   const avgCost = props.analytics?.averageCost || 0;
   const avgRating = props.analytics?.averageRating || 1;
   return avgRating > 0 ? avgCost / avgRating : 0;
 }
-
 function exportDetailedReport() {
   // This would trigger a detailed analytics export
   // Implementation would depend on your export service
-  console.log('Exporting detailed analytics report...');
 }
 </script>
-
 <style scoped>
 .admin-analytics {
   max-width: 1200px;
   margin: 0 auto;
 }
-
 .filters-card {
   margin-bottom: 1rem;
 }
-
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin: 16px 0;
 }
-
 .metric-item {
   text-align: center;
   padding: 16px;
   background: var(--ion-color-light);
   border-radius: 8px;
 }
-
 .metric-item h3 {
   margin: 0 0 8px 0;
   font-size: 1.5rem;
   font-weight: 600;
 }
-
 .metric-item p {
   margin: 0 0 8px 0;
   color: var(--ion-color-medium);
   font-size: 0.9rem;
 }
-
 .cost-metrics {
   margin: 16px 0;
 }
-
 .workflow-metric {
   text-align: center;
   padding: 16px;
 }
-
 .workflow-metric h3 {
   margin: 0 0 8px 0;
   font-size: 2rem;
   font-weight: 600;
 }
-
 .workflow-metric p {
   margin: 0 0 8px 0;
   color: var(--ion-color-medium);
 }
-
 .workflow-issues {
   margin-top: 24px;
 }
-
 .workflow-issues h4 {
   margin: 0 0 16px 0;
   color: var(--ion-color-primary);
 }
-
 .text-small {
   font-size: 0.8rem;
   color: var(--ion-color-medium);
 }
-
 .constraint-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 16px;
   margin: 16px 0;
 }
-
 .stat-item {
   text-align: center;
   padding: 16px;
   background: var(--ion-color-light);
   border-radius: 8px;
 }
-
 .stat-item h3 {
   margin: 0 0 8px 0;
   font-size: 1.2rem;
   font-weight: 600;
 }
-
 .stat-item p {
   margin: 0;
   color: var(--ion-color-medium);
   font-size: 0.9rem;
 }
-
 .agent-comparison {
   max-height: 400px;
   overflow-y: auto;
 }
-
 .agent-item {
   margin-bottom: 8px;
 }
-
 .agent-metrics {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   min-width: 120px;
 }
-
 .export-actions {
   margin-top: 2rem;
 }
-
 ion-card {
   margin-bottom: 1rem;
 }
-
 @media (max-width: 768px) {
   .metrics-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
   }
-  
   .metric-item {
     padding: 12px;
   }
-  
   .metric-item h3 {
     font-size: 1.2rem;
   }
-  
   .workflow-metric h3 {
     font-size: 1.5rem;
   }
-  
   .constraint-stats {
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  
   .agent-metrics {
     min-width: 100px;
   }

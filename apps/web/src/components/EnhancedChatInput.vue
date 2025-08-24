@@ -19,13 +19,11 @@
         </button>
         <button @click="showLLMPanel = false" class="close-panel">×</button>
       </div>
-
       <div class="panel-content">
         <LLMSelector v-if="activeTab === 'model'" />
         <CIDAFMControls v-if="activeTab === 'behavior'" />
       </div>
     </div>
-
     <!-- Main Chat Input -->
     <ion-toolbar color="light" class="chat-input-toolbar">
       <!-- LLM Status Display -->
@@ -42,7 +40,6 @@
           <ion-icon :icon="chevronUpOutline" :class="{ rotated: !showLLMPanel }"></ion-icon>
         </button>
       </div>
-
       <!-- Message Input -->
       <ion-textarea
         v-model="inputText"
@@ -52,14 +49,12 @@
         :rows="1"
         @keydown.enter.prevent="handleEnterKey"
       ></ion-textarea>
-
       <!-- Input Buttons -->
       <ion-buttons slot="end" class="input-buttons">
         <!-- Cost Estimate -->
         <div v-if="showCostEstimate && estimatedCost" class="cost-estimate">
           ~${{ estimatedCost }}
         </div>
-
         <!-- PTT Button -->
         <ion-button 
           fill="clear" 
@@ -69,7 +64,6 @@
         >
           <ion-icon slot="icon-only" :icon="isRecording ? micOffOutline : micOutline"></ion-icon>
         </ion-button>
-
         <!-- Send Button -->
         <ion-button 
           fill="clear" 
@@ -84,7 +78,6 @@
     </ion-toolbar>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, defineEmits, onUnmounted, watch } from 'vue';
 import { IonTextarea, IonButtons, IonButton, IonIcon, IonToolbar, toastController } from '@ionic/vue';
@@ -94,21 +87,17 @@ import { useLLMStore } from '../stores/llmStore';
 import { Capacitor } from '@capacitor/core';
 import LLMSelector from './LLMSelector.vue';
 import CIDAFMControls from './CIDAFMControls.vue';
-
 const inputText = ref('');
 const isRecording = ref(false);
 const showLLMPanel = ref(false);
 const activeTab = ref<'model' | 'behavior'>('model');
 const showCostEstimate = ref(true);
-
 const uiStore = useUiStore();
 const llmStore = useLLMStore();
-
 // Speech Recognition setup (copied from original ChatInput)
 // @ts-ignore: next-line 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition: SpeechRecognition | null = null;
-
 const presentToast = async (message: string, duration: number = 2000, color: string = 'warning') => {
   const toast = await toastController.create({
     message: message,
@@ -118,25 +107,21 @@ const presentToast = async (message: string, duration: number = 2000, color: str
   });
   await toast.present();
 };
-
 // Speech Recognition setup (same as original)
 if (SpeechRecognition && !Capacitor.isNativePlatform()) {
   recognition = new SpeechRecognition();
   recognition.continuous = false; 
   recognition.interimResults = true; 
   recognition.lang = 'en-US'; 
-
   recognition.onstart = () => {
     isRecording.value = true;
   };
-
   recognition.onend = () => {
     if (isRecording.value) { 
         isRecording.value = false;
         emit('pttToggle', false);
     }
   };
-
   recognition.onresult = (event: SpeechRecognitionEvent) => {
     let interimTranscript = '';
     let finalTranscript = '';
@@ -153,7 +138,6 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
       inputText.value = interimTranscript.trim();
     }
   };
-
   recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
     let userMessage = 'Voice input error.';
     if (event.error === 'no-speech') {
@@ -166,7 +150,6 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
       userMessage = `Voice input failed: ${event.error}`;
     }
     presentToast(userMessage, 3000, 'danger');
-
     if (isRecording.value) {
       isRecording.value = false;
       emit('pttToggle', false);
@@ -176,27 +159,21 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
 } else if (!SpeechRecognition && !Capacitor.isNativePlatform()) {
   // Web Speech API is not supported in this browser
 }
-
 const emit = defineEmits<{
   (e: 'sendMessage', text: string, llmSelection?: any): void;
   (e: 'pttToggle', recordingState: boolean): void;
 }>();
-
 // Computed properties
 const estimatedCost = computed(() => {
   if (!inputText.value.trim() || !llmStore.selectedModel) return null;
-  
   const textLength = inputText.value.length;
   const estimatedTokens = Math.ceil(textLength / 4); // Rough estimation
   const inputCost = llmStore.selectedModel.pricingInputPer1k || 0;
   const estimatedOutputTokens = estimatedTokens * 0.5; // Assume response is half the input
   const outputCost = llmStore.selectedModel.pricingOutputPer1k || 0;
-  
   const totalCost = (estimatedTokens / 1000) * inputCost + (estimatedOutputTokens / 1000) * outputCost;
-  
   return totalCost > 0.001 ? totalCost.toFixed(4) : '< 0.001';
 });
-
 // Event handlers
 const sendMessage = () => {
   if (inputText.value.trim() && !isRecording.value) {
@@ -205,14 +182,12 @@ const sendMessage = () => {
     inputText.value = '';
   }
 };
-
 const handleEnterKey = (event: KeyboardEvent) => {
   if (!event.shiftKey && !isRecording.value) {
     event.preventDefault();
     sendMessage();
   }
 };
-
 const togglePtt = async () => {
   if (Capacitor.isNativePlatform()) {
     // Native PTT logic (same as original)
@@ -239,12 +214,10 @@ const togglePtt = async () => {
     presentToast('Voice input is not supported in your browser.', 3000, 'danger');
   }
 };
-
 // Watchers
 watch(isRecording, (newValue) => {
   uiStore.setPttRecording(newValue);
 });
-
 // Cleanup
 onUnmounted(() => {
   if (recognition && isRecording.value && !Capacitor.isNativePlatform()) {
@@ -252,27 +225,23 @@ onUnmounted(() => {
   }
 });
 </script>
-
 <style scoped>
 .enhanced-chat-input {
   display: flex;
   flex-direction: column;
 }
-
 .llm-panel {
   background: white;
   border-top: 1px solid #e0e0e0;
   max-height: 60vh;
   overflow-y: auto;
 }
-
 .panel-tabs {
   display: flex;
   background: #f5f5f5;
   border-bottom: 1px solid #e0e0e0;
   position: relative;
 }
-
 .tab-button {
   flex: 1;
   padding: 0.75rem 1rem;
@@ -283,13 +252,11 @@ onUnmounted(() => {
   color: #666;
   transition: all 0.2s ease;
 }
-
 .tab-button.active {
   background: white;
   color: #3498db;
   border-bottom: 2px solid #3498db;
 }
-
 .close-panel {
   position: absolute;
   right: 0.5rem;
@@ -306,11 +273,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
 }
-
 .panel-content {
   padding: 0;
 }
-
 .chat-input-toolbar {
   --padding-start: 8px;
   --padding-end: 8px;
@@ -320,11 +285,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
 }
-
 .llm-status {
   margin-right: 0.5rem;
 }
-
 .llm-toggle-btn {
   display: flex;
   align-items: center;
@@ -337,38 +300,31 @@ onUnmounted(() => {
   transition: all 0.2s ease;
   min-width: 120px;
 }
-
 .llm-toggle-btn:hover {
   border-color: #3498db;
   background: #f8fbff;
 }
-
 .llm-info {
   flex: 1;
   text-align: left;
 }
-
 .provider-name {
   font-size: 0.75rem;
   color: #666;
   line-height: 1;
 }
-
 .model-name {
   font-size: 0.8rem;
   font-weight: 500;
   color: #333;
   line-height: 1.2;
 }
-
 .llm-toggle-btn ion-icon {
   transition: transform 0.2s ease;
 }
-
 .llm-toggle-btn ion-icon.rotated {
   transform: rotate(180deg);
 }
-
 .chat-textarea {
   flex-grow: 1;
   border: 1px solid var(--ion-color-medium-shade);
@@ -382,13 +338,11 @@ onUnmounted(() => {
   align-self: center;
   margin-right: 4px;
 }
-
 .input-buttons {
   display: flex;
   align-items: center;
   gap: 0.25rem;
 }
-
 .cost-estimate {
   font-size: 0.7rem;
   color: #666;
@@ -397,31 +351,25 @@ onUnmounted(() => {
   border-radius: 12px;
   white-space: nowrap;
 }
-
 .custom-button-padding {
   --padding-start: 8px;
   --padding-end: 8px;
   height: 40px;
 }
-
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .llm-toggle-btn {
     min-width: 100px;
   }
-  
   .provider-name {
     font-size: 0.7rem;
   }
-  
   .model-name {
     font-size: 0.75rem;
   }
-  
   .llm-panel {
     max-height: 50vh;
   }
-  
   .cost-estimate {
     display: none; /* Hide on mobile to save space */
   }

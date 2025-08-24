@@ -5,7 +5,6 @@
         <h2>Ready to Learn More?</h2>
         <p>Choose what you'd like to see first. No overwhelming info dumps.</p>
       </div>
-      
       <div class="disclosure-buttons">
         <button 
           v-for="(section, index) in sections" 
@@ -20,7 +19,6 @@
           <span class="section-indicator" v-if="activeSections.includes(section.id)">✓</span>
         </button>
       </div>
-
       <div class="progress-indicator">
         <div class="progress-text">
           {{ activeSections.length }} of {{ sections.length }} sections explored
@@ -37,7 +35,6 @@
     </div>
   </section>
 </template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { IonIcon } from '@ionic/vue';
@@ -49,16 +46,13 @@ import {
   heartOutline 
 } from 'ionicons/icons';
 import { useLandingStore } from '@/stores/landingStore';
-
 const landingStore = useLandingStore();
-
 interface Section {
   id: string;
   title: string;
   icon: string;
   description: string;
 }
-
 const sections: Section[] = [
   {
     id: 'what-we-built',
@@ -91,30 +85,23 @@ const sections: Section[] = [
     description: 'Why we\'re doing this and what success looks like'
   }
 ];
-
 const activeSections = ref<string[]>([]);
-
 const emit = defineEmits<{
   sectionToggled: [sectionId: string, isActive: boolean]
 }>();
-
 function toggleSection(sectionId: string) {
   const isCurrentlyActive = activeSections.value.includes(sectionId);
-  
   if (isCurrentlyActive) {
     // Remove from active sections
     activeSections.value = activeSections.value.filter(id => id !== sectionId);
   } else {
     // Add to active sections
     activeSections.value.push(sectionId);
-    
     // Track section activation
     landingStore.trackSectionView(sectionId);
   }
-  
   // Emit event to parent component
   emit('sectionToggled', sectionId, !isCurrentlyActive);
-  
   // Scroll to section if activating
   if (!isCurrentlyActive) {
     setTimeout(() => {
@@ -125,36 +112,30 @@ function toggleSection(sectionId: string) {
     }, 100);
   }
 }
-
 // Computed property for completion percentage
 const completionPercentage = computed(() => 
   (activeSections.value.length / sections.length) * 100
 );
 </script>
-
 <style scoped>
 .disclosure-section {
   background: white;
   border-bottom: 1px solid #e5e7eb;
   padding: 3rem 0;
 }
-
 .disclosure-intro {
   text-align: center;
   margin-bottom: 2rem;
 }
-
 .disclosure-intro h2 {
   font-size: 2rem;
   color: var(--landing-dark);
   margin-bottom: 0.5rem;
 }
-
 .disclosure-intro p {
   color: #6b7280;
   font-size: 1.1rem;
 }
-
 .disclosure-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -162,7 +143,6 @@ const completionPercentage = computed(() =>
   gap: 1rem;
   margin-bottom: 2rem;
 }
-
 .disclosure-trigger {
   background: none;
   border: 2px solid var(--landing-primary);
@@ -178,20 +158,17 @@ const completionPercentage = computed(() =>
   font-size: 0.95rem;
   position: relative;
 }
-
 .disclosure-trigger:hover {
   background: var(--landing-primary);
   color: white;
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
 }
-
 .disclosure-trigger.active {
   background: var(--landing-primary);
   color: white;
   box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
 }
-
 .section-indicator {
   background: var(--landing-accent);
   color: white;
@@ -204,23 +181,19 @@ const completionPercentage = computed(() =>
   font-size: 0.75rem;
   margin-left: 0.5rem;
 }
-
 .progress-indicator {
   text-align: center;
 }
-
 .progress-text {
   color: #6b7280;
   font-size: 0.9rem;
   margin-bottom: 1rem;
 }
-
 .progress-dots {
   display: flex;
   justify-content: center;
   gap: 0.5rem;
 }
-
 .progress-dot {
   width: 12px;
   height: 12px;
@@ -228,24 +201,20 @@ const completionPercentage = computed(() =>
   background: #d1d5db;
   transition: var(--transition-smooth);
 }
-
 .progress-dot.active {
   background: var(--landing-primary);
   transform: scale(1.2);
 }
-
 @media (max-width: 768px) {
   .disclosure-buttons {
     flex-direction: column;
     align-items: center;
   }
-  
   .disclosure-trigger {
     width: 100%;
     max-width: 300px;
     justify-content: center;
   }
-  
   .disclosure-intro h2 {
     font-size: 1.5rem;
   }

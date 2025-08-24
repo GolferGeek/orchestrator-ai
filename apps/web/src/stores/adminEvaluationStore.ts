@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { apiService } from '@/services/apiService';
-
 export interface AdminEvaluationFilters {
   page?: number;
   limit?: number;
@@ -21,7 +20,6 @@ export interface AdminEvaluationFilters {
   provider?: string;
   model?: string;
 }
-
 export interface EvaluationAnalytics {
   totalEvaluations: number;
   averageRating: number;
@@ -47,7 +45,6 @@ export interface EvaluationAnalytics {
     averageDuration: number;
   }>;
 }
-
 export interface EnhancedEvaluationMetadata {
   user: {
     id: string;
@@ -118,11 +115,9 @@ export interface EnhancedEvaluationMetadata {
   };
   systemMetadata?: any;
 }
-
 export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
-
   const evaluations = ref<EnhancedEvaluationMetadata[]>([]);
   const pagination = ref({
     page: 1,
@@ -130,30 +125,24 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
     total: 0,
     totalPages: 0
   });
-
   const analytics = ref<EvaluationAnalytics | null>(null);
   const workflowAnalytics = ref<any>(null);
   const constraintAnalytics = ref<any>(null);
-
   /**
    * Fetch all evaluations with admin filters
    */
   async function fetchAllEvaluations(filters: AdminEvaluationFilters = {}) {
     isLoading.value = true;
     error.value = null;
-
     try {
       const params = new URLSearchParams();
-      
       // Add filter parameters
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && String(value) !== '') {
           params.append(key, value.toString());
         }
       });
-
       const response = await apiService.get(`/evaluation/admin/all?${params.toString()}`);
-      
       evaluations.value = response.evaluations || [];
       pagination.value = response.pagination || {
         page: 1,
@@ -161,7 +150,6 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
         total: 0,
         totalPages: 0
       };
-
       return {
         evaluations: evaluations.value,
         pagination: pagination.value
@@ -173,23 +161,19 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       isLoading.value = false;
     }
   }
-
   /**
    * Fetch evaluation analytics overview
    */
   async function fetchAnalytics(filters: { startDate?: string; endDate?: string; userRole?: string } = {}) {
     isLoading.value = true;
     error.value = null;
-
     try {
       const params = new URLSearchParams();
-      
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && String(value) !== '') {
           params.append(key, value.toString());
         }
       });
-
       const response = await apiService.get(`/evaluation/admin/analytics/overview?${params.toString()}`);
       analytics.value = response;
       return response;
@@ -200,23 +184,19 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       isLoading.value = false;
     }
   }
-
   /**
    * Fetch workflow analytics
    */
   async function fetchWorkflowAnalytics(filters: { stepName?: string; agentName?: string; startDate?: string; endDate?: string } = {}) {
     isLoading.value = true;
     error.value = null;
-
     try {
       const params = new URLSearchParams();
-      
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && String(value) !== '') {
           params.append(key, value.toString());
         }
       });
-
       const response = await apiService.get(`/evaluation/admin/analytics/workflow?${params.toString()}`);
       workflowAnalytics.value = response;
       return response;
@@ -227,23 +207,19 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       isLoading.value = false;
     }
   }
-
   /**
    * Fetch constraint analytics
    */
   async function fetchConstraintAnalytics(filters: { constraintType?: string; minEffectiveness?: number; startDate?: string; endDate?: string } = {}) {
     isLoading.value = true;
     error.value = null;
-
     try {
       const params = new URLSearchParams();
-      
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && String(value) !== '') {
           params.append(key, value.toString());
         }
       });
-
       const response = await apiService.get(`/evaluation/admin/analytics/constraints?${params.toString()}`);
       constraintAnalytics.value = response;
       return response;
@@ -254,7 +230,6 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       isLoading.value = false;
     }
   }
-
   /**
    * Export evaluations data
    */
@@ -268,18 +243,14 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
   } = {}) {
     isLoading.value = true;
     error.value = null;
-
     try {
       const params = new URLSearchParams();
-      
       Object.entries(options).forEach(([key, value]) => {
         if (value !== undefined && value !== null && String(value) !== '') {
           params.append(key, String(value));
         }
       });
-
       const response = await apiService.get(`/evaluation/admin/export?${params.toString()}`);
-      
       // Handle different export formats
       if (options.format === 'csv') {
         // Create and download CSV file
@@ -304,7 +275,6 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
       }
-
       return response;
     } catch (err: any) {
       error.value = err.message || 'Failed to export evaluations';
@@ -313,23 +283,19 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       isLoading.value = false;
     }
   }
-
   /**
    * Get evaluations for a specific user (admin only)
    */
   async function fetchUserEvaluations(userId: string, options: { page?: number; limit?: number; includeDetails?: boolean } = {}) {
     isLoading.value = true;
     error.value = null;
-
     try {
       const params = new URLSearchParams();
-      
       Object.entries(options).forEach(([key, value]) => {
         if (value !== undefined && value !== null && String(value) !== '') {
           params.append(key, String(value));
         }
       });
-
       const response = await apiService.get(`/evaluation/admin/users/${userId}/evaluations?${params.toString()}`);
       return response;
     } catch (err: any) {
@@ -339,23 +305,19 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       isLoading.value = false;
     }
   }
-
   /**
    * Get agent performance comparison
    */
   async function fetchAgentPerformance(filters: { startDate?: string; endDate?: string; minEvaluations?: number } = {}) {
     isLoading.value = true;
     error.value = null;
-
     try {
       const params = new URLSearchParams();
-      
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && String(value) !== '') {
           params.append(key, value.toString());
         }
       });
-
       const response = await apiService.get(`/evaluation/admin/performance/agents?${params.toString()}`);
       return response;
     } catch (err: any) {
@@ -365,7 +327,6 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       isLoading.value = false;
     }
   }
-
   /**
    * Get evaluation trends over time
    */
@@ -377,16 +338,13 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
   } = {}) {
     isLoading.value = true;
     error.value = null;
-
     try {
       const params = new URLSearchParams();
-      
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && String(value) !== '') {
           params.append(key, value.toString());
         }
       });
-
       const response = await apiService.get(`/evaluation/admin/trends/time-series?${params.toString()}`);
       return response;
     } catch (err: any) {
@@ -396,7 +354,6 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
       isLoading.value = false;
     }
   }
-
   /**
    * Clear all data and reset state
    */
@@ -408,7 +365,6 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
     constraintAnalytics.value = null;
     error.value = null;
   }
-
   return {
     // State
     isLoading,
@@ -418,7 +374,6 @@ export const useAdminEvaluationStore = defineStore('adminEvaluation', () => {
     analytics,
     workflowAnalytics,
     constraintAnalytics,
-    
     // Actions
     fetchAllEvaluations,
     fetchAnalytics,
