@@ -335,15 +335,12 @@ const getWorkProductLabel = () => {
 
 const messageHasDeliverable = (message: any) => {
   // Check if message has associated deliverable (support both snake_case and camelCase)
-  return message.deliverable_id || 
-         message.deliverableId ||
-         (message.metadata && (message.metadata.deliverable_id || message.metadata.deliverableId));
+  return message.deliverableId ||
+         (message.metadata && message.metadata.deliverableId);
 };
 
 const getMessageDeliverable = (message: any) => {
-  const deliverableId = message.deliverable_id || 
-                        message.deliverableId ||
-                        message.metadata?.deliverable_id || 
+  const deliverableId = message.deliverableId ||
                         message.metadata?.deliverableId;
   return deliverablesStore.getDeliverableById(deliverableId);
 };

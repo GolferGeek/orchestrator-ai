@@ -34,7 +34,7 @@ export class MessageFormattingService {
     
     // Also check for deliverable ID directly on the task
     if (task.deliverableId) {
-      responseMetadata.deliverable_id = task.deliverableId;
+      responseMetadata.deliverableId = task.deliverableId;
     }
     
     if (responseData) {
@@ -69,7 +69,7 @@ export class MessageFormattingService {
             responseMetadata = parsedResult.metadata || {};
             // Extract deliverable ID if present
             if (parsedResult.deliverableId) {
-              responseMetadata.deliverable_id = parsedResult.deliverableId;
+              responseMetadata.deliverableId = parsedResult.deliverableId;
             }
             console.log('📄 Using success.message format (orchestrator)');
           } else if (parsedResult.success && parsedResult.response) {
@@ -78,7 +78,7 @@ export class MessageFormattingService {
             responseMetadata = parsedResult.metadata || {};
             // Extract deliverable ID if present - THIS IS THE KEY FIX
             if (parsedResult.deliverableId) {
-              responseMetadata.deliverable_id = parsedResult.deliverableId;
+              responseMetadata.deliverableId = parsedResult.deliverableId;
               console.log('🎭 ✅ EXTRACTED deliverable ID in success.response format:', parsedResult.deliverableId);
             } else {
               console.log('🎭 ❌ NO deliverable ID found in parsedResult keys:', Object.keys(parsedResult));
@@ -90,7 +90,7 @@ export class MessageFormattingService {
             responseMetadata = parsedResult.metadata || {};
             // Extract deliverable ID if present
             if (parsedResult.deliverableId) {
-              responseMetadata.deliverable_id = parsedResult.deliverableId;
+              responseMetadata.deliverableId = parsedResult.deliverableId;
             }
             console.log('📄 Using success format with deliverableId');
           } else if (parsedResult.message) {
@@ -99,7 +99,7 @@ export class MessageFormattingService {
             responseMetadata = parsedResult.metadata || {};
             // Extract deliverable ID if present
             if (parsedResult.deliverableId) {
-              responseMetadata.deliverable_id = parsedResult.deliverableId;
+              responseMetadata.deliverableId = parsedResult.deliverableId;
             }
             console.log('📄 Using message field');
           } else if (parsedResult.response) {
@@ -108,7 +108,7 @@ export class MessageFormattingService {
             responseMetadata = parsedResult.metadata || {};
             // Extract deliverable ID if present
             if (parsedResult.deliverableId) {
-              responseMetadata.deliverable_id = parsedResult.deliverableId;
+              responseMetadata.deliverableId = parsedResult.deliverableId;
             }
             console.log('📄 Using response field');
           } else if (parsedResult.content) {
@@ -117,7 +117,7 @@ export class MessageFormattingService {
             responseMetadata = parsedResult.metadata || {};
             // Extract deliverable ID if present
             if (parsedResult.deliverableId) {
-              responseMetadata.deliverable_id = parsedResult.deliverableId;
+              responseMetadata.deliverableId = parsedResult.deliverableId;
             }
             console.log('📄 Using content field');
           } else if (parsedResult.result) {
@@ -126,7 +126,7 @@ export class MessageFormattingService {
             responseMetadata = parsedResult.metadata || {};
             // Extract deliverable ID if present
             if (parsedResult.deliverableId) {
-              responseMetadata.deliverable_id = parsedResult.deliverableId;
+              responseMetadata.deliverableId = parsedResult.deliverableId;
             }
             console.log('📄 Using result field');
           } else if (typeof parsedResult === 'string') {
@@ -138,7 +138,7 @@ export class MessageFormattingService {
             responseContent = JSON.stringify(parsedResult, null, 2);
             // Still check for deliverable ID even in fallback case
             if (parsedResult.deliverableId) {
-              responseMetadata.deliverable_id = parsedResult.deliverableId;
+              responseMetadata.deliverableId = parsedResult.deliverableId;
             }
             console.log('📄 Using stringified object as fallback');
           }

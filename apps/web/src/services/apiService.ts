@@ -527,6 +527,13 @@ class ApiService {
         dataType: typeof response.data
       });
       
+      // Special debug logging for task responses to see the actual status
+      if (url.includes('/tasks/')) {
+        console.log(`🔍 TASK API DEBUG - Task Status:`, response.data?.status);
+        console.log(`🔍 TASK API DEBUG - Task ID:`, response.data?.id);
+        console.log(`🔍 TASK API DEBUG - Has response:`, !!response.data?.response);
+      }
+      
       console.log('About to return response.data from GET:', response.data);
       console.log('GET response.data is undefined:', response.data === undefined);
       console.log('GET response.data is null:', response.data === null);
