@@ -17,7 +17,7 @@ async function bootstrap() {
     
     try {
       dotenv.config({ path: envFilePath });
-      console.log(`🔧 Loaded environment variables from: ${envFilePath}`);
+
     } catch (error) {
 
       process.exit(1);

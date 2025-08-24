@@ -214,25 +214,25 @@ const renderedContent = computed(() => {
         gfm: true
       }) as string;
     } catch (error) {
-      console.warn('Failed to parse markdown, using plain text:', error);
+
       html = `<p>${props.message.content}</p>`;
     }
     
     // Basic validation to ensure it's valid HTML
     if (typeof html !== 'string' || html.trim() === '') {
-      console.warn('Markdown parsing returned empty or invalid content');
+
       return null; // This will trigger the fallback
     }
     
     // Check for problematic patterns that might cause DOM issues
     if (html.includes('<html') || html.includes('<body') || html.includes('<head')) {
-      console.warn('Markdown content contains document-level HTML tags, using fallback');
+
       return null; // This will trigger the fallback
     }
     
     return html;
   } catch (error) {
-    console.error('Error parsing markdown content:', error);
+console.error('Error parsing markdown content:', error);
     return null; // This will trigger the fallback
   }
 });
@@ -305,30 +305,24 @@ const handleCalloutClick = () => {
 // Watch for changes in deliverable availability to debug timing issues
 watch(() => hasBackendDeliverable.value, (newVal, oldVal) => {
   if (newVal !== oldVal) {
-    console.log(`🎯 hasBackendDeliverable changed for message ${props.message.id}: ${oldVal} → ${newVal}`);
+
   }
 }, { immediate: true });
 
 watch(() => backendDeliverable.value, (newVal, oldVal) => {
   if (newVal !== oldVal) {
-    console.log(`🎯 backendDeliverable changed for message ${props.message.id}:`, {
-      old: oldVal?.title,
-      new: newVal?.title,
-      deliverableId: backendDeliverableId.value
-    });
+
     
     // Emit deliverable-created event when a new deliverable is detected
     if (newVal && !oldVal) {
-      console.log(`🎭 ✅ EMITTING deliverable-created event for NEW deliverable: ${newVal.title}`);
-      console.log(`🎭 ✅ Event payload:`, { id: newVal.id, title: newVal.title, conversation_id: newVal.conversationId });
+
       emit('deliverable-created', newVal);
     } else if (newVal && oldVal && newVal.id !== oldVal.id) {
       // Different deliverable
-      console.log(`🎭 ✅ EMITTING deliverable-created event for DIFFERENT deliverable: ${newVal.title}`);
-      console.log(`🎭 ✅ Event payload:`, { id: newVal.id, title: newVal.title, conversation_id: newVal.conversationId });
+
       emit('deliverable-created', newVal);
     } else if (newVal && oldVal) {
-      console.log(`🎭 ℹ️ Deliverable updated but same ID - not emitting creation event`);
+
     }
   }
 }, { immediate: true });
@@ -336,24 +330,19 @@ watch(() => backendDeliverable.value, (newVal, oldVal) => {
 // Watch for deliverable ID being added to message metadata (from task completion)
 watch(() => backendDeliverableId.value, (newId, oldId) => {
   if (newId && !oldId) {
-    console.log(`🎯 Deliverable ID added to message ${props.message.id}: ${newId}`);
+
     // The backendDeliverable watcher will handle the emission when the deliverable loads
   }
 }, { immediate: true });
 
 // Debug: Watch message metadata changes
 watch(() => props.message.metadata, (newMetadata, oldMetadata) => {
-  console.log(`🔍 Message ${props.message.id} metadata changed:`, {
-    old: oldMetadata,
-    new: newMetadata,
-    hasDeliverableId: !!(newMetadata?.deliverableId),
-    deliverableId: newMetadata?.deliverableId
-  });
+
 }, { deep: true, immediate: true });
 
 // Debug: Watch message deliverableId changes  
 watch(() => props.message.deliverableId, (newId, oldId) => {
-  console.log(`🔍 Message ${props.message.id} deliverableId changed: ${oldId} → ${newId}`);
+
 }, { immediate: true });
 </script>
 

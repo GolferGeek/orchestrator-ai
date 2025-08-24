@@ -161,15 +161,14 @@ export class DeliverablesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: any,
   ): Promise<Deliverable> {
-    console.log('🎭 FULL req.user object:', JSON.stringify(req.user, null, 2));
-    console.log('🎭 req.user keys:', req.user ? Object.keys(req.user) : 'no req.user');
+
     
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
     if (!userId) {
-      console.log('🎭 ERROR: No user ID found in JWT token');
+
       throw new Error('User not authenticated');
     }
-    console.log('🎭 Using userId:', userId);
+
     return this.deliverablesService.findOne(id, userId);
   }
 

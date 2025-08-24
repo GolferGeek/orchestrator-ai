@@ -102,12 +102,7 @@ export abstract class A2AAgentBaseService
     this.tasksService = tasksService;
     
     // Debug logging to track service injection
-    console.log(`🚨 A2A CONSTRUCTOR DEBUG: Services injected:`);
-    console.log(`  - taskStatusService:`, !!taskStatusService);
-    console.log(`  - deliverablesService:`, !!deliverablesService);
-    console.log(`  - deliverableVersionsService:`, !!deliverableVersionsService);
-    console.log(`  - tasksService:`, !!tasksService);
-    console.log(`  - this.tasksService set to:`, !!this.tasksService);
+
   }
 
   // ============================================================================
@@ -352,9 +347,7 @@ export abstract class A2AAgentBaseService
           }
         }
       } catch (error) {
-        this.logger.debug(
-          `Could not load YAML configuration for ${this.getAgentName()}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
+
       }
     }
 
@@ -416,7 +409,7 @@ export abstract class A2AAgentBaseService
    */
   setDiscoveredPath(path: string): void {
     this.agentPath = path;
-    this.logger.debug(`Agent path set to: ${path}`);
+
   }
 
   // ============================================================================
@@ -536,7 +529,7 @@ export abstract class A2AAgentBaseService
       agentType: this.getAgentType(),
     });
 
-    this.logger.debug(`Task ${taskId} created for agent: ${agentIdentifier}`);
+
   }
 
   /**
@@ -585,10 +578,8 @@ export abstract class A2AAgentBaseService
 
     // Auto-persist deliverable if result contains deliverable content
     // This must happen BEFORE marking task complete so we can attach deliverable ID
-    this.logger.debug(`📄 Attempting deliverable creation for task ${taskId}`);
-    console.log(`🚨 DELIVERABLE DEBUG: completeTask called for task ${taskId}`);
-    console.log(`🚨 DELIVERABLE DEBUG: result type:`, typeof result);
-    console.log(`🚨 DELIVERABLE DEBUG: result content:`, JSON.stringify(result, null, 2).substring(0, 500));
+
+
     
     const deliverableId = await this.persistDeliverableIfPresent(
       result,
@@ -597,12 +588,12 @@ export abstract class A2AAgentBaseService
       enhanceDeliverableId,
     );
     
-    console.log(`🚨 DELIVERABLE DEBUG: persistDeliverableIfPresent returned:`, deliverableId);
+
 
     if (deliverableId) {
       this.logger.log(`📄 Deliverable ${deliverableId} created for task ${taskId}`);
     } else {
-      this.logger.debug(`📄 No deliverable created for task ${taskId}`);
+
     }
 
     // If deliverable was created, attach ID to the result
@@ -637,9 +628,7 @@ export abstract class A2AAgentBaseService
       );
     }
 
-    this.logger.debug(
-      `Task ${taskId} marked as completed${deliverableId ? ` with deliverable ${deliverableId}` : ''}${enhanceDeliverableId ? ` (enhanced from ${enhanceDeliverableId})` : ''}`,
-    );
+
   }
 
   /**
@@ -669,7 +658,7 @@ export abstract class A2AAgentBaseService
       );
     }
 
-    this.logger.debug(`Task ${taskId} marked as failed: ${error}`);
+
   }
 
   /**
@@ -703,14 +692,14 @@ export abstract class A2AAgentBaseService
     userId: string,
   ): Promise<{ conversationId?: string; projectStepId?: string }> {
     if (!this.tasksService) {
-      this.logger.debug('TasksService not available - cannot get task context');
+
       return {};
     }
 
     try {
       const task = await this.tasksService.getTaskById(taskId, userId);
       if (!task) {
-        this.logger.debug(`Task ${taskId} not found or not accessible by user ${userId}`);
+
         return {};
       }
 
@@ -744,56 +733,49 @@ export abstract class A2AAgentBaseService
     taskId?: string,
     enhanceDeliverableId?: string,
   ): Promise<string | null> {
-    console.log(`🚨 PERSIST DEBUG: persistDeliverableIfPresent called`);
-    console.log(`🚨 PERSIST DEBUG: hasDeliverablesService:`, !!this.deliverablesService);
-    console.log(`🚨 PERSIST DEBUG: hasTasksService:`, !!this.tasksService);
-    console.log(`🚨 PERSIST DEBUG: userId:`, userId);
-    console.log(`🚨 PERSIST DEBUG: taskId:`, taskId);
-    console.log(`🚨 PERSIST DEBUG: enhanceDeliverableId:`, enhanceDeliverableId);
+
     
     if (!this.deliverablesService) {
-      console.log(`🚨 PERSIST DEBUG: ❌ NO DeliverablesService - skipping`);
-      this.logger.debug(
-        'DeliverablesService not available - skipping deliverable persistence',
-      );
+
+
       return null;
     }
 
     try {
       // Extract content from various result formats
-      console.log(`🚨 PERSIST DEBUG: About to extract content from result`);
+
       const content = this.extractContentFromResult(result);
-      console.log(`🚨 PERSIST DEBUG: Content extracted:`, content ? `${content.length} chars` : 'null');
+
       if (!content) {
-        console.log(`🚨 PERSIST DEBUG: ❌ NO content extracted - returning null`);
-        this.logger.debug(`📄 No content extracted from result for task ${taskId}`);
+
+
         return null;
       }
 
-      this.logger.debug(`📄 Content extracted (${content.length} chars) for task ${taskId}: ${content.substring(0, 200)}...`);
+
 
       // Check if content contains deliverable markers
       if (!this.isDeliverableContent(content)) {
-        this.logger.debug(`📄 Content does not qualify as deliverable for task ${taskId}`);
+
         return null;
       }
 
-      this.logger.debug(`📄 Content qualifies as deliverable for task ${taskId}`);
+
 
       // Extract deliverable information
       const deliverableData = this.extractDeliverableFromContent(content);
       if (!deliverableData) {
-        this.logger.debug(`📄 Failed to extract deliverable data for task ${taskId}`);
+
         return null;
       }
 
-      this.logger.debug(`📄 Deliverable data extracted: ${deliverableData.title}`);
+
 
       // Get conversation context from task if available
       let taskContext: { conversationId?: string; projectStepId?: string } = {};
       if (taskId) {
         taskContext = await this.getTaskContext(taskId, userId);
-        this.logger.debug(`📄 Task context for ${taskId}: conversationId=${taskContext.conversationId}, projectStepId=${taskContext.projectStepId}`);
+
       }
 
       // Create new deliverable or enhance existing one
@@ -940,19 +922,19 @@ export abstract class A2AAgentBaseService
         result.response || result.message || result.content || result.data;
 
       if (typeof content === 'string') {
-        this.logger.debug(`📄 Extracted content from field: ${Object.keys(result).find(key => result[key] === content)}`);
+
         return content;
       }
 
       // If it's still an object, stringify it for analysis
       if (typeof content === 'object') {
         const stringified = JSON.stringify(content, null, 2);
-        this.logger.debug(`📄 Stringified object content for analysis`);
+
         return stringified;
       }
     }
 
-    this.logger.debug(`📄 Could not extract content from result type: ${typeof result}`);
+
     return null;
   }
 
@@ -979,7 +961,7 @@ export abstract class A2AAgentBaseService
     const hasStructure = content.includes('\n\n') || content.length > 300;
     const hasMarkers = deliverableMarkers.some(marker => marker.test(content));
 
-    this.logger.debug(`🔍 Deliverable detection for content (${content.length} chars): hasStructure=${hasStructure}, hasMarkers=${hasMarkers}`);
+
 
     return hasStructure || hasMarkers;
   }
@@ -1236,7 +1218,7 @@ export abstract class A2AAgentBaseService
     );
 
     if (!fs.existsSync(yamlPath)) {
-      this.logger.debug(`No agent.yaml found at: ${yamlPath}`);
+
       return null;
     }
 

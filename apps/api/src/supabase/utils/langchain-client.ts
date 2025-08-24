@@ -32,7 +32,7 @@ export function initializeLangChain(): void {
   // Validate required environment variables
   try {
     getOpenAIApiKey();
-    console.log('✅ LangChain client initialized with OpenAI');
+
     langchainInitialized = true;
   } catch (error) {
 
