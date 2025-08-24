@@ -78,7 +78,7 @@ async def generate_document_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
             duration = (end_time - start_time).total_seconds()
 
             if content:
-
+                pass  # Document generated successfully
             else:
                 print(f"ERROR: Document generator returned empty content!", file=sys.stderr)
         except Exception as e:
@@ -446,7 +446,7 @@ if __name__ == "__main__":
     async def test():
         result = await generate_document_node(test_state_dict)
         content = result.get('document_content', '')
-        print(f"Generated document ({len(content)} chars):")
-        print(content[:500] + "..." if len(content) > 500 else content)
+        print(f"Generated document ({len(content)} chars):", file=sys.stderr)
+        print(content[:500] + "..." if len(content) > 500 else content, file=sys.stderr)
     
     asyncio.run(test())
