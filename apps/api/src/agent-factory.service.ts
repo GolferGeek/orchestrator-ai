@@ -122,98 +122,43 @@ export class AgentFactoryService {
     // mcpClientService removed - using LangChain.js services instead
     // supabaseToolsService removed - using utility functions instead
   ) {
-    this.logger.log('🏭 AgentFactoryService initialized');
-    this.logger.log(
-      `🎯 Marketing Orchestrator available: ${!!this.marketingManagerOrchestratorService}`,
-    );
-    this.logger.log(
-      `🎯 CEO Orchestrator available: ${!!this.ceoOrchestratorService}`,
-    );
-    this.logger.log(
-      `🎯 Engineering Manager Orchestrator available: ${!!this.engineeringManagerOrchestratorService}`,
-    );
-    this.logger.log(
-      `🎯 Operations Manager Orchestrator available: ${!!this.operationsManagerOrchestratorService}`,
-    );
-    this.logger.log(
-      `🎯 Finance Manager Orchestrator available: ${!!this.financeManagerOrchestratorService}`,
-    );
-    this.logger.log(
-      `🎯 HR Manager Orchestrator available: ${!!this.hrManagerOrchestratorService}`,
-    );
-    this.logger.log(
-      `🎯 Sales Manager Orchestrator available: ${!!this.salesManagerOrchestratorService}`,
-    );
-    this.logger.log(
-      `🎯 Product Manager Orchestrator available: ${!!this.productManagerOrchestratorService}`,
-    );
-    this.logger.log(
-      `🎯 Research Manager Orchestrator available: ${!!this.researchManagerOrchestratorService}`,
-    );
-    this.logger.log(
-      `🎯 Specialists Manager Orchestrator available: ${!!this.specialistsManagerOrchestratorService}`,
-    );
-    this.logger.log(
-      `🎯 Legal Manager Orchestrator available: ${!!this.legalManagerOrchestratorService}`,
-    );
-    this.logger.log(
-      `🎯 Productivity Manager Orchestrator available: ${!!this.productivityManagerOrchestratorService}`,
-    );
+
   }
 
   /**
    * Create an agent instance from discovered metadata
    */
   async createAgent(discoveredAgent: DiscoveredAgent): Promise<any> {
-    this.logger.debug(`🔧 Creating agent: ${discoveredAgent.name}`);
 
     try {
       // Load agent configuration from YAML
-      this.logger.debug(
-        `📋 Step 1: Loading config for ${discoveredAgent.name}`,
-      );
+
       const config = await this.loadAgentConfig(discoveredAgent);
-      this.logger.debug(
-        `📋 Config loaded - type: ${config.type}, name: ${config.name}`,
-      );
 
       // Import the service class
-      this.logger.debug(
-        `📦 Step 2: Importing service class for ${discoveredAgent.name}`,
-      );
+
       const ServiceClass = await this.importServiceClass(discoveredAgent);
       if (!ServiceClass) {
         throw new Error(`No service class found for ${discoveredAgent.name}`);
       }
-      this.logger.debug(`📦 Service class imported: ${ServiceClass.name}`);
 
       // Store the service class on the discovered agent
       discoveredAgent.serviceClass = ServiceClass;
 
       // Create instance based on agent type
-      this.logger.debug(
-        `🏗️ Step 3: Instantiating agent ${discoveredAgent.name} as type: ${config.type}`,
-      );
+
       const serviceInstance = await this.instantiateAgent(ServiceClass, config);
-      this.logger.debug(`🏗️ Agent instance created successfully`);
 
       // Set discovered path and initialize
-      this.logger.debug(
-        `🔧 Step 4: Initializing agent ${discoveredAgent.name}`,
-      );
+
       await this.initializeAgent(serviceInstance, discoveredAgent, config);
-      this.logger.debug(`🔧 Agent initialization completed`);
 
       // Store the instance
       discoveredAgent.serviceInstance = serviceInstance;
 
-      this.logger.log(`✅ Successfully created agent: ${discoveredAgent.name}`);
       return serviceInstance;
     } catch (error: any) {
-      this.logger.error(
-        `❌ Failed to create agent ${discoveredAgent.name}:`,
-        error.message,
-      );
+
       throw error;
     }
   }
@@ -227,10 +172,8 @@ export class AgentFactoryService {
     const agentDirectory = path.dirname(discoveredAgent.servicePath);
     const yamlPath = path.join(agentDirectory, 'agent.yaml');
 
-    this.logger.debug(`📋 Loading config from: ${yamlPath}`);
-
     if (!fs.existsSync(yamlPath)) {
-      this.logger.warn(`No agent.yaml found at: ${yamlPath}, using defaults`);
+
       return this.createDefaultConfig(discoveredAgent);
     }
 
@@ -244,9 +187,7 @@ export class AgentFactoryService {
 
       return this.validateAndNormalizeConfig(yamlData, discoveredAgent);
     } catch (error: any) {
-      this.logger.warn(
-        `Failed to parse YAML from ${yamlPath}: ${error.message}, using defaults`,
-      );
+
       return this.createDefaultConfig(discoveredAgent);
     }
   }
@@ -302,10 +243,6 @@ export class AgentFactoryService {
         }
       }
 
-      this.logger.debug(
-        `📦 Importing service from: ${importPath} (original: ${servicePath}, compiled: ${isCompiled})`,
-      );
-
       const serviceModule = await import(importPath);
 
       // Find the exported service class
@@ -319,13 +256,7 @@ export class AgentFactoryService {
 
       return ServiceClass || null;
     } catch (error: any) {
-      this.logger.error(
-        `Failed to import service class for ${discoveredAgent.name}:`,
-        error.message,
-      );
-      this.logger.error(`Service path: ${discoveredAgent.servicePath}`);
-      this.logger.error(`Process CWD: ${process.cwd()}`);
-      this.logger.error(`__dirname: ${__dirname}`);
+
       return null;
     }
   }
@@ -339,19 +270,9 @@ export class AgentFactoryService {
   ): Promise<any> {
     const serviceName = ServiceClass.name;
 
-    this.logger.debug(
-      `🏗️ Instantiating ${serviceName} as type: ${config.type}`,
-    );
-
     try {
       switch (config.type) {
         case 'orchestrator': {
-          this.logger.debug(
-            `🎯 Creating orchestrator agent with service container: ${serviceName}`,
-          );
-          this.logger.debug(
-            `🎯 Orchestrator service container available: ${!!this.orchestratorAgentServicesContext}`,
-          );
 
           if (!this.orchestratorAgentServicesContext) {
             throw new Error(
@@ -363,12 +284,6 @@ export class AgentFactoryService {
         }
 
         case 'function': {
-          this.logger.debug(
-            `⚙️ Creating TypeScript function agent with service container`,
-          );
-          this.logger.debug(
-            `⚙️ Function service container available: ${!!this.functionAgentServicesContext}`,
-          );
 
           if (!this.functionAgentServicesContext) {
             throw new Error(
@@ -380,12 +295,6 @@ export class AgentFactoryService {
         }
 
         case 'python-function': {
-          this.logger.debug(
-            `🐍 Creating Python function agent with service container`,
-          );
-          this.logger.debug(
-            `🐍 Python function service container available: ${!!this.pythonFunctionAgentServicesContext}`,
-          );
 
           if (!this.pythonFunctionAgentServicesContext) {
             throw new Error(
@@ -397,10 +306,6 @@ export class AgentFactoryService {
         }
 
         case 'context': {
-          this.logger.debug(`📝 Creating context agent with service container`);
-          this.logger.debug(
-            `📝 Service container available: ${!!this.agentServicesContext}`,
-          );
 
           if (!this.agentServicesContext) {
             throw new Error(
@@ -412,10 +317,6 @@ export class AgentFactoryService {
         }
 
         case 'api': {
-          this.logger.debug(`🌐 Creating API agent with service container`);
-          this.logger.debug(
-            `🌐 API service container available: ${!!this.apiAgentServicesContext}`,
-          );
 
           if (!this.apiAgentServicesContext) {
             throw new Error(
@@ -427,7 +328,7 @@ export class AgentFactoryService {
         }
 
         case 'external': {
-          this.logger.debug(`🔗 Creating external A2A agent`);
+
           if (!this.externalAgentServicesContext) {
             throw new Error('ExternalAgentServicesContext not available');
           }
@@ -436,14 +337,12 @@ export class AgentFactoryService {
         }
 
         default: {
-          this.logger.warn(
-            `❓ Unknown agent type: ${config.type}, using minimal dependencies`,
-          );
+
           return new ServiceClass(this.httpService);
         }
       }
     } catch (error: any) {
-      this.logger.error(`Failed to instantiate ${serviceName}:`, error.message);
+
       throw error;
     }
   }
@@ -459,7 +358,7 @@ export class AgentFactoryService {
     // Set discovered path
     if (typeof serviceInstance.setDiscoveredPath === 'function') {
       serviceInstance.setDiscoveredPath(discoveredAgent.path);
-      this.logger.debug(`🗂️ Set discovered path for ${config.name}`);
+
     }
 
     // Set up function paths based on agent type BEFORE calling onModuleInit
@@ -468,14 +367,11 @@ export class AgentFactoryService {
     // Call onModuleInit to trigger configuration loading
     if (typeof serviceInstance.onModuleInit === 'function') {
       try {
-        this.logger.debug(`🔧 Calling onModuleInit for ${config.name}...`);
+
         await serviceInstance.onModuleInit();
-        this.logger.debug(`✅ onModuleInit completed for ${config.name}`);
+
       } catch (initError: any) {
-        this.logger.error(
-          `❌ onModuleInit failed for ${config.name}:`,
-          initError.message,
-        );
+
         // Don't throw - let agent continue with fallback behavior
       }
     }
@@ -488,10 +384,7 @@ export class AgentFactoryService {
       try {
         await this.loadContextData(serviceInstance, discoveredAgent);
       } catch (contextError: any) {
-        this.logger.error(
-          `❌ Failed to load context for ${config.name}:`,
-          contextError.message,
-        );
+
         // Don't throw - let agent continue without context
       }
     }
@@ -506,13 +399,6 @@ export class AgentFactoryService {
     config: AgentConfig,
   ): Promise<void> {
     const agentDirectory = path.dirname(discoveredAgent.servicePath);
-
-    this.logger.debug(`🔧 Setting up functions for ${config.name}:`);
-    this.logger.debug(`   - Config type: ${config.type}`);
-    this.logger.debug(`   - Agent directory: ${agentDirectory}`);
-    this.logger.debug(
-      `   - Service instance type: ${serviceInstance.constructor.name}`,
-    );
 
     if (config.type === 'function') {
       // Set up TypeScript function agent
@@ -535,22 +421,15 @@ export class AgentFactoryService {
 
           if (typeof agentFunction === 'function') {
             serviceInstance.setAgentFunction(agentFunction);
-            this.logger.debug(
-              `⚙️ Loaded TypeScript function for ${config.name}`,
-            );
+
           } else {
-            this.logger.warn(`❓ No valid function found in ${functionPath}`);
+
           }
         } catch (error: any) {
-          this.logger.error(
-            `❌ Failed to load function for ${config.name}:`,
-            error.message,
-          );
+
         }
       } else {
-        this.logger.warn(
-          `❓ No agent-function.ts found for ${config.name} at ${functionPath}`,
-        );
+
       }
     }
 
@@ -558,22 +437,11 @@ export class AgentFactoryService {
       // Set up Python function agent
       const pythonFunctionPath = path.join(agentDirectory, 'agent-function.py');
 
-      this.logger.debug(`🔍 Checking Python function for ${config.name}:`);
-      this.logger.debug(`   - Expected path: ${pythonFunctionPath}`);
-      this.logger.debug(
-        `   - File exists: ${fs.existsSync(pythonFunctionPath)}`,
-      );
-      this.logger.debug(`   - Agent directory: ${agentDirectory}`);
-
       if (fs.existsSync(pythonFunctionPath)) {
         serviceInstance.setPythonScriptPath(pythonFunctionPath);
-        this.logger.debug(
-          `🐍 Set Python script path for ${config.name}: ${pythonFunctionPath}`,
-        );
+
       } else {
-        this.logger.warn(
-          `❓ No agent-function.py found for ${config.name} at ${pythonFunctionPath}`,
-        );
+
       }
     }
   }
@@ -590,9 +458,7 @@ export class AgentFactoryService {
     // Initialize context from AgentContextService (loads YAML data including skills)
     if (typeof serviceInstance.initializeContext === 'function') {
       await serviceInstance.initializeContext(agentDirectory);
-      this.logger.debug(
-        `📋 Initialized context service for ${discoveredAgent.name}`,
-      );
+
     }
 
     // Load markdown context data if available
@@ -600,7 +466,7 @@ export class AgentFactoryService {
     if (fs.existsSync(contextPath)) {
       const contextContent = fs.readFileSync(contextPath, 'utf8');
       serviceInstance.setContextData(contextContent);
-      this.logger.debug(`📄 Loaded context data for ${discoveredAgent.name}`);
+
     }
   }
 

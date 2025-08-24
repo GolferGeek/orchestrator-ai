@@ -5,7 +5,6 @@ export interface Agent {
   description?: string;
   execution_modes?: string[];
 }
-
 export interface AgentChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -38,7 +37,6 @@ export interface AgentChatMessage {
     [key: string]: any;
   };
 }
-
 export interface AgentConversation {
   id: string;
   agent: Agent;
@@ -54,9 +52,7 @@ export interface AgentConversation {
   isLoading: boolean;
   isSendingMessage: boolean;
 }
-
 export type ExecutionMode = 'immediate' | 'polling' | 'websocket';
-
 export interface TaskExecutionOptions {
   method: string;
   prompt: string;
@@ -69,14 +65,12 @@ export interface TaskExecutionOptions {
   taskId?: string;
   metadata?: any; // Context metadata for version operations
 }
-
 export interface DeliverableOptions {
   taskId: string;
   content: string;
   existingContent: string;
   messageMetadata?: any;
 }
-
 export interface ProgressUpdate {
   taskId: string;
   status: string;
@@ -84,13 +78,11 @@ export interface ProgressUpdate {
   progressMessage?: string;
   data?: any;
 }
-
 export interface TaskCompletionEvent {
   taskId: string;
   conversationId: string;
   status: 'completed' | 'failed';
 }
-
 export interface WorkflowStepEvent {
   taskId: string;
   stepName: string;

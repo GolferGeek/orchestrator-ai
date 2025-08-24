@@ -36,21 +36,17 @@
     </ion-content>
   </ion-page>
 </template>
-
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonInput, IonButton, IonText, IonSpinner } from '@ionic/vue';
 // LoginForm component is not directly used here anymore, logic moved to this view for store integration
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-
 const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
-
 const email = ref('');
 const password = ref('');
-
 const performLogin = async () => {
   const success = await auth.login({ email: email.value, password: password.value });
   if (success) {
@@ -58,9 +54,7 @@ const performLogin = async () => {
     router.push(redirectPath);
   }
 };
-
 </script>
-
 <style scoped>
 .ion-padding-top {
   display: block; /* Make ion-text block to allow padding-top */

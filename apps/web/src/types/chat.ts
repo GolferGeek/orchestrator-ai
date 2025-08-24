@@ -1,7 +1,5 @@
 export type MessageSender = 'user' | 'agent' | 'system';
-
 export type MessageDisplayType = 'text' | 'agentList' | 'workflow_progress' | 'deliverable';
-
 export interface ChatMessage {
   id: string;
   text?: string;
@@ -17,7 +15,6 @@ export interface ChatMessage {
   deliverableType?: 'document' | 'analysis' | 'report' | 'plan' | 'requirements';
   // Potentially add more fields later, e.g., message status (sending, sent, error)
 }
-
 // Interface for workflow progress messages
 export interface WorkflowProgressMessage {
   stepName: string;
@@ -28,7 +25,6 @@ export interface WorkflowProgressMessage {
   metadata?: Record<string, any>;
   timestamp: Date;
 }
-
 // Interface for deliverable messages
 export interface DeliverableMessage {
   title: string;
@@ -39,7 +35,6 @@ export interface DeliverableMessage {
   downloadable?: boolean;
   timestamp: Date;
 }
-
 // Interface for workflow state
 export interface WorkflowState {
   workflowId: string;
@@ -51,7 +46,6 @@ export interface WorkflowState {
   deliverables: DeliverableMessage[];
   metadata?: Record<string, any>;
 }
-
 // Interface for an agent (relevant for agent store later, but good to think about types together)
 export interface AgentInfo {
   id: string;
@@ -61,7 +55,6 @@ export interface AgentInfo {
   execution_modes?: ('immediate' | 'polling' | 'real-time')[];
   // capabilities?: string[]; // Example
 }
-
 // Corrected TaskCreationRequest for /agents/orchestrator/tasks
 // based on user confirmation that only the message object is sent.
 export interface TaskCreationRequest {
@@ -74,7 +67,6 @@ export interface TaskCreationRequest {
   session_id?: string | null; // Added optional session_id for context continuity
   // skill and agent_id are removed as per user clarification
 }
-
 // Represents a part of a message (e.g., text, image)
 interface MessagePart {
   type: string; // e.g., 'text', 'image'
@@ -86,7 +78,6 @@ interface MessagePart {
   // Allow other properties from backend
   [key: string]: any; 
 }
-
 // Represents a message within a task (request or response)
 interface TaskMessage {
   role: string; // "user", "agent", "system"
@@ -97,7 +88,6 @@ interface TaskMessage {
   // Allow other properties from backend
   [key: string]: any; 
 }
-
 // Updated TaskResponse to closely match backend Pydantic Task model
 export interface TaskResponse {
   id: string; 
@@ -114,7 +104,6 @@ export interface TaskResponse {
   metadata?: Record<string, any> | null;
   created_at: string; 
   updated_at: string; 
-  
   // A2A Protocol V2 fields
   output_artifacts?: Array<{
     type: string;
@@ -149,7 +138,6 @@ export interface TaskResponse {
     total_steps?: number;
     estimated_remaining?: number;
   };
-  
   // Additional fallback fields for backward compatibility
   result?: string;
   title?: string;
@@ -164,7 +152,6 @@ export interface TaskResponse {
   dependencies?: string[];
   tags?: string[];
   context?: Record<string, any>;
-  
   // Legacy fields for V1 compatibility
   task_id?: string;
   respondingAgentName?: string;

@@ -29,9 +29,6 @@ export class DeliverableVersionsService {
     createVersionDto: CreateVersionDto,
     userId: string,
   ): Promise<DeliverableVersion> {
-    this.logger.log(
-      `Creating new version for deliverable: ${deliverableId} for user: ${userId}`,
-    );
 
     try {
       // Verify deliverable exists and belongs to user
@@ -64,11 +61,10 @@ export class DeliverableVersionsService {
         .single();
 
       if (insertError) {
-        this.logger.error('Failed to create new version:', insertError);
+
         throw new BadRequestException(`Failed to create version: ${insertError.message}`);
       }
 
-      this.logger.log(`Version created successfully: ${newVersionData.id}`);
       return this.mapToVersion(newVersionData);
     } catch (error) {
       if (
@@ -77,7 +73,7 @@ export class DeliverableVersionsService {
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error creating version:', error);
+
       throw new BadRequestException('Failed to create version');
     }
   }
@@ -102,7 +98,7 @@ export class DeliverableVersionsService {
         .order('version_number', { ascending: true });
 
       if (error) {
-        this.logger.error('Failed to get version history:', error);
+
         throw new BadRequestException(
           `Failed to get version history: ${error.message}`,
         );
@@ -112,14 +108,14 @@ export class DeliverableVersionsService {
       
       return versions;
     } catch (error) {
-      this.logger.error('Exception in getVersionHistory:', error);
+
       if (
         error instanceof NotFoundException ||
         error instanceof BadRequestException
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error getting version history:', error);
+
       throw new BadRequestException('Failed to get version history');
     }
   }
@@ -131,7 +127,6 @@ export class DeliverableVersionsService {
     versionId: string,
     userId: string,
   ): Promise<DeliverableVersion> {
-    this.logger.log(`Getting version: ${versionId} for user: ${userId}`);
 
     try {
       const { data, error } = await this.supabaseService
@@ -145,7 +140,7 @@ export class DeliverableVersionsService {
         if (error.code === 'PGRST116') {
           throw new NotFoundException(`Version not found: ${versionId}`);
         }
-        this.logger.error('Failed to find version:', error);
+
         throw new BadRequestException(
           `Failed to find version: ${error.message}`,
         );
@@ -162,7 +157,7 @@ export class DeliverableVersionsService {
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error getting version:', error);
+
       throw new BadRequestException('Failed to get version');
     }
   }
@@ -174,7 +169,6 @@ export class DeliverableVersionsService {
     deliverableId: string,
     userId: string,
   ): Promise<DeliverableVersion | null> {
-    this.logger.log(`Getting current version for deliverable: ${deliverableId} for user: ${userId}`);
 
     try {
       // Verify deliverable ownership
@@ -189,16 +183,15 @@ export class DeliverableVersionsService {
         .maybeSingle();
 
       if (error) {
-        this.logger.error('Failed to find current version:', error);
+
         throw new BadRequestException('Failed to find current version');
       }
 
       if (data) {
-        this.logger.log(`Found current version: ${data.id} (v${data.version_number}) for deliverable: ${deliverableId}`);
+
         return this.mapToVersion(data);
       } else {
-        this.logger.warn(`No current version found for deliverable: ${deliverableId} - checking if any versions exist`);
-        
+
         // Check if any versions exist at all
         const { data: allVersions, error: allVersionsError } = await this.supabaseService
           .getServiceClient()
@@ -207,9 +200,9 @@ export class DeliverableVersionsService {
           .eq('deliverable_id', deliverableId);
           
         if (allVersionsError) {
-          this.logger.error('Failed to check for any versions:', allVersionsError);
+
         } else {
-          this.logger.warn(`Found ${allVersions?.length || 0} total versions for deliverable ${deliverableId}:`, allVersions);
+
         }
         
         return null;
@@ -221,7 +214,7 @@ export class DeliverableVersionsService {
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error getting current version:', error);
+
       throw new BadRequestException('Failed to get current version');
     }
   }
@@ -233,7 +226,6 @@ export class DeliverableVersionsService {
     versionId: string,
     userId: string,
   ): Promise<DeliverableVersion> {
-    this.logger.log(`Setting version as current: ${versionId} for user: ${userId}`);
 
     try {
       // Get the version and verify ownership
@@ -252,11 +244,10 @@ export class DeliverableVersionsService {
         .single();
 
       if (error) {
-        this.logger.error('Failed to set current version:', error);
+
         throw new BadRequestException(`Failed to set current version: ${error.message}`);
       }
 
-      this.logger.log(`Version set as current successfully: ${versionId}`);
       return this.mapToVersion(data);
     } catch (error) {
       if (
@@ -265,7 +256,7 @@ export class DeliverableVersionsService {
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error setting current version:', error);
+
       throw new BadRequestException('Failed to set current version');
     }
   }
@@ -277,7 +268,6 @@ export class DeliverableVersionsService {
     versionId: string,
     userId: string,
   ): Promise<{ success: boolean; message: string }> {
-    this.logger.log(`Deleting version: ${versionId} for user: ${userId}`);
 
     try {
       // Get the version and verify ownership
@@ -286,7 +276,7 @@ export class DeliverableVersionsService {
       // Prevent deletion of current version (as per PRD requirement)
       if (version.isCurrentVersion) {
         const message = 'Cannot delete the current version. Please set a different version as current first.';
-        this.logger.warn(`Delete blocked: ${message} (versionId: ${versionId})`);
+
         return { success: false, message };
       }
 
@@ -298,12 +288,12 @@ export class DeliverableVersionsService {
         .eq('id', versionId);
 
       if (error) {
-        this.logger.error('Failed to delete version:', error);
+
         throw new BadRequestException(`Failed to delete version: ${error.message}`);
       }
 
       const successMessage = `Version ${version.versionNumber} deleted successfully`;
-      this.logger.log(`${successMessage}: ${versionId}`);
+
       return { success: true, message: successMessage };
     } catch (error) {
       if (
@@ -312,7 +302,7 @@ export class DeliverableVersionsService {
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error deleting version:', error);
+
       throw new BadRequestException('Failed to delete version');
     }
   }
@@ -326,7 +316,6 @@ export class DeliverableVersionsService {
     mergePrompt: string,
     userId: string,
   ): Promise<{ newVersion: DeliverableVersion; conflictSummary?: string }> {
-    this.logger.log(`Merging versions: ${versionIds.join(', ')} for deliverable: ${deliverableId}`);
 
     try {
       // Verify deliverable ownership
@@ -377,7 +366,7 @@ export class DeliverableVersionsService {
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error merging versions:', error);
+
       throw new BadRequestException('Failed to merge versions');
     }
   }
@@ -391,7 +380,6 @@ export class DeliverableVersionsService {
     userId: string,
     baseVersionId?: string,
   ): Promise<DeliverableVersion> {
-    this.logger.log(`Creating version from task for deliverable: ${deliverableId}`);
 
     try {
       // Verify deliverable ownership
@@ -430,7 +418,7 @@ export class DeliverableVersionsService {
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error creating version from task:', error);
+
       throw new BadRequestException('Failed to create version from task');
     }
   }
@@ -438,8 +426,7 @@ export class DeliverableVersionsService {
   // Private helper methods
 
   private async verifyDeliverableOwnership(deliverableId: string, userId: string): Promise<void> {
-    this.logger.log(`🔍 Verifying ownership: deliverable=${deliverableId}, userId=${userId}`);
-    
+
     try {
       // First, check if the deliverable exists at all (without user_id filter for debugging)
       const { data: deliverableCheck, error: checkError } = await this.supabaseService
@@ -450,26 +437,23 @@ export class DeliverableVersionsService {
         .single();
 
       if (checkError) {
-        this.logger.error(`🔍 Database query error:`, checkError);
+
         // If it's a schema or connection error, we'll see it here
         throw new NotFoundException(`Database error checking deliverable: ${checkError.message || checkError.code || 'unknown error'}`);
       }
 
       if (!deliverableCheck) {
-        this.logger.warn(`🔍 Deliverable ${deliverableId} does not exist in database`);
+
         throw new NotFoundException(`Deliverable not found: ${deliverableId}`);
       }
-
-      this.logger.log(`🔍 Found deliverable ${deliverableId} owned by user ${deliverableCheck.user_id}, checking against ${userId}`);
 
       if (deliverableCheck.user_id !== userId) {
-        this.logger.warn(`🔍 User ID mismatch: deliverable owned by ${deliverableCheck.user_id}, requested by ${userId}`);
+
         throw new NotFoundException(`Deliverable not found: ${deliverableId}`);
       }
 
-      this.logger.log(`🔍 Ownership verification passed for deliverable ${deliverableId}`);
     } catch (error) {
-      this.logger.error(`🔍 Exception in verifyDeliverableOwnership:`, error);
+
       if (error instanceof NotFoundException) {
         throw error;
       }
@@ -488,7 +472,7 @@ export class DeliverableVersionsService {
       .maybeSingle();
 
     if (error) {
-      this.logger.error('Failed to get last version number:', error);
+
       throw new BadRequestException('Failed to determine version number');
     }
 
@@ -503,7 +487,7 @@ export class DeliverableVersionsService {
       .eq('deliverable_id', deliverableId);
 
     if (error) {
-      this.logger.error('Failed to update previous versions:', error);
+
       throw new BadRequestException('Failed to update previous versions');
     }
   }

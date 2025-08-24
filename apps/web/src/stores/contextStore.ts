@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia';
-
 export type ContextType = 'conversation' | 'deliverable' | 'project';
-
 export interface ContextState {
   activeContext: ContextType;
   activeDeliverableId: string | null;
@@ -9,7 +7,6 @@ export interface ContextState {
   // Track which pane should show the prompt input
   promptInputLocation: 'conversation' | 'deliverable' | 'project';
 }
-
 export interface ContextMetadata {
   context: ContextType;
   deliverableId?: string;
@@ -17,7 +14,6 @@ export interface ContextMetadata {
   method?: string;
   [key: string]: any;
 }
-
 /**
  * Context Store - Manages active UI context for metadata-driven operations
  * 
@@ -36,7 +32,6 @@ export const useContextStore = defineStore('context', {
     activeProjectId: null,
     promptInputLocation: 'conversation',
   }),
-
   getters: {
     /**
      * Get the current context metadata for task creation
@@ -48,40 +43,34 @@ export const useContextStore = defineStore('context', {
             context: 'deliverable', 
             deliverableId: this.activeDeliverableId || undefined 
           };
-
         case 'project':
           return { 
             context: 'project', 
             projectId: this.activeProjectId || undefined 
           };
-
         case 'conversation':
         default:
           return { context: 'conversation' };
       }
     },
-
     /**
      * Check if we're in deliverable context
      */
     isDeliverableContext(): boolean {
       return this.activeContext === 'deliverable' && !!this.activeDeliverableId;
     },
-
     /**
      * Check if we're in project context
      */
     isProjectContext(): boolean {
       return this.activeContext === 'project' && !!this.activeProjectId;
     },
-
     /**
      * Check if we're in conversation context
      */
     isConversationContext(): boolean {
       return this.activeContext === 'conversation';
     },
-
     /**
      * Get context display name for UI
      */
@@ -97,7 +86,6 @@ export const useContextStore = defineStore('context', {
       }
     },
   },
-
   actions: {
     /**
      * Switch to conversation context
@@ -108,7 +96,6 @@ export const useContextStore = defineStore('context', {
       this.activeProjectId = null;
       this.promptInputLocation = 'conversation';
     },
-
     /**
      * Switch to deliverable context
      */
@@ -118,7 +105,6 @@ export const useContextStore = defineStore('context', {
       this.activeProjectId = null;
       this.promptInputLocation = 'deliverable';
     },
-
     /**
      * Switch to project context
      */
@@ -128,14 +114,12 @@ export const useContextStore = defineStore('context', {
       this.activeDeliverableId = null;
       this.promptInputLocation = 'project';
     },
-
     /**
      * Clear all context (return to conversation)
      */
     clearContext() {
       this.setConversationContext();
     },
-
     /**
      * Create task metadata for version deletion
      */
@@ -143,14 +127,12 @@ export const useContextStore = defineStore('context', {
       if (!this.isDeliverableContext) {
         throw new Error('Delete operation requires deliverable context');
       }
-      
       return {
         ...this.contextMetadata,
         method: 'delete',
         versionIds,
       };
     },
-
     /**
      * Create task metadata for new version creation
      */
@@ -158,19 +140,15 @@ export const useContextStore = defineStore('context', {
       if (!this.isDeliverableContext) {
         throw new Error('New version operation requires deliverable context');
       }
-      
       const metadata: ContextMetadata = {
         ...this.contextMetadata,
         method: 'newVersion',
       };
-
       if (baseVersionId) {
         metadata.baseVersionId = baseVersionId;
       }
-
       return metadata;
     },
-
     /**
      * Create task metadata for version merging
      */
@@ -178,18 +156,15 @@ export const useContextStore = defineStore('context', {
       if (!this.isDeliverableContext) {
         throw new Error('Merge operation requires deliverable context');
       }
-      
       if (versionIds.length < 2) {
         throw new Error('Merge operation requires at least 2 versions');
       }
-
       return {
         ...this.contextMetadata,
         method: 'merge',
         versionIds,
       };
     },
-
     /**
      * Create task metadata for new deliverable creation
      */
@@ -201,7 +176,6 @@ export const useContextStore = defineStore('context', {
         agentName,
       };
     },
-
     /**
      * Create task metadata for project operations
      */
@@ -209,14 +183,12 @@ export const useContextStore = defineStore('context', {
       if (!this.isProjectContext) {
         throw new Error('Project operation requires project context');
       }
-
       return {
         ...this.contextMetadata,
         method,
         ...additionalData,
       };
     },
-
     /**
      * Get metadata for regular conversation
      */

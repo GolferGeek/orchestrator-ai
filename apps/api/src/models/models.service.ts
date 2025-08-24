@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import {
   CreateModelDto,
@@ -26,12 +26,12 @@ interface RecommendationFilters {
 
 @Injectable()
 export class ModelsService {
+  private readonly logger = new Logger(ModelsService.name);
+
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async findAll(filters: ModelFilters = {}): Promise<ModelResponseDto[]> {
     const client = this.supabaseService.getServiceClient();
-
-    console.log(`[ModelsService] findAll called with filters:`, filters);
 
     let query = client
       .from(getTableName('llm_models'))
@@ -56,37 +56,25 @@ export class ModelsService {
       }
     }
 
-    console.log(`[ModelsService] About to execute query...`);
     const { data, error } = await query;
 
-    console.log(`[ModelsService] Query result:`, {
-      dataLength: data?.length || 0,
-      error: error?.message,
-      sampleData: data?.[0],
-    });
-
     if (error) {
-      console.error(`[ModelsService] Database error:`, error);
+
       throw new HttpException(
         `Failed to fetch models: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
 
-    console.log(
-      `[ModelsService] About to map models using mapLLMModelFromDb...`,
-    );
+    this.logger.log('About to map models using mapLLMModelFromDb...');
     try {
       const mappedModels = (data || []).map((model: any) => {
-        console.log(`[ModelsService] Mapping model: ${model.display_name}`);
         return mapLLMModelFromDb(model);
       });
-      console.log(
-        `[ModelsService] Successfully mapped ${mappedModels.length} models`,
-      );
+      this.logger.log(`Successfully mapped ${mappedModels.length} models`);
       return mappedModels;
     } catch (mappingError) {
-      console.error(`[ModelsService] Mapping error:`, mappingError);
+
       const errorMessage =
         mappingError instanceof Error
           ? mappingError.message

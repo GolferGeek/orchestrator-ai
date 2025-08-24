@@ -14,7 +14,7 @@ export class AgentPoolService implements OnModuleDestroy {
   private readonly heartbeatTimeout = 180000; // 180 seconds (3 missed heartbeats = offline)
 
   constructor() {
-    this.logger.log('Agent Pool Service initialized');
+
   }
 
   /**
@@ -22,10 +22,6 @@ export class AgentPoolService implements OnModuleDestroy {
    */
   async registerAgent(registration: AgentRegistration): Promise<void> {
     const agentId = registration.id;
-
-    this.logger.log(
-      `Registering agent: ${agentId} (${registration.name}) at ${registration.url}`,
-    );
 
     // Add/update agent registration
     this.agents.set(agentId, {
@@ -35,9 +31,6 @@ export class AgentPoolService implements OnModuleDestroy {
       status: 'online',
     });
 
-    this.logger.log(
-      `Agent ${agentId} registered successfully. Pool size: ${this.agents.size}`,
-    );
   }
 
   /**
@@ -47,9 +40,7 @@ export class AgentPoolService implements OnModuleDestroy {
     const agent = this.agents.get(heartbeat.agentId);
 
     if (!agent) {
-      this.logger.warn(
-        `Received heartbeat from unregistered agent: ${heartbeat.agentId}`,
-      );
+
       return;
     }
 
@@ -58,7 +49,6 @@ export class AgentPoolService implements OnModuleDestroy {
     agent.status = 'online';
     agent.metrics = heartbeat.metrics;
 
-    this.logger.debug(`Heartbeat received from ${heartbeat.agentId}`);
   }
 
   /**
@@ -67,9 +57,7 @@ export class AgentPoolService implements OnModuleDestroy {
   async unregisterAgent(agentId: string): Promise<void> {
     if (this.agents.has(agentId)) {
       this.agents.delete(agentId);
-      this.logger.log(
-        `Agent ${agentId} unregistered. Pool size: ${this.agents.size}`,
-      );
+
     }
   }
 
@@ -146,9 +134,6 @@ export class AgentPoolService implements OnModuleDestroy {
       })),
     };
 
-    this.logger.debug(
-      `Generated capabilities document with ${capabilitiesDoc.totalAgents} agents`,
-    );
     return capabilitiesDoc;
   }
 
@@ -234,9 +219,7 @@ export class AgentPoolService implements OnModuleDestroy {
     }
 
     if (staleAgents.length > 0) {
-      this.logger.warn(
-        `Marked ${staleAgents.length} agents as offline: ${staleAgents.join(', ')}`,
-      );
+
     }
   }
 
@@ -269,7 +252,7 @@ export class AgentPoolService implements OnModuleDestroy {
    * Cleanup on module destroy
    */
   onModuleDestroy() {
-    this.logger.log('Agent Pool Service shutting down');
+
     this.agents.clear();
   }
 }

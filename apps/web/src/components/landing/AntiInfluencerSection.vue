@@ -7,7 +7,6 @@
         Here's why that matters to you.
       </p>
     </div>
-
     <div class="comparison-grid">
       <!-- YouTube Influencer Path -->
       <div class="comparison-card influencer-path">
@@ -31,7 +30,6 @@
           </div>
         </div>
       </div>
-
       <!-- Builder Path -->
       <div class="comparison-card builder-path highlight">
         <div class="card-header">
@@ -55,7 +53,6 @@
         </div>
       </div>
     </div>
-
     <div class="authenticity-section">
       <h3>The Authenticity Gap</h3>
       <div class="authenticity-grid">
@@ -66,7 +63,6 @@
           <h4>Real Problems, Real Solutions</h4>
           <p>I'm not theorizing about AI - I'm building it for actual businesses with actual challenges.</p>
         </div>
-        
         <div class="authenticity-point">
           <div class="point-icon">
             <ion-icon :icon="shieldCheckmarkOutline"></ion-icon>
@@ -74,7 +70,6 @@
           <h4>No Hidden Agendas</h4>
           <p>I'm not trying to sell you courses, memberships, or affiliate products. Just real software.</p>
         </div>
-        
         <div class="authenticity-point">
           <div class="point-icon">
             <ion-icon :icon="handLeftOutline"></ion-icon>
@@ -84,7 +79,6 @@
         </div>
       </div>
     </div>
-
     <div class="video-strategy">
       <h3>So Why the Videos?</h3>
       <p class="video-explanation">
@@ -110,7 +104,6 @@
         </div>
       </div>
     </div>
-
     <div class="section-cta">
       <div class="cta-content">
         <h3>Ready to Work with a Builder, Not a Talker?</h3>
@@ -130,7 +123,6 @@
     </div>
   </section>
 </template>
-
 <script setup lang="ts">
 import { IonIcon, IonButton } from '@ionic/vue';
 import { 
@@ -141,30 +133,25 @@ import {
   handLeftOutline,
   rocketOutline
 } from 'ionicons/icons';
-
 defineEmits<{
   scrollToPricing: []
 }>();
 </script>
-
 <style scoped>
 .anti-influencer-section {
   background: var(--landing-white);
   padding: 4rem 0;
 }
-
 .section-header {
   text-align: center;
   margin-bottom: 3rem;
 }
-
 .section-header h2 {
   font-size: 2.5rem;
   color: var(--landing-dark);
   margin-bottom: 1rem;
   font-weight: 700;
 }
-
 .section-subtitle {
   font-size: 1.2rem;
   color: var(--landing-gray);
@@ -172,14 +159,12 @@ defineEmits<{
   margin: 0 auto;
   line-height: 1.6;
 }
-
 .comparison-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 2rem;
   margin-bottom: 4rem;
 }
-
 .comparison-card {
   background: var(--landing-primary-50);
   border-radius: 16px;
@@ -187,25 +172,21 @@ defineEmits<{
   border: 2px solid transparent;
   transition: var(--transition-smooth);
 }
-
 .comparison-card.highlight {
   border-color: var(--landing-secondary);
   background: linear-gradient(135deg, var(--landing-secondary-light), var(--landing-primary-50));
   box-shadow: var(--shadow-green);
 }
-
 .comparison-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
 }
-
 .card-header {
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
-
 .path-icon {
   width: 50px;
   height: 50px;
@@ -215,39 +196,32 @@ defineEmits<{
   justify-content: center;
   color: var(--landing-white);
 }
-
 .path-icon.influencer {
   background: linear-gradient(135deg, #ef4444, #f87171);
 }
-
 .path-icon.builder {
   background: var(--landing-gradient);
 }
-
 .path-icon ion-icon {
   font-size: 1.5rem;
 }
-
 .card-header h3 {
   font-size: 1.3rem;
   color: var(--landing-dark);
   margin: 0;
   font-weight: 600;
 }
-
 .path-list {
   list-style: none;
   padding: 0;
   margin-bottom: 1.5rem;
 }
-
 .path-list li {
   margin-bottom: 0.75rem;
   color: var(--landing-dark);
   font-size: 0.95rem;
   line-height: 1.5;
 }
-
 .path-outcome {
   background: var(--landing-white);
   border-radius: 8px;
@@ -256,25 +230,21 @@ defineEmits<{
   font-size: 0.9rem;
   line-height: 1.5;
 }
-
 .authenticity-section {
   text-align: center;
   margin-bottom: 4rem;
 }
-
 .authenticity-section h3 {
   font-size: 2rem;
   color: var(--landing-dark);
   margin-bottom: 2rem;
   font-weight: 700;
 }
-
 .authenticity-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 2rem;
 }
-
 .authenticity-point {
   background: var(--landing-white);
   border-radius: 12px;
@@ -282,7 +252,6 @@ defineEmits<{
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--landing-primary-100);
 }
-
 .point-icon {
   width: 50px;
   height: 50px;
@@ -294,25 +263,21 @@ defineEmits<{
   margin: 0 auto 1rem;
   color: var(--landing-white);
 }
-
 .point-icon ion-icon {
   font-size: 1.5rem;
 }
-
 .authenticity-point h4 {
   font-size: 1.1rem;
   color: var(--landing-dark);
   margin-bottom: 0.75rem;
   font-weight: 600;
 }
-
 .authenticity-point p {
   color: var(--landing-gray);
   font-size: 0.9rem;
   line-height: 1.5;
   margin: 0;
 }
-
 .video-strategy {
   background: var(--landing-primary-50);
   border-radius: 20px;
@@ -320,14 +285,12 @@ defineEmits<{
   text-align: center;
   margin-bottom: 3rem;
 }
-
 .video-strategy h3 {
   font-size: 1.8rem;
   color: var(--landing-dark);
   margin-bottom: 1rem;
   font-weight: 700;
 }
-
 .video-explanation {
   font-size: 1.1rem;
   color: var(--landing-gray);
@@ -337,36 +300,30 @@ defineEmits<{
   margin-left: auto;
   margin-right: auto;
 }
-
 .video-types {
   display: flex;
   justify-content: center;
   gap: 2rem;
   flex-wrap: wrap;
 }
-
 .video-type {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
 }
-
 .video-icon {
   font-size: 2rem;
 }
-
 .video-title {
   font-weight: 600;
   color: var(--landing-dark);
   font-size: 1rem;
 }
-
 .video-desc {
   color: var(--landing-gray);
   font-size: 0.85rem;
 }
-
 .section-cta {
   background: var(--landing-gradient);
   border-radius: 20px;
@@ -374,13 +331,11 @@ defineEmits<{
   text-align: center;
   color: var(--landing-white);
 }
-
 .cta-content h3 {
   font-size: 1.8rem;
   margin-bottom: 1rem;
   font-weight: 700;
 }
-
 .cta-content p {
   font-size: 1.1rem;
   margin-bottom: 2rem;
@@ -390,38 +345,31 @@ defineEmits<{
   margin-left: auto;
   margin-right: auto;
 }
-
 .cta-button {
   --background: var(--landing-white);
   --color: var(--landing-primary);
   --border-radius: 8px;
   font-weight: 600;
 }
-
 @media (max-width: 768px) {
   .comparison-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
-  
   .comparison-card {
     padding: 1.5rem;
   }
-  
   .authenticity-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
-  
   .video-types {
     flex-direction: column;
     gap: 1.5rem;
   }
-  
   .section-header h2 {
     font-size: 2rem;
   }
-  
   .section-subtitle {
     font-size: 1rem;
   }

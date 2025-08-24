@@ -8,7 +8,6 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content class="ion-padding" v-if="evaluation">
       <!-- Evaluation Overview -->
       <ion-card>
@@ -42,7 +41,6 @@
                   <p class="rating-text">{{ evaluation.evaluation.userRating }}/5</p>
                 </div>
               </ion-col>
-              
               <!-- Additional Ratings -->
               <ion-col size="12" size-md="6">
                 <div class="additional-ratings">
@@ -60,7 +58,6 @@
           </ion-grid>
         </ion-card-content>
       </ion-card>
-
       <!-- User Notes -->
       <ion-card v-if="evaluation.evaluation.userNotes">
         <ion-card-header>
@@ -75,7 +72,6 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- Task Information -->
       <ion-card>
         <ion-card-header>
@@ -137,7 +133,6 @@
           </ion-list>
         </ion-card-content>
       </ion-card>
-
       <!-- Task Response -->
       <ion-card v-if="evaluation.task.response">
         <ion-card-header>
@@ -152,7 +147,6 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- User Information -->
       <ion-card>
         <ion-card-header>
@@ -193,7 +187,6 @@
           </ion-list>
         </ion-card-content>
       </ion-card>
-
       <!-- Workflow Steps -->
       <ion-card v-if="evaluation.workflowSteps">
         <ion-card-header>
@@ -232,7 +225,6 @@
               </ion-col>
             </ion-row>
           </ion-grid>
-
           <!-- Step Details -->
           <div v-if="evaluation.workflowSteps.stepDetails && evaluation.workflowSteps.stepDetails.length > 0">
             <h4>Step Details</h4>
@@ -264,7 +256,6 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- LLM Constraints -->
       <ion-card v-if="evaluation.llmConstraints">
         <ion-card-header>
@@ -288,7 +279,6 @@
               </ion-chip>
             </div>
           </div>
-
           <div v-if="evaluation.llmConstraints.responseModifiers && evaluation.llmConstraints.responseModifiers.length > 0">
             <h4>Response Modifiers</h4>
             <div class="constraint-tags">
@@ -302,7 +292,6 @@
               </ion-chip>
             </div>
           </div>
-
           <div v-if="evaluation.llmConstraints.executedCommands && evaluation.llmConstraints.executedCommands.length > 0">
             <h4>Executed Commands</h4>
             <div class="constraint-tags">
@@ -316,7 +305,6 @@
               </ion-chip>
             </div>
           </div>
-
           <!-- Constraint Effectiveness -->
           <div v-if="evaluation.llmConstraints.constraintEffectiveness">
             <h4>Effectiveness Analysis</h4>
@@ -355,7 +343,6 @@
           </div>
         </ion-card-content>
       </ion-card>
-
       <!-- LLM Information -->
       <ion-card>
         <ion-card-header>
@@ -418,7 +405,6 @@
           </ion-list>
         </ion-card-content>
       </ion-card>
-
       <!-- Evaluation Metadata -->
       <ion-card>
         <ion-card-header>
@@ -445,7 +431,6 @@
         </ion-card-content>
       </ion-card>
     </ion-content>
-
     <ion-content v-else class="ion-text-center ion-padding">
       <ion-icon :icon="documentOutline" size="large" color="medium"></ion-icon>
       <h3>No Evaluation Selected</h3>
@@ -453,7 +438,6 @@
     </ion-content>
   </ion-modal>
 </template>
-
 <script setup lang="ts">
 import { computed } from 'vue';
 import {
@@ -479,7 +463,6 @@ import {
   IonChip,
   IonProgressBar
 } from '@ionic/vue';
-
 import {
   starOutline,
   star,
@@ -495,19 +478,15 @@ import {
   informationCircleOutline,
   documentOutline
 } from 'ionicons/icons';
-
 interface Props {
   isOpen: boolean;
   evaluation: any;
 }
-
 const props = defineProps<Props>();
 defineEmits<{
   dismiss: []
 }>();
-
 const starIcon = computed(() => star);
-
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { 
@@ -515,7 +494,6 @@ function formatDate(dateString: string): string {
     minute: '2-digit' 
   });
 }
-
 function getStatusColor(status: string): string {
   switch (status.toLowerCase()) {
     case 'completed':
@@ -530,12 +508,10 @@ function getStatusColor(status: string): string {
       return 'medium';
   }
 }
-
 function getStepStatusColor(status: string | undefined): string {
   if (!status) {
     return 'medium'; // Default color for undefined/null status
   }
-  
   switch (status.toLowerCase()) {
     case 'completed':
     case 'success':
@@ -553,69 +529,58 @@ function getStepStatusColor(status: string | undefined): string {
       return 'medium';
   }
 }
-
 function getResponseTimeColor(time: number): string {
   if (time < 1000) return 'success';
   if (time < 3000) return 'warning';
   return 'danger';
 }
-
 function getResponseTimeLabel(time: number): string {
   if (time < 1000) return 'Fast';
   if (time < 3000) return 'Moderate';
   return 'Slow';
 }
 </script>
-
 <style scoped>
 .evaluation-title {
   font-size: 1.1rem;
   line-height: 1.4;
   margin-top: 0.5rem;
 }
-
 .user-info {
   margin-left: 8px;
   color: var(--ion-color-medium);
   font-size: 0.9rem;
 }
-
 .rating-section {
   text-align: center;
 }
-
 .rating-section h4 {
   margin: 0 0 12px 0;
   color: var(--ion-color-primary);
 }
-
 .rating-stars {
   display: flex;
   justify-content: center;
   gap: 4px;
   margin-bottom: 8px;
 }
-
 .rating-text {
   font-size: 1.2rem;
   font-weight: 600;
   margin: 0;
 }
-
 .additional-ratings {
   display: flex;
   flex-direction: column;
   gap: 12px;
   justify-content: center;
 }
-
 .rating-item {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 0.9rem;
 }
-
 .user-notes {
   background: var(--ion-color-light);
   padding: 16px;
@@ -624,7 +589,6 @@ function getResponseTimeLabel(time: number): string {
   font-style: italic;
   line-height: 1.5;
 }
-
 .task-response {
   background: var(--ion-color-light);
   padding: 16px;
@@ -633,7 +597,6 @@ function getResponseTimeLabel(time: number): string {
   max-height: 300px;
   overflow-y: auto;
 }
-
 .task-response pre {
   margin: 0;
   white-space: pre-wrap;
@@ -642,58 +605,48 @@ function getResponseTimeLabel(time: number): string {
   font-size: 0.9rem;
   line-height: 1.4;
 }
-
 .workflow-summary {
   margin-bottom: 24px;
 }
-
 .workflow-metric {
   text-align: center;
   padding: 12px;
   background: var(--ion-color-light);
   border-radius: 8px;
 }
-
 .workflow-metric h4 {
   margin: 0 0 4px 0;
   font-size: 1.5rem;
   font-weight: 600;
 }
-
 .workflow-metric p {
   margin: 0;
   color: var(--ion-color-medium);
   font-size: 0.9rem;
 }
-
 .step-item {
   margin-bottom: 8px;
 }
-
 .step-duration {
   font-size: 0.8rem;
   color: var(--ion-color-medium);
   margin-top: 4px;
 }
-
 .step-error {
   font-size: 0.8rem;
   color: var(--ion-color-danger);
   margin-top: 4px;
   font-family: monospace;
 }
-
 .constraint-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin: 12px 0 24px 0;
 }
-
 .constraint-tags ion-chip {
   margin: 0;
 }
-
 .evaluation-details {
   font-size: 0.8rem;
   background: var(--ion-color-light);
@@ -702,34 +655,27 @@ function getResponseTimeLabel(time: number): string {
   overflow-x: auto;
   margin-top: 8px;
 }
-
 ion-card {
   margin-bottom: 16px;
 }
-
 h4 {
   color: var(--ion-color-primary);
   margin: 16px 0 12px 0;
   font-size: 1rem;
 }
-
 @media (max-width: 768px) {
   .rating-stars {
     gap: 2px;
   }
-  
   .additional-ratings {
     margin-top: 16px;
   }
-  
   .workflow-metric h4 {
     font-size: 1.2rem;
   }
-  
   .task-response {
     max-height: 200px;
   }
-  
   .constraint-tags {
     gap: 4px;
   }

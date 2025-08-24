@@ -39,9 +39,6 @@ export class DeliverablesService {
     createDto: CreateDeliverableDto,
     userId: string,
   ): Promise<Deliverable> {
-    this.logger.log(
-      `Creating deliverable: ${createDto.title} for user: ${userId}`,
-    );
 
     try {
       // First, create the deliverable record
@@ -62,21 +59,19 @@ export class DeliverablesService {
         .single();
 
       if (deliverableError) {
-        this.logger.error('Failed to create deliverable:', deliverableError);
+
         throw new BadRequestException(
           `Failed to create deliverable: ${deliverableError.message}`,
         );
       }
 
-      this.logger.log(`Deliverable created successfully: ${deliverableData.id}`);
-
       // Always create an initial version
       // Log what content we're working with for debugging
-      this.logger.log(`Creating initial version for deliverable ${deliverableData.id} with content length: ${(createDto.initialContent || '').length}`);
+
       if (createDto.initialContent) {
-        this.logger.log(`Initial content preview: ${createDto.initialContent.substring(0, 100)}...`);
+
       } else {
-        this.logger.warn(`No initial content provided for deliverable ${deliverableData.id} - this might indicate a content extraction issue`);
+
       }
       
       const initialVersion = await this.createInitialVersion(
@@ -84,14 +79,13 @@ export class DeliverablesService {
         createDto,
         userId,
       );
-      this.logger.log(`Initial version created: ${initialVersion.id} for deliverable: ${deliverableData.id}`);
 
       return await this.findOne(deliverableData.id, userId);
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      this.logger.error('Unexpected error creating deliverable:', error);
+
       throw new BadRequestException('Failed to create deliverable');
     }
   }
@@ -109,9 +103,6 @@ export class DeliverablesService {
     offset: number;
     hasMore: boolean;
   }> {
-    this.logger.log(
-      `Finding deliverables for user: ${userId} with filters: ${JSON.stringify(filters)}`,
-    );
 
     try {
       // Build query with deliverable and version data
@@ -157,7 +148,7 @@ export class DeliverablesService {
       const { data, error } = await query;
 
       if (error) {
-        this.logger.error('Failed to find deliverables:', error);
+
         throw new BadRequestException(
           `Failed to find deliverables: ${error.message}`,
         );
@@ -200,7 +191,7 @@ export class DeliverablesService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      this.logger.error('Unexpected error finding deliverables:', error);
+
       throw new BadRequestException('Failed to find deliverables');
     }
   }
@@ -209,7 +200,6 @@ export class DeliverablesService {
    * Find a specific deliverable by ID with current version data
    */
   async findOne(id: string, userId: string): Promise<Deliverable> {
-    this.logger.log(`Finding deliverable: ${id} for user: ${userId}`);
 
     try {
       // Get the deliverable record
@@ -225,7 +215,7 @@ export class DeliverablesService {
         if (deliverableError.code === 'PGRST116') {
           throw new NotFoundException(`Deliverable not found: ${id}`);
         }
-        this.logger.error('Failed to find deliverable:', deliverableError);
+
         throw new BadRequestException(
           `Failed to find deliverable: ${deliverableError.message}`,
         );
@@ -238,12 +228,12 @@ export class DeliverablesService {
         const currentVersion = await this.versionsService.getCurrentVersion(id, userId);
         if (currentVersion) {
           deliverable.currentVersion = currentVersion;
-          this.logger.debug(`Current version loaded: ${currentVersion.id} for deliverable: ${id}`);
+
         } else {
-          this.logger.warn(`No current version found for deliverable: ${id}`);
+
         }
       } catch (error) {
-        this.logger.error(`Failed to get current version for deliverable ${id}:`, error);
+
         // Don't throw here, just return deliverable without current version
       }
 
@@ -255,7 +245,7 @@ export class DeliverablesService {
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error finding deliverable:', error);
+
       throw new BadRequestException('Failed to find deliverable');
     }
   }
@@ -264,7 +254,6 @@ export class DeliverablesService {
    * Find deliverables by conversation ID
    */
   async findByConversation(conversationId: string, userId: string): Promise<Deliverable[]> {
-    this.logger.log(`Finding deliverables for conversation: ${conversationId} for user: ${userId}`);
 
     try {
       const { data, error } = await this.supabaseService
@@ -276,7 +265,7 @@ export class DeliverablesService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        this.logger.error('Failed to find deliverables by conversation:', error);
+
         throw new BadRequestException(`Failed to find deliverables by conversation: ${error.message}`);
       }
 
@@ -293,7 +282,7 @@ export class DeliverablesService {
               deliverable.currentVersion = currentVersion;
             }
           } catch (error) {
-            this.logger.error(`Failed to get current version for deliverable ${deliverableData.id}:`, error);
+
             // Continue without current version
           }
 
@@ -306,7 +295,7 @@ export class DeliverablesService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      this.logger.error('Unexpected error finding deliverables by conversation:', error);
+
       throw new BadRequestException('Failed to find deliverables by conversation');
     }
   }
@@ -330,7 +319,7 @@ export class DeliverablesService {
 
       const conversationId = taskData.agent_conversation_id;
       if (!conversationId) {
-        this.logger.warn(`Task ${taskId} - no conversation ID found`);
+
         return null;
       }
 
@@ -341,7 +330,7 @@ export class DeliverablesService {
         // UPDATE existing deliverable (create new version)
         const existingDeliverable = existingDeliverables[0];
         if (!existingDeliverable) {
-          this.logger.error(`No existing deliverable found for conversation ${conversationId}`);
+
           return null;
         }
         
@@ -360,7 +349,6 @@ export class DeliverablesService {
           userId
         );
 
-        this.logger.debug(`Updated deliverable ${existingDeliverable.id} with new version from task ${taskId}`);
         return existingDeliverable.id;
       } else {
         // CREATE new deliverable (first time for this conversation)
@@ -378,11 +366,10 @@ export class DeliverablesService {
           },
         }, userId);
 
-        this.logger.debug(`Created new deliverable ${newDeliverable.id} from task ${taskId}`);
         return newDeliverable.id;
       }
     } catch (error) {
-      this.logger.error(`Error creating/updating deliverable for task ${taskId}:`, error);
+
       return null;
     }
   }
@@ -443,7 +430,6 @@ export class DeliverablesService {
     updateDto: UpdateDeliverableDto,
     userId: string,
   ): Promise<Deliverable> {
-    this.logger.log(`Updating deliverable metadata: ${id} for user: ${userId}`);
 
     try {
       // First verify the deliverable exists and belongs to the user
@@ -469,13 +455,12 @@ export class DeliverablesService {
         .single();
 
       if (error) {
-        this.logger.error('Failed to update deliverable:', error);
+
         throw new BadRequestException(
           `Failed to update deliverable: ${error.message}`,
         );
       }
 
-      this.logger.log(`Deliverable updated successfully: ${id}`);
       return await this.findOne(id, userId); // Return with current version data
     } catch (error) {
       if (
@@ -484,7 +469,7 @@ export class DeliverablesService {
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error updating deliverable:', error);
+
       throw new BadRequestException('Failed to update deliverable');
     }
   }
@@ -497,9 +482,6 @@ export class DeliverablesService {
     dto: CreateEditingConversationDto,
     userId: string,
   ): Promise<{ conversationId: string; message: string }> {
-    this.logger.log(
-      `Creating editing conversation for deliverable: ${deliverableId} for user: ${userId}`,
-    );
 
     try {
       // First, verify the deliverable exists and belongs to the user
@@ -552,10 +534,6 @@ export class DeliverablesService {
         deliverable.title,
       );
 
-      this.logger.log(
-        `Successfully created editing conversation ${conversation.id} for deliverable ${deliverableId}`,
-      );
-
       return {
         conversationId: conversation.id,
         message: initialMessage,
@@ -567,7 +545,7 @@ export class DeliverablesService {
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error creating editing conversation:', error);
+
       throw new BadRequestException('Failed to create editing conversation');
     }
   }
@@ -580,9 +558,6 @@ export class DeliverablesService {
     conversationId: string,
     userId: string,
   ): Promise<void> {
-    this.logger.log(
-      `Linking deliverable ${deliverableId} to conversation ${conversationId}`,
-    );
 
     try {
       const { error } = await this.supabaseService
@@ -593,7 +568,7 @@ export class DeliverablesService {
         .eq('user_id', userId);
 
       if (error) {
-        this.logger.error('Failed to link deliverable to conversation:', error);
+
         throw new BadRequestException(
           `Failed to link deliverable to conversation: ${error.message}`,
         );
@@ -602,7 +577,7 @@ export class DeliverablesService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      this.logger.error('Unexpected error linking deliverable to conversation:', error);
+
       throw new BadRequestException('Failed to link deliverable to conversation');
     }
   }
@@ -626,8 +601,6 @@ export class DeliverablesService {
         return `I'd like to edit the deliverable "${deliverableTitle}". Please help me make improvements to the content.`;
     }
   }
-
-
 
   /**
    * Create initial version for a new deliverable
@@ -657,11 +630,10 @@ export class DeliverablesService {
       .single();
 
     if (error) {
-      this.logger.error('Failed to create initial version:', error);
+
       throw new BadRequestException(`Failed to create initial version: ${error.message}`);
     }
 
-    this.logger.log(`Initial version created successfully: ${data.id} (v1) with content length: ${(createDto.initialContent || '').length}`);
     return this.mapToVersion(data);
   }
 
@@ -669,7 +641,6 @@ export class DeliverablesService {
    * Delete a deliverable (soft delete by marking as deleted)
    */
   async remove(id: string, userId: string): Promise<void> {
-    this.logger.log(`Deleting deliverable: ${id} for user: ${userId}`);
 
     try {
       // Verify the deliverable exists and belongs to the user
@@ -683,13 +654,12 @@ export class DeliverablesService {
         .eq('user_id', userId);
 
       if (error) {
-        this.logger.error('Failed to delete deliverable:', error);
+
         throw new BadRequestException(
           `Failed to delete deliverable: ${error.message}`,
         );
       }
 
-      this.logger.log(`Deliverable deleted successfully: ${id}`);
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -697,7 +667,7 @@ export class DeliverablesService {
       ) {
         throw error;
       }
-      this.logger.error('Unexpected error deleting deliverable:', error);
+
       throw new BadRequestException('Failed to delete deliverable');
     }
   }

@@ -19,13 +19,11 @@
     </ion-card-content>
   </ion-card>
 </template>
-
 <script setup lang="ts">
 import { defineProps, PropType } from 'vue';
 import { AgentInfo } from '../types/chat';
 import { formatAgentName, formatAgentDescription } from '@/utils/caseConverter';
 import { IonList, IonItem, IonLabel, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/vue';
-
 defineProps({
   agents: {
     type: Array as PropType<AgentInfo[]>,
@@ -33,26 +31,22 @@ defineProps({
   },
 });
 </script>
-
 <style scoped>
 .agent-list-card {
   margin: 10px 0; /* Add some margin if used directly in a list */
   /* Or it could be styled to appear like a special message bubble */
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
-
 .empty-list-message {
   text-align: center;
   padding: 10px;
   color: var(--ion-color-medium-shade);
 }
-
 .agent-item h2 {
   font-weight: bold;
   color: var(--ion-color-dark);
   margin-bottom: 4px;
 }
-
 .agent-item p {
   font-size: 0.9em;
   white-space: normal; /* Allow description to wrap */

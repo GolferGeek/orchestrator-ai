@@ -9,7 +9,6 @@
         <span class="progress-text">{{ completedSteps }}/{{ totalSteps }} steps completed</span>
       </div>
     </div>
-
     <div class="workflow-steps">
       <div 
         v-for="(step, index) in steps" 
@@ -26,7 +25,6 @@
             />
           </div>
         </div>
-        
         <div class="step-content">
           <div class="step-title">{{ formatStepName(step.stepName) }}</div>
           <div v-if="step.message" class="step-message">{{ step.message }}</div>
@@ -37,13 +35,11 @@
             </div>
           </div>
         </div>
-        
         <div class="step-timestamp">
           {{ formatTimestamp(step.timestamp) }}
         </div>
       </div>
     </div>
-
     <div v-if="deliverables.length > 0" class="workflow-deliverables">
       <h5>Deliverables</h5>
       <div class="deliverable-list">
@@ -83,7 +79,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { computed, defineProps, defineEmits } from 'vue';
 import { IonIcon, IonButton } from '@ionic/vue';
@@ -97,7 +92,6 @@ import {
   downloadOutline,
   timeOutline
 } from 'ionicons/icons';
-
 interface WorkflowStep {
   stepName: string;
   stepIndex: number;
@@ -107,7 +101,6 @@ interface WorkflowStep {
   metadata?: Record<string, any>;
   timestamp: Date;
 }
-
 interface WorkflowDeliverable {
   title: string;
   content: string;
@@ -117,26 +110,22 @@ interface WorkflowDeliverable {
   downloadable?: boolean;
   timestamp: Date;
 }
-
 const props = defineProps<{
   workflowTitle: string;
   steps: WorkflowStep[];
   deliverables: WorkflowDeliverable[];
   collapsible?: boolean;
 }>();
-
 const emit = defineEmits<{
   viewDeliverable: [deliverable: WorkflowDeliverable];
   downloadDeliverable: [deliverable: WorkflowDeliverable];
 }>();
-
 const totalSteps = computed(() => props.steps.length);
 const completedSteps = computed(() => props.steps.filter(s => s.status === 'completed').length);
 const overallProgress = computed(() => {
   if (totalSteps.value === 0) return 0;
   return Math.round((completedSteps.value / totalSteps.value) * 100);
 });
-
 const getStepClass = (step: WorkflowStep) => {
   return {
     'step-pending': step.status === 'pending',
@@ -145,7 +134,6 @@ const getStepClass = (step: WorkflowStep) => {
     'step-failed': step.status === 'failed'
   };
 };
-
 const getStepIcon = (step: WorkflowStep) => {
   switch (step.status) {
     case 'completed':
@@ -158,7 +146,6 @@ const getStepIcon = (step: WorkflowStep) => {
       return ellipseOutline;
   }
 };
-
 const getStepIconClass = (step: WorkflowStep) => {
   return {
     'icon-completed': step.status === 'completed',
@@ -167,13 +154,11 @@ const getStepIconClass = (step: WorkflowStep) => {
     'icon-pending': step.status === 'pending'
   };
 };
-
 const formatStepName = (stepName: string): string => {
   return stepName
     .replace(/_/g, ' ')
     .replace(/\b\w/g, l => l.toUpperCase());
 };
-
 const formatTimestamp = (timestamp: Date): string => {
   return new Date(timestamp).toLocaleTimeString([], { 
     hour: '2-digit', 
@@ -181,7 +166,6 @@ const formatTimestamp = (timestamp: Date): string => {
     second: '2-digit'
   });
 };
-
 const getVisibleMetadata = (metadata: Record<string, any>): Record<string, any> => {
   const visibleKeys = [
     'validation_score',
@@ -192,23 +176,19 @@ const getVisibleMetadata = (metadata: Record<string, any>): Record<string, any> 
     'estimated_effort',
     'optimization_changes'
   ];
-  
   const visible: Record<string, any> = {};
   for (const key of visibleKeys) {
     if (metadata[key] !== undefined) {
       visible[key] = metadata[key];
     }
   }
-  
   return visible;
 };
-
 const formatMetadataKey = (key: string): string => {
   return key
     .replace(/_/g, ' ')
     .replace(/\b\w/g, l => l.toUpperCase());
 };
-
 const formatMetadataValue = (value: any): string => {
   if (typeof value === 'number') {
     return value.toFixed(2);
@@ -221,16 +201,13 @@ const formatMetadataValue = (value: any): string => {
   }
   return String(value);
 };
-
 const viewDeliverable = (deliverable: WorkflowDeliverable) => {
   emit('viewDeliverable', deliverable);
 };
-
 const downloadDeliverable = (deliverable: WorkflowDeliverable) => {
   emit('downloadDeliverable', deliverable);
 };
 </script>
-
 <style scoped>
 .workflow-progress-view {
   background: var(--ion-color-light);
@@ -239,24 +216,20 @@ const downloadDeliverable = (deliverable: WorkflowDeliverable) => {
   margin: 8px 0;
   border: 1px solid var(--ion-color-light-shade);
 }
-
 .workflow-header {
   margin-bottom: 16px;
 }
-
 .workflow-header h4 {
   margin: 0 0 8px 0;
   color: var(--ion-color-primary);
   font-size: 1.1em;
   font-weight: 600;
 }
-
 .workflow-overall-progress {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
 .progress-bar {
   flex: 1;
   height: 6px;
@@ -264,25 +237,21 @@ const downloadDeliverable = (deliverable: WorkflowDeliverable) => {
   border-radius: 3px;
   overflow: hidden;
 }
-
 .progress-fill {
   height: 100%;
   background: var(--ion-color-success);
   transition: width 0.3s ease;
 }
-
 .progress-text {
   font-size: 0.85em;
   color: var(--ion-color-medium);
   min-width: 120px;
 }
-
 .workflow-steps {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-
 .workflow-step {
   display: flex;
   align-items: flex-start;
@@ -292,25 +261,20 @@ const downloadDeliverable = (deliverable: WorkflowDeliverable) => {
   background: var(--ion-color-light-tint);
   border-left: 4px solid var(--ion-color-medium);
 }
-
 .workflow-step.step-pending {
   border-left-color: var(--ion-color-medium);
 }
-
 .workflow-step.step-in-progress {
   border-left-color: var(--ion-color-primary);
   background: var(--ion-color-primary-tint);
 }
-
 .workflow-step.step-completed {
   border-left-color: var(--ion-color-success);
 }
-
 .workflow-step.step-failed {
   border-left-color: var(--ion-color-danger);
   background: var(--ion-color-danger-tint);
 }
-
 .step-indicator {
   display: flex;
   flex-direction: column;
@@ -318,7 +282,6 @@ const downloadDeliverable = (deliverable: WorkflowDeliverable) => {
   gap: 4px;
   min-width: 40px;
 }
-
 .step-number {
   font-size: 0.8em;
   font-weight: 600;
@@ -331,50 +294,40 @@ const downloadDeliverable = (deliverable: WorkflowDeliverable) => {
   align-items: center;
   justify-content: center;
 }
-
 .step-status-icon {
   font-size: 1.2em;
 }
-
 .step-status-icon .icon-completed {
   color: var(--ion-color-success);
 }
-
 .step-status-icon .icon-in-progress {
   color: var(--ion-color-primary);
 }
-
 .step-status-icon .icon-failed {
   color: var(--ion-color-danger);
 }
-
 .step-status-icon .icon-pending {
   color: var(--ion-color-medium);
 }
-
 .step-content {
   flex: 1;
 }
-
 .step-title {
   font-weight: 600;
   color: var(--ion-color-dark);
   margin-bottom: 4px;
 }
-
 .step-message {
   font-size: 0.9em;
   color: var(--ion-color-medium-shade);
   margin-bottom: 8px;
 }
-
 .step-metadata {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 8px;
 }
-
 .metadata-item {
   font-size: 0.8em;
   background: var(--ion-color-light);
@@ -382,17 +335,14 @@ const downloadDeliverable = (deliverable: WorkflowDeliverable) => {
   border-radius: 4px;
   border: 1px solid var(--ion-color-light-shade);
 }
-
 .metadata-key {
   font-weight: 600;
   color: var(--ion-color-medium);
 }
-
 .metadata-value {
   color: var(--ion-color-dark);
   margin-left: 4px;
 }
-
 .step-timestamp {
   font-size: 0.75em;
   color: var(--ion-color-medium);
@@ -400,26 +350,22 @@ const downloadDeliverable = (deliverable: WorkflowDeliverable) => {
   min-width: 80px;
   text-align: right;
 }
-
 .workflow-deliverables {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--ion-color-light-shade);
 }
-
 .workflow-deliverables h5 {
   margin: 0 0 12px 0;
   color: var(--ion-color-primary);
   font-size: 1em;
   font-weight: 600;
 }
-
 .deliverable-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
 .deliverable-item {
   display: flex;
   align-items: center;
@@ -429,25 +375,21 @@ const downloadDeliverable = (deliverable: WorkflowDeliverable) => {
   border-radius: 6px;
   border: 1px solid var(--ion-color-light-shade);
 }
-
 .deliverable-header {
   display: flex;
   align-items: center;
   gap: 8px;
   flex: 1;
 }
-
 .deliverable-icon {
   color: var(--ion-color-primary);
   font-size: 1.2em;
 }
-
 .deliverable-title {
   font-weight: 600;
   color: var(--ion-color-dark);
   flex: 1;
 }
-
 .deliverable-type {
   font-size: 0.8em;
   color: var(--ion-color-medium);
@@ -456,18 +398,15 @@ const downloadDeliverable = (deliverable: WorkflowDeliverable) => {
   padding: 2px 6px;
   border-radius: 4px;
 }
-
 .deliverable-actions {
   display: flex;
   gap: 8px;
 }
-
 .action-button {
   --color: var(--ion-color-primary);
   --padding-start: 8px;
   --padding-end: 8px;
 }
-
 .action-button:hover {
   --color: var(--ion-color-primary-shade);
 }

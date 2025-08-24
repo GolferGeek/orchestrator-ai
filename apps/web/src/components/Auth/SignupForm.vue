@@ -25,11 +25,9 @@
     </div>
   </form>
 </template>
-
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { IonList, IonItem, IonLabel, IonInput, IonButton, IonText } from '@ionic/vue';
-
 const displayName = ref('');
 const email = ref('');
 const password = ref('');
@@ -37,10 +35,8 @@ const confirmPassword = ref('');
 const error = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
 const loading = ref(false);
-
 // Define emits for when signup is successful or fails
 const emit = defineEmits(['signup-success', 'signup-failed']);
-
 const handleSignup = async () => {
   error.value = null;
   successMessage.value = null;
@@ -65,11 +61,9 @@ const handleSignup = async () => {
     // Simulate error for now
     // error.value = 'Signup failed: Email already taken (Simulated)'; 
     // emit('signup-failed', error.value);
-
     // To simulate success:
     successMessage.value = "Signup successful (Simulated)! You are now logged in.";
     emit('signup-success', { token: 'fake-jwt-token', user: { email: email.value, displayName: displayName.value } });
-
   } catch (e: any) {
     error.value = e.message || 'An unexpected error occurred during signup.';
     emit('signup-failed', error.value);
@@ -78,7 +72,6 @@ const handleSignup = async () => {
   }
 };
 </script>
-
 <style scoped>
 .ion-padding {
   padding-top: 16px;

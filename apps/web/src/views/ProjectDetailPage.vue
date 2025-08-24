@@ -34,24 +34,20 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content :fullscreen="true">
       <ion-header collapse="condense">
         <ion-toolbar>
           <ion-title size="large">{{ project?.name }}</ion-title>
         </ion-toolbar>
       </ion-header>
-
       <!-- Refresher -->
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh">
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
-
       <div v-if="isLoading" class="loading-container">
         <ion-spinner name="crescent"></ion-spinner>
         <p>Loading project details...</p>
       </div>
-
       <div v-if="error && !isLoading" class="error-container">
         <ion-icon :icon="alertCircleOutline" color="danger" class="error-icon"></ion-icon>
         <h3>Failed to load project</h3>
@@ -61,7 +57,6 @@
           Retry
         </ion-button>
       </div>
-
       <div v-if="project && !isLoading" class="project-detail-container">
         <!-- Hierarchy Breadcrumb -->
         <div v-if="hierarchyPath && hierarchyPath.length > 1" class="hierarchy-breadcrumb">
@@ -80,7 +75,6 @@
             {{ node.name || 'Unnamed Project' }}
           </ion-chip>
         </div>
-        
         <!-- Project Overview -->
         <div class="overview-section">
           <ion-card>
@@ -112,7 +106,6 @@
                   <ion-icon :icon="timeOutline"></ion-icon>
                   <span><strong>Last Updated:</strong> {{ formatRelativeTime(project.updatedAt) }}</span>
                 </div>
-                
                 <!-- Hierarchical information -->
                 <div class="meta-item" v-if="project.hierarchyLevel && project.hierarchyLevel > 0">
                   <ion-icon :icon="gitBranchOutline"></ion-icon>
@@ -126,7 +119,6 @@
             </ion-card-content>
           </ion-card>
         </div>
-
         <!-- Progress Overview -->
         <div class="progress-section">
           <ion-card>
@@ -152,7 +144,6 @@
                   <div class="stat-label">Failed</div>
                 </div>
               </div>
-              
               <div class="progress-bar-section" v-if="totalTasks > 0">
                 <div class="progress-info">
                   <span class="progress-label">Overall Progress</span>
@@ -166,7 +157,6 @@
             </ion-card-content>
           </ion-card>
         </div>
-
         <!-- Task Management -->
         <div class="tasks-section">
           <ion-card>
@@ -193,7 +183,6 @@
               <div v-if="filteredTasks.length === 0" class="no-tasks">
                 <p>No {{ taskFilter === 'all' ? '' : taskFilter }} tasks found</p>
               </div>
-              
               <ion-list v-else>
                 <ion-item 
                   v-for="task in filteredTasks" 
@@ -224,7 +213,6 @@
             </ion-card-content>
           </ion-card>
         </div>
-
         <!-- Subprojects Section -->
         <div v-if="project" class="subprojects-section">
           <ion-card>
@@ -246,12 +234,10 @@
                 <ion-spinner name="crescent"></ion-spinner>
                 <p>Loading subprojects...</p>
               </div>
-              
               <div v-else-if="!project.subprojectCount || project.subprojectCount === 0" class="empty-subprojects">
                 <ion-icon :icon="folderOutline" class="empty-icon"></ion-icon>
                 <p>No subprojects yet. Click "Add Subproject" to create one.</p>
               </div>
-              
               <ion-list v-else>
                 <ion-item 
                   v-for="subproject in subprojects" 
@@ -281,7 +267,6 @@
             </ion-card-content>
           </ion-card>
         </div>
-
         <!-- Project Actions -->
         <div class="actions-section">
           <ion-card>
@@ -322,7 +307,6 @@
     </ion-content>
   </ion-page>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import {
@@ -377,9 +361,7 @@ import {
 } from 'ionicons/icons';
 import { useRoute, useRouter } from 'vue-router';
 import { projectsService, type Project, type UpdateProjectDto, type ProjectHierarchyNode } from '@/services/projectsService';
-
 // Project interface is now imported from projectsService
-
 interface DisplayProject {
   id: string;
   name?: string;
@@ -398,7 +380,6 @@ interface DisplayProject {
   hierarchyLevel?: number;
   subprojectCount?: number;
 }
-
 interface ProjectTask {
   id: string;
   name: string;
@@ -410,10 +391,8 @@ interface ProjectTask {
   estimatedDuration?: string;
   errorMessage?: string;
 }
-
 const route = useRoute();
 const router = useRouter();
-
 // Reactive state
 const project = ref<DisplayProject | null>(null);
 const projectSteps = ref<any[]>([]);
@@ -421,17 +400,13 @@ const tasks = ref<ProjectTask[]>([]);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 const taskFilter = ref('all');
-
 // Hierarchical state
 const hierarchyPath = ref<ProjectHierarchyNode[]>([]);
 const subprojects = ref<Project[]>([]);
 const isLoadingSubprojects = ref(false);
-
 // Mock data
 // Mock data removed - now using real API data
-
 // Mock tasks removed - now using real project steps data
-
 // Computed properties
 const filteredTasks = computed(() => {
   if (taskFilter.value === 'all') {
@@ -439,13 +414,11 @@ const filteredTasks = computed(() => {
   }
   return tasks.value.filter(task => task.status === taskFilter.value);
 });
-
 // Task statistics computed from real data
 const totalTasks = computed(() => tasks.value.length);
 const completedTasks = computed(() => tasks.value.filter(t => t.status === 'completed').length);
 const activeTasks = computed(() => tasks.value.filter(t => t.status === 'active').length);
 const failedTasks = computed(() => tasks.value.filter(t => t.status === 'failed').length);
-
 // Orchestrator name derived from conversation or project metadata
 const orchestratorName = computed(() => {
   // Try to extract orchestrator name from project metadata or conversation
@@ -457,15 +430,12 @@ const orchestratorName = computed(() => {
   }
   return 'CEO Orchestrator'; // Default fallback
 });
-
 // Methods
 const fetchProject = async () => {
   isLoading.value = true;
   error.value = null;
-  
   try {
     const projectId = route.params.id as string;
-    
     // Fetch project details
     const projectData = await projectsService.getProject(projectId);
     project.value = {
@@ -475,12 +445,10 @@ const fetchProject = async () => {
       // Map backend status to frontend display status
       displayStatus: mapBackendStatus(projectData.status)
     };
-    
     // Fetch project steps
     try {
       const steps = await projectsService.getProjectSteps(projectId);
       projectSteps.value = steps;
-      
       // Convert steps to task format for display compatibility
       tasks.value = steps.map(step => ({
         id: step.id,
@@ -494,23 +462,21 @@ const fetchProject = async () => {
         errorMessage: step.errorDetails ? JSON.stringify(step.errorDetails) : undefined
       }));
     } catch (stepsErr) {
-      console.warn('Failed to load project steps:', stepsErr);
+
       tasks.value = [];
     }
-    
     // Fetch hierarchical data (only if hierarchical fields are available)
     try {
       // Fetch hierarchy path for breadcrumbs
       if (project.value.hierarchyLevel && project.value.hierarchyLevel > 0) {
         await fetchHierarchyPath(projectId);
       }
-      
       // Fetch subprojects
       if (project.value.subprojectCount && project.value.subprojectCount > 0) {
         await fetchSubprojects(projectId);
       }
     } catch (hierarchyErr) {
-      console.warn('Failed to load hierarchical data (may not be available):', hierarchyErr);
+
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load project';
@@ -518,12 +484,10 @@ const fetchProject = async () => {
     isLoading.value = false;
   }
 };
-
 const handleRefresh = async (event: CustomEvent) => {
   await fetchProject();
   event.detail.complete();
 };
-
 const pauseProject = async () => {
   const alert = await alertController.create({
     header: 'Pause Project',
@@ -540,7 +504,7 @@ const pauseProject = async () => {
               await fetchProject();
             }
           } catch (err) {
-            console.error('Failed to pause project:', err);
+
           }
         }
       }
@@ -548,7 +512,6 @@ const pauseProject = async () => {
   });
   await alert.present();
 };
-
 const resumeProject = async () => {
   const alert = await alertController.create({
     header: 'Resume Project',
@@ -564,7 +527,7 @@ const resumeProject = async () => {
               await fetchProject();
             }
           } catch (err) {
-            console.error('Failed to resume project:', err);
+
           }
         }
       }
@@ -572,7 +535,6 @@ const resumeProject = async () => {
   });
   await alert.present();
 };
-
 const openOptionsMenu = async () => {
   const actionSheet = await actionSheetController.create({
     header: 'Project Options',
@@ -608,7 +570,6 @@ const openOptionsMenu = async () => {
   });
   await actionSheet.present();
 };
-
 const deleteProject = async () => {
   const alert = await alertController.create({
     header: 'Delete Project',
@@ -632,21 +593,16 @@ const deleteProject = async () => {
   });
   await alert.present();
 };
-
 const filterTasks = () => {
   // Filtering is handled by computed property
 };
-
 const openTaskDetail = (task: ProjectTask) => {
   // Navigate to task detail or show modal
-  console.log('Open task detail:', task);
 };
-
 const chatWithOrchestrator = () => {
   // Navigate to organization page and start conversation with orchestrator
   router.push('/organization');
 };
-
 const addTask = async () => {
   const toast = await toastController.create({
     message: 'Add task functionality coming soon',
@@ -655,7 +611,6 @@ const addTask = async () => {
   });
   await toast.present();
 };
-
 const exportProject = async () => {
   const toast = await toastController.create({
     message: 'Export functionality coming soon',
@@ -664,41 +619,35 @@ const exportProject = async () => {
   });
   await toast.present();
 };
-
 // Hierarchical methods
 const fetchHierarchyPath = async (projectId: string) => {
   try {
     hierarchyPath.value = await projectsService.getProjectHierarchyPath(projectId);
   } catch (err) {
-    console.error('Failed to fetch hierarchy path:', err);
+
   }
 };
-
 const fetchSubprojects = async (projectId: string) => {
   if (!project.value || !project.value.subprojectCount || project.value.subprojectCount === 0) {
     return;
   }
-  
   isLoadingSubprojects.value = true;
   try {
     subprojects.value = await projectsService.getSubprojects(projectId);
   } catch (err) {
-    console.error('Failed to fetch subprojects:', err);
+
   } finally {
     isLoadingSubprojects.value = false;
   }
 };
-
 const navigateToProject = (projectId: string) => {
   router.push(`/projects/${projectId}`);
 };
-
 const createSubproject = () => {
   if (project.value) {
     router.push(`/projects/new?parentId=${project.value.id}&parentName=${encodeURIComponent(project.value.name || 'Unnamed Project')}`);
   }
 };
-
 // Map backend project status to frontend display status
 const mapBackendStatus = (status: Project['status']) => {
   const statusMap: Record<Project['status'], string> = {
@@ -711,7 +660,6 @@ const mapBackendStatus = (status: Project['status']) => {
   };
   return statusMap[status] || status;
 };
-
 // Map step status to task status
 const mapStepStatus = (status: string) => {
   const statusMap: Record<string, string> = {
@@ -723,7 +671,6 @@ const mapStepStatus = (status: string) => {
   };
   return statusMap[status] || status;
 };
-
 const getStatusColor = (status: string) => {
   const colors = {
     active: 'success',
@@ -733,7 +680,6 @@ const getStatusColor = (status: string) => {
   };
   return colors[status as keyof typeof colors] || 'medium';
 };
-
 const getTaskStatusColor = (status: string) => {
   const colors = {
     pending: 'medium',
@@ -743,44 +689,37 @@ const getTaskStatusColor = (status: string) => {
   };
   return colors[status as keyof typeof colors] || 'medium';
 };
-
 const getProgressColor = (progress: number) => {
   if (progress >= 0.8) return 'success';
   if (progress >= 0.5) return 'primary';
   if (progress >= 0.2) return 'warning';
   return 'danger';
 };
-
 const formatDate = (date: Date) => {
   return date.toLocaleDateString();
 };
-
 const formatRelativeTime = (date: Date) => {
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor(diff / (1000 * 60));
-  
   if (days > 0) return `${days}d ago`;
   if (hours > 0) return `${hours}h ago`;
   if (minutes > 0) return `${minutes}m ago`;
   return 'Just now';
 };
-
 // Lifecycle
 onMounted(() => {
   fetchProject();
 });
 </script>
-
 <style scoped>
 .project-detail-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 1rem;
 }
-
 .loading-container,
 .error-container {
   display: flex;
@@ -790,115 +729,95 @@ onMounted(() => {
   padding: 3rem 1rem;
   text-align: center;
 }
-
 .error-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
 }
-
 .overview-section,
 .progress-section,
 .tasks-section,
 .actions-section {
   margin-bottom: 1.5rem;
 }
-
 .project-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
 }
-
 .project-title-section {
   flex: 1;
   min-width: 0;
 }
-
 .status-badge {
   flex-shrink: 0;
   font-size: 0.75rem;
   font-weight: 600;
 }
-
 .project-meta {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 1rem;
 }
-
 .meta-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
 }
-
 .meta-item ion-icon {
   font-size: 1rem;
   color: var(--ion-color-medium);
 }
-
 .progress-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
-
 .stat-item {
   text-align: center;
   padding: 1rem;
   background: var(--ion-color-step-50);
   border-radius: 8px;
 }
-
 .stat-number {
   font-size: 2rem;
   font-weight: bold;
   color: var(--ion-color-dark);
 }
-
 .stat-number.success {
   color: var(--ion-color-success);
 }
-
 .stat-number.primary {
   color: var(--ion-color-primary);
 }
-
 .stat-number.danger {
   color: var(--ion-color-danger);
 }
-
 .stat-label {
   font-size: 0.85rem;
   color: var(--ion-color-medium);
   margin-top: 0.25rem;
 }
-
 .progress-bar-section {
   margin-top: 1rem;
 }
-
 .progress-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
 }
-
 .progress-label {
   font-weight: 500;
   color: var(--ion-color-dark);
 }
-
 .progress-percentage {
   font-size: 0.9rem;
   color: var(--ion-color-medium);
 }
-
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -906,18 +825,15 @@ onMounted(() => {
   gap: 1rem;
   flex-wrap: wrap;
 }
-
 .no-tasks {
   text-align: center;
   padding: 2rem;
   color: var(--ion-color-medium);
 }
-
 .task-content {
   flex: 1;
   min-width: 0;
 }
-
 .task-header {
   display: flex;
   justify-content: space-between;
@@ -925,24 +841,20 @@ onMounted(() => {
   gap: 1rem;
   margin-bottom: 0.5rem;
 }
-
 .task-header h3 {
   margin: 0;
   font-size: 1rem;
   font-weight: 500;
 }
-
 .task-status-badge {
   font-size: 0.7rem;
   flex-shrink: 0;
 }
-
 .task-description {
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;
   color: var(--ion-color-medium);
 }
-
 .task-meta {
   display: flex;
   flex-wrap: wrap;
@@ -950,43 +862,35 @@ onMounted(() => {
   font-size: 0.8rem;
   color: var(--ion-color-medium);
 }
-
 .action-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
 }
-
 .action-btn {
   flex: 1;
   min-width: 200px;
 }
-
 /* Responsive design */
 @media (max-width: 768px) {
   .project-detail-container {
     padding: 0.5rem;
   }
-  
   .progress-stats {
     grid-template-columns: repeat(2, 1fr);
   }
-  
   .section-header {
     flex-direction: column;
     align-items: stretch;
   }
-  
   .task-meta {
     flex-direction: column;
     gap: 0.25rem;
   }
-  
   .action-btn {
     min-width: auto;
   }
 }
-
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .stat-item {

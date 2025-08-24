@@ -25,7 +25,6 @@ export class AuthService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async signup(userCreateDto: UserCreateDto): Promise<TokenResponseDto> {
-    this.logger.log(`Signup attempt for email: ${userCreateDto.email}`);
 
     try {
       const supabaseClient = this.supabaseService.getAnonClient();
@@ -43,7 +42,7 @@ export class AuthService {
       });
 
       if (error) {
-        this.logger.error(`Signup error: ${error.message}`);
+
         throw new BadRequestException(
           error.message ||
             'Error during signup. User might already exist or invalid input.',
@@ -52,9 +51,7 @@ export class AuthService {
 
       // Handle successful signup with session
       if (authResponse.user && authResponse.session?.access_token) {
-        this.logger.log(
-          `User created successfully with session: ${authResponse.user.id}`,
-        );
+
         return {
           accessToken: authResponse.session.access_token,
           refreshToken: authResponse.session.refresh_token || undefined,
@@ -65,9 +62,7 @@ export class AuthService {
 
       // User created but no session (email confirmation required)
       if (authResponse.user && !authResponse.session) {
-        this.logger.log(
-          `User created but email confirmation required: ${authResponse.user.id}`,
-        );
+
         throw new HttpException(
           'User created successfully. Please check your email to confirm your account before logging in.',
           HttpStatus.ACCEPTED, // 202 Accepted
@@ -83,7 +78,6 @@ export class AuthService {
         throw error;
       }
 
-      this.logger.error(`Unexpected error during signup: ${error}`);
       throw new HttpException(
         'An unexpected error occurred during signup.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -92,7 +86,6 @@ export class AuthService {
   }
 
   async login(userLoginDto: UserLoginDto): Promise<TokenResponseDto> {
-    this.logger.log(`Login attempt for email: ${userLoginDto.email}`);
 
     try {
       const supabaseClient = this.supabaseService.getAnonClient();
@@ -104,22 +97,19 @@ export class AuthService {
         });
 
       if (error) {
-        this.logger.error(`Login error: ${error.message}`);
+
         throw new UnauthorizedException(
           error.message || 'Invalid login credentials.',
         );
       }
 
       if (!authResponse.session?.access_token) {
-        this.logger.error(
-          `Login succeeded but no session or token received for: ${userLoginDto.email}`,
-        );
+
         throw new BadRequestException(
           'Login succeeded but no session or token received.',
         );
       }
 
-      this.logger.log(`Login successful for: ${userLoginDto.email}`);
       return {
         accessToken: authResponse.session.access_token,
         refreshToken: authResponse.session.refresh_token || undefined,
@@ -131,7 +121,6 @@ export class AuthService {
         throw error;
       }
 
-      this.logger.error(`Unexpected error during login: ${error}`);
       throw new HttpException(
         'An unexpected error occurred during login.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -140,7 +129,6 @@ export class AuthService {
   }
 
   async logout(token: string): Promise<void> {
-    this.logger.log('Logout attempt');
 
     try {
       // Create an authenticated client with the user's token
@@ -150,17 +138,15 @@ export class AuthService {
       const { error } = await authenticatedClient.auth.signOut();
 
       if (error) {
-        this.logger.error(`Logout error: ${error.message}`);
+
         throw new BadRequestException(error.message || 'Error during logout.');
       }
 
-      this.logger.log('Logout successful');
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
       }
 
-      this.logger.error(`Unexpected error during logout: ${error}`);
       throw new HttpException(
         'An unexpected error occurred during logout.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -169,7 +155,6 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string): Promise<TokenResponseDto> {
-    this.logger.log('Token refresh attempt');
 
     try {
       const supabaseClient = this.supabaseService.getAnonClient();
@@ -181,18 +166,17 @@ export class AuthService {
         });
 
       if (error) {
-        this.logger.error(`Token refresh error: ${error.message}`);
+
         throw new UnauthorizedException(
           error.message || 'Invalid or expired refresh token',
         );
       }
 
       if (!authResponse.session) {
-        this.logger.error('Token refresh failed: No session returned');
+
         throw new UnauthorizedException('Invalid or expired refresh token');
       }
 
-      this.logger.log('Token refresh successful');
       return {
         accessToken: authResponse.session.access_token,
         refreshToken: authResponse.session.refresh_token || undefined,
@@ -204,7 +188,6 @@ export class AuthService {
         throw error;
       }
 
-      this.logger.error(`Unexpected error during token refresh: ${error}`);
       throw new HttpException(
         'An unexpected error occurred during token refresh.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -216,7 +199,6 @@ export class AuthService {
     currentAuthUser: SupabaseAuthUserDto,
     token: string,
   ): Promise<AuthenticatedUserResponseDto> {
-    this.logger.log(`Fetching current user profile for: ${currentAuthUser.id}`);
 
     try {
       // Use service role client to bypass RLS issues temporarily
@@ -238,9 +220,7 @@ export class AuthService {
         };
       } else {
         // Fallback to auth user data if no public profile found
-        this.logger.warn(
-          `No public user profile found for auth user: ${currentAuthUser.id}`,
-        );
+
         return {
           id: currentAuthUser.id,
           email: currentAuthUser.email,
@@ -249,9 +229,7 @@ export class AuthService {
         };
       }
     } catch (error) {
-      this.logger.error(
-        `Error fetching user profile for ${currentAuthUser.id}: ${error}`,
-      );
+
       throw new HttpException(
         'Could not fetch user profile.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -292,7 +270,7 @@ export class AuthService {
         identities: user.identities,
       };
     } catch (error) {
-      this.logger.error(`Token validation failed: ${error}`);
+
       throw new UnauthorizedException('Invalid token');
     }
   }
@@ -325,7 +303,7 @@ export class AuthService {
         updatedAt: new Date(data.updated_at),
       };
     } catch (error) {
-      this.logger.error(`Error fetching user profile for ID ${userId}:`, error);
+
       throw new HttpException(
         'Could not fetch user profile.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -538,10 +516,10 @@ export class AuthService {
         });
 
       if (error) {
-        this.logger.warn(`Failed to log role change: ${error.message}`);
+
       }
     } catch (error) {
-      this.logger.warn(`Failed to log role change:`, error);
+
     }
   }
 }

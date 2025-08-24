@@ -87,7 +87,7 @@ export class TaskLifecycleService {
    */
   updateConfig(newConfig: Partial<TaskLifecycleConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    this.logger.debug('Task lifecycle configuration updated', this.config);
+
   }
 
   /**
@@ -134,11 +134,6 @@ export class TaskLifecycleService {
       }, task.timeout);
       this.taskTimeouts.set(taskId, timeoutHandle);
     }
-
-    this.logger.debug(`Created task ${taskId}`, {
-      method: task.method,
-      timeout: task.timeout,
-    });
 
     return task;
   }
@@ -207,9 +202,7 @@ export class TaskLifecycleService {
   updateTaskStatus(taskId: string, status: TaskStatus): Task | null {
     const task = this.activeTasks.get(taskId);
     if (!task) {
-      this.logger.warn(
-        `Attempted to update status of non-existent task ${taskId}`,
-      );
+
       return null;
     }
 
@@ -217,9 +210,6 @@ export class TaskLifecycleService {
     task.status = status;
     task.updatedAt = new Date();
 
-    this.logger.debug(
-      `Task ${taskId} status changed from ${oldStatus} to ${status}`,
-    );
     return task;
   }
 
@@ -278,7 +268,6 @@ export class TaskLifecycleService {
     this.updateTaskStatus(taskId, TaskStatus.CANCELLED);
     this.cleanupTask(taskId);
 
-    this.logger.debug(`Cancelled task ${taskId}`);
     return true;
   }
 
@@ -305,7 +294,7 @@ export class TaskLifecycleService {
 
     // Only log cleanup if tasks were actually cleaned up
     if (tasksToCleanup.length > 0) {
-      this.logger.debug(`Cleaned up ${tasksToCleanup.length} completed tasks`);
+
     }
     return tasksToCleanup.length;
   }
@@ -368,7 +357,7 @@ export class TaskLifecycleService {
     const stuckTasks = this.getStuckTasks();
 
     for (const task of stuckTasks) {
-      this.logger.warn(`Force cleaning up stuck task ${task.id}`);
+
       this.failTask(task.id, new Error('Task stuck - forced cleanup'));
     }
 
@@ -381,7 +370,7 @@ export class TaskLifecycleService {
   private completeTask(taskId: string, result: any): void {
     const task = this.activeTasks.get(taskId);
     if (!task) {
-      this.logger.warn(`Attempted to complete non-existent task ${taskId}`);
+
       return;
     }
 
@@ -391,7 +380,6 @@ export class TaskLifecycleService {
 
     this.cleanupTaskTimeout(taskId);
 
-    this.logger.debug(`Task ${taskId} completed successfully`);
   }
 
   /**
@@ -400,7 +388,7 @@ export class TaskLifecycleService {
   private failTask(taskId: string, error: any): void {
     const task = this.activeTasks.get(taskId);
     if (!task) {
-      this.logger.warn(`Attempted to fail non-existent task ${taskId}`);
+
       return;
     }
 
@@ -414,7 +402,6 @@ export class TaskLifecycleService {
 
     this.cleanupTaskTimeout(taskId);
 
-    this.logger.error(`Task ${taskId} failed`, { error: task.error });
   }
 
   /**
@@ -425,8 +412,6 @@ export class TaskLifecycleService {
     if (!task) {
       return;
     }
-
-    this.logger.warn(`Task ${taskId} timed out after ${task.timeout}ms`);
 
     task.status = TaskStatus.FAILED;
     task.error = {
@@ -493,7 +478,7 @@ export class TaskLifecycleService {
           // Cleanup stuck tasks
           await this.cleanupStuckTasks();
         } catch (error) {
-          this.logger.error('Error during automatic cleanup', error);
+
         }
       }, this.config.cleanupInterval);
     }
@@ -513,7 +498,6 @@ export class TaskLifecycleService {
    * Cleanup all resources when service is destroyed
    */
   async onModuleDestroy(): Promise<void> {
-    this.logger.debug('TaskLifecycleService shutting down...');
 
     // Stop cleanup interval
     this.stopCleanupInterval();
@@ -532,6 +516,5 @@ export class TaskLifecycleService {
     // Clear all tasks
     this.activeTasks.clear();
 
-    this.logger.debug('TaskLifecycleService shutdown complete');
   }
 }

@@ -36,18 +36,13 @@ export class ContextOptimizationService {
     // Fast-path: under 80% of budget → pass through
     const totalTokens = this.calculateTokens(fullHistory);
     if (totalTokens <= tokenBudget * 0.8) {
-      this.logger.debug(
-        `ContextOptimization: passthrough (tokens=${totalTokens}, budget=${tokenBudget})`,
-      );
+
       return fullHistory;
     }
 
     // Layered optimization
     const optimized = await this.performLayeredOptimization(request);
     const duration = Date.now() - start;
-    this.logger.log(
-      `ContextOptimization: optimized ${fullHistory.length}→${optimized.length} messages in ${duration}ms (budget=${tokenBudget})`,
-    );
 
     // Emit metrics
     try {
@@ -58,7 +53,7 @@ export class ContextOptimizationService {
         workProductType: request.workProductType,
       });
     } catch (e) {
-      this.logger.debug(`Failed to emit context metrics: ${e}`);
+
     }
     return optimized;
   }
@@ -101,9 +96,7 @@ export class ContextOptimizationService {
         );
       }
     } catch (e) {
-      this.logger.warn(
-        `Failed to extract work product context (${type}:${id}): ${e instanceof Error ? e.message : e}`,
-      );
+
     }
     return null;
   }

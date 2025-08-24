@@ -7,7 +7,6 @@
         We grow with you.
       </p>
     </div>
-
     <div class="pricing-grid">
       <!-- Setup Package -->
       <div class="pricing-card highlight">
@@ -23,7 +22,6 @@
           Reserve Your Spot (5 left)
         </ion-button>
       </div>
-
       <!-- Ongoing Development -->
       <div class="pricing-card">
         <h3 class="package-title">Ongoing Development</h3>
@@ -39,7 +37,6 @@
           Discuss Your Project
         </ion-button>
       </div>
-
       <!-- Updates & Separation -->
       <div class="pricing-card">
         <h3 class="package-title">Updates & Separation</h3>
@@ -58,10 +55,8 @@
     </div>
   </section>
 </template>
-
 <script setup lang="ts">
 import { IonButton } from '@ionic/vue';
-
 /**
  * Emits:
  *  - schedule-call: trigger parent to scroll to CTA or open Calendly
@@ -70,25 +65,21 @@ defineEmits<{
   scheduleCall: []
 }>();
 </script>
-
 <style scoped>
 .pricing-section {
   background: var(--landing-white);
   padding: 4rem 0;
 }
-
 .section-header {
   text-align: center;
   margin-bottom: 3rem;
 }
-
 .section-header h2 {
   font-size: 2rem;
   color: var(--landing-dark);
   margin-bottom: 0.5rem;
   font-weight: 700;
 }
-
 .section-subtitle {
   font-size: 1.1rem;
   color: var(--landing-gray);
@@ -96,14 +87,12 @@ defineEmits<{
   margin: 0 auto;
   line-height: 1.6;
 }
-
 .pricing-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
   padding: 0 2rem;
 }
-
 .pricing-card {
   background: var(--landing-primary-50);
   border-radius: 20px;
@@ -117,53 +106,45 @@ defineEmits<{
   align-items: center;
   text-align: center;
 }
-
 .pricing-card.highlight {
   border-color: var(--landing-secondary);
   background: linear-gradient(135deg, var(--landing-secondary-light), var(--landing-primary-50));
   box-shadow: var(--shadow-green);
 }
-
 .pricing-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
   border-color: var(--landing-secondary);
 }
-
 .package-title {
   font-size: 1.3rem;
   font-weight: 600;
   color: var(--landing-dark);
   margin-bottom: 0.75rem;
 }
-
 .package-price {
   font-size: 1.8rem;
   font-weight: 700;
   color: var(--landing-secondary);
   margin-bottom: 0.25rem;
 }
-
 .sub-price {
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--landing-primary-dark);
   margin-bottom: 0.75rem;
 }
-
 .price-tag {
   font-size: 0.8rem;
   color: var(--landing-gray);
   font-weight: 500;
 }
-
 .package-features {
   list-style: none;
   padding: 0;
   margin: 1rem 0 2rem;
   text-align: left;
 }
-
 .package-features li {
   margin-bottom: 0.5rem;
   color: var(--landing-dark);
@@ -172,7 +153,6 @@ defineEmits<{
   align-items: center;
   gap: 0.5rem;
 }
-
 .cta-button {
   --background: var(--landing-accent);
   --color: white;
@@ -180,14 +160,12 @@ defineEmits<{
   font-weight: 600;
   width: 100%;
 }
-
 .cta-button.secondary {
   --background: var(--landing-white);
   --color: var(--landing-secondary);
   border: 2px solid var(--landing-secondary);
   --box-shadow: var(--shadow-sm);
 }
-
 @media (max-width: 768px) {
   .pricing-grid {
     grid-template-columns: 1fr;

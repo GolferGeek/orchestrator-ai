@@ -17,7 +17,6 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content :fullscreen="true" class="ion-padding">
       <!-- Evaluation Type Tabs -->
       <ion-card class="tabs-card">
@@ -32,7 +31,6 @@
           </ion-segment>
         </ion-card-content>
       </ion-card>
-
       <!-- Filters Section -->
       <ion-card class="filters-card">
         <ion-card-header>
@@ -91,13 +89,11 @@
           </ion-grid>
         </ion-card-content>
       </ion-card>
-
       <!-- Loading State -->
       <div v-if="evaluationsStore.isLoading && !evaluationsStore.hasEvaluations" class="ion-text-center ion-padding">
         <ion-spinner name="crescent"></ion-spinner>
         <p>Loading evaluations...</p>
       </div>
-
       <!-- Error State -->
       <ion-card v-else-if="evaluationsStore.error" color="danger">
         <ion-card-content>
@@ -114,7 +110,6 @@
           </ion-button>
         </ion-card-content>
       </ion-card>
-
       <!-- Empty State -->
       <ion-card v-else-if="(!evaluationsStore.hasEvaluations || filteredEvaluations.length === 0) && !evaluationsStore.isLoading">
         <ion-card-content class="ion-text-center">
@@ -130,7 +125,6 @@
           </ion-button>
         </ion-card-content>
       </ion-card>
-
       <!-- Evaluations List -->
       <div v-else>
         <!-- Pagination Info -->
@@ -143,7 +137,6 @@
             </p>
           </ion-label>
         </ion-item>
-
         <!-- Evaluation Cards -->
         <ion-card 
           v-for="evaluation in filteredEvaluations" 
@@ -186,7 +179,6 @@
               </ion-col>
             </ion-row>
           </ion-card-header>
-          
           <ion-card-content>
             <ion-row v-if="evaluation.userNotes">
               <ion-col>
@@ -195,7 +187,6 @@
                 </ion-text>
               </ion-col>
             </ion-row>
-            
             <ion-row>
               <ion-col size="6" v-if="evaluation.speedRating">
                 <ion-chip outline color="primary">
@@ -212,7 +203,6 @@
             </ion-row>
           </ion-card-content>
         </ion-card>
-
         <!-- Pagination Controls -->
         <ion-card class="pagination-controls">
           <ion-card-content>
@@ -227,13 +217,11 @@
                   Previous
                 </ion-button>
               </ion-col>
-              
               <ion-col class="ion-text-center">
                 <ion-text>
                   <strong>Page {{ evaluationsStore.pagination.page }} of {{ evaluationsStore.pagination.totalPages }}</strong>
                 </ion-text>
               </ion-col>
-              
               <ion-col size="auto">
                 <ion-button 
                   fill="clear" 
@@ -248,13 +236,11 @@
           </ion-card-content>
         </ion-card>
       </div>
-
       <!-- Loading overlay for pagination -->
       <div v-if="evaluationsStore.isLoading && evaluationsStore.hasEvaluations" class="loading-overlay">
         <ion-spinner name="crescent"></ion-spinner>
       </div>
     </ion-content>
-
     <!-- Evaluation Details Modal -->
     <EvaluationDetailsModal 
       :is-open="showDetailsModal"
@@ -263,7 +249,6 @@
     />
   </ion-page>
 </template>
-
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue';
 import {
@@ -309,26 +294,20 @@ import {
 import { useEvaluationsStore } from '@/stores/evaluationsStore';
 import type { EvaluationWithMessage, AllEvaluationsFilters } from '@/types/evaluation';
 import EvaluationDetailsModal from '@/components/EvaluationDetailsModal.vue';
-
 const evaluationsStore = useEvaluationsStore();
 const showDetailsModal = ref(false);
 const selectedEvaluation = ref<EvaluationWithMessage | null>(null);
 const selectedTab = ref('tasks'); // Default to task evaluations
-
 const localFilters = ref<AllEvaluationsFilters>({
   page: 1,
   limit: 20
 });
-
 let filterTimeout: NodeJS.Timeout | null = null;
-
 // Computed property for star icon
 const starIcon = computed(() => star);
-
 // Computed property to filter evaluations based on selected tab
 const filteredEvaluations = computed(() => {
   const allEvaluations = evaluationsStore.evaluations;
-  
   if (selectedTab.value === 'deliverables') {
     // Show evaluations that have deliverable metadata (indicating they're from deliverable-associated tasks)
     // This includes tasks that created deliverables, regardless of whether they were rated before or after the task_id was linked
@@ -347,37 +326,27 @@ const filteredEvaluations = computed(() => {
     return allEvaluations;
   }
 });
-
 onMounted(() => {
   evaluationsStore.fetchEvaluations();
 });
-
 function refreshEvaluations() {
   evaluationsStore.refreshEvaluations();
 }
-
 function handleTabChange() {
-  console.log('[EvaluationsPage] Tab changed to:', selectedTab.value);
   // Optionally reset pagination when switching tabs
   localFilters.value.page = 1;
 }
-
 function applyFilters() {
-  console.log('[EvaluationsPage] Applying filters:', localFilters.value);
   evaluationsStore.applyFilters(localFilters.value);
 }
-
 function debounceFilter() {
   if (filterTimeout) {
     clearTimeout(filterTimeout);
   }
-  
   filterTimeout = setTimeout(() => {
-    console.log('[EvaluationsPage] Debounced filter triggered with:', localFilters.value);
     applyFilters();
   }, 500);
 }
-
 function clearAllFilters() {
   localFilters.value = {
     page: 1,
@@ -385,82 +354,66 @@ function clearAllFilters() {
   };
   evaluationsStore.clearFilters();
 }
-
 function openEvaluationDetails(evaluation: EvaluationWithMessage) {
   selectedEvaluation.value = evaluation;
   showDetailsModal.value = true;
 }
-
 function closeEvaluationDetails() {
   showDetailsModal.value = false;
   selectedEvaluation.value = null;
 }
-
 function truncateContent(content: string, maxLength: number = 100): string {
   if (content.length <= maxLength) return content;
   return content.substring(0, maxLength) + '...';
 }
-
 function truncateNotes(notes: string, maxLength: number = 150): string {
   if (notes.length <= maxLength) return notes;
   return notes.substring(0, maxLength) + '...';
 }
-
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 </script>
-
 <style scoped>
 .tabs-card {
   margin-bottom: 1rem;
 }
-
 .tabs-card ion-segment {
   width: 100%;
 }
-
 .filters-card {
   margin-bottom: 1rem;
 }
-
 .evaluation-card {
   margin-bottom: 1rem;
   cursor: pointer;
   transition: transform 0.2s ease;
 }
-
 .evaluation-card:hover {
   transform: translateY(-2px);
 }
-
 .evaluation-title {
   font-size: 1rem;
   line-height: 1.4;
 }
-
 .rating-display {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 0.5rem;
 }
-
 .notes-preview {
   font-style: italic;
   margin: 0;
 }
-
 .pagination-info {
   margin-bottom: 1rem;
 }
-
 .pagination-controls {
   margin-top: 1rem;
   position: sticky;
   bottom: 1rem;
 }
-
 .loading-overlay {
   position: fixed;
   top: 0;

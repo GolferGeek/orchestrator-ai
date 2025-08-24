@@ -44,21 +44,15 @@ except ImportError as e:
     def extract_user_preferences(metadata): return {}
     def merge_llm_preferences(base, user): return base
 
-
 async def analyze_request_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Node: Analyze the user request to understand intent and scope using real LLM"""
-    
-    print(f"DEBUG: analyze_request_node started with keys: {list(state_dict.keys())}", file=sys.stderr)
-    
+
     # Create state manager
     state = RequirementsWriterState(state_dict)
-    
-    print(f"DEBUG: RequirementsWriterState created, task_id: {state.task_id}", file=sys.stderr)
-    print(f"DEBUG: User message: {state.user_message[:100]}...", file=sys.stderr)
-    
+
     try:
         # Emit start event
-        print(f"DEBUG: About to emit progress for task: {state.task_id}", file=sys.stderr)
+
         emit_progress(
             state.task_id, 
             "analyze_request", 
@@ -67,13 +61,12 @@ async def analyze_request_node(state_dict: Dict[str, Any]) -> Dict[str, Any]:
             "in_progress", 
             "Analyzing user request using AI to understand requirements scope and intent..."
         )
-        print(f"DEBUG: Progress emitted successfully", file=sys.stderr)
-        
+
         # Create LLM options from user preferences
-        print(f"DEBUG: About to create LLM options from preferences: {state.llm_preferences}", file=sys.stderr)
+
         try:
             llm_options = llm_client.create_options(**state.llm_preferences)
-            print(f"DEBUG: LLM options created: {llm_options}", file=sys.stderr)
+
         except Exception as e:
             print(f"ERROR: Failed to create LLM options: {e}", file=sys.stderr)
             llm_options = {}
@@ -106,8 +99,6 @@ Respond with a JSON object containing:
 
 Please provide a thorough analysis of this request following the JSON format specified."""
 
-        print(f"DEBUG: About to call LLM service with prompts (system: {len(system_prompt)} chars, user: {len(user_prompt)} chars)", file=sys.stderr)
-        
         # Make real LLM call
         start_time = datetime.now()
         try:
@@ -118,8 +109,7 @@ Please provide a thorough analysis of this request following the JSON format spe
             )
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
-            print(f"DEBUG: LLM call completed in {duration:.2f}s, response length: {len(response)} chars", file=sys.stderr)
-            print(f"DEBUG: LLM response preview: {response[:200]}...", file=sys.stderr)
+
         except Exception as e:
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
@@ -127,13 +117,13 @@ Please provide a thorough analysis of this request following the JSON format spe
             response = f"ERROR: LLM call failed: {e}"
         
         # Try to parse LLM response as JSON, fallback to structured analysis
-        print(f"DEBUG: Attempting to parse LLM response as JSON", file=sys.stderr)
+
         try:
             import json
             analysis = json.loads(response)
-            print(f"DEBUG: Successfully parsed JSON response: {list(analysis.keys())}", file=sys.stderr)
+
         except Exception as parse_error:
-            print(f"DEBUG: JSON parsing failed ({parse_error}), using fallback analysis", file=sys.stderr)
+
             # Fallback if LLM doesn't return valid JSON
             analysis = {
                 "intent": "requirements_generation",
@@ -149,15 +139,15 @@ Please provide a thorough analysis of this request following the JSON format spe
             }
         
         # Update state with analysis
-        print(f"DEBUG: About to update state with analysis", file=sys.stderr)
+
         try:
             state.set_analysis(analysis)
-            print(f"DEBUG: State updated successfully", file=sys.stderr)
+
         except Exception as state_error:
             print(f"ERROR: Failed to update state: {state_error}", file=sys.stderr)
         
         # Emit completion event
-        print(f"DEBUG: About to emit completion progress", file=sys.stderr)
+
         try:
             emit_progress(
                 state.task_id, 
@@ -167,15 +157,15 @@ Please provide a thorough analysis of this request following the JSON format spe
                 "completed", 
                 f"Request analysis complete - Identified {analysis.get('scope', 'medium')} scope {analysis.get('domain', 'business')} requirements"
             )
-            print(f"DEBUG: Completion progress emitted successfully", file=sys.stderr)
+
         except Exception as progress_error:
             print(f"ERROR: Failed to emit completion progress: {progress_error}", file=sys.stderr)
         
         # Return updated state
-        print(f"DEBUG: About to return state dictionary", file=sys.stderr)
+
         try:
             result = state.to_dict()
-            print(f"DEBUG: State converted to dict successfully, keys: {list(result.keys())}", file=sys.stderr)
+
             return result
         except Exception as dict_error:
             print(f"ERROR: Failed to convert state to dict: {dict_error}", file=sys.stderr)
@@ -199,7 +189,6 @@ Please provide a thorough analysis of this request following the JSON format spe
         except Exception as state_error:
             print(f"ERROR: Failed to set error state: {state_error}", file=sys.stderr)
             return {"error": error_msg, "userMessage": state_dict.get("userMessage", ""), "metadata": state_dict.get("metadata", {})}
-
 
 # For testing/development
 if __name__ == "__main__":

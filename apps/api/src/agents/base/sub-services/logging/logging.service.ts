@@ -31,16 +31,16 @@ export class LoggingService {
 
     switch (level) {
       case 'error':
-        this.logger.error(JSON.stringify(logEntry));
+
         break;
       case 'warn':
-        this.logger.warn(JSON.stringify(logEntry));
+
         break;
       case 'debug':
-        this.logger.debug(JSON.stringify(logEntry));
+
         break;
       default:
-        this.logger.log(JSON.stringify(logEntry));
+
     }
   }
 

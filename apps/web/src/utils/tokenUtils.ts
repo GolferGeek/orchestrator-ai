@@ -1,14 +1,12 @@
 /**
  * JWT Token utilities for expiration checking and refresh management
  */
-
 interface JWTPayload {
   exp?: number; // Expiration time (seconds since epoch)
   iat?: number; // Issued at time
   sub?: string; // Subject
   [key: string]: any;
 }
-
 /**
  * Decode JWT token without verification (client-side only for expiration checking)
  * Note: This is not secure verification, only for reading public claims
@@ -19,7 +17,6 @@ export function decodeJWT(token: string): JWTPayload | null {
     if (parts.length !== 3) {
       return null;
     }
-
     const payload = parts[1];
     const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
     return JSON.parse(decoded);
@@ -27,7 +24,6 @@ export function decodeJWT(token: string): JWTPayload | null {
     return null;
   }
 }
-
 /**
  * Check if JWT token is expired or will expire soon
  * @param token JWT token string
@@ -39,14 +35,11 @@ export function isTokenExpiredOrExpiringSoon(token: string, bufferMinutes: numbe
   if (!payload || !payload.exp) {
     return true; // Consider invalid tokens as expired
   }
-
   const now = Math.floor(Date.now() / 1000); // Current time in seconds
   const expiration = payload.exp;
   const bufferSeconds = bufferMinutes * 60;
-
   return (expiration - bufferSeconds) <= now;
 }
-
 /**
  * Get time remaining until token expires (in minutes)
  * @param token JWT token string
@@ -57,14 +50,11 @@ export function getTokenTimeRemaining(token: string): number {
   if (!payload || !payload.exp) {
     return 0;
   }
-
   const now = Math.floor(Date.now() / 1000);
   const expiration = payload.exp;
   const secondsRemaining = expiration - now;
-
   return Math.max(0, Math.floor(secondsRemaining / 60));
 }
-
 /**
  * Check if a token is valid (not malformed)
  * @param token JWT token string
@@ -74,12 +64,10 @@ export function isValidJWTStructure(token: string): boolean {
   if (!token || typeof token !== 'string') {
     return false;
   }
-
   const parts = token.split('.');
   if (parts.length !== 3) {
     return false;
   }
-
   try {
     // Try to decode each part to ensure it's valid base64
     atob(parts[0].replace(/-/g, '+').replace(/_/g, '/'));

@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-
 export interface UiState {
   isAppLoading: boolean;
   isPttRecording: boolean;
@@ -7,7 +6,6 @@ export interface UiState {
   // isDarkMode: boolean;
   // activeModal: string | null;
 }
-
 export const useUiStore = defineStore('ui', {
   state: (): UiState => ({
     isAppLoading: false,

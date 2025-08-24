@@ -67,9 +67,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    */
   setAgentFunction(agentFunction: any): void {
     this.agentFunction = agentFunction;
-    this.functionLogger.debug(
-      `Pre-loaded function set for ${this.getAgentName()}`,
-    );
   }
 
   /**
@@ -94,9 +91,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     try {
       // If no pre-loaded function, fall back to context processing
       if (!this.agentFunction || typeof this.agentFunction !== 'function') {
-        this.functionLogger.debug(
-          `No pre-loaded function for ${agentName}, using context fallback`,
-        );
         return this.processWithContext(method, params);
       }
 
@@ -174,10 +168,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
                 const availableServers =
                   this.mcpClientService.getAvailableServers();
                 const hasSupabase = availableServers.includes('supabase');
-
-                this.functionLogger.debug(
-                  `MCP Client Service status: servers=${availableServers.length}, supabase=${hasSupabase}`,
-                );
 
                 return hasSupabase && this.mcpClientService.isAvailable();
               } catch (error) {
@@ -339,10 +329,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
                 actualServerName = 'supabase';
               }
 
-              this.functionLogger.debug(
-                `MCP Tool call: ${server} -> ${actualServerName}, tool: ${toolName}`,
-              );
-
               const toolRequest = { name: toolName, arguments: params };
               return await this.mcpClientService.callTool(
                 actualServerName,
@@ -378,10 +364,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         'Task execution completed',
         this.totalSteps - 1,
         'completed',
-      );
-
-      this.functionLogger.debug(
-        `Function executed successfully for ${agentName}`,
       );
 
       // Aggregate LLM metadata from all calls
@@ -468,9 +450,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     message?: string,
   ): void {
     if (!this.currentTaskId) {
-      this.functionLogger.debug(
-        'No current task ID, skipping progress emission',
-      );
       return;
     }
 
@@ -480,9 +459,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       !this.completedWorkflowSteps.includes(stepName)
     ) {
       this.completedWorkflowSteps.push(stepName);
-      this.functionLogger.debug(
-        `Added completed workflow step: ${stepName} (${this.completedWorkflowSteps.length}/${this.totalSteps})`,
-      );
     }
 
     // Store message in live cache for polling clients
@@ -508,9 +484,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         },
       );
 
-      this.functionLogger.debug(
-        `Stored progress message in live cache for task ${this.currentTaskId}`,
-      );
     }
 
     // Broadcast workflow step progress via WebSocket
@@ -522,9 +495,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         this.totalSteps,
         status,
         message,
-      );
-      this.functionLogger.debug(
-        `Broadcast workflow step progress: ${stepName} (${status})`,
       );
     } else {
       this.functionLogger.error(
@@ -541,9 +511,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     message: string,
   ): void {
     if (!this.currentTaskId) {
-      this.functionLogger.debug(
-        'No current task ID, skipping completion broadcast',
-      );
       return;
     }
 
@@ -552,9 +519,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         this.currentTaskId,
         status,
         message,
-      );
-      this.functionLogger.debug(
-        `Broadcast task completion: ${this.currentTaskId} (${status})`,
       );
     } else {
       this.functionLogger.error(
@@ -572,11 +536,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       !this.currentUserId ||
       !this.currentTaskId
     ) {
-      this.functionLogger.debug(`Cannot save result - missing requirements:`, {
-        tasksService: !!this.services.tasksService,
-        currentUserId: this.currentUserId,
-        taskId: this.currentTaskId,
-      });
       return;
     }
 
@@ -601,23 +560,12 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         responseMetadata: enhancedMetadata,
       };
 
-      this.functionLogger.debug(`Saving task result to database:`, {
-        taskId: this.currentTaskId,
-        userId: this.currentUserId,
-        userEmail: this.currentUserEmail,
-        workflowStepsCompleted: this.completedWorkflowSteps.length,
-        enhancedMetadataKeys: Object.keys(enhancedMetadata),
-      });
-
       await this.services.tasksService.updateTask(
         this.currentTaskId,
         this.currentUserId,
         updateData,
       );
 
-      this.functionLogger.debug(
-        `✅ Task ${this.currentTaskId} result saved to database successfully`,
-      );
     } catch (error) {
       this.functionLogger.error(
         `❌ Failed to save task ${this.currentTaskId} result:`,
@@ -631,9 +579,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    */
   protected setTotalSteps(totalSteps: number): void {
     this.totalSteps = totalSteps;
-    this.functionLogger.debug(
-      `Total steps set to ${totalSteps} for ${this.getAgentName()}`,
-    );
   }
 
   /**
@@ -706,9 +651,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    * Simple context-based fallback processing
    */
   private async processWithContext(method: string, _params: any): Promise<any> {
-    this.functionLogger.debug(
-      `Using context fallback for ${this.getAgentName()}`,
-    );
 
     return {
       success: true,
@@ -730,7 +672,6 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
    */
   setDiscoveredPath(path: string): void {
     this.agentPath = path;
-    this.functionLogger.debug(`Agent path set to: ${path}`);
 
     // If we need to notify sub-services about the path change, we could do it here
     // For now, just setting the path is sufficient

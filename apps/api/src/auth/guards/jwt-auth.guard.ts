@@ -36,7 +36,7 @@ export class JwtAuthGuard implements CanActivate {
     const configuredTestKey = process.env.TEST_API_SECRET_KEY;
 
     if (configuredTestKey && testApiKey && testApiKey === configuredTestKey) {
-      this.logger.debug('Authenticated via Test API Key');
+
       (request as any).user = {
         id: '00000000-0000-0000-0000-000000000001',
         email: 'test_api_key_user@example.com',
@@ -57,12 +57,11 @@ export class JwtAuthGuard implements CanActivate {
     const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
-      this.logger.warn('No token provided in Authorization header');
+
       throw new UnauthorizedException('No token provided');
     }
 
     try {
-      this.logger.debug(`Validating token: ${token.substring(0, 20)}...`);
 
       // Verify the token with Supabase
       const supabaseClient = this.supabaseService.getAnonClient();
@@ -72,11 +71,9 @@ export class JwtAuthGuard implements CanActivate {
       } = await supabaseClient.auth.getUser(token);
 
       if (error || !user) {
-        this.logger.warn(`Supabase token validation failed: ${error?.message}`);
+
         throw new UnauthorizedException('Invalid token');
       }
-
-      this.logger.debug(`Token validated successfully for user: ${user.id}`);
 
       // Attach user to request object
       const validatedUser: SupabaseAuthUserDto = {
@@ -104,9 +101,7 @@ export class JwtAuthGuard implements CanActivate {
       (request as any).user = validatedUser;
       return true;
     } catch (error) {
-      this.logger.error(
-        `JWT validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+
       throw new UnauthorizedException('Invalid token');
     }
   }

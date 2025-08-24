@@ -14,26 +14,22 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
     <ion-content :fullscreen="true">
       <ion-header collapse="condense">
         <ion-toolbar>
           <ion-title size="large">Deliverables</ion-title>
         </ion-toolbar>
       </ion-header>
-
       <!-- Refresher -->
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh">
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
-
       <div class="deliverables-container">
         <!-- Loading state -->
         <div v-if="isLoading" class="loading-container">
           <ion-spinner name="crescent"></ion-spinner>
           <p>Loading deliverables...</p>
         </div>
-
         <!-- Error state -->
         <div v-if="error && !isLoading" class="error-container">
           <ion-icon :icon="alertCircleOutline" color="danger" class="error-icon"></ion-icon>
@@ -44,7 +40,6 @@
             Retry
           </ion-button>
         </div>
-
         <!-- Empty state -->
         <div v-if="!isLoading && !error && !hasDeliverables" class="empty-state">
           <ion-icon :icon="documentOutline" class="empty-icon"></ion-icon>
@@ -55,7 +50,6 @@
             Create First Deliverable
           </ion-button>
         </div>
-
         <!-- Deliverables List -->
         <div v-if="!isLoading && !error && hasDeliverables" class="deliverables-list">
           <!-- Search and Filter Controls -->
@@ -67,7 +61,6 @@
               @ionInput="handleSearch"
               class="search-bar"
             ></ion-searchbar>
-            
             <div class="filter-controls">
               <ion-select 
                 v-model="typeFilter" 
@@ -82,7 +75,6 @@
                 <ion-select-option value="plan">Plans</ion-select-option>
                 <ion-select-option value="requirements">Requirements</ion-select-option>
               </ion-select>
-              
               <ion-select 
                 v-model="sortBy" 
                 placeholder="Sort by"
@@ -97,7 +89,6 @@
               </ion-select>
             </div>
           </div>
-
           <!-- Deliverables Grid -->
           <div class="deliverables-grid">
             <ion-card 
@@ -132,12 +123,10 @@
                   </div>
                 </div>
               </ion-card-header>
-
               <ion-card-content>
                 <div class="deliverable-preview">
                   <p class="content-preview">{{ getContentPreview(getDeliverableContent(deliverable)) }}</p>
                 </div>
-
                 <div class="deliverable-meta">
                   <div class="meta-item" v-if="getCreatedByAgent(deliverable)">
                     <ion-icon :icon="sparklesOutline"></ion-icon>
@@ -148,7 +137,6 @@
                     <span>{{ formatDate(deliverable.createdAt) }}</span>
                   </div>
                 </div>
-
                 <div class="deliverable-tags" v-if="getDeliverableTags(deliverable).length > 0">
                   <ion-chip 
                     v-for="tag in getDeliverableTags(deliverable).slice(0, 3)" 
@@ -168,7 +156,6 @@
                     <ion-label>+{{ getDeliverableTags(deliverable).length - 3 }}</ion-label>
                   </ion-chip>
                 </div>
-
                 <!-- Quick Actions -->
                 <div class="deliverable-actions">
                   <ion-button 
@@ -210,7 +197,6 @@
               </ion-card-content>
             </ion-card>
           </div>
-
           <!-- Load More Button -->
           <div v-if="canLoadMore" class="load-more-container">
             <ion-button 
@@ -226,8 +212,6 @@
         </div>
       </div>
     </ion-content>
-
-
     <!-- Versions Modal -->
     <ion-modal :is-open="showVersionsModal" @will-dismiss="hideVersionsModal">
       <ion-header>
@@ -305,7 +289,6 @@
         </div>
       </ion-content>
     </ion-modal>
-
     <!-- New Deliverable Dialog -->
     <NewDeliverableDialog
       :is-open="showNewDeliverableDialog"
@@ -314,7 +297,6 @@
     />
   </ion-page>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import {
@@ -369,11 +351,9 @@ import { useDeliverables } from '@/composables/useDeliverables';
 import { DeliverableType, type Deliverable, type DeliverableSearchResult } from '@/services/deliverablesService';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import NewDeliverableDialog from '@/components/NewDeliverableDialog.vue';
-
 const router = useRouter();
 const deliverables = useDeliverables();
 const deliverablesStore = useDeliverablesStore();
-
 // Reactive state
 const searchQuery = ref('');
 const typeFilter = ref('');
@@ -381,17 +361,14 @@ const sortBy = ref('created_desc');
 const isLoadingMore = ref(false);
 const currentOffset = ref(0);
 const pageSize = 20;
-
 // Versions modal state
 const showVersionsModal = ref(false);
 const versions = ref<any[]>([]);
 const isLoadingVersions = ref(false);
 const selectedDeliverableId = ref<string | null>(null);
-
 // Computed properties
 const displayedDeliverables = computed(() => {
   let filtered = deliverables.recentDeliverables.value.map((d: any) => d);
-  
   // Apply search filter
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
@@ -401,19 +378,16 @@ const displayedDeliverables = computed(() => {
       getDeliverableTags(deliverable)?.some((tag: string) => tag.toLowerCase().includes(query))
     );
   }
-  
   // Apply type filter
   if (typeFilter.value) {
     filtered = filtered.filter(deliverable => 
       deliverable.type === typeFilter.value
     );
   }
-  
   // Apply sorting
   const [sortField, sortOrder] = sortBy.value.split('_');
   filtered.sort((a, b) => {
     let aValue: any, bValue: any;
-    
     switch (sortField) {
       case 'created':
         aValue = new Date(a.createdAt).getTime();
@@ -434,37 +408,31 @@ const displayedDeliverables = computed(() => {
       default:
         return 0;
     }
-    
     if (sortOrder === 'desc') {
       return bValue > aValue ? 1 : bValue < aValue ? -1 : 0;
     } else {
       return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
     }
   });
-  
   return filtered;
 });
-
 const canLoadMore = computed(() => {
   // This would be based on the total count from the search results
   // For now, just return false as we don't have pagination implemented
   return false;
 });
-
 // Methods
 const loadDeliverables = async () => {
   try {
     await deliverablesStore.loadDeliverables();
   } catch (err) {
-    console.error('Failed to load deliverables:', err);
+
   }
 };
-
 const handleRefresh = async (event: CustomEvent) => {
   await loadDeliverables();
   event.detail.complete();
 };
-
 const handleSearch = async () => {
   if (searchQuery.value.trim()) {
     await deliverables.search(searchQuery.value, {
@@ -477,7 +445,6 @@ const handleSearch = async () => {
   }
   currentOffset.value = 0;
 };
-
 const handleFilter = async () => {
   if (searchQuery.value.trim()) {
     await deliverables.search(searchQuery.value, {
@@ -490,16 +457,13 @@ const handleFilter = async () => {
   }
   currentOffset.value = 0;
 };
-
 const handleSort = () => {
   // Sorting is handled by computed property
 };
-
 const loadMoreDeliverables = async () => {
   isLoadingMore.value = true;
   try {
     const newOffset = currentOffset.value + pageSize;
-    
     if (searchQuery.value.trim()) {
       await deliverables.search(searchQuery.value, {
         type: typeFilter.value as any || undefined,
@@ -509,28 +473,22 @@ const loadMoreDeliverables = async () => {
     } else {
       await deliverablesStore.loadDeliverables();
     }
-    
     currentOffset.value = newOffset;
   } finally {
     isLoadingMore.value = false;
   }
 };
-
 const showNewDeliverableDialog = ref(false);
-
 const createNewDeliverable = () => {
   showNewDeliverableDialog.value = true;
 };
-
 const handleDeliverableCreated = (deliverableId: string) => {
   // Refresh the deliverables list
   loadDeliverables();
   showNewDeliverableDialog.value = false;
 };
-
 const viewDeliverable = async (deliverable: any) => {
   // Create a viewing conversation for this deliverable
-  console.log('🔍 Creating viewing conversation for deliverable:', deliverable.id);
   try {
     // Create conversation with "view" intent
     const result = await deliverablesStore.createEditingConversation(
@@ -541,16 +499,7 @@ const viewDeliverable = async (deliverable: any) => {
         initialMessage: `Please show me this deliverable: "${deliverable.title}"`
       }
     );
-    
-    console.log('🎭 Conversation creation result:', result);
-
     // Navigate to split view with conversation and deliverable
-    console.log('🚀 About to navigate with:', {
-      conversationId: result.conversationId,
-      deliverableId: deliverable.id,
-      mode: 'view'
-    });
-    
     await router.push({
       name: 'Home',
       query: {
@@ -559,11 +508,8 @@ const viewDeliverable = async (deliverable: any) => {
         mode: 'view'
       }
     });
-    
-    console.log('✅ Navigation to split view with conversation successful');
   } catch (error) {
-    console.error('❌ Failed to create viewing conversation:', error);
-    
+
     // Show error toast
     const toast = await toastController.create({
       message: 'Failed to open deliverable: ' + error.message,
@@ -574,11 +520,8 @@ const viewDeliverable = async (deliverable: any) => {
     await toast.present();
   }
 };
-
 const editDeliverable = async (deliverable: any) => {
   try {
-    console.log('Creating editing conversation for deliverable:', deliverable.id);
-    
     // Create editing conversation for this deliverable
     const result = await deliverablesStore.createEditingConversation(
       deliverable.id,
@@ -588,14 +531,7 @@ const editDeliverable = async (deliverable: any) => {
         initialMessage: `I want to edit this deliverable: "${deliverable.title}"`
       }
     );
-
     // Navigate to split view with conversation and deliverable
-    console.log('🚀 About to navigate to edit mode with:', {
-      conversationId: result.conversationId,
-      deliverableId: deliverable.id,
-      mode: 'edit'
-    });
-    
     await router.push({
       name: 'Home',
       query: {
@@ -604,12 +540,8 @@ const editDeliverable = async (deliverable: any) => {
         mode: 'edit'
       }
     });
-    
-    console.log('✅ Edit navigation successful');
-
   } catch (err: any) {
-    console.error('Failed to create editing conversation:', err);
-    
+
     // Show error toast
     const toast = await toastController.create({
       message: 'Failed to start editing: ' + err.message,
@@ -620,22 +552,19 @@ const editDeliverable = async (deliverable: any) => {
     await toast.present();
   }
 };
-
 const viewVersions = async (deliverable: any) => {
   try {
     isLoadingVersions.value = true;
     selectedDeliverableId.value = deliverable.id;
     showVersionsModal.value = true;
-    
     const versionList = await deliverablesStore.getDeliverableVersions(deliverable.id);
     versions.value = versionList;
   } catch (err) {
-    console.error('Failed to load versions:', err);
+
   } finally {
     isLoadingVersions.value = false;
   }
 };
-
 const confirmDelete = async (deliverable: any) => {
   const alert = await alertController.create({
     header: 'Delete Deliverable',
@@ -651,11 +580,9 @@ const confirmDelete = async (deliverable: any) => {
   });
   await alert.present();
 };
-
 const deleteDeliverable = async (deliverable: any) => {
   try {
     await deliverablesStore.deleteDeliverable(deliverable.id);
-    
     // Show success toast
     const toast = await toastController.create({
       message: 'Deliverable deleted successfully',
@@ -664,12 +591,10 @@ const deleteDeliverable = async (deliverable: any) => {
       color: 'success'
     });
     await toast.present();
-    
     // Refresh the list
     await loadDeliverables();
   } catch (err) {
-    console.error('Failed to delete deliverable:', err);
-    
+
     // Show error toast
     const toast = await toastController.create({
       message: 'Failed to delete deliverable',
@@ -680,40 +605,30 @@ const deleteDeliverable = async (deliverable: any) => {
     await toast.present();
   }
 };
-
-
-
 // Helper functions for new data structure
 const getVersionNumber = (deliverable: any): number => {
   return deliverable.currentVersion?.versionNumber || 1;
 };
-
 const getDeliverableContent = (deliverable: any): string => {
   return deliverable.currentVersion?.content || '';
 };
-
 const getCreatedByAgent = (deliverable: any): string | null => {
   return deliverable.currentVersion?.metadata?.createdByAgent || null;
 };
-
 const getDeliverableTags = (deliverable: any): string[] => {
   return deliverable.currentVersion?.metadata?.tags || [];
 };
-
 // Utility methods
 const getContentPreview = (content: string): string => {
   const stripped = content.replace(/[#*`_~]/g, '').trim();
   return stripped.length > 150 ? stripped.substring(0, 150) + '...' : stripped;
 };
-
 const getTypeIcon = (type: DeliverableType): string => {
   return deliverables.getTypeIcon(type);
 };
-
 const getTypeName = (type: DeliverableType): string => {
   return deliverables.getTypeName(type);
 };
-
 const getTypeColor = (type: DeliverableType): string => {
   const colors = {
     [DeliverableType.DOCUMENT]: 'primary',
@@ -724,36 +639,30 @@ const getTypeColor = (type: DeliverableType): string => {
   };
   return colors[type] || 'medium';
 };
-
 const formatDate = (date: string | Date): string => {
   const dateStr = typeof date === 'string' ? date : date.toISOString();
   return deliverables.formatDate(dateStr);
 };
-
 const hasVersions = (deliverableId: string): boolean => {
   // Check if there are cached versions for this deliverable
   const deliverable = deliverablesStore.getDeliverableById(deliverableId);
   return deliverable ? getVersionNumber(deliverable) > 1 : false;
 };
-
 const hideVersionsModal = () => {
   showVersionsModal.value = false;
   versions.value = [];
   selectedDeliverableId.value = null;
 };
-
 const viewVersion = async (versionId: string) => {
   try {
     // Navigate to view the specific version
-    console.log('Viewing version:', versionId);
     // TODO: Implement navigation to version view
     // router.push(`/deliverables/version/${versionId}`);
     hideVersionsModal();
   } catch (err) {
-    console.error('Failed to load version:', err);
+
   }
 };
-
 const makeCurrentVersion = async (version: any) => {
   try {
     // Show confirmation dialog
@@ -772,14 +681,11 @@ const makeCurrentVersion = async (version: any) => {
             try {
               // Set the selected version as the current version
               const updatedVersion = await deliverablesStore.setCurrentVersion(version.id);
-
               // Refresh the deliverables list to show the new current version
               await loadDeliverables();
-              
               // Refresh the versions list in the modal
               const versionList = await deliverablesStore.getDeliverableVersions(selectedDeliverableId.value!);
               versions.value = versionList;
-
               // Show success toast
               const toast = await toastController.create({
                 message: `Version ${version.versionNumber} is now the current version`,
@@ -788,10 +694,8 @@ const makeCurrentVersion = async (version: any) => {
                 color: 'success'
               });
               await toast.present();
-              
             } catch (error) {
-              console.error('Failed to make version current:', error);
-              
+
               // Show error toast
               const toast = await toastController.create({
                 message: 'Failed to set current version. Please try again.',
@@ -805,25 +709,21 @@ const makeCurrentVersion = async (version: any) => {
         }
       ]
     });
-
     await alert.present();
   } catch (err) {
-    console.error('Failed to show confirmation dialog:', err);
+
   }
 };
-
 // Watchers
 watch(() => deliverables.error.value, (newError) => {
   if (newError) {
-    console.error('Deliverables error:', newError);
+
   }
 });
-
 // Lifecycle
 onMounted(() => {
   loadDeliverables();
 });
-
 // Re-export computed properties for template
 const {
   hasDeliverables,
@@ -831,14 +731,12 @@ const {
   error
 } = deliverables;
 </script>
-
 <style scoped>
 .deliverables-container {
   padding: 1rem;
   max-width: 1200px;
   margin: 0 auto;
 }
-
 .loading-container,
 .error-container,
 .empty-state {
@@ -849,90 +747,74 @@ const {
   padding: 3rem 1rem;
   text-align: center;
 }
-
 .error-icon,
 .empty-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
 }
-
 .empty-icon {
   color: var(--ion-color-medium);
 }
-
 .empty-state h2 {
   color: var(--ion-color-primary);
   margin-bottom: 0.5rem;
 }
-
 .empty-state p {
   color: var(--ion-color-medium);
   margin-bottom: 2rem;
   max-width: 500px;
   line-height: 1.6;
 }
-
 .controls-bar {
   margin-bottom: 1.5rem;
 }
-
 .search-bar {
   margin-bottom: 1rem;
 }
-
 .filter-controls {
   display: flex;
   gap: 1rem;
   align-items: center;
   flex-wrap: wrap;
 }
-
 .filter-controls ion-select {
   min-width: 140px;
 }
-
 .deliverables-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 1rem;
 }
-
 .deliverable-card {
   margin: 0;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   height: fit-content;
 }
-
 .deliverable-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
-
 .deliverable-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
 }
-
 .deliverable-title-section {
   flex: 1;
   min-width: 0;
 }
-
 .title-with-icon {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.25rem;
 }
-
 .type-icon {
   font-size: 1.2rem;
   flex-shrink: 0;
 }
-
 .deliverable-badges {
   display: flex;
   flex-direction: column;
@@ -940,17 +822,14 @@ const {
   align-items: flex-end;
   flex-shrink: 0;
 }
-
 .type-badge,
 .version-badge {
   font-size: 0.7rem;
   font-weight: 600;
 }
-
 .deliverable-preview {
   margin-bottom: 1rem;
 }
-
 .content-preview {
   color: var(--ion-color-medium);
   font-size: 0.9rem;
@@ -961,14 +840,12 @@ const {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
 .deliverable-meta {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
-
 .meta-item {
   display: flex;
   align-items: center;
@@ -976,23 +853,19 @@ const {
   font-size: 0.85rem;
   color: var(--ion-color-medium);
 }
-
 .meta-item ion-icon {
   font-size: 1rem;
 }
-
 .deliverable-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
   margin-bottom: 1rem;
 }
-
 .tag-chip {
   font-size: 0.75rem;
   height: 1.5rem;
 }
-
 .deliverable-actions {
   display: flex;
   gap: 0.25rem;
@@ -1000,64 +873,52 @@ const {
   border-top: 1px solid var(--ion-color-step-150);
   flex-wrap: wrap;
 }
-
 .load-more-container {
   display: flex;
   justify-content: center;
   padding: 2rem 0;
 }
-
 /* Responsive design */
 @media (max-width: 768px) {
   .deliverables-container {
     padding: 0.5rem;
   }
-  
   .deliverables-grid {
     grid-template-columns: 1fr;
   }
-  
   .filter-controls {
     flex-direction: column;
     align-items: stretch;
   }
-  
   .filter-controls ion-select {
     min-width: auto;
   }
-  
   .deliverable-actions {
     flex-direction: column;
   }
 }
-
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .deliverable-card:hover {
     box-shadow: 0 8px 24px rgba(255, 255, 255, 0.1);
   }
-  
   .deliverable-actions {
     border-top-color: var(--ion-color-step-200);
   }
 }
-
 /* Versions Modal Styles */
 .versions-list {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
-
 .version-card {
   margin: 0;
 }
-
 .version-card.latest-version {
   border-left: 4px solid var(--ion-color-success);
   background: var(--ion-color-success-tint);
 }
-
 .version-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1065,14 +926,12 @@ const {
   align-items: center;
   margin-bottom: 0.5rem;
 }
-
 .version-actions {
   display: flex;
   gap: 0.5rem;
   margin-top: 1rem;
   justify-content: flex-end;
 }
-
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -1081,7 +940,6 @@ const {
   padding: 2rem;
   gap: 1rem;
 }
-
 .no-versions {
   text-align: center;
   padding: 2rem;

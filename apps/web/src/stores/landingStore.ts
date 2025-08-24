@@ -1,20 +1,17 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-
 interface VideoAnalytics {
   videoId: string;
   views: number;
   completions: number;
   lastViewed: Date;
 }
-
 interface SectionProgress {
   heroViewed: boolean;
   featuresViewed: boolean;
   pricingViewed: boolean;
   ctaClicked: boolean;
 }
-
 export const useLandingStore = defineStore('landing', () => {
   // State
   const foundingPartnerCount = ref(0);
@@ -26,42 +23,31 @@ export const useLandingStore = defineStore('landing', () => {
     pricingViewed: false,
     ctaClicked: false
   });
-  
   const videoAnalytics = ref<VideoAnalytics[]>([]);
   const emailCaptures = ref<string[]>([]);
   const calendarBookings = ref(0);
-
   // Computed
   const foundingPartnersRemaining = computed(() => 
     maxFoundingPartners.value - foundingPartnerCount.value
   );
-
   const progressPercentage = computed(() => 
     (foundingPartnerCount.value / maxFoundingPartners.value) * 100
   );
-
   const isFoundingPartnerAvailable = computed(() => 
     foundingPartnerCount.value < maxFoundingPartners.value
   );
-
   // Actions
   function trackPageView(page: string) {
     // Analytics tracking
-    console.log(`Landing page view: ${page}`);
-    
     // Track with your analytics service
     // gtag('event', 'page_view', { page_title: page });
   }
-
   function trackSectionView(section: string) {
-    console.log(`Section viewed: ${section}`);
-    
     // Update section progress
     if (section === 'hero') sectionProgress.value.heroViewed = true;
     if (section === 'features') sectionProgress.value.featuresViewed = true;
     if (section === 'pricing') sectionProgress.value.pricingViewed = true;
   }
-
   function trackVideoView(videoId: string) {
     const existing = videoAnalytics.value.find(v => v.videoId === videoId);
     if (existing) {
@@ -76,40 +62,30 @@ export const useLandingStore = defineStore('landing', () => {
       });
     }
   }
-
   function trackVideoCompletion(videoId: string) {
     const existing = videoAnalytics.value.find(v => v.videoId === videoId);
     if (existing) {
       existing.completions++;
     }
   }
-
   function captureEmail(email: string) {
     if (!emailCaptures.value.includes(email)) {
       emailCaptures.value.push(email);
-      
       // Send to your email service
-      console.log(`Email captured: ${email}`);
     }
   }
-
   function trackCalendarBooking() {
     calendarBookings.value++;
     sectionProgress.value.ctaClicked = true;
-    
-    console.log(`Calendar booking tracked: ${calendarBookings.value}`);
   }
-
   function updateFoundingPartnerCount(count: number) {
     foundingPartnerCount.value = Math.min(count, maxFoundingPartners.value);
   }
-
   function advanceSection() {
     if (currentSection.value < 5) {
       currentSection.value++;
     }
   }
-
   function resetProgress() {
     currentSection.value = 0;
     sectionProgress.value = {
@@ -119,7 +95,6 @@ export const useLandingStore = defineStore('landing', () => {
       ctaClicked: false
     };
   }
-
   return {
     // State
     foundingPartnerCount,
@@ -129,12 +104,10 @@ export const useLandingStore = defineStore('landing', () => {
     videoAnalytics,
     emailCaptures,
     calendarBookings,
-    
     // Computed
     foundingPartnersRemaining,
     progressPercentage,
     isFoundingPartnerAvailable,
-    
     // Actions
     trackPageView,
     trackSectionView,

@@ -12,7 +12,6 @@
         >
           <ion-icon :icon="thumbsUpOutline" slot="icon-only" size="small"></ion-icon>
         </ion-button>
-        
         <ion-button 
           fill="clear" 
           size="small" 
@@ -22,7 +21,6 @@
         >
           <ion-icon :icon="thumbsDownOutline" slot="icon-only" size="small"></ion-icon>
         </ion-button>
-        
         <ion-button 
           fill="clear" 
           size="small" 
@@ -33,14 +31,12 @@
           <ion-icon :icon="ellipsisHorizontalOutline" slot="icon-only" size="small"></ion-icon>
         </ion-button>
       </div>
-      
       <div class="rating-status" v-if="currentRating">
         <span class="rating-text">
           {{ getRatingText(currentRating.userRating) }}
         </span>
       </div>
     </div>
-
     <!-- Detailed Rating UI -->
     <div class="detailed-rating" v-if="showDetailedRating">
       <div class="rating-header">
@@ -49,7 +45,6 @@
           <ion-icon :icon="closeOutline" slot="icon-only" size="small"></ion-icon>
         </ion-button>
       </div>
-      
       <div class="rating-item">
         <label>Overall Quality</label>
         <div class="star-rating">
@@ -69,7 +64,6 @@
           </ion-button>
         </div>
       </div>
-
       <div class="rating-item">
         <label>Completion Speed</label>
         <div class="star-rating">
@@ -89,7 +83,6 @@
           </ion-button>
         </div>
       </div>
-
       <div class="rating-item">
         <label>Accuracy</label>
         <div class="star-rating">
@@ -109,7 +102,6 @@
           </ion-button>
         </div>
       </div>
-
       <div class="rating-item" v-if="showFeedbackInput">
         <label>Feedback (optional)</label>
         <ion-textarea
@@ -119,7 +111,6 @@
           :disabled="isLoading"
         ></ion-textarea>
       </div>
-
       <div class="rating-actions">
         <ion-button 
           size="small" 
@@ -129,7 +120,6 @@
         >
           Add feedback
         </ion-button>
-        
         <ion-button 
           size="small" 
           @click="saveRating"
@@ -142,7 +132,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import {
@@ -161,13 +150,11 @@ import {
 } from 'ionicons/icons';
 import { tasksService } from '../services/tasksService';
 import type { EvaluationRequest, UserRatingScale } from '../types/evaluation';
-
 interface Props {
   taskId: string;
   agentName?: string;
   messageRole?: 'user' | 'assistant' | 'system' | 'tool';
 }
-
 interface TaskEvaluation {
   userRating?: UserRatingScale;
   speedRating?: UserRatingScale;
@@ -176,15 +163,12 @@ interface TaskEvaluation {
   evaluationDetails?: any;
   evaluationTimestamp?: string;
 }
-
 const props = defineProps<Props>();
-
 // State
 const currentRating = ref<TaskEvaluation | null>(null);
 const showDetailedRating = ref(false);
 const showFeedbackInput = ref(false);
 const isLoading = ref(false);
-
 // Draft rating for detailed form
 const draftRating = ref<EvaluationRequest>({
   userRating: undefined,
@@ -192,7 +176,6 @@ const draftRating = ref<EvaluationRequest>({
   accuracyRating: undefined,
   userNotes: ''
 });
-
 // Computed
 const hasRatingData = computed(() => {
   return draftRating.value.userRating || 
@@ -200,7 +183,6 @@ const hasRatingData = computed(() => {
          draftRating.value.accuracyRating ||
          (draftRating.value.userNotes && draftRating.value.userNotes.trim().length > 0);
 });
-
 // Methods
 const loadExistingRating = async () => {
   // Don't load for invalid or placeholder task IDs
@@ -210,11 +192,9 @@ const loadExistingRating = async () => {
       props.taskId.includes('placeholder')) {
     return;
   }
-  
   try {
     isLoading.value = true;
     const task = await tasksService.getTaskById(props.taskId);
-    
     if (task?.evaluation) {
       currentRating.value = {
         userRating: task.evaluation.user_rating,
@@ -224,7 +204,6 @@ const loadExistingRating = async () => {
         evaluationDetails: task.evaluation.evaluation_details,
         evaluationTimestamp: task.evaluation.evaluation_timestamp
       };
-      
       // Populate draft with existing data
       draftRating.value = {
         userRating: task.evaluation.user_rating,
@@ -239,13 +218,10 @@ const loadExistingRating = async () => {
     isLoading.value = false;
   }
 };
-
 const quickRate = async (type: 'positive' | 'negative') => {
   const rating: UserRatingScale = type === 'positive' ? 5 : 1;
-  
   try {
     isLoading.value = true;
-    
     const evaluation: EvaluationRequest = {
       userRating: rating,
       evaluationDetails: {
@@ -253,9 +229,7 @@ const quickRate = async (type: 'positive' | 'negative') => {
         tags: [type, 'quick-rating', 'task-evaluation']
       }
     };
-    
     const updatedTask = await tasksService.evaluateTask(props.taskId, evaluation);
-    
     if (updatedTask?.evaluation) {
       currentRating.value = {
         userRating: updatedTask.evaluation.user_rating,
@@ -274,17 +248,13 @@ const quickRate = async (type: 'positive' | 'negative') => {
     isLoading.value = false;
   }
 };
-
 const setRating = (type: keyof EvaluationRequest, value: number) => {
   (draftRating.value as any)[type] = value as UserRatingScale;
 };
-
 const saveRating = async () => {
   if (!hasRatingData.value) return;
-  
   try {
     isLoading.value = true;
-    
     const evaluation: EvaluationRequest = {
       ...draftRating.value,
       evaluationDetails: {
@@ -292,9 +262,7 @@ const saveRating = async () => {
         tags: ['detailed-rating', 'task-evaluation']
       }
     };
-    
     const updatedTask = await tasksService.evaluateTask(props.taskId, evaluation);
-    
     if (updatedTask?.evaluation) {
       currentRating.value = {
         userRating: updatedTask.evaluation.user_rating,
@@ -305,7 +273,6 @@ const saveRating = async () => {
         evaluationTimestamp: updatedTask.evaluation.evaluation_timestamp
       };
     }
-    
     showDetailedRating.value = false;
     showFeedbackInput.value = false;
   } catch (error) {
@@ -314,7 +281,6 @@ const saveRating = async () => {
     isLoading.value = false;
   }
 };
-
 const toggleDetailedRating = () => {
   showDetailedRating.value = !showDetailedRating.value;
   if (showDetailedRating.value && currentRating.value) {
@@ -325,16 +291,13 @@ const toggleDetailedRating = () => {
       accuracyRating: currentRating.value.accuracyRating,
       userNotes: currentRating.value.userNotes || ''
     };
-    
     if (draftRating.value.userNotes) {
       showFeedbackInput.value = true;
     }
   }
 };
-
 const getRatingText = (rating?: UserRatingScale): string => {
   if (!rating) return '';
-  
   const texts = {
     1: 'Poor',
     2: 'Fair', 
@@ -342,55 +305,45 @@ const getRatingText = (rating?: UserRatingScale): string => {
     4: 'Very Good',
     5: 'Excellent'
   };
-  
   return texts[rating] || '';
 };
-
 // Lifecycle
 onMounted(() => {
   loadExistingRating();
 });
-
 // Watch for task changes
 watch(() => props.taskId, () => {
   loadExistingRating();
 });
 </script>
-
 <style scoped>
 .task-rating {
   margin-top: 8px;
   padding: 8px 0;
 }
-
 .rating-section {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
 .rating-buttons {
   display: flex;
   align-items: center;
   gap: 2px;
 }
-
 .rating-status {
   font-size: 0.75rem;
   color: var(--ion-color-medium);
 }
-
 .rating-text {
   font-weight: 500;
 }
-
 .detailed-rating {
   background: var(--ion-color-light);
   border-radius: 8px;
   padding: 12px;
   margin-top: 4px;
 }
-
 .rating-header {
   display: flex;
   justify-content: space-between;
@@ -399,11 +352,9 @@ watch(() => props.taskId, () => {
   font-weight: 500;
   font-size: 0.9rem;
 }
-
 .rating-item {
   margin-bottom: 12px;
 }
-
 .rating-item label {
   display: block;
   font-size: 0.8rem;
@@ -411,20 +362,17 @@ watch(() => props.taskId, () => {
   color: var(--ion-color-dark);
   margin-bottom: 4px;
 }
-
 .star-rating {
   display: flex;
   align-items: center;
   gap: 2px;
 }
-
 .rating-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: 8px;
 }
-
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .detailed-rating {

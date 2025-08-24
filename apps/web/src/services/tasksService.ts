@@ -1,5 +1,4 @@
 import { apiService } from './apiService';
-
 interface Task {
   id: string;
   agentConversationId: string;
@@ -24,7 +23,6 @@ interface Task {
   createdAt: string;
   updatedAt: string;
 }
-
 interface LLMSelection {
   providerId?: string;
   modelId?: string;
@@ -37,7 +35,6 @@ interface LLMSelection {
   temperature?: number;
   maxTokens?: number;
 }
-
 interface CreateTaskDto {
   method: string;
   prompt: string;
@@ -55,7 +52,6 @@ interface CreateTaskDto {
     metadata?: Record<string, any>;
   }>;
 }
-
 interface UpdateTaskDto {
   status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   progress?: number;
@@ -68,7 +64,6 @@ interface UpdateTaskDto {
   errorMessage?: string;
   errorData?: Record<string, any>;
 }
-
 interface TaskQueryParams {
   conversationId?: string;
   userId?: string;
@@ -76,12 +71,10 @@ interface TaskQueryParams {
   limit?: number;
   offset?: number;
 }
-
 interface ListTasksResponse {
   tasks: Task[];
   total: number;
 }
-
 interface TaskProgressEvent {
   taskId: string;
   progress: number;
@@ -89,29 +82,23 @@ interface TaskProgressEvent {
   status?: string;
   metadata?: Record<string, any>;
 }
-
 class TasksService {
   private readonly baseUrl = '/tasks';
-
   /**
    * List tasks
    */
   async listTasks(params?: TaskQueryParams): Promise<ListTasksResponse> {
     const queryParams = new URLSearchParams();
-    
     if (params?.conversationId) queryParams.append('conversationId', params.conversationId);
     if (params?.status) queryParams.append('status', params.status);
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
-
     const url = queryParams.toString() 
       ? `${this.baseUrl}?${queryParams.toString()}`
       : this.baseUrl;
-
     const response = await apiService.get(url);
     return response;
   }
-
   /**
    * Get task by ID
    */
@@ -119,7 +106,6 @@ class TasksService {
     const response = await apiService.get(`${this.baseUrl}/${taskId}`);
     return response;
   }
-
   /**
    * Update task
    */
@@ -127,7 +113,6 @@ class TasksService {
     const response = await apiService.put(`${this.baseUrl}/${taskId}`, updates);
     return response;
   }
-
   /**
    * Cancel task
    */
@@ -135,7 +120,6 @@ class TasksService {
     const response = await apiService.delete(`${this.baseUrl}/${taskId}`);
     return response;
   }
-
   /**
    * Get active tasks
    */
@@ -143,7 +127,6 @@ class TasksService {
     const response = await apiService.get(`${this.baseUrl}/active`);
     return response;
   }
-
   /**
    * Get real-time task status (optimized for polling)
    */
@@ -157,7 +140,6 @@ class TasksService {
     const response = await apiService.get(`${this.baseUrl}/${taskId}/status`);
     return response;
   }
-
   /**
    * Get accumulated task messages (for polling clients)
    */
@@ -173,7 +155,6 @@ class TasksService {
     const response = await apiService.get(`${this.baseUrl}/${taskId}/messages`);
     return response;
   }
-
   /**
    * Update task progress
    */
@@ -184,7 +165,6 @@ class TasksService {
     });
     return response;
   }
-
   /**
    * Stream task progress via SSE
    */
@@ -195,34 +175,27 @@ class TasksService {
         'Accept': 'text/event-stream',
       },
     });
-
     if (!response.ok) {
       throw new Error(`Failed to stream task progress: ${response.statusText}`);
     }
-
     const reader = response.body?.getReader();
     if (!reader) {
       throw new Error('Response body is not readable');
     }
-
     const decoder = new TextDecoder();
     let buffer = '';
-
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
-
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
               yield data as TaskProgressEvent;
-              
               // Stop if task is completed
               if (data.status === 'completed' || data.status === 'failed' || data.status === 'cancelled') {
                 return;
@@ -237,7 +210,6 @@ class TasksService {
       reader.releaseLock();
     }
   }
-
   /**
    * Create task via direct agent call
    */
@@ -252,7 +224,6 @@ class TasksService {
     result?: any;
   }> {
     const url = `/agents/${agentType}/${agentName}/tasks`;
-    
     try {
       const response = await apiService.post(url, taskData);
       return response;
@@ -260,14 +231,12 @@ class TasksService {
       throw error;
     }
   }
-
   /**
    * Get task by ID (alias for getTask)
    */
   async getTaskById(taskId: string): Promise<Task> {
     return this.getTask(taskId);
   }
-
   /**
    * Evaluate task
    */
@@ -275,7 +244,6 @@ class TasksService {
     const response = await apiService.post(`/evaluation/tasks/${taskId}`, evaluation);
     return response;
   }
-
   /**
    * Get task evaluation
    */
@@ -283,7 +251,6 @@ class TasksService {
     const response = await apiService.get(`/evaluation/tasks/${taskId}`);
     return response;
   }
-
   /**
    * Update task evaluation
    */
@@ -291,7 +258,6 @@ class TasksService {
     const response = await apiService.put(`/evaluation/tasks/${taskId}`, evaluation);
     return response;
   }
-
   /**
    * Get conversation task evaluations
    */
@@ -302,15 +268,12 @@ class TasksService {
     const queryParams = new URLSearchParams();
       if (filters?.minRating) queryParams.append('minRating', filters.minRating.toString());
   if (filters?.hasNotes) queryParams.append('hasNotes', filters.hasNotes.toString());
-    
     const url = queryParams.toString() 
       ? `/evaluation/conversations/${conversationId}/tasks?${queryParams.toString()}`
       : `/evaluation/conversations/${conversationId}/tasks`;
-    
     const response = await apiService.get(url);
     return response;
   }
 }
-
 export const tasksService = new TasksService();
 export default tasksService;

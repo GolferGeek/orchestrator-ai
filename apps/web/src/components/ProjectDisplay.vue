@@ -12,7 +12,6 @@
           </ion-chip>
         </div>
       </div>
-      
       <div class="header-actions">
         <ion-button fill="clear" size="small" @click="showProjectHistory = !showProjectHistory">
           <ion-icon :icon="timeOutline" />
@@ -25,7 +24,6 @@
         </ion-button>
       </div>
     </div>
-
     <!-- Project Progress -->
     <div class="progress-section" v-if="project.steps && project.steps.length">
       <div class="progress-info">
@@ -36,7 +34,6 @@
       </div>
       <ion-progress-bar :value="progressPercentage / 100" color="primary"></ion-progress-bar>
     </div>
-
     <!-- Project Steps/Tasks -->
     <div class="content-section">
       <div class="steps-container" v-if="project.steps && project.steps.length">
@@ -92,7 +89,6 @@
           </div>
         </div>
       </div>
-
       <!-- Project Description/Plan -->
       <div class="project-content" v-if="project.description || project.plan">
         <h4>Project Overview</h4>
@@ -110,7 +106,6 @@
         </div>
       </div>
     </div>
-
     <!-- Footer Info -->
     <div class="project-footer">
       <div class="timestamps">
@@ -119,7 +114,6 @@
           Updated {{ formatDate(project.updatedAt || project.updated_at) }}
         </span>
       </div>
-      
       <!-- Tags/Labels -->
       <div v-if="project.tags && project.tags.length" class="tags-section">
         <ion-chip
@@ -132,7 +126,6 @@
         </ion-chip>
       </div>
     </div>
-    
     <!-- Project Actions Input -->
     <div class="project-actions">
       <form @submit.prevent="submitProjectPrompt">
@@ -157,7 +150,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import {
@@ -180,39 +172,31 @@ import {
   sendOutline,
 } from 'ionicons/icons';
 import { marked } from 'marked';
-
 interface Props {
   project: any;
   conversationId?: string;
 }
-
 interface Emits {
   (e: 'project-updated', project: any): void;
   (e: 'step-updated', step: any): void;
   (e: 'edit-requested', project: any): void;
 }
-
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
-
 // Reactive state
 const showProjectHistory = ref(false);
 const projectPrompt = ref('');
-
 // Computed properties
 const totalSteps = computed(() => {
   return props.project.steps?.length || 0;
 });
-
 const completedSteps = computed(() => {
   return props.project.steps?.filter((step: any) => step.status === 'completed').length || 0;
 });
-
 const progressPercentage = computed(() => {
   if (totalSteps.value === 0) return 0;
   return Math.round((completedSteps.value / totalSteps.value) * 100);
 });
-
 // Methods
 const getStatusColor = (status: string) => {
   const colors = {
@@ -225,18 +209,15 @@ const getStatusColor = (status: string) => {
   };
   return colors[status as keyof typeof colors] || 'medium';
 };
-
 const formatStatus = (status: string) => {
   return status.split('_').map(word => 
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(' ');
 };
-
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-  
   if (diffInHours < 1) {
     return 'Just now';
   } else if (diffInHours < 24) {
@@ -251,7 +232,6 @@ const formatDate = (dateString: string) => {
     });
   }
 };
-
 const renderContent = (content: string) => {
   try {
     // Try to render as markdown first
@@ -261,11 +241,9 @@ const renderContent = (content: string) => {
     return content.replace(/\n/g, '<br>');
   }
 };
-
 const selectStep = (step: any) => {
   emit('step-updated', step);
 };
-
 const downloadProject = () => {
   const projectData = {
     title: props.project.title || props.project.name,
@@ -276,13 +254,10 @@ const downloadProject = () => {
     createdAt: props.project.createdAt || props.project.created_at,
     updatedAt: props.project.updatedAt || props.project.updated_at,
   };
-
   const content = JSON.stringify(projectData, null, 2);
   const filename = `${(props.project.title || props.project.name || 'project').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
-  
   const blob = new Blob([content], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
@@ -291,34 +266,27 @@ const downloadProject = () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
-
 const submitProjectPrompt = async () => {
   if (!projectPrompt.value.trim()) return;
-  
   const content = projectPrompt.value.trim();
   projectPrompt.value = '';
-  
   try {
     // Import the agent chat store and context store
     const { useAgentChatStore } = await import('@/stores/agentChatStore');
     const { useContextStore } = await import('@/stores/contextStore');
-    
     const agentChatStore = useAgentChatStore();
     const contextStore = useContextStore();
-    
     // Set project context
     contextStore.setProjectContext(props.project.id);
-    
     // Send context-aware message
     await agentChatStore.sendContextAwareMessage(content);
   } catch (error) {
-    console.error('Failed to send project prompt:', error);
+
     // Restore the input text on error
     projectPrompt.value = content;
   }
 };
 </script>
-
 <style scoped>
 .project-display {
   display: flex;
@@ -326,7 +294,6 @@ const submitProjectPrompt = async () => {
   height: 100%;
   background: white;
 }
-
 .project-header {
   display: flex;
   justify-content: space-between;
@@ -335,11 +302,9 @@ const submitProjectPrompt = async () => {
   border-bottom: 1px solid var(--ion-color-light);
   background: var(--ion-color-step-25);
 }
-
 .title-section {
   flex: 1;
 }
-
 .project-title {
   margin: 0 0 8px 0;
   font-size: 1.2em;
@@ -347,48 +312,40 @@ const submitProjectPrompt = async () => {
   color: var(--ion-color-dark);
   line-height: 1.3;
 }
-
 .metadata {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
-
 .header-actions {
   display: flex;
   gap: 4px;
   margin-left: 16px;
 }
-
 .progress-section {
   padding: 12px 16px;
   border-bottom: 1px solid var(--ion-color-light-shade);
   background: var(--ion-color-step-50);
 }
-
 .progress-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
 }
-
 .progress-label {
   font-weight: 500;
   color: var(--ion-color-dark);
 }
-
 .progress-percentage {
   font-size: 0.9em;
   color: var(--ion-color-medium);
 }
-
 .content-section {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
 }
-
 .steps-container h4,
 .project-content h4 {
   margin: 0 0 16px 0;
@@ -396,13 +353,11 @@ const submitProjectPrompt = async () => {
   font-weight: 600;
   color: var(--ion-color-primary);
 }
-
 .steps-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-
 .step-item {
   display: flex;
   align-items: flex-start;
@@ -412,66 +367,54 @@ const submitProjectPrompt = async () => {
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
 .step-item:hover {
   background: var(--ion-color-step-50);
   border-color: var(--ion-color-primary-tint);
 }
-
 .step-item.completed {
   background: #f1f8e9;
   border-color: var(--ion-color-success-tint);
 }
-
 .step-item.in-progress {
   background: #e3f2fd;
   border-color: var(--ion-color-primary-tint);
 }
-
 .step-marker {
   margin-right: 12px;
   margin-top: 2px;
 }
-
 .step-marker ion-icon {
   font-size: 1.2em;
 }
-
 .step-details {
   flex: 1;
 }
-
 .step-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
 }
-
 .step-title {
   font-weight: 500;
   color: var(--ion-color-dark);
 }
-
 .step-status {
   font-size: 0.85em;
   color: var(--ion-color-medium);
   text-transform: capitalize;
 }
-
 .step-description {
   margin: 4px 0;
   font-size: 0.9em;
   color: var(--ion-color-medium);
   line-height: 1.4;
 }
-
 .step-meta {
   display: flex;
   gap: 16px;
   margin-top: 8px;
 }
-
 .assigned-to,
 .due-date {
   display: flex;
@@ -480,26 +423,21 @@ const submitProjectPrompt = async () => {
   font-size: 0.85em;
   color: var(--ion-color-medium);
 }
-
 .assigned-to ion-icon,
 .due-date ion-icon {
   font-size: 1em;
 }
-
 .project-content {
   margin-top: 24px;
 }
-
 .content-display {
   line-height: 1.6;
   color: var(--ion-color-dark);
 }
-
 .project-description,
 .project-plan {
   margin-bottom: 16px;
 }
-
 .project-description :deep(h1),
 .project-description :deep(h2),
 .project-description :deep(h3),
@@ -510,75 +448,62 @@ const submitProjectPrompt = async () => {
   margin-top: 24px;
   margin-bottom: 12px;
 }
-
 .project-description :deep(h1):first-child,
 .project-description :deep(h2):first-child,
 .project-plan :deep(h1):first-child,
 .project-plan :deep(h2):first-child {
   margin-top: 0;
 }
-
 .project-footer {
   padding: 16px;
   border-top: 1px solid var(--ion-color-light);
   background: var(--ion-color-step-25);
 }
-
 .timestamps {
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin-bottom: 12px;
 }
-
 .created,
 .updated {
   font-size: 0.85em;
   color: var(--ion-color-medium);
 }
-
 .tags-section {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
-
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .project-display {
     background: var(--ion-color-dark-shade);
   }
-  
   .project-header {
     background: var(--ion-color-dark);
     border-color: var(--ion-color-dark-tint);
   }
-  
   .progress-section {
     background: var(--ion-color-dark);
     border-color: var(--ion-color-dark-tint);
   }
-  
   .step-item {
     border-color: var(--ion-color-dark-tint);
   }
-  
   .step-item.completed {
     background: #1b5e20;
     border-color: var(--ion-color-success);
   }
-  
   .step-item.in-progress {
     background: #1e3a8a;
     border-color: var(--ion-color-primary);
   }
-  
   .project-footer {
     background: var(--ion-color-dark);
     border-color: var(--ion-color-dark-tint);
   }
 }
-
 .project-actions {
   padding: 16px;
   border-top: 1px solid var(--ion-color-light-shade);
