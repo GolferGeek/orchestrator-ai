@@ -389,15 +389,11 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
                 updateData: updateData,
               });
 
-              const updateResult = await this.services.tasksService.updateTask(
-                taskId,
-                this.currentUserId,
-                updateData,
-              );
+              // Use parent class completeTask method which includes deliverable creation
+              await this.completeTask(taskId, this.currentUserId, result);
 
               this.pythonLogger.debug(
-                `✅ Task ${taskId} result saved to database successfully. Update result:`,
-                updateResult,
+                `✅ Task ${taskId} completed using parent class completeTask method`,
               );
 
               // Broadcast final response to WebSocket clients
@@ -442,19 +438,12 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           // If not JSON, return raw output
           const rawResult = { response: stdout.trim() };
 
-          // Save raw result to database for async tasks
+          // Use parent class completeTask method for proper deliverable creation
           const taskId = params.metadata?.taskId;
           if (this.services.tasksService && this.currentUserId && taskId) {
             try {
-              await this.services.tasksService.updateTask(
-                taskId,
-                this.currentUserId,
-                {
-                  status: 'completed' as const,
-                  progress: 100,
-                  response: stdout.trim(),
-                },
-              );
+              // Use parent class completeTask method which includes deliverable creation
+              await this.completeTask(taskId, this.currentUserId, rawResult);
 
               this.pythonLogger.debug(
                 `✅ Task ${taskId} raw result saved to database`,
