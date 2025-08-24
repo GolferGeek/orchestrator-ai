@@ -100,6 +100,14 @@ export abstract class A2AAgentBaseService
     this.deliverablesService = deliverablesService;
     this.deliverableVersionsService = deliverableVersionsService;
     this.tasksService = tasksService;
+    
+    // Debug logging to track service injection
+    console.log(`🚨 A2A CONSTRUCTOR DEBUG: Services injected:`);
+    console.log(`  - taskStatusService:`, !!taskStatusService);
+    console.log(`  - deliverablesService:`, !!deliverablesService);
+    console.log(`  - deliverableVersionsService:`, !!deliverableVersionsService);
+    console.log(`  - tasksService:`, !!tasksService);
+    console.log(`  - this.tasksService set to:`, !!this.tasksService);
   }
 
   // ============================================================================
@@ -578,12 +586,18 @@ export abstract class A2AAgentBaseService
     // Auto-persist deliverable if result contains deliverable content
     // This must happen BEFORE marking task complete so we can attach deliverable ID
     this.logger.debug(`📄 Attempting deliverable creation for task ${taskId}`);
+    console.log(`🚨 DELIVERABLE DEBUG: completeTask called for task ${taskId}`);
+    console.log(`🚨 DELIVERABLE DEBUG: result type:`, typeof result);
+    console.log(`🚨 DELIVERABLE DEBUG: result content:`, JSON.stringify(result, null, 2).substring(0, 500));
+    
     const deliverableId = await this.persistDeliverableIfPresent(
       result,
       userId,
       taskId,
       enhanceDeliverableId,
     );
+    
+    console.log(`🚨 DELIVERABLE DEBUG: persistDeliverableIfPresent returned:`, deliverableId);
 
     if (deliverableId) {
       this.logger.log(`📄 Deliverable ${deliverableId} created for task ${taskId}`);
@@ -730,7 +744,15 @@ export abstract class A2AAgentBaseService
     taskId?: string,
     enhanceDeliverableId?: string,
   ): Promise<string | null> {
+    console.log(`🚨 PERSIST DEBUG: persistDeliverableIfPresent called`);
+    console.log(`🚨 PERSIST DEBUG: hasDeliverablesService:`, !!this.deliverablesService);
+    console.log(`🚨 PERSIST DEBUG: hasTasksService:`, !!this.tasksService);
+    console.log(`🚨 PERSIST DEBUG: userId:`, userId);
+    console.log(`🚨 PERSIST DEBUG: taskId:`, taskId);
+    console.log(`🚨 PERSIST DEBUG: enhanceDeliverableId:`, enhanceDeliverableId);
+    
     if (!this.deliverablesService) {
+      console.log(`🚨 PERSIST DEBUG: ❌ NO DeliverablesService - skipping`);
       this.logger.debug(
         'DeliverablesService not available - skipping deliverable persistence',
       );
@@ -739,8 +761,11 @@ export abstract class A2AAgentBaseService
 
     try {
       // Extract content from various result formats
+      console.log(`🚨 PERSIST DEBUG: About to extract content from result`);
       const content = this.extractContentFromResult(result);
+      console.log(`🚨 PERSIST DEBUG: Content extracted:`, content ? `${content.length} chars` : 'null');
       if (!content) {
+        console.log(`🚨 PERSIST DEBUG: ❌ NO content extracted - returning null`);
         this.logger.debug(`📄 No content extracted from result for task ${taskId}`);
         return null;
       }
@@ -779,7 +804,7 @@ export abstract class A2AAgentBaseService
         if (!this.deliverableVersionsService) {
           throw new Error('DeliverableVersionsService not available for creating deliverable versions');
         }
-        deliverable = await this.deliverableVersionsService.createVersion(
+        const deliverableVersion = await this.deliverableVersionsService.createVersion(
           enhanceDeliverableId,
           {
             content: deliverableData.content,
@@ -799,8 +824,10 @@ export abstract class A2AAgentBaseService
         );
 
         this.logger.log(
-          `📄 Deliverable enhanced: Version ${deliverable.versionNumber} (Version ID: ${deliverable.id}, Enhanced from: ${enhanceDeliverableId})`,
+          `📄 Deliverable enhanced: Version ${deliverableVersion.versionNumber} (Version ID: ${deliverableVersion.id}, Enhanced from: ${enhanceDeliverableId})`,
         );
+        
+        return enhanceDeliverableId; // Return the deliverable ID, not the version ID
       } else {
         // Creating a new deliverable
         // Require either conversationId or projectStepId (deliverable must belong to something)
@@ -811,6 +838,52 @@ export abstract class A2AAgentBaseService
           return null;
         }
 
+        // Check if deliverable already exists for this conversation
+        let existingDeliverable = null;
+        if (taskContext.conversationId) {
+          try {
+            const existingDeliverables = await this.deliverablesService.findByConversationId(taskContext.conversationId, userId);
+            if (existingDeliverables && existingDeliverables.length > 0) {
+              existingDeliverable = existingDeliverables[0];
+            }
+          } catch (error) {
+            // Continue with creating new deliverable
+          }
+        }
+
+        if (existingDeliverable) {
+          // Create a new version of the existing deliverable
+          if (!this.deliverableVersionsService) {
+            throw new Error('DeliverableVersionsService not available for creating deliverable versions');
+          }
+
+          const deliverableVersion = await this.deliverableVersionsService.createVersion(
+            existingDeliverable.id,
+            {
+              content: deliverableData.content,
+              format: deliverableData.format || 'markdown',
+              createdByType: DeliverableVersionCreationType.AI_RESPONSE,
+              taskId: taskId || 'unknown',
+              metadata: {
+                agentName: this.getAgentName(),
+                agentType: this.getAgentType(),
+                taskId: taskId || 'unknown',
+                generatedAt: new Date().toISOString(),
+                conversationId: taskContext.conversationId,
+                projectStepId: taskContext.projectStepId,
+              },
+            },
+            userId,
+          );
+          
+          this.logger.log(
+            `📄 Deliverable version created: Version ${deliverableVersion.versionNumber} for existing deliverable ${existingDeliverable.id}`,
+          );
+          
+          return existingDeliverable.id; // Return the deliverable ID, not the version ID
+        }
+
+        // Create a new deliverable if none exists
         deliverable = await this.deliverablesService.create(
           {
             title: deliverableData.title,

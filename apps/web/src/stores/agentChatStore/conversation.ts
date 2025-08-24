@@ -69,8 +69,8 @@ export class ConversationService {
       }
       
       // Create maps for linking deliverables to messages
-      const messageDeliverableMap = new Map<string, string>(); // message_id -> deliverable_id
-      const taskDeliverableMap = new Map<string, string>(); // task_id -> deliverable_id
+      const messageDeliverableMap = new Map<string, string>(); // message_id -> deliverableId
+      const taskDeliverableMap = new Map<string, string>(); // task_id -> deliverableId
       
       // First, extract deliverableId from task responses and create task->deliverable mapping
       tasks.forEach(task => {
@@ -167,7 +167,7 @@ export class ConversationService {
           }
           
           if (deliverableId) {
-            assistantMessage.deliverable_id = deliverableId;
+            assistantMessage.deliverableId = deliverableId;
           }
           messages.push(assistantMessage);
           

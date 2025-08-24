@@ -164,27 +164,47 @@ export class TaskExecutionService {
     handlers: any
   ): Promise<void> {
     console.log(`🔄 Starting polling for task ${taskId} in conversation ${conversationId}`);
+    console.log(`🚨 POLLING FIX LOADED: Enhanced polling with safety timeout and cancelled status check`);
     
     const interval = 2000; // 2 second interval
     console.log(`🔄 Polling interval: ${interval}ms`);
     let lastMessageCount = 0;
+    let pollCount = 0;
+    const maxPolls = 300; // Maximum 5 minutes of polling (300 * 2s = 600s)
+    console.log(`🔄 Max polls before timeout: ${maxPolls}`);
     
     const pollInterval = setInterval(async () => {
       try {
+        pollCount++;
+        
+        // Safety timeout - stop polling after maxPolls attempts
+        if (pollCount > maxPolls) {
+          console.warn(`⚠️ Task ${taskId} polling timeout after ${maxPolls} attempts, stopping polling`);
+          clearInterval(pollInterval);
+          handlers.onCompletion(taskId);
+          return;
+        }
+        
         // Get full task for completion check
         const fullTask = await tasksService.getTask(taskId);
-        console.log(`🔍 Task ${taskId} status check:`, {
+        console.log(`🔍 Task ${taskId} status check (${pollCount}/${maxPolls}):`, {
           status: fullTask.status,
           hasResponse: !!fullTask.response,
           responseLength: fullTask.response?.length || 0,
           timestamp: new Date().toISOString()
         });
         
-        if (fullTask.status === 'completed' || fullTask.status === 'failed') {
-          console.log(`🏁 Task ${taskId} completed with status: ${fullTask.status}, stopping polling`);
+        // Enhanced status check with detailed logging
+        console.log(`🚨 STATUS CHECK: Task ${taskId} status is "${fullTask.status}"`);
+        console.log(`🚨 STATUS CHECK: Checking if "${fullTask.status}" matches completion conditions...`);
+        
+        if (fullTask.status === 'completed' || fullTask.status === 'failed' || fullTask.status === 'cancelled') {
+          console.log(`🏁 ✅ STOPPING POLLING: Task ${taskId} completed with status: ${fullTask.status}`);
           clearInterval(pollInterval);
           handlers.onCompletion(taskId);
           return;
+        } else {
+          console.log(`🔄 ⏳ CONTINUING POLLING: Task ${taskId} status "${fullTask.status}" not in completion states [completed, failed, cancelled]`);
         }
         
         // Get task status for progress info
@@ -233,8 +253,9 @@ export class TaskExecutionService {
         }
         
       } catch (error) {
-        console.error('Polling error:', error);
+        console.error(`❌ Polling error for task ${taskId}:`, error);
         clearInterval(pollInterval);
+        handlers.onCompletion(taskId); // Call completion handler even on error to clean up
       }
     }, interval);
   }

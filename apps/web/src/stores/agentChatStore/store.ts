@@ -596,10 +596,10 @@ export const useAgentChatStore = defineStore('agentChat', {
             console.log(`🎭 DEBUG: Added deliverable to store`);
             
             // Update message with deliverable ID - this should trigger AgentTaskItem watchers
-            existingMessage.deliverable_id = completedTask.deliverableId;
+            existingMessage.deliverableId = completedTask.deliverableId;
             existingMessage.metadata = {
               ...existingMessage.metadata,
-              deliverable_id: completedTask.deliverableId
+              deliverableId: completedTask.deliverableId
             };
             
             console.log(`🎭 DEBUG: Updated message with deliverable ID ${completedTask.deliverableId}`);
@@ -635,14 +635,14 @@ export const useAgentChatStore = defineStore('agentChat', {
             const deliverablesStore = useDeliverablesStore();
             
             // Find the deliverable ID from the version or existing message
-            const deliverableId = completedTask.deliverableId || existingMessage.deliverable_id || existingMessage.metadata?.deliverable_id;
+            const deliverableId = completedTask.deliverableId || existingMessage.deliverableId || existingMessage.metadata?.deliverableId;
             
             if (deliverableId) {
               // Reload versions to pick up the new version
               await deliverablesStore.loadDeliverableVersions(deliverableId);
               console.log(`🎭 DEBUG: Reloaded versions after new version creation`);
               
-              // Update message to indicate version creation (but keep existing deliverable_id)
+              // Update message to indicate version creation (but keep existing deliverableId)
               existingMessage.metadata = {
                 ...existingMessage.metadata,
                 newVersionId: completedTask.newVersionId,
@@ -690,19 +690,19 @@ export const useAgentChatStore = defineStore('agentChat', {
           // Match the extraction logic from messageFormatting.ts
           if (parsedResponse?.deliverableId) {
             deliverableId = parsedResponse.deliverableId;
-          } else if (parsedResponse?.success?.deliverable_id) {
-            deliverableId = parsedResponse.success.deliverable_id;
-          } else if (parsedResponse?.deliverable_id) {
-            deliverableId = parsedResponse.deliverable_id;
-          } else if (parsedResponse?.result?.deliverable_id) {
-            deliverableId = parsedResponse.result.deliverable_id;
+          } else if (parsedResponse?.success?.deliverableId) {
+            deliverableId = parsedResponse.success.deliverableId;
+          } else if (parsedResponse?.deliverableId) {
+            deliverableId = parsedResponse.deliverableId;
+          } else if (parsedResponse?.result?.deliverableId) {
+            deliverableId = parsedResponse.result.deliverableId;
           }
           
           console.log(`📦 DEBUG: Parsed response keys:`, Object.keys(parsedResponse));
           console.log(`📦 DEBUG: Looking for deliverable ID in response:`, {
             directDeliverableId: parsedResponse?.deliverableId,
-            successDeliverableId: parsedResponse?.success?.deliverable_id,
-            resultDeliverableId: parsedResponse?.result?.deliverable_id
+            successDeliverableId: parsedResponse?.success?.deliverableId,
+            resultDeliverableId: parsedResponse?.result?.deliverableId
           });
         } catch (e) {
           console.log(`📦 DEBUG: Could not parse response for deliverable ID:`, e);

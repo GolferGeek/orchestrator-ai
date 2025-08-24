@@ -127,7 +127,6 @@ export interface AgentTaskMessage {
   timestamp: Date;
   taskId?: string;
   metadata?: Record<string, any>;
-  deliverable_id?: string;
   deliverableId?: string;
 }
 
@@ -154,14 +153,12 @@ const showMetadataModal = ref(false);
 
 // Computed properties
 const hasBackendDeliverable = computed(() => {
-  return !!(props.message.deliverable_id || props.message.deliverableId || 
-           props.message.metadata?.deliverable_id || props.message.metadata?.deliverableId);
+  return !!(props.message.deliverableId || 
+           props.message.metadata?.deliverableId);
 });
 
 const backendDeliverableId = computed(() => {
-  return props.message.deliverable_id || 
-         props.message.deliverableId ||
-         props.message.metadata?.deliverable_id || 
+  return props.message.deliverableId ||
          props.message.metadata?.deliverableId;
 });
 
@@ -198,7 +195,7 @@ const willHideForDeliverable = computed(() => {
   // Force reactivity by checking if the deliverable is loaded in the store
   const deliverableLoaded = !!backendDeliverable.value;
   
-  // Simple rule: If an assistant message has a deliverable_id, show the callout instead of content
+  // Simple rule: If an assistant message has a deliverableId, show the callout instead of content
   return hasDeliverableId && isAssistantMessage;
 });
 
@@ -349,14 +346,14 @@ watch(() => props.message.metadata, (newMetadata, oldMetadata) => {
   console.log(`🔍 Message ${props.message.id} metadata changed:`, {
     old: oldMetadata,
     new: newMetadata,
-    hasDeliverableId: !!(newMetadata?.deliverable_id),
-    deliverableId: newMetadata?.deliverable_id
+    hasDeliverableId: !!(newMetadata?.deliverableId),
+    deliverableId: newMetadata?.deliverableId
   });
 }, { deep: true, immediate: true });
 
-// Debug: Watch message deliverable_id changes  
-watch(() => props.message.deliverable_id, (newId, oldId) => {
-  console.log(`🔍 Message ${props.message.id} deliverable_id changed: ${oldId} → ${newId}`);
+// Debug: Watch message deliverableId changes  
+watch(() => props.message.deliverableId, (newId, oldId) => {
+  console.log(`🔍 Message ${props.message.id} deliverableId changed: ${oldId} → ${newId}`);
 }, { immediate: true });
 </script>
 
