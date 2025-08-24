@@ -2,36 +2,13 @@
   <div class="deliverable-display">
     <!-- Document Paper Container -->
     <div class="document-paper">
-    <div class="deliverable-header">
+    <!-- Compact Header -->
+    <div class="deliverable-header compact">
       <div class="title-section">
         <h3 class="deliverable-title">{{ displayTitle }}</h3>
-        <div class="metadata">
-          <ion-chip v-if="deliverable.type" :color="getTypeColor(deliverable.type)" outline>
-            {{ formatType(deliverable.type) }}
-          </ion-chip>
-          <ion-chip v-if="currentVersion?.format" :color="getFormatColor(currentVersion.format)" outline>
-            {{ currentVersion.format.toUpperCase() }}
-          </ion-chip>
-        </div>
       </div>
       <div class="header-actions">
-        <ion-button fill="clear" size="small" @click="showVersionHistory = !showVersionHistory">
-          <ion-icon :icon="timeOutline" />
-        </ion-button>
-        <ion-button fill="clear" size="small" @click="showVersionManagement = !showVersionManagement">
-          <ion-icon :icon="settingsOutline" />
-          Manage
-        </ion-button>
-        <ion-button 
-          v-if="!isEditing"
-          fill="clear" 
-          size="small" 
-          @click="startEditing"
-        >
-          <ion-icon :icon="createOutline" />
-          Edit
-        </ion-button>
-        <!-- Edit Mode Controls -->
+        <!-- Edit Mode Controls (when editing) -->
         <div v-if="isEditing" class="edit-controls">
           <ion-button 
             fill="clear" 
@@ -40,7 +17,6 @@
             color="medium"
           >
             <ion-icon :icon="closeOutline" />
-            Cancel
           </ion-button>
           <ion-button 
             fill="solid" 
@@ -53,13 +29,38 @@
             {{ isSaving ? 'Saving...' : 'Save' }}
           </ion-button>
         </div>
-        <ion-button fill="clear" size="small" @click="downloadDeliverable">
-          <ion-icon :icon="downloadOutline" />
-        </ion-button>
+        <!-- Normal Mode Actions -->
+        <div v-else class="normal-actions">
+          <!-- Actions Dropdown -->
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            @click="showActionsMenu = !showActionsMenu"
+            id="actions-trigger"
+          >
+            <ion-icon :icon="ellipsisVerticalOutline" />
+          </ion-button>
+          <!-- Quick Edit -->
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            @click="startEditing"
+          >
+            <ion-icon :icon="createOutline" />
+          </ion-button>
+          <!-- Quick Download -->
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            @click="downloadDeliverable"
+          >
+            <ion-icon :icon="downloadOutline" />
+          </ion-button>
+        </div>
       </div>
     </div>
-    <!-- Version Navigation -->
-    <div class="version-section" v-if="totalVersions > 1 || showVersionHistory">
+    <!-- Version Navigation (hidden by default) -->
+    <div class="version-section" v-if="showVersionControls">
       <div class="version-info">
         <span class="version-label">
           Version {{ displayVersion?.versionNumber || currentVersion?.versionNumber || 1 }} of {{ totalVersions }}
@@ -310,31 +311,59 @@
         >{{ displayVersion?.content || '' }}</div>
       </div>
     </div>
-    <!-- Footer Info -->
-    <div class="deliverable-footer">
-      <div class="timestamps">
-        <span class="created">Created {{ formatDate(deliverable.createdAt) }}</span>
-        <span v-if="deliverable.updatedAt !== deliverable.createdAt" class="updated">
-          Updated {{ formatDate(deliverable.updatedAt) }}
-        </span>
-        <span v-if="displayVersion && displayVersion.createdAt !== deliverable.createdAt" class="version-created">
-          This version: {{ formatDate(displayVersion.createdAt) }}
-        </span>
+    <!-- Compact Footer -->
+    <div class="deliverable-footer compact">
+      <div class="version-info">
+        <span class="version-badge">v{{ displayVersion?.versionNumber || currentVersion?.versionNumber || 1 }} of {{ totalVersions }}</span>
+        <span v-if="displayVersion?.createdByType" class="created-by">by {{ formatCreationType(displayVersion.createdByType) }}</span>
       </div>
-      <!-- Task Rating (for the work that created this version) -->
-      <div class="rating-section" v-if="displayVersion?.taskId">
-        <div class="rating-label">Rate the agent's work on this version:</div>
-        <div class="rating-context" v-if="displayVersion?.createdByType">
-          Created by {{ formatCreationType(displayVersion.createdByType) }}
+      <div class="footer-actions">
+        <!-- Inline Rating (if available) -->
+        <div v-if="displayVersion?.taskId" class="inline-rating">
+          <TaskRating 
+            :task-id="displayVersion.taskId"
+            :agent-name="displayVersion.createdByType"
+          />
         </div>
-        <TaskRating 
-          :task-id="displayVersion.taskId"
-          :agent-name="displayVersion.createdByType"
-        />
+        <!-- Settings/More Button -->
+        <ion-button 
+          fill="clear" 
+          size="small" 
+          @click="showFooterMenu = !showFooterMenu"
+        >
+          <ion-icon :icon="settingsOutline" />
+        </ion-button>
       </div>
     </div>
-    <!-- Deliverable Actions Input -->
-    <div class="deliverable-actions">
+    <!-- Floating Action Button for Deliverable Prompt -->
+    <ion-fab 
+      v-if="!showDeliverableActions && !isEditing" 
+      vertical="bottom" 
+      horizontal="end" 
+      slot="fixed"
+      class="deliverable-fab"
+    >
+      <ion-fab-button 
+        @click="showDeliverableActions = true"
+        color="primary"
+        size="small"
+      >
+        <ion-icon :icon="chatbubbleEllipsesOutline" />
+      </ion-fab-button>
+    </ion-fab>
+
+    <!-- Deliverable Actions Input (expandable) -->
+    <div class="deliverable-actions" v-if="showDeliverableActions">
+      <div class="actions-header">
+        <span class="actions-title">Give instructions to improve this deliverable</span>
+        <ion-button 
+          fill="clear" 
+          size="small" 
+          @click="showDeliverableActions = false"
+        >
+          <ion-icon :icon="closeOutline" />
+        </ion-button>
+      </div>
       <form @submit.prevent="submitDeliverablePrompt">
         <ion-item>
           <ion-textarea
@@ -342,6 +371,7 @@
             placeholder='Enter instructions for this deliverable (e.g., "make the intro shorter", "fix the conclusion")...'
             :rows="2"
             class="deliverable-prompt-input"
+            ref="promptTextarea"
           />
           <ion-button
             slot="end"
@@ -355,6 +385,30 @@
         </ion-item>
       </form>
     </div>
+
+    <!-- Actions Dropdown Menu -->
+    <ion-popover 
+      :is-open="showActionsMenu" 
+      trigger="actions-trigger"
+      @didDismiss="showActionsMenu = false"
+    >
+      <ion-content>
+        <ion-list>
+          <ion-item button @click="toggleVersionControls">
+            <ion-icon :icon="timeOutline" slot="start" />
+            <ion-label>{{ showVersionControls ? 'Hide' : 'Show' }} Versions</ion-label>
+          </ion-item>
+          <ion-item button @click="showVersionManagement = !showVersionManagement">
+            <ion-icon :icon="settingsOutline" slot="start" />
+            <ion-label>Manage Versions</ion-label>
+          </ion-item>
+          <ion-item button @click="showVersionHistory = !showVersionHistory">
+            <ion-icon :icon="gitBranchOutline" slot="start" />
+            <ion-label>Version History</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ion-popover>
     </div>
   </div>
 </template>
@@ -369,6 +423,11 @@ import {
   IonAccordion,
   IonAccordionGroup,
   IonTextarea,
+  IonPopover,
+  IonContent,
+  IonList,
+  IonFab,
+  IonFabButton,
 } from '@ionic/vue';
 import {
   timeOutline,
@@ -388,6 +447,8 @@ import {
   removeOutline,
   settingsOutline,
   sendOutline,
+  ellipsisVerticalOutline,
+  chatbubbleEllipsesOutline,
 } from 'ionicons/icons';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { marked } from 'marked';
@@ -430,6 +491,10 @@ const displayTitle = computed(() => {
 // Reactive state
 const showVersionHistory = ref(false);
 const showVersionManagement = ref(false);
+const showVersionControls = ref(false);
+const showActionsMenu = ref(false);
+const showFooterMenu = ref(false);
+const showDeliverableActions = ref(false);
 const selectedVersion = ref<DeliverableVersion | null>(null);
 const selectedVersionIndex = ref(0);
 const isEditing = ref(false);
@@ -438,6 +503,7 @@ const editedTitle = ref('');
 const isSaving = ref(false);
 const deliverablePrompt = ref('');
 const contentTextarea = ref<any>(null);
+const promptTextarea = ref<any>(null);
 // Computed versions that reactively watches the store state
 const versions = computed(() => {
   // This will trigger whenever the store state changes
@@ -497,6 +563,19 @@ const sanitizedHtml = computed(() => {
   return DOMPurify.sanitize(displayVersion.value.content);
 });
 // Methods
+const toggleVersionControls = () => {
+  showVersionControls.value = !showVersionControls.value;
+  showActionsMenu.value = false; // Close the menu
+};
+
+// Watch for deliverable actions panel opening to focus textarea
+watch(showDeliverableActions, async (newValue) => {
+  if (newValue) {
+    await nextTick();
+    promptTextarea.value?.$el?.setFocus();
+  }
+});
+
 const getTypeColor = (type: string) => {
   if (!type || typeof type !== 'string') {
     return 'medium'; // Default fallback
@@ -1409,5 +1488,119 @@ html[data-theme="dark"] .rating-context {
   padding: 16px;
   border-top: 1px solid var(--ion-color-light-shade);
   background: var(--ion-color-step-25);
+}
+
+/* Compact Layout Styles */
+.deliverable-header.compact {
+  padding: 16px 24px 12px 24px;
+  gap: 12px;
+}
+
+.deliverable-header.compact .deliverable-title {
+  font-size: 1.1em;
+  margin: 0;
+}
+
+.normal-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.deliverable-footer.compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 24px 16px 24px;
+  border-top: 1px solid var(--ion-color-light-shade);
+  background: var(--ion-color-step-25);
+  font-size: 0.85em;
+  color: var(--ion-color-medium);
+}
+
+.deliverable-footer.compact .version-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.version-badge {
+  background: var(--ion-color-primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: 500;
+}
+
+.deliverable-footer.compact .created-by {
+  color: var(--ion-color-medium-shade);
+}
+
+.footer-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.inline-rating {
+  margin-right: 8px;
+}
+
+/* Content Section gets more space */
+.content-section {
+  flex: 1;
+  min-height: 60vh; /* Ensure content gets priority */
+}
+
+/* Hide metadata chips in compact mode - move to dropdown if needed */
+.deliverable-header.compact .metadata {
+  display: none;
+}
+
+/* Floating Action Button */
+.deliverable-fab {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+}
+
+/* Enhanced Actions Panel */
+.deliverable-actions {
+  padding: 0;
+  border-top: 1px solid var(--ion-color-light-shade);
+  background: var(--ion-color-step-25);
+  border-radius: 0 0 12px 12px;
+}
+
+.actions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px 8px 16px;
+  background: var(--ion-color-step-50);
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.actions-title {
+  font-size: 0.9em;
+  font-weight: 500;
+  color: var(--ion-color-dark);
+}
+
+.deliverable-actions form {
+  padding: 8px;
+}
+
+.deliverable-actions ion-item {
+  --background: transparent;
+  --border-color: var(--ion-color-light-shade);
+}
+
+.deliverable-prompt-input {
+  --background: var(--ion-color-light);
+  --color: var(--ion-color-dark);
+  border-radius: 8px;
 }
 </style>
