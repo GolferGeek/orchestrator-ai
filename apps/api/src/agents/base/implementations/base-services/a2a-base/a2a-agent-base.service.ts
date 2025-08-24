@@ -351,10 +351,7 @@ export abstract class A2AAgentBaseService
     }
 
     // Add task type and status schema if defined
-    const taskType = this.getTaskType();
-    if (taskType && taskType !== 'ephemeral') {
-      card.taskType = taskType;
-    }
+    // Task type is handled in memory, not stored in card
 
     const statusSchema = this.getStatusSchema();
     if (statusSchema && Object.keys(statusSchema).length > 0) {
@@ -371,14 +368,7 @@ export abstract class A2AAgentBaseService
     return card;
   }
 
-  /**
-   * Get the task type for this agent
-   * Override in subclasses to specify 'long_running' or 'swarm'
-   * Default is 'ephemeral'
-   */
-  protected getTaskType(): 'ephemeral' | 'long_running' | 'swarm' {
-    return 'ephemeral';
-  }
+  // Task type is no longer used - all tasks are handled as ephemeral
 
   /**
    * Get the status schema for this agent's custom status updates
@@ -395,17 +385,8 @@ export abstract class A2AAgentBaseService
    * Override in subclasses for custom timeout logic
    */
   protected getTaskTimeout(): number {
-    const taskType = this.getTaskType();
-    switch (taskType) {
-      case 'long_running':
-        return 3600; // 1 hour for long-running tasks
-      case 'swarm':
-        return 7200; // 2 hours for swarm tasks
-      case 'ephemeral':
-      default:
-        // For workflow agents (like requirements_writer), use longer timeout even if ephemeral
-        return this.isWorkflowAgent() ? 1800 : 300; // 30 minutes for workflows, 5 minutes for simple tasks
-    }
+    // For workflow agents (like requirements_writer), use longer timeout
+    return this.isWorkflowAgent() ? 1800 : 300; // 30 minutes for workflows, 5 minutes for simple tasks
   }
 
   /**
@@ -531,7 +512,6 @@ export abstract class A2AAgentBaseService
   protected async createTaskStatus(
     taskId: string,
     userId: string,
-    taskType: 'ephemeral' | 'long_running' | 'swarm' = 'ephemeral',
   ): Promise<void> {
     if (!this.taskStatusService) {
       this.logger.warn(
@@ -540,18 +520,15 @@ export abstract class A2AAgentBaseService
       return;
     }
 
-    // Determine task type from agent card if not specified
-    if (taskType === 'ephemeral') {
-      const agentCard = await this.getAgentCard();
-      taskType = agentCard.taskType || 'ephemeral';
-    }
+    // Use agent identifier for task status tracking
+    const agentIdentifier = `${this.getAgentType()}/${this.getAgentName()}`;
 
-    await this.taskStatusService.createTask(taskId, userId, taskType, {
+    await this.taskStatusService.createTask(taskId, userId, agentIdentifier, {
       agentName: this.getAgentName(),
       agentType: this.getAgentType(),
     });
 
-    this.logger.debug(`Task ${taskId} created with type: ${taskType}`);
+    this.logger.debug(`Task ${taskId} created for agent: ${agentIdentifier}`);
   }
 
   /**
@@ -600,12 +577,19 @@ export abstract class A2AAgentBaseService
 
     // Auto-persist deliverable if result contains deliverable content
     // This must happen BEFORE marking task complete so we can attach deliverable ID
+    this.logger.debug(`📄 Attempting deliverable creation for task ${taskId}`);
     const deliverableId = await this.persistDeliverableIfPresent(
       result,
       userId,
       taskId,
       enhanceDeliverableId,
     );
+
+    if (deliverableId) {
+      this.logger.log(`📄 Deliverable ${deliverableId} created for task ${taskId}`);
+    } else {
+      this.logger.debug(`📄 No deliverable created for task ${taskId}`);
+    }
 
     // If deliverable was created, attach ID to the result
     if (deliverableId && typeof result === 'object' && result !== null) {
@@ -757,24 +741,34 @@ export abstract class A2AAgentBaseService
       // Extract content from various result formats
       const content = this.extractContentFromResult(result);
       if (!content) {
+        this.logger.debug(`📄 No content extracted from result for task ${taskId}`);
         return null;
       }
 
+      this.logger.debug(`📄 Content extracted (${content.length} chars) for task ${taskId}: ${content.substring(0, 200)}...`);
+
       // Check if content contains deliverable markers
       if (!this.isDeliverableContent(content)) {
+        this.logger.debug(`📄 Content does not qualify as deliverable for task ${taskId}`);
         return null;
       }
+
+      this.logger.debug(`📄 Content qualifies as deliverable for task ${taskId}`);
 
       // Extract deliverable information
       const deliverableData = this.extractDeliverableFromContent(content);
       if (!deliverableData) {
+        this.logger.debug(`📄 Failed to extract deliverable data for task ${taskId}`);
         return null;
       }
+
+      this.logger.debug(`📄 Deliverable data extracted: ${deliverableData.title}`);
 
       // Get conversation context from task if available
       let taskContext: { conversationId?: string; projectStepId?: string } = {};
       if (taskId) {
         taskContext = await this.getTaskContext(taskId, userId);
+        this.logger.debug(`📄 Task context for ${taskId}: conversationId=${taskContext.conversationId}, projectStepId=${taskContext.projectStepId}`);
       }
 
       // Create new deliverable or enhance existing one
@@ -873,15 +867,19 @@ export abstract class A2AAgentBaseService
         result.response || result.message || result.content || result.data;
 
       if (typeof content === 'string') {
+        this.logger.debug(`📄 Extracted content from field: ${Object.keys(result).find(key => result[key] === content)}`);
         return content;
       }
 
       // If it's still an object, stringify it for analysis
       if (typeof content === 'object') {
-        return JSON.stringify(content, null, 2);
+        const stringified = JSON.stringify(content, null, 2);
+        this.logger.debug(`📄 Stringified object content for analysis`);
+        return stringified;
       }
     }
 
+    this.logger.debug(`📄 Could not extract content from result type: ${typeof result}`);
     return null;
   }
 
@@ -894,7 +892,7 @@ export abstract class A2AAgentBaseService
     const deliverableMarkers = [
       /^#\s+(.+)/m, // Markdown headers
       /^##\s+(.+)/m,
-      /^\*\*(.+)\*\*$/m, // Bold titles
+      /^\*\*([^*]+)\*\*$/m, // Bold titles (including emojis)
       /DELIVERABLE:/i,
       /DOCUMENT:/i,
       /REPORT:/i,
@@ -907,6 +905,8 @@ export abstract class A2AAgentBaseService
     // Lowered threshold to catch more content as deliverables
     const hasStructure = content.includes('\n\n') || content.length > 300;
     const hasMarkers = deliverableMarkers.some(marker => marker.test(content));
+
+    this.logger.debug(`🔍 Deliverable detection for content (${content.length} chars): hasStructure=${hasStructure}, hasMarkers=${hasMarkers}`);
 
     return hasStructure || hasMarkers;
   }
@@ -974,8 +974,8 @@ export abstract class A2AAgentBaseService
       return h2Match[1].trim();
     }
 
-    // Try bold text at the beginning
-    const boldMatch = content.match(/^\*\*(.+?)\*\*/);
+    // Try bold text at the beginning (including emojis and special characters)
+    const boldMatch = content.match(/^\*\*([^*]+)\*\*/);
     if (boldMatch && boldMatch[1]) {
       return boldMatch[1].trim();
     }

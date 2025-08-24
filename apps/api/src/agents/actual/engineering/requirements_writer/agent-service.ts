@@ -16,12 +16,7 @@ export class RequirementsWriterService extends PythonFunctionAgentBaseService {
     return 'requirements_writer';
   }
 
-  /**
-   * Requirements Writer uses workflow steps - should be treated as ephemeral but with real-time progress
-   */
-  protected getTaskType(): 'ephemeral' | 'long_running' | 'swarm' {
-    return 'ephemeral'; // Workflows complete in 18 seconds, so ephemeral
-  }
+  // Task type is no longer used - all tasks are handled as ephemeral
 
   /**
    * Define status schema for workflow progress tracking

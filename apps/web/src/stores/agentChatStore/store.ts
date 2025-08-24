@@ -21,7 +21,7 @@ import { conversation } from './conversation';
 import { taskExecution } from './taskExecution';
 import { websocketHandler } from './websocketHandler';
 import { messageFormatting } from './messageFormatting';
-import { deliverable } from './deliverable';
+
 
 // Import types
 import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent } from './types';
@@ -323,12 +323,10 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Determine execution mode
         const userPreferences = useUserPreferencesStore();
         const effectiveMode = taskExecution.determineExecutionMode(activeConversation, userPreferences.preferences);
-        
-        // For WebSocket mode, generate task ID early and set up subscriptions
-        if (effectiveMode === 'websocket') {
-          preGeneratedTaskId = generateUUID();
-          console.log(`🔗 Pre-generated task ID for WebSocket mode: ${preGeneratedTaskId}`);
-        }
+
+        // Always generate a unique task ID for every task execution to prevent database conflicts
+        preGeneratedTaskId = generateUUID();
+        console.log(`🆔 Generated unique task ID: ${preGeneratedTaskId} for ${effectiveMode} mode`);
 
         // Prepare task execution options
         const taskOptions = {
@@ -426,12 +424,10 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Get execution mode and user preferences
         const userPreferences = useUserPreferencesStore();
         const effectiveMode = taskExecution.determineExecutionMode(activeConversation, userPreferences.preferences);
-        
-        // For WebSocket mode, generate task ID early
-        if (effectiveMode === 'websocket') {
-          preGeneratedTaskId = generateUUID();
-          console.log(`🔗 Pre-generated task ID for WebSocket mode: ${preGeneratedTaskId}`);
-        }
+
+        // Always generate a unique task ID for every task execution to prevent database conflicts
+        preGeneratedTaskId = generateUUID();
+        console.log(`🆔 Generated unique task ID: ${preGeneratedTaskId} for ${effectiveMode} mode`);
 
         // Prepare task execution options with context metadata
         const taskOptions = {
@@ -549,53 +545,38 @@ export const useAgentChatStore = defineStore('agentChat', {
 
       console.log(`🏁 DEBUG: Found existing message for task ${taskId}`);
 
-      // Set processing lock to prevent duplicates
-      if (!deliverable.setProcessingLock(existingMessage, taskId)) {
-        console.log(`🏁 DEBUG: Task ${taskId} already processing or completed`);
-        return; // Already processing or completed
-      }
-
-      console.log(`🏁 DEBUG: Processing lock set for task ${taskId}`);
-
       try {
         // Get completed task
         console.log(`🏁 DEBUG: Getting completed task data for ${taskId}`);
         const completedTask = await tasksService.getTask(taskId);
         console.log(`🏁 DEBUG: Completed task data:`, completedTask);
         
-        if (completedTask.status !== 'completed' || !completedTask.response) {
-          console.log(`🏁 DEBUG: Task ${taskId} not completed or no response. Status: ${completedTask.status}`);
-          deliverable.clearProcessingLock(existingMessage);
+        if (completedTask.status !== 'completed') {
+          console.log(`🏁 DEBUG: Task ${taskId} not completed. Status: ${completedTask.status}`);
           return;
         }
 
-        console.log(`🏁 DEBUG: Extracting deliverable content for task ${taskId}`);
-        // Extract deliverable content
+        console.log(`🏁 DEBUG: Extracting final content for task ${taskId}`);
+        // Extract final content for display - backend handles deliverable creation
         const finalContent = messageFormatting.extractDeliverableContent(completedTask);
         console.log(`🏁 DEBUG: Final content extracted:`, finalContent.substring(0, 200) + '...');
-        
-        // Append deliverable with duplicate prevention
-        console.log(`🏁 DEBUG: Appending deliverable for task ${taskId}`);
-        const result = deliverable.appendDeliverable(existingMessage, {
-          taskId,
-          content: finalContent,
-          existingContent: existingMessage.content,
-          messageMetadata: existingMessage.metadata
-        });
 
-        console.log(`🏁 DEBUG: Task completion handled for ${taskId}: ${result.reason}`);
+        // Update message content with the final response
+        existingMessage.content = finalContent;
+        existingMessage.metadata = {
+          ...existingMessage.metadata,
+          isPlaceholder: false,
+          isCompleted: true,
+          completedAt: new Date().toISOString()
+        };
 
         // Force Vue reactivity by replacing the message in the array
-        if (result.updated) {
-          console.log(`🏁 DEBUG: Forcing Vue reactivity by replacing message in array`);
-          const messageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
-          if (messageIndex >= 0) {
-            console.log(`🏁 DEBUG: Replacing message at index ${messageIndex}`);
-            // Create a new message object to trigger reactivity
-            const updatedMessage = { ...existingMessage };
-            conv.messages[messageIndex] = updatedMessage;
-            console.log(`🏁 DEBUG: Message replaced, new content length: ${updatedMessage.content.length}`);
-          }
+        const messageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
+        if (messageIndex >= 0) {
+          console.log(`🏁 DEBUG: Replacing message at index ${messageIndex}`);
+          const updatedMessage = { ...existingMessage };
+          conv.messages[messageIndex] = updatedMessage;
+          console.log(`🏁 DEBUG: Message replaced, new content length: ${updatedMessage.content.length}`);
         }
 
         // Check if a deliverable was created and handle UI updates
@@ -688,7 +669,6 @@ export const useAgentChatStore = defineStore('agentChat', {
 
       } catch (error) {
         console.error(`🏁 DEBUG: Failed to handle task completion for ${taskId}:`, error);
-        deliverable.clearProcessingLock(existingMessage);
         conv.error = error instanceof Error ? error.message : 'Failed to load task result';
       }
     },

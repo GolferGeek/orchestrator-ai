@@ -67,9 +67,13 @@ export class TaskStatusService {
   async createTask(
     taskId: string,
     userId: string,
-    taskType: 'ephemeral' | 'long_running' | 'swarm' = 'ephemeral',
+    taskType?: string,
     initialData: Partial<TaskStatus> = {},
   ): Promise<void> {
+    // Default to ephemeral behavior if no task type specified
+    const normalizedTaskType = (taskType === 'long_running' || taskType === 'swarm')
+      ? taskType as 'long_running' | 'swarm'
+      : 'ephemeral';
     const taskStatus: TaskStatus = {
       taskId,
       userId,
@@ -77,7 +81,7 @@ export class TaskStatusService {
       progress: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
-      taskType, // Store taskType for persistence decisions
+      taskType: normalizedTaskType, // Store normalized taskType for persistence decisions
       ...initialData,
     };
 
@@ -86,9 +90,9 @@ export class TaskStatusService {
 
     // Persist to database for all task types (including ephemeral for evaluations)
     if (
-      taskType === 'long_running' ||
-      taskType === 'swarm' ||
-      taskType === 'ephemeral'
+      normalizedTaskType === 'long_running' ||
+      normalizedTaskType === 'swarm' ||
+      normalizedTaskType === 'ephemeral'
     ) {
       try {
         const { error } = await this.supabaseService
@@ -110,7 +114,7 @@ export class TaskStatusService {
           );
         } else {
           this.logger.debug(
-            `Task ${taskId} persisted to database (${taskType})`,
+            `Task ${taskId} persisted to database (${normalizedTaskType})`,
           );
         }
       } catch (error) {
@@ -118,7 +122,7 @@ export class TaskStatusService {
       }
     }
 
-    this.logger.debug(`Task ${taskId} created with type: ${taskType}`);
+    this.logger.debug(`Task ${taskId} created with type: ${normalizedTaskType}`);
     this.emitStatusChange(taskId, taskStatus);
   }
 

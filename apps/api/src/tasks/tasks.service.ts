@@ -40,6 +40,17 @@ export class TasksService {
   ) {}
 
   /**
+   * Generate a unique task ID using UUID v4
+   */
+  private generateTaskId(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  /**
    * Create a new task with database persistence
    * Supports lazy conversation creation - if no conversationId provided, creates one
    */
@@ -48,7 +59,6 @@ export class TasksService {
     agentName: string,
     agentType: AgentType,
     dto: CreateTaskDto,
-    taskType: 'ephemeral' | 'long_running' | 'swarm' = 'long_running',
   ): Promise<Task> {
     try {
       // Handle conversation - always ensure it exists
@@ -65,20 +75,26 @@ export class TasksService {
       conversationId = conversation.id;
       this.logger.debug(`Using conversation ${conversationId} for task`);
 
-      // Create task in database
+      // Prepare task data with proper ID handling
       const taskData: any = {
         agent_conversation_id: conversationId,
         user_id: userId,
         method: dto.method,
         prompt: dto.prompt,
         params: dto.params || {},
-        timeout_seconds: dto.timeoutSeconds || 300,
         status: 'pending',
+        progress: 0,
+        timeout_seconds: dto.timeoutSeconds || 300,
+        metadata: dto.metadata || {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
-      // Use provided task ID if available (for early WebSocket subscription)
+      // Use provided task ID if available, otherwise generate new one
       if (dto.taskId) {
         taskData.id = dto.taskId;
+      } else {
+        taskData.id = this.generateTaskId();
       }
 
       // Store LLM selection metadata if provided
@@ -89,48 +105,77 @@ export class TasksService {
         };
       }
 
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from('tasks')
-        .insert(taskData)
-        .select()
-        .single();
+      let finalTaskData = taskData;
+      let attempts = 0;
+      const maxAttempts = 3;
 
-      if (error) {
-        this.logger.error('Error creating task in database:', error);
-        throw new Error(`Failed to create task: ${error.message}`);
+      while (attempts < maxAttempts) {
+        try {
+          const { data, error } = await this.supabaseService
+            .getAnonClient()
+            .from('tasks')
+            .insert(finalTaskData)
+            .select()
+            .single();
+
+          if (error) {
+            // If it's a duplicate key error and we have attempts left, generate new ID
+            if (error.code === '23505' && attempts < maxAttempts - 1) {
+              this.logger.warn(`Task ID ${finalTaskData.id} already exists, generating new ID (attempt ${attempts + 1})`);
+              finalTaskData = {
+                ...taskData,
+                id: this.generateTaskId(), // Generate new unique ID
+              };
+              attempts++;
+              continue;
+            }
+
+            this.logger.error('Error creating task in database:', error);
+            throw new Error(`Failed to create task: ${error.message}`);
+          }
+
+          // Success - continue with task setup
+          const createdTask = data;
+
+          // Create task in lifecycle service for execution tracking
+          await this.taskLifecycleService.createTask({
+            method: dto.method,
+            params: { ...dto.params, taskId: createdTask.id },
+            timeout: (dto.timeoutSeconds || 300) * 1000, // Convert to milliseconds
+          });
+
+          // Register task with TaskStatusService for live tracking
+          await this.taskStatusService.createTask(
+            createdTask.id,
+            userId,
+            `${agentType}/${agentName}`, // Use the constructed task type for status service
+            {
+              status: 'pending',
+              progress: 0,
+              progressMessage: 'Task created, waiting for execution...',
+            },
+          );
+
+          this.logger.debug(`Task ${createdTask.id} registered with TaskStatusService`);
+
+          // Emit task created event
+          this.eventEmitter.emit('task.created', {
+            taskId: createdTask.id,
+            conversationId,
+            userId,
+            agentName,
+          });
+
+          return this.mapToTask(createdTask);
+        } catch (error) {
+          if (attempts >= maxAttempts - 1) {
+            throw error;
+          }
+          attempts++;
+        }
       }
 
-      // Create task in lifecycle service for execution tracking
-      await this.taskLifecycleService.createTask({
-        method: dto.method,
-        params: { ...dto.params, taskId: data.id },
-        timeout: (dto.timeoutSeconds || 300) * 1000, // Convert to milliseconds
-      });
-
-      // Register task with TaskStatusService for live tracking
-      await this.taskStatusService.createTask(
-        data.id,
-        userId,
-        taskType, // Use provided task type
-        {
-          status: 'pending',
-          progress: 0,
-          progressMessage: 'Task created, waiting for execution...',
-        },
-      );
-
-      this.logger.debug(`Task ${data.id} registered with TaskStatusService`);
-
-      // Emit task created event
-      this.eventEmitter.emit('task.created', {
-        taskId: data.id,
-        conversationId,
-        userId,
-        agentName,
-      });
-
-      return this.mapToTask(data);
+      throw new Error(`Failed to create task after ${maxAttempts} attempts`);
     } catch (error) {
       this.logger.error('Error in createTask:', error);
       throw error;

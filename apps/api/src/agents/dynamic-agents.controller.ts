@@ -151,10 +151,7 @@ export class DynamicAgentsController {
     const agentCard = await agentInstance.getAgentCard();
     const agentTimeout = agentCard.timeout || 300; // Default to 5 minutes if not specified
 
-    // Get agent's preferred task type (if available)
-    const agentTaskType = agentInstance.getTaskType
-      ? agentInstance.getTaskType()
-      : 'ephemeral'; // Default for dynamic agent requests
+    // Task type is no longer used - all tasks are handled as ephemeral
 
     // Create task with agent-specific timeout
     // Optimize context (backend-intelligent) with feature flag
@@ -204,7 +201,6 @@ export class DynamicAgentsController {
       agentName,
       agentType as AgentType,
       taskRequestWithTimeout,
-      agentTaskType, // Pass agent's preferred task type
     );
 
     try {
@@ -278,12 +274,14 @@ export class DynamicAgentsController {
         `🔍 DEBUG - Task ${task.id} completed with result: ${JSON.stringify(result, null, 2)}`,
       );
 
-      // Store the result in the task record so frontend can access it
-      await this.taskStatusService.completeTask(
-        task.id,
-        currentUser.id,
-        result, // This is the orchestrator response with message field
-      );
+      // Store the result in the task record with deliverable auto-creation
+      // Use the agent's completeTask method to enable deliverable creation
+      if (agentInstance.completeTask) {
+        await agentInstance.completeTask(task.id, currentUser.id, result);
+      } else {
+        // Fallback to direct task completion if agent doesn't have completeTask method
+        await this.taskStatusService.completeTask(task.id, currentUser.id, result);
+      }
 
       this.logger.debug(
         `🔍 DEBUG - Task ${task.id} marked as completed in database`,
