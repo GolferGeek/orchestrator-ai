@@ -50,7 +50,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       services.taskStatusService,
       services.deliverablesService,
       services.deliverableVersionsService,
-      undefined, // No tasksService for TypeScript function agents
+      services.tasksService,
       services.agentRegistrationService,
       services.jsonRpcProtocolService,
       services.loggingService,
@@ -378,11 +378,21 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
             }
           : undefined;
 
-      // Save the result to the task in database for async tasks
-      await this.saveTaskResult(result);
+      // Use parent class completeTask method which includes deliverable creation
+      if (this.currentTaskId && this.currentUserId) {
+        await this.completeTask(this.currentTaskId, this.currentUserId, result);
+      }
 
-      // Broadcast task completion
-      this.broadcastTaskCompletion('completed', 'Task completed successfully');
+      // Broadcast final response to WebSocket clients
+      if (this.services.taskProgressGateway && this.currentTaskId) {
+        this.services.taskProgressGateway.broadcastTaskCompletionWithResponse(
+          this.currentTaskId,
+          'completed',
+          'Task completed successfully with response',
+          result.response || result,
+          result.metadata || {},
+        );
+      }
 
       // Return structured response format to match ContextAgentBaseService
       return {
@@ -419,10 +429,13 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       );
 
       // Broadcast error status
-      this.broadcastTaskCompletion(
-        'failed',
-        error instanceof Error ? error.message : String(error),
-      );
+      if (this.services.taskProgressGateway && this.currentTaskId) {
+        this.services.taskProgressGateway.broadcastTaskCompletion(
+          this.currentTaskId,
+          'failed',
+          error instanceof Error ? error.message : String(error),
+        );
+      }
 
       // Return structured error response
       return {
@@ -503,76 +516,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
     }
   }
 
-  /**
-   * Broadcast task completion event (matching Python pattern)
-   */
-  protected broadcastTaskCompletion(
-    status: 'completed' | 'failed',
-    message: string,
-  ): void {
-    if (!this.currentTaskId) {
-      return;
-    }
 
-    if (this.services.taskProgressGateway) {
-      this.services.taskProgressGateway.broadcastTaskCompletion(
-        this.currentTaskId,
-        status,
-        message,
-      );
-    } else {
-      this.functionLogger.error(
-        'TaskProgressGateway is not available for broadcasting completion events',
-      );
-    }
-  }
-
-  /**
-   * Save task result to database (matching Python pattern)
-   */
-  protected async saveTaskResult(result: any): Promise<void> {
-    if (
-      !this.services.tasksService ||
-      !this.currentUserId ||
-      !this.currentTaskId
-    ) {
-      return;
-    }
-
-    try {
-      // Enhanced metadata like Python agents
-      const enhancedMetadata = {
-        ...(result.metadata || {}),
-        agentName: this.getAgentName(),
-        agentType: this.getAgentType(),
-        workflowStepsCompleted: [...this.completedWorkflowSteps],
-        totalSteps: this.totalSteps,
-        userEmail: this.currentUserEmail,
-        processedAt: new Date().toISOString(),
-        taskId: this.currentTaskId,
-        userId: this.currentUserId,
-      };
-
-      const updateData = {
-        status: 'completed' as const,
-        progress: 100,
-        response: JSON.stringify(result),
-        responseMetadata: enhancedMetadata,
-      };
-
-      await this.services.tasksService.updateTask(
-        this.currentTaskId,
-        this.currentUserId,
-        updateData,
-      );
-
-    } catch (error) {
-      this.functionLogger.error(
-        `❌ Failed to save task ${this.currentTaskId} result:`,
-        error,
-      );
-    }
-  }
 
   /**
    * Set the total number of steps for progress tracking

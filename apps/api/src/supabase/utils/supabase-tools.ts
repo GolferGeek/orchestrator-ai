@@ -156,24 +156,17 @@ async function createCompanySqlDatabase(): Promise<SqlDatabase> {
       },
 
       async getTableInfo() {
-        // Return company database schema (with company schema prefix)
-        return `
-          Company Schema Tables:
-          company.companies: id, name, industry, founded_year, created_at, updated_at
-          company.departments: id, company_id, name, head_of_department, budget, created_at, updated_at
-          company.kpi_metrics: id, name, metric_type, unit, description, created_at, updated_at
-          company.kpi_goals: id, department_id, metric_id, target_value, period_start, period_end, created_at, updated_at
-          company.kpi_data: id, department_id, metric_id, value, date_recorded, created_at, updated_at
-        `;
+        // Return basic schema information - detailed schema should come from agent context
+        return getDatabaseSchemaInfo({ includeDomains: ['KPI & Analytics'] });
       },
 
       get allTables() {
         return Promise.resolve([
-          { tableName: 'company.companies' },
-          { tableName: 'company.departments' },
-          { tableName: 'company.kpi_metrics' },
-          { tableName: 'company.kpi_goals' },
-          { tableName: 'company.kpi_data' },
+          { tableName: 'companies' },
+          { tableName: 'departments' },
+          { tableName: 'kpi_metrics' },
+          { tableName: 'kpi_goals' },
+          { tableName: 'kpi_data' },
         ]);
       },
     } as any;
@@ -192,33 +185,33 @@ async function executeQueryOnCompanyDB(client: any, query: string): Promise<{dat
   
   try {
     // Handle count queries
-    if (lowerQuery.includes('select count(*)') && (lowerQuery.includes('company.companies') || lowerQuery.includes('companies'))) {
+    if (lowerQuery.includes('select count(*)') && lowerQuery.includes('companies')) {
       const { data, error } = await client.from('companies').select('*', { count: 'exact' });
       return { data: [{ count: data?.length || 0 }], error: error?.message };
     }
     
-    // Handle schema-prefixed table queries
-    if (lowerQuery.includes('from company.companies') || lowerQuery.includes('from companies')) {
+    // Handle public schema table queries
+    if (lowerQuery.includes('from companies')) {
       const { data, error } = await client.from('companies').select('*').limit(100);
       return { data, error: error?.message };
     }
     
-    if (lowerQuery.includes('from company.departments') || lowerQuery.includes('from departments')) {
+    if (lowerQuery.includes('from departments')) {
       const { data, error } = await client.from('departments').select('*').limit(100);
       return { data, error: error?.message };
     }
     
-    if (lowerQuery.includes('from company.kpi_data') || lowerQuery.includes('from kpi_data')) {
+    if (lowerQuery.includes('from kpi_data')) {
       const { data, error } = await client.from('kpi_data').select('*').limit(100);
       return { data, error: error?.message };
     }
     
-    if (lowerQuery.includes('from company.kpi_metrics') || lowerQuery.includes('from kpi_metrics')) {
+    if (lowerQuery.includes('from kpi_metrics')) {
       const { data, error } = await client.from('kpi_metrics').select('*').limit(100);
       return { data, error: error?.message };
     }
     
-    if (lowerQuery.includes('from company.kpi_goals') || lowerQuery.includes('from kpi_goals')) {
+    if (lowerQuery.includes('from kpi_goals')) {
       const { data, error } = await client.from('kpi_goals').select('*').limit(100);
       return { data, error: error?.message };
     }
@@ -512,12 +505,14 @@ export async function generateAndExecuteSQL(
 export async function getDatabaseSchemaInfo(config?: SupabaseToolsConfig): Promise<string> {
   if (config?.includeDomains?.includes('KPI & Analytics')) {
     return `
-      Available tables for KPI & Analytics:
+      Available tables for KPI & Analytics (public schema):
       - companies: Company information and details
-      - departments: Organizational structure and budgets
+      - departments: Organizational structure and budgets  
       - kpi_metrics: Key performance indicator definitions
       - kpi_goals: Target values for each metric by department
       - kpi_data: Historical performance data and measurements
+      
+      Note: All tables are in the public schema. Refer to agent context for detailed column information.
     `;
   } else {
     return getSchemaContext();
@@ -529,7 +524,7 @@ export async function getDatabaseSchemaInfo(config?: SupabaseToolsConfig): Promi
  */
 export async function getTableNames(config?: SupabaseToolsConfig): Promise<string[]> {
   if (config?.includeDomains?.includes('KPI & Analytics')) {
-    return ['company.companies', 'company.departments', 'company.kpi_metrics', 'company.kpi_goals', 'company.kpi_data'];
+    return ['companies', 'departments', 'kpi_metrics', 'kpi_goals', 'kpi_data'];
   } else if (config?.tableNames) {
     return config.tableNames;
   } else {
