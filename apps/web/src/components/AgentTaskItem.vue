@@ -34,6 +34,41 @@
           <div v-else>{{ message.content }}</div>
         </div>
         
+        <!-- Workflow Progress (shown for real-time mode during processing) -->
+        <div v-if="showWorkflowProgress" class="workflow-progress-container">
+          <div class="workflow-header">
+            <h5>Processing Steps</h5>
+            <div class="workflow-overall-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: `${workflowProgress}%` }"></div>
+              </div>
+              <span class="progress-text">{{ completedWorkflowSteps }}/{{ totalWorkflowSteps }} steps</span>
+            </div>
+          </div>
+          <div class="workflow-steps">
+            <div 
+              v-for="(step, index) in displayedWorkflowSteps" 
+              :key="`${step.stepName}-${step.stepIndex}`"
+              class="workflow-step"
+              :class="getWorkflowStepClass(step)"
+            >
+              <div class="step-indicator">
+                <div class="step-number">{{ step.stepIndex + 1 }}</div>
+                <div class="step-status-icon">
+                  <ion-icon 
+                    :icon="getWorkflowStepIcon(step)"
+                    :class="getWorkflowStepIconClass(step)"
+                  />
+                </div>
+              </div>
+              <div class="step-content">
+                <div class="step-title">{{ formatWorkflowStepName(step.stepName) }}</div>
+                <div v-if="step.message" class="step-message">{{ step.message }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <!-- Debug info removed - deliverables should now work properly -->
         
         <!-- Deliverable Creation Callout (shown instead of message content for deliverable messages) -->
@@ -114,7 +149,15 @@
 import { computed, ref, watch } from 'vue';
 import { marked } from 'marked';
 import { IonIcon, IonButton, IonSpinner, IonChip } from '@ionic/vue';
-import { informationCircleOutline, documentTextOutline, arrowForwardOutline } from 'ionicons/icons';
+import { 
+  informationCircleOutline, 
+  documentTextOutline, 
+  arrowForwardOutline,
+  checkmarkCircleOutline,
+  playCircleOutline,
+  closeCircleOutline,
+  ellipseOutline
+} from 'ionicons/icons';
 import TaskRating from './TaskRating.vue';
 import TaskMetadataModal from './TaskMetadataModal.vue';
 import LLMInfo from './LLMInfo.vue';
@@ -286,12 +329,125 @@ const costCalculation = computed(() => {
   };
 });
 
+// Workflow progress computed properties
+const workflowSteps = computed(() => {
+  const metadata = props.message.metadata;
+  // Get workflow steps from either completedSteps or workflow_steps_realtime
+  const completedSteps = metadata?.completedSteps || [];
+  const realtimeSteps = metadata?.workflow_steps_realtime || [];
+  
+
+  
+  // Merge and deduplicate steps, preferring realtime data
+  const stepMap = new Map();
+  
+  // Add completed steps first
+  completedSteps.forEach((step: any) => {
+    stepMap.set(step.index, {
+      stepName: step.name,
+      stepIndex: step.index,
+      totalSteps: step.total,
+      status: 'completed',
+      message: step.message,
+      timestamp: new Date()
+    });
+  });
+  
+  // Add/update with realtime steps
+  realtimeSteps.forEach((step: any) => {
+    stepMap.set(step.stepIndex, {
+      stepName: step.stepName,
+      stepIndex: step.stepIndex,
+      totalSteps: step.totalSteps,
+      status: step.status,
+      message: step.message,
+      timestamp: new Date(step.timestamp)
+    });
+  });
+  
+  // Convert to array and sort by index
+  return Array.from(stepMap.values()).sort((a, b) => a.stepIndex - b.stepIndex);
+});
+
+const showWorkflowProgress = computed(() => {
+  // Show workflow progress if:
+  // 1. This is an assistant message
+  // 2. It has workflow steps (from any execution that had them)
+  // Keep it visible permanently - don't hide when deliverable callout shows
+  const isAssistant = props.message.role === 'assistant';
+  const hasWorkflowSteps = workflowSteps.value.length > 0;
+  
+
+  
+  return isAssistant && hasWorkflowSteps;
+});
+
+const displayedWorkflowSteps = computed(() => {
+  return workflowSteps.value;
+});
+
+const totalWorkflowSteps = computed(() => {
+  const steps = workflowSteps.value;
+  if (steps.length === 0) return 0;
+  // Get the totalSteps from any step (they should all be the same)
+  return steps[0]?.totalSteps || steps.length;
+});
+
+const completedWorkflowSteps = computed(() => {
+  return workflowSteps.value.filter(step => step.status === 'completed').length;
+});
+
+const workflowProgress = computed(() => {
+  const total = totalWorkflowSteps.value;
+  const completed = completedWorkflowSteps.value;
+  if (total === 0) return 0;
+  return Math.round((completed / total) * 100);
+});
+
 // Methods
 
 const handleCalloutClick = () => {
   if (displayedDeliverable.value) {
     emit('deliverable-selected', displayedDeliverable.value);
   }
+};
+
+// Workflow step styling methods
+const getWorkflowStepClass = (step: any) => {
+  return {
+    'step-pending': step.status === 'pending',
+    'step-in-progress': step.status === 'in_progress',
+    'step-completed': step.status === 'completed',
+    'step-failed': step.status === 'failed'
+  };
+};
+
+const getWorkflowStepIcon = (step: any) => {
+  switch (step.status) {
+    case 'completed':
+      return checkmarkCircleOutline;
+    case 'in_progress':
+      return playCircleOutline;
+    case 'failed':
+      return closeCircleOutline;
+    default:
+      return ellipseOutline;
+  }
+};
+
+const getWorkflowStepIconClass = (step: any) => {
+  return {
+    'icon-completed': step.status === 'completed',
+    'icon-in-progress': step.status === 'in_progress',
+    'icon-failed': step.status === 'failed',
+    'icon-pending': step.status === 'pending'
+  };
+};
+
+const formatWorkflowStepName = (stepName: string): string => {
+  return stepName
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase());
 };
 
 // Removed: Helper functions for deliverable detection and creation (handled on backend)
@@ -821,5 +977,154 @@ html[data-theme="dark"] .callout-action {
 html[data-theme="dark"] .callout-action ion-button {
   --color: #a78bfa;
   --color-hover: #c4b5fd;
+}
+
+/* Workflow Progress Styles */
+.workflow-progress-container {
+  margin: 12px 0;
+  padding: 16px;
+  background: var(--ion-color-light-tint);
+  border: 1px solid var(--ion-color-light-shade);
+  border-radius: 8px;
+}
+
+.workflow-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.workflow-header h5 {
+  margin: 0;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+}
+
+.workflow-overall-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.progress-bar {
+  width: 60px;
+  height: 6px;
+  background: var(--ion-color-light-shade);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--ion-color-success);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.8em;
+  color: var(--ion-color-medium);
+  white-space: nowrap;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workflow-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--ion-color-light);
+  border-left: 3px solid var(--ion-color-medium);
+  font-size: 0.9em;
+}
+
+.workflow-step.step-pending {
+  border-left-color: var(--ion-color-medium);
+}
+
+.workflow-step.step-in-progress {
+  border-left-color: var(--ion-color-primary);
+  background: var(--ion-color-primary);
+  color: white;
+}
+
+.workflow-step.step-in-progress .step-title,
+.workflow-step.step-in-progress .step-message {
+  color: white;
+}
+
+.workflow-step.step-completed {
+  border-left-color: var(--ion-color-success);
+}
+
+.workflow-step.step-failed {
+  border-left-color: var(--ion-color-danger);
+  background: var(--ion-color-danger-tint);
+}
+
+.step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 32px;
+}
+
+.step-number {
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  background: var(--ion-color-light-shade);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-status-icon {
+  font-size: 1em;
+}
+
+.step-status-icon .icon-completed {
+  color: var(--ion-color-success);
+}
+
+.step-status-icon .icon-in-progress {
+  color: var(--ion-color-primary);
+}
+
+.step-status-icon .icon-failed {
+  color: var(--ion-color-danger);
+}
+
+.step-status-icon .icon-pending {
+  color: var(--ion-color-medium);
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-title {
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin-bottom: 2px;
+  font-size: 0.9em;
+}
+
+.step-message {
+  font-size: 0.8em;
+  color: var(--ion-color-medium-shade);
+  opacity: 0.8;
 }
 </style>

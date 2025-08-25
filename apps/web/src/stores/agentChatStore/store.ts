@@ -73,6 +73,13 @@ export const useAgentChatStore = defineStore('agentChat', {
 
   actions: {
     /**
+     * Initialize WebSocket handler with store instance
+     */
+    initializeWebSocketHandler() {
+      websocketHandler.setStore(this);
+    },
+    
+    /**
      * Get active conversation
      */
     getActiveConversation(): AgentConversation | null {
@@ -256,6 +263,9 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Send message and create task
      */
     async sendMessage(content: string) {
+      // Initialize WebSocket handler with store instance
+      this.initializeWebSocketHandler();
+      
       const activeConversation = this.getActiveConversation();
       if (!activeConversation) {
         console.error('No active conversation');
@@ -342,13 +352,9 @@ export const useAgentChatStore = defineStore('agentChat', {
         await taskExecution.createAndExecuteTask(taskOptions, {
           onPlaceholder: (taskId) => this.createPlaceholderMessage(conversationId, taskId),
           onCompletion: (taskId) => this.handleTaskCompletion(conversationId, taskId),
-          onWorkflowStep: (convId, taskId, stepEvent) => this.handleWorkflowStepUpdate(convId, taskId, stepEvent),
+
           onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
-          onImmediateResult: (convId, task) => {
-            this.createResponseMessage(convId, task);
-            // Ensure deliverable is loaded into store for Vue reactivity
-            this.ensureDeliverableLoaded(convId, task);
-          },
+
         });
 
       } catch (error) {
@@ -444,13 +450,9 @@ export const useAgentChatStore = defineStore('agentChat', {
         await taskExecution.createAndExecuteTask(taskOptions, {
           onPlaceholder: (taskId) => this.createPlaceholderMessage(conversationId, taskId),
           onCompletion: (taskId) => this.handleTaskCompletion(conversationId, taskId),
-          onWorkflowStep: (convId, taskId, stepEvent) => this.handleWorkflowStepUpdate(convId, taskId, stepEvent),
+
           onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
-          onImmediateResult: (convId, task) => {
-            this.createResponseMessage(convId, task);
-            // Ensure deliverable is loaded into store for Vue reactivity
-            this.ensureDeliverableLoaded(convId, task);
-          },
+
         });
 
       } catch (error) {
@@ -525,9 +527,20 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     async handleTaskCompletion(conversationId: string, taskId: string) {
 
+      
+      // Prevent duplicate completion handling
+      if ((this as any)._completingTasks?.has(taskId)) {
+        return;
+      }
+      
+      // Track that we're handling this completion
+      if (!(this as any)._completingTasks) {
+        (this as any)._completingTasks = new Set();
+      }
+      (this as any)._completingTasks.add(taskId);
+
       const conv = this.getConversationById(conversationId);
       if (!conv) {
-
         return;
       }
 
@@ -536,20 +549,20 @@ export const useAgentChatStore = defineStore('agentChat', {
       );
 
       if (!existingMessage) {
-
         return;
       }
 
 
 
       try {
-        // Get completed task
+        // Get completed task - small delay to work around backend timing issue
 
+        await new Promise(resolve => setTimeout(resolve, 100)); // Workaround: backend sends WebSocket before DB commit
         const completedTask = await tasksService.getTask(taskId);
 
-        
-        if (completedTask.status !== 'completed') {
 
+        if (completedTask.status !== 'completed') {
+          console.warn(`Task ${taskId} is not completed, status: ${completedTask.status}`);
           return;
         }
 
@@ -557,6 +570,26 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Extract final content for display - backend handles deliverable creation
         const finalContent = messageFormatting.extractDeliverableContent(completedTask);
 
+        // Parse the response to get deliverable info (backend puts it in the response JSON)
+        let deliverableId = null;
+        let newVersionId = null;
+        let versionNumber = null;
+        
+        if (completedTask.response) {
+          try {
+            const parsedResponse = typeof completedTask.response === 'string' 
+              ? JSON.parse(completedTask.response) 
+              : completedTask.response;
+            
+            
+            // Backend puts deliverable info directly in the result object
+            deliverableId = parsedResponse?.deliverableId;
+            newVersionId = parsedResponse?.newVersionId;
+            versionNumber = parsedResponse?.versionNumber;
+            
+          } catch (e) {
+          }
+        }
 
         // Update message content with the final response
         existingMessage.content = finalContent;
@@ -567,97 +600,33 @@ export const useAgentChatStore = defineStore('agentChat', {
           completedAt: new Date().toISOString()
         };
 
-        // Force Vue reactivity by replacing the message in the array
-        const messageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
-        if (messageIndex >= 0) {
-
-          const updatedMessage = { ...existingMessage };
-          conv.messages[messageIndex] = updatedMessage;
-
-        }
-
-        // Check if a deliverable was created and handle UI updates
-        if (completedTask.deliverableId) {
-
-          
-          try {
-            // Load the deliverable and trigger UI updates
-            const { deliverablesService } = await import('@/services/deliverablesService');
-            const newDeliverable = await deliverablesService.getDeliverable(completedTask.deliverableId);
-
-            
-            // Add to store
-            const { useDeliverablesStore } = await import('@/stores/deliverablesStore');
-            const deliverablesStore = useDeliverablesStore();
-            deliverablesStore.addDeliverable(newDeliverable);
-
-            
-            // Update message with deliverable ID - this should trigger AgentTaskItem watchers
-            existingMessage.deliverableId = completedTask.deliverableId;
-            existingMessage.metadata = {
-              ...existingMessage.metadata,
-              deliverableId: completedTask.deliverableId
-            };
-            
-
-            
-            // Reload conversation deliverables to pick up the new one
-            await deliverablesStore.loadDeliverablesByConversation(conversationId);
-
-            
-            // Load deliverable versions
-            await deliverablesStore.loadDeliverableVersions(completedTask.deliverableId);
-
-            
-            // Force Vue reactivity by replacing the message again after deliverable update
-            const messageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
-            if (messageIndex >= 0) {
-
-              const updatedMessage = { ...existingMessage };
-              conv.messages[messageIndex] = updatedMessage;
-            }
-            
-          } catch (error) {
-            console.error('Failed to load newly created deliverable:', error);
-          }
+        // Update message metadata immediately for deliverables (synchronous - triggers immediate UI update)
+        if (deliverableId) {
+          (existingMessage as any).deliverableId = deliverableId;
+          existingMessage.metadata = {
+            ...existingMessage.metadata,
+            deliverableId: deliverableId
+          };
         }
         
-        // Check if a new version was created (different from new deliverable)
-        if (completedTask.newVersionId) {
+        if (newVersionId) {
+          existingMessage.metadata = {
+            ...existingMessage.metadata,
+            newVersionId: newVersionId,
+            versionNumber: versionNumber
+          };
+        }
 
-          
-          try {
-            // For version creation, we need to reload the versions and update the UI
-            const { useDeliverablesStore } = await import('@/stores/deliverablesStore');
-            const deliverablesStore = useDeliverablesStore();
-            
-            // Find the deliverable ID from the version or existing message
-            const deliverableId = completedTask.deliverableId || existingMessage.deliverableId || existingMessage.metadata?.deliverableId;
-            
-            if (deliverableId) {
-              // Reload versions to pick up the new version
-              await deliverablesStore.loadDeliverableVersions(deliverableId);
+        // Force Vue reactivity by replacing the message in the array (after all metadata updates)
+        const finalMessageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
+        if (finalMessageIndex >= 0) {
+          const updatedMessage = { ...existingMessage };
+          conv.messages[finalMessageIndex] = updatedMessage;
+        }
 
-              
-              // Update message to indicate version creation (but keep existing deliverableId)
-              existingMessage.metadata = {
-                ...existingMessage.metadata,
-                newVersionId: completedTask.newVersionId,
-                versionNumber: completedTask.versionNumber
-              };
-              
-              // Force Vue reactivity
-              const messageIndex = conv.messages.findIndex(msg => msg.taskId === taskId && msg.role === 'assistant');
-              if (messageIndex >= 0) {
-
-                const updatedMessage = { ...existingMessage };
-                conv.messages[messageIndex] = updatedMessage;
-              }
-            }
-            
-          } catch (error) {
-            console.error('Failed to handle new version creation:', error);
-          }
+        // Load deliverables in background (non-blocking) - fire and forget
+        if (deliverableId) {
+          this.loadDeliverableInBackground(deliverableId, conversationId);
         }
 
         // Cleanup WebSocket subscriptions
@@ -667,6 +636,9 @@ export const useAgentChatStore = defineStore('agentChat', {
       } catch (error) {
         console.error(`🏁 DEBUG: Failed to handle task completion for ${taskId}:`, error);
         conv.error = error instanceof Error ? error.message : 'Failed to load task result';
+      } finally {
+        // Clean up completion tracking
+        (this as any)._completingTasks?.delete(taskId);
       }
     },
 
@@ -717,27 +689,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       }
     },
 
-    /**
-     * Handle workflow step updates
-     */
-    handleWorkflowStepUpdate(conversationId: string, taskId: string, stepEvent: any) {
-      const conv = this.getConversationById(conversationId);
-      if (!conv) return;
-      
-      const messageIndex = conv.messages.findIndex(msg => 
-        msg.taskId === taskId && msg.role === 'assistant'
-      );
-      
-      if (messageIndex >= 0) {
-        const message = conv.messages[messageIndex];
-        const result = websocketHandler.processWorkflowStepUpdate(message, stepEvent);
-        
-        if (result.contentUpdated && result.newContent) {
-          message.content = result.newContent;
-          conv.messages[messageIndex] = { ...message }; // Trigger reactivity
-        }
-      }
-    },
+
 
     /**
      * Handle task status updates
@@ -882,7 +834,7 @@ export const useAgentChatStore = defineStore('agentChat', {
               await websocketHandler.subscribeToTaskEvents(conv.id, task.taskId, {
                 onTaskStatus: (update) => this.handleTaskStatusUpdate(conv.id, task.taskId, update),
                 onCompletion: (taskId) => this.handleTaskCompletion(conv.id, taskId),
-                onWorkflowStep: (stepEvent) => this.handleWorkflowStepUpdate(conv.id, task.taskId, stepEvent)
+                onWorkflowStep: (stepEvent) => websocketHandler.updateMessageWorkflowStep(conv.id, task.taskId, stepEvent)
               });
               
 
@@ -899,6 +851,54 @@ export const useAgentChatStore = defineStore('agentChat', {
       } catch (error) {
         console.error(`❌ Failed to restore active task subscriptions for conversation ${conv.id}:`, error);
       }
+    },
+
+    /**
+     * Load deliverable in background - non-blocking, UI will react when loaded
+     */
+    loadDeliverableInBackground(deliverableId: string, conversationId: string) {
+      // Fire and forget - don't await or block
+      (async () => {
+        try {
+          const { deliverablesService } = await import('@/services/deliverablesService');
+          const { useDeliverablesStore } = await import('@/stores/deliverablesStore');
+          const deliverablesStore = useDeliverablesStore();
+
+          // Load the deliverable - Vue reactivity will update UI when this completes
+          const newDeliverable = await deliverablesService.getDeliverable(deliverableId);
+          
+          deliverablesStore.addDeliverable(newDeliverable);
+
+          // Load conversation deliverables to ensure it shows up in lists
+          await deliverablesStore.loadDeliverablesByConversation(conversationId);
+
+          // Load versions for the deliverable
+          await deliverablesStore.loadDeliverableVersions(deliverableId);
+
+        } catch (error) {
+          // Don't throw - this is background processing
+        }
+      })();
+    },
+
+    /**
+     * Load deliverable versions in background - non-blocking
+     */
+    loadVersionsInBackground(deliverableId: string) {
+      // Fire and forget - don't await or block
+      (async () => {
+        try {
+          const { useDeliverablesStore } = await import('@/stores/deliverablesStore');
+          const deliverablesStore = useDeliverablesStore();
+          
+          await deliverablesStore.loadDeliverableVersions(deliverableId);
+          
+          console.log(`📄 Background version loading completed for ${deliverableId}`);
+        } catch (error) {
+          console.error('Background version loading failed:', error);
+          // Don't throw - this is background processing
+        }
+      })();
     }
   }
 });

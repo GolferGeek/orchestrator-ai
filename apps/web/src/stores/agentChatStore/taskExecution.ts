@@ -15,14 +15,18 @@ export class TaskExecutionService {
     handlers: {
       onPlaceholder: (taskId: string) => void;
       onCompletion: (taskId: string) => void;
-      onWorkflowStep: (conversationId: string, taskId: string, stepEvent: any) => void;
       onStatusUpdate: (conversationId: string, taskId: string, statusUpdate: any) => void;
-      onImmediateResult: (conversationId: string, task: any) => void;
+      // onImmediateResult removed - all modes use consistent flow
     }
   ): Promise<void> {
     const { executionMode, conversationId, taskId } = options;
     
-    // For WebSocket mode, set up subscriptions BEFORE making the API call
+    // Create placeholder message FIRST so WebSocket events can find it
+    if (taskId) {
+      handlers.onPlaceholder(taskId);
+    }
+    
+    // For WebSocket mode, set up subscriptions AFTER placeholder exists
     if (executionMode === 'websocket' && taskId) {
       await this.startWebSocketMode(conversationId, taskId, handlers);
     }
@@ -58,35 +62,14 @@ export class TaskExecutionService {
     conversationId: string,
     handlers: any
   ): Promise<void> {
-    if (task.status === 'pending' && executionMode === 'websocket') {
-      // Task is async - create placeholder (already subscribed to WebSocket)
-      handlers.onPlaceholder(task.taskId);
-      // WebSocket subscriptions already set up before API call, no need to subscribe again
-      
-    } else if (task.status === 'pending' && executionMode === 'polling') {
-      // Task is async - create placeholder and start polling
-      handlers.onPlaceholder(task.taskId);
-      await this.startPollingMode(conversationId, task.taskId, handlers);
-      
-    } else if (task.status === 'pending' && executionMode === 'immediate') {
-      // Immediate mode - wait for task completion by polling once
-      handlers.onPlaceholder(task.taskId);
-      await this.handleImmediateMode(conversationId, task.taskId, handlers);
-      
-    } else {
-      // Task completed immediately - use result from task creation response
-      
-      // For immediate mode, the response is in the result field
-      let taskForProcessing: any = task;
-      if (task.result && task.result.response && !(task as any).response) {
-        taskForProcessing = {
-          ...task,
-          response: JSON.stringify(task.result)
-        };
-      }
-      
-      handlers.onImmediateResult(conversationId, taskForProcessing);
+    // In proper A2A architecture, the backend async call should wait for completion
+    // All execution modes should return completed tasks, not pending
+    if (task.status === 'pending') {
+      console.error(`Backend returned pending status for task ${task.taskId} in ${executionMode} mode - async call should have waited`);
+      throw new Error(`Backend error: ${executionMode} mode returned pending status for task ${task.taskId} - async call should have waited`);
     }
+    
+    handlers.onCompletion(task.taskId);
   }
 
   /**
@@ -97,54 +80,27 @@ export class TaskExecutionService {
     taskId: string, 
     handlers: any
   ): Promise<void> {
-
-    
-    await websocketHandler.subscribeToTaskEvents(conversationId, taskId, {
-      onCompletion: handlers.onCompletion,
-      onWorkflowStep: (stepEvent) => handlers.onWorkflowStep(conversationId, taskId, stepEvent),
-      onTaskStatus: (statusUpdate) => handlers.onStatusUpdate(conversationId, taskId, statusUpdate)
-    });
-  }
-
-  /**
-   * Handle immediate mode execution with timeout
-   */
-  private async handleImmediateMode(
-    conversationId: string, 
-    taskId: string, 
-    handlers: any
-  ): Promise<void> {
-    const maxAttempts = 30; // 30 seconds total
-    let attempts = 0;
-    
-    const waitForCompletion = async () => {
-      while (attempts < maxAttempts) {
-        try {
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-          const updatedTask = await tasksService.getTask(taskId);
-          
-          if (updatedTask.status === 'completed' || updatedTask.status === 'failed') {
-            handlers.onCompletion(taskId);
-            return;
-          }
-          attempts++;
-        } catch (error) {
-          console.error(`⚡ Error waiting for task ${taskId}:`, error);
-          break;
+    try {
+      await websocketHandler.subscribeToTaskEvents(conversationId, taskId, {
+        onCompletion: (completedTaskId) => {
+          // Ignore WebSocket completion - completion comes from the async call
+        },
+        onWorkflowStep: (stepEvent) => {
+          // Directly update message metadata in store for reactive UI
+          websocketHandler.updateMessageWorkflowStep(conversationId, taskId, stepEvent);
+        },
+        onTaskStatus: (statusUpdate) => {
+          handlers.onStatusUpdate(conversationId, taskId, statusUpdate);
         }
-      }
-      
-      // Fallback to polling if immediate wait times out
-      await this.startPollingMode(conversationId, taskId, handlers);
-    };
-
-    await waitForCompletion();
+      });
+    } catch (error) {
+    }
   }
 
-  /**
-   * Handle polling mode execution
-   */
-  private async startPollingMode(
+  // handleImmediateMode removed - A2A architecture means all modes await completion
+
+  // startPollingMode removed - A2A architecture means all modes await completion, no polling needed
+  private async startPollingMode_REMOVED(
     conversationId: string, 
     taskId: string, 
     handlers: any

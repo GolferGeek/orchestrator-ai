@@ -4,6 +4,15 @@ import type { WorkflowStepEvent, ProgressUpdate } from './types';
  * Service for handling WebSocket events and subscriptions for agent chat
  */
 export class WebSocketHandlerService {
+  private storeInstance: any = null;
+  
+  /**
+   * Set the store instance for direct updates
+   */
+  setStore(store: any) {
+    this.storeInstance = store;
+  }
+  
   /**
    * Subscribe to task events with completion and progress handlers
    */
@@ -42,16 +51,15 @@ export class WebSocketHandlerService {
         });
       }
     });
-    // Set up completion/failure event handlers
+    // WebSocket completion events are ignored - completion comes from async call
     websocketService.onTaskEvent('completed', (event) => {
       if (event.taskId === taskId) {
-        handlers.onCompletion(taskId);
-      } else {
+        // Completion handled by async call
       }
     });
     websocketService.onTaskEvent('failed', (event) => {
       if (event.taskId === taskId) {
-        handlers.onCompletion(taskId);
+        // Failure handled by async call
       }
     });
     // Legacy workflow step handlers (for backward compatibility)
@@ -222,6 +230,69 @@ export class WebSocketHandlerService {
       error: websocketService.error.value,
       subscribedTasksCount: websocketService.subscribedTasks.size
     };
+  }
+  
+  /**
+   * Directly update message workflow steps in the store for reactive UI
+   */
+  updateMessageWorkflowStep(conversationId: string, taskId: string, stepEvent: WorkflowStepEvent) {
+    if (!this.storeInstance) {
+      return;
+    }
+    
+        const conv = this.storeInstance.getConversationById(conversationId);
+    if (!conv) {
+      return;
+    }
+
+    const messageIndex = conv.messages.findIndex((msg: any) =>
+      msg.taskId === taskId && msg.role === 'assistant'
+    );
+
+    if (messageIndex >= 0) {
+      const message = conv.messages[messageIndex];
+      
+      // Initialize metadata and workflow_steps_realtime if needed
+      if (!message.metadata) {
+        message.metadata = {};
+      }
+      if (!message.metadata.workflow_steps_realtime) {
+        message.metadata.workflow_steps_realtime = [];
+      }
+      
+      // Store ALL workflow steps (not just completed ones) for UI display
+      const realtimeStepData = {
+        stepName: stepEvent.stepName,
+        stepIndex: stepEvent.stepIndex,
+        totalSteps: stepEvent.totalSteps,
+        status: stepEvent.status,
+        message: stepEvent.message,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Update existing step or add new one
+            const existingIndex = message.metadata.workflow_steps_realtime.findIndex(
+        (step: any) => step.stepIndex === stepEvent.stepIndex
+      );
+
+      if (existingIndex >= 0) {
+        message.metadata.workflow_steps_realtime[existingIndex] = realtimeStepData;
+      } else {
+        message.metadata.workflow_steps_realtime.push(realtimeStepData);
+      }
+
+      // Sort by step index
+      message.metadata.workflow_steps_realtime.sort((a: any, b: any) => a.stepIndex - b.stepIndex);
+      
+      // Note: Disabled old content updating - we now use the modern workflow progress UI instead
+      // const result = this.processWorkflowStepUpdate(message, stepEvent);
+      // if (result.contentUpdated && result.newContent) {
+      //   message.content = result.newContent;
+      // }
+      
+      // Trigger reactivity by replacing the message
+      conv.messages[messageIndex] = { ...message };
+    }
   }
 }
 // Export singleton instance
