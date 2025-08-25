@@ -156,7 +156,7 @@ async function createCompanySqlDatabase(): Promise<SqlDatabase> {
       },
 
       async getTableInfo() {
-        // Return basic schema information - detailed schema should come from agent context
+        // Return basic schema information - detailed schema comes from agent context
         return getDatabaseSchemaInfo({ includeDomains: ['KPI & Analytics'] });
       },
 
@@ -170,7 +170,6 @@ async function createCompanySqlDatabase(): Promise<SqlDatabase> {
         ]);
       },
     } as any;
-
   }
   return companySqlDatabase!;
 }
