@@ -12,7 +12,6 @@
     "test:e2e": "cypress run",
     "test:unit": "vitest",
     "lint": "eslint .",
-    "browser-mcp": "npx @agentdeskai/browser-tools-server@latest"
   },
   "dependencies": {
     "@capacitor/app": "7.0.1",
