@@ -51,6 +51,7 @@ interface CreateTaskDto {
     taskId?: string;
     metadata?: Record<string, any>;
   }>;
+  metadata?: Record<string, any>; // Context metadata for deliverable/project operations
 }
 interface UpdateTaskDto {
   status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';

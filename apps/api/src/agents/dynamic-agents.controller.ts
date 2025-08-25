@@ -227,27 +227,15 @@ export class DynamicAgentsController {
         metadata: normalizedTaskRequest.metadata, // Pass metadata for deliverable operations
       };
 
-      // Determine processing mode based on execution mode and pre-generated task ID
+      // In A2A architecture, all execution modes should await completion
+      // The difference is only in progress reporting:
+      // - immediate: no progress updates
+      // - websocket/polling: progress updates via WebSocket during processing
+      
       const executionMode = normalizedTaskRequest.executionMode;
-      const hasPreGeneratedTaskId = normalizedTaskRequest.taskId;
-      const shouldProcessAsync =
-        executionMode === 'websocket' || executionMode === 'polling';
+      this.logger.log(`🚀 Processing task ${task.id} in ${executionMode} mode - will await completion`);
 
-      if (shouldProcessAsync) {
-
-        // Process asynchronously (don't await) - agent will handle completion via TaskStatusService
-        this.processTaskAsync(task, authenticatedTaskRequest, agentInstance);
-
-        // Return immediately so frontend can listen for WebSocket updates or poll
-        return {
-          taskId: task.id,
-          conversationId: task.agentConversationId,
-          status: 'pending',
-          result: null,
-        };
-      }
-
-      // For synchronous processing, await the result
+      // All modes now await the result for proper A2A behavior
       const result = await agentInstance.processTask(authenticatedTaskRequest);
 
       // Store the result in the task record with deliverable auto-creation
@@ -368,32 +356,7 @@ export class DynamicAgentsController {
   /**
    * Process task asynchronously - simplified version using TaskStatusService
    */
-  private async processTaskAsync(
-    task: any,
-    authenticatedTaskRequest: any,
-    agentInstance: any,
-  ): Promise<void> {
-    try {
-
-      // Let the agent handle the task and all status updates
-      // Agent will use TaskStatusService methods to update progress and completion
-      await agentInstance.processTask(authenticatedTaskRequest);
-
-    } catch (error) {
-      // Agent should have handled error via TaskStatusService failTask() method
-      // But as a fallback, ensure task is marked as failed
-      try {
-        await this.taskStatusService.failTask(
-          task.id,
-          authenticatedTaskRequest.currentUser.id,
-          error instanceof Error ? error.message : 'Unknown error',
-        );
-      } catch (statusError) {
-
-      }
-
-    }
-  }
+  // processTaskAsync method removed - all execution modes now use synchronous await pattern
 
   /**
    * Normalize agent name for comparison (handle underscores, spaces, etc.)
