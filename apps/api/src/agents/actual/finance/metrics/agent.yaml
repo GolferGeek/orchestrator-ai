@@ -89,3 +89,5 @@ configuration:
   database_integration: true
   mcp_enabled: true
   workflow_engine: "langgraph"
+  document_types:
+    - "text/markdown"
