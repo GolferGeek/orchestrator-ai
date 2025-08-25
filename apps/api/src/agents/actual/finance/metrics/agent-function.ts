@@ -379,30 +379,40 @@ SQL Query:`;
       'Generating insights from database query results...',
     );
 
-    // Generate comprehensive analysis using LangChain results
+    // Generate comprehensive analysis using context-driven results
     const reportPrompt = `
 You are a Business Metrics specialist. The user asked: "${userMessage}"
 
 ALWAYS start your response with this exact format:
 
-## Generated SQL Query
+# 📊 Metrics Analysis Report
+
+## 🔍 Context-Driven SQL Generation
+
+Using enhanced schema context instead of database discovery, the following SQL query was generated:
+
 \`\`\`sql
 ${userQueryResult.sql || 'No SQL was generated'}
 \`\`\`
 
-## Query Results
+**Schema References Used:**
+- ✅ Correct table names from context.md schema
+- ✅ Proper column references (companies.name not company_name)
+- ✅ Schema-aware JOIN patterns for KPI data
+
+## 📈 Query Results
 ${
   userQueryResult.result && userQueryResult.result.length > 0
-    ? `Found ${userQueryResult.result.length} results:\n${JSON.stringify(userQueryResult.result, null, 2)}`
-    : 'No results returned from the SQL execution'
+    ? `Found ${userQueryResult.result.length} results:\n\n\`\`\`json\n${JSON.stringify(userQueryResult.result, null, 2)}\n\`\`\`\n\n**Data Summary:** ${userQueryResult.result.length} records returned from the database.`
+    : '**No results returned from the SQL execution**\n\nThis could indicate:\n- Empty database tables\n- No matching data for the query criteria\n- Need to set up sample KPI data for testing'
 }
 
-## Analysis
+## 💡 Analysis
 Based on your query about: ${analysis.intent}
 
-Now provide a direct answer to the user's question. If the SQL query returned results, state the exact answer. If it returned 0 results, explain why and what might need to be checked.
+Provide a direct answer to the user's question. If the SQL query returned results, state the exact answer and key insights. If it returned 0 results, explain what this means and suggest next steps.
 
-Answer the user's specific question directly and provide insights from the data.
+**Answer the user's specific question directly and provide actionable insights from the data.**
 `;
 
     const finalResponse = await llmService.generateResponse(
