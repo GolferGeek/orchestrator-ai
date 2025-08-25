@@ -159,6 +159,69 @@ SELECT COUNT(*) as data_points FROM kpi_data;
 - Apply LIMIT clauses to prevent timeout issues
 - Use proper date filtering with indexes when available
 
+### Common Business Query Examples
+
+**Revenue Analysis:**
+```sql
+-- Total revenue by company
+SELECT c.name, SUM(kd.value) as total_revenue
+FROM companies c
+JOIN departments d ON c.id = d.company_id
+JOIN kpi_data kd ON d.id = kd.department_id
+JOIN kpi_metrics km ON kd.metric_id = km.id
+WHERE km.name = 'Revenue'
+GROUP BY c.id, c.name
+ORDER BY total_revenue DESC;
+
+-- Monthly revenue trend
+SELECT DATE_TRUNC('month', kd.date_recorded) as month, SUM(kd.value) as monthly_revenue
+FROM kpi_data kd
+JOIN kpi_metrics km ON kd.metric_id = km.id
+WHERE km.name = 'Revenue'
+GROUP BY month
+ORDER BY month;
+```
+
+**Department Performance:**
+```sql
+-- Department budgets and performance
+SELECT d.name as department, d.budget, d.head_of_department,
+       COUNT(kd.id) as metrics_count
+FROM departments d
+LEFT JOIN kpi_data kd ON d.id = kd.department_id
+GROUP BY d.id, d.name, d.budget, d.head_of_department
+ORDER BY d.budget DESC;
+
+-- KPI performance vs goals
+SELECT d.name as department, km.name as metric, kg.target_value, 
+       AVG(kd.value) as actual_average,
+       (AVG(kd.value) / kg.target_value * 100) as achievement_percentage
+FROM departments d
+JOIN kpi_goals kg ON d.id = kg.department_id
+JOIN kpi_metrics km ON kg.metric_id = km.id
+LEFT JOIN kpi_data kd ON kg.department_id = kd.department_id AND kg.metric_id = kd.metric_id
+WHERE kd.date_recorded BETWEEN kg.period_start AND kg.period_end
+GROUP BY d.name, km.name, kg.target_value
+ORDER BY achievement_percentage DESC;
+```
+
+**Data Overview:**
+```sql
+-- Get table counts for data availability check
+SELECT 'companies' as table_name, COUNT(*) as record_count FROM companies
+UNION ALL
+SELECT 'departments', COUNT(*) FROM departments
+UNION ALL  
+SELECT 'kpi_metrics', COUNT(*) FROM kpi_metrics
+UNION ALL
+SELECT 'kpi_data', COUNT(*) FROM kpi_data;
+
+-- Available metrics
+SELECT name, metric_type, unit, description 
+FROM kpi_metrics 
+ORDER BY metric_type, name;
+```
+
 ### When Database is Empty - Setup Instructions
 
 When tables return no data, provide this helpful setup guide:
