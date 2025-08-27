@@ -26,18 +26,7 @@ import { ResearchManagerOrchestratorModule } from './agents/actual/research/rese
 import { SpecialistsManagerOrchestratorModule } from './agents/actual/specialists/specialists_manager_orchestrator/agent.module';
 import { LegalManagerOrchestratorModule } from './agents/actual/legal/legal_manager_orchestrator/agent.module';
 import { ProductivityManagerOrchestratorModule } from './agents/actual/productivity/productivity_manager_orchestrator/agent.module';
-import { MarketingManagerOrchestratorService } from './agents/actual/marketing/marketing_manager_orchestrator/agent-service';
-import { CEOOrchestratorService } from './agents/actual/orchestrator/ceo_orchestrator/agent-service';
-import { EngineeringManagerOrchestratorService } from './agents/actual/engineering/engineering_manager_orchestrator/agent-service';
-import { OperationsManagerOrchestratorService } from './agents/actual/operations/operations_manager_orchestrator/agent-service';
-import { FinanceManagerOrchestratorService } from './agents/actual/finance/finance_manager_orchestrator/agent-service';
-import { HRManagerOrchestratorService } from './agents/actual/hr/hr_manager_orchestrator/agent-service';
-import { SalesManagerOrchestratorService } from './agents/actual/sales/sales_manager_orchestrator/agent-service';
-import { ProductManagerOrchestratorService } from './agents/actual/product/product_manager_orchestrator/agent-service';
-import { ResearchManagerOrchestratorService } from './agents/actual/research/research_manager_orchestrator/agent-service';
-import { SpecialistsManagerOrchestratorService } from './agents/actual/specialists/specialists_manager_orchestrator/agent-service';
-import { LegalManagerOrchestratorService } from './agents/actual/legal/legal_manager_orchestrator/agent-service';
-import { ProductivityManagerOrchestratorService } from './agents/actual/productivity/productivity_manager_orchestrator/agent-service';
+// Orchestrator service imports removed - services are now provided by their respective modules
 import { BaseSubServicesModule } from './agents/base/sub-services/base-sub-services.module';
 import { ConfigurationService } from './agents/base/sub-services/configuration/configuration.service';
 import { AgentRegistrationService } from './agents/base/sub-services/agent-registration/agent-registration.service';
@@ -64,7 +53,9 @@ import { PythonFunctionAgentServicesContextModule } from './agents/base/services
 import { ExternalAgentServicesContextModule } from './agents/base/services/external-agent-services-context.module';
 import { OrchestratorAgentServicesContextModule } from './agents/base/implementations/base-services/orchestrator/orchestrator-agent-services-context.module';
 import { UniversalAgentServicesContextModule } from './agents/base/services/universal-agent-services-context.module';
-import supabaseConfig from './supabase/supabase.config';
+// Temporarily disable supabase config to resolve build issue
+// import supabaseConfig from './supabase/supabase.config';
+import { MCPModule } from '../mcp/mcp.module';
 
 @Module({
   imports: [
@@ -90,7 +81,7 @@ import supabaseConfig from './supabase/supabase.config';
         join(__dirname, '../../.env'),
       ],
       expandVariables: true,
-      load: [supabaseConfig],
+      // load: [supabaseConfig], // Temporarily disabled to resolve build issue
     }),
     HttpModule, // Add HttpModule for agent services
     LLMModule, // Add LLMModule for LLM and LangSmith services
@@ -134,6 +125,7 @@ import supabaseConfig from './supabase/supabase.config';
     ExternalAgentServicesContextModule, // Service container for simplified external agent DI
     OrchestratorAgentServicesContextModule, // Service container for simplified orchestrator agent DI
     UniversalAgentServicesContextModule, // Universal service container for all agent types
+    MCPModule, // MCP (Model Context Protocol) server and client functionality
   ],
   controllers: [
     AppController,

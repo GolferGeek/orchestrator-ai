@@ -741,6 +741,18 @@ export abstract class A2AAgentBaseService
       return null;
     }
 
+    // Check agent configuration to see if deliverable creation is disabled
+    try {
+      const agentConfig = await this.loadAgentYamlConfig();
+      if (agentConfig?.configuration?.create_deliverables === false) {
+        // Agent is configured to not create deliverables - return normal responses only
+        return null;
+      }
+    } catch (error) {
+      // If config loading fails, continue with default behavior (create deliverables)
+      this.logger.debug(`Could not load agent config for deliverable check: ${error}`);
+    }
+
     try {
       // Extract content from various result formats
 
