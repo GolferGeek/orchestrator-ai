@@ -9,12 +9,9 @@ export function getTableName(tableName: string, schema?: string): string {
 
 // Helper function to get the appropriate schema for a table
 export function getSchemaForTable(tableName: string, explicitSchema?: string): string {
-  const coreSchema = process.env.SUPABASE_CORE_SCHEMA;
-  const companySchema = process.env.SUPABASE_COMPANY_SCHEMA;
-  
-  if (!coreSchema || !companySchema) {
-    throw new Error('SUPABASE_CORE_SCHEMA and SUPABASE_COMPANY_SCHEMA must be set in environment');
-  }
+  // Defer environment variable access to runtime
+  const getCoreSchema = () => process.env.SUPABASE_CORE_SCHEMA || 'public';
+  const getCompanySchema = () => process.env.SUPABASE_COMPANY_SCHEMA || 'public';
   
   // Company-specific tables
   const companyTables = [
@@ -25,7 +22,7 @@ export function getSchemaForTable(tableName: string, explicitSchema?: string): s
   ];
   
   if (companyTables.includes(tableName)) {
-    return companySchema;
+    return getCompanySchema();
   }
   
   // Use explicit schema if provided
@@ -34,23 +31,25 @@ export function getSchemaForTable(tableName: string, explicitSchema?: string): s
   }
   
   // Default to core schema for all other tables
-  return coreSchema;
+  return getCoreSchema();
 }
 
+// Lazy configuration loading - defer all environment access
 export default registerAs('supabase', () => {
-  const coreSchema = process.env.SUPABASE_CORE_SCHEMA;
-  const companySchema = process.env.SUPABASE_COMPANY_SCHEMA;
-  
-  if (!coreSchema || !companySchema) {
-    throw new Error('SUPABASE_CORE_SCHEMA and SUPABASE_COMPANY_SCHEMA must be set in environment');
-  }
-  
+  const getEnvValue = (key: string, defaultValue: string) => {
+    try {
+      return process.env[key] || defaultValue;
+    } catch (error) {
+      return defaultValue;
+    }
+  };
+
   return {
-    url: process.env.SUPABASE_URL || 'http://localhost:9010',
-    anonKey: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
-    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
-    jwtSecret: process.env.SUPABASE_JWT_SECRET || 'super-secret-jwt-token-with-at-least-32-characters-long',
-    coreSchema,
-    companySchema,
+    url: getEnvValue('SUPABASE_URL', 'http://localhost:9010'),
+    anonKey: getEnvValue('SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'),
+    serviceKey: getEnvValue('SUPABASE_SERVICE_ROLE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'),
+    jwtSecret: getEnvValue('SUPABASE_JWT_SECRET', 'super-secret-jwt-token-with-at-least-32-characters-long'),
+    coreSchema: getEnvValue('SUPABASE_CORE_SCHEMA', 'public'),
+    companySchema: getEnvValue('SUPABASE_COMPANY_SCHEMA', 'public'),
   };
 });

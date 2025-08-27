@@ -91,3 +91,6 @@ configuration:
   workflow_engine: "langgraph"
   document_types:
     - "text/markdown"
+  # Disable automatic deliverable creation for this agent
+  # Metrics responses should be returned directly without creating documents
+  create_deliverables: false
