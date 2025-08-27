@@ -154,189 +154,178 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         this.emitProgress(stepName, stepIndex, status as any, message);
       };
 
-      // Create MCP service wrapper from the inherited A2A base service MCP pool
-      const mcpService = this.mcpClientService
-        ? {
-            isAvailable: () => {
-              try {
-                if (!this.mcpClientService) {
-                  this.functionLogger.warn('MCP Client Service not available');
-                  return false;
-                }
+      // Create MCP service wrapper using HTTP calls to the MCP server
+      const mcpService = {
+        isAvailable: () => {
+          // MCP server is running on localhost:9000, so it's available
+          return true;
+        },
 
-                // Check if client has active servers
-                const availableServers =
-                  this.mcpClientService.getAvailableServers();
-                const hasSupabase = availableServers.includes('supabase');
-
-                return hasSupabase && this.mcpClientService.isAvailable();
-              } catch (error) {
-                this.functionLogger.warn(
-                  'MCP Client isAvailable check failed:',
-                  error,
-                );
-                return false;
+        // Database operations - KPI-focused with table filtering
+        getSchema: async (options?: {
+          table_name?: string;
+          refresh_cache?: boolean;
+        }) => {
+          try {
+            const response = await this.services.httpService.axiosRef.post(
+              'http://localhost:9000/mcp/supabase/schema',
+              {
+                tables: options?.table_name ? [options.table_name] : ['companies', 'kpi_data', 'kpi_metrics', 'kpi_goals', 'departments'],
+                domain: 'kpi'
               }
-            },
-
-            // Database operations - KPI-focused with table filtering
-            getSchema: async (options?: {
-              table_name?: string;
-              refresh_cache?: boolean;
-              focus_tables?: string[];
-            }) => {
-              if (!this.mcpClientService) {
-                throw new Error('MCP Client Service not available');
-              }
-              // Add KPI table focus for metrics agent
-              const kpiOptions = {
-                ...options,
-                focus_tables: options?.focus_tables || [
-                  'kpi_data',
-                  'kpi_metrics',
-                  'kpi_goals',
-                  'departments',
-                  'companies',
-                ],
-              };
-              const toolRequest = { name: 'get-schema', arguments: kpiOptions };
-              return await this.mcpClientService.callTool(
-                'supabase',
-                toolRequest,
-              );
-            },
-
-            readData: async (params: {
-              table_name: string;
-              columns?: string[];
-              filters?: Record<string, any>;
-              limit?: number;
-              offset?: number;
-              order_by?: { column: string; ascending?: boolean };
-              format?: 'json' | 'table' | 'csv';
-            }) => {
-              if (!this.mcpClientService) {
-                throw new Error('MCP Client Service not available');
-              }
-              const toolRequest = { name: 'read-data', arguments: params };
-              return await this.mcpClientService.callTool(
-                'supabase',
-                toolRequest,
-              );
-            },
-
-            executeSQL: async (params: {
-              sql_query: string;
-              parameters?: any[];
-              dry_run?: boolean;
-              max_rows?: number;
-              format?: 'detailed' | 'compact' | 'csv' | 'json';
-            }) => {
-              if (!this.mcpClientService) {
-                throw new Error('MCP Client Service not available');
-              }
-              const toolRequest = { name: 'execute-sql', arguments: params };
-              return await this.mcpClientService.callTool(
-                'supabase',
-                toolRequest,
-              );
-            },
-
-            generateSQL: async (params: {
-              natural_language_query: string;
-              query_type?:
-                | 'SELECT'
-                | 'INSERT'
-                | 'UPDATE'
-                | 'DELETE'
-                | 'auto-detect';
-              model_override?: string;
-              include_explanation?: boolean;
-              max_rows?: number;
-              schema_tables?: string[];
-            }) => {
-              if (!this.mcpClientService) {
-                throw new Error('MCP Client Service not available');
-              }
-              // Add KPI table focus for better SQL generation
-              const kpiParams = {
-                ...params,
-                schema_tables: params.schema_tables || [
-                  'kpi_data',
-                  'kpi_metrics',
-                  'kpi_goals',
-                  'departments',
-                  'companies',
-                ],
-              };
-              const toolRequest = {
-                name: 'generate-sql',
-                arguments: kpiParams,
-              };
-              return await this.mcpClientService.callTool(
-                'supabase',
-                toolRequest,
-              );
-            },
-
-            queryAndFormat: async (params: {
-              user_prompt: string;
-              output_format?:
-                | 'table'
-                | 'json'
-                | 'summary'
-                | 'chart-data'
-                | 'report';
-              include_explanation?: boolean;
-              model_override?: string;
-              max_rows?: number;
-              include_schema_context?: boolean;
-              suggested_tables?: string[];
-            }) => {
-              if (!this.mcpClientService) {
-                throw new Error('MCP Client Service not available');
-              }
-              // Add KPI table suggestions for focused analysis
-              const kpiParams = {
-                ...params,
-                suggested_tables: params.suggested_tables || [
-                  'kpi_data',
-                  'kpi_metrics',
-                  'kpi_goals',
-                  'departments',
-                  'companies',
-                ],
-              };
-              const toolRequest = {
-                name: 'query-and-format',
-                arguments: kpiParams,
-              };
-              return await this.mcpClientService.callTool(
-                'supabase',
-                toolRequest,
-              );
-            },
-
-            // Generic tool call method for extensibility
-            callTool: async (server: string, toolName: string, params: any) => {
-              if (!this.mcpClientService) {
-                throw new Error('MCP Client Service not available');
-              }
-
-              // Map server names from agent function expectations to MCPClientService format
-              let actualServerName = server;
-              if (server === 'supabase-mcp') {
-                actualServerName = 'supabase';
-              }
-
-              const toolRequest = { name: toolName, arguments: params };
-              return await this.mcpClientService.callTool(
-                actualServerName,
-                toolRequest,
-              );
-            },
+            );
+            return response.data;
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`MCP Schema call failed: ${errorMessage}`);
           }
-        : null;
+        },
+
+        readData: async (params: {
+          table_name: string;
+          columns?: string[];
+          filters?: Record<string, any>;
+          limit?: number;
+          offset?: number;
+          order_by?: { column: string; ascending?: boolean };
+          format?: 'json' | 'table' | 'csv';
+        }) => {
+          try {
+            const response = await this.services.httpService.axiosRef.post(
+              'http://localhost:9000/mcp/supabase/tools/read-data',
+              params
+            );
+            return response.data;
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`MCP ReadData call failed: ${errorMessage}`);
+          }
+        },
+
+        executeSQL: async (params: {
+          sql_query: string;
+          parameters?: any[];
+          dry_run?: boolean;
+          max_rows?: number;
+          format?: 'detailed' | 'compact' | 'csv' | 'json';
+        }) => {
+          try {
+            const response = await this.services.httpService.axiosRef.post(
+              'http://localhost:9000/mcp/supabase/execute-sql',
+              {
+                sql: params.sql_query,
+                maxRows: params.max_rows || 100
+              }
+            );
+            
+            // Return data in MCP protocol format expected by metrics agent
+            return {
+              isError: false,
+              content: [{
+                type: 'text',
+                text: JSON.stringify(response.data)
+              }]
+            };
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`MCP ExecuteSQL call failed: ${errorMessage}`);
+          }
+        },
+
+        generateSQL: async (params: {
+          natural_language_query: string;
+          max_rows?: number;
+          schema_tables?: string[];
+        }) => {
+          try {
+            const response = await this.services.httpService.axiosRef.post(
+              'http://localhost:9000/mcp/supabase/generate-sql',
+              {
+                query: params.natural_language_query,
+                tables: params.schema_tables || ['users', 'companies', 'departments', 'kpi_data', 'kpi_metrics', 'kpi_goals', 'tasks', 'deliverables', 'agent_conversations', 'deliverable_versions'],
+                max_rows: params.max_rows || 100
+              }
+            );
+            
+            // Return data in MCP protocol format expected by metrics agent
+            return {
+              isError: false,
+              content: [{
+                type: 'text',
+                text: JSON.stringify(response.data)
+              }]
+            };
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`MCP GenerateSQL call failed: ${errorMessage}`);
+          }
+        },
+
+        queryAndFormat: async (params: {
+          user_prompt: string;
+          output_format?: 'table' | 'json' | 'summary' | 'chart-data' | 'report';
+          include_explanation?: boolean;
+          model_override?: string;
+          max_rows?: number;
+          include_schema_context?: boolean;
+          suggested_tables?: string[];
+        }) => {
+          try {
+            // First generate SQL
+            const sqlResponse = await this.services.httpService.axiosRef.post(
+              'http://localhost:9000/mcp/supabase/generate-sql',
+              {
+                query: params.user_prompt,
+                tables: params.suggested_tables || ['users', 'companies', 'departments', 'kpi_data', 'kpi_metrics', 'kpi_goals', 'tasks', 'deliverables', 'agent_conversations', 'deliverable_versions'],
+                max_rows: params.max_rows || 100
+              }
+            );
+            
+            // Then execute SQL
+            const executeResponse = await this.services.httpService.axiosRef.post(
+              'http://localhost:9000/mcp/supabase/execute-sql',
+              {
+                sql: sqlResponse.data.sql,
+                maxRows: params.max_rows || 100
+              }
+            );
+            
+            return {
+              sql: sqlResponse.data.sql,
+              data: executeResponse.data.data,
+              row_count: executeResponse.data.row_count,
+              formatted_result: executeResponse.data
+            };
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`MCP QueryAndFormat call failed: ${errorMessage}`);
+          }
+        },
+
+        // Generic tool call method for extensibility
+        callTool: async (server: string, toolName: string, params: any) => {
+          try {
+            let endpoint = `http://localhost:9000/mcp/supabase/tools/${toolName}`;
+            
+            // Handle specific tool mappings
+            if (toolName === 'get-schema') {
+              endpoint = 'http://localhost:9000/mcp/supabase/schema';
+            } else if (toolName === 'execute-sql') {
+              endpoint = 'http://localhost:9000/mcp/supabase/execute-sql';
+              params = { sql: params.sql_query || params.sql, maxRows: params.max_rows };
+            } else if (toolName === 'generate-sql') {
+              endpoint = 'http://localhost:9000/mcp/supabase/generate-sql';
+              params = { query: params.natural_language_query || params.query, tables: params.schema_tables || params.tables };
+            }
+            
+            const response = await this.services.httpService.axiosRef.post(endpoint, params);
+            return response.data;
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`MCP CallTool failed: ${errorMessage}`);
+          }
+        },
+      };
 
       // Prepare standardized parameters for the agent function
       const functionParams: AgentFunctionParams = {
