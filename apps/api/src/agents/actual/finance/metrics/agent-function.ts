@@ -2,100 +2,78 @@ import {
   AgentFunctionParams,
   AgentFunctionResponse,
 } from '@agents/base/implementations/base-services/a2a-base/interfaces';
-import {
-  initializeForCompany,
-  executeCompanySQL,
-  getDatabaseSchemaInfo,
-  generateAndExecuteCompanySQL,
-} from '@/supabase/utils/supabase-tools';
 
 /**
- * Metrics Agent Function - Context-Driven SQL Generation with Supabase Tools
+ * Metrics Agent Function - MCP-Based KPI Analysis
  *
  * This agent provides comprehensive business metrics analysis, KPI tracking, and data-driven insights
- * using context-driven natural language to SQL conversion with LangChain.js and Supabase utility functions.
+ * using the Model Context Protocol (MCP) for structured database access and SQL generation.
  *
  * Key capabilities:
- * - Context-driven natural language to SQL query generation with complete schema definitions
- * - Real-time database analysis from Supabase via direct client access
- * - Performance tracking and trend analysis using correct table/column references
+ * - MCP-based natural language to SQL query generation using context schemas
+ * - Real-time database analysis from Supabase via MCP tools
+ * - Performance tracking and trend analysis using validated table/column references
  * - Data-driven insights and reporting with accurate SQL queries
- * - No dependency injection - uses global state with lazy initialization
- * - Schema-aware SQL generation eliminates column name errors (company_name vs name)
+ * - MCP protocol compliance with proper tool calling patterns
+ * - Schema-driven SQL generation eliminates column name errors (company_name vs name)
  */
 export async function execute(
   params: AgentFunctionParams,
 ): Promise<AgentFunctionResponse> {
-  const { userMessage, llmService, progressCallback, metadata } = params;
-
-  // This agent now uses utility functions with global state instead of NestJS services
+  const { userMessage, llmService, progressCallback, metadata, mcpService } = params;
 
   try {
-    // Step 1: Initialize database connection with Metrics Agent scope
+    // Step 1: Initialize MCP connection and validate server health
     progressCallback?.(
       'Database connection',
       0,
       'in_progress',
-      'Initializing Metrics Agent with KPI & Analytics domain scope...',
+      'Initializing MCP client and validating Supabase server connection...',
     );
 
-    // Initialize the Company database tools for KPI & Analytics
-    await initializeForCompany({
-      includeDomains: ['KPI & Analytics'],
-      agentName: 'Enhanced Metrics Agent',
-    });
+    // Check if MCP service is available
+    if (!mcpService?.isAvailable()) {
+      throw new Error('MCP server is not available or not responding');
+    }
 
     const schemaResult = { success: true, data: { validated: true } };
 
-    // Step 1.5: Validate database access with KPI-focused query
+    // Step 1.5: Get schema information for all available tables
     const requiredTables = [
+      'users', 
       'companies',
       'departments',
       'kpi_data',
       'kpi_metrics',
       'kpi_goals',
+      'tasks',
+      'deliverables',
+      'agent_conversations',
+      'deliverable_versions'
     ];
 
     try {
-      // Test basic connectivity with a KPI-focused query using correct schema context
-      const testSchemaContext = `
-DATABASE SCHEMA: companies table has columns: id (UUID), name (VARCHAR), industry (VARCHAR), founded_year (INTEGER), created_at, updated_at.
-User Question: "Show me the count of companies in the database"
-Generate SQL using: SELECT COUNT(*) FROM companies;`;
-      
-      const testResult = await generateAndExecuteCompanySQL(
-        testSchemaContext,
-        {
-          executeQuery: true,
-          maxRows: 1,
-          provider: 'openai',
-          model: 'gpt-4',
-          config: {
-            includeDomains: ['KPI & Analytics'],
-            agentName: 'Enhanced Metrics Agent',
-          },
-        },
-      );
+      // Get KPI schema using MCP service
+      const schemaResponse = await mcpService?.getSchema();
 
-      if (testResult.error) {
-        throw new Error(
-          `Database connectivity test failed: ${testResult.error}`,
-        );
-      }
+      // Test basic database connectivity with simple count query
+      const testResult = await mcpService.executeSQL({
+        sql_query: 'SELECT COUNT(*) as table_count FROM companies LIMIT 1',
+        max_rows: 1,
+      });
 
       progressCallback?.(
         'Database schema',
         0,
         'completed',
-        `Connected successfully - Context-driven SQL generation ready`,
+        'MCP server connected - Schema context loaded for KPI tables',
       );
     } catch (error) {
-
       progressCallback?.(
         'Database schema',
         0,
         'failed',
-        `Database validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `MCP database validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
       throw error;
     }
@@ -166,173 +144,107 @@ Respond with JSON only:
       );
     }
 
-    // Step 2.5: Ready for SQL generation with LangChain
-
+    // Step 2.5: Ready for MCP-based SQL generation and execution
     progressCallback?.(
       'SQL validation',
       2,
       'completed',
-      'Context-driven SQL generation and execution ready',
+      'MCP SQL generation tools ready',
     );
 
-    // Step 3: Execute user-specific SQL queries based on their request
+    // Step 3: Execute user-specific SQL queries based on their request using MCP
     progressCallback?.(
       'Data retrieval',
       3,
       'in_progress',
-      `Executing queries for: ${analysis.intent}`,
+      `Generating SQL for: ${analysis.intent}`,
     );
 
-    // Generate and execute SQL for the user's specific question using LangChain with context schema
+    // Generate SQL using MCP generate-sql tool
     progressCallback?.(
       'SQL Generation',
       2.5,
       'in_progress',
-      'Generating SQL from natural language using context schema...',
+      'Generating SQL from natural language using MCP tools...',
     );
 
-    // Define complete database schema context for SQL generation
-    const schemaContext = `
-DATABASE SCHEMA (Supabase SaaS - Public Schema):
-
-**companies table:**
-- id (UUID, Primary Key)
-- name (VARCHAR(255), NOT NULL) - Company name
-- industry (VARCHAR(100)) - Industry sector  
-- founded_year (INTEGER) - Year company was founded
-- created_at, updated_at (TIMESTAMP WITH TIME ZONE)
-
-**departments table:**
-- id (UUID, Primary Key)
-- company_id (UUID, Foreign Key → companies.id)
-- name (VARCHAR(255), NOT NULL) - Department name
-- head_of_department (VARCHAR(255)) - Department head name
-- budget (DECIMAL(15,2)) - Department budget
-- created_at, updated_at (TIMESTAMP WITH TIME ZONE)
-
-**kpi_metrics table:**
-- id (UUID, Primary Key)
-- name (VARCHAR(255), NOT NULL) - Metric name (e.g., "Revenue", "Customer Satisfaction")
-- metric_type (VARCHAR(100)) - Type of metric
-- unit (VARCHAR(50)) - Unit of measurement
-- description (TEXT) - Detailed description
-- created_at, updated_at (TIMESTAMP WITH TIME ZONE)
-
-**kpi_goals table:**
-- id (UUID, Primary Key)
-- department_id (UUID, Foreign Key → departments.id)
-- metric_id (UUID, Foreign Key → kpi_metrics.id)
-- target_value (DECIMAL(15,4)) - Target value for the metric
-- period_start, period_end (DATE) - Goal period
-- created_at, updated_at (TIMESTAMP WITH TIME ZONE)
-
-**kpi_data table:**
-- id (UUID, Primary Key)
-- department_id (UUID, Foreign Key → departments.id)
-- metric_id (UUID, Foreign Key → kpi_metrics.id)
-- value (DECIMAL(15,4), NOT NULL) - Actual metric value
-- date_recorded (DATE, NOT NULL) - Date when metric was recorded
-- created_at, updated_at (TIMESTAMP WITH TIME ZONE)
-
-SQL GUIDELINES:
-- All tables are in PUBLIC schema (no schema prefixes needed)
-- Companies table has 'name' column, NOT 'company_name'
-- Revenue data is in kpi_data table, NOT directly in companies
-- Must join with kpi_metrics to filter by metric type
-- Always use table aliases (c, d, kd, km) for clarity
-- Include all non-aggregate columns in GROUP BY clause
-- Apply LIMIT clauses to prevent timeout issues
-
-EXAMPLE PATTERNS:
-- Revenue by company: SELECT c.name, SUM(kd.value) as total_revenue FROM companies c JOIN departments d ON c.id = d.company_id JOIN kpi_data kd ON d.id = kd.department_id JOIN kpi_metrics km ON kd.metric_id = km.id WHERE km.name = 'Revenue' GROUP BY c.id, c.name ORDER BY total_revenue DESC;
-- Department budgets: SELECT d.name as department, d.budget, d.head_of_department FROM departments d ORDER BY d.budget DESC;
-`;
-
-    // Enhanced user message with schema context for accurate SQL generation
-    const contextEnhancedMessage = `${schemaContext}
-
-User Question: "${userMessage}"
-
-Generate SQL using the exact schema above. Use correct table and column names.`;
-
-    // Use direct LLM call instead of LangChain's SQL chain to honor context schema
-    const sqlGenerationPrompt = `You are a PostgreSQL expert. Generate a SQL query based on the following schema and user question.
-
-${schemaContext}
-
-Rules:
-- Generate ONLY the SQL query, no explanations
-- Use correct table and column names from the schema above
-- Use proper JOIN syntax for related tables
-- Apply LIMIT clauses to prevent large result sets
-- For revenue queries, join companies → departments → kpi_data → kpi_metrics WHERE km.name = 'Revenue'
-
-User Question: "${userMessage}"
-
-SQL Query:`;
-
     let generatedSQL = '';
+    let queryResult: any[] = [];
     let sqlError = '';
+    let executionError = '';
     
     try {
-      const sqlResponse = await llmService.generateResponse(
-        'You are a SQL generation expert. Generate clean, executable PostgreSQL queries.',
-        sqlGenerationPrompt,
-        {
-          temperature: 0.1,
-          provider: metadata?.providerId,
-          modelId: metadata?.modelId,
-          maxTokens: 1000,
-        }
-      );
+      // Step 3.1: Generate SQL using MCP service
+      const sqlGenResponse = await mcpService.generateSQL({
+        natural_language_query: userMessage,
+        schema_tables: requiredTables,
+        max_rows: 100,
+      });
+
+      if (sqlGenResponse.isError) {
+        sqlError = `MCP SQL generation failed: ${sqlGenResponse.content[0]?.text}`;
+        throw new Error(sqlError);
+      }
+
+      // Parse the SQL generation response
+      const sqlGenResult = JSON.parse(sqlGenResponse.content[0]?.text || '{}');
+      generatedSQL = sqlGenResult.sql || '';
       
-      generatedSQL = typeof sqlResponse === 'string' ? sqlResponse : (sqlResponse.response || '');
-      
-      // Clean up the SQL response (remove markdown, extra text)
-      generatedSQL = generatedSQL.replace(/```sql\n?/g, '').replace(/```\n?/g, '').trim();
-      
+      if (!generatedSQL) {
+        sqlError = 'No SQL was generated by MCP tool';
+        throw new Error(sqlError);
+      }
+
       progressCallback?.(
         'SQL Generation',
         2.5,
         'completed',
-        `Context-driven SQL generated: ${generatedSQL.substring(0, 100)}...`,
+        `MCP-generated SQL: ${generatedSQL.substring(0, 100)}...`,
       );
-    } catch (error) {
-      sqlError = `SQL generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+
+      // Step 3.2: Execute the generated SQL using MCP tool
       progressCallback?.(
-        'SQL Generation',
-        2.5,
+        'SQL Execution',
+        2.7,
+        'in_progress',
+        'Executing SQL query via MCP...',
+      );
+
+      const sqlExecResponse = await mcpService.executeSQL({
+        sql_query: generatedSQL,
+        max_rows: 100,
+      });
+
+      if (sqlExecResponse.isError) {
+        executionError = `MCP SQL execution failed: ${sqlExecResponse.content[0]?.text}`;
+        throw new Error(executionError);
+      }
+
+      // Parse the SQL execution response
+      const sqlExecResult = JSON.parse(sqlExecResponse.content[0]?.text || '{}');
+      queryResult = sqlExecResult.data || [];
+      
+      progressCallback?.(
+        'SQL Execution',
+        2.7,
+        'completed',
+        `MCP query executed successfully - ${queryResult.length || 0} rows returned`,
+      );
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (!sqlError && !executionError) {
+        sqlError = `MCP operation failed: ${errorMessage}`;
+      }
+      
+      progressCallback?.(
+        sqlError.includes('generation') ? 'SQL Generation' : 'SQL Execution',
+        sqlError.includes('generation') ? 2.5 : 2.7,
         'failed',
-        sqlError,
+        errorMessage,
       );
     }
-    
-    // Execute the generated SQL
-    let queryResult: any[] = [];
-    let executionError = '';
-    
-    if (generatedSQL && !sqlError) {
-      try {
-        await initializeForCompany();
-        queryResult = await executeCompanySQL(generatedSQL);
-        
-        progressCallback?.(
-          'SQL Execution',
-          2.7,
-          'completed',
-          `Query executed successfully - ${queryResult.length || 0} rows returned`,
-        );
-      } catch (error) {
-        executionError = `SQL execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        progressCallback?.(
-          'SQL Execution',
-          2.7,
-          'failed',
-          executionError,
-        );
-      }
-    }
-    
+
     // Prepare result in the expected format
     const userQueryResult = {
       sql: generatedSQL,
@@ -341,10 +253,12 @@ SQL Query:`;
       metadata: {
         executionTime: 0,
         rowCount: queryResult.length || 0,
-        provider: 'openai',
-        model: 'gpt-4'
-      }
+        provider: 'mcp',
+        model: 'context-driven',
+      },
     };
+
+    // All SQL generation and execution now handled by MCP tools above
 
     if (userQueryResult.error) {
 
@@ -387,18 +301,18 @@ ALWAYS start your response with this exact format:
 
 # 📊 Metrics Analysis Report
 
-## 🔍 Context-Driven SQL Generation
+## 🔍 MCP-Based SQL Generation
 
-Using enhanced schema context instead of database discovery, the following SQL query was generated:
+Using the Model Context Protocol (MCP) with schema context files, the following SQL query was generated:
 
 \`\`\`sql
 ${userQueryResult.sql || 'No SQL was generated'}
 \`\`\`
 
-**Schema References Used:**
-- ✅ Correct table names from context.md schema
-- ✅ Proper column references (companies.name not company_name)
-- ✅ Schema-aware JOIN patterns for KPI data
+**MCP Tools Used:**
+- ✅ get-schema tool for context-driven schema retrieval
+- ✅ generate-sql tool for natural language to SQL conversion
+- ✅ execute-sql tool for database query execution
 
 ## 📈 Query Results
 ${
@@ -408,15 +322,29 @@ ${
 }
 
 ## 💡 Analysis
+
+**CRITICAL: Only use the actual query results above. Do NOT generate, simulate, or hallucinate sample data.**
+
 Based on your query about: ${analysis.intent}
 
-Provide a direct answer to the user's question. If the SQL query returned results, state the exact answer and key insights. If it returned 0 results, explain what this means and suggest next steps.
+${
+  userQueryResult.result && userQueryResult.result.length > 0
+    ? 'The SQL query returned actual data from the database. Analyze these real results and provide insights based on the actual numbers and values shown above.'
+    : `**NO DATA FOUND**: The SQL query executed successfully but returned no results. This means the database tables are empty or contain no data matching the query criteria.
 
-**Answer the user's specific question directly and provide actionable insights from the data.**
+**Do not create fake data or sample results.** Instead, explain:
+1. The query is correct and would work with populated data
+2. The database needs to be populated with actual KPI data
+3. What specific data would need to be added to see results`
+}
+
+**Provide insights only from the actual query results shown above - never invent or simulate data.**
 `;
 
     const finalResponse = await llmService.generateResponse(
-      `You are an expert Business Intelligence and Analytics specialist with deep expertise in data analysis, performance tracking, and data-driven insights. You communicate insights clearly through structured reports and actionable recommendations.`,
+      `You are an expert Business Intelligence and Analytics specialist with deep expertise in data analysis, performance tracking, and data-driven insights. You communicate insights clearly through structured reports and actionable recommendations.
+      
+      CRITICAL RULE: You must ONLY analyze the actual data provided in the query results. NEVER generate, simulate, invent, or hallucinate sample data, fake companies, or fictional revenue numbers. If no data is returned, explicitly state this fact and do not create example results.`,
       reportPrompt,
       {
         temperature: 0.3,
@@ -449,17 +377,17 @@ Provide a direct answer to the user's question. If the SQL query returned result
             ? new Date(metadata.timestamp).getTime()
             : Date.now()),
         toolsUsed: [
-          'Context-Driven SQL Generation',
-          'LangChain.js with Schema Context',
-          'Supabase Tools Utilities', 
-          'PostgreSQL',
-          'Natural Language to SQL',
+          'MCP get-schema tool',
+          'MCP generate-sql tool', 
+          'MCP execute-sql tool',
+          'PostgreSQL via MCP',
+          'Context-driven schema files',
         ],
         responseType: analysis.analysis_type || 'metrics_analysis',
         sqlGenerated: userQueryResult.sql || '',
         executionTime: userQueryResult.metadata?.executionTime || 0,
         rowCount: resultCount,
-        langchainEnabled: true,
+        mcpEnabled: true,
       },
     };
   } catch (error) {
@@ -481,32 +409,30 @@ Provide a direct answer to the user's question. If the SQL query returned result
     let userFriendlyResponse = '';
 
     if (isConnectionError) {
-      userFriendlyResponse = `## Database Connection Issue
+      userFriendlyResponse = `## MCP Connection Issue
 
-I'm experiencing a temporary connection issue with the Supabase database. This is an intermittent network connectivity problem.
+I'm experiencing a connection issue with the Model Context Protocol (MCP) server. This may be a temporary network connectivity problem.
 
 ### What I was trying to do:
 Analyze your request: "${userMessage}"
 
-### LangChain.js Integration Status:
-✅ **LangChain.js service is available**  
-✅ **Natural language to SQL conversion ready**  
-⚠️ **Database connection temporarily unavailable**
+### MCP Integration Status:
+✅ **MCP client service is available**  
+✅ **Context-driven schema files loaded**  
+⚠️ **MCP server connection temporarily unavailable**
 
-### Recent Success:
-The LangChain integration has been working successfully - I recently generated SQL queries like:
-\`\`\`sql
-SELECT id, email, created_at FROM users LIMIT 10;
-\`\`\`
-
-And successfully returned real data from your database.
+### MCP Tools Available:
+- get-schema: Retrieve database schema from context files
+- generate-sql: Convert natural language to SQL queries  
+- execute-sql: Run SQL queries against Supabase
+- analyze-results: Generate insights from query results
 
 ### Next Steps:
 1. **Try again in a moment** - this is usually a temporary connectivity issue
-2. **The integration is working** - when connected, I can analyze your database with natural language queries
+2. **The MCP integration is working** - when connected, I can analyze your database with natural language queries
 3. **Contact support** if the issue persists
 
-*Note: This is a database connectivity issue, not a problem with the LangChain.js integration itself.*`;
+*Note: This is an MCP server connectivity issue, not a problem with the MCP protocol implementation itself.*`;
     } else {
       userFriendlyResponse = `## Analysis Error
 
@@ -519,8 +445,8 @@ I encountered an error while processing your metrics analysis request.
 ${errorMessage}
 
 ### System Status:
-✅ **LangChain.js integration active**  
-✅ **Natural language processing available**  
+✅ **MCP protocol integration active**  
+✅ **Natural language to SQL processing available**  
 ❌ **Query execution failed**
 
 ### What to Try:
@@ -542,12 +468,12 @@ ${errorMessage}
             ? new Date(metadata.timestamp).getTime()
             : Date.now()),
         toolsUsed: [
-          'Context-Driven SQL Generation (Failed)',
-          'LangChain.js with Schema Context (Failed)',
-          'Supabase Tools Utilities (Failed)',
+          'MCP get-schema tool (Failed)',
+          'MCP generate-sql tool (Failed)',
+          'MCP execute-sql tool (Failed)',
         ],
         responseType: 'error',
-        langchainEnabled: false,
+        mcpEnabled: false,
         error: errorMessage,
       },
     };

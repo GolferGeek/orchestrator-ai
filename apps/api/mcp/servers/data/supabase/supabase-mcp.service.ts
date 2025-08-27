@@ -1,0 +1,273 @@
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { LLMService } from '../../../../src/llms/llm.service';
+import { SupabaseMCPServer } from './supabase.mcp';
+import {
+  MCPJsonRpcRequest,
+  MCPJsonRpcResponse,
+  MCPServerInfo,
+  MCPToolDefinition,
+} from '../../../clients/mcp-client.interface';
+
+// Helper function to safely get error message
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  // Handle Supabase error objects
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as any).message);
+  }
+  return String(error);
+}
+
+/**
+ * NestJS Service Wrapper for Supabase MCP Server
+ * 
+ * Provides HTTP endpoints and lifecycle management for the MCP server
+ * Integrates with NestJS dependency injection and startup/shutdown hooks
+ */
+@Injectable()
+export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(SupabaseMCPService.name);
+  private mcpServer: SupabaseMCPServer;
+  private isReady = false;
+
+  constructor(
+    private configService: ConfigService,
+    private llmService: LLMService
+  ) {
+    this.mcpServer = new SupabaseMCPServer(configService, llmService);
+  }
+
+  /**
+   * Initialize the MCP server on module startup
+   */
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.mcpServer.initialize();
+      this.isReady = true;
+      this.logger.log('✅ Supabase MCP Service ready');
+    } catch (error) {
+      this.logger.error(`❌ Supabase MCP Service initialization failed: ${getErrorMessage(error)}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Clean up resources on module shutdown
+   */
+  async onModuleDestroy(): Promise<void> {
+    // MCP server cleanup if needed
+    this.isReady = false;
+    this.logger.log('🔌 Supabase MCP Service shut down');
+  }
+
+  /**
+   * Health check for the MCP server
+   */
+  async healthCheck(): Promise<boolean> {
+    return this.isReady;
+  }
+
+  /**
+   * Get server information (HTTP endpoint handler)
+   */
+  async getServerInfo(): Promise<MCPServerInfo> {
+    if (!this.isReady) {
+      throw new Error('MCP server is not ready');
+    }
+    return await this.mcpServer.getServerInfo();
+  }
+
+  /**
+   * List available tools (HTTP endpoint handler)
+   */
+  async listTools(): Promise<MCPToolDefinition[]> {
+    if (!this.isReady) {
+      throw new Error('MCP server is not ready');
+    }
+    return await this.mcpServer.listTools();
+  }
+
+  /**
+   * Handle JSON-RPC requests (HTTP endpoint handler)
+   * 
+   * This is the main entry point for MCP HTTP transport
+   */
+  async handleJsonRpcRequest(request: MCPJsonRpcRequest): Promise<MCPJsonRpcResponse> {
+    const startTime = Date.now();
+
+    if (!this.isReady) {
+      return {
+        jsonrpc: '2.0',
+        id: request.id,
+        error: {
+          code: -32000,
+          message: 'MCP server is not ready',
+          data: { server_status: 'initializing' },
+        },
+      };
+    }
+
+    try {
+      let result: any;
+
+      switch (request.method) {
+        case 'get_server_info':
+          result = await this.mcpServer.getServerInfo();
+          break;
+
+        case 'list_tools':
+          result = { tools: await this.mcpServer.listTools() };
+          break;
+
+        case 'call_tool':
+          if (!request.params || !request.params.name) {
+            throw new Error('Tool name is required');
+          }
+          result = await this.mcpServer.callTool({
+            name: request.params.name,
+            arguments: request.params.arguments || {},
+            context: request.params.context || {},
+          });
+          break;
+
+        default:
+          throw new Error(`Unknown method: ${request.method}`);
+      }
+
+      const executionTime = Date.now() - startTime;
+
+      this.logger.debug(
+        `MCP ${request.method} completed in ${executionTime}ms`,
+      );
+
+      return {
+        jsonrpc: '2.0',
+        id: request.id,
+        result,
+      };
+
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+
+      this.logger.error(
+        `MCP ${request.method} failed after ${executionTime}ms: ${getErrorMessage(error)}`,
+      );
+
+      return {
+        jsonrpc: '2.0',
+        id: request.id,
+        error: {
+          code: -32603,
+          message: getErrorMessage(error),
+          data: {
+            method: request.method,
+            execution_time_ms: executionTime,
+          },
+        },
+      };
+    }
+  }
+
+  /**
+   * Direct tool execution (for internal use)
+   */
+  async executeTool(toolName: string, args: any = {}): Promise<any> {
+    if (!this.isReady) {
+      throw new Error('MCP server is not ready');
+    }
+
+    const response = await this.mcpServer.callTool({
+      name: toolName,
+      arguments: args,
+    });
+
+    if (response.isError) {
+      throw new Error(`Tool execution failed: ${response.content[0]?.text}`);
+    }
+
+    // Parse JSON response if it's a structured tool response
+    try {
+      const content = response.content[0]?.text;
+      if (content && content.startsWith('{')) {
+        return JSON.parse(content);
+      }
+      return content;
+    } catch (e) {
+      return response.content[0]?.text;
+    }
+  }
+
+  /**
+   * Get database schema (convenience method)
+   */
+  async getSchema(tables?: string[], domain?: 'core' | 'kpi'): Promise<string> {
+    const result = await this.executeTool('get-schema', { tables, domain });
+    return typeof result === 'string' ? result : result.toString();
+  }
+
+  /**
+   * Generate SQL from natural language (convenience method)
+   */
+  async generateSQL(
+    query: string, 
+    tables: string[], 
+    domainHint?: string, 
+    maxRows = 100
+  ): Promise<any> {
+    return await this.executeTool('generate-sql', {
+      query,
+      tables,
+      domain_hint: domainHint,
+      max_rows: maxRows,
+    });
+  }
+
+  /**
+   * Execute SQL query (convenience method)
+   */
+  async executeSQL(sql: string, maxRows = 1000): Promise<any> {
+    return await this.executeTool('execute-sql', {
+      sql,
+      max_rows: maxRows,
+    });
+  }
+
+  /**
+   * Analyze query results (convenience method)
+   */
+  async analyzeResults(
+    data: any[], 
+    prompt: string, 
+    provider = 'anthropic', 
+    model = 'claude-3-5-sonnet-20241022'
+  ): Promise<any> {
+    return await this.executeTool('analyze-results', {
+      data,
+      analysis_prompt: prompt,
+      provider,
+      model,
+    });
+  }
+
+  /**
+   * Get server statistics and metrics
+   */
+  getServerMetrics(): any {
+    return {
+      server_name: 'Supabase MCP Server',
+      status: this.isReady ? 'ready' : 'initializing',
+      uptime_ms: this.isReady ? Date.now() : 0,
+      tools_available: this.isReady ? 4 : 0,
+      schema_domains: ['core', 'kpi'],
+      context_files: [
+        'core-schema.md',
+        'kpi-schema.md', 
+        'relationships.md',
+        'sql-patterns.md',
+      ],
+    };
+  }
+}
