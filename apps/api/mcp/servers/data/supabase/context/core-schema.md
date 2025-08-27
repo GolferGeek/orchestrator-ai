@@ -14,135 +14,155 @@
 ```sql
 CREATE TABLE public.users (
   id UUID PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  display_name VARCHAR(255),
-  phone VARCHAR(20),
+  email TEXT,
+  display_name TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  phone VARCHAR,
   phone_verified BOOLEAN DEFAULT false,
-  company VARCHAR(255),
-  role VARCHAR(100),
-  department VARCHAR(255),
-  location VARCHAR(255),
-  timezone VARCHAR(50) DEFAULT 'UTC',
-  locale VARCHAR(10) DEFAULT 'en-US',
-  status VARCHAR(50) DEFAULT 'active',
-  roles JSONB DEFAULT '["user"]',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  company VARCHAR,
+  role VARCHAR,
+  department VARCHAR,
+  location JSONB,
+  timezone VARCHAR DEFAULT 'UTC',
+  locale VARCHAR DEFAULT 'en-US',
+  status VARCHAR DEFAULT 'active',
+  roles TEXT[] DEFAULT ARRAY['user']
 );
 ```
 
-### public.conversations
-**Purpose:** Chat conversations between users and agents
+### public.agent_conversations
+**Purpose:** Agent conversation sessions and coordination
 ```sql
-CREATE TABLE public.conversations (
+CREATE TABLE public.agent_conversations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
-  agent_name VARCHAR(255) NOT NULL,
-  agent_type VARCHAR(100) NOT NULL,
-  title VARCHAR(500),
-  status VARCHAR(50) DEFAULT 'active',
+  user_id UUID NOT NULL,
+  agent_name TEXT NOT NULL,
+  agent_type TEXT NOT NULL,
+  started_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  ended_at TIMESTAMP WITH TIME ZONE,
+  last_active_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
   metadata JSONB DEFAULT '{}',
-  last_message_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-### public.messages
-**Purpose:** Individual messages within conversations
-```sql
-CREATE TABLE public.messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.users(id),
-  role VARCHAR(50) NOT NULL, -- 'user', 'assistant', 'system'
-  content TEXT NOT NULL,
-  message_type VARCHAR(100) DEFAULT 'text',
-  metadata JSONB DEFAULT '{}',
-  tokens_used INTEGER,
-  processing_time_ms INTEGER,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  primary_work_product_type TEXT,
+  primary_work_product_id UUID
 );
 ```
 
 ### public.tasks
-**Purpose:** Task management and orchestration
+**Purpose:** Task execution and agent coordination
 ```sql
 CREATE TABLE public.tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
-  conversation_id UUID REFERENCES public.conversations(id),
-  title VARCHAR(500) NOT NULL,
-  description TEXT,
-  status VARCHAR(100) DEFAULT 'pending',
-  priority VARCHAR(50) DEFAULT 'medium',
-  agent_name VARCHAR(255),
-  agent_type VARCHAR(100),
-  assigned_to UUID REFERENCES public.users(id),
-  due_date TIMESTAMP WITH TIME ZONE,
+  agent_conversation_id UUID,
+  user_id UUID NOT NULL,
+  method TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  params JSONB DEFAULT '{}',
+  response TEXT,
+  response_metadata JSONB DEFAULT '{}',
+  status TEXT DEFAULT 'pending',
+  progress INTEGER DEFAULT 0,
+  progress_message TEXT,
+  evaluation JSONB DEFAULT '{}',
+  llm_metadata JSONB DEFAULT '{}',
+  error_code TEXT,
+  error_message TEXT,
+  error_data JSONB,
+  started_at TIMESTAMP WITH TIME ZONE,
   completed_at TIMESTAMP WITH TIME ZONE,
+  timeout_seconds INTEGER DEFAULT 300,
   metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  deliverable_type TEXT DEFAULT 'text',
+  deliverable_metadata JSONB DEFAULT '{}'
 );
 ```
 
-### public.agents
-**Purpose:** Agent registry and configuration
-```sql
-CREATE TABLE public.agents (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) UNIQUE NOT NULL,
-  display_name VARCHAR(255) NOT NULL,
-  agent_type VARCHAR(100) NOT NULL,
-  description TEXT,
-  status VARCHAR(50) DEFAULT 'active',
-  config JSONB DEFAULT '{}',
-  capabilities JSONB DEFAULT '[]',
-  version VARCHAR(50) DEFAULT '1.0.0',
-  last_active TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
+-- NOTE: agents table does not exist in current database
+-- Agent information is handled through configuration files
 
 ### public.projects
-**Purpose:** Multi-step project coordination
+**Purpose:** Multi-step project coordination and management
 ```sql
 CREATE TABLE public.projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
+  conversation_id UUID NOT NULL,
+  name TEXT,
   description TEXT,
-  status VARCHAR(100) DEFAULT 'active',
-  progress_percentage INTEGER DEFAULT 0,
-  orchestrator_agent VARCHAR(255),
+  plan_json JSONB,
+  status TEXT DEFAULT 'planning',
+  current_step_id TEXT,
+  error_details JSONB,
   metadata JSONB DEFAULT '{}',
-  started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  completed_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  parent_project_id UUID,
+  hierarchy_level INTEGER DEFAULT 0,
+  subproject_count INTEGER DEFAULT 0
 );
 ```
 
 ### public.deliverables
-**Purpose:** Project deliverables and artifacts
+**Purpose:** Task deliverables and outputs
 ```sql
 CREATE TABLE public.deliverables (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
-  task_id UUID REFERENCES public.tasks(id),
-  name VARCHAR(255) NOT NULL,
-  content TEXT,
-  deliverable_type VARCHAR(100) NOT NULL,
-  file_path TEXT,
-  file_size INTEGER,
-  mime_type VARCHAR(100),
-  status VARCHAR(100) DEFAULT 'draft',
-  version_number INTEGER DEFAULT 1,
+  user_id UUID NOT NULL,
+  conversation_id UUID,
+  title TEXT NOT NULL,
+  type TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  task_id UUID,
+  project_step_id UUID,
   metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  agent_name VARCHAR
+);
+```
+
+### public.deliverable_versions
+**Purpose:** Version control for deliverable content
+```sql
+CREATE TABLE public.deliverable_versions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  deliverable_id UUID NOT NULL,
+  version_number INTEGER NOT NULL,
+  content TEXT,
+  format VARCHAR,
+  is_current_version BOOLEAN DEFAULT false,
+  created_by_type VARCHAR DEFAULT 'ai_response',
+  task_id UUID,
+  metadata JSONB DEFAULT '{}',
+  file_attachments JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### public.project_steps
+**Purpose:** Individual steps within project execution
+```sql
+CREATE TABLE public.project_steps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL,
+  step_id TEXT NOT NULL,
+  step_index INTEGER NOT NULL,
+  step_type TEXT NOT NULL,
+  step_name TEXT NOT NULL,
+  agent_name TEXT,
+  prompt TEXT,
+  dependencies TEXT[] DEFAULT '{}',
+  status TEXT DEFAULT 'pending',
+  result JSONB,
+  error_details JSONB,
+  started_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 ```
 

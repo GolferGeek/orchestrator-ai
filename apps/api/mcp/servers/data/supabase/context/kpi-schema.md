@@ -15,14 +15,8 @@
 CREATE TABLE public.companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL, -- Company name (NOT company_name!)
-  industry VARCHAR(100),
+  industry VARCHAR(255),
   founded_year INTEGER,
-  headquarters VARCHAR(255),
-  website TEXT,
-  employee_count INTEGER,
-  revenue_currency VARCHAR(10) DEFAULT 'USD',
-  status VARCHAR(50) DEFAULT 'active',
-  metadata JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -33,17 +27,11 @@ CREATE TABLE public.companies (
 ```sql
 CREATE TABLE public.departments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES public.companies(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL, -- Department name
+  company_id UUID,
+  name VARCHAR(255) NOT NULL,
   head_of_department VARCHAR(255),
-  budget DECIMAL(15,2),
-  budget_currency VARCHAR(10) DEFAULT 'USD',
-  employee_count INTEGER,
-  cost_center VARCHAR(100),
-  status VARCHAR(50) DEFAULT 'active',
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  budget NUMERIC,
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now()
 );
 ```
 
@@ -52,18 +40,11 @@ CREATE TABLE public.departments (
 ```sql
 CREATE TABLE public.kpi_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) NOT NULL, -- Metric name (e.g., "Revenue", "Customer Satisfaction")
-  metric_type VARCHAR(100) NOT NULL, -- "financial", "operational", "customer", "employee"
-  unit VARCHAR(50), -- "USD", "count", "percentage", "hours"
+  name VARCHAR(255) NOT NULL,
   description TEXT,
-  calculation_method TEXT,
-  target_direction VARCHAR(20), -- "higher_better", "lower_better", "target_value"
-  is_active BOOLEAN DEFAULT true,
-  category VARCHAR(100),
-  subcategory VARCHAR(100),
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  unit VARCHAR(255),
+  metric_type VARCHAR(255),
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now()
 );
 ```
 
@@ -72,19 +53,12 @@ CREATE TABLE public.kpi_metrics (
 ```sql
 CREATE TABLE public.kpi_goals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  department_id UUID REFERENCES public.departments(id) ON DELETE CASCADE,
-  metric_id UUID REFERENCES public.kpi_metrics(id) ON DELETE CASCADE,
-  target_value DECIMAL(15,4) NOT NULL,
-  min_acceptable DECIMAL(15,4),
-  max_acceptable DECIMAL(15,4),
-  period_start DATE NOT NULL,
-  period_end DATE NOT NULL,
-  goal_type VARCHAR(50) DEFAULT 'target', -- "target", "minimum", "maximum"
-  status VARCHAR(50) DEFAULT 'active',
-  notes TEXT,
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  department_id UUID,
+  metric_id UUID,
+  target_value NUMERIC,
+  period_start DATE,
+  period_end DATE,
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now()
 );
 ```
 
@@ -93,18 +67,11 @@ CREATE TABLE public.kpi_goals (
 ```sql
 CREATE TABLE public.kpi_data (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  department_id UUID REFERENCES public.departments(id) ON DELETE CASCADE,
-  metric_id UUID REFERENCES public.kpi_metrics(id) ON DELETE CASCADE,
-  value DECIMAL(15,4) NOT NULL, -- Actual metric value
-  date_recorded DATE NOT NULL, -- Date when metric was recorded
-  period_type VARCHAR(20) DEFAULT 'daily', -- "daily", "weekly", "monthly", "quarterly", "yearly"
-  data_source VARCHAR(100),
-  confidence_level DECIMAL(3,2) DEFAULT 1.00, -- 0.00 to 1.00
-  notes TEXT,
-  recorded_by VARCHAR(255),
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  department_id UUID,
+  metric_id UUID,
+  value NUMERIC,
+  date_recorded DATE,
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now()
 );
 ```
 
@@ -241,6 +208,8 @@ ORDER BY metric_count DESC;
 - Companies table uses `name` column, **NOT** `company_name`
 - Always reference `companies.name` in queries
 - Revenue data is in `kpi_data` table, not directly in companies
+- **Companies table does NOT have a status column**
+- **Many optional columns in context examples don't exist in actual database**
 
 ### Metric Name Standards
 Common metric names in the database:
@@ -274,9 +243,10 @@ Common metric names in the database:
 
 ### Common WHERE Patterns
 - Recent data: `WHERE date_recorded >= CURRENT_DATE - INTERVAL '6 months'`
-- Active metrics: `WHERE km.is_active = true`
-- Current goals: `WHERE kg.period_start <= CURRENT_DATE AND kg.period_end >= CURRENT_DATE`
 - Revenue queries: `WHERE km.name = 'Revenue'`
+- Financial metrics: `WHERE km.metric_type = 'financial'`
+- USD values: `WHERE km.unit = 'USD'`
+- **Note: No status columns exist in any KPI tables**
 
 ### Aggregation Patterns
 - Total revenue: `SUM(kd.value)`
