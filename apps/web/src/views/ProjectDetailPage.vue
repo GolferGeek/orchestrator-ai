@@ -641,11 +641,11 @@ const fetchSubprojects = async (projectId: string) => {
   }
 };
 const navigateToProject = (projectId: string) => {
-  router.push(`/projects/${projectId}`);
+  router.push(`/app/projects/${projectId}`);
 };
 const createSubproject = () => {
   if (project.value) {
-    router.push(`/projects/new?parentId=${project.value.id}&parentName=${encodeURIComponent(project.value.name || 'Unnamed Project')}`);
+    router.push(`/app/projects/new?parentId=${project.value.id}&parentName=${encodeURIComponent(project.value.name || 'Unnamed Project')}`);
   }
 };
 // Map backend project status to frontend display status

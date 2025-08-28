@@ -393,7 +393,7 @@ const createProject = async () => {
     });
     await toast.present();
     // Navigate to the project detail page
-    router.push(`/projects/${project.id}`);
+    router.push(`/app/projects/${project.id}`);
   } catch (error) {
 
     const toast = await toastController.create({

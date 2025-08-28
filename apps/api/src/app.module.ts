@@ -55,7 +55,7 @@ import { OrchestratorAgentServicesContextModule } from './agents/base/implementa
 import { UniversalAgentServicesContextModule } from './agents/base/services/universal-agent-services-context.module';
 // Temporarily disable supabase config to resolve build issue
 // import supabaseConfig from './supabase/supabase.config';
-import { MCPModule } from '../mcp/mcp.module';
+import { MCPModule } from './mcp/mcp.module';
 
 @Module({
   imports: [

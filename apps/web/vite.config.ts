@@ -44,6 +44,9 @@ export default defineConfig(({ mode }) => {
         protocol: 'ws'
       }
     },
+    build: {
+      sourcemap: true,
+    },
     test: {
       globals: true,
       environment: 'jsdom'

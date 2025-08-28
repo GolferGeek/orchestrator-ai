@@ -11,6 +11,7 @@ import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-proto
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
+import { MCPClientService } from '@/mcp/clients/mcp-client.service';
 
 /**
  * Service container specifically for function agents.
@@ -29,6 +30,9 @@ export class FunctionAgentServicesContext {
     public readonly taskStatusService: TaskStatusService,
     public readonly deliverablesService: DeliverablesService,
     public readonly deliverableVersionsService: DeliverableVersionsService,
+
+    // MCP service for database operations (required for function agents)
+    public readonly mcpService: MCPClientService,
 
     // Agent framework services (optional)
     @Optional()

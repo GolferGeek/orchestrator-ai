@@ -31,52 +31,39 @@ export async function execute(
       'Initializing MCP client and validating Supabase server connection...',
     );
 
-    // Check if MCP service is available
-    if (!mcpService?.isAvailable()) {
+        // Check if MCP service is available
+    if (!mcpService) {
+      throw new Error('MCP service is not injected or not available');
+    }
+
+    // Test MCP service health
+    const isAvailable = await mcpService.isAvailable();
+    if (!isAvailable) {
       throw new Error('MCP server is not available or not responding');
     }
 
     const schemaResult = { success: true, data: { validated: true } };
 
-    // Step 1.5: Get schema information for all available tables
-    const requiredTables = [
-      'users', 
+    // Step 1.5: Use context file schema information for SQL generation
+    const availableTables = [
       'companies',
-      'departments',
+      'departments', 
       'kpi_data',
       'kpi_metrics',
       'kpi_goals',
       'tasks',
       'deliverables',
-      'agent_conversations',
-      'deliverable_versions'
+      'users',
+      'projects',
+      'agent_conversations'
     ];
-
-    try {
-      // Get KPI schema using MCP service
-      const schemaResponse = await mcpService?.getSchema();
-
-      // Test basic database connectivity with simple count query
-      const testResult = await mcpService.executeSQL({
-        sql_query: 'SELECT COUNT(*) as table_count FROM companies LIMIT 1',
-        max_rows: 1,
-      });
-
-      progressCallback?.(
-        'Database schema',
-        0,
-        'completed',
-        'MCP server connected - Schema context loaded for KPI tables',
-      );
-    } catch (error) {
-      progressCallback?.(
-        'Database schema',
-        0,
-        'failed',
-        `MCP database validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-      throw error;
-    }
+    
+    progressCallback?.(
+      'Database schema',
+      0,
+      'completed',
+      'Using context file schema - ready for MCP SQL generation',
+    );
 
     // Step 2: Analyze user request and identify relevant metrics
     progressCallback?.(
@@ -89,20 +76,29 @@ export async function execute(
     const analysisPrompt = `
 User request: "${userMessage}"
 
-Available KPI tables with correct schema:
-- companies: id, name, industry, founded_year, created_at, updated_at
-- departments: id, company_id, name, head_of_department, budget, created_at, updated_at  
-- kpi_metrics: id, name, metric_type, unit, description, created_at, updated_at
-- kpi_goals: id, department_id, metric_id, target_value, period_start, period_end, created_at, updated_at
-- kpi_data: id, department_id, metric_id, value, date_recorded, created_at, updated_at
+Available database tables with schema from context file:
 
-IMPORTANT: Companies table has 'name' column, NOT 'company_name'. Revenue data is in kpi_data table joined with kpi_metrics.
+### KPI and Business Data Tables (Public Schema):
+- **companies**: Company information (id, name, industry, founded_year, created_at, updated_at)
+- **departments**: Organizational structure (id, company_id, name, head_of_department, budget, created_at, updated_at)  
+- **kpi_metrics**: KPI definitions (id, name, metric_type, unit, description, created_at, updated_at)
+- **kpi_goals**: Target values for metrics by department (id, department_id, metric_id, target_value, period_start, period_end, created_at, updated_at)
+- **kpi_data**: Historical performance data (id, department_id, metric_id, value, date_recorded, created_at, updated_at)
+
+### Platform Activity Data Tables (Public Schema):
+- **users**: User accounts and profile information
+- **tasks**: Task execution records with status, response, completion times
+- **projects**: Multi-step project management with status and metadata  
+- **deliverables**: Work products, outputs, and created content
+- **agent_conversations**: Conversation sessions with different agents
+
+IMPORTANT: Companies table has 'name' column, NOT 'company_name'. Revenue data is in kpi_data table joined with kpi_metrics. All tables are in PUBLIC schema. Database may be empty - provide helpful setup instructions when no data exists.
 
 Respond with JSON only:
 {
   "intent": "brief description of what the user wants",
   "metrics_needed": ["specific", "metrics", "to", "analyze"],
-  "tables_to_query": ["tables", "needed", "from", "the", "5", "available"],
+  "tables_to_query": ["tables", "needed", "from", "available"],
   "sql_approach": "brief description of what SQL queries are needed using correct schema"
 }
 `;
@@ -174,15 +170,15 @@ Respond with JSON only:
     let executionError = '';
     
     try {
-      // Step 3.1: Generate SQL using MCP service
+      // Step 3.1: Generate SQL using MCP client
       const sqlGenResponse = await mcpService.generateSQL({
         natural_language_query: userMessage,
-        schema_tables: requiredTables,
+        schema_tables: availableTables,
         max_rows: 100,
       });
 
       if (sqlGenResponse.isError) {
-        sqlError = `MCP SQL generation failed: ${sqlGenResponse.content[0]?.text}`;
+        sqlError = `SQL generation failed: ${sqlGenResponse.content[0]?.text || 'Unknown error'}`;
         throw new Error(sqlError);
       }
 
@@ -210,13 +206,14 @@ Respond with JSON only:
         'Executing SQL query via MCP...',
       );
 
+      // Step 3.2: Execute SQL using MCP client
       const sqlExecResponse = await mcpService.executeSQL({
         sql_query: generatedSQL,
         max_rows: 100,
       });
 
       if (sqlExecResponse.isError) {
-        executionError = `MCP SQL execution failed: ${sqlExecResponse.content[0]?.text}`;
+        executionError = `SQL execution failed: ${sqlExecResponse.content[0]?.text || 'Unknown error'}`;
         throw new Error(executionError);
       }
 

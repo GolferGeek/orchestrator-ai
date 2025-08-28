@@ -1,13 +1,13 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { LLMService } from '../../../../src/llms/llm.service';
+import { LLMService } from '../../../llms/llm.service';
 import { SupabaseMCPServer } from './supabase.mcp';
 import {
   MCPJsonRpcRequest,
   MCPJsonRpcResponse,
   MCPServerInfo,
   MCPToolDefinition,
-} from '../../../clients/mcp-client.interface';
+} from '../../interfaces/mcp.interface';
 
 // Helper function to safely get error message
 function getErrorMessage(error: unknown): string {
@@ -129,7 +129,6 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
           result = await this.mcpServer.callTool({
             name: request.params.name,
             arguments: request.params.arguments || {},
-            context: request.params.context || {},
           });
           break;
 
@@ -174,7 +173,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
   /**
    * Direct tool execution (for internal use)
    */
-  async executeTool(toolName: string, args: any = {}): Promise<any> {
+  async executeToolInternal(toolName: string, args: any = {}): Promise<any> {
     if (!this.isReady) {
       throw new Error('MCP server is not ready');
     }
@@ -204,7 +203,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
    * Get database schema (convenience method)
    */
   async getSchema(tables?: string[], domain?: 'core' | 'kpi'): Promise<string> {
-    const result = await this.executeTool('get-schema', { tables, domain });
+    const result = await this.executeToolInternal('get-schema', { tables, domain });
     return typeof result === 'string' ? result : result.toString();
   }
 
@@ -217,7 +216,7 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
     domainHint?: string, 
     maxRows = 100
   ): Promise<any> {
-    return await this.executeTool('generate-sql', {
+    return await this.executeToolInternal('generate-sql', {
       query,
       tables,
       domain_hint: domainHint,
@@ -229,9 +228,12 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
    * Execute SQL query (convenience method)
    */
   async executeSQL(sql: string, maxRows = 1000): Promise<any> {
-    return await this.executeTool('execute-sql', {
-      sql,
-      max_rows: maxRows,
+    return await this.executeTool({
+      name: 'execute-sql',
+      arguments: {
+        sql,
+        max_rows: maxRows,
+      },
     });
   }
 
@@ -244,12 +246,42 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
     provider = 'anthropic', 
     model = 'claude-3-5-sonnet-20241022'
   ): Promise<any> {
-    return await this.executeTool('analyze-results', {
-      data,
-      analysis_prompt: prompt,
-      provider,
-      model,
+    return await this.executeTool({
+      name: 'analyze-results',
+      arguments: {
+        data,
+        analysis_prompt: prompt,
+        provider,
+        model,
+      },
     });
+  }
+
+  /**
+   * Get tools available in this namespace (for MCPService compatibility)
+   */
+  async getTools(): Promise<MCPToolDefinition[]> {
+    if (!this.isReady) {
+      await this.onModuleInit();
+    }
+    return await this.mcpServer.listTools();
+  }
+
+  /**
+   * Execute a tool (for MCPService compatibility)
+   */
+  async executeTool(request: { name: string; arguments?: any }): Promise<any> {
+    if (!this.isReady) {
+      throw new Error('MCP server is not ready');
+    }
+    return await this.mcpServer.callTool(request);
+  }
+
+  /**
+   * Health check for this tool handler (for MCPService compatibility)
+   */
+  async ping(): Promise<boolean> {
+    return this.isReady;
   }
 
   /**
