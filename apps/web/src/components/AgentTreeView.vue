@@ -527,7 +527,7 @@ const createNewProject = async (agent: Agent) => {
   try {
     // Navigate to project creation page with pre-selected orchestrator
     await router.push({
-      path: '/projects/new',
+      path: '/app/projects/new',
       query: {
         orchestrator: agent.name,
         orchestratorType: agent.type

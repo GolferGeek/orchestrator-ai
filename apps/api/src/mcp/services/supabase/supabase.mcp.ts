@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
-import { LLMService } from '../../../../src/llms/llm.service';
+import { LLMService } from '../../../llms/llm.service';
 import {
   IMCPServer,
   MCPServerInfo,
@@ -11,8 +11,8 @@ import {
   SupabaseSQLRequest,
   SupabaseExecuteRequest,
   SupabaseAnalyzeRequest,
-} from '../../../clients/mcp-client.interface';
-import { readFileSync } from 'fs';
+} from '../../interfaces/mcp.interface';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 // Helper function to safely get error message
@@ -57,15 +57,32 @@ export class SupabaseMCPServer implements IMCPServer {
 
     this.supabaseUrl = supabaseUrl;
     this.supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
-    // Point to source context directory, adjusting for current working directory
-    // If we're running from the root, use the full path
-    // If we're running from apps/api, use the relative path
-    const cwd = process.cwd();
-    if (cwd.endsWith('apps/api')) {
-      this.contextPath = join(cwd, 'mcp/servers/data/supabase/context');
-    } else {
-      this.contextPath = join(cwd, 'apps/api/mcp/servers/data/supabase/context');
+    
+    // Point to context directory - handle both development and production paths
+    // In development: process.cwd() = project root
+    // In production: process.cwd() = apps/api (where the server runs from)
+    
+    let contextPath: string;
+    const devPath = join(process.cwd(), 'apps/api/src/mcp/services/supabase/context');
+    const prodPath = join(process.cwd(), 'src/mcp/services/supabase/context');
+    
+    // Try development path first (from project root)
+    if (existsSync(join(devPath, 'core-schema.md'))) {
+      contextPath = devPath;
+    } 
+    // Try production path (from apps/api directory)
+    else if (existsSync(join(prodPath, 'core-schema.md'))) {
+      contextPath = prodPath;
     }
+    // Try relative to __dirname as fallback
+    else if (existsSync(join(__dirname, 'context/core-schema.md'))) {
+      contextPath = join(__dirname, 'context');
+    }
+    else {
+      throw new Error(`Context files not found. Tried paths: ${devPath}, ${prodPath}, ${join(__dirname, 'context')}`);
+    }
+    
+    this.contextPath = contextPath;
   }
 
   /**
@@ -84,21 +101,24 @@ export class SupabaseMCPServer implements IMCPServer {
    */
   async getServerInfo(): Promise<MCPServerInfo> {
     return {
-      name: 'Supabase Data MCP Server',
-      version: '1.0.0',
-      description: 'Context-driven SQL generation and database operations for Supabase',
-      capabilities: {
-        tools: true,
-        resources: false,
-        prompts: false,
-        logging: true,
+      protocolVersion: '2025-03-26',
+      serverInfo: {
+        name: 'Supabase Data MCP Server',
+        version: '1.0.0',
+        description: 'Context-driven SQL generation and database operations for Supabase',
       },
-      metadata: {
-        domain: 'data',
-        transport: 'http',
-        context_driven: true,
-        supabase_url: this.supabaseUrl,
-        supported_schemas: ['core', 'kpi'],
+      capabilities: {
+        tools: {
+          listChanged: false,
+        },
+        resources: {
+          subscribe: false,
+          listChanged: false,
+        },
+        prompts: {
+          listChanged: false,
+        },
+        logging: {},
       },
     };
   }
@@ -328,8 +348,7 @@ export class SupabaseMCPServer implements IMCPServer {
       // Get relevant schema context for specified tables
       const schemaContext = await this.buildSchemaContext(tables, domain_hint);
       
-      // Generate SQL using simple pattern matching and templates
-      // In a production system, you'd integrate with a proper LLM here
+      // Generate SQL using LLM with proper schema context
       const generatedSQL = await this.generateSQLFromQuery(query, tables, schemaContext, max_rows);
 
       return {
@@ -439,9 +458,8 @@ export class SupabaseMCPServer implements IMCPServer {
     const { data, analysis_prompt, provider = 'anthropic', model = 'claude-3-5-sonnet-20241022' } = args;
 
     try {
-      // For now, provide structured analysis without external LLM
-      // In production, this would call the specified LLM provider
-      const analysis = this.generateDataAnalysis(data, analysis_prompt);
+      // Use LLM service for analysis
+      const analysis = await this.generateLLMAnalysis(data, analysis_prompt, provider, model);
 
       return {
         content: [{
@@ -603,8 +621,6 @@ Return ONLY the SQL query, no explanation or formatting.`;
       sql = sql.replace(/^```\n/, '').replace(/\n```$/, '');
       
       // Remove trailing semicolon - PostgreSQL functions don't handle them well
-      // Supabase uses PostgreSQL but when calling functions via RPC, 
-      // semicolons can cause syntax errors in dynamic SQL execution
       if (sql.endsWith(';')) {
         sql = sql.slice(0, -1);
       }
@@ -629,27 +645,70 @@ Return ONLY the SQL query, no explanation or formatting.`;
       // Fallback to simple query if LLM fails
       console.warn('LLM SQL generation failed, using fallback:', getErrorMessage(error));
       const primaryTable = tables[0] || 'users';
-      return `SELECT * FROM ${primaryTable} LIMIT ${maxRows};`;
+      return `SELECT * FROM ${primaryTable} LIMIT ${maxRows}`;
     }
   }
 
-  private generateDataAnalysis(data: any[], prompt: string): any {
-    // Simple analysis without external LLM
-    // In production, this would call the specified LLM provider
-    
+  private async generateLLMAnalysis(data: any[], prompt: string, provider: string, model: string): Promise<any> {
+    try {
+      const analysisPrompt = `Analyze the following data and provide insights based on this request: "${prompt}"
+
+Data (${data.length} records):
+${JSON.stringify(data.slice(0, 10), null, 2)}${data.length > 10 ? '\n... (showing first 10 records)' : ''}
+
+Please provide:
+1. Key insights from the data
+2. Patterns or trends identified  
+3. Actionable recommendations
+4. Data quality observations
+5. Summary statistics where relevant
+
+Format your response as a structured JSON object with these sections.`;
+
+      const response = await this.llmService.generateResponse(
+        'You are a data analyst providing insights on business data.',
+        analysisPrompt,
+        {
+          provider: provider as 'anthropic' | 'openai' | 'google' | 'ollama',
+          modelId: model,
+          temperature: 0.3,
+          maxTokens: 1500
+        }
+      );
+
+      // Try to parse as JSON, fallback to structured text
+      try {
+        return JSON.parse(response);
+      } catch {
+        return {
+          analysis: response,
+          data_summary: {
+            row_count: data.length,
+            columns: data.length > 0 ? Object.keys(data[0]) : [],
+          }
+        };
+      }
+    } catch (error) {
+      // Fallback analysis
+      return this.generateSimpleAnalysis(data, prompt);
+    }
+  }
+
+  private generateSimpleAnalysis(data: any[], prompt: string): any {
     const rowCount = data.length;
     const columns = rowCount > 0 ? Object.keys(data[0]) : [];
     
     return {
-      analysis: `Analysis of ${rowCount} records with ${columns.length} columns.`,
+      analysis: `Analysis of ${rowCount} records with ${columns.length} columns for: "${prompt}"`,
       insights: [
         `Dataset contains ${rowCount} rows`,
         `Available columns: ${columns.join(', ')}`,
-        `Prompt: "${prompt}"`,
+        `Data analysis requested: "${prompt}"`,
       ],
       recommendations: [
         'Consider filtering data for more specific insights',
         'Use time-based analysis for trend identification',
+        'Apply statistical methods for deeper analysis',
       ],
       data_summary: {
         row_count: rowCount,

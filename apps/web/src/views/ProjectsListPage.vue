@@ -410,10 +410,10 @@ const handleRefresh = async (event: CustomEvent) => {
   event.detail.complete();
 };
 const createNewProject = () => {
-  router.push('/projects/new');
+  router.push('/app/projects/new');
 };
 const openProject = (project: DisplayProject) => {
-  router.push(`/projects/${project.id}`);
+  router.push(`/app/projects/${project.id}`);
 };
 const pauseProject = async (project: DisplayProject) => {
   const alert = await alertController.create({
@@ -481,7 +481,7 @@ const toggleViewMode = () => {
   fetchProjects();
 };
 const createSubproject = (parentProject: DisplayProject) => {
-  router.push(`/projects/new?parentId=${parentProject.id}&parentName=${encodeURIComponent(parentProject.name || 'Unnamed Project')}`);
+  router.push(`/app/projects/new?parentId=${parentProject.id}&parentName=${encodeURIComponent(parentProject.name || 'Unnamed Project')}`);
 };
 const getStatusColor = (status: string) => {
   const colors = {

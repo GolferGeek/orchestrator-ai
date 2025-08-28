@@ -5,6 +5,7 @@ import { TasksModule } from '@/tasks/tasks.module';
 import { WebSocketModule } from '@/websocket/websocket.module';
 import { DeliverablesModule } from '@/deliverables/deliverables.module';
 import { BaseSubServicesModule } from '@agents/base/sub-services/base-sub-services.module';
+import { MCPModule } from '@/mcp/mcp.module';
 import { FunctionAgentServicesContext } from './function-agent-services-context';
 
 /**
@@ -19,6 +20,7 @@ import { FunctionAgentServicesContext } from './function-agent-services-context'
     WebSocketModule,
     DeliverablesModule,
     BaseSubServicesModule,
+    MCPModule,
   ],
   providers: [FunctionAgentServicesContext],
   exports: [FunctionAgentServicesContext],
