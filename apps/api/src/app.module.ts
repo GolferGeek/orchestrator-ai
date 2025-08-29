@@ -62,23 +62,12 @@ import { MCPModule } from './mcp/mcp.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
-        // First try the root directory (where the .env file actually is)
-        join(process.cwd(), '../../.env.local'),
-        join(process.cwd(), '../../.env'),
-        // Then try relative to current working directory
-        join(process.cwd(), '.env.local'),
-        join(process.cwd(), '.env'),
-        // Try relative paths from apps/api
-        '../../.env.local',
-        '../../.env',
-        // Local overrides
-        '.env.local',
-        '.env',
-        // Compiled dist directory paths
-        join(__dirname, '../../../.env.local'),
+        // Load from root directory .env file
         join(__dirname, '../../../.env'),
-        join(__dirname, '../../.env.local'),
-        join(__dirname, '../../.env'),
+        '../../.env',
+        // Fallback for when running from different locations
+        join(process.cwd(), '.env'),
+        '.env',
       ],
       expandVariables: true,
       // load: [supabaseConfig], // Temporarily disabled to resolve build issue
