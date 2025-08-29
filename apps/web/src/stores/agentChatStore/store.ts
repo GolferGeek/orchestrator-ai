@@ -424,6 +424,12 @@ export const useAgentChatStore = defineStore('agentChat', {
         const userMessage = messageFormatting.createUserMessage(content);
         activeConversation.messages.push(userMessage);
 
+        // Ensure conversationId is included in metadata for deliverable operations
+        const enhancedMetadata = {
+          ...metadata,
+          conversationId: conversationId
+        };
+
         // Get execution mode and user preferences
         const userPreferences = useUserPreferencesStore();
         const effectiveMode = taskExecution.determineExecutionMode(activeConversation, userPreferences.preferences);
@@ -443,7 +449,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           agentType: activeConversation.agent.type,
           agentName: activeConversation.agent.name,
           taskId: preGeneratedTaskId,
-          metadata: metadata, // Include context metadata
+          metadata: enhancedMetadata, // Include context metadata with conversationId
         };
 
         // Execute task using service

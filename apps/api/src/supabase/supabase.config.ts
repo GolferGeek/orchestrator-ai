@@ -9,29 +9,19 @@ export function getTableName(tableName: string, schema?: string): string {
 
 // Helper function to get the appropriate schema for a table
 export function getSchemaForTable(tableName: string, explicitSchema?: string): string {
-  // Defer environment variable access to runtime
+  // Since we've consolidated everything to public schema, always use public
+  // Environment variables are kept for backward compatibility but both default to 'public'
   const getCoreSchema = () => process.env.SUPABASE_CORE_SCHEMA || 'public';
   const getCompanySchema = () => process.env.SUPABASE_COMPANY_SCHEMA || 'public';
-  
-  // Company-specific tables
-  const companyTables = [
-    'companies',
-    'industry_standard_kpis',
-    'company_kpis',
-    'kpi_data'
-  ];
-  
-  if (companyTables.includes(tableName)) {
-    return getCompanySchema();
-  }
   
   // Use explicit schema if provided
   if (explicitSchema) {
     return explicitSchema;
   }
   
-  // Default to core schema for all other tables
-  return getCoreSchema();
+  // All tables are now in public schema after consolidation
+  // Company tables (companies, departments, kpi_data, kpi_goals, kpi_metrics) are now in public
+  return 'public';
 }
 
 // Lazy configuration loading - defer all environment access

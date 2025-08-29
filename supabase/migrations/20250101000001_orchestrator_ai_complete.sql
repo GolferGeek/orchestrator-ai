@@ -674,7 +674,7 @@ VALUES (
 -- Create the corresponding user in public.users table
 INSERT INTO public.users (id, email, created_at, updated_at) 
 VALUES ('84ad4ef6-8900-409c-8915-fbf7ec2ab37a', 'demo.user@playground.com', NOW(), NOW()) 
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (email) DO NOTHING;
 
 -- =====================================================================================
 -- Search Functions
