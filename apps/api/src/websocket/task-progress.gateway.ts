@@ -43,11 +43,13 @@ interface AuthenticatedSocket extends Socket {
       'http://127.0.0.1:3101',
       'http://localhost:8080',
       'http://127.0.0.1:8080',
-      // Production domains
-      'https://app.orchestratorai.io',
-      'https://api.orchestratorai.io',
-      'http://app.orchestratorai.io',
-      'http://api.orchestratorai.io',
+                    // Production domains
+              'https://orchestratorai.io',
+              'https://app.orchestratorai.io',
+              'https://api.orchestratorai.io',
+              'http://orchestratorai.io',
+              'http://app.orchestratorai.io',
+              'http://api.orchestratorai.io',
     ],
     credentials: true,
     methods: ['GET', 'POST'],

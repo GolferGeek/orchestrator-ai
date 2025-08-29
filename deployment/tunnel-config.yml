@@ -6,7 +6,11 @@ ingress:
   - hostname: api.orchestratorai.io
     service: http://localhost:9000
       
-  # Web App  
+  # Web App (root domain)
+  - hostname: orchestratorai.io
+    service: http://localhost:9001
+      
+  # Web App (app subdomain - for backward compatibility)  
   - hostname: app.orchestratorai.io  
     service: http://localhost:9001
       
