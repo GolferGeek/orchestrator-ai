@@ -15,6 +15,15 @@ hierarchy:
 # Agent type - determines loading strategy
 type: "function"
 
+# LLM Configuration - Use local Ollama for data security
+llm:
+  provider: "ollama"
+  model: "gpt-oss:20b"
+  temperature: 0.1
+  max_tokens: 4000
+  # Use low temperature for consistent, factual metrics analysis
+  # Local processing ensures sensitive KPI data never leaves the server
+
 capabilities:
   - metrics_analysis
   - performance_tracking
