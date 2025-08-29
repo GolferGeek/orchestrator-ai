@@ -53,7 +53,7 @@ export interface CreateDeliverableDto {
   title: string;
   description?: string;
   type?: DeliverableType;
-  conversationId: string;
+  conversationId?: string;
   projectStepId?: string;
   // Initial version data (optional)
   initialContent?: string;

@@ -27,10 +27,10 @@ module.exports = {
     {
       name: 'orchestrator-web',
       cwd: './apps/web',
-      script: 'npx',
-      args: 'serve dist -l 9001 -s',
+      script: './node_modules/.bin/serve',
+      args: 'dist -l 9001 -s',
       instances: 1,
-      exec_mode: 'cluster',
+      exec_mode: 'fork',
       env_production: {
         NODE_ENV: 'production',
         PORT: 9001

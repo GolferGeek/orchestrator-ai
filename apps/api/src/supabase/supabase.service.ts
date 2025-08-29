@@ -36,15 +36,14 @@ export class SupabaseService implements OnModuleInit {
       this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
     const coreSchema = 
       this.configService.get<string>('supabase.coreSchema') ||
-      this.configService.get<string>('SUPABASE_CORE_SCHEMA');
+      this.configService.get<string>('SUPABASE_CORE_SCHEMA') ||
+      'public';
     const companySchema = 
       this.configService.get<string>('supabase.companySchema') ||
-      this.configService.get<string>('SUPABASE_COMPANY_SCHEMA');
+      this.configService.get<string>('SUPABASE_COMPANY_SCHEMA') ||
+      'public';
 
-    if (!coreSchema || !companySchema) {
-
-      throw new Error('SUPABASE_CORE_SCHEMA and SUPABASE_COMPANY_SCHEMA must be set in environment');
-    }
+    // Both schemas are now 'public' after consolidation, but keep variables for compatibility
 
     // Log the configuration
 

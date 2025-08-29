@@ -106,7 +106,7 @@ export function useDeliverables() {
       title,
       description: options.description,
       type: options.type || DeliverableType.DOCUMENT,
-      conversationId: options.conversationId || '',
+      conversationId: options.conversationId,
       projectStepId: options.metadata?.projectStepId,
       // Initial version data
       initialContent: content,
