@@ -516,11 +516,10 @@ export class DeliverablesService {
       }
 
       // Determine which agent to use (from DTO or from deliverable)
-      const agentName = dto.agentName || deliverable.agentName;
+      const agentName = dto.agentName || deliverable.agentName || 'write_blog_post';
       
-      if (!agentName) {
-        throw new BadRequestException('No agent specified for this deliverable. Please specify an agent to handle the editing conversation.');
-      }
+      // Note: We default to 'write_blog_post' agent for editing deliverables when no agent is specified
+      // This provides a sensible fallback for document editing tasks
       
       // Determine the action type for context
       const action = dto.action || 'edit';

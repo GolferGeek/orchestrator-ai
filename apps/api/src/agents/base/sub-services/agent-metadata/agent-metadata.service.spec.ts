@@ -17,7 +17,7 @@ const mockFs = {
 // Replace the actual fs methods with our mocks
 (fs.pathExists as jest.MockedFunction<typeof fs.pathExists>) =
   mockFs.pathExists;
-(fs.readFile as jest.MockedFunction<typeof fs.readFile>) = mockFs.readFile;
+(fs.readFile as any) = mockFs.readFile;
 
 describe('AgentMetadataService', () => {
   let service: AgentMetadataService;
