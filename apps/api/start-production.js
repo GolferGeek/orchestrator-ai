@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-// Load production environment variables
-require('dotenv').config({ path: '../../.env.production' });
+// Load environment variables from root .env file
+require('dotenv').config({ path: '../../.env' });
 
 // Set NODE_ENV
 process.env.NODE_ENV = 'production';
@@ -11,7 +11,7 @@ const { execSync } = require('child_process');
 
 try {
   console.log('🚀 Starting Orchestrator AI API in production mode...');
-  console.log('📂 Loading environment from .env.production');
+  console.log('📂 Loading environment from .env');
   console.log('🔧 Using ts-node with path resolution');
   
   // Use ts-node with the tsconfig-paths plugin for path resolution

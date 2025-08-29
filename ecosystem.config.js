@@ -6,9 +6,9 @@ module.exports = {
       script: 'dist/src/main.js',
       instances: 1,
       exec_mode: 'cluster',
+      env_file: '../../.env',
       env_production: {
         NODE_ENV: 'production',
-        ENV_FILE: '../../.env.production',
         API_PORT: 9000
       },
       error_file: './logs/api-error.log',
@@ -20,9 +20,7 @@ module.exports = {
       min_uptime: '10s',
       watch: false,
       max_memory_restart: '1G',
-      node_args: '--max-old-space-size=1024',
-      // Load environment from .env.production
-      env_file: '../../.env.production'
+      node_args: '--max-old-space-size=1024'
     },
     {
       name: 'orchestrator-web',
