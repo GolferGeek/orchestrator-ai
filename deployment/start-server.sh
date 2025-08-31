@@ -67,13 +67,36 @@ if check_port 9001; then
     fi
 fi
 
-# Step 2: Check and start PM2 processes
+# Step 2: Build API and web app with latest environment variables
+echo -e "\n${BLUE}🔨 Building applications...${NC}"
+
+# Build API from root (to pick up .env properly)
+if [ -f "apps/api/package.json" ]; then
+    echo -e "${YELLOW}Building API...${NC}"
+    npm run build --workspace=apps/api
+    echo -e "${GREEN}✅ API build completed${NC}"
+else
+    echo -e "${RED}❌ API package.json not found${NC}"
+fi
+
+# Build Web App from root (to pick up .env properly)
+if [ -f "apps/web/package.json" ]; then
+    echo -e "${YELLOW}Building web app with current environment variables...${NC}"
+    # Load environment variables and build
+    export $(grep -v '^#' .env | xargs)
+    npm run build --workspace=apps/web
+    echo -e "${GREEN}✅ Web app build completed${NC}"
+else
+    echo -e "${RED}❌ Web app package.json not found${NC}"
+fi
+
+# Step 3: Check and start PM2 processes
 echo -e "\n${BLUE}📦 Checking PM2 processes...${NC}"
 if command -v pm2 &> /dev/null; then
     # Check if PM2 daemon is running
     if ! pm2 list &> /dev/null; then
         echo -e "${YELLOW}Starting PM2 daemon...${NC}"
-        pm2 resurrect || pm2 start ecosystem.config.js --env production
+        pm2 resurrect || pm2 start ecosystem.config.js
     else
         # Check if our apps are running
         if pm2 list | grep -q "orchestrator-api.*online" && pm2 list | grep -q "orchestrator-web.*online"; then
@@ -81,7 +104,7 @@ if command -v pm2 &> /dev/null; then
             pm2 list
         else
             echo -e "${YELLOW}Starting PM2 apps...${NC}"
-            pm2 start ecosystem.config.js --env production
+            pm2 start ecosystem.config.js
             sleep 3
             pm2 list
         fi
@@ -91,7 +114,7 @@ else
     exit 1
 fi
 
-# Step 3: Verify services are accessible locally
+# Step 4: Verify services are accessible locally
 echo -e "\n${BLUE}🔍 Verifying local services...${NC}"
 
 # Check API on port 9000
@@ -118,7 +141,7 @@ else
     sleep 5
 fi
 
-# Step 4: Check and start CloudFlare Tunnel
+# Step 5: Check and start CloudFlare Tunnel
 echo -e "\n${BLUE}🌐 Checking CloudFlare Tunnel...${NC}"
 
 if command -v cloudflared &> /dev/null; then
@@ -162,7 +185,7 @@ else
     echo "Install with: brew install cloudflared (macOS) or see deployment/setup-cloudflare-tunnel.sh"
 fi
 
-# Step 5: Final status check
+# Step 6: Final status check
 echo -e "\n${BLUE}📊 Final Status Check${NC}"
 echo "======================================"
 

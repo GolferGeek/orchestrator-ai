@@ -31,15 +31,15 @@ print_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
 }
 
-# Check if .env.production exists
-if [ ! -f ".env.production" ]; then
-    print_error ".env.production file not found!"
+# Check if .env exists
+if [ ! -f ".env" ]; then
+    print_error ".env file not found!"
     exit 1
 fi
 
-# Load production environment variables
-print_info "Loading .env.production..."
-export $(cat .env.production | grep -v '^#' | xargs)
+# Load environment variables
+print_info "Loading .env..."
+export $(cat .env | grep -v '^#' | xargs)
 
 # Clean previous builds
 print_info "Cleaning previous builds..."
@@ -95,4 +95,4 @@ echo "  📦 Web: apps/web/dist/"
 echo ""
 print_info "Next steps:"
 echo "  1. Run: ./deployment/deploy-with-pm2.sh"
-echo "  2. Or manually start with PM2: pm2 start ecosystem.config.js --env production"
+echo "  2. Or manually start with PM2: pm2 start ecosystem.config.js"
