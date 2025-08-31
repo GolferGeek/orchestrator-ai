@@ -38,7 +38,82 @@ check_port() {
     fi
 }
 
-# Step 1: Clean up any conflicting processes on production ports
+# Step 1: Ensure Docker is running and start Supabase
+echo -e "\n${BLUE}🐳 Checking Docker and Supabase...${NC}"
+
+# Check if Docker is running
+if ! docker info >/dev/null 2>&1; then
+    echo -e "${RED}❌ Docker is not running!${NC}"
+    echo -e "${YELLOW}Starting Docker Desktop...${NC}"
+    
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS - start Docker Desktop
+        open -a Docker
+        echo "Waiting for Docker Desktop to start..."
+        
+        # Wait up to 60 seconds for Docker to be ready
+        for i in {1..60}; do
+            if docker info >/dev/null 2>&1; then
+                echo -e "${GREEN}✅ Docker is now running${NC}"
+                break
+            fi
+            echo -n "."
+            sleep 1
+        done
+        
+        if ! docker info >/dev/null 2>&1; then
+            echo -e "${RED}❌ Docker failed to start within 60 seconds${NC}"
+            echo "Please start Docker Desktop manually and run this script again"
+            exit 1
+        fi
+    else
+        # Linux - try to start docker service
+        echo "Attempting to start Docker service..."
+        sudo systemctl start docker || {
+            echo -e "${RED}❌ Failed to start Docker service${NC}"
+            echo "Please start Docker manually and run this script again"
+            exit 1
+        }
+        
+        # Wait for Docker to be ready
+        for i in {1..30}; do
+            if docker info >/dev/null 2>&1; then
+                echo -e "${GREEN}✅ Docker is now running${NC}"
+                break
+            fi
+            sleep 1
+        done
+    fi
+else
+    echo -e "${GREEN}✅ Docker is running${NC}"
+fi
+
+# Check if Supabase is running
+if command -v supabase &> /dev/null; then
+    echo -e "${YELLOW}Checking Supabase status...${NC}"
+    
+    # Check if Supabase is already running
+    if supabase status >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Supabase is already running${NC}"
+        # Show brief status
+        supabase status | grep -E "(API URL|DB URL|Studio URL)" || true
+    else
+        echo -e "${YELLOW}Starting Supabase local development...${NC}"
+        supabase start
+        
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✅ Supabase started successfully${NC}"
+        else
+            echo -e "${RED}❌ Failed to start Supabase${NC}"
+            echo "This may affect database functionality"
+        fi
+    fi
+else
+    echo -e "${YELLOW}⚠️  Supabase CLI not installed${NC}"
+    echo "Database functionality may be limited"
+fi
+
+# Step 2: Clean up any conflicting processes on production ports
 echo -e "\n${BLUE}🧹 Checking for conflicting processes...${NC}"
 
 # Kill anything on port 9000 that's not PM2
@@ -67,7 +142,7 @@ if check_port 9001; then
     fi
 fi
 
-# Step 2: Build API and web app with latest environment variables
+# Step 3: Build API and web app with latest environment variables
 echo -e "\n${BLUE}🔨 Building applications...${NC}"
 
 # Build API from root (to pick up .env properly)
@@ -90,7 +165,7 @@ else
     echo -e "${RED}❌ Web app package.json not found${NC}"
 fi
 
-# Step 3: Check and start PM2 processes
+# Step 4: Check and start PM2 processes
 echo -e "\n${BLUE}📦 Checking PM2 processes...${NC}"
 if command -v pm2 &> /dev/null; then
     # Check if PM2 daemon is running
@@ -114,7 +189,7 @@ else
     exit 1
 fi
 
-# Step 4: Verify services are accessible locally
+# Step 5: Verify services are accessible locally
 echo -e "\n${BLUE}🔍 Verifying local services...${NC}"
 
 # Check API on port 9000
@@ -141,7 +216,7 @@ else
     sleep 5
 fi
 
-# Step 5: Check and start CloudFlare Tunnel
+# Step 6: Check and start CloudFlare Tunnel
 echo -e "\n${BLUE}🌐 Checking CloudFlare Tunnel...${NC}"
 
 if command -v cloudflared &> /dev/null; then
@@ -185,13 +260,22 @@ else
     echo "Install with: brew install cloudflared (macOS) or see deployment/setup-cloudflare-tunnel.sh"
 fi
 
-# Step 6: Final status check
+# Step 7: Final status check
 echo -e "\n${BLUE}📊 Final Status Check${NC}"
 echo "======================================"
 
 # PM2 Status
 echo -e "\n${BLUE}PM2 Processes:${NC}"
 pm2 list
+
+# Supabase Status
+echo -e "\n${BLUE}Supabase Status:${NC}"
+if command -v supabase &> /dev/null && supabase status >/dev/null 2>&1; then
+    echo -e "${GREEN}✅ Supabase local development running${NC}"
+    supabase status | grep -E "(API URL|DB URL|Studio URL)" | sed 's/^/  /'
+else
+    echo -e "${YELLOW}⚠️  Supabase not running or not installed${NC}"
+fi
 
 # Check external connectivity
 echo -e "\n${BLUE}🌍 Testing External Access:${NC}"
@@ -224,3 +308,7 @@ echo "  • Web App: https://app.orchestratorai.io"
 echo "  • API: https://api.orchestratorai.io"
 echo "  • Local Web: http://localhost:9001"
 echo "  • Local API: http://localhost:9000"
+if command -v supabase &> /dev/null && supabase status >/dev/null 2>&1; then
+    echo "  • Supabase Studio: http://localhost:9012"
+    echo "  • Supabase API: http://localhost:9010"
+fi
