@@ -7,10 +7,6 @@ module.exports = {
       instances: 1,
       exec_mode: 'cluster',
       env_file: '../../.env',
-      env_production: {
-        NODE_ENV: 'production',
-        API_PORT: 9000
-      },
       error_file: './logs/api-error.log',
       out_file: './logs/api-out.log',
       log_file: './logs/api-combined.log',
@@ -25,14 +21,10 @@ module.exports = {
     {
       name: 'orchestrator-web',
       cwd: './apps/web',
-      script: './node_modules/.bin/serve',
+      script: '/Users/golfergeek/.npm-global/bin/serve',
       args: 'dist -l 9001 -s',
       instances: 1,
       exec_mode: 'fork',
-      env_production: {
-        NODE_ENV: 'production',
-        PORT: 9001
-      },
       error_file: './logs/web-error.log',
       out_file: './logs/web-out.log',
       log_file: './logs/web-combined.log',

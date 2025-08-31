@@ -51,9 +51,9 @@ if [ ! -d "apps/api/dist" ] || [ ! -d "apps/web/dist" ]; then
     exit 1
 fi
 
-# Check if .env.production exists
-if [ ! -f ".env.production" ]; then
-    print_error ".env.production file not found!"
+# Check if .env exists
+if [ ! -f ".env" ]; then
+    print_error ".env file not found!"
     exit 1
 fi
 
@@ -86,12 +86,8 @@ fi
 # Load environment variables and start with PM2
 print_info "Starting applications with PM2..."
 
-# Copy .env.production to a location PM2 can access
-cp .env.production apps/api/.env.production
-cp .env.production apps/web/.env.production
-
 # Start using ecosystem file
-pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.js
 
 print_status "Applications started with PM2"
 

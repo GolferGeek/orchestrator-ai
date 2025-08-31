@@ -7,8 +7,13 @@ import { defineConfig, loadEnv } from 'vite'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Load env file based on mode - try project root first, then current directory
-  const env = loadEnv(mode, '../../', '') || loadEnv(mode, '.', '') || {}
+  // Load env file from project root (two levels up from apps/web)
+  const env = loadEnv(mode, '../../', 'VITE_')
+  
+  // Debug: Log environment variables during build
+  console.log('🔧 Vite Environment Variables:')
+  console.log('VITE_API_BASE_URL:', env.VITE_API_BASE_URL)
+  console.log('VITE_API_NESTJS_BASE_URL:', env.VITE_API_NESTJS_BASE_URL)
   
 
   
