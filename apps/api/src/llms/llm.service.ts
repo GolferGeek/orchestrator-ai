@@ -7,6 +7,11 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { SupabaseService } from '../supabase/supabase.service';
 import { CIDAFMService } from '../cidafm/cidafm.service';
+import { CentralizedRoutingService } from './centralized-routing.service';
+import { RunMetadataService, RunMetadata } from './run-metadata.service';
+import { ProviderConfigService } from './provider-config.service';
+import { SecretRedactionService } from './secret-redaction.service';
+import { LocalModelStatusService } from './local-model-status.service';
 import {
   Provider,
   Model,
@@ -49,6 +54,11 @@ export class LLMService {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly cidafmService: CIDAFMService,
+    private readonly centralizedRoutingService: CentralizedRoutingService,
+    private readonly runMetadataService: RunMetadataService,
+    private readonly providerConfigService: ProviderConfigService,
+    private readonly secretRedactionService: SecretRedactionService,
+    private readonly localModelStatusService: LocalModelStatusService,
   ) {
 
     // Initialize OpenAI client only if API key is available
@@ -355,6 +365,188 @@ export class LLMService {
         error instanceof Error ? error.message : String(error);
       throw new Error(`Enhanced LLM service error: ${errorMessage}`);
     }
+  }
+
+  /**
+   * Centralized LLM call with routing, metadata tracking, and secret redaction
+   */
+  async generateCentralizedResponse(
+    systemPrompt: string,
+    userMessage: string,
+    options?: {
+      temperature?: number;
+      maxTokens?: number;
+      provider?: string;
+      model?: string;
+      preferLocal?: boolean;
+      authToken?: string;
+      sessionId?: string;
+      currentUser?: any;
+    },
+  ): Promise<{
+    content: string;
+    runMetadata: RunMetadata;
+    routingDecision: any;
+  }> {
+    const startTime = Date.now();
+
+    try {
+      // Step 1: Get routing decision from centralized routing service
+      this.secretRedactionService.debug(
+        'Starting centralized LLM request',
+        undefined,
+        'CentralizedLLM',
+        { systemPromptLength: systemPrompt.length, userMessageLength: userMessage.length }
+      );
+
+      const routingDecision = await this.centralizedRoutingService.determineRoute(
+        userMessage,
+        options
+      );
+
+      this.secretRedactionService.info(
+        `Routing decision: ${routingDecision.provider}/${routingDecision.model} (${routingDecision.isLocal ? 'local' : 'external'})`,
+        undefined,
+        'CentralizedLLM',
+        { routingDecision: routingDecision }
+      );
+
+      // Step 2: Start tracking metadata
+      const metadataContext = this.runMetadataService.startRequest(routingDecision);
+
+      try {
+        // Step 3: Get provider configuration
+        const providerConfig = this.providerConfigService.getEnhancedProviderConfig(routingDecision.provider);
+        if (!providerConfig) {
+          throw new Error(`Provider configuration not found: ${routingDecision.provider}`);
+        }
+
+        // Step 4: Add required headers
+        const headers = this.providerConfigService.getDefaultHeaders(routingDecision.provider, {
+          policyProfile: options?.sessionId ? 'session' : 'standard',
+          dataClass: 'public', // TODO: Make this configurable
+          sovereignMode: 'false', // TODO: Make this configurable
+          noTrain: true,
+          noRetain: false,
+        });
+
+        this.secretRedactionService.debug(
+          'Generated request headers',
+          metadataContext.runId,
+          'CentralizedLLM',
+          { headers }
+        );
+
+        // Step 5: Call provider with appropriate configuration
+        const response = await this.callProviderWithRouting(
+          routingDecision,
+          systemPrompt,
+          userMessage,
+          headers,
+          options || {}
+        );
+
+        // Step 6: Complete metadata tracking
+        const runMetadata = this.runMetadataService.completeRequest(metadataContext, {
+          content: response.content,
+          inputTokens: response.inputTokens,
+          outputTokens: response.outputTokens,
+        });
+
+        this.secretRedactionService.info(
+          `Centralized LLM request completed successfully`,
+          runMetadata.runId,
+          'CentralizedLLM',
+          { 
+            duration: runMetadata.duration,
+            cost: runMetadata.cost,
+            provider: routingDecision.provider,
+            model: routingDecision.model
+          }
+        );
+
+        return {
+          content: response.content,
+          runMetadata,
+          routingDecision,
+        };
+
+      } catch (error) {
+        // Handle errors and still return metadata
+        const runMetadata = this.runMetadataService.completeRequestWithError(metadataContext, error);
+        
+        this.secretRedactionService.error(
+          `Centralized LLM request failed: ${error.message}`,
+          runMetadata.runId,
+          'CentralizedLLM',
+          { error: error.message, provider: routingDecision.provider }
+        );
+
+        throw new Error(`Centralized LLM request failed: ${error.message}`);
+      }
+
+    } catch (error) {
+      this.secretRedactionService.error(
+        `Centralized routing failed: ${error.message}`,
+        undefined,
+        'CentralizedLLM'
+      );
+      
+      throw new Error(`Centralized LLM service error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Call provider using routing decision
+   */
+  private async callProviderWithRouting(
+    routingDecision: any,
+    systemPrompt: string,
+    userMessage: string,
+    headers: any,
+    options: any
+  ): Promise<{
+    content: string;
+    inputTokens?: number;
+    outputTokens?: number;
+  }> {
+    // Create LLM instance based on routing decision
+    const llm = this.createCustomLangGraphLLM({
+      provider: routingDecision.provider as any,
+      model: routingDecision.model,
+      temperature: options.temperature,
+      maxTokens: options.maxTokens,
+    });
+
+    const messages = [
+      { role: 'system' as const, content: systemPrompt },
+      { role: 'user' as const, content: userMessage },
+    ];
+
+    const response = await llm.invoke(messages);
+    const content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
+
+    // Estimate tokens (TODO: Get actual token counts from provider)
+    const inputTokens = this.estimateTokens(systemPrompt + userMessage);
+    const outputTokens = this.estimateTokens(content);
+
+    return {
+      content,
+      inputTokens,
+      outputTokens,
+    };
+  }
+
+  /**
+   * Get default headers for requests
+   */
+  private getDefaultHeaders(options: any, providerConfig: any): Record<string, string> {
+    return {
+      'X-Policy-Profile': options.policyProfile || 'standard',
+      'X-Data-Class': options.dataClass || 'public',
+      'X-Sovereign-Mode': options.sovereignMode || 'false',
+      ...providerConfig.headers,
+    };
   }
 
   /**
