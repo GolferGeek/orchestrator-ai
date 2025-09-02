@@ -43,4 +43,38 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { 'argsIgnorePattern': '^_', 'varsIgnorePattern': '^_' }]
     },
   },
+  {
+    // Forbid direct provider SDK imports outside approved modules
+    files: ['**/*.ts', '**/*.tsx'],
+    excludedFiles: [
+      // Allowed central implementations
+      'src/llms/**',
+      'src/langchain/**',
+      'src/supabase/utils/langchain-client.ts',
+      // Tests and config can reference endpoints
+      'test/**',
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: 'openai', message: 'Use the centralized LLM service/client instead of importing provider SDKs directly.' },
+            { name: '@langchain/openai', message: 'Use centralized LLM client. Provider-specific LangChain wrappers only in approved modules.' },
+            { name: '@langchain/anthropic', message: 'Use centralized LLM client. Provider-specific LangChain wrappers only in approved modules.' },
+            { name: '@anthropic-ai/sdk', message: 'Use the centralized LLM service/client instead of importing provider SDKs directly.' },
+          ],
+          patterns: [
+            // Catch any future provider SDKs
+            {
+              group: ['**/providers/*', '**/sdk/*'],
+              message: 'Provider SDKs must only be used in central LLM modules.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
