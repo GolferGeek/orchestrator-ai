@@ -173,6 +173,8 @@ export class LLMService {
       authToken?: string;
       sessionId?: string;
       currentUser?: any; // User object with id, email, etc.
+      // Intelligent routing hints
+      complexity?: 'simple' | 'medium' | 'complex' | 'reasoning'; // Task complexity for routing decisions
       // Caller tracking for usage analytics
       callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
       callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
@@ -205,6 +207,32 @@ export class LLMService {
 
         // Return just the content for backward compatibility with simple method
         return enhancedResult.content;
+      }
+
+      // Use centralized routing for intelligent provider/model selection
+      if (options?.complexity || options?.callerType || (!options?.provider && !options?.modelId)) {
+        const centralizedResult = await this.generateCentralizedResponse(
+          systemPrompt,
+          userMessage,
+          {
+            temperature: options?.temperature,
+            maxTokens: options?.maxTokens,
+            provider: options?.provider,
+            model: options?.modelId,
+            preferLocal: true, // Default to preferring local models
+            maxComplexity: options?.complexity, // Pass complexity hint to routing
+            authToken: options?.authToken,
+            sessionId: options?.sessionId,
+            currentUser: options?.currentUser,
+            callerType: options?.callerType,
+            callerName: options?.callerName,
+            conversationId: options?.conversationId,
+            dataClassification: options?.dataClassification,
+          },
+        );
+
+        // Return just the content for backward compatibility
+        return centralizedResult.content;
       }
 
       // Original simple implementation for backward compatibility
@@ -386,6 +414,7 @@ export class LLMService {
       provider?: string;
       model?: string;
       preferLocal?: boolean;
+      maxComplexity?: 'simple' | 'medium' | 'complex' | 'reasoning'; // Complexity hint for routing
       authToken?: string;
       sessionId?: string;
       currentUser?: any;

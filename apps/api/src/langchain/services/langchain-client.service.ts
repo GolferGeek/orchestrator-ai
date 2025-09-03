@@ -1,14 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ChatOpenAI } from '@langchain/openai';
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { LLMService } from '@/llms/llm.service';
 
 /**
  * LangChain Client Service
  *
- * Core orchestration service for LangChain.js operations.
- * Provides centralized LLM access and configuration management.
+ * Adapter service that provides LangChain-compatible interface while using
+ * our centralized LLMService for intelligent routing and monitoring.
+ * All LLM calls are routed through the centralized service for consistency.
  */
 @Injectable()
 export class LangChainClientService {
@@ -19,51 +18,11 @@ export class LangChainClientService {
     private readonly llmService: LLMService,
   ) {}
 
-  /**
-   * Get a configured LangChain LLM instance
-   */
-  getLLM(options?: {
-    provider?: string;
-    model?: string;
-    temperature?: number;
-    timeout?: number;
-  }): ChatOpenAI {
-    const provider = options?.provider || 'openai';
-    const model = options?.model || 'gpt-4';
-    const temperature = options?.temperature ?? 0;
-    const timeout = options?.timeout ?? 60000; // Default to 60 seconds
 
-    if (provider === 'openai') {
-      return new ChatOpenAI({
-        modelName: model,
-        temperature,
-        timeout,
-        maxRetries: 3, // Enable retries for rate limits
-        openAIApiKey: this.configService.get<string>('OPENAI_API_KEY'),
-        configuration: {
-          timeout: timeout, // Axios timeout configuration
-          maxRetries: 3, // Enable retries for rate limits
-        },
-      });
-    }
-
-    // Fallback to OpenAI
-
-    return new ChatOpenAI({
-      modelName: 'gpt-4',
-      temperature,
-      timeout,
-      maxRetries: 3, // Enable retries for rate limits
-      openAIApiKey: this.configService.get<string>('OPENAI_API_KEY'),
-      configuration: {
-        timeout: timeout, // Axios timeout configuration
-        maxRetries: 3, // Enable retries for rate limits
-      },
-    });
-  }
 
   /**
    * Execute a simple LLM call with system and user messages
+   * Now uses centralized LLMService for consistent routing and monitoring
    */
   async executeSimpleCall(
     systemPrompt: string,
@@ -75,15 +34,22 @@ export class LangChainClientService {
     },
   ): Promise<string> {
     try {
-      const llm = this.getLLM(options);
+      // Use centralized LLMService instead of direct LangChain client
+      const result = await this.llmService.generateResponse(
+        systemPrompt,
+        userMessage,
+        {
+          temperature: options?.temperature || 0.7,
+          provider: options?.provider as 'openai' | 'anthropic' | 'google' | 'ollama', // Only specify if explicitly requested
+          modelId: options?.model, // Only specify if explicitly requested
+          complexity: 'simple', // LangChain tool operations are typically simple
+          callerType: 'service',
+          callerName: 'langchain-client-service',
+          dataClassification: 'internal',
+        },
+      );
 
-      const messages = [
-        new SystemMessage(systemPrompt),
-        new HumanMessage(userMessage),
-      ];
-
-      const response = await llm.invoke(messages);
-      return response.content as string;
+      return result.response;
     } catch (error) {
 
       throw error;
@@ -91,16 +57,13 @@ export class LangChainClientService {
   }
 
   /**
-   * Check if LangChain is properly configured
+   * Check if LangChain client is properly configured
+   * Now delegates to centralized LLMService availability
    */
   isConfigured(): boolean {
-    const hasOpenAIKey = !!this.configService.get<string>('OPENAI_API_KEY');
-
-    if (!hasOpenAIKey) {
-
-    }
-
-    return hasOpenAIKey;
+    // Since we now use centralized LLMService, we're always "configured"
+    // The LLMService handles provider availability and fallbacks
+    return true;
   }
 
   /**
