@@ -9,10 +9,11 @@ import { RunMetadataService } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';
 import { SecretRedactionService } from './secret-redaction.service';
 import { LocalModelStatusService } from './local-model-status.service';
+import { LlmUsageController } from './llm-usage.controller';
 
 @Module({
   imports: [SupabaseModule, CIDAFMModule, HttpModule],
-  controllers: [LLMController],
+  controllers: [LLMController, LlmUsageController],
   providers: [
     LLMService,
     CentralizedRoutingService,

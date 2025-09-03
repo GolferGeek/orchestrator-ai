@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
+import { SupabaseService } from '../supabase/supabase.service';
+import { getTableName } from '../supabase/supabase.config';
 
 export interface RunMetadata {
   runId: string;
@@ -22,6 +24,17 @@ export interface MetadataContext {
   model: string;
   tier: 'local' | 'centralized' | 'external';
   inputTokens?: number;
+  userId?: string;
+  callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
+  callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
+  conversationId?: string; // Optional conversation/session context
+  complexityLevel?: string;
+  complexityScore?: number;
+  dataClassification?: string;
+  isLocal?: boolean;
+  modelTier?: string;
+  fallbackUsed?: boolean;
+  routingReason?: string;
 }
 
 export interface CostEstimate {
@@ -35,6 +48,8 @@ export interface CostEstimate {
 export class RunMetadataService {
   private readonly logger = new Logger(RunMetadataService.name);
   private readonly activeRuns = new Map<string, MetadataContext>();
+
+  constructor(private readonly supabaseService: SupabaseService) {}
 
   // Cost estimates per 1K tokens (in USD)
   private readonly costTable = {
@@ -60,19 +75,27 @@ export class RunMetadataService {
     'default': { input: 0.001, output: 0.002 },
   };
 
-  constructor() {
-    this.logger.log('RunMetadataService initialized');
-  }
+  // Constructor already defined above
 
   /**
    * Start tracking a new LLM request
    */
-  startRequest(routingDecision: {
+  async startRequest(routingDecision: {
     provider: string;
     model: string;
     isLocal: boolean;
     modelTier?: string;
-  }): MetadataContext {
+    fallbackUsed?: boolean;
+    complexityLevel?: string;
+    complexityScore?: number;
+    routingReason?: string;
+  }, options?: {
+    userId?: string;
+    callerType?: string;
+    callerName?: string;
+    conversationId?: string;
+    dataClassification?: string;
+  }): Promise<MetadataContext> {
     const runId = this.generateRunId();
     const startTime = Date.now();
     
@@ -86,11 +109,29 @@ export class RunMetadataService {
       provider: routingDecision.provider,
       model: routingDecision.model,
       tier,
+      userId: options?.userId,
+      callerType: options?.callerType,
+      callerName: options?.callerName,
+      conversationId: options?.conversationId,
+      complexityLevel: routingDecision.complexityLevel,
+      complexityScore: routingDecision.complexityScore,
+      dataClassification: options?.dataClassification,
+      isLocal: routingDecision.isLocal,
+      modelTier: routingDecision.modelTier,
+      fallbackUsed: routingDecision.fallbackUsed || false,
+      routingReason: routingDecision.routingReason,
     };
 
     this.activeRuns.set(runId, context);
     
-    this.logger.debug(`Started tracking run ${runId} for ${routingDecision.provider}/${routingDecision.model}`);
+    // Insert initial record into database
+    try {
+      await this.insertUsageRecord(context, 'started');
+      this.logger.debug(`Started tracking run ${runId} for ${routingDecision.provider}/${routingDecision.model}`);
+    } catch (error) {
+      this.logger.error(`Failed to insert initial usage record for ${runId}:`, error);
+      // Continue execution even if database insert fails
+    }
     
     return context;
   }
@@ -98,14 +139,14 @@ export class RunMetadataService {
   /**
    * Complete tracking for a successful request
    */
-  completeRequest(
+  async completeRequest(
     context: MetadataContext,
     response: {
       content: string;
       inputTokens?: number;
       outputTokens?: number;
     }
-  ): RunMetadata {
+  ): Promise<RunMetadata> {
     const endTime = Date.now();
     const duration = endTime - context.startTime;
     
@@ -128,6 +169,22 @@ export class RunMetadataService {
       outputTokens,
       status: 'completed',
     };
+
+    // Update database record
+    try {
+      await this.updateUsageRecord(context.runId, {
+        status: 'completed',
+        inputTokens,
+        outputTokens,
+        inputCost: costEstimate.inputCost,
+        outputCost: costEstimate.outputCost,
+        durationMs: duration,
+        completedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      this.logger.error(`Failed to update usage record for ${context.runId}:`, error);
+      // Continue execution even if database update fails
+    }
 
     // Clean up active tracking
     this.activeRuns.delete(context.runId);
@@ -244,5 +301,129 @@ export class RunMetadataService {
       avgDuration: 0,
       avgCost: 0,
     };
+  }
+
+  /**
+   * Insert initial usage record into database
+   */
+  private async insertUsageRecord(context: MetadataContext, status: string): Promise<void> {
+    const client = this.supabaseService.getServiceClient();
+    
+    const { error } = await client
+      .from(getTableName('llm_usage'))
+      .insert({
+        run_id: context.runId,
+        user_id: context.userId,
+        caller_type: context.callerType || 'system',
+        caller_name: context.callerName || 'unknown',
+        conversation_id: context.conversationId,
+        provider_name: context.provider,
+        model_name: context.model,
+        is_local: context.isLocal || false,
+        model_tier: context.modelTier,
+        fallback_used: context.fallbackUsed || false,
+        routing_reason: context.routingReason,
+        complexity_level: context.complexityLevel,
+        complexity_score: context.complexityScore,
+        data_classification: context.dataClassification,
+        status: status,
+        started_at: new Date(context.startTime).toISOString(),
+        duration_ms: 0,
+      });
+
+    if (error) {
+      throw new Error(`Failed to insert usage record: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update usage record in database
+   */
+  private async updateUsageRecord(runId: string, updates: {
+    status: string;
+    inputTokens?: number;
+    outputTokens?: number;
+    inputCost?: number;
+    outputCost?: number;
+    durationMs?: number;
+    completedAt?: string;
+    errorMessage?: string;
+  }): Promise<void> {
+    const client = this.supabaseService.getServiceClient();
+    
+    const { error } = await client
+      .from(getTableName('llm_usage'))
+      .update({
+        status: updates.status,
+        input_tokens: updates.inputTokens,
+        output_tokens: updates.outputTokens,
+        input_cost: updates.inputCost,
+        output_cost: updates.outputCost,
+        duration_ms: updates.durationMs,
+        completed_at: updates.completedAt,
+        error_message: updates.errorMessage,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('run_id', runId);
+
+    if (error) {
+      throw new Error(`Failed to update usage record: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get usage records from database
+   */
+  async getUsageRecords(filters?: {
+    userId?: string;
+    callerType?: string;
+    callerName?: string;
+    conversationId?: string;
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+  }): Promise<any[]> {
+    const client = this.supabaseService.getServiceClient();
+    
+    let query = client
+      .from(getTableName('llm_usage'))
+      .select('*')
+      .order('started_at', { ascending: false });
+
+    if (filters?.userId) query = query.eq('user_id', filters.userId);
+    if (filters?.callerType) query = query.eq('caller_type', filters.callerType);
+    if (filters?.callerName) query = query.eq('caller_name', filters.callerName);
+    if (filters?.conversationId) query = query.eq('conversation_id', filters.conversationId);
+    if (filters?.startDate) query = query.gte('started_at', filters.startDate);
+    if (filters?.endDate) query = query.lte('started_at', filters.endDate);
+    if (filters?.limit) query = query.limit(filters.limit);
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to fetch usage records: ${error.message}`);
+    return data || [];
+  }
+
+  /**
+   * Get usage analytics from database
+   */
+  async getUsageAnalytics(filters?: {
+    startDate?: string;
+    endDate?: string;
+    callerType?: string;
+  }): Promise<any[]> {
+    const client = this.supabaseService.getServiceClient();
+    
+    let query = client
+      .from('llm_usage_analytics')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (filters?.startDate) query = query.gte('date', filters.startDate);
+    if (filters?.endDate) query = query.lte('date', filters.endDate);
+    if (filters?.callerType) query = query.eq('caller_type', filters.callerType);
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to fetch usage analytics: ${error.message}`);
+    return data || [];
   }
 }

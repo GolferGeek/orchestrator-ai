@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { SupabaseService } from '../supabase/supabase.service';
+import { getTableName } from '../supabase/supabase.config';
 
 export interface ModelStatus {
   name: string;
@@ -61,7 +63,10 @@ export class LocalModelStatusService {
     lastCheck: new Date().toISOString(),
   };
 
-  constructor(private readonly httpService: HttpService) {
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly supabaseService: SupabaseService,
+  ) {
     this.ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
     this.logger.log(`LocalModelStatusService initialized (Ollama: ${this.ollamaBaseUrl})`);
     
@@ -252,23 +257,163 @@ export class LocalModelStatusService {
   }
 
   /**
-   * Get models by tier
+   * Get models by tier from database
    */
   async getModelsByTier(tier: string): Promise<ModelStatus[]> {
-    // This would integrate with the database to get tier information
-    // For now, return models that match common tier patterns
-    const allModels = await this.getAvailableModels();
-    
-    const tierPatterns = {
-      'ultra-fast': ['1b', '3b'],
-      'general': ['7b', '8b'],
-      'fast-thinking': ['20b', '70b'],
-    };
+    try {
+      const client = this.supabaseService.getServiceClient();
+      
+      // Query database for models in the specified tier
+      const { data: dbModels, error } = await client
+        .from(getTableName('llm_models'))
+        .select(`
+          model_name,
+          display_name,
+          model_tier,
+          loading_priority,
+          is_local,
+          is_currently_loaded
+        `)
+        .eq('is_local', true)
+        .eq('model_tier', tier)
+        .eq('is_active', true)
+        .order('loading_priority', { ascending: false });
 
-    const patterns = tierPatterns[tier] || [];
-    return allModels.filter(model => 
-      patterns.some(pattern => model.name.includes(pattern))
-    );
+      if (error) {
+        this.logger.error(`Database query failed for tier ${tier}:`, error);
+        return [];
+      }
+
+      if (!dbModels || dbModels.length === 0) {
+        this.logger.warn(`No models found for tier: ${tier}`);
+        return [];
+      }
+
+      // Check health status for each model
+      const modelStatuses: ModelStatus[] = [];
+      
+      for (const dbModel of dbModels) {
+        const health = await this.checkModelHealth(dbModel.model_name);
+        
+        const status: ModelStatus = {
+          name: dbModel.model_name,
+          status: health.available ? 'loaded' : 'unavailable',
+          responseTime: health.responseTime,
+          errorMessage: health.errorMessage,
+        };
+
+        modelStatuses.push(status);
+      }
+
+      return modelStatuses;
+    } catch (error) {
+      this.logger.error(`Failed to get models by tier ${tier}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Update model loading status in database
+   */
+  async updateModelLoadingStatus(modelName: string, isLoaded: boolean): Promise<boolean> {
+    try {
+      const client = this.supabaseService.getServiceClient();
+      
+      const { error } = await client
+        .from(getTableName('llm_models'))
+        .update({ 
+          is_currently_loaded: isLoaded,
+          updated_at: new Date().toISOString()
+        })
+        .eq('model_name', modelName)
+        .eq('is_local', true);
+
+      if (error) {
+        this.logger.error(`Failed to update loading status for ${modelName}:`, error);
+        return false;
+      }
+
+      this.logger.debug(`Updated loading status for ${modelName}: ${isLoaded}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Error updating loading status for ${modelName}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get all local models from database
+   */
+  async getLocalModelsFromDatabase(): Promise<Array<{
+    modelName: string;
+    displayName: string;
+    tier: string;
+    priority: number;
+    isCurrentlyLoaded: boolean;
+  }>> {
+    try {
+      const client = this.supabaseService.getServiceClient();
+      
+      const { data: models, error } = await client
+        .from(getTableName('llm_models'))
+        .select(`
+          model_name,
+          display_name,
+          model_tier,
+          loading_priority,
+          is_currently_loaded
+        `)
+        .eq('is_local', true)
+        .eq('is_active', true)
+        .order('loading_priority', { ascending: false });
+
+      if (error) {
+        this.logger.error('Failed to get local models from database:', error);
+        return [];
+      }
+
+      return (models || []).map(model => ({
+        modelName: model.model_name,
+        displayName: model.display_name || model.model_name,
+        tier: model.model_tier || 'general',
+        priority: model.loading_priority || 0,
+        isCurrentlyLoaded: model.is_currently_loaded || false,
+      }));
+    } catch (error) {
+      this.logger.error('Error getting local models from database:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Sync Ollama models with database
+   */
+  async syncWithDatabase(): Promise<void> {
+    try {
+      // Get models from Ollama
+      const ollamaModels = await this.getAvailableModels();
+      
+      // Get models from database
+      const dbModels = await this.getLocalModelsFromDatabase();
+      
+      // Update database with current loading status
+      for (const ollamaModel of ollamaModels) {
+        const isLoaded = ollamaModel.status === 'loaded';
+        await this.updateModelLoadingStatus(ollamaModel.name, isLoaded);
+      }
+
+      // Mark models not in Ollama as not loaded
+      for (const dbModel of dbModels) {
+        const ollamaModel = ollamaModels.find(m => m.name === dbModel.modelName);
+        if (!ollamaModel && dbModel.isCurrentlyLoaded) {
+          await this.updateModelLoadingStatus(dbModel.modelName, false);
+        }
+      }
+
+      this.logger.debug('Successfully synced Ollama models with database');
+    } catch (error) {
+      this.logger.error('Failed to sync with database:', error);
+    }
   }
 
   /**

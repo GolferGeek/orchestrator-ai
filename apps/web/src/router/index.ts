@@ -46,6 +46,12 @@ const routes: Array<RouteRecordRaw> = [
         meta: { requiresAuth: true, requiresRole: ['admin', 'evaluation-monitor'] }
       },
       {
+        path: 'admin/llm-usage',
+        name: 'AdminLlmUsage',
+        component: () => import('../views/admin/LlmUsageView.vue'),
+        meta: { requiresAuth: true, requiresRole: ['admin'] }
+      },
+      {
         path: 'projects',
         name: 'Projects',
         component: () => import('../views/ProjectsListPage.vue'),
