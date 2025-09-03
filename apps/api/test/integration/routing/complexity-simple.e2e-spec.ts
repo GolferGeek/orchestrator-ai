@@ -22,20 +22,21 @@ describe('Simple Complexity Routing (e2e)', () => {
   });
 
   it('should handle simple math question', async () => {
-    const result = await llmService.generateResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'What is 2 + 2?',
       {
-        complexity: 'simple',
+        maxComplexity: 'simple',
         callerType: 'test',
         callerName: 'simple-math-test',
         dataClassification: 'internal',
+        preferLocal: true,
       }
     );
 
     expect(result).toBeDefined();
-    expect(result.response).toBeDefined();
-    expect(result.metadata.runId).toBeDefined();
-    console.log(`✅ Simple math routed to: ${result.metadata.provider}`);
+    expect(result.content).toBeDefined();
+    expect(result.runMetadata.runId).toBeDefined();
+    console.log(`✅ Simple math routed to: ${result.runMetadata.provider}`);
   });
 });

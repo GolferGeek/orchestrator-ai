@@ -22,20 +22,21 @@ describe('Complex Complexity Routing (e2e)', () => {
   });
 
   it('should handle complex analysis task', async () => {
-    const result = await llmService.generateResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are an expert analyst.',
       'Analyze the pros and cons of microservices architecture.',
       {
-        complexity: 'complex',
+        maxComplexity: 'complex',
         callerType: 'test',
         callerName: 'complex-analysis-test',
         dataClassification: 'internal',
+        preferLocal: true,
       }
     );
 
     expect(result).toBeDefined();
-    expect(result.response).toBeDefined();
-    expect(result.metadata.runId).toBeDefined();
-    console.log(`✅ Complex analysis routed to: ${result.metadata.provider}`);
+    expect(result.content).toBeDefined();
+    expect(result.runMetadata.runId).toBeDefined();
+    console.log(`✅ Complex analysis routed to: ${result.runMetadata.provider}`);
   });
 });

@@ -23,20 +23,21 @@ describe('Local Model Headers (e2e)', () => {
 
   it('should not send no-train headers to local models', async () => {
     try {
-      const result = await llmService.generateResponse(
+      const result = await llmService.generateCentralizedResponse(
         'You are a helpful assistant.',
         'Test local model.',
         {
           provider: 'ollama',
-          complexity: 'simple',
+          maxComplexity: 'simple',
           callerType: 'test',
           callerName: 'local-header-test',
           dataClassification: 'confidential',
+          preferLocal: true,
         }
       );
 
       expect(result).toBeDefined();
-      expect(result.metadata.provider).toBe('ollama');
+      expect(result.runMetadata.provider).toBe('ollama');
       console.log('✅ Local model handled without unnecessary headers');
     } catch (error) {
       if (error.message?.includes('Ollama')) {

@@ -22,22 +22,23 @@ describe('Model-Specific Fallback (e2e)', () => {
   });
 
   it('should fallback when specific model is unavailable', async () => {
-    const result = await llmService.generateResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Test model fallback.',
       {
         provider: 'anthropic',
         modelId: 'claude-nonexistent-model',
-        complexity: 'simple',
+        maxComplexity: 'simple',
         callerType: 'test',
         callerName: 'model-fallback-test',
         dataClassification: 'internal',
+        preferLocal: true,
       }
     );
 
     expect(result).toBeDefined();
-    expect(result.response).toBeDefined();
-    expect(result.metadata.modelId).not.toBe('claude-nonexistent-model');
-    console.log(`✅ Model fallback: used ${result.metadata.modelId} instead`);
+    expect(result.content).toBeDefined();
+    expect(result.runMetadata.modelId).not.toBe('claude-nonexistent-model');
+    console.log(`✅ Model fallback: used ${result.runMetadata.modelId} instead`);
   });
 });

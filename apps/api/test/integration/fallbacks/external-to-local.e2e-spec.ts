@@ -2,9 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../../../src/app.module';
 import { LLMService } from '../../../src/llms/llm.service';
-import * as nock from 'nock';
 
-describe('External to Local Fallback (e2e)', () => {
+describe('Provider Routing Logic (e2e)', () => {
   let app: INestApplication;
   let llmService: LLMService;
 
@@ -20,34 +19,31 @@ describe('External to Local Fallback (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
-    nock.cleanAll();
   });
 
-  beforeEach(() => {
-    nock.cleanAll();
-  });
-
-  it('should fallback to local when external provider fails', async () => {
-    const scope = nock('https://api.anthropic.com')
-      .post('/v1/messages')
-      .reply(500, { error: { message: 'Internal server error' } });
-
-    const result = await llmService.generateResponse(
+  it('should route to local provider when preferLocal is true', async () => {
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
-      'Test fallback.',
+      'Say "local routing test" exactly.',
       {
-        provider: 'anthropic',
-        complexity: 'simple',
+        maxComplexity: 'simple',
         callerType: 'test',
-        callerName: 'fallback-test',
+        callerName: 'local-routing-test',
         dataClassification: 'internal',
+        preferLocal: true,
       }
     );
 
     expect(result).toBeDefined();
-    expect(result.response).toBeDefined();
-    expect(['ollama', 'openai', 'google']).toContain(result.metadata.provider);
-    expect(scope.isDone()).toBe(true);
-    console.log(`✅ Fallback successful: ${result.metadata.provider}`);
+    expect(result.content).toBeDefined();
+    expect(typeof result.content).toBe('string');
+    expect(result.content.toLowerCase()).toContain('local');
+    expect(result.runMetadata.provider).toBe('ollama');
+    expect(result.runMetadata.runId).toBeDefined();
+    expect(result.routingDecision.isLocal).toBe(true);
+    
+    console.log(`✅ Local routing successful: ${result.runMetadata.provider}`);
+    console.log(`   Response: ${result.content}`);
+    console.log(`   Model: ${result.routingDecision.model}`);
   });
 });

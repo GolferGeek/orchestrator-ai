@@ -24,23 +24,24 @@ describe('Simple Request Speed (e2e)', () => {
   it('should complete simple request within reasonable time', async () => {
     const startTime = Date.now();
     
-    const result = await llmService.generateResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Say hello.',
       {
-        complexity: 'simple',
+        maxComplexity: 'simple',
         callerType: 'performance-test',
         callerName: 'speed-test',
         dataClassification: 'internal',
+        preferLocal: true,
       }
     );
 
     const duration = Date.now() - startTime;
     
     expect(result).toBeDefined();
-    expect(result.response).toBeDefined();
+    expect(result.content).toBeDefined();
     expect(duration).toBeLessThan(30000); // 30 seconds max
     
-    console.log(`✅ Request completed in ${duration}ms using ${result.metadata.provider}`);
+    console.log(`✅ Request completed in ${duration}ms using ${result.runMetadata.provider}`);
   });
 });

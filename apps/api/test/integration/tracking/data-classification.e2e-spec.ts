@@ -22,19 +22,20 @@ describe('Data Classification Tracking (e2e)', () => {
   });
 
   it('should track confidential data classification', async () => {
-    const result = await llmService.generateResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Process confidential data.',
       {
-        complexity: 'simple',
+        maxComplexity: 'simple',
         callerType: 'system',
         callerName: 'confidential-test',
         dataClassification: 'confidential',
+        preferLocal: true,
       }
     );
 
     expect(result).toBeDefined();
-    expect(result.metadata.runId).toBeDefined();
-    console.log(`✅ Confidential data tracked with runId: ${result.metadata.runId}`);
+    expect(result.runMetadata.runId).toBeDefined();
+    console.log(`✅ Confidential data tracked with runId: ${result.runMetadata.runId}`);
   });
 });

@@ -22,20 +22,21 @@ describe('Medium Complexity Routing (e2e)', () => {
   });
 
   it('should handle medium complexity explanation', async () => {
-    const result = await llmService.generateResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Explain machine learning in simple terms.',
       {
-        complexity: 'medium',
+        maxComplexity: 'medium',
         callerType: 'test',
         callerName: 'medium-explanation-test',
         dataClassification: 'internal',
+        preferLocal: true,
       }
     );
 
     expect(result).toBeDefined();
-    expect(result.response).toBeDefined();
-    expect(result.metadata.runId).toBeDefined();
-    console.log(`✅ Medium complexity routed to: ${result.metadata.provider}`);
+    expect(result.content).toBeDefined();
+    expect(result.runMetadata.runId).toBeDefined();
+    console.log(`✅ Medium complexity routed to: ${result.runMetadata.provider}`);
   });
 });

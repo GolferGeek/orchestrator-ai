@@ -25,14 +25,15 @@ describe('Concurrent Requests Performance (e2e)', () => {
     const startTime = Date.now();
     
     const promises = Array.from({ length: 3 }, (_, i) =>
-      llmService.generateResponse(
+      llmService.generateCentralizedResponse(
         'You are a helpful assistant.',
         `Concurrent request ${i + 1}`,
         {
-          complexity: 'simple',
+          maxComplexity: 'simple',
           callerType: 'concurrent-test',
           callerName: `concurrent-${i + 1}`,
           dataClassification: 'internal',
+          preferLocal: true,
         }
       )
     );
@@ -43,7 +44,7 @@ describe('Concurrent Requests Performance (e2e)', () => {
     expect(results).toHaveLength(3);
     expect(duration).toBeLessThan(60000); // 1 minute total
     
-    const runIds = results.map(r => r.metadata.runId);
+    const runIds = results.map(r => r.runMetadata.runId);
     const uniqueRunIds = new Set(runIds);
     expect(uniqueRunIds.size).toBe(3);
     
