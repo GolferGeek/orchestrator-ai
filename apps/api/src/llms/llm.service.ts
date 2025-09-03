@@ -12,6 +12,7 @@ import { RunMetadataService, RunMetadata } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';
 import { SecretRedactionService } from './secret-redaction.service';
 import { LocalModelStatusService } from './local-model-status.service';
+import { LocalLLMService } from './local-llm.service';
 import {
   Provider,
   Model,
@@ -59,6 +60,7 @@ export class LLMService {
     private readonly providerConfigService: ProviderConfigService,
     private readonly secretRedactionService: SecretRedactionService,
     private readonly localModelStatusService: LocalModelStatusService,
+    private readonly localLLMService: LocalLLMService,
   ) {
 
     // Initialize OpenAI client only if API key is available
@@ -526,7 +528,26 @@ export class LLMService {
     inputTokens?: number;
     outputTokens?: number;
   }> {
-    // Create LLM instance based on routing decision
+    // Use LocalLLMService for local Ollama models
+    if (routingDecision.isLocal && routingDecision.provider === 'ollama') {
+      const response = await this.localLLMService.generateResponse({
+        model: routingDecision.model,
+        prompt: userMessage,
+        system: systemPrompt,
+        options: {
+          temperature: options.temperature,
+          max_tokens: options.maxTokens,
+        },
+      });
+
+      return {
+        content: response.response,
+        inputTokens: response.prompt_eval_count,
+        outputTokens: response.eval_count,
+      };
+    }
+
+    // Use LangChain for external providers
     const llm = this.createCustomLangGraphLLM({
       provider: routingDecision.provider as any,
       model: routingDecision.model,
