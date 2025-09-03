@@ -99,17 +99,32 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           content: msg.content,
         }));
 
-        llmResult = await this.services.llmService.generateResponseWithHistory(
-          systemPrompt,
-          formattedHistory,
-          userMessage,
+        // Note: generateResponseWithHistory method not available, using generateResponse with history in prompt
+        const historyPrompt = formattedHistory.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n');
+        const fullPrompt = `${systemPrompt}\n\nConversation History:\n${historyPrompt}\n\nCurrent User Message: ${userMessage}`;
+        
+        llmResult = await this.services.llmService.generateResponse(
+          fullPrompt,
+          '',
+          {
+            callerType: 'agent',
+            callerName: agentName,
+            conversationId: params.sessionId,
+            dataClassification: 'internal', // Default for context agents
+          },
         );
       } else {
         // Use standard LLM processing for first message
         llmResult = await this.services.llmService.generateResponse(
           systemPrompt,
           userMessage,
-          params, // Pass all params including LLM preferences
+          {
+            ...params, // Pass all params including LLM preferences
+            callerType: 'agent',
+            callerName: agentName,
+            conversationId: params.sessionId,
+            dataClassification: 'internal', // Default for context agents
+          },
         );
       }
 
@@ -721,15 +736,28 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         content: msg.content,
       }));
 
-      return await this.services.llmService.generateResponseWithHistory(
-        systemPrompt,
-        formattedHistory,
-        userMessage
+      // Note: generateResponseWithHistory method not available, using generateResponse with history in prompt
+      const historyPrompt = formattedHistory.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n');
+      const fullPrompt = `${systemPrompt}\n\nConversation History:\n${historyPrompt}\n\nCurrent User Message: ${userMessage}`;
+      
+      return await this.services.llmService.generateResponse(
+        fullPrompt,
+        '',
+        {
+          callerType: 'agent',
+          callerName: this.getAgentName(),
+          dataClassification: 'internal',
+        }
       );
     } else {
       return await this.services.llmService.generateResponse(
         systemPrompt,
-        userMessage
+        userMessage,
+        {
+          callerType: 'agent',
+          callerName: this.getAgentName(),
+          dataClassification: 'internal',
+        }
       );
     }
   }

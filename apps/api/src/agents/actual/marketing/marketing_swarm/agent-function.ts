@@ -176,6 +176,10 @@ Respond with JSON:
       {
         temperature: 0.1,
         maxTokens: 400,
+        callerType: 'agent',
+        callerName: 'marketing-swarm-agent',
+        conversationId: state.metadata?.sessionId,
+        dataClassification: 'marketing',
         // Pass user preferences
         ...llmPreferences,
       },
@@ -363,7 +367,14 @@ Create high-quality, actionable marketing content according to your expertise. M
       const content = await llmService.generateResponse(
         agent.systemPrompt,
         contentPrompt,
-        { temperature: agent.temperature, maxTokens: 1500 },
+        { 
+          temperature: agent.temperature, 
+          maxTokens: 1500,
+          callerType: 'agent',
+          callerName: 'marketing-swarm-agent',
+          conversationId: state.metadata?.sessionId,
+          dataClassification: 'marketing',
+        },
       );
 
       agentOutputs.set(agent.name, {
@@ -457,7 +468,14 @@ Format as JSON:
       const evaluation = await llmService.generateResponse(
         evaluator.systemPrompt,
         evaluationPrompt,
-        { temperature: evaluator.temperature, maxTokens: 800 },
+        { 
+          temperature: evaluator.temperature, 
+          maxTokens: 800,
+          callerType: 'agent',
+          callerName: 'marketing-swarm-agent',
+          conversationId: state.metadata?.sessionId,
+          dataClassification: 'marketing',
+        },
       );
 
       const evaluationData = JSON.parse(evaluation);
@@ -547,7 +565,14 @@ Format the response as a well-structured marketing content package with clear se
     const finalPackage = await llmService.generateResponse(
       `You are a senior marketing coordinator. Synthesize agent outputs into a cohesive, optimized MARKETING CONTENT PACKAGE. Create ready-to-use marketing materials, not technical documentation. Focus on compelling copy, clear messaging, and actionable content.`,
       synthesisPrompt,
-      { temperature: 0.4, maxTokens: 2500 },
+      { 
+        temperature: 0.4, 
+        maxTokens: 2500,
+        callerType: 'agent',
+        callerName: 'marketing-swarm-agent',
+        conversationId: state.metadata?.sessionId,
+        dataClassification: 'marketing',
+      },
     );
 
     // Try to parse as JSON, but if it fails, use the raw content

@@ -160,6 +160,9 @@ Respond in JSON format:
         {
           temperature: 0.3,
           maxTokens: 2000,
+          callerType: 'service',
+          callerName: 'subproject-management-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -278,6 +281,9 @@ Respond in JSON format:
         {
           temperature: 0.2,
           maxTokens: 1500,
+          callerType: 'service',
+          callerName: 'subproject-management-service',
+          dataClassification: 'internal',
         },
       );
 
