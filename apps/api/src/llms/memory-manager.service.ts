@@ -121,27 +121,26 @@ export class MemoryManagerService implements OnModuleInit {
    */
   private async syncWithCurrentState(): Promise<void> {
     try {
-      const status = await this.localModelStatusService.getOllamaStatus();
+      // Use getLoadedModels() instead of getOllamaStatus() to avoid health checks
+      const loadedModels = await this.localModelStatusService.getLoadedModels();
       
       // Update loaded models map
-      for (const model of status.models) {
-        if (model.status === 'loaded') {
-          const memoryInfo: ModelMemoryInfo = {
-            name: model.name,
-            estimatedSize: this.getModelSizeEstimate(model.name),
-            lastUsed: Date.now(),
-            useCount: this.loadedModels.get(model.name)?.useCount || 0,
-            tier: await this.getModelTier(model.name),
-            priority: await this.getModelPriority(model.name),
-            isThreeTier: this.threeTierModels.has(model.name),
-          };
-          
-          this.loadedModels.set(model.name, memoryInfo);
-        }
+      for (const model of loadedModels) {
+        const memoryInfo: ModelMemoryInfo = {
+          name: model.name,
+          estimatedSize: this.getModelSizeEstimate(model.name),
+          lastUsed: Date.now(),
+          useCount: this.loadedModels.get(model.name)?.useCount || 0,
+          tier: await this.getModelTier(model.name),
+          priority: await this.getModelPriority(model.name),
+          isThreeTier: this.threeTierModels.has(model.name),
+        };
+        
+        this.loadedModels.set(model.name, memoryInfo);
       }
 
       // Remove models that are no longer loaded
-      const currentlyLoaded = new Set(status.models.filter(m => m.status === 'loaded').map(m => m.name));
+      const currentlyLoaded = new Set(loadedModels.map(m => m.name));
       for (const [modelName] of this.loadedModels) {
         if (!currentlyLoaded.has(modelName)) {
           this.loadedModels.delete(modelName);
