@@ -37,6 +37,9 @@ export class LLMController {
           temperature: request.options?.temperature,
           maxTokens: request.options?.maxTokens,
           provider: request.options?.provider,
+          callerType: 'api',
+          callerName: 'llm-controller',
+          dataClassification: 'public',
         },
       );
 

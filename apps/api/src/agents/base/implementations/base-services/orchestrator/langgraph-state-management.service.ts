@@ -1226,6 +1226,9 @@ Respond in JSON format:
           maxTokens: 1500,
           provider: 'anthropic',
           modelId: 'claude-3-5-sonnet-20241022',
+          callerType: 'service',
+          callerName: 'langgraph-state-management-service',
+          dataClassification: 'internal',
         },
       );
 

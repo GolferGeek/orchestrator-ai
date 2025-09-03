@@ -245,6 +245,9 @@ Detect enterprise characteristics and provide complete analysis in the required 
           temperature: 0.3,
           maxTokens: 800,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'planning-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -338,6 +341,9 @@ Identify capability gaps and workforce development needs.`;
           temperature: 0.2,
           maxTokens: 800,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'planning-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -435,6 +441,9 @@ Determine if this complex request should be decomposed into subprojects managed 
           temperature: 0.3,
           maxTokens: 800,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'planning-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -526,6 +535,9 @@ Return the complete plan structure in JSON format.`;
           temperature: 0.4,
           maxTokens: 1500,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'planning-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -583,6 +595,9 @@ Add appropriate human expert assignments to steps that need oversight or approva
           temperature: 0.3,
           maxTokens: 1200,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'planning-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -646,6 +661,9 @@ Return the improved plan in the same JSON format.`;
           temperature: 0.2,
           maxTokens: 1500,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'planning-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -837,6 +855,9 @@ Create 3-5 steps using the available agents. Return only the JSON structure.`;
           temperature: 0.4,
           maxTokens: 1200,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'planning-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -887,6 +908,9 @@ Return the improved plan in the same JSON format.`;
           temperature: 0.2, // Low temperature for validation
           maxTokens: 1200,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'planning-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -944,6 +968,9 @@ What changes is the user requesting?`;
           temperature: 0.2,
           maxTokens: 400,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'planning-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -1003,6 +1030,9 @@ Return the expanded plan with all original steps PLUS new steps for the requeste
           temperature: 0.3,
           maxTokens: 1500,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'planning-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -1050,6 +1080,9 @@ Create an engaging, clear presentation that helps the user understand and approv
           temperature: 0.4,
           maxTokens: 800,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'planning-service',
+          dataClassification: 'internal',
         },
       );
 

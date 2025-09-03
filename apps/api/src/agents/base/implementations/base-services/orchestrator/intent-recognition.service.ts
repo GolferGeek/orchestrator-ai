@@ -232,6 +232,9 @@ export class IntentRecognitionService implements IIntentRecognitionService {
           temperature: 0.1, // Low temperature for consistent classification
           maxTokens: 500,
           provider: 'anthropic', // Use direct path for now - will move to enhanced when local DB is ready
+          callerType: 'service',
+          callerName: 'intent-recognition-service',
+          dataClassification: 'internal',
         },
       );
 

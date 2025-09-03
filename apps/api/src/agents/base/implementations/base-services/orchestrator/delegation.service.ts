@@ -475,6 +475,9 @@ Provide your analysis in the required JSON format.`;
           temperature: 0.2,
           maxTokens: 400,
           provider: 'anthropic',
+          callerType: 'service',
+          callerName: 'delegation-service',
+          dataClassification: 'internal',
         },
       );
 
@@ -618,6 +621,9 @@ Can the ${agentName} agent handle this request?`;
           maxTokens: 200, // Keep responses brief
           provider: queryLLMProvider,
           modelId: queryLLMModel,
+          callerType: 'service',
+          callerName: 'delegation-service',
+          dataClassification: 'internal',
         },
       );
 

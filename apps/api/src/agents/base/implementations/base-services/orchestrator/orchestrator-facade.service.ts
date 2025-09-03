@@ -427,10 +427,18 @@ ${input.delegationContext || 'No specific agents listed - you can work with vari
         }),
       );
 
-      const llmResponse = await this.llmService.generateResponseWithHistory(
-        systemPrompt,
-        conversationHistory,
-        userMessage,
+      // Note: generateResponseWithHistory method not available, using generateResponse with history in prompt
+      const historyPrompt = conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      const fullPrompt = `${systemPrompt}\n\nConversation History:\n${historyPrompt}\n\nCurrent User Message: ${userMessage}`;
+      
+      const llmResponse = await this.llmService.generateResponse(
+        fullPrompt,
+        '',
+        {
+          callerType: 'service',
+          callerName: 'orchestrator-facade-service',
+          dataClassification: 'internal',
+        },
       );
 
       const response = {

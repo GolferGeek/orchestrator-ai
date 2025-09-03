@@ -79,7 +79,14 @@ Respond with a JSON object:
     const classificationResponse = await llmService.generateResponse(
       'You are an expert HR query classifier. Always respond with valid JSON.',
       classificationPrompt,
-      { temperature: 0.1, maxTokens: 200 },
+      { 
+        temperature: 0.1, 
+        maxTokens: 200,
+        callerType: 'agent',
+        callerName: 'hr-assistant-agent',
+        conversationId: state.metadata?.sessionId,
+        dataClassification: 'confidential',
+      },
     );
 
     const classification: HRQueryClassification = JSON.parse(
@@ -262,6 +269,10 @@ Be comprehensive and anticipate follow-up questions they might have.`;
       {
         temperature: 0.7,
         maxTokens: 500,
+        callerType: 'agent',
+        callerName: 'hr-assistant-agent',
+        conversationId: state.metadata?.sessionId,
+        dataClassification: 'confidential',
       },
     );
 

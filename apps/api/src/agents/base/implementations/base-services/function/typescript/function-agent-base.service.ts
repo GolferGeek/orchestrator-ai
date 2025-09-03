@@ -117,6 +117,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
             cidafmOptions: params.cidafmOptions || options?.cidafmOptions,
             authToken: params.authToken || options?.authToken,
             sessionId: params.sessionId || options?.sessionId,
+            callerType: 'agent',
+            callerName: agentName,
+            conversationId: params.sessionId || options?.sessionId,
+            dataClassification: 'internal', // Default for function agents
           };
 
           const result = await this.services.llmService.generateResponse(

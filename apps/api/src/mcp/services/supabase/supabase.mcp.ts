@@ -609,7 +609,10 @@ Return ONLY the SQL query, no explanation or formatting.`;
         {
           provider: 'anthropic',
           temperature: 0.1,
-          maxTokens: 1000
+          maxTokens: 1000,
+          callerType: 'service',
+          callerName: 'supabase-mcp-service',
+          dataClassification: 'internal',
         }
       );
 
@@ -672,7 +675,10 @@ Format your response as a structured JSON object with these sections.`;
           provider: provider as 'anthropic' | 'openai' | 'google' | 'ollama',
           modelId: model,
           temperature: 0.3,
-          maxTokens: 1500
+          maxTokens: 1500,
+          callerType: 'service',
+          callerName: 'supabase-mcp-service',
+          dataClassification: 'internal',
         }
       );
 
