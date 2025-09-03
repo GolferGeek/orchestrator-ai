@@ -1224,8 +1224,7 @@ Respond in JSON format:
         {
           temperature: 0.2,
           maxTokens: 1500,
-          provider: 'anthropic',
-          modelId: 'claude-3-5-sonnet-20241022',
+          complexity: 'medium', // State enhancement requires moderate reasoning
           callerType: 'service',
           callerName: 'langgraph-state-management-service',
           dataClassification: 'internal',
