@@ -10,7 +10,7 @@ import { CIDAFMService } from '../cidafm/cidafm.service';
 import { CentralizedRoutingService } from './centralized-routing.service';
 import { RunMetadataService, RunMetadata } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';
-import { SecretRedactionService } from './secret-redaction.service';
+import { DataSanitizationService } from './data-sanitization.service';
 import { LocalModelStatusService } from './local-model-status.service';
 import { LocalLLMService } from './local-llm.service';
 import {
@@ -58,7 +58,7 @@ export class LLMService {
     private readonly centralizedRoutingService: CentralizedRoutingService,
     private readonly runMetadataService: RunMetadataService,
     private readonly providerConfigService: ProviderConfigService,
-    private readonly secretRedactionService: SecretRedactionService,
+    private readonly dataSanitizationService: DataSanitizationService,
     private readonly localModelStatusService: LocalModelStatusService,
     private readonly localLLMService: LocalLLMService,
   ) {
@@ -237,26 +237,112 @@ export class LLMService {
 
       // Original simple implementation for backward compatibility
 
+      const provider = options?.provider || 'openai';
+      const isLocalProvider = provider === 'ollama';
+
+      // Apply conditional sanitization for external providers only
+      let sanitizedSystemPrompt = systemPrompt;
+      let sanitizedUserMessage = userMessage;
+      let sanitizationContext: any = null;
+
+      if (!isLocalProvider) {
+        await this.dataSanitizationService.debug(
+          'Simple response: Using external provider - applying sanitization',
+          undefined,
+          'SimpleLLM',
+          { provider }
+        );
+
+        try {
+          // Use the sanitizeForLLM method which handles both system and user messages
+          const sanitizationResult = await this.dataSanitizationService.sanitizeForLLM(
+            systemPrompt,
+            userMessage,
+            options?.sessionId || 'simple-request',
+            {
+              enableRedaction: true,
+              enablePseudonymization: true,
+              preserveFormatting: true
+            }
+          );
+
+          sanitizedSystemPrompt = sanitizationResult.sanitizedSystemPrompt;
+          sanitizedUserMessage = sanitizationResult.sanitizedUserMessage;
+          sanitizationContext = sanitizationResult.reversalContext;
+
+          await this.dataSanitizationService.debug(
+            'Simple response content sanitized for external provider',
+            undefined,
+            'SimpleLLM',
+            {
+              sanitized: true,
+              hasReversalContext: !!sanitizationContext
+            }
+          );
+
+        } catch (sanitizationError) {
+          await this.dataSanitizationService.warn(
+            `Simple response sanitization failed: ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}`,
+            undefined,
+            'SimpleLLM'
+          );
+          // Continue with original content if sanitization fails
+        }
+      } else {
+        await this.dataSanitizationService.debug(
+          'Simple response: Using local provider - skipping sanitization',
+          undefined,
+          'SimpleLLM',
+          { provider }
+        );
+      }
+
       // Use LangChain LLM instead of raw OpenAI - this gets automatic LangSmith tracing
       const llm =
         options?.temperature || options?.maxTokens || options?.provider
           ? this.createCustomLangGraphLLM({
-              provider: options?.provider || 'openai',
+              provider: provider as any,
               model: options?.modelId,
               temperature: options?.temperature,
               maxTokens: options?.maxTokens,
             })
-          : this.getLangGraphLLM(options?.provider || 'openai');
+          : this.getLangGraphLLM(provider as any);
 
       const messages = [
-        { role: 'system' as const, content: systemPrompt },
-        { role: 'user' as const, content: userMessage },
+        { role: 'system' as const, content: sanitizedSystemPrompt },
+        { role: 'user' as const, content: sanitizedUserMessage },
       ];
 
       const response = await llm.invoke(messages);
-      const content =
-        (response.content as string) ||
-        'I apologize, but I was unable to generate a response.';
+      let content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
+
+      // Restore pseudonyms in the response if sanitization was applied
+      if (!isLocalProvider && sanitizationContext) {
+        try {
+          const restoredContent = await this.dataSanitizationService.reverseLLMResponse(
+            content,
+            sanitizationContext
+          );
+
+          if (restoredContent !== content) {
+            content = restoredContent;
+            await this.dataSanitizationService.debug(
+              'Simple response content restored from pseudonyms',
+              undefined,
+              'SimpleLLM',
+              { restored: true }
+            );
+          }
+
+        } catch (restorationError) {
+          await this.dataSanitizationService.warn(
+            `Simple response restoration failed: ${restorationError instanceof Error ? restorationError.message : 'Unknown error'}`,
+            undefined,
+            'SimpleLLM'
+          );
+          // Continue with sanitized response if restoration fails
+        }
+      }
 
       return content;
     } catch (error) {
@@ -329,35 +415,119 @@ export class LLMService {
         };
       }
 
+      // Determine if provider is local (Ollama) or external
+      const isLocalProvider = provider.name.toLowerCase() === 'ollama';
+
+      // Apply state modifiers to system prompt if any
+      let enhancedSystemPrompt = this.applyStateModifiersToPrompt(
+        systemPrompt,
+        cidafmState.activeStateModifiers || [],
+      );
+      let finalProcessedPrompt = processedPrompt;
+      let sanitizationContext: any = null;
+
+      // Apply conditional sanitization for external providers only
+      if (!isLocalProvider) {
+        await this.dataSanitizationService.debug(
+          'Enhanced response: Using external provider - applying sanitization',
+          undefined,
+          'EnhancedLLM',
+          { provider: provider.name, model: model.name }
+        );
+
+        try {
+          // Use the sanitizeForLLM method which handles both system and user messages
+          const sanitizationResult = await this.dataSanitizationService.sanitizeForLLM(
+            enhancedSystemPrompt,
+            finalProcessedPrompt,
+            options?.sessionId || 'enhanced-request',
+            {
+              enableRedaction: true,
+              enablePseudonymization: true,
+              preserveFormatting: true
+            }
+          );
+
+          enhancedSystemPrompt = sanitizationResult.sanitizedSystemPrompt;
+          finalProcessedPrompt = sanitizationResult.sanitizedUserMessage;
+          sanitizationContext = sanitizationResult.reversalContext;
+
+          await this.dataSanitizationService.debug(
+            'Enhanced response content sanitized for external provider',
+            undefined,
+            'EnhancedLLM',
+            {
+              sanitized: true,
+              hasReversalContext: !!sanitizationContext
+            }
+          );
+
+        } catch (sanitizationError) {
+          await this.dataSanitizationService.warn(
+            `Enhanced response sanitization failed: ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}`,
+            undefined,
+            'EnhancedLLM'
+          );
+          // Continue with original content if sanitization fails
+        }
+      } else {
+        await this.dataSanitizationService.debug(
+          'Enhanced response: Using local provider - skipping sanitization',
+          undefined,
+          'EnhancedLLM',
+          { provider: provider.name, model: model.name }
+        );
+      }
+
       // Create LLM instance with dynamic configuration
       const llm = await this.createLLMFromModel(model, {
         temperature: options?.temperature,
         maxTokens: options?.maxTokens,
       });
 
-      // Apply state modifiers to system prompt if any
-      const enhancedSystemPrompt = this.applyStateModifiersToPrompt(
-        systemPrompt,
-        cidafmState.activeStateModifiers || [],
-      );
-
       const messages = [
         { role: 'system' as const, content: enhancedSystemPrompt },
-        { role: 'user' as const, content: processedPrompt },
+        { role: 'user' as const, content: finalProcessedPrompt },
       ];
 
       // Generate response with token counting
       const response = await llm.invoke(messages);
-      const content =
-        (response.content as string) ||
-        'I apologize, but I was unable to generate a response.';
+      let content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
+
+      // Restore pseudonyms in the response if sanitization was applied
+      if (!isLocalProvider && sanitizationContext) {
+        try {
+          const restoredContent = await this.dataSanitizationService.reverseLLMResponse(
+            content,
+            sanitizationContext
+          );
+
+          if (restoredContent !== content) {
+            content = restoredContent;
+            await this.dataSanitizationService.debug(
+              'Enhanced response content restored from pseudonyms',
+              undefined,
+              'EnhancedLLM',
+              { restored: true }
+            );
+          }
+
+        } catch (restorationError) {
+          await this.dataSanitizationService.warn(
+            `Enhanced response restoration failed: ${restorationError instanceof Error ? restorationError.message : 'Unknown error'}`,
+            undefined,
+            'EnhancedLLM'
+          );
+          // Continue with sanitized response if restoration fails
+        }
+      }
 
       const endTime = Date.now();
       const responseTimeMs = endTime - startTime;
 
-      // Calculate token usage (simplified estimation)
+      // Calculate token usage (simplified estimation) using the content that was actually sent
       const inputTokens = this.estimateTokens(
-        enhancedSystemPrompt + processedPrompt,
+        enhancedSystemPrompt + finalProcessedPrompt,
       );
       const outputTokens = this.estimateTokens(content);
 
@@ -433,7 +603,7 @@ export class LLMService {
 
     try {
       // Step 1: Get routing decision from centralized routing service
-      this.secretRedactionService.debug(
+      await this.dataSanitizationService.debug(
         'Starting centralized LLM request',
         undefined,
         'CentralizedLLM',
@@ -445,7 +615,7 @@ export class LLMService {
         options
       );
 
-      this.secretRedactionService.info(
+      await this.dataSanitizationService.info(
         `Routing decision: ${routingDecision.provider}/${routingDecision.model} (${routingDecision.isLocal ? 'local' : 'external'})`,
         undefined,
         'CentralizedLLM',
@@ -477,7 +647,7 @@ export class LLMService {
           noRetain: false,
         });
 
-        this.secretRedactionService.debug(
+        await this.dataSanitizationService.debug(
           'Generated request headers',
           metadataContext.runId,
           'CentralizedLLM',
@@ -500,7 +670,7 @@ export class LLMService {
           outputTokens: response.outputTokens,
         });
 
-        this.secretRedactionService.info(
+        await this.dataSanitizationService.info(
           `Centralized LLM request completed successfully`,
           runMetadata.runId,
           'CentralizedLLM',
@@ -522,7 +692,7 @@ export class LLMService {
         // Handle errors and still return metadata
         const runMetadata = await this.runMetadataService.completeRequestWithError(metadataContext, error instanceof Error ? error : new Error('Unknown error'));
         
-        this.secretRedactionService.error(
+        await this.dataSanitizationService.error(
           `Centralized LLM request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
           runMetadata.runId,
           'CentralizedLLM',
@@ -533,7 +703,7 @@ export class LLMService {
       }
 
     } catch (error) {
-      this.secretRedactionService.error(
+      await this.dataSanitizationService.error(
         `Centralized routing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         undefined,
         'CentralizedLLM'
@@ -544,7 +714,7 @@ export class LLMService {
   }
 
   /**
-   * Call provider using routing decision
+   * Call provider using routing decision with conditional sanitization
    */
   private async callProviderWithRouting(
     routingDecision: any,
@@ -557,8 +727,15 @@ export class LLMService {
     inputTokens?: number;
     outputTokens?: number;
   }> {
-    // Use LocalLLMService for local Ollama models
+    // Use LocalLLMService for local Ollama models - NO SANITIZATION needed
     if (routingDecision.isLocal && routingDecision.provider === 'ollama') {
+      await this.dataSanitizationService.debug(
+        'Using local Ollama - skipping sanitization',
+        undefined,
+        'CallProvider',
+        { provider: routingDecision.provider, model: routingDecision.model }
+      );
+
       const response = await this.localLLMService.generateResponse({
         model: routingDecision.model,
         prompt: userMessage,
@@ -576,7 +753,62 @@ export class LLMService {
       };
     }
 
-    // Use LangChain for external providers
+    // For EXTERNAL providers - apply sanitization before sending
+    await this.dataSanitizationService.debug(
+      'Using external provider - applying sanitization',
+      undefined,
+      'CallProvider',
+      { provider: routingDecision.provider, model: routingDecision.model }
+    );
+
+    // Sanitize system prompt and user message before sending to external provider
+    let sanitizedSystemPrompt: string;
+    let sanitizedUserMessage: string;
+    let systemPromptContext: any = null;
+    let userMessageContext: any = null;
+
+    try {
+      // Use the sanitizeForLLM method which handles both system and user messages
+      const sanitizationResult = await this.dataSanitizationService.sanitizeForLLM(
+        systemPrompt,
+        userMessage,
+        options.sessionId || 'external-request',
+        {
+          enableRedaction: true,
+          enablePseudonymization: true,
+          preserveFormatting: true
+        }
+      );
+
+      sanitizedSystemPrompt = sanitizationResult.sanitizedSystemPrompt;
+      sanitizedUserMessage = sanitizationResult.sanitizedUserMessage;
+      // Store both contexts for compatibility with existing code
+      systemPromptContext = sanitizationResult.reversalContext;
+      userMessageContext = sanitizationResult.reversalContext;
+
+      await this.dataSanitizationService.debug(
+        'Content sanitized for external provider',
+        undefined,
+        'CallProvider',
+        {
+          sanitized: true,
+          hasReversalContext: !!sanitizationResult.reversalContext
+        }
+      );
+
+    } catch (sanitizationError) {
+      await this.dataSanitizationService.warn(
+        `Sanitization failed, using original content: ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}`,
+        undefined,
+        'CallProvider'
+      );
+      
+      // Fallback to original content if sanitization fails
+      sanitizedSystemPrompt = systemPrompt;
+      sanitizedUserMessage = userMessage;
+    }
+
+    // Use LangChain for external providers with sanitized content
     const llm = this.createCustomLangGraphLLM({
       provider: routingDecision.provider as any,
       model: routingDecision.model,
@@ -585,19 +817,47 @@ export class LLMService {
     });
 
     const messages = [
-      { role: 'system' as const, content: systemPrompt },
-      { role: 'user' as const, content: userMessage },
+      { role: 'system' as const, content: sanitizedSystemPrompt },
+      { role: 'user' as const, content: sanitizedUserMessage },
     ];
 
     const response = await llm.invoke(messages);
-    const content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
+    let responseContent = (response.content as string) || 'I apologize, but I was unable to generate a response.';
+
+    // Restore pseudonyms in the response if any were applied
+    if (systemPromptContext) {
+      try {
+        const restoredContent = await this.dataSanitizationService.reverseLLMResponse(
+          responseContent,
+          systemPromptContext
+        );
+
+        if (restoredContent !== responseContent) {
+          responseContent = restoredContent;
+          await this.dataSanitizationService.debug(
+            'Response content restored from pseudonyms',
+            undefined,
+            'CallProvider',
+            { restored: true }
+          );
+        }
+
+      } catch (restorationError) {
+        await this.dataSanitizationService.warn(
+          `Response restoration failed: ${restorationError instanceof Error ? restorationError.message : 'Unknown error'}`,
+          undefined,
+          'CallProvider'
+        );
+        // Continue with sanitized response if restoration fails
+      }
+    }
 
     // Estimate tokens (TODO: Get actual token counts from provider)
-    const inputTokens = this.estimateTokens(systemPrompt + userMessage);
-    const outputTokens = this.estimateTokens(content);
+    const inputTokens = this.estimateTokens(sanitizedSystemPrompt + sanitizedUserMessage);
+    const outputTokens = this.estimateTokens(responseContent);
 
     return {
-      content,
+      content: responseContent,
       inputTokens,
       outputTokens,
     };

@@ -30,19 +30,8 @@ export class SecretRedactionService {
   private readonly enableVerboseLogging = process.env.ENABLE_VERBOSE_LOGGING === 'true';
 
   // Predefined redaction patterns for common secrets
+  // More specific patterns first to avoid generic API key pattern conflicts
   private readonly redactionPatterns: RedactionPattern[] = [
-    {
-      name: 'api_key',
-      pattern: /\b(?:api[_-]?key|apikey|key)\s*[:=]\s*['"]?([a-zA-Z0-9_\-]{20,})/gi,
-      replacement: 'api_key=[REDACTED]',
-      description: 'API keys and similar tokens',
-    },
-    {
-      name: 'bearer_token',
-      pattern: /\b(?:bearer|token)\s+([a-zA-Z0-9_\-\.]{20,})/gi,
-      replacement: 'bearer [REDACTED]',
-      description: 'Bearer tokens',
-    },
     {
       name: 'openai_key',
       pattern: /sk-[a-zA-Z0-9]{48}/g,
@@ -62,14 +51,26 @@ export class SecretRedactionService {
       description: 'Google API keys',
     },
     {
+      name: 'aws_key',
+      pattern: /AKIA[0-9A-Z]{16}/g,
+      replacement: 'AKIA[REDACTED]',
+      description: 'AWS access keys',
+    },
+    {
       name: 'jwt_token',
-      pattern: /eyJ[a-zA-Z0-9_\-]+\.eyJ[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+/g,
+      pattern: /eyJ[a-zA-Z0-9_\-]+\.eyJ[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]*/g,
       replacement: 'eyJ[REDACTED]',
       description: 'JWT tokens',
     },
     {
+      name: 'bearer_token',
+      pattern: /(?:Authorization\s*:\s*Bearer\s+|bearer[\s:]+|Bearer[\s:]+|[a-zA-Z_-]*(?:access[_-]?token|auth[_-]?token|session[_-]?token|refresh[_-]?token|id[_-]?token)[_-]*\s+|[a-zA-Z_-]*(?:access[_-]?token|auth[_-]?token|session[_-]?token|refresh[_-]?token|id[_-]?token)[_-]*\s*[:=]\s*|token[\s:=]+)([a-zA-Z0-9_\-\.]{20,})/gi,
+      replacement: 'bearer [REDACTED]',
+      description: 'Bearer tokens',
+    },
+    {
       name: 'password',
-      pattern: /\b(?:password|pwd|pass)\s*[:=]\s*['"]?([^\s'"]{8,})/gi,
+      pattern: /\b(?:[a-zA-Z_-]*(?:password|pwd|pass)[_-]*)\s*[:=]\s*['"]?([^\s'"]{8,})['"]?/gi,
       replacement: 'password=[REDACTED]',
       description: 'Passwords',
     },
@@ -80,22 +81,23 @@ export class SecretRedactionService {
       description: 'Database connection strings',
     },
     {
-      name: 'aws_key',
-      pattern: /AKIA[0-9A-Z]{16}/g,
-      replacement: 'AKIA[REDACTED]',
-      description: 'AWS access keys',
-    },
-    {
       name: 'credit_card',
-      pattern: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
+      pattern: /\b(?:(?:\d{4}[-\s]?){3}\d{4}|\d{4}[-\s]?\d{6}[-\s]?\d{5}|\d{15,16})\b/g,
       replacement: '[CREDIT_CARD_REDACTED]',
       description: 'Credit card numbers',
     },
     {
       name: 'ssh_key',
-      pattern: /-----BEGIN [A-Z\s]+PRIVATE KEY-----[\s\S]+?-----END [A-Z\s]+PRIVATE KEY-----/gi,
+      pattern: /-----BEGIN (?:[A-Z\s]*)?PRIVATE KEY-----[\s\S]+?-----END (?:[A-Z\s]*)?PRIVATE KEY-----/gi,
       replacement: '-----BEGIN [REDACTED] PRIVATE KEY-----',
       description: 'SSH private keys',
+    },
+    // Generic API key pattern last to avoid conflicts with specific patterns
+    {
+      name: 'api_key',
+      pattern: /\b(?:[a-zA-Z_-]*(?:api[_-]?key|apikey|key|secret|token)[_-]*)\s*[:=]\s*['"]?([a-zA-Z0-9_\-]{20,})['"]?/gi,
+      replacement: 'api_key=[REDACTED]',
+      description: 'API keys and similar tokens',
     },
   ];
 
@@ -343,4 +345,5 @@ export class SecretRedactionService {
       customPatterns,
     };
   }
+
 }
