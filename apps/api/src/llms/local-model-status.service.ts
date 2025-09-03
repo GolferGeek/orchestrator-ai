@@ -96,9 +96,9 @@ export class LocalModelStatusService {
     } catch (error) {
       this.ollamaStatus.connected = false;
       this.ollamaStatus.lastCheck = new Date().toISOString();
-      this.ollamaStatus.errorMessage = error.message;
+      this.ollamaStatus.errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      this.logger.warn(`Ollama connection failed: ${error.message}`);
+      this.logger.warn(`Ollama connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
   }
@@ -146,7 +146,7 @@ export class LocalModelStatusService {
       this.ollamaStatus.models = modelStatuses;
       return modelStatuses;
     } catch (error) {
-      this.logger.error(`Failed to get available models: ${error.message}`);
+      this.logger.error(`Failed to get available models: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return [];
     }
   }
@@ -199,7 +199,7 @@ export class LocalModelStatusService {
         available: false,
         responseTime,
         lastCheck: new Date().toISOString(),
-        errorMessage: error.message,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
       };
 
       this.healthCache.set(cacheKey, health);
@@ -237,7 +237,7 @@ export class LocalModelStatusService {
       
       return true;
     } catch (error) {
-      this.logger.error(`Failed to pull model ${modelName}: ${error.message}`);
+      this.logger.error(`Failed to pull model ${modelName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
   }
@@ -460,7 +460,7 @@ export class LocalModelStatusService {
       
       return true;
     } catch (error) {
-      this.logger.error(`Failed to delete model ${modelName}: ${error.message}`);
+      this.logger.error(`Failed to delete model ${modelName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
   }

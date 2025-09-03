@@ -412,7 +412,7 @@ export class LLMService {
       );
 
       // Step 2: Start tracking metadata
-      const metadataContext = this.runMetadataService.startRequest(routingDecision);
+      const metadataContext = await this.runMetadataService.startRequest(routingDecision);
 
       try {
         // Step 3: Get provider configuration
@@ -447,7 +447,7 @@ export class LLMService {
         );
 
         // Step 6: Complete metadata tracking
-        const runMetadata = this.runMetadataService.completeRequest(metadataContext, {
+        const runMetadata = await this.runMetadataService.completeRequest(metadataContext, {
           content: response.content,
           inputTokens: response.inputTokens,
           outputTokens: response.outputTokens,
@@ -473,26 +473,26 @@ export class LLMService {
 
       } catch (error) {
         // Handle errors and still return metadata
-        const runMetadata = this.runMetadataService.completeRequestWithError(metadataContext, error);
+        const runMetadata = await this.runMetadataService.completeRequestWithError(metadataContext, error instanceof Error ? error : new Error('Unknown error'));
         
         this.secretRedactionService.error(
-          `Centralized LLM request failed: ${error.message}`,
+          `Centralized LLM request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
           runMetadata.runId,
           'CentralizedLLM',
-          { error: error.message, provider: routingDecision.provider }
+          { error: error instanceof Error ? error.message : 'Unknown error', provider: routingDecision.provider }
         );
 
-        throw new Error(`Centralized LLM request failed: ${error.message}`);
+        throw new Error(`Centralized LLM request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
 
     } catch (error) {
       this.secretRedactionService.error(
-        `Centralized routing failed: ${error.message}`,
+        `Centralized routing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         undefined,
         'CentralizedLLM'
       );
       
-      throw new Error(`Centralized LLM service error: ${error.message}`);
+      throw new Error(`Centralized LLM service error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

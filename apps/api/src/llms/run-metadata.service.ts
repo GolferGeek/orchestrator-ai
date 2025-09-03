@@ -243,7 +243,7 @@ export class RunMetadataService {
    * Calculate cost estimate based on model and token usage
    */
   private calculateCost(model: string, inputTokens: number, outputTokens: number): CostEstimate {
-    const pricing = this.costTable[model] || this.costTable['default'];
+    const pricing = this.costTable[model as keyof typeof this.costTable] || this.costTable['default'];
     
     const inputCost = (inputTokens / 1000) * pricing.input;
     const outputCost = (outputTokens / 1000) * pricing.output;
