@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { LocalModelStatusService } from './local-model-status.service';
 
 export interface RoutingDecision {
   provider: string;
@@ -27,7 +28,7 @@ export type ComplexityLevel = 'simple' | 'medium' | 'complex';
 export class CentralizedRoutingService {
   private readonly logger = new Logger(CentralizedRoutingService.name);
 
-  constructor() {
+  constructor(private readonly localModelStatusService: LocalModelStatusService) {
     this.logger.log('CentralizedRoutingService initialized');
   }
 
@@ -70,7 +71,7 @@ export class CentralizedRoutingService {
         const localModelAvailable = await this.checkLocalModelAvailability(tier);
         
         if (localModelAvailable) {
-          const localModel = this.selectBestLocalModel(tier);
+          const localModel = await this.selectBestLocalModel(tier);
           reasoningPath.push(`Selected local model: ${localModel}`);
           
           return {
@@ -183,32 +184,55 @@ export class CentralizedRoutingService {
 
   /**
    * Check if local models are available for the given tier
-   * TODO: This will be replaced with actual LocalModelStatusService integration
    */
   private async checkLocalModelAvailability(tier: string): Promise<boolean> {
-    // Simulate availability check
-    // In the real implementation, this will check with LocalModelStatusService
-    const availability = {
-      'ultra-fast': Math.random() > 0.3, // 70% availability
-      'general': Math.random() > 0.2, // 80% availability
-      'fast-thinking': Math.random() > 0.5, // 50% availability
-    };
-    
-    return availability[tier] || false;
+    try {
+      const models = await this.localModelStatusService.getModelsByTier(tier);
+      return models.length > 0 && models.some(model => model.status === 'loaded');
+    } catch (error) {
+      this.logger.error(`Failed to check local model availability for tier ${tier}:`, error);
+      return false;
+    }
   }
 
   /**
    * Select the best local model for the given tier
-   * TODO: This will be replaced with actual database query and model selection logic
    */
-  private selectBestLocalModel(tier: string): string {
-    const modelMap = {
-      'ultra-fast': 'llama3.2:1b',
-      'general': 'llama3.1:8b', 
-      'fast-thinking': 'gpt-oss-20b',
-    };
-    
-    return modelMap[tier] || 'llama3.1:8b';
+  private async selectBestLocalModel(tier: string): Promise<string> {
+    try {
+      const models = await this.localModelStatusService.getModelsByTier(tier);
+      const availableModels = models.filter(model => model.status === 'loaded');
+      
+      if (availableModels.length > 0) {
+        // Return the first available model (they're already sorted by priority)
+        return availableModels[0].name;
+      }
+      
+      // Fallback to any model in the tier
+      if (models.length > 0) {
+        return models[0].name;
+      }
+      
+      // Final fallback based on tier
+      const fallbackMap = {
+        'ultra-fast': 'llama3.2:1b',
+        'general': 'llama3.1:8b', 
+        'fast-thinking': 'llama3.1:70b',
+      };
+      
+      return fallbackMap[tier] || 'llama3.1:8b';
+    } catch (error) {
+      this.logger.error(`Failed to select best local model for tier ${tier}:`, error);
+      
+      // Emergency fallback
+      const fallbackMap = {
+        'ultra-fast': 'llama3.2:1b',
+        'general': 'llama3.1:8b', 
+        'fast-thinking': 'llama3.1:70b',
+      };
+      
+      return fallbackMap[tier] || 'llama3.1:8b';
+    }
   }
 
   /**
