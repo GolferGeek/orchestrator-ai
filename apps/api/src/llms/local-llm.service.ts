@@ -110,7 +110,7 @@ export class LocalLLMService {
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error(`Local LLM generation failed after ${duration}ms`, error);
-      throw new Error(`Local LLM generation failed: ${error.message}`);
+      throw new Error(`Local LLM generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -144,7 +144,7 @@ export class LocalLLMService {
       return {
         success: false,
         model: modelName,
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -188,7 +188,7 @@ export class LocalLLMService {
       return {
         success: false,
         model: modelName,
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
         loadTime,
       };
     } finally {
@@ -308,7 +308,7 @@ export class LocalLLMService {
    */
   private getComplexityOrder(complexity: string): number {
     const order = { 'simple': 1, 'medium': 2, 'complex': 3, 'reasoning': 4 };
-    return order[complexity] || 2;
+    return order[complexity as keyof typeof order] || 2;
   }
 
   /**

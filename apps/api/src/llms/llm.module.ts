@@ -10,11 +10,14 @@ import { ProviderConfigService } from './provider-config.service';
 import { SecretRedactionService } from './secret-redaction.service';
 import { LocalModelStatusService } from './local-model-status.service';
 import { LocalLLMService } from './local-llm.service';
+import { MemoryManagerService } from './memory-manager.service';
+import { ModelMonitorService } from './model-monitor.service';
+import { ProductionOptimizationController } from './production-optimization.controller';
 import { LlmUsageController } from './llm-usage.controller';
 
 @Module({
   imports: [SupabaseModule, CIDAFMModule, HttpModule],
-  controllers: [LLMController, LlmUsageController],
+  controllers: [LLMController, LlmUsageController, ProductionOptimizationController],
   providers: [
     LLMService,
     CentralizedRoutingService,
@@ -23,6 +26,8 @@ import { LlmUsageController } from './llm-usage.controller';
     SecretRedactionService,
     LocalModelStatusService,
     LocalLLMService,
+    MemoryManagerService,
+    ModelMonitorService,
   ],
   exports: [
     LLMService,
@@ -32,6 +37,8 @@ import { LlmUsageController } from './llm-usage.controller';
     SecretRedactionService,
     LocalModelStatusService,
     LocalLLMService,
+    MemoryManagerService,
+    ModelMonitorService,
   ],
 })
 export class LLMModule {}
