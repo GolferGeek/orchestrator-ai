@@ -27,7 +27,14 @@
     "prod:status": "echo '⚠️  prod:status is deprecated. Use: npm run server:status' && npm run server:status",
     "initiative:kickoff": "node scripts/kickoff-initiative.js",
     "initiative:recipe": "node scripts/initiative-recipe.js | cat",
-    "initiative:archive": "node scripts/archive-initiative.js"
+    "initiative:archive": "node scripts/archive-initiative.js",
+    "ollama:simple": "./scripts/ollama-simple.sh",
+    "ollama:medium": "./scripts/ollama-medium.sh", 
+    "ollama:full": "./scripts/ollama-full.sh",
+    "ollama:server": "./scripts/ollama-server.sh",
+    "ollama:stop:all": "./scripts/ollama-stop-all-models.sh",
+    "ollama:add": "./scripts/ollama-add-model.sh",
+    "ollama:stop": "./scripts/ollama-stop-model.sh"
   },
   "devDependencies": {
     "@babel/plugin-proposal-class-properties": "^7.18.6",

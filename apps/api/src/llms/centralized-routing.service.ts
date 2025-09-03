@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LocalModelStatusService } from './local-model-status.service';
+import { SupabaseService } from '../supabase/supabase.service';
 
 export interface RoutingDecision {
   provider: string;
@@ -28,7 +29,10 @@ export type ComplexityLevel = 'simple' | 'medium' | 'complex';
 export class CentralizedRoutingService {
   private readonly logger = new Logger(CentralizedRoutingService.name);
 
-  constructor(private readonly localModelStatusService: LocalModelStatusService) {
+  constructor(
+    private readonly localModelStatusService: LocalModelStatusService,
+    private readonly supabaseService: SupabaseService,
+  ) {
     this.logger.log('CentralizedRoutingService initialized');
   }
 
@@ -205,33 +209,65 @@ export class CentralizedRoutingService {
       
       if (availableModels.length > 0) {
         // Return the first available model (they're already sorted by priority)
-        return availableModels[0]?.name || 'llama3.1:8b';
+        return availableModels[0]?.name || 'qwen3:8b';
       }
       
       // Fallback to any model in the tier
       if (models.length > 0) {
-        return models[0]?.name || 'llama3.1:8b';
+        return models[0]?.name || 'qwen3:8b';
       }
       
-      // Final fallback based on tier
-      const fallbackMap = {
-        'ultra-fast': 'llama3.2:1b',
-        'general': 'llama3.1:8b', 
-        'fast-thinking': 'llama3.1:70b',
-      };
+      // Final fallback - query database for any model in this tier
+      const fallbackModel = await this.getFallbackModelFromDatabase(tier);
+      if (fallbackModel) {
+        return fallbackModel;
+      }
       
-      return fallbackMap[tier as keyof typeof fallbackMap] || 'llama3.1:8b';
+      // Ultimate emergency fallback
+      return 'qwen3:8b';
     } catch (error) {
       this.logger.error(`Failed to select best local model for tier ${tier}:`, error);
       
-      // Emergency fallback
-      const fallbackMap = {
-        'ultra-fast': 'llama3.2:1b',
-        'general': 'llama3.1:8b', 
-        'fast-thinking': 'llama3.1:70b',
-      };
+      // Emergency fallback - try database query even in error case
+      try {
+        const fallbackModel = await this.getFallbackModelFromDatabase(tier);
+        if (fallbackModel) {
+          return fallbackModel;
+        }
+      } catch (fallbackError) {
+        this.logger.error(`Database fallback also failed:`, fallbackError);
+      }
       
-      return fallbackMap[tier as keyof typeof fallbackMap] || 'llama3.1:8b';
+      // Ultimate emergency fallback
+      return 'qwen3:8b';
+    }
+  }
+
+  /**
+   * Get fallback model from database for the given tier
+   */
+  private async getFallbackModelFromDatabase(tier: string): Promise<string | null> {
+    try {
+      const client = this.supabaseService.getServiceClient();
+      
+      const { data: models, error } = await client
+        .from('llm_models')
+        .select('model_name')
+        .eq('is_local', true)
+        .eq('model_tier', tier)
+        .eq('is_active', true)
+        .order('loading_priority', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        this.logger.error(`Failed to query fallback model for tier ${tier}:`, error);
+        return null;
+      }
+
+      return models?.[0]?.model_name || null;
+    } catch (error) {
+      this.logger.error(`Database query failed for fallback model:`, error);
+      return null;
     }
   }
 

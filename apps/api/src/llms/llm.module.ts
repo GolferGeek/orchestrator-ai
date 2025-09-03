@@ -9,6 +9,7 @@ import { RunMetadataService } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';
 import { SecretRedactionService } from './secret-redaction.service';
 import { LocalModelStatusService } from './local-model-status.service';
+import { LocalLLMService } from './local-llm.service';
 import { LlmUsageController } from './llm-usage.controller';
 
 @Module({
@@ -21,6 +22,7 @@ import { LlmUsageController } from './llm-usage.controller';
     ProviderConfigService,
     SecretRedactionService,
     LocalModelStatusService,
+    LocalLLMService,
   ],
   exports: [
     LLMService,
@@ -29,6 +31,7 @@ import { LlmUsageController } from './llm-usage.controller';
     ProviderConfigService,
     SecretRedactionService,
     LocalModelStatusService,
+    LocalLLMService,
   ],
 })
 export class LLMModule {}
