@@ -101,7 +101,7 @@ export class CentralizedRoutingService {
 
     } catch (error) {
       this.logger.error('Error in routing decision', error);
-      reasoningPath.push(`Error occurred: ${error.message}, using default fallback`);
+      reasoningPath.push(`Error occurred: ${error instanceof Error ? error.message : 'Unknown error'}, using default fallback`);
       
       // Emergency fallback to OpenAI GPT-3.5
       return {
@@ -205,12 +205,12 @@ export class CentralizedRoutingService {
       
       if (availableModels.length > 0) {
         // Return the first available model (they're already sorted by priority)
-        return availableModels[0].name;
+        return availableModels[0]?.name || 'llama3.1:8b';
       }
       
       // Fallback to any model in the tier
       if (models.length > 0) {
-        return models[0].name;
+        return models[0]?.name || 'llama3.1:8b';
       }
       
       // Final fallback based on tier
@@ -220,7 +220,7 @@ export class CentralizedRoutingService {
         'fast-thinking': 'llama3.1:70b',
       };
       
-      return fallbackMap[tier] || 'llama3.1:8b';
+      return fallbackMap[tier as keyof typeof fallbackMap] || 'llama3.1:8b';
     } catch (error) {
       this.logger.error(`Failed to select best local model for tier ${tier}:`, error);
       
@@ -231,7 +231,7 @@ export class CentralizedRoutingService {
         'fast-thinking': 'llama3.1:70b',
       };
       
-      return fallbackMap[tier] || 'llama3.1:8b';
+      return fallbackMap[tier as keyof typeof fallbackMap] || 'llama3.1:8b';
     }
   }
 
