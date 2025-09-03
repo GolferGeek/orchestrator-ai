@@ -104,7 +104,40 @@ export class LocalModelStatusService {
   }
 
   /**
-   * Get list of available models from Ollama
+   * Get only currently loaded models from Ollama (faster - no health checks)
+   */
+  async getLoadedModels(): Promise<ModelStatus[]> {
+    if (!await this.checkOllamaConnection()) {
+      return [];
+    }
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.ollamaBaseUrl}/api/ps`, {
+          timeout: 5000,
+        })
+      );
+
+      const loadedModels: any[] = response.data?.models || [];
+      const modelStatuses: ModelStatus[] = loadedModels.map((model: any) => ({
+        name: model.name,
+        status: 'loaded' as const,
+        size: this.formatBytes(model.size),
+        digest: model.digest,
+        details: model.details,
+        modifiedAt: model.expires_at,
+        responseTime: 0, // No health check needed - if it's in ps, it's loaded
+      }));
+
+      return modelStatuses;
+    } catch (error) {
+      this.logger.error(`Failed to get loaded models: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return [];
+    }
+  }
+
+  /**
+   * Get list of available models from Ollama (with health checks - slower)
    */
   async getAvailableModels(): Promise<ModelStatus[]> {
     if (!await this.checkOllamaConnection()) {
@@ -120,7 +153,7 @@ export class LocalModelStatusService {
 
       const models: OllamaModel[] = response.data?.models || [];
       const modelStatuses: ModelStatus[] = [];
-
+      
       for (const model of models) {
         const status: ModelStatus = {
           name: model.name,

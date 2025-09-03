@@ -119,11 +119,9 @@ export class LocalLLMService {
    */
   async ensureModelLoaded(modelName: string): Promise<ModelLoadResult> {
     try {
-      // Check if model is already loaded
-      const status = await this.localModelStatusService.getOllamaStatus();
-      const loadedModel = status.models.find(m => 
-        m.name === modelName && m.status === 'loaded'
-      );
+      // Check if model is already loaded using fast loaded models check
+      const loadedModels = await this.localModelStatusService.getLoadedModels();
+      const loadedModel = loadedModels.find(m => m.name === modelName);
 
       if (loadedModel) {
         this.logger.debug(`Model ${modelName} already loaded`);
@@ -216,10 +214,8 @@ export class LocalLLMService {
     }
 
     // Check if model is now loaded
-    const status = await this.localModelStatusService.getOllamaStatus();
-    const loadedModel = status.models.find(m => 
-      m.name === modelName && m.status === 'loaded'
-    );
+    const loadedModels = await this.localModelStatusService.getLoadedModels();
+    const loadedModel = loadedModels.find(m => m.name === modelName);
 
     return {
       success: !!loadedModel,
@@ -293,10 +289,8 @@ export class LocalLLMService {
    */
   private async getCurrentlyLoadedModels(): Promise<Array<{name: string, size: string}>> {
     try {
-      const status = await this.localModelStatusService.getOllamaStatus();
-      return status.models
-        .filter(m => m.status === 'loaded')
-        .map(m => ({ name: m.name, size: m.size || '0' }));
+      const loadedModels = await this.localModelStatusService.getLoadedModels();
+      return loadedModels.map(m => ({ name: m.name, size: m.size || '0' }));
     } catch (error) {
       this.logger.warn('Failed to get currently loaded models', error);
       return [];
