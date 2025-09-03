@@ -23,20 +23,21 @@ describe('RunId Generation (e2e)', () => {
 
   it('should generate unique runIds for concurrent requests', async () => {
     const promises = Array.from({ length: 3 }, (_, i) =>
-      llmService.generateResponse(
+      llmService.generateCentralizedResponse(
         'You are a helpful assistant.',
         `Test message ${i + 1}`,
         {
-          complexity: 'simple',
+          maxComplexity: 'simple',
           callerType: 'test',
           callerName: `runid-test-${i + 1}`,
           dataClassification: 'internal',
+          preferLocal: true,
         }
       )
     );
 
     const results = await Promise.all(promises);
-    const runIds = results.map(r => r.metadata.runId);
+    const runIds = results.map(r => r.runMetadata.runId);
     const uniqueRunIds = new Set(runIds);
 
     expect(uniqueRunIds.size).toBe(3);

@@ -24,14 +24,15 @@ describe('Response Time Baseline (e2e)', () => {
   it('should complete simple request within 30 seconds', async () => {
     const startTime = Date.now();
     
-    const result = await llmService.generateResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Say hello.',
       {
-        complexity: 'simple',
+        maxComplexity: 'simple',
         callerType: 'performance-test',
         callerName: 'baseline-test',
         dataClassification: 'internal',
+        preferLocal: true,
       }
     );
 
@@ -39,6 +40,6 @@ describe('Response Time Baseline (e2e)', () => {
     
     expect(result).toBeDefined();
     expect(duration).toBeLessThan(30000);
-    console.log(`✅ Baseline: ${duration}ms using ${result.metadata.provider}`);
+    console.log(`✅ Baseline: ${duration}ms using ${result.runMetadata.provider}`);
   });
 });

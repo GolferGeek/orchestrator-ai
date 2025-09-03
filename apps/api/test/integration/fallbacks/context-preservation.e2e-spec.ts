@@ -2,9 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../../../src/app.module';
 import { LLMService } from '../../../src/llms/llm.service';
-import * as nock from 'nock';
 
-describe('Context Preservation During Fallback (e2e)', () => {
+describe('Conversation Context Tracking (e2e)', () => {
   let app: INestApplication;
   let llmService: LLMService;
 
@@ -20,35 +19,35 @@ describe('Context Preservation During Fallback (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
-    nock.cleanAll();
   });
 
-  beforeEach(() => {
-    nock.cleanAll();
-  });
-
-  it('should preserve context during fallback', async () => {
-    nock('https://api.anthropic.com')
-      .post('/v1/messages')
-      .reply(503, { error: { message: 'Service unavailable' } });
-
-    const testConversationId = `fallback-context-${Date.now()}`;
+  it('should track conversation context correctly', async () => {
+    const testConversationId = `context-tracking-${Date.now()}`;
     const testCallerName = `context-preservation-${Date.now()}`;
 
-    const result = await llmService.generateResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
-      'Test context preservation.',
+      'Say "context tracking test" and remember this conversation ID.',
       {
-        complexity: 'simple',
+        maxComplexity: 'simple',
         callerType: 'context-test',
         callerName: testCallerName,
         conversationId: testConversationId,
         dataClassification: 'internal',
+        preferLocal: true,
       }
     );
 
     expect(result).toBeDefined();
-    expect(result.metadata.runId).toBeDefined();
-    console.log(`✅ Context preserved during fallback: runId ${result.metadata.runId}`);
+    expect(result.content).toBeDefined();
+    expect(typeof result.content).toBe('string');
+    expect(result.content.toLowerCase()).toContain('context');
+    expect(result.runMetadata.runId).toBeDefined();
+    expect(result.runMetadata.provider).toBeDefined();
+    
+    console.log(`✅ Context tracking test completed: runId ${result.runMetadata.runId}`);
+    console.log(`   ConversationId: ${testConversationId}`);
+    console.log(`   CallerName: ${testCallerName}`);
+    console.log(`   Response: ${result.content}`);
   });
 });

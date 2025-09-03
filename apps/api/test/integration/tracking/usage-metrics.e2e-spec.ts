@@ -22,21 +22,23 @@ describe('Usage Metrics Tracking (e2e)', () => {
   });
 
   it('should track token usage and cost', async () => {
-    const result = await llmService.generateResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Count to five.',
       {
-        complexity: 'simple',
+        maxComplexity: 'simple',
         callerType: 'test',
         callerName: 'metrics-test',
         dataClassification: 'internal',
+        preferLocal: true,
       }
     );
 
     expect(result).toBeDefined();
-    expect(result.metadata.runId).toBeDefined();
-    expect(result.metadata.tokensUsed).toBeGreaterThan(0);
-    expect(result.metadata.cost).toBeGreaterThanOrEqual(0);
-    console.log(`✅ Usage tracked: ${result.metadata.tokensUsed} tokens, $${result.metadata.cost} cost`);
+    expect(result.runMetadata.runId).toBeDefined();
+    expect(result.runMetadata.inputTokens).toBeGreaterThan(0);
+    expect(result.runMetadata.cost).toBeGreaterThanOrEqual(0);
+    const totalTokens = (result.runMetadata.inputTokens || 0) + (result.runMetadata.outputTokens || 0);
+    console.log(`✅ Usage tracked: ${totalTokens} tokens (${result.runMetadata.inputTokens} in, ${result.runMetadata.outputTokens} out), $${result.runMetadata.cost} cost`);
   });
 });

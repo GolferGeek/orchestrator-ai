@@ -33,19 +33,20 @@ describe('Complexity Performance Comparison (e2e)', () => {
     for (const { level, prompt } of complexities) {
       const startTime = Date.now();
       
-      const result = await llmService.generateResponse(
+      const result = await llmService.generateCentralizedResponse(
         'You are a helpful assistant.',
         prompt,
         {
-          complexity: level,
+          maxComplexity: level,
           callerType: 'complexity-test',
           callerName: `${level}-comparison`,
           dataClassification: 'internal',
+          preferLocal: true,
         }
       );
 
       const duration = Date.now() - startTime;
-      results.push({ level, duration, provider: result.metadata.provider });
+      results.push({ level, duration, provider: result.runMetadata.provider });
     }
 
     results.forEach(({ level, duration, provider }) => {

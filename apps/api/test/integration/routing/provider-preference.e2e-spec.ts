@@ -22,21 +22,22 @@ describe('Provider Preference Routing (e2e)', () => {
   });
 
   it('should respect explicit provider preference', async () => {
-    const result = await llmService.generateResponse(
+    const result = await llmService.generateCentralizedResponse(
       'You are a helpful assistant.',
       'Say hello.',
       {
         provider: 'ollama',
-        complexity: 'simple',
+        maxComplexity: 'simple',
         callerType: 'test',
         callerName: 'provider-preference-test',
         dataClassification: 'internal',
+        preferLocal: true,
       }
     );
 
     expect(result).toBeDefined();
-    expect(result.response).toBeDefined();
-    expect(result.metadata.provider).toBe('ollama');
-    console.log(`✅ Explicit provider preference respected: ${result.metadata.provider}`);
+    expect(result.content).toBeDefined();
+    expect(result.runMetadata.provider).toBe('ollama');
+    console.log(`✅ Explicit provider preference respected: ${result.runMetadata.provider}`);
   });
 });
