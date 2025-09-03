@@ -111,6 +111,10 @@ Respond with JSON only:
         provider: metadata?.providerId,
         modelId: metadata?.modelId,
         maxTokens: 1000,
+        callerType: 'agent',
+        callerName: metadata?.agentName || 'metrics-agent',
+        conversationId: params.sessionId,
+        dataClassification: 'financial',
       },
     );
 
@@ -348,6 +352,10 @@ ${
         provider: metadata?.providerId,
         modelId: metadata?.modelId,
         maxTokens: 4000,
+        callerType: 'agent',
+        callerName: metadata?.agentName || 'metrics-agent',
+        conversationId: params.sessionId,
+        dataClassification: 'financial',
       },
     );
 

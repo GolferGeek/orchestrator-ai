@@ -171,6 +171,11 @@ export class LLMService {
       authToken?: string;
       sessionId?: string;
       currentUser?: any; // User object with id, email, etc.
+      // Caller tracking for usage analytics
+      callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
+      callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
+      conversationId?: string; // Optional conversation/session context
+      dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
     },
   ): Promise<string | any> {
     try {
@@ -382,6 +387,11 @@ export class LLMService {
       authToken?: string;
       sessionId?: string;
       currentUser?: any;
+      // Caller tracking for usage analytics
+      callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
+      callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
+      conversationId?: string; // Optional conversation/session context
+      dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
     },
   ): Promise<{
     content: string;
@@ -412,7 +422,13 @@ export class LLMService {
       );
 
       // Step 2: Start tracking metadata
-      const metadataContext = await this.runMetadataService.startRequest(routingDecision);
+      const metadataContext = await this.runMetadataService.startRequest(routingDecision, {
+        userId: options?.currentUser?.id,
+        callerType: options?.callerType || 'system',
+        callerName: options?.callerName || 'unknown',
+        conversationId: options?.sessionId || options?.conversationId,
+        dataClassification: options?.dataClassification,
+      });
 
       try {
         // Step 3: Get provider configuration
