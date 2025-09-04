@@ -282,6 +282,7 @@
 </template>
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
+import { useAdminDashboard } from '@/composables/useEnhancedStores';
 import {
   IonCard,
   IonCardContent,
@@ -318,6 +319,18 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   refresh: []
 }>();
+// Enhanced store integration
+const {
+  adminMetrics,
+  systemHealth,
+  isLoading: storeLoading,
+  hasError,
+  isAutoRefreshEnabled,
+  toggleAutoRefresh,
+  refreshSystem,
+  analyticsStore
+} = useAdminDashboard();
+
 const analyticsFilters = reactive({
   startDate: '',
   endDate: '',

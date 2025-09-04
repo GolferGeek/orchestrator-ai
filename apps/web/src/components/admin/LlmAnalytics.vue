@@ -302,8 +302,10 @@ import {
 
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { llmUsageService } from '@/services/llmUsageService';
+import { useMonitoringAnalytics } from '@/composables/useEnhancedStores';
 
 const store = useLlmUsageStore();
+const { llmMonitoringStore, analyticsStore, dashboardData, systemHealthStatus } = useMonitoringAnalytics();
 
 // Reactive data
 const localFilters = ref({

@@ -470,7 +470,7 @@ class AnalyticsService {
       }
 
       if (systemAnalytics.status === 'fulfilled') {
-        dashboardData.overview.systemHealth = systemAnalytics.value.data.systemHealth.status;
+        dashboardData.overview.systemHealth = systemAnalytics.value.data.systemHealth.status as 'healthy' | 'warning' | 'critical';
       }
 
       return {
@@ -520,7 +520,7 @@ class AnalyticsService {
 
       // Populate from available data
       if (taskMetrics.status === 'fulfilled') {
-        realTimeData.currentStats.runningTasks = taskMetrics.value.data.activeTasks || 0;
+        realTimeData.currentStats.runningTasks = taskMetrics.value.data.performanceMetrics?.activeTasks || 0;
         realTimeData.currentStats.averageResponseTime = taskMetrics.value.data.averageTaskDuration || 0;
       }
 
@@ -657,9 +657,7 @@ class AnalyticsService {
    */
   async exportData(config: ExportConfig): Promise<{ success: boolean; downloadUrl?: string; error?: string }> {
     try {
-      const response = await apiService.post('/analytics/export', config, {
-        responseType: config.format === 'json' ? 'json' : 'blob'
-      });
+      const response = await apiService.post('/analytics/export', config);
 
       if (config.format === 'json') {
         return {
