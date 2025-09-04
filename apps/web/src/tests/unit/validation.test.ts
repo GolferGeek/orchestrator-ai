@@ -242,13 +242,60 @@ describe('Validation System', () => {
       expect(result.errors[0].code).toBe(ValidationCodes.XSS_DETECTED);
     });
 
-    it('should sanitize input', () => {
+    it('should sanitize input with default profile', () => {
       const rule = ValidationRules.sanitize();
       
       const result = rule.validator('<b>Hello</b> World');
       expect(result.isValid).toBe(true);
       expect(result.sanitizedValue).toBe('Hello World'); // HTML tags removed
       expect(result.metadata?.sanitizationApplied).toBe(true);
+      expect(result.metadata?.sanitizationProfile).toBe('moderate');
+    });
+
+    it('should sanitize input with specific profile', () => {
+      const rule = ValidationRules.sanitize({ profile: 'strict' });
+      
+      const result = rule.validator('<b>Hello</b> World');
+      expect(result.isValid).toBe(true);
+      expect(result.sanitizedValue).toBe('Hello World');
+      expect(result.metadata?.sanitizationProfile).toBe('strict');
+    });
+
+    it('should sanitize API input strictly', () => {
+      const rule = ValidationRules.sanitizeApiInput();
+      
+      const result = rule.validator('<script>alert("xss")</script>Hello World');
+      expect(result.isValid).toBe(true);
+      expect(result.sanitizedValue).toBe('Hello World');
+      expect(result.metadata?.sanitizationProfile).toBe('apiInput');
+    });
+
+    it('should sanitize search queries', () => {
+      const rule = ValidationRules.sanitizeSearch();
+      
+      const result = rule.validator('<b>search</b> term');
+      expect(result.isValid).toBe(true);
+      expect(result.sanitizedValue).toBe('search term');
+      expect(result.metadata?.sanitizationProfile).toBe('search');
+    });
+
+    it('should sanitize rich text content', () => {
+      const rule = ValidationRules.sanitizeRichText();
+      
+      const result = rule.validator('<p><b>Rich</b> content</p><script>alert("xss")</script>');
+      expect(result.isValid).toBe(true);
+      expect(result.sanitizedValue).toBe('<p><b>Rich</b> content</p>');
+      expect(result.metadata?.sanitizationProfile).toBe('richText');
+    });
+
+    it('should provide warnings when content is modified', () => {
+      const rule = ValidationRules.sanitize();
+      
+      const result = rule.validator('<script>alert("xss")</script>Hello World');
+      expect(result.isValid).toBe(true);
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0].message).toBe('Input was sanitized for security');
+      expect(result.warnings[0].severity).toBe('info');
     });
   });
 

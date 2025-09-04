@@ -143,7 +143,7 @@
   </ion-modal>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import {
   IonModal,
   IonHeader,
@@ -169,6 +169,7 @@ import { tasksService } from '@/services/tasksService';
 import LLMSelector from './LLMSelector.vue';
 import CIDAFMControls from './CIDAFMControls.vue';
 import { useLLMStore } from '@/stores/llmStore';
+import { useValidation, ValidationRules } from '@/composables/useValidation';
 interface Conversation {
   id: string;
   agentName: string;
@@ -201,10 +202,24 @@ const customMethod = ref('');
 const parametersJson = ref('');
 // Store
 const llmStore = useLLMStore();
+const validation = useValidation();
+
 const taskData = ref<TaskData>({
   method: 'process',
   prompt: '',
   timeoutSeconds: 300,
+});
+
+// Setup validation rules
+onMounted(() => {
+  validation.addRule('prompt', ValidationRules.required('Task prompt is required'));
+  validation.addRule('prompt', ValidationRules.minLength(5, 'Prompt must be at least 5 characters'));
+  validation.addRule('prompt', ValidationRules.maxLength(2000, 'Prompt must not exceed 2000 characters'));
+  validation.addRule('prompt', ValidationRules.security('Potentially unsafe content detected in prompt'));
+  validation.addRule('prompt', ValidationRules.sanitizeApiInput());
+  
+  validation.addRule('method', ValidationRules.required('Method is required'));
+  validation.addRule('method', ValidationRules.sanitize({ profile: 'strict' }));
 });
 // Parameter presets
 const parameterPresets: ParameterPreset[] = [
@@ -241,6 +256,16 @@ const isFormValid = computed(() => {
 // Methods
 const createTask = async () => {
   if (!props.conversation || !isFormValid.value) return;
+  
+  // Validate inputs before creating task
+  const promptValidation = await validation.validate('prompt', taskData.value.prompt);
+  const methodValidation = await validation.validate('method', taskData.value.method);
+  
+  if (!promptValidation.isValid || !methodValidation.isValid) {
+    error.value = 'Please fix validation errors before submitting';
+    return;
+  }
+  
   creating.value = true;
   error.value = null;
   try {
