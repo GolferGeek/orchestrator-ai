@@ -58,18 +58,30 @@
               <!-- Admin Section -->
               <div v-if="auth.hasAdminAccess || auth.hasEvaluationAccess">
                 <ion-list-header>Admin</ion-list-header>
-                <ion-menu-toggle v-if="auth.hasAdminAccess">
-                  <ion-item 
-                    router-direction="root" 
-                    router-link="/app/admin/settings" 
-                    lines="none" 
-                    :detail="false"
-                    :class="{ 'selected': $route.path === '/app/admin/settings' }"
-                  >
-                    <ion-icon aria-hidden="true" :icon="settingsOutline" slot="start"></ion-icon>
-                    <ion-label>Admin Settings</ion-label>
-                  </ion-item>
-                </ion-menu-toggle>
+                          <ion-menu-toggle v-if="auth.hasAdminAccess">
+            <ion-item 
+              router-direction="root" 
+              router-link="/app/admin/settings" 
+              lines="none" 
+              :detail="false"
+              :class="{ 'selected': $route.path === '/app/admin/settings' }"
+            >
+              <ion-icon aria-hidden="true" :icon="settingsOutline" slot="start"></ion-icon>
+              <ion-label>Admin Settings</ion-label>
+            </ion-item>
+          </ion-menu-toggle>
+          <ion-menu-toggle v-if="auth.hasAdminAccess">
+            <ion-item 
+              router-direction="root" 
+              router-link="/app/admin/audit" 
+              lines="none" 
+              :detail="false"
+              :class="{ 'selected': $route.path === '/app/admin/audit' }"
+            >
+              <ion-icon aria-hidden="true" :icon="shieldCheckmarkOutline" slot="start"></ion-icon>
+              <ion-label>Audit Dashboard</ion-label>
+            </ion-item>
+          </ion-menu-toggle>
                 <ion-menu-toggle v-if="auth.hasAdminAccess">
                   <ion-item 
                     router-direction="root" 
