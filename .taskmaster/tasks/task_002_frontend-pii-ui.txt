@@ -1,0 +1,11 @@
+# Task ID: 2
+# Title: Configure Pinia State Management
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Integrate Pinia for global state management across all frontend modules.
+# Details:
+Install Pinia (v3.x) and set up root store. Create modular stores for PII patterns, pseudonym dictionaries, LLM monitoring, and analytics. Use TypeScript for type safety and define interfaces matching backend models.
+
+# Test Strategy:
+Unit test store actions, mutations, and getters. Validate type safety and state updates.

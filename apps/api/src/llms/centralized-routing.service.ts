@@ -294,7 +294,7 @@ export class CentralizedRoutingService {
       case 'ultra-fast':
         return {
           provider: 'openai',
-          model: 'gpt-3.5-turbo-instruct',
+          model: 'gpt-3.5-turbo',
           isLocal: false,
           modelTier: 'external-fast',
         };

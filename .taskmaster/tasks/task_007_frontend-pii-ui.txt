@@ -1,0 +1,11 @@
+# Task ID: 7
+# Title: Develop PIITestingInterface Component
+# Status: pending
+# Dependencies: 3, 5
+# Priority: high
+# Description: Build interface for real-time PII detection testing and before/after preview.
+# Details:
+Large textarea input, highlight detected PII as user types. Show matched patterns, original vs sanitized text, detection time, and patterns checked. Use POST /sanitization/pii/test endpoint. Optimize for sub-2s response.
+
+# Test Strategy:
+Integration test with backend. Measure detection time. Validate highlighting and preview accuracy.

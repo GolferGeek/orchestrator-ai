@@ -1,0 +1,137 @@
+# Task ID: 5
+# Title: Implement ProviderConfigService
+# Status: done
+# Dependencies: 1, 4
+# Priority: high
+# Description: Create a ProviderConfigService at apps/api/src/llms/provider-config.service.ts with no-train/no-retain flag system, standardized timeouts, and provider adapter factory pattern.
+# Details:
+1. Create ProviderConfigService at apps/api/src/llms/provider-config.service.ts
+2. Implement no-train/no-retain flag system for different providers:
+   - OpenAI: `X-No-Store: true` and custom headers
+   - Anthropic: Policy compliance headers
+   - Others: Best-effort equivalent headers
+3. Set standardized timeouts per provider (30s default)
+4. Create provider adapter factory pattern
+5. Move all existing provider configs to central service
+
+```typescript
+// apps/api/src/llms/provider-config.service.ts
+import { Injectable } from '@nestjs/common';
+
+export interface ProviderConfig {
+  timeout: number;
+  retries: number;
+  headers: Record<string, string>;
+  noTrainFlags: Record<string, any>;
+}
+
+@Injectable()
+export class ProviderConfigService {
+  getConfig(provider: string): ProviderConfig {
+    switch (provider.toLowerCase()) {
+      case 'openai':
+        return {
+          timeout: 30000,
+          retries: 2,
+          headers: {
+            'X-No-Store': 'true'
+          },
+          noTrainFlags: {
+            use_context: false
+          }
+        };
+      case 'anthropic':
+        return {
+          timeout: 30000,
+          retries: 2,
+          headers: {
+            'X-API-Policy-Compliance': 'no-train'
+          },
+          noTrainFlags: {
+            policyCompliance: 'no-train'
+          }
+        };
+      case 'ollama':
+        return {
+          timeout: 60000, // Local models may need longer timeout
+          retries: 1,
+          headers: {},
+          noTrainFlags: {}
+        };
+      default:
+        return {
+          timeout: 30000,
+          retries: 2,
+          headers: {},
+          noTrainFlags: {}
+        };
+    }
+  }
+  
+  createAdapter(provider: string): ProviderAdapter {
+    const config = this.getConfig(provider);
+    
+    switch (provider.toLowerCase()) {
+      case 'openai':
+        return new OpenAIAdapter(config);
+      case 'anthropic':
+        return new AnthropicAdapter(config);
+      case 'ollama':
+        return new OllamaAdapter(config);
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
+    }
+  }
+  
+  getProviderOptions(provider: string, baseOptions: any = {}): any {
+    const config = this.getConfig(provider);
+    const noTrainFlags = config.noTrainFlags;
+    
+    return {
+      ...baseOptions,
+      timeout: config.timeout,
+      ...noTrainFlags
+    };
+  }
+}
+
+// Provider adapter interfaces and implementations
+export interface ProviderAdapter {
+  generateCompletion(prompt: string, options: any): Promise<any>;
+}
+
+class OpenAIAdapter implements ProviderAdapter {
+  constructor(private config: ProviderConfig) {}
+  
+  async generateCompletion(prompt: string, options: any): Promise<any> {
+    // Implementation for OpenAI
+  }
+}
+
+class AnthropicAdapter implements ProviderAdapter {
+  constructor(private config: ProviderConfig) {}
+  
+  async generateCompletion(prompt: string, options: any): Promise<any> {
+    // Implementation for Anthropic
+  }
+}
+
+class OllamaAdapter implements ProviderAdapter {
+  constructor(private config: ProviderConfig) {}
+  
+  async generateCompletion(prompt: string, options: any): Promise<any> {
+    // Implementation for Ollama
+  }
+}
+```
+
+6. Update environment variable handling to use centralized configuration
+
+# Test Strategy:
+1. Test provider configuration for each supported provider
+2. Verify no-train flags are correctly set for each provider
+3. Test timeout and retry policy implementation
+4. Validate provider adapter factory creates correct adapters
+5. Test environment variable handling and defaults
+6. Verify all existing provider configs are properly migrated
+7. Test with actual API calls to ensure headers are properly sent

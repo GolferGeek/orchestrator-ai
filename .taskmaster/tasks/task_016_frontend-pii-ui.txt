@@ -1,0 +1,11 @@
+# Task ID: 16
+# Title: Develop UserPrivacyIndicators Component
+# Status: pending
+# Dependencies: 2, 3
+# Priority: medium
+# Description: Add privacy indicators to chat interface for real-time feedback and trust signals.
+# Details:
+Display 'Data Protected' badges, real-time sanitization status, routing display (local/external), and visual trust signals. Integrate with chat UI and Pinia.
+
+# Test Strategy:
+Unit test indicator rendering and state updates. Integration test with live chat data.

@@ -1,0 +1,11 @@
+# Task ID: 9
+# Title: Develop PseudonymMappingViewer Component
+# Status: pending
+# Dependencies: 8
+# Priority: medium
+# Description: Visualize PII to pseudonym mappings and usage history.
+# Details:
+Display mapping table (PII → pseudonym), usage counts, and reversibility demo. Use color-coded indicators. Fetch mapping data from API and Pinia store. Ensure no actual PII stored in frontend state.
+
+# Test Strategy:
+Unit test mapping display and history. Validate reversibility demo logic.

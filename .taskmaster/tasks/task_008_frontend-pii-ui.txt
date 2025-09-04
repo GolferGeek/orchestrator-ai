@@ -1,0 +1,11 @@
+# Task ID: 8
+# Title: Develop PseudonymDictionaryManager Component
+# Status: pending
+# Dependencies: 2, 3
+# Priority: high
+# Description: Create manager for pseudonym dictionary with CRUD, grouping, and bulk import/export.
+# Details:
+Group words by data type/category. Add/edit/delete words, adjust frequency weights. Implement CSV/JSON import/export using PapaParse (v5.x). Show usage statistics. Integrate with Pinia and API.
+
+# Test Strategy:
+Unit test CRUD, import/export, and frequency adjustment. Integration test with backend.

@@ -1,0 +1,11 @@
+# Task ID: 20
+# Title: Implement Secure Communication
+# Status: pending
+# Dependencies: 3
+# Priority: high
+# Description: Enforce HTTPS for all API calls and sanitize user inputs on the frontend.
+# Details:
+Configure Axios to use HTTPS endpoints. Validate and sanitize all user inputs before API submission. Use DOMPurify (v3.x) for input sanitization.
+
+# Test Strategy:
+Security tests for HTTPS enforcement. Unit test input sanitization logic.

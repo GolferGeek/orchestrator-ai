@@ -36,11 +36,14 @@ node_modules/
 # OS specific
 .DS_Store
 
-# Task files
-tasks.json
-tasks/ 
-
 # Build artifacts
 .turbo/
 apps/api/dist/
 apps/web/dist/
+
+# Environment variables
+.env
+
+# Task files
+# tasks.json
+# tasks/ 

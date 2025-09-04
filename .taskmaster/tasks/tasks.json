@@ -1,0 +1,914 @@
+{
+  "davids-goliath-p0": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Enhance Existing LLMService with Centralized Routing",
+        "description": "Enhance the existing LLMService at apps/api/src/llms/llm.service.ts with centralized routing capabilities and provider client rejection mechanism.",
+        "details": "1. Enhance existing LLMService at `apps/api/src/llms/llm.service.ts`\n2. Implement enforced routing to centralized service\n3. Add provider client rejection mechanism that throws errors on direct instantiation\n4. Implement automatic header injection system for:\n   - `X-Policy-Profile` (default: 'standard')\n   - `X-Data-Class` (default: 'public')\n   - `X-Sovereign-Mode` (default: 'false')\n5. Create enhanced response wrapper with run metadata\n6. Implement utility functions for service configuration\n\nExample implementation:\n```typescript\n// apps/api/src/llms/llm.service.ts\n@Injectable()\nexport class LLMService {\n  constructor(\n    private readonly centralizedRoutingService: CentralizedRoutingService,\n    private readonly runMetadataService: RunMetadataService,\n    private readonly providerConfigService: ProviderConfigService,\n    private readonly secretRedactionService: SecretRedactionService,\n    private readonly localModelStatusService: LocalModelStatusService,\n  ) {}\n  \n  async generateResponse(prompt: string, options: any = {}): Promise<{\n    response: string;\n    runMetadata: {\n      runId: string;\n      provider: string;\n      model: string;\n      tier: 'local' | 'centralized' | 'external';\n      cost: number;\n      duration: number;\n    }\n  }> {\n    // Get routing decision from centralized routing service\n    const routingDecision = await this.centralizedRoutingService.determineRoute(prompt, options);\n    \n    // Start tracking metadata\n    const metadataContext = this.runMetadataService.startRequest(routingDecision);\n    \n    try {\n      // Get provider configuration\n      const providerConfig = this.providerConfigService.getConfig(routingDecision.provider);\n      \n      // Add required headers\n      const headers = this.getDefaultHeaders(options, providerConfig);\n      \n      // Call provider with appropriate configuration\n      const response = await this.callProvider(routingDecision, prompt, headers, options);\n      \n      // Complete metadata tracking\n      const runMetadata = this.runMetadataService.completeRequest(metadataContext, response);\n      \n      return {\n        response: response.content,\n        runMetadata\n      };\n    } catch (error) {\n      // Handle errors and still return metadata\n      const runMetadata = this.runMetadataService.completeRequestWithError(metadataContext, error);\n      throw new Error(`LLM request failed: ${error.message}`);\n    }\n  }\n  \n  private getDefaultHeaders(options: any, providerConfig: any) {\n    return {\n      'X-Policy-Profile': options.policyProfile || 'standard',\n      'X-Data-Class': options.dataClass || 'public',\n      'X-Sovereign-Mode': options.sovereignMode || 'false',\n      ...providerConfig.headers\n    };\n  }\n  \n  private async callProvider(routingDecision: any, prompt: string, headers: any, options: any) {\n    // Implementation of provider-specific calls\n  }\n}\n```",
+        "testStrategy": "1. Write unit tests to verify LLMService enforces routing to centralized service\n2. Test that direct provider client instantiation throws appropriate errors\n3. Verify automatic header injection for all required headers\n4. Test response wrapper correctly includes run metadata\n5. Create integration tests to verify end-to-end flow\n6. Test edge cases like service unavailability and error handling",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create CentralizedRoutingService",
+            "description": "Implement a service that handles routing decisions for LLM requests based on complexity analysis, tier selection, and availability of local models.",
+            "dependencies": [],
+            "details": "Create a new file at apps/api/src/llms/centralized-routing.service.ts that implements routing logic. The service should analyze request complexity, select appropriate tiers (local, centralized, external), prefer local models when available, and fall back to external providers when needed. Include interfaces for routing decisions and configuration options.",
+            "status": "done",
+            "testStrategy": "Test complexity analysis with various prompts, verify tier selection logic, test local-first routing preference, validate external fallback behavior when local models are unavailable, and ensure correct model selection based on request requirements."
+          },
+          {
+            "id": 2,
+            "title": "Implement RunMetadataService",
+            "description": "Create a service for generating unique run IDs and collecting metadata about LLM requests including timing, cost estimation, and provider information.",
+            "dependencies": [],
+            "details": "Create a new file at apps/api/src/llms/run-metadata.service.ts that implements UUID v4 generation for unique run IDs, tracks request timing (start/end), estimates costs based on provider and model, and formats metadata for inclusion in responses. Include methods for starting, completing, and error-handling requests.",
+            "status": "done",
+            "testStrategy": "Test UUID generation for uniqueness and proper format, verify metadata collection captures all required fields (runId, provider, model, tier, cost, duration), test timing accuracy, validate cost estimation for different providers, and ensure proper error handling."
+          },
+          {
+            "id": 3,
+            "title": "Develop ProviderConfigService",
+            "description": "Create a service to manage provider configurations, including default settings, API endpoints, and header management.",
+            "dependencies": [],
+            "details": "Create a new file at apps/api/src/llms/provider-config.service.ts that stores and manages configurations for different LLM providers. Implement methods to retrieve provider-specific settings, manage default and custom headers, and handle provider-specific authentication. Include configuration for local, centralized, and external providers.",
+            "status": "done",
+            "testStrategy": "Test configuration retrieval for all supported providers, verify default header generation, test custom header overrides, validate authentication configuration handling, and ensure proper error handling for missing or invalid configurations."
+          },
+          {
+            "id": 4,
+            "title": "Implement SecretRedactionService",
+            "description": "Create a service that handles logging with secret redaction to prevent sensitive information from appearing in logs.",
+            "dependencies": [],
+            "details": "Create a new file at apps/api/src/llms/secret-redaction.service.ts that implements patterns for detecting and redacting sensitive information like API keys, tokens, and credentials. Include methods for safe logging that automatically redact secrets, correlate logs with runId, and implement production-specific logging controls.",
+            "status": "done",
+            "testStrategy": "Test secret redaction with various patterns of sensitive data, verify runId correlation in log entries, test production mode correctly disables verbose logging, validate structured logging format, and test with real-world examples of sensitive data patterns."
+          },
+          {
+            "id": 5,
+            "title": "Create LocalModelStatusService",
+            "description": "Implement a service that integrates with Ollama API to manage and monitor the status of local models.",
+            "dependencies": [],
+            "details": "Create a new file at apps/api/src/llms/local-model-status.service.ts that implements an Ollama API client to list available models, get model details, and pull models when needed. Include a health checking system with status caching (5-second TTL) and methods to determine if specific models are available for routing decisions.",
+            "status": "done",
+            "testStrategy": "Unit test the Ollama API client with mocked responses, test health checking with various model states, verify caching works correctly with TTL, test error handling and retry logic, and validate the service correctly detects which models are loaded and available."
+          },
+          {
+            "id": 6,
+            "title": "Update LLMService and Module Integration",
+            "description": "Enhance the existing LLMService to use the new services and update the LLMModule to include all new services.",
+            "dependencies": [],
+            "details": "Update the existing LLMService at apps/api/src/llms/llm.service.ts to inject and use all the new services. Implement the generateResponse method to use CentralizedRoutingService for routing decisions, RunMetadataService for tracking, ProviderConfigService for configuration, and SecretRedactionService for safe logging. Add provider client rejection mechanism and update the LLMModule to include all new services in the providers array.",
+            "status": "done",
+            "testStrategy": "Test the enhanced LLMService with integration tests, verify routing works correctly through the centralized service, test that direct provider client instantiation throws appropriate errors, verify automatic header injection, test the response wrapper includes correct metadata, and validate error handling and logging."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Extend Database Schema for Three-Tier Local Model Configuration",
+        "description": "Extend the llm_models table with local model columns and create seed data for three-tier model configuration.",
+        "details": "1. Create a database migration script to extend the `llm_models` table with the following columns:\n   - `is_local` (BOOLEAN, default FALSE)\n   - `is_currently_loaded` (BOOLEAN, default FALSE)\n   - `model_tier` (VARCHAR(50))\n   - `loading_priority` (INTEGER, default 0)\n\n2. SQL for table extension:\n```sql\nALTER TABLE orchestrator.llm_models \nADD COLUMN is_local BOOLEAN DEFAULT FALSE,\nADD COLUMN is_currently_loaded BOOLEAN DEFAULT FALSE,\nADD COLUMN model_tier VARCHAR(50),\nADD COLUMN loading_priority INTEGER DEFAULT 0;\n```\n\n3. Create seed data for three-tier model configuration:\n```sql\n-- Tier 1 (Fast Thinking)\nINSERT INTO orchestrator.llm_models (name, provider, is_local, model_tier, loading_priority)\nVALUES \n('gpt-oss-2b', 'ollama', TRUE, 'fast-thinking', 10),\n('gpt-oss-20b', 'ollama', TRUE, 'fast-thinking', 9);\n\n-- Tier 2 (Ultra-Fast)\nINSERT INTO orchestrator.llm_models (name, provider, is_local, model_tier, loading_priority)\nVALUES \n('llama3.2:1b', 'ollama', TRUE, 'ultra-fast', 10),\n('llama3.2:3b', 'ollama', TRUE, 'ultra-fast', 9);\n\n-- Tier 3 (General)\nINSERT INTO orchestrator.llm_models (name, provider, is_local, model_tier, loading_priority)\nVALUES \n('llama3.1:8b', 'ollama', TRUE, 'general', 8),\n('qwen2.5:7b', 'ollama', TRUE, 'general', 7);\n```\n\n4. Update provider service to handle local model metadata\n5. Create migration script for existing Ollama models to preserve data",
+        "testStrategy": "1. Verify database migration executes successfully\n2. Confirm all new columns are added with correct data types and defaults\n3. Validate seed data is properly inserted for all three tiers\n4. Test provider service correctly handles the new model metadata\n5. Verify migration script preserves existing Ollama model data\n6. Create database rollback script and test it works correctly",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Database Migration Script for Schema Extension",
+            "description": "Create a migration script to extend the llm_models table with new columns for local model configuration.",
+            "dependencies": [],
+            "details": "Create a new migration file in the database migrations directory with the SQL to add the new columns to the llm_models table. The migration should include the ALTER TABLE statement to add is_local, is_currently_loaded, model_tier, and loading_priority columns with appropriate default values and data types. Ensure the migration can be rolled back if needed by creating a down migration that removes these columns.",
+            "status": "done",
+            "testStrategy": "Verify the migration script executes successfully in a test database. Confirm all new columns are added with correct data types and defaults. Test the rollback functionality to ensure it properly removes the added columns."
+          },
+          {
+            "id": 2,
+            "title": "Create Seed Data for Three-Tier Model Configuration",
+            "description": "Develop seed data scripts for populating the extended llm_models table with the three-tier model configuration.",
+            "dependencies": [],
+            "details": "Create a seed data script that inserts the specified models into the llm_models table, categorized by their respective tiers (fast-thinking, ultra-fast, and general). Ensure each model has the appropriate is_local flag set to TRUE and the correct loading_priority values. The script should handle potential duplicate entries by either using INSERT IF NOT EXISTS or implementing a check before insertion.",
+            "status": "done",
+            "testStrategy": "Verify seed data is properly inserted for all three tiers. Check that the loading priorities are correctly assigned. Test with both empty and pre-populated tables to ensure the script handles both scenarios correctly."
+          },
+          {
+            "id": 3,
+            "title": "Create Migration Script for Existing Ollama Models",
+            "description": "Develop a migration script to update existing Ollama models in the database to preserve their data while adding the new fields.",
+            "dependencies": [],
+            "details": "Create a migration script that identifies existing Ollama models in the llm_models table and updates them with appropriate values for the new columns. Set is_local=TRUE for all Ollama models, assign appropriate model_tier values based on model capabilities, and set loading_priority values based on model size or performance characteristics. The script should be idempotent so it can be run multiple times without causing issues.",
+            "status": "done",
+            "testStrategy": "Test the migration script against a database with existing Ollama models. Verify that all existing models are properly updated with the new field values. Confirm that running the script multiple times doesn't create duplicate or conflicting data."
+          },
+          {
+            "id": 4,
+            "title": "Update Provider Service to Handle Local Model Metadata",
+            "description": "Modify the existing provider service to work with the new local model metadata fields.",
+            "dependencies": [],
+            "details": "Update the provider service to handle the new local model metadata fields. Implement functionality to check if a model is local, check if it's currently loaded, and consider its tier and loading priority when making decisions. Add methods to update the is_currently_loaded status when models are loaded or unloaded. Ensure the service can filter models by tier and sort them by loading priority when needed.",
+            "status": "done",
+            "testStrategy": "Test the updated provider service with both local and non-local models. Verify it correctly identifies local models and their loading status. Test the functionality to update the is_currently_loaded status. Validate that the service can properly filter models by tier and prioritize them based on loading_priority."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Implement LocalModelStatusService",
+        "description": "Create a LocalModelStatusService at apps/api/src/llms/local-model-status.service.ts that integrates with Ollama API to manage local models, including health checking and status caching.",
+        "details": "1. Create `LocalModelStatusService` at `apps/api/src/llms/local-model-status.service.ts`\n2. Implement Ollama API client with the following endpoints:\n   - GET `/api/tags` - list available models\n   - GET `/api/show/:model` - get model details\n   - POST `/api/pull` - download models if needed\n\n3. Build model health checking system:\n```typescript\n// apps/api/src/llms/local-model-status.service.ts\n@Injectable()\nexport class LocalModelStatusService {\n  private cache = new Map<string, {status: ModelHealthStatus, timestamp: number}>();\n  private TTL = 5000; // 5 seconds\n  \n  constructor(private httpService: HttpService) {}\n  \n  async checkModelHealth(modelName: string): Promise<ModelHealthStatus> {\n    // Check cache first\n    const cached = this.getStatusFromCache(modelName);\n    if (cached) return cached;\n    \n    try {\n      const startTime = Date.now();\n      const response = await this.testModelResponse(modelName);\n      const responseTime = Date.now() - startTime;\n      \n      const status = {\n        available: true,\n        responseTime,\n        memoryUsage: await this.getModelMemoryUsage(modelName),\n        lastChecked: new Date().toISOString()\n      };\n      \n      this.setStatusInCache(modelName, status);\n      return status;\n    } catch (error) {\n      const errorStatus = {\n        available: false,\n        error: error.message,\n        lastChecked: new Date().toISOString()\n      };\n      \n      this.setStatusInCache(modelName, errorStatus);\n      return errorStatus;\n    }\n  }\n  \n  private async testModelResponse(modelName: string) {\n    // Send a simple prompt to test model responsiveness\n    return this.httpService.post('http://localhost:11434/api/generate', {\n      model: modelName,\n      prompt: 'Hello',\n      stream: false\n    }).toPromise();\n  }\n  \n  private async getModelMemoryUsage(modelName: string) {\n    // Query Ollama for model memory usage\n    const response = await this.httpService.get(\n      `http://localhost:11434/api/show?name=${modelName}`\n    ).toPromise();\n    \n    return response.data.size || 0;\n  }\n  \n  getStatusFromCache(modelName: string): ModelHealthStatus | null {\n    const cached = this.cache.get(modelName);\n    if (cached && Date.now() - cached.timestamp < this.TTL) {\n      return cached.status;\n    }\n    return null;\n  }\n  \n  setStatusInCache(modelName: string, status: ModelHealthStatus): void {\n    this.cache.set(modelName, {\n      status,\n      timestamp: Date.now()\n    });\n  }\n  \n  async listAvailableModels(): Promise<string[]> {\n    try {\n      const response = await this.httpService.get('http://localhost:11434/api/tags').toPromise();\n      return response.data.models.map(model => model.name);\n    } catch (error) {\n      console.error('Failed to list Ollama models:', error);\n      return [];\n    }\n  }\n  \n  async ensureModelLoaded(modelName: string): Promise<boolean> {\n    try {\n      // Check if model exists\n      const models = await this.listAvailableModels();\n      if (!models.includes(modelName)) {\n        // Pull the model if it doesn't exist\n        await this.httpService.post('http://localhost:11434/api/pull', {\n          name: modelName\n        }).toPromise();\n      }\n      \n      // Verify model is working\n      const health = await this.checkModelHealth(modelName);\n      return health.available;\n    } catch (error) {\n      console.error(`Failed to ensure model ${modelName} is loaded:`, error);\n      return false;\n    }\n  }\n}\n```\n\n4. Add error handling and retry logic for Ollama API calls\n5. Implement service methods to check if models are currently loaded",
+        "testStrategy": "1. Unit test the Ollama API client with mocked responses\n2. Test health checking system with various model states\n3. Verify caching works correctly with the 5-second TTL\n4. Test error handling and retry logic with simulated failures\n5. Verify service correctly detects which models are loaded\n6. Test performance under load with multiple concurrent requests\n7. Validate graceful handling of Ollama unavailability",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement RunMetadataService",
+        "description": "Create a RunMetadataService at apps/api/src/llms/run-metadata.service.ts that implements unique runId generation (UUID v4) and metadata collection with timing and cost estimation.",
+        "details": "1. Implement RunMetadataService at apps/api/src/llms/run-metadata.service.ts\n2. Create unique runId generation using UUID v4\n3. Add basic timing and cost estimation functionality\n4. Implement correlation logging with runId\n5. Update response format to include metadata\n\n```typescript\n// apps/api/src/llms/run-metadata.service.ts\nimport { Injectable } from '@nestjs/common';\nimport { v4 as uuidv4 } from 'uuid';\n\nexport interface RunMetadata {\n  runId: string;\n  provider: string;\n  model: string;\n  tier: 'local' | 'centralized' | 'external';\n  cost: number;\n  duration: number;\n  timestamp: string;\n}\n\nexport interface RequestContext {\n  runId: string;\n  startTime: number;\n  provider: string;\n  model: string;\n  tier: 'local' | 'centralized' | 'external';\n}\n\n@Injectable()\nexport class RunMetadataService {\n  generateRunId(): string {\n    return uuidv4();\n  }\n  \n  startRequest(routingDecision: any): RequestContext {\n    const runId = this.generateRunId();\n    const startTime = Date.now();\n    \n    return {\n      runId,\n      startTime,\n      provider: routingDecision.provider,\n      model: routingDecision.model,\n      tier: this.determineTier(routingDecision)\n    };\n  }\n  \n  completeRequest(context: RequestContext, response: any): RunMetadata {\n    const duration = Date.now() - context.startTime;\n    const cost = this.estimateCost(context.provider, context.model, duration);\n    \n    return {\n      runId: context.runId,\n      provider: context.provider,\n      model: context.model,\n      tier: context.tier,\n      duration,\n      cost,\n      timestamp: new Date().toISOString()\n    };\n  }\n  \n  completeRequestWithError(context: RequestContext, error: any): RunMetadata {\n    const duration = Date.now() - context.startTime;\n    \n    return {\n      runId: context.runId,\n      provider: context.provider,\n      model: context.model,\n      tier: context.tier,\n      duration,\n      cost: 0, // No cost for failed requests\n      timestamp: new Date().toISOString()\n    };\n  }\n  \n  private determineTier(routingDecision: any): 'local' | 'centralized' | 'external' {\n    if (routingDecision.isLocal) {\n      return 'local';\n    } else if (routingDecision.provider === 'internal') {\n      return 'centralized';\n    } else {\n      return 'external';\n    }\n  }\n  \n  private estimateCost(provider: string, model: string, durationMs: number): number {\n    // Implement cost estimation logic based on provider and model\n    // Return approximate cost in USD\n    switch (provider.toLowerCase()) {\n      case 'openai':\n        if (model.includes('gpt-4')) {\n          return (durationMs / 1000) * 0.03; // Simplified cost estimate\n        } else {\n          return (durationMs / 1000) * 0.002;\n        }\n      case 'anthropic':\n        return (durationMs / 1000) * 0.025;\n      case 'ollama':\n      case 'local':\n        return 0.0001; // Nominal cost for tracking\n      default:\n        return 0.01; // Default cost\n    }\n  }\n}\n```",
+        "testStrategy": "1. Test runId generation for uniqueness and proper UUID v4 format\n2. Verify metadata collection captures all required fields\n3. Test timing accuracy for latency measurements\n4. Validate cost estimation for different providers and models\n5. Test correlation logging to ensure runId is included in all log entries\n6. Verify response format includes all required metadata fields\n7. Test edge cases like errors during processing",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Implement ProviderConfigService",
+        "description": "Create a ProviderConfigService at apps/api/src/llms/provider-config.service.ts with no-train/no-retain flag system, standardized timeouts, and provider adapter factory pattern.",
+        "details": "1. Create ProviderConfigService at apps/api/src/llms/provider-config.service.ts\n2. Implement no-train/no-retain flag system for different providers:\n   - OpenAI: `X-No-Store: true` and custom headers\n   - Anthropic: Policy compliance headers\n   - Others: Best-effort equivalent headers\n3. Set standardized timeouts per provider (30s default)\n4. Create provider adapter factory pattern\n5. Move all existing provider configs to central service\n\n```typescript\n// apps/api/src/llms/provider-config.service.ts\nimport { Injectable } from '@nestjs/common';\n\nexport interface ProviderConfig {\n  timeout: number;\n  retries: number;\n  headers: Record<string, string>;\n  noTrainFlags: Record<string, any>;\n}\n\n@Injectable()\nexport class ProviderConfigService {\n  getConfig(provider: string): ProviderConfig {\n    switch (provider.toLowerCase()) {\n      case 'openai':\n        return {\n          timeout: 30000,\n          retries: 2,\n          headers: {\n            'X-No-Store': 'true'\n          },\n          noTrainFlags: {\n            use_context: false\n          }\n        };\n      case 'anthropic':\n        return {\n          timeout: 30000,\n          retries: 2,\n          headers: {\n            'X-API-Policy-Compliance': 'no-train'\n          },\n          noTrainFlags: {\n            policyCompliance: 'no-train'\n          }\n        };\n      case 'ollama':\n        return {\n          timeout: 60000, // Local models may need longer timeout\n          retries: 1,\n          headers: {},\n          noTrainFlags: {}\n        };\n      default:\n        return {\n          timeout: 30000,\n          retries: 2,\n          headers: {},\n          noTrainFlags: {}\n        };\n    }\n  }\n  \n  createAdapter(provider: string): ProviderAdapter {\n    const config = this.getConfig(provider);\n    \n    switch (provider.toLowerCase()) {\n      case 'openai':\n        return new OpenAIAdapter(config);\n      case 'anthropic':\n        return new AnthropicAdapter(config);\n      case 'ollama':\n        return new OllamaAdapter(config);\n      default:\n        throw new Error(`Unsupported provider: ${provider}`);\n    }\n  }\n  \n  getProviderOptions(provider: string, baseOptions: any = {}): any {\n    const config = this.getConfig(provider);\n    const noTrainFlags = config.noTrainFlags;\n    \n    return {\n      ...baseOptions,\n      timeout: config.timeout,\n      ...noTrainFlags\n    };\n  }\n}\n\n// Provider adapter interfaces and implementations\nexport interface ProviderAdapter {\n  generateCompletion(prompt: string, options: any): Promise<any>;\n}\n\nclass OpenAIAdapter implements ProviderAdapter {\n  constructor(private config: ProviderConfig) {}\n  \n  async generateCompletion(prompt: string, options: any): Promise<any> {\n    // Implementation for OpenAI\n  }\n}\n\nclass AnthropicAdapter implements ProviderAdapter {\n  constructor(private config: ProviderConfig) {}\n  \n  async generateCompletion(prompt: string, options: any): Promise<any> {\n    // Implementation for Anthropic\n  }\n}\n\nclass OllamaAdapter implements ProviderAdapter {\n  constructor(private config: ProviderConfig) {}\n  \n  async generateCompletion(prompt: string, options: any): Promise<any> {\n    // Implementation for Ollama\n  }\n}\n```\n\n6. Update environment variable handling to use centralized configuration",
+        "testStrategy": "1. Test provider configuration for each supported provider\n2. Verify no-train flags are correctly set for each provider\n3. Test timeout and retry policy implementation\n4. Validate provider adapter factory creates correct adapters\n5. Test environment variable handling and defaults\n6. Verify all existing provider configs are properly migrated\n7. Test with actual API calls to ensure headers are properly sent",
+        "priority": "high",
+        "dependencies": [
+          1,
+          4
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement CentralizedRoutingService",
+        "description": "Create a CentralizedRoutingService at apps/api/src/llms/centralized-routing.service.ts with complexity analysis, tier selection algorithm, local-first routing preference, and external fallback when local is unavailable.",
+        "details": "1. Create CentralizedRoutingService at apps/api/src/llms/centralized-routing.service.ts with the following components:\n   - Complexity analysis for request classification\n   - Tier selection algorithm\n   - Local-first routing preference\n   - External fallback when local unavailable\n\n```typescript\n// apps/api/src/llms/centralized-routing.service.ts\nimport { Injectable } from '@nestjs/common';\nimport { LocalModelStatusService } from './local-model-status.service';\n\nexport interface RoutingDecision {\n  provider: string;\n  model: string;\n  isLocal: boolean;\n  modelTier?: string;\n  fallbackUsed: boolean;\n}\n\nexport interface LLMRequest {\n  prompt: string;\n  options?: any;\n}\n\n@Injectable()\nexport class CentralizedRoutingService {\n  constructor(\n    private localModelService: LocalModelStatusService,\n    private databaseService: any // Inject your database service\n  ) {}\n  \n  async determineRoute(prompt: string, options: any = {}): Promise<RoutingDecision> {\n    // If specific provider/model is requested, honor it\n    if (options.provider && options.model) {\n      return {\n        provider: options.provider,\n        model: options.model,\n        isLocal: options.provider === 'ollama',\n        fallbackUsed: false\n      };\n    }\n    \n    // 1. Analyze request complexity\n    const complexity = this.analyzeComplexity({ prompt, options });\n    \n    // 2. Select appropriate tier based on complexity\n    const tier = this.selectTierForComplexity(complexity);\n    \n    // 3. Check if local models in the tier are available\n    const availableModels = await this.getAvailableLocalModels(tier);\n    \n    if (availableModels.length > 0) {\n      // 4a. Select best local model from tier\n      const selectedModel = this.selectBestModel(availableModels, { prompt, options });\n      return {\n        provider: 'ollama',\n        model: selectedModel.name,\n        isLocal: true,\n        modelTier: tier,\n        fallbackUsed: false\n      };\n    } else {\n      // 4b. Fall back to external provider\n      return this.getExternalFallback(tier, { prompt, options });\n    }\n  }\n  \n  private analyzeComplexity(request: LLMRequest): 'simple' | 'medium' | 'complex' {\n    const { prompt } = request;\n    \n    // Simple heuristics for complexity analysis\n    const wordCount = prompt.split(/\\s+/).length;\n    const sentenceCount = prompt.split(/[.!?]+/).length;\n    \n    if (wordCount < 20) {\n      return 'simple';\n    } else if (wordCount < 100) {\n      return 'medium';\n    } else {\n      return 'complex';\n    }\n    \n    // More sophisticated analysis could include:\n    // - Keyword detection for complex tasks\n    // - Sentiment analysis\n    // - Topic classification\n  }\n  \n  private selectTierForComplexity(complexity: 'simple' | 'medium' | 'complex'): string {\n    switch (complexity) {\n      case 'simple':\n        return 'ultra-fast';\n      case 'medium':\n        return 'general';\n      case 'complex':\n        return 'fast-thinking';\n    }\n  }\n  \n  private async getAvailableLocalModels(tier: string): Promise<any[]> {\n    // 1. Query database for models in the specified tier\n    const models = await this.databaseService.query(`\n      SELECT * FROM llm_models \n      WHERE is_local = TRUE AND model_tier = $1\n      ORDER BY loading_priority DESC\n    `, [tier]);\n    \n    // 2. Check with localModelService if they're currently loaded\n    const availableModels = [];\n    \n    for (const model of models) {\n      const health = await this.localModelService.checkModelHealth(model.name);\n      if (health.available) {\n        availableModels.push({\n          ...model,\n          health\n        });\n      }\n    }\n    \n    return availableModels;\n  }\n  \n  private selectBestModel(models: any[], request: LLMRequest): any {\n    // Select best model based on priority and request characteristics\n    // For now, simply return the highest priority model\n    return models[0];\n  }\n  \n  private getExternalFallback(tier: string, request: LLMRequest): RoutingDecision {\n    // Map local tier to appropriate external provider/model\n    switch (tier) {\n      case 'fast-thinking':\n        return {\n          provider: 'openai',\n          model: 'gpt-4',\n          isLocal: false,\n          modelTier: 'external-advanced',\n          fallbackUsed: true\n        };\n      case 'general':\n        return {\n          provider: 'openai',\n          model: 'gpt-3.5-turbo',\n          isLocal: false,\n          modelTier: 'external-standard',\n          fallbackUsed: true\n        };\n      case 'ultra-fast':\n        return {\n          provider: 'openai',\n          model: 'gpt-3.5-turbo-instruct',\n          isLocal: false,\n          modelTier: 'external-fast',\n          fallbackUsed: true\n        };\n      default:\n        return {\n          provider: 'openai',\n          model: 'gpt-3.5-turbo',\n          isLocal: false,\n          fallbackUsed: true\n        };\n    }\n  }\n}\n```\n\n2. Implement model preloading system:\n```typescript\n// apps/api/src/llms/model-preloader.service.ts\nimport { Injectable, OnModuleInit } from '@nestjs/common';\nimport { LocalModelStatusService } from './local-model-status.service';\n\n@Injectable()\nexport class ModelPreloaderService implements OnModuleInit {\n  constructor(\n    private databaseService: any, // Inject your database service\n    private localModelService: LocalModelStatusService\n  ) {}\n  \n  async onModuleInit() {\n    // Preload models when the application starts\n    await this.preloadHighPriorityModels();\n  }\n  \n  async preloadHighPriorityModels(): Promise<void> {\n    const models = await this.databaseService.query(`\n      SELECT * FROM llm_models \n      WHERE is_local = TRUE\n      ORDER BY loading_priority DESC\n      LIMIT 5\n    `);\n    \n    for (const model of models) {\n      try {\n        console.log(`Preloading model: ${model.name}`);\n        await this.localModelService.ensureModelLoaded(model.name);\n        await this.databaseService.query(`\n          UPDATE llm_models\n          SET is_currently_loaded = TRUE\n          WHERE name = $1\n        `, [model.name]);\n      } catch (error) {\n        console.error(`Failed to preload model ${model.name}:`, error);\n      }\n    }\n  }\n  \n  async ensureThreeTierModelsLoaded(): Promise<void> {\n    // Ensure at least one model from each tier is loaded\n    const tiers = ['fast-thinking', 'ultra-fast', 'general'];\n    \n    for (const tier of tiers) {\n      const models = await this.databaseService.query(`\n        SELECT * FROM llm_models \n        WHERE is_local = TRUE AND model_tier = $1\n        ORDER BY loading_priority DESC\n        LIMIT 1\n      `, [tier]);\n      \n      if (models.length > 0) {\n        await this.localModelService.ensureModelLoaded(models[0].name);\n      }\n    }\n  }\n}\n```\n\n3. Create routing decision logging\n4. Add performance monitoring per tier",
+        "testStrategy": "1. Test complexity analysis with various request types\n2. Verify tier selection algorithm chooses appropriate tiers\n3. Test local-first routing preference works correctly\n4. Validate external fallback when local models are unavailable\n5. Test model preloading system loads high-priority models\n6. Verify three-tier models remain loaded during operation\n7. Test routing decision logging for accuracy\n8. Validate performance monitoring across all tiers",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3,
+          5
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Complexity Analysis System",
+            "description": "Create the complexity analysis component of the CentralizedRoutingService that classifies LLM requests based on their complexity using various heuristics.",
+            "dependencies": [],
+            "details": "Enhance the analyzeComplexity method to use more sophisticated analysis techniques beyond just word and sentence count. Implement keyword detection for complex tasks, analyze request structure, and consider the presence of code or structured data. Create a scoring system that weighs multiple factors:\n- Word and token count analysis\n- Presence of specialized terminology or technical keywords\n- Detection of code blocks or structured data\n- Estimated cognitive load based on sentence complexity\n- Task type classification (e.g., summarization, generation, analysis)\n\nReturn standardized complexity levels ('simple', 'medium', 'complex') based on the combined score.",
+            "status": "done",
+            "testStrategy": "Test with various prompt types including simple queries, medium-complexity instructions, and complex reasoning tasks. Verify classification accuracy against a set of pre-classified examples. Create unit tests with edge cases like very short but complex prompts and very long but simple prompts."
+          },
+          {
+            "id": 2,
+            "title": "Implement Tier Selection Algorithm",
+            "description": "Develop the tier selection algorithm that maps request complexity to appropriate model tiers and considers user preferences and system load.",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Enhance the selectTierForComplexity method to consider additional factors beyond just complexity:\n- Create a mapping configuration between complexity levels and model tiers\n- Add consideration for user preferences (if specified in options)\n- Implement system load awareness to potentially downgrade tier during high load\n- Add context-specific tier selection (e.g., code-related prompts to code-specialized models)\n- Implement cost-awareness to optimize for lower-cost tiers when appropriate\n\nThe method should return the appropriate tier ('ultra-fast', 'general', 'fast-thinking') based on these combined factors.",
+            "status": "done",
+            "testStrategy": "Test tier selection with various complexity inputs and user preferences. Verify that system load considerations correctly adjust tier selection. Test with specialized contexts to ensure context-specific routing works correctly."
+          },
+          {
+            "id": 3,
+            "title": "Implement Local Model Selection Logic",
+            "description": "Create the logic for selecting the best available local model within a given tier based on model capabilities, health status, and performance metrics.",
+            "dependencies": [
+              "6.2"
+            ],
+            "details": "Enhance the getAvailableLocalModels and selectBestModel methods to:\n- Query the database for models in the specified tier with proper sorting\n- Check model health status using the LocalModelStatusService\n- Consider model performance metrics (if available) for selection\n- Implement a scoring system that balances model capability, health, and performance\n- Add fallback logic within the same tier if preferred model is unavailable\n- Cache model availability status with appropriate TTL\n\nThe methods should return a prioritized list of available models and select the best one based on the request characteristics.",
+            "status": "done",
+            "testStrategy": "Test with various tier inputs and model availability scenarios. Mock the LocalModelStatusService to simulate different health statuses. Verify that the best model is selected based on the defined criteria. Test caching behavior and fallback logic."
+          },
+          {
+            "id": 4,
+            "title": "Implement External Fallback System",
+            "description": "Develop the external fallback system that selects appropriate external providers and models when local models are unavailable.",
+            "dependencies": [
+              "6.3"
+            ],
+            "details": "Enhance the getExternalFallback method to:\n- Create a configurable mapping between local tiers and external provider/model combinations\n- Consider cost optimization when selecting external providers\n- Implement provider-specific parameter adjustments for equivalent performance\n- Add capability to respect user preferences for external providers\n- Include retry logic with different providers if primary external provider fails\n- Log fallback events for monitoring and optimization\n\nThe method should return a complete RoutingDecision with appropriate external provider details.",
+            "status": "done",
+            "testStrategy": "Test fallback selection with various tier inputs. Verify that appropriate external models are selected for each tier. Test provider-specific parameter adjustments. Verify that user preferences are respected when specified. Test retry logic with simulated provider failures."
+          },
+          {
+            "id": 5,
+            "title": "Integrate with Model Preloading System",
+            "description": "Integrate the CentralizedRoutingService with the ModelPreloaderService to ensure high-priority models are available and implement dynamic model loading based on usage patterns.",
+            "dependencies": [
+              "6.3",
+              "6.4"
+            ],
+            "details": "Create integration between CentralizedRoutingService and ModelPreloaderService:\n- Implement a feedback mechanism to inform preloader about model usage patterns\n- Add priority boosting for frequently used models\n- Create a method to request model loading when needed but unavailable\n- Implement tier-based preloading to ensure at least one model per tier is available\n- Add background health checking for preloaded models\n- Create a model unloading strategy for rarely used models to free resources\n\nUpdate the determineRoute method to work with this integration, potentially waiting for critical models to load if requested.",
+            "status": "done",
+            "testStrategy": "Test integration with ModelPreloaderService using mocks. Verify that frequently used models get priority boosting. Test dynamic loading requests when models are unavailable. Verify tier-based preloading ensures coverage across all tiers. Test model unloading strategy with simulated usage patterns."
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Implement SecretRedactionService",
+        "description": "Create a SecretRedactionService at apps/api/src/llms/secret-redaction.service.ts with comprehensive secret redaction, runId correlation for all log entries, and production-specific logging controls.",
+        "details": "1. Implement SecretRedactionService at apps/api/src/llms/secret-redaction.service.ts for:\n   - API keys and tokens\n   - User credentials\n   - Sensitive configuration data\n\n```typescript\n// apps/api/src/llms/secret-redaction.service.ts\nimport { Injectable, LoggerService } from '@nestjs/common';\n\n@Injectable()\nexport class SecretRedactionService {\n  private patterns: RegExp[] = [\n    // API key patterns\n    /sk-[a-zA-Z0-9]{32,}/g, // OpenAI API keys\n    /sk-ant-[a-zA-Z0-9]{32,}/g, // Anthropic API keys\n    \n    // Auth token patterns\n    /Bearer\\s+[a-zA-Z0-9._-]+/gi,\n    /Authorization:\\s*['\"]?Bearer\\s+[a-zA-Z0-9._-]+['\"]?/gi,\n    \n    // Password patterns\n    /password['\"]?\\s*[:=]\\s*['\"]([^'\"]+)['\"]?/gi,\n    \n    // Environment variable patterns\n    /([A-Z_]+_KEY|[A-Z_]+_SECRET|[A-Z_]+_PASSWORD)\\s*[:=]\\s*['\"]?([^'\"\\s]+)['\"]?/gi\n  ];\n  \n  private isProduction: boolean;\n  \n  constructor() {\n    this.isProduction = process.env.NODE_ENV === 'production';\n  }\n  \n  redact(text: string): string {\n    if (!text) return text;\n    \n    let redacted = text;\n    for (const pattern of this.patterns) {\n      redacted = redacted.replace(pattern, '[REDACTED]');\n    }\n    \n    return redacted;\n  }\n  \n  redactObject(obj: any): any {\n    if (!obj) return obj;\n    if (typeof obj !== 'object') return obj;\n    \n    const result = Array.isArray(obj) ? [] : {};\n    \n    for (const [key, value] of Object.entries(obj)) {\n      // Skip redaction for safe keys\n      if (['id', 'runId', 'timestamp', 'level'].includes(key)) {\n        result[key] = value;\n        continue;\n      }\n      \n      // Redact sensitive keys entirely\n      if (['password', 'secret', 'token', 'key', 'authorization'].includes(key.toLowerCase())) {\n        result[key] = '[REDACTED]';\n        continue;\n      }\n      \n      // Recursively redact objects\n      if (typeof value === 'object' && value !== null) {\n        result[key] = this.redactObject(value);\n        continue;\n      }\n      \n      // Redact strings\n      if (typeof value === 'string') {\n        result[key] = this.redact(value);\n        continue;\n      }\n      \n      // Pass through other values\n      result[key] = value;\n    }\n    \n    return result;\n  }\n  \n  shouldLogBody(): boolean {\n    return !this.isProduction;\n  }\n  \n  log(level: 'info' | 'warn' | 'error', message: string, context: any): void {\n    const logEntry = {\n      runId: context.runId || 'unknown',\n      timestamp: new Date().toISOString(),\n      level,\n      message: this.redact(message)\n    };\n    \n    // In production, don't log request/response bodies\n    if (this.isProduction && context.body) {\n      delete context.body;\n    }\n    \n    // Redact any remaining context data\n    const safeContext = this.redactObject(context);\n    \n    // Log the entry (implementation depends on logging library)\n    console.log(JSON.stringify({ ...logEntry, context: safeContext }));\n  }\n}\n```\n\n2. Add runId correlation to all log entries\n\n```typescript\n// Example usage in LLMService\n@Injectable()\nexport class LLMService {\n  constructor(\n    private readonly secretRedactionService: SecretRedactionService,\n    // other dependencies\n  ) {}\n  \n  async generateResponse(prompt: string, options: any = {}) {\n    // Get routing decision and start metadata tracking\n    const routingDecision = await this.centralizedRoutingService.determineRoute(prompt, options);\n    const metadataContext = this.runMetadataService.startRequest(routingDecision);\n    \n    // Log the request with runId correlation\n    this.secretRedactionService.log('info', 'LLM request initiated', {\n      runId: metadataContext.runId,\n      provider: routingDecision.provider,\n      model: routingDecision.model,\n      isLocal: routingDecision.isLocal,\n      // Only log prompt in non-production\n      ...(this.secretRedactionService.shouldLogBody() ? { prompt } : {})\n    });\n    \n    try {\n      // Process request...\n      \n      // Log the response\n      this.secretRedactionService.log('info', 'LLM request completed', {\n        runId: metadataContext.runId,\n        duration: Date.now() - metadataContext.startTime,\n        // Only log response in non-production\n        ...(this.secretRedactionService.shouldLogBody() ? { response } : {})\n      });\n      \n      return { response, runMetadata };\n    } catch (error) {\n      // Log the error\n      this.secretRedactionService.log('error', 'LLM request failed', {\n        runId: metadataContext.runId,\n        error: error.message,\n        stack: error.stack\n      });\n      \n      throw error;\n    }\n  }\n}\n```\n\n3. Create structured logging format as specified in the PRD\n4. Disable request/response body logging in production environments",
+        "testStrategy": "1. Test secret redaction with various patterns of sensitive data\n2. Verify runId correlation is present in all log entries\n3. Test production mode correctly disables request/response body logging\n4. Validate structured logging format matches requirements\n5. Test with real-world examples of sensitive data patterns\n6. Verify object redaction works recursively\n7. Test performance impact of redaction on large objects",
+        "priority": "medium",
+        "dependencies": [
+          4
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Create Developer Panel UI Components",
+        "description": "Create RunMetadataPanel Vue component and LocalModelStatus dashboard to display run metadata, model tier status, and routing decision visualization.",
+        "details": "1. Create `RunMetadataPanel` Vue component:\n\n```vue\n<!-- apps/client/src/components/RunMetadataPanel.vue -->\n<template>\n  <div class=\"run-metadata-panel\" v-if=\"hasMetadata\">\n    <div class=\"panel-header\">\n      <h3>Run Metadata</h3>\n      <button @click=\"toggleExpanded\" class=\"toggle-button\">\n        {{ expanded ? 'Collapse' : 'Expand' }}\n      </button>\n    </div>\n    \n    <div class=\"panel-content\" v-if=\"expanded\">\n      <div class=\"metadata-item\">\n        <span class=\"label\">Run ID:</span>\n        <span class=\"value\">{{ metadata.runId }}</span>\n      </div>\n      \n      <div class=\"metadata-item\">\n        <span class=\"label\">Provider:</span>\n        <span class=\"value\">{{ metadata.provider }}</span>\n      </div>\n      \n      <div class=\"metadata-item\">\n        <span class=\"label\">Model:</span>\n        <span class=\"value\">{{ metadata.model }}</span>\n      </div>\n      \n      <div class=\"metadata-item\">\n        <span class=\"label\">Tier:</span>\n        <span class=\"value\">{{ metadata.tier }}</span>\n      </div>\n      \n      <div class=\"metadata-item\">\n        <span class=\"label\">Duration:</span>\n        <span class=\"value\">{{ formatDuration(metadata.duration) }}</span>\n      </div>\n      \n      <div class=\"metadata-item\">\n        <span class=\"label\">Cost:</span>\n        <span class=\"value\">${{ formatCost(metadata.cost) }}</span>\n      </div>\n      \n      <div class=\"metadata-item\">\n        <span class=\"label\">Timestamp:</span>\n        <span class=\"value\">{{ formatTimestamp(metadata.timestamp) }}</span>\n      </div>\n    </div>\n  </div>\n</template>\n\n<script>\nexport default {\n  name: 'RunMetadataPanel',\n  props: {\n    metadata: {\n      type: Object,\n      default: () => ({})\n    }\n  },\n  data() {\n    return {\n      expanded: false\n    };\n  },\n  computed: {\n    hasMetadata() {\n      return this.metadata && this.metadata.runId;\n    }\n  },\n  methods: {\n    toggleExpanded() {\n      this.expanded = !this.expanded;\n    },\n    formatDuration(duration) {\n      return `${duration}ms`;\n    },\n    formatCost(cost) {\n      return cost.toFixed(6);\n    },\n    formatTimestamp(timestamp) {\n      return new Date(timestamp).toLocaleString();\n    }\n  }\n};\n</script>\n```\n\n2. Build `LocalModelStatus` dashboard:\n\n```vue\n<!-- apps/client/src/components/LocalModelStatus.vue -->\n<template>\n  <div class=\"local-model-status\">\n    <h2>Local Model Status</h2>\n    \n    <div class=\"tier-container\" v-for=\"tier in tiers\" :key=\"tier.name\">\n      <h3>{{ formatTierName(tier.name) }}</h3>\n      \n      <div class=\"models-grid\">\n        <div \n          v-for=\"model in tier.models\" \n          :key=\"model.name\"\n          class=\"model-card\"\n          :class=\"getStatusClass(model.status)\"\n        >\n          <div class=\"model-name\">{{ model.name }}</div>\n          <div class=\"model-status\">{{ model.status }}</div>\n          <div class=\"model-metrics\" v-if=\"model.status === 'loaded'\">\n            <div>Response: {{ formatResponseTime(model.responseTime) }}</div>\n            <div>Memory: {{ formatMemory(model.memoryUsage) }}</div>\n          </div>\n        </div>\n      </div>\n    </div>\n    \n    <div class=\"connection-status\">\n      <div class=\"status-indicator\" :class=\"ollamaConnected ? 'connected' : 'disconnected'\"></div>\n      <span>Ollama Connection: {{ ollamaConnected ? 'Connected' : 'Disconnected' }}</span>\n    </div>\n    \n    <div class=\"last-check\">\n      Last Updated: {{ lastChecked }}\n    </div>\n  </div>\n</template>\n\n<script>\nexport default {\n  name: 'LocalModelStatus',\n  data() {\n    return {\n      tiers: [],\n      ollamaConnected: false,\n      lastChecked: ''\n    };\n  },\n  created() {\n    this.fetchModelStatus();\n    // Set up polling every 10 seconds\n    this.pollingInterval = setInterval(this.fetchModelStatus, 10000);\n  },\n  beforeDestroy() {\n    clearInterval(this.pollingInterval);\n  },\n  methods: {\n    async fetchModelStatus() {\n      try {\n        const response = await fetch('/api/llm/local-models/status');\n        const data = await response.json();\n        \n        this.tiers = data.tiers;\n        this.ollamaConnected = data.ollamaConnected;\n        this.lastChecked = new Date().toLocaleString();\n      } catch (error) {\n        console.error('Failed to fetch model status:', error);\n        this.ollamaConnected = false;\n      }\n    },\n    formatTierName(name) {\n      return name.split('-').map(word => \n        word.charAt(0).toUpperCase() + word.slice(1)\n      ).join(' ');\n    },\n    getStatusClass(status) {\n      return {\n        'status-loaded': status === 'loaded',\n        'status-loading': status === 'loading',\n        'status-error': status === 'error',\n        'status-unavailable': status === 'unavailable'\n      };\n    },\n    formatResponseTime(time) {\n      return `${time}ms`;\n    },\n    formatMemory(bytes) {\n      const gb = bytes / (1024 * 1024 * 1024);\n      return `${gb.toFixed(1)} GB`;\n    }\n  }\n};\n</script>\n```\n\n3. Add routing decision visualization component\n4. Integrate with existing developer tools\n5. Implement responsive design for all components",
+        "testStrategy": "1. Test RunMetadataPanel component renders correctly with sample metadata\n2. Verify expand/collapse functionality works\n3. Test LocalModelStatus dashboard correctly displays model status\n4. Verify real-time updates work with polling\n5. Test responsive design on different screen sizes\n6. Validate integration with existing developer tools\n7. Test edge cases like missing data or connection errors\n8. Perform accessibility testing on all UI components",
+        "priority": "low",
+        "dependencies": [
+          4,
+          6
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement RunMetadataPanel Vue Component",
+            "description": "Create the RunMetadataPanel Vue component to display metadata about LLM runs including run ID, provider, model, tier, duration, cost, and timestamp.",
+            "dependencies": [],
+            "details": "Create the RunMetadataPanel.vue component in apps/client/src/components/ directory. Implement the component with expand/collapse functionality, proper formatting for duration, cost and timestamp values. Ensure the component only renders when metadata is available. Style the component to match the application's design system.",
+            "status": "done",
+            "testStrategy": "Test component rendering with sample metadata. Verify expand/collapse functionality works correctly. Test edge cases like missing metadata fields. Ensure formatting functions work as expected for duration, cost, and timestamp."
+          },
+          {
+            "id": 2,
+            "title": "Implement LocalModelStatus Dashboard",
+            "description": "Create the LocalModelStatus Vue component to display the status of local models organized by tiers, with connection status to Ollama and auto-refresh functionality.",
+            "dependencies": [],
+            "details": "Create the LocalModelStatus.vue component in apps/client/src/components/ directory. Implement the polling mechanism to fetch model status every 10 seconds. Display models grouped by tiers with appropriate status indicators. Show connection status to Ollama and last updated timestamp. Style the component with appropriate visual indicators for different model statuses.",
+            "status": "done",
+            "testStrategy": "Test the component renders correctly with sample data. Verify polling mechanism works as expected. Test different model statuses display correctly. Ensure connection status indicator updates appropriately. Test error handling when API calls fail."
+          },
+          {
+            "id": 3,
+            "title": "Create Routing Decision Visualization Component",
+            "description": "Develop a component to visualize the routing decision process, showing how requests are routed to different model tiers based on the routing logic.",
+            "dependencies": [
+              "8.1",
+              "8.2"
+            ],
+            "details": "Create a RoutingVisualization.vue component that displays a flowchart-like visualization of how requests are routed through the system. Show the decision points and criteria used for routing. Include visual indicators for the current active path based on the latest request. Implement tooltips to explain routing decisions in detail.",
+            "status": "done",
+            "testStrategy": "Test the visualization renders correctly with different routing scenarios. Verify tooltips display appropriate information. Test responsiveness on different screen sizes. Ensure the active path is highlighted correctly based on the current routing decision."
+          },
+          {
+            "id": 4,
+            "title": "Integrate Components into Developer Tools Panel",
+            "description": "Create a parent DevToolsPanel component that integrates all the developer UI components and implement responsive design for all components.",
+            "dependencies": [
+              "8.1",
+              "8.2",
+              "8.3"
+            ],
+            "details": "Create a DevToolsPanel.vue component that serves as a container for all developer tools components. Implement a tabbed interface to switch between different tools (RunMetadata, LocalModelStatus, RoutingVisualization). Add a toggle to show/hide the entire panel. Ensure all components are responsive and work well on different screen sizes. Connect the panel to the existing API endpoints to fetch real data.",
+            "status": "done",
+            "testStrategy": "Test the integrated panel with all components. Verify tab switching works correctly. Test the show/hide functionality. Ensure responsive design works on mobile, tablet, and desktop views. Test integration with the API endpoints. Verify all components receive and display data correctly."
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Migrate Metrics/KPI Agent to Centralized Service",
+        "description": "Update Metrics/KPI agent to use the enhanced LLMService, replace direct provider clients, and test functionality with the centralized service.",
+        "details": "1. Update Metrics/KPI agent located at `apps/api/src/agents/actual/finance/metrics/`\n2. Replace direct provider clients with enhanced LLMService\n3. Update import statements and remove provider dependencies\n\n```typescript\n// Before migration\nimport { OpenAI } from 'openai';\n\nclass MetricsAgent {\n  private openai: OpenAI;\n  \n  constructor() {\n    this.openai = new OpenAI({\n      apiKey: process.env.OPENAI_API_KEY\n    });\n  }\n  \n  async analyzeMetrics(data: any) {\n    const response = await this.openai.chat.completions.create({\n      model: 'gpt-4',\n      messages: [\n        { role: 'system', content: 'You are a financial metrics analyst.' },\n        { role: 'user', content: `Analyze these metrics: ${JSON.stringify(data)}` }\n      ]\n    });\n    \n    return response.choices[0].message.content;\n  }\n}\n\n// After migration\nimport { LLMService } from '../../../llms/llm.service';\n\nclass MetricsAgent {\n  constructor(private llmService: LLMService) {}\n  \n  async analyzeMetrics(data: any) {\n    const result = await this.llmService.generateResponse(\n      `Analyze these metrics: ${JSON.stringify(data)}`,\n      {\n        systemPrompt: 'You are a financial metrics analyst.',\n        dataClass: 'financial', // Set appropriate data classification\n        policyProfile: 'standard'\n      }\n    );\n    \n    return result.response;\n  }\n}\n```\n\n4. Test agent functionality with centralized service\n5. Verify metadata collection and logging\n6. Validate three-tier routing with agent requests",
+        "testStrategy": "1. Test agent functionality before and after migration to ensure identical results\n2. Verify all direct provider client usage is removed\n3. Test that agent requests generate proper metadata\n4. Validate logging includes runId correlation\n5. Test three-tier routing works correctly with agent requests\n6. Verify error handling and fallback behavior\n7. Test performance impact of centralized routing",
+        "priority": "high",
+        "dependencies": [
+          1,
+          5,
+          6,
+          7
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Perform Comprehensive Integration Testing",
+        "description": "Conduct end-to-end flow testing, no-train header verification, secret redaction validation, runId correlation testing, error handling, and establish performance baseline.",
+        "details": "1. End-to-end flow testing:\n   - Agent → LLMService → Provider → Response\n   - Local model routing validation\n   - External fallback verification\n\n2. Create test cases for each flow:\n```typescript\n// tests/integration/end-to-end.test.ts\ndescribe('End-to-end LLM Service Flow', () => {\n  test('Agent request flows through centralized service to local model', async () => {\n    // Setup test agent with LLMService\n    const agent = new TestAgent(llmService);\n    \n    // Mock Ollama to ensure local routing\n    mockOllamaAvailable(true);\n    \n    // Execute agent request\n    const result = await agent.executeRequest('simple test prompt');\n    \n    // Verify flow\n    expect(result.runMetadata.tier).toBe('local');\n    expect(result.runMetadata.provider).toBe('ollama');\n    expect(result.runMetadata.runId).toBeDefined();\n    expect(result.response).toBeDefined();\n  });\n  \n  test('Falls back to external provider when local unavailable', async () => {\n    // Setup test agent with LLMService\n    const agent = new TestAgent(llmService);\n    \n    // Mock Ollama to force fallback\n    mockOllamaAvailable(false);\n    \n    // Execute agent request\n    const result = await agent.executeRequest('test prompt');\n    \n    // Verify fallback\n    expect(result.runMetadata.tier).toBe('external');\n    expect(['openai', 'anthropic']).toContain(result.runMetadata.provider);\n    expect(result.runMetadata.runId).toBeDefined();\n    expect(result.response).toBeDefined();\n  });\n});\n```\n\n3. No-train header verification across all providers:\n```typescript\n// tests/integration/no-train-headers.test.ts\ndescribe('No-train Header Verification', () => {\n  test('OpenAI requests include no-train headers', async () => {\n    // Mock network to capture headers\n    const headerSpy = mockProviderRequest('openai');\n    \n    // Force routing to OpenAI\n    mockRoutingDecision({ provider: 'openai', model: 'gpt-4' });\n    \n    // Execute request through LLMService\n    await llmService.generateResponse('test prompt');\n    \n    // Verify headers\n    expect(headerSpy).toHaveBeenCalledWith(\n      expect.objectContaining({\n        headers: expect.objectContaining({\n          'X-No-Store': 'true'\n        })\n      })\n    );\n  });\n  \n  // Similar tests for other providers\n});\n```\n\n4. Secret redaction validation in logs\n5. RunId correlation testing across entire request flow\n6. Error handling and fallback behavior testing\n7. Performance baseline establishment",
+        "testStrategy": "1. Create automated integration tests for all end-to-end flows\n2. Use network mocking to verify headers sent to providers\n3. Implement log capture and analysis to verify secret redaction\n4. Test runId correlation by tracing through all system components\n5. Simulate various error conditions to test fallback behavior\n6. Measure and document performance metrics as baseline\n7. Create test report template for ongoing regression testing",
+        "priority": "high",
+        "dependencies": [
+          9
+        ],
+        "status": "in-progress",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Perform Local Model Performance Testing",
+        "description": "Benchmark three-tier model performance, validate always-on availability, compare local vs. external performance, and conduct load testing with realistic agent workloads.",
+        "details": "1. Benchmark three-tier model performance:\n   - Response time analysis per tier\n   - Memory usage and resource consumption\n   - Concurrent request handling\n\n```typescript\n// tests/performance/local-models.test.ts\ndescribe('Local Model Performance', () => {\n  beforeAll(async () => {\n    // Ensure all models are loaded\n    await modelPreloaderService.preloadHighPriorityModels();\n  });\n  \n  test('Tier 1 (Fast Thinking) response times', async () => {\n    const results = [];\n    const testPrompt = 'Explain quantum computing in simple terms';\n    \n    // Run multiple iterations\n    for (let i = 0; i < 10; i++) {\n      const startTime = Date.now();\n      await llmService.generateResponse(testPrompt, {\n        forceTier: 'fast-thinking'\n      });\n      results.push(Date.now() - startTime);\n    }\n    \n    const avgResponseTime = results.reduce((a, b) => a + b, 0) / results.length;\n    console.log(`Tier 1 average response time: ${avgResponseTime}ms`);\n    \n    // Verify performance meets requirements\n    expect(avgResponseTime).toBeLessThan(2000); // Less than 2 seconds\n  });\n  \n  // Similar tests for other tiers\n});\n```\n\n2. Always-on availability validation:\n   - Extended runtime testing (24+ hours)\n   - Model persistence through service restarts\n   - Auto-recovery from model failures\n\n```typescript\n// tests/availability/extended-runtime.test.ts\ndescribe('Extended Runtime Availability', () => {\n  // This test runs for 24+ hours\n  jest.setTimeout(24 * 60 * 60 * 1000 + 60000);\n  \n  test('Models remain available for 24+ hours', async () => {\n    const startTime = Date.now();\n    const endTime = startTime + (24 * 60 * 60 * 1000);\n    const checkInterval = 15 * 60 * 1000; // 15 minutes\n    \n    const results = [];\n    \n    while (Date.now() < endTime) {\n      // Check all three tiers\n      const tierStatuses = await Promise.all([\n        checkTierAvailability('fast-thinking'),\n        checkTierAvailability('ultra-fast'),\n        checkTierAvailability('general')\n      ]);\n      \n      results.push({\n        timestamp: new Date().toISOString(),\n        tierStatuses\n      });\n      \n      // Wait for next check interval\n      await new Promise(resolve => setTimeout(resolve, checkInterval));\n    }\n    \n    // Analyze results\n    const availability = calculateAvailability(results);\n    expect(availability).toBeGreaterThanOrEqual(0.99); // 99% or better\n  });\n});\n```\n\n3. Local vs. external performance comparison\n4. Load testing with realistic agent workloads",
+        "testStrategy": "1. Create automated performance test suite for all three tiers\n2. Implement extended runtime tests with appropriate monitoring\n3. Design tests to verify model persistence through restarts\n4. Create comparative benchmarks between local and external providers\n5. Implement realistic load testing based on production patterns\n6. Document all performance metrics and create baseline\n7. Test auto-recovery by simulating model failures",
+        "priority": "medium",
+        "dependencies": [
+          6,
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Deploy to Development Environment",
+        "description": "Deploy enhanced centralized service to dev environment, configure Ollama with three-tier models, update documentation, and validate service health.",
+        "details": "1. Deploy enhanced centralized service to dev environment:\n   - Package application for deployment\n   - Configure environment variables\n   - Deploy to development servers\n\n2. Configure Ollama with three-tier models:\n```bash\n# Deployment script for Ollama models\n#!/bin/bash\n\n# Tier 1 (Fast Thinking)\nollama pull gpt-oss-2b\nollama pull gpt-oss-20b\n\n# Tier 2 (Ultra-Fast)\nollama pull llama3.2:1b\nollama pull llama3.2:3b\n\n# Tier 3 (General)\nollama pull llama3.1:8b\nollama pull qwen2.5:7b\n\n# Verify models are available\nollama list\n```\n\n3. Update dev environment documentation:\n```markdown\n# LLM Service Development Environment\n\n## Overview\nThis document describes the development environment setup for the centralized LLM service with three-tier local model support.\n\n## Prerequisites\n- Node.js 18+\n- Docker\n- Ollama installed and running\n- Minimum 32GB RAM for local models\n- GPU recommended but not required\n\n## Environment Variables\n```\nOLLAMA_BASE_URL=http://localhost:11434\nOPENAI_API_KEY=sk-...\nANTHROPIC_API_KEY=sk-ant-...\n```\n\n## Local Model Setup\nThe system uses a three-tier model approach:\n1. **Fast Thinking**: Complex reasoning (gpt-oss-2b, gpt-oss-20b)\n2. **Ultra-Fast**: Simple queries (llama3.2:1b, llama3.2:3b)\n3. **General**: Balanced performance (llama3.1:8b, qwen2.5:7b)\n\n## Deployment Verification\nRun the verification script to ensure all components are working:\n```\nnpm run verify-deployment\n```\n```\n\n4. Validate service health and monitoring\n5. Test developer panel in deployed environment\n6. Create deployment verification checklist",
+        "testStrategy": "1. Create deployment checklist for dev environment\n2. Test service health endpoints after deployment\n3. Verify all three-tier models are properly loaded\n4. Test developer panel functionality in deployed environment\n5. Validate logging and monitoring are working correctly\n6. Perform end-to-end test with real agents in dev environment\n7. Create verification script for automated deployment checks",
+        "priority": "medium",
+        "dependencies": [
+          10,
+          11
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Migrate Remaining Agents to Centralized Service",
+        "description": "Identify all agents with direct provider usage, create migration checklist, migrate agents in priority order, update documentation, and remove deprecated code.",
+        "details": "1. Identify all agents with direct provider usage:\n   - Scan codebase for direct imports of provider clients\n   - Create inventory of agents requiring migration\n   - Prioritize based on usage frequency and importance\n\n2. Create migration checklist and process:\n```markdown\n# Agent Migration Checklist\n\n## Pre-Migration\n- [ ] Identify all provider client imports\n- [ ] Document current functionality and expected behavior\n- [ ] Create unit tests to verify current behavior\n- [ ] Identify any custom provider configurations\n\n## Migration Steps\n- [ ] Replace provider imports with LLMService\n- [ ] Update constructor to use LLMService via dependency injection\n- [ ] Replace direct client calls with LLMService methods\n- [ ] Update any provider-specific options\n- [ ] Add appropriate data classification headers\n\n## Post-Migration Verification\n- [ ] Run unit tests to verify behavior matches pre-migration\n- [ ] Verify runId and metadata are generated\n- [ ] Check logs for proper correlation\n- [ ] Test with both local and external routing\n- [ ] Verify error handling works correctly\n```\n\n3. Migrate agents in priority order:\n   - High-usage agents first\n   - Test each agent with LLMService\n   - Validate functionality and performance\n\n4. Example migration pattern:\n```typescript\n// Before migration\nimport { OpenAI } from 'openai';\n\nclass SomeAgent {\n  private openai: OpenAI;\n  \n  constructor() {\n    this.openai = new OpenAI({\n      apiKey: process.env.OPENAI_API_KEY,\n      timeout: 60000\n    });\n  }\n  \n  async processData(data: any) {\n    const response = await this.openai.chat.completions.create({\n      model: 'gpt-4',\n      messages: [\n        { role: 'system', content: 'You are a helpful assistant.' },\n        { role: 'user', content: `Process this data: ${JSON.stringify(data)}` }\n      ],\n      temperature: 0.7\n    });\n    \n    return response.choices[0].message.content;\n  }\n}\n\n// After migration\nimport { LLMService } from '../../llms/llm.service';\n\nclass SomeAgent {\n  constructor(private llmService: LLMService) {}\n  \n  async processData(data: any) {\n    const result = await this.llmService.generateResponse(\n      `Process this data: ${JSON.stringify(data)}`,\n      {\n        systemPrompt: 'You are a helpful assistant.',\n        temperature: 0.7,\n        dataClass: 'public',\n        policyProfile: 'standard'\n      }\n    );\n    \n    return result.response;\n  }\n}\n```\n\n5. Update documentation and examples\n6. Remove deprecated provider client code",
+        "testStrategy": "1. Create automated tests to verify each agent's functionality before migration\n2. Test each agent after migration to ensure identical behavior\n3. Verify all direct provider client usage is removed\n4. Test with both local and external routing scenarios\n5. Validate metadata generation and runId correlation\n6. Test error handling and fallback behavior\n7. Measure performance before and after migration to ensure no degradation",
+        "priority": "high",
+        "dependencies": [
+          9,
+          12
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Perform End-to-End System Validation",
+        "description": "Conduct full system validation testing, verify network traffic, trace complete request flow, validate UI integration, and perform security audit.",
+        "details": "1. Full system validation testing:\n   - All agents working through centralized service\n   - Network traffic verification (no direct external calls)\n   - Complete request flow tracing\n   - UI integration validation\n\n2. Network traffic verification:\n```bash\n# Script to detect direct provider API calls\n#!/bin/bash\n\n# Start tcpdump to capture API traffic\ntcpdump -i any -n -A -s 0 'tcp port 443 and (host api.openai.com or host api.anthropic.com)' -w provider_traffic.pcap &\nTCPDUMP_PID=$!\n\n# Run system tests\necho \"Running system tests...\"\nnpm run test:system\n\n# Stop tcpdump\nkill $TCPDUMP_PID\n\n# Analyze captured traffic\necho \"Analyzing network traffic...\"\ntcpdump -r provider_traffic.pcap -A | grep -E 'Authorization:|api-key:'\n\n# Check if any direct calls were made\nif [ $? -eq 0 ]; then\n  echo \"FAIL: Direct provider API calls detected!\"\n  exit 1\nelse\n  echo \"PASS: No direct provider API calls detected.\"\nfi\n```\n\n3. Complete request flow tracing:\n```typescript\n// tests/system/request-flow.test.ts\ndescribe('End-to-End Request Flow Tracing', () => {\n  test('Request flows through all components correctly', async () => {\n    // Setup tracing collectors at each component\n    const traceCollector = new TraceCollector();\n    \n    // Register trace points\n    traceCollector.registerTracePoint('agent', 'before-request');\n    traceCollector.registerTracePoint('llm-service', 'request-received');\n    traceCollector.registerTracePoint('routing-service', 'routing-decision');\n    traceCollector.registerTracePoint('provider-config', 'provider-selected');\n    traceCollector.registerTracePoint('provider-adapter', 'request-to-provider');\n    traceCollector.registerTracePoint('provider-adapter', 'response-from-provider');\n    traceCollector.registerTracePoint('llm-service', 'response-processed');\n    traceCollector.registerTracePoint('agent', 'response-received');\n    \n    // Execute test request\n    const agent = new TestAgent(llmService, traceCollector);\n    const result = await agent.executeRequest('test prompt');\n    \n    // Get collected trace\n    const trace = traceCollector.getTrace(result.runMetadata.runId);\n    \n    // Verify complete flow\n    expect(trace).toHaveLength(8); // All trace points hit\n    expect(trace[0].point).toBe('agent.before-request');\n    expect(trace[1].point).toBe('llm-service.request-received');\n    // ... verify remaining trace points\n    expect(trace[7].point).toBe('agent.response-received');\n    \n    // Verify timing\n    for (let i = 1; i < trace.length; i++) {\n      expect(trace[i].timestamp).toBeGreaterThan(trace[i-1].timestamp);\n    }\n  });\n});\n```\n\n4. Performance validation under load\n5. Security audit of logging and secret handling\n6. Documentation review and updates",
+        "testStrategy": "1. Create comprehensive system validation test suite\n2. Implement network traffic monitoring to detect direct provider calls\n3. Use distributed tracing to verify complete request flow\n4. Test UI integration with developer panel\n5. Conduct load testing to validate performance under stress\n6. Perform security audit focusing on secret handling\n7. Review and update all documentation for accuracy",
+        "priority": "high",
+        "dependencies": [
+          13
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Optimize Local Model Production Configuration",
+        "description": "Optimize model loading and memory management, implement production monitoring and alerting, and create operational runbooks.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "1. Optimize model loading and memory management:\n   - Implement efficient model caching\n   - Optimize GPU/CPU resource allocation\n   - Handle memory pressure\n\n```typescript\n// apps/api/src/llms/memory-manager.service.ts\nimport { Injectable } from '@nestjs/common';\nimport { LocalModelStatusService } from './local-model-status.service';\n\ninterface ModelInfo {\n  size: number;\n  lastUsed: number;\n}\n\n@Injectable()\nexport class MemoryManagerService {\n  private maxMemoryUsage: number; // In bytes\n  private currentMemoryUsage: number = 0;\n  private loadedModels: Map<string, ModelInfo> = new Map();\n  \n  constructor(\n    private localModelService: LocalModelStatusService,\n    private databaseService: any // Inject your database service\n  ) {\n    this.maxMemoryUsage = (process.env.MAX_MODEL_MEMORY_GB || 24) * 1024 * 1024 * 1024;\n  }\n  \n  async loadModel(modelName: string, modelSize: number): Promise<boolean> {\n    // Check if we have enough memory\n    if (this.currentMemoryUsage + modelSize > this.maxMemoryUsage) {\n      // Need to free up memory\n      const freed = await this.freeUpMemory(modelSize);\n      if (!freed) {\n        return false; // Couldn't free enough memory\n      }\n    }\n    \n    // Load the model\n    try {\n      await this.localModelService.ensureModelLoaded(modelName);\n      \n      // Update memory tracking\n      this.loadedModels.set(modelName, {\n        size: modelSize,\n        lastUsed: Date.now()\n      });\n      this.currentMemoryUsage += modelSize;\n      \n      // Update database\n      await this.databaseService.query(`\n        UPDATE llm_models\n        SET is_currently_loaded = TRUE\n        WHERE name = $1\n      `, [modelName]);\n      \n      return true;\n    } catch (error) {\n      console.error(`Failed to load model ${modelName}:`, error);\n      return false;\n    }\n  }\n  \n  async modelUsed(modelName: string): Promise<void> {\n    const model = this.loadedModels.get(modelName);\n    if (model) {\n      model.lastUsed = Date.now();\n      this.loadedModels.set(modelName, model);\n    }\n  }\n  \n  private async freeUpMemory(requiredSize: number): Promise<boolean> {\n    // Sort models by last used time (oldest first)\n    const sortedModels = [...this.loadedModels.entries()]\n      .sort((a, b) => a[1].lastUsed - b[1].lastUsed);\n    \n    let freedMemory = 0;\n    \n    for (const [modelName, info] of sortedModels) {\n      // Skip three-tier models if possible\n      if (await this.isThreeTierModel(modelName) && this.hasOtherUnloadableModels()) {\n        continue;\n      }\n      \n      // Unload this model\n      try {\n        // Call Ollama to unload\n        // This is a placeholder as Ollama doesn't have a direct unload API\n        // In practice, we might need to restart Ollama or use a different approach\n        \n        freedMemory += info.size;\n        this.currentMemoryUsage -= info.size;\n        this.loadedModels.delete(modelName);\n        \n        // Update database\n        await this.databaseService.query(`\n          UPDATE llm_models\n          SET is_currently_loaded = FALSE\n          WHERE name = $1\n        `, [modelName]);\n        \n        if (freedMemory >= requiredSize) {\n          return true;\n        }\n      } catch (error) {\n        console.error(`Failed to unload model ${modelName}:`, error);\n      }\n    }\n    \n    return freedMemory >= requiredSize;\n  }\n  \n  private async isThreeTierModel(modelName: string): Promise<boolean> {\n    // Check if model is part of the three-tier system\n    const result = await this.databaseService.query(`\n      SELECT model_tier FROM llm_models\n      WHERE name = $1 AND model_tier IS NOT NULL\n    `, [modelName]);\n    \n    return result.length > 0;\n  }\n  \n  private hasOtherUnloadableModels(): boolean {\n    // Check if we have non-three-tier models that can be unloaded\n    for (const [modelName, _] of this.loadedModels) {\n      if (!this.isThreeTierModel(modelName)) {\n        return true;\n      }\n    }\n    return false;\n  }\n}\n```\n\n2. Production monitoring and alerting:\n   - Model health monitoring\n   - Performance degradation alerts\n   - Resource usage tracking\n\n```typescript\n// apps/api/src/llms/model-monitor.service.ts\nimport { Injectable } from '@nestjs/common';\nimport { LocalModelStatusService } from './local-model-status.service';\n\n@Injectable()\nexport class ModelMonitorService {\n  private healthCheckInterval: NodeJS.Timeout;\n  private alertThresholds = {\n    responseTime: 5000, // 5 seconds\n    errorRate: 0.05, // 5%\n    memoryUsage: 0.9 // 90% of allocated memory\n  };\n  \n  constructor(\n    private localModelService: LocalModelStatusService,\n    private databaseService: any, // Inject your database service\n    private alertService: any // Inject your alert service\n  ) {\n    // Start health checks\n    this.healthCheckInterval = setInterval(\n      this.runHealthChecks.bind(this),\n      60000 // Every minute\n    );\n  }\n  \n  async runHealthChecks() {\n    try {\n      // Check all three tiers\n      await this.checkTier('fast-thinking');\n      await this.checkTier('ultra-fast');\n      await this.checkTier('general');\n      \n      // Check overall system health\n      await this.checkSystemResources();\n    } catch (error) {\n      console.error('Health check failed:', error);\n      this.alertService.sendAlert('monitoring-error', {\n        message: 'Model health check failed',\n        error: error.message\n      });\n    }\n  }\n  \n  private async checkTier(tier: string) {\n    const models = await this.databaseService.query(`\n      SELECT * FROM llm_models\n      WHERE is_local = TRUE AND model_tier = $1\n    `, [tier]);\n    \n    for (const model of models) {\n      const health = await this.localModelService.checkModelHealth(model.name);\n      \n      // Check for issues\n      if (!health.available) {\n        this.alertService.sendAlert('model-unavailable', {\n          model: model.name,\n          tier,\n          error: health.error\n        });\n      } else if (health.responseTime > this.alertThresholds.responseTime) {\n        this.alertService.sendAlert('slow-response', {\n          model: model.name,\n          tier,\n          responseTime: health.responseTime\n        });\n      }\n    }\n  }\n  \n  private async checkSystemResources() {\n    // Get system resource usage\n    const resources = await this.getSystemResourceUsage();\n    \n    if (resources.memoryUsage > this.alertThresholds.memoryUsage) {\n      this.alertService.sendAlert('high-memory-usage', {\n        usage: resources.memoryUsage,\n        threshold: this.alertThresholds.memoryUsage\n      });\n    }\n    \n    // Check other resources...\n  }\n  \n  private async getSystemResourceUsage() {\n    // Implementation to get system resource usage\n    // This could use OS-level metrics or container metrics\n    return {\n      memoryUsage: 0.5, // Example value\n      cpuUsage: 0.3 // Example value\n    };\n  }\n}\n```\n\n3. Create operational runbooks:\n   - Model restart procedures\n   - Troubleshooting guides\n   - Performance tuning guidelines",
+        "testStrategy": "1. Test memory management under various load conditions\n2. Verify model caching efficiency with different usage patterns\n3. Test resource allocation optimization for CPU and GPU\n4. Validate monitoring alerts trigger correctly for different conditions\n5. Test model restart procedures for effectiveness\n6. Verify troubleshooting guides with simulated failure scenarios\n7. Test performance tuning guidelines for actual improvement",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Create Documentation and Conduct Knowledge Transfer",
+        "description": "Create comprehensive system documentation, develop onboarding materials, create operations guides, document performance tuning, and conduct knowledge transfer sessions.",
+        "details": "1. Create comprehensive system documentation:\n   - Architecture overview and diagrams\n   - Configuration and deployment guides\n   - API documentation for LLMService\n\n```markdown\n# Centralized LLM Service Architecture\n\n## Overview\nThe centralized LLM service provides a unified interface for all LLM interactions, with three-tier local model support and intelligent routing.\n\n## Architecture Diagram\n```\n┌─────────────┐     ┌───────────────┐     ┌─────────────────┐\n│             │     │               │     │                 │\n│   Agents    ├────►│  LLMService   ├────►│ Routing Service │\n│             │     │               │     │                 │\n└─────────────┘     └───────────────┘     └────────┬────────┘\n                                                    │\n                                                    ▼\n                    ┌───────────────┐     ┌─────────────────┐\n                    │               │     │                 │\n                    │ Local Models  │◄────┤ Provider Config │\n                    │               │     │                 │\n                    └───────────────┘     └────────┬────────┘\n                                                    │\n                                                    ▼\n                                          ┌─────────────────┐\n                                          │                 │\n                                          │ External APIs   │\n                                          │                 │\n                                          └─────────────────┘\n```\n\n## Key Components\n\n### LLMService\n- Located at `apps/api/src/llms/llm.service.ts`\n- Provides unified interface for all LLM interactions\n- Coordinates between various specialized services\n- Returns enhanced response with metadata\n\n### CentralizedRoutingService\n- Located at `apps/api/src/llms/centralized-routing.service.ts`\n- Implements intelligent routing logic\n- Analyzes request complexity\n- Selects appropriate model tier\n\n### LocalModelStatusService\n- Located at `apps/api/src/llms/local-model-status.service.ts`\n- Manages Ollama integration\n- Monitors model health and availability\n- Provides caching for status information\n\n### Three-Tier Model System\n- **Tier 1 (Fast Thinking)**: Complex reasoning (gpt-oss-2b, gpt-oss-20b)\n- **Tier 2 (Ultra-Fast)**: Simple queries (llama3.2:1b, llama3.2:3b)\n- **Tier 3 (General)**: Balanced performance (llama3.1:8b, qwen2.5:7b)\n```\n\n2. Developer onboarding materials:\n```markdown\n# Developer Onboarding: Centralized LLM Service\n\n## Getting Started\n\n### Prerequisites\n- Node.js 18+\n- Access to development environment\n- Ollama installed for local testing\n\n### Basic Usage\n\n```typescript\n// Import the service\nimport { LLMService } from '../../llms/llm.service';\n\n// Inject the service in your class constructor\nconstructor(private llmService: LLMService) {}\n\n// Generate completion\nconst result = await this.llmService.generateResponse(\n  'Tell me about centralized LLM services.',\n  {\n    systemPrompt: 'You are a helpful assistant.',\n    dataClass: 'public',\n    policyProfile: 'standard'\n  }\n);\n\n// Access response content and metadata\nconsole.log(result.response);\nconsole.log(result.runMetadata);\n```\n\n### Data Classification\nWhen making requests, always set the appropriate data classification:\n- `public`: Non-sensitive information\n- `internal`: Internal company information\n- `confidential`: Sensitive business data\n- `financial`: Financial or regulated data\n\n### Policy Profiles\nAvailable policy profiles:\n- `standard`: Default policy\n- `strict`: Enhanced privacy controls\n- `research`: Allows model training for research\n```\n\n3. Operations and maintenance guides\n4. Performance tuning and optimization docs\n5. Knowledge transfer sessions",
+        "testStrategy": "1. Review documentation for accuracy and completeness\n2. Test developer onboarding materials with new team members\n3. Validate operations guides with operations team\n4. Test performance tuning recommendations for effectiveness\n5. Conduct knowledge transfer sessions and gather feedback\n6. Create documentation test cases to verify procedures work as documented\n7. Maintain documentation with version control and change tracking",
+        "priority": "medium",
+        "dependencies": [
+          15
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Comprehensive Testing for LLM Usage Tracking System",
+        "description": "Design and execute a full suite of tests for the LLM Usage Tracking System, covering agent data generation, backend integration, dashboard UI, and load scenarios to validate end-to-end tracking and observability.",
+        "details": "Implement a multi-phase testing strategy to ensure the LLM Usage Tracking System is robust, accurate, and scalable:\n\n1. **Quick Agent Test**: Deploy a metrics agent to simulate LLM usage events. Instrument the agent to generate a variety of tracking data (e.g., prompt/response pairs, latency, error cases) and verify that records are correctly ingested and stored in the tracking database. Use structured logging and correlation IDs to trace data end-to-end.\n\n2. **Dashboard Demo**: Test the admin dashboard UI, focusing on analytics visualization, filtering, and real-time monitoring. Validate that metrics (usage, latency, error rates, cost, etc.) are accurately displayed and update in real time. Ensure filtering and drill-down features work as intended. Test on multiple browsers and screen sizes for accessibility and responsiveness.\n\n3. **Full Integration Test**: Orchestrate a scenario where multiple agents, backend services, and the dashboard operate together. Validate that all components (agents, ingestion pipeline, storage, analytics, and UI) interoperate seamlessly. Use distributed tracing to confirm that each tracked event is visible across all layers, and that metadata (runId, agentId, timestamps) is preserved throughout.\n\n4. **Load Testing**: Simulate high-concurrency scenarios by running multiple agents in parallel, generating sustained and bursty traffic. Monitor system performance, throughput, and latency under load. Validate that no data is lost, metrics remain accurate, and the dashboard remains responsive. Use open-source load testing tools (e.g., Locust, k6) and monitor system resource usage.\n\nBest practices include:\n- Use both automated and manual validation, including human-in-the-loop review for dashboard correctness.\n- Employ reference-based and reference-free evaluation metrics for output validation[5].\n- Ensure observability pillars (metrics, events, logs, traces) are covered[2].\n- Implement real-time monitoring and alerting for failures or anomalies[1][4].\n- Document all test cases and results for reproducibility and compliance.\n\nCoordinate with recent system validation and migration tasks to ensure all agents and services are included in the test scope.",
+        "testStrategy": "1. Run the metrics agent and verify that all generated tracking data appears in the database with correct schema and metadata.\n2. Manually and automatically test the dashboard UI for accurate analytics, filtering, and real-time updates across browsers and devices.\n3. Execute end-to-end integration tests, tracing events from agent generation through backend ingestion to dashboard display, confirming data consistency and traceability.\n4. Conduct load tests with multiple concurrent agents, monitoring for data loss, system bottlenecks, and dashboard responsiveness under stress.\n5. Review logs, traces, and metrics to ensure full observability and compliance with MELT principles.\n6. Document all findings, issues, and recommendations for further improvement.",
+        "status": "pending",
+        "dependencies": [
+          8,
+          13,
+          14
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Quick Agent Test: Metrics Agent Data Generation and Database Verification",
+            "description": "Deploy a metrics agent to simulate LLM usage events, generating diverse tracking data such as prompt/response pairs, latency, and error cases. Instrument the agent with structured logging and correlation IDs to trace data end-to-end and verify correct ingestion and storage in the tracking database.",
+            "dependencies": [],
+            "details": "Configure the agent to produce representative usage events. Validate that all records are ingested with correct schema and metadata. Ensure logs and traces are captured for each event and can be correlated from agent to database.",
+            "status": "pending",
+            "testStrategy": "Run automated tests to confirm data appears in the database with accurate fields. Manually inspect logs and traces for completeness. Use reference-based and reference-free evaluation metrics to validate output quality."
+          },
+          {
+            "id": 2,
+            "title": "Dashboard Demo: UI Analytics Visualization and Real-Time Monitoring Validation",
+            "description": "Test the admin dashboard UI for accurate analytics visualization, filtering, and real-time monitoring. Validate that metrics such as usage, latency, error rates, and cost are displayed correctly and update in real time. Ensure filtering and drill-down features function as intended across browsers and devices.",
+            "dependencies": [
+              "17.1"
+            ],
+            "details": "Perform both automated and manual UI tests to verify analytics accuracy and responsiveness. Test accessibility and responsiveness on multiple browsers and screen sizes. Include human-in-the-loop review for dashboard correctness.",
+            "status": "pending",
+            "testStrategy": "Use automated UI testing tools for analytics and filtering validation. Manually review dashboard for real-time updates and correctness. Document test cases and results for reproducibility."
+          },
+          {
+            "id": 3,
+            "title": "Full Integration Test: End-to-End System Validation Across Agents, Backend, and Dashboard",
+            "description": "Orchestrate a scenario with multiple agents, backend services, and the dashboard operating together. Validate seamless interoperability of all components, ensuring tracked events are visible across all layers and metadata (runId, agentId, timestamps) is preserved throughout.",
+            "dependencies": [
+              "17.1",
+              "17.2"
+            ],
+            "details": "Use distributed tracing to confirm event propagation and metadata integrity. Test that ingestion pipeline, storage, analytics, and UI components interoperate without data loss or corruption.",
+            "status": "pending",
+            "testStrategy": "Execute automated end-to-end integration tests. Use distributed tracing tools to verify event visibility and metadata preservation. Manually review system logs and dashboard for consistency."
+          },
+          {
+            "id": 4,
+            "title": "Load Testing: High-Concurrency Scenario Simulation and System Performance Validation",
+            "description": "Simulate high-concurrency scenarios by running multiple agents in parallel, generating sustained and bursty traffic. Monitor system performance, throughput, and latency under load, validating that no data is lost, metrics remain accurate, and the dashboard remains responsive.",
+            "dependencies": [
+              "17.3"
+            ],
+            "details": "Utilize open-source load testing tools (e.g., Locust, k6) to generate traffic. Monitor system resource usage and observability pillars (metrics, events, logs, traces). Implement real-time monitoring and alerting for failures or anomalies.",
+            "status": "pending",
+            "testStrategy": "Run automated load tests with varying concurrency levels. Monitor system health and dashboard responsiveness. Validate accuracy of metrics and absence of data loss under load."
+          },
+          {
+            "id": 5,
+            "title": "Load Testing Setup: Configure Tools and Test Environment",
+            "description": "Set up load testing infrastructure using Locust or k6, configure multiple agent instances, and prepare monitoring dashboards for performance validation.",
+            "details": "Install and configure load testing tools (Locust/k6), set up agent deployment scripts for multiple instances, configure system monitoring (CPU, memory, network), and prepare test data and scenarios.",
+            "status": "pending",
+            "dependencies": [
+              "17.3"
+            ],
+            "parentTaskId": 17
+          },
+          {
+            "id": 6,
+            "title": "Load Testing Execution: Run Concurrent Agent Tests",
+            "description": "Execute sustained and bursty traffic patterns using multiple agents, monitor system performance, and validate data accuracy under load.",
+            "details": "Run load tests with varying concurrency levels (5, 10, 25, 50 agents), monitor database performance, track LLM usage records accuracy, and validate dashboard responsiveness during high load.",
+            "status": "pending",
+            "dependencies": [
+              "17.5"
+            ],
+            "parentTaskId": 17
+          },
+          {
+            "id": 7,
+            "title": "Integration Test Setup: Configure Distributed Tracing",
+            "description": "Set up distributed tracing infrastructure to monitor event propagation across agents, backend services, and dashboard components.",
+            "details": "Configure tracing tools, instrument services for trace correlation, set up observability dashboards, and prepare test scenarios for end-to-end validation.",
+            "status": "pending",
+            "dependencies": [
+              "17.2"
+            ],
+            "parentTaskId": 17
+          },
+          {
+            "id": 8,
+            "title": "Integration Test Execution: Multi-Agent System Validation",
+            "description": "Execute end-to-end integration tests with multiple agent types, validate metadata preservation, and confirm seamless interoperability across all system components.",
+            "details": "Run scenarios with metrics, marketing, and HR agents simultaneously, trace events through the entire pipeline, validate runId and metadata preservation, and confirm dashboard displays all tracked events correctly.",
+            "status": "pending",
+            "dependencies": [
+              "17.7"
+            ],
+            "parentTaskId": 17
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Update Ollama Model Library Integration and Documentation for 2025",
+        "description": "Document the Ollama model updates we've already implemented, ensuring that configuration, database, and documentation accurately reflect the actual available models for 2024-2025.",
+        "status": "pending",
+        "dependencies": [
+          12
+        ],
+        "priority": "high",
+        "details": "1. **Documentation of Implemented Models:**\n   - Review the Ollama models that have been implemented in the development environment after Task 12 deployment.\n   - Document the actively maintained models currently in use, such as Llama 3.1 (8B, 70B, 405B), Llama 4, DeepSeek-R1, DeepSeek-Coder, Phi-3, and Qwen3:8B.\n   - Create a comprehensive model reference guide with capabilities, parameter counts, and recommended use cases.\n\n2. **Configuration Verification:**\n   - Verify that the system's model configuration files correctly reference the latest model names and tags as implemented.\n   - Document the configuration structure and environment variables used for model selection.\n   - Create a configuration checklist to ensure all environments are using consistent model references.\n\n3. **Database Documentation:**\n   - Document the structure of the `llm_models` table including all model metadata (context window, parameter count, is_local, model_tier).\n   - Create a reference of how models are categorized (general-purpose, coding, efficient/edge) in the database.\n   - Document any database queries or ORM methods used to access model information.\n\n4. **User and Developer Documentation:**\n   - Update system and developer documentation to reflect the implemented models and their capabilities.\n   - Include instructions for verifying available models via `ollama list` and for updating models using `ollama pull <model>`.\n   - Document hardware requirements and troubleshooting tips based on actual deployment experience.\n   - Create usage examples showing how to leverage different models through the CentralizedRoutingService.\n\n5. **Maintenance Documentation:**\n   - Document the process for adding new models or deprecating old ones in the future.\n   - Create guidelines for model selection criteria to maintain system performance and reliability.\n   - Document the testing and validation process for new models before they're added to production.",
+        "testStrategy": "1. Verify documentation accuracy by comparing with `ollama list` output in the development environment.\n2. Have a developer follow the documentation to set up a new environment and confirm all steps are clear and accurate.\n3. Review database documentation against actual database schema to ensure completeness.\n4. Test any code examples in the documentation to verify they work with the implemented models.\n5. Conduct a documentation review session with the development team to identify any gaps or inaccuracies.\n6. Verify that all model-specific documentation matches the actual behavior in the development environment.",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-09-02T22:28:08.826Z",
+      "updated": "2025-09-03T16:43:48.495Z",
+      "description": "Tasks for davids-goliath-p0 context"
+    }
+  },
+  "frontend-pii-ui": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Initialize Vue 3 + Ionic Project",
+        "description": "Set up the project repository using Vue.js 3 with the Composition API and integrate Ionic Vue for UI components.",
+        "details": "Use the latest Vue CLI or Vite (recommended for performance) to scaffold the project. Install Ionic Vue (v7.x) and configure for mobile-first responsiveness. Ensure Node.js (v20+) and npm/yarn are used. Set up ESLint, Prettier, and Husky for code quality.",
+        "testStrategy": "Verify project builds and Ionic components render. Run lint and format checks. Confirm mobile responsiveness on device emulators.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Configure Pinia State Management",
+        "description": "Integrate Pinia for global state management across all frontend modules.",
+        "details": "Install Pinia (v3.x) and set up root store. Create modular stores for PII patterns, pseudonym dictionaries, LLM monitoring, and analytics. Use TypeScript for type safety and define interfaces matching backend models.",
+        "testStrategy": "Unit test store actions, mutations, and getters. Validate type safety and state updates.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Set Up Axios API Service Layer",
+        "description": "Implement a centralized Axios service for all API interactions with backend endpoints.",
+        "details": "Install Axios (v1.x). Create a service module with typed methods for each endpoint. Configure base URL, HTTPS, error interceptors, and retry logic. Use environment variables for endpoint configuration.",
+        "testStrategy": "Mock API calls in unit tests. Validate error handling and retry logic. Confirm HTTPS usage.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement Global Error Boundary",
+        "description": "Add global error handling for graceful degradation and user-friendly error messages.",
+        "details": "Create an ErrorBoundary component using Vue's errorCaptured hook. Integrate with Pinia for global error state. Display fallback UI and actionable recovery options. Log errors for audit trail.",
+        "testStrategy": "Simulate API/network failures and verify fallback UI and error logging.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Develop PIIPatternTable Component",
+        "description": "Build the main table for listing, sorting, filtering, and bulk-managing PII patterns.",
+        "details": "Use Ionic Table/Grid components. Implement sortable columns, real-time search, filtering by type/category/priority, bulk enable/disable/delete, and visual indicators for built-in/custom patterns. Connect to Pinia and Axios service.",
+        "testStrategy": "Unit test sorting, filtering, bulk actions. Integration test with API for CRUD operations.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Develop PIIPatternEditor Modal",
+        "description": "Create modal for adding/editing PII patterns with live regex validation and preview.",
+        "details": "Use Ionic Modal. Form fields: name (unique), regex (live validation), data type, description, priority, category. Implement client-side regex validation and error feedback. Live preview using sample text. Integrate with API for POST/PUT.",
+        "testStrategy": "Unit test form validation, regex preview, and API integration. Test error feedback and rollback.",
+        "priority": "high",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Develop PIITestingInterface Component",
+        "description": "Build interface for real-time PII detection testing and before/after preview.",
+        "details": "Large textarea input, highlight detected PII as user types. Show matched patterns, original vs sanitized text, detection time, and patterns checked. Use POST /sanitization/pii/test endpoint. Optimize for sub-2s response.",
+        "testStrategy": "Integration test with backend. Measure detection time. Validate highlighting and preview accuracy.",
+        "priority": "high",
+        "dependencies": [
+          3,
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Develop PseudonymDictionaryManager Component",
+        "description": "Create manager for pseudonym dictionary with CRUD, grouping, and bulk import/export.",
+        "details": "Group words by data type/category. Add/edit/delete words, adjust frequency weights. Implement CSV/JSON import/export using PapaParse (v5.x). Show usage statistics. Integrate with Pinia and API.",
+        "testStrategy": "Unit test CRUD, import/export, and frequency adjustment. Integration test with backend.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Develop PseudonymMappingViewer Component",
+        "description": "Visualize PII to pseudonym mappings and usage history.",
+        "details": "Display mapping table (PII → pseudonym), usage counts, and reversibility demo. Use color-coded indicators. Fetch mapping data from API and Pinia store. Ensure no actual PII stored in frontend state.",
+        "testStrategy": "Unit test mapping display and history. Validate reversibility demo logic.",
+        "priority": "medium",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Enhance RunMetadataPanel Component",
+        "description": "Upgrade run metadata panel to show new privacy metrics and comparisons.",
+        "details": "Add PII detection count by type, pseudonymization/redaction counts, data classification, expandable before/after text, cost breakdown, and performance impact. Use API stats and Pinia store.",
+        "testStrategy": "Unit test new metrics display. Integration test with API stats. Validate expandable comparison view.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Develop LLMRequestFlowDiagram Component",
+        "description": "Create animated flow diagram for LLM request lifecycle visualization.",
+        "details": "Use SVG or D3.js (v7.x) for interactive flow. Show input→sanitization→routing→LLM call→response. Visualize timing breakdown, decision points, and provider indicators. Add pause/replay/step controls.",
+        "testStrategy": "Unit test diagram rendering and controls. Integration test with live request data.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Develop SanitizationInspector Component",
+        "description": "Build inspector for step-by-step sanitization process visualization.",
+        "details": "Show each sanitization phase with color-coded PII highlighting (names=blue, emails=green, etc.), matched patterns, reversibility demo, and performance metrics. Use API results and Pinia store.",
+        "testStrategy": "Unit test phase display and highlighting. Integration test with sample sanitization results.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Develop PrivacyMetricsDashboard Component",
+        "description": "Create dashboard for privacy metrics, pattern usage, cost analysis, and health indicators.",
+        "details": "Use Ionic Cards/Charts (Chart.js v4.x). Display detection stats by type, pattern usage, cost savings, performance trends, and system health. Fetch data from /sanitization/stats and Pinia.",
+        "testStrategy": "Unit test chart rendering and data aggregation. Integration test with API stats.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Develop LLMUsageAnalytics Component",
+        "description": "Build analytics dashboard for LLM usage, routing ratios, response times, and cost trends.",
+        "details": "Use Chart.js for request volume, routing percentages, response time comparisons, cost trends, and sanitization overhead. Integrate with Pinia and API.",
+        "testStrategy": "Unit test chart rendering and data aggregation. Integration test with API analytics.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Develop AdminPrivacySettings Component",
+        "description": "Create admin panel for global privacy settings, access control, and audit configuration.",
+        "details": "Implement toggles for ENABLE_REDACTION, default sanitization preferences, access control (role-based, e.g. using Supabase Auth), and audit logging settings. Use environment variables and Pinia.",
+        "testStrategy": "Unit test settings toggles and access control. Integration test with backend and audit logs.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Develop UserPrivacyIndicators Component",
+        "description": "Add privacy indicators to chat interface for real-time feedback and trust signals.",
+        "details": "Display 'Data Protected' badges, real-time sanitization status, routing display (local/external), and visual trust signals. Integrate with chat UI and Pinia.",
+        "testStrategy": "Unit test indicator rendering and state updates. Integration test with live chat data.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Implement Mobile Responsiveness",
+        "description": "Ensure all components are mobile-first and touch-friendly using Ionic and CSS Grid/Flexbox.",
+        "details": "Use Ionic's responsive grid, CSS media queries, and test on multiple device sizes. Optimize touch targets and navigation for mobile usability.",
+        "testStrategy": "Manual and automated UI tests on device emulators and real devices. Validate WCAG 2.1 AA compliance.",
+        "priority": "high",
+        "dependencies": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Implement Accessibility Features",
+        "description": "Ensure WCAG 2.1 AA compliance across all UI components.",
+        "details": "Add ARIA attributes, keyboard navigation, screen reader support, and color contrast checks. Use axe-core and Lighthouse for automated accessibility audits.",
+        "testStrategy": "Automated accessibility tests (axe-core, Lighthouse). Manual keyboard and screen reader testing.",
+        "priority": "high",
+        "dependencies": [
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Implement Undo/Redo Functionality",
+        "description": "Enable safe editing of PII patterns and dictionaries with rollback support.",
+        "details": "Use Pinia store history or a custom undo stack. Implement undo/redo buttons in PIIPatternEditor and PseudonymDictionaryManager. Persist changes only on confirmation.",
+        "testStrategy": "Unit test undo/redo stack logic. Integration test rollback scenarios.",
+        "priority": "medium",
+        "dependencies": [
+          6,
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Implement Secure Communication",
+        "description": "Enforce HTTPS for all API calls and sanitize user inputs on the frontend.",
+        "details": "Configure Axios to use HTTPS endpoints. Validate and sanitize all user inputs before API submission. Use DOMPurify (v3.x) for input sanitization.",
+        "testStrategy": "Security tests for HTTPS enforcement. Unit test input sanitization logic.",
+        "priority": "high",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Implement Access Control for Admin Features",
+        "description": "Restrict access to admin privacy settings and PII management based on user roles.",
+        "details": "Integrate Supabase Auth for authentication and role-based access. Protect routes and components using navigation guards and Pinia state.",
+        "testStrategy": "Unit test access control logic. Integration test with Supabase Auth and protected routes.",
+        "priority": "high",
+        "dependencies": [
+          15
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 22,
+        "title": "Implement Audit Trail Logging",
+        "description": "Log all PII pattern management actions for compliance and transparency.",
+        "details": "Create audit log Pinia store. Log CRUD actions, access changes, and errors. Display logs in AdminPrivacySettings. Integrate with backend audit endpoints if available.",
+        "testStrategy": "Unit test log creation and display. Integration test with backend audit logs.",
+        "priority": "medium",
+        "dependencies": [
+          15
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Implement Graceful Degradation",
+        "description": "Provide fallback UI and recovery options when API is unavailable.",
+        "details": "Detect API failures globally. Show user-friendly error messages and suggest recovery steps. Allow offline pattern editing and queue changes for later sync.",
+        "testStrategy": "Simulate API outages. Validate fallback UI and offline editing.",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 24,
+        "title": "Comprehensive Testing Suite",
+        "description": "Develop unit, integration, and end-to-end tests for all components and flows.",
+        "details": "Use Vitest (unit), Cypress (e2e), and Vue Test Utils. Cover component logic, API integration, state management, validation, error scenarios, and demo workflows.",
+        "testStrategy": "Run full test suite. Measure coverage. Validate demo scenarios and edge cases.",
+        "priority": "high",
+        "dependencies": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 25,
+        "title": "Performance Optimization and Final Polish",
+        "description": "Optimize performance, polish UI, and prepare for stakeholder demo.",
+        "details": "Implement code splitting (Vite), lazy loading, asset optimization, and caching. Profile response times and UI rendering. Finalize documentation and demo scripts.",
+        "testStrategy": "Run Lighthouse and WebPageTest audits. Measure load times and response speeds. Validate demo readiness.",
+        "priority": "high",
+        "dependencies": [
+          24
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-09-04T13:10:25.235Z",
+      "updated": "2025-09-04T13:11:06.741Z",
+      "description": "Tasks for frontend-pii-ui context"
+    }
+  }
+}

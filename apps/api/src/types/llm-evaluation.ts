@@ -195,6 +195,39 @@ export interface LLMUsageMetrics {
   totalCost?: number;
   responseTimeMs?: number;
   langsmithRunId?: string;
+  
+  // Data sanitization and privacy tracking
+  dataSanitizationApplied?: boolean;
+  sanitizationLevel?: 'none' | 'basic' | 'standard' | 'strict';
+  piiDetected?: boolean;
+  piiTypes?: string[]; // e.g., ['email', 'ssn', 'phone', 'credit_card']
+  pseudonymsUsed?: number;
+  pseudonymTypes?: string[]; // e.g., ['person_name', 'organization', 'location']
+  redactionsApplied?: number;
+  redactionTypes?: string[]; // e.g., ['secret_key', 'password', 'api_key']
+  sourceBlindingApplied?: boolean;
+  headersStripped?: number;
+  customUserAgentUsed?: boolean;
+  proxyUsed?: boolean;
+  noTrainHeaderSent?: boolean;
+  noRetainHeaderSent?: boolean;
+  
+  // Sanitization performance metrics
+  sanitizationTimeMs?: number;
+  reversalContextSize?: number; // Size of context needed for pseudonym reversal
+  
+  // Data classification
+  dataClassification?: 'public' | 'internal' | 'confidential' | 'restricted';
+  policyProfile?: string; // e.g., 'healthcare', 'finance', 'standard'
+  sovereignMode?: boolean;
+  
+  // Compliance tracking
+  complianceFlags?: {
+    gdprCompliant?: boolean;
+    hipaaCompliant?: boolean;
+    pciCompliant?: boolean;
+    customCompliance?: Record<string, boolean>;
+  };
 }
 
 export interface EnhancedMessage {

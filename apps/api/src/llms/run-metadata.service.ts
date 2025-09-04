@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { SupabaseService } from '../supabase/supabase.service';
 import { getTableName } from '../supabase/supabase.config';
+import { LLMUsageMetrics } from '../types/llm-evaluation';
 
 export interface RunMetadata {
   runId: string;
@@ -15,6 +16,8 @@ export interface RunMetadata {
   outputTokens?: number;
   status: 'started' | 'completed' | 'error';
   errorMessage?: string;
+  // Enhanced metrics from LLMUsageMetrics
+  enhancedMetrics?: LLMUsageMetrics;
 }
 
 export interface MetadataContext {
@@ -124,14 +127,15 @@ export class RunMetadataService {
 
     this.activeRuns.set(runId, context);
     
-    // Insert initial record into database
-    try {
-      await this.insertUsageRecord(context, 'started');
-      this.logger.debug(`Started tracking run ${runId} for ${routingDecision.provider}/${routingDecision.model}`);
-    } catch (error) {
-      this.logger.error(`Failed to insert initial usage record for ${runId}:`, error);
-      // Continue execution even if database insert fails
-    }
+    // Insert initial record into database (async, non-blocking)
+    this.insertUsageRecord(context, 'started')
+      .then(() => {
+        this.logger.debug(`Started tracking run ${runId} for ${routingDecision.provider}/${routingDecision.model}`);
+      })
+      .catch(error => {
+        this.logger.error(`Failed to insert initial usage record for ${runId}:`, error);
+        // Continue execution even if database insert fails
+      });
     
     return context;
   }
@@ -145,6 +149,7 @@ export class RunMetadataService {
       content: string;
       inputTokens?: number;
       outputTokens?: number;
+      enhancedMetrics?: LLMUsageMetrics;
     }
   ): Promise<RunMetadata> {
     const endTime = Date.now();
@@ -168,23 +173,23 @@ export class RunMetadataService {
       inputTokens,
       outputTokens,
       status: 'completed',
+      enhancedMetrics: response.enhancedMetrics,
     };
 
-    // Update database record
-    try {
-      await this.updateUsageRecord(context.runId, {
-        status: 'completed',
-        inputTokens,
-        outputTokens,
-        inputCost: costEstimate.inputCost,
-        outputCost: costEstimate.outputCost,
-        durationMs: duration,
-        completedAt: new Date().toISOString(),
-      });
-    } catch (error) {
+    // Update database record (async, non-blocking)
+    this.updateUsageRecord(context.runId, {
+      status: 'completed',
+      inputTokens,
+      outputTokens,
+      inputCost: costEstimate.inputCost,
+      outputCost: costEstimate.outputCost,
+      durationMs: duration,
+      completedAt: new Date().toISOString(),
+      enhancedMetrics: response.enhancedMetrics,
+    }).catch(error => {
       this.logger.error(`Failed to update usage record for ${context.runId}:`, error);
       // Continue execution even if database update fails
-    }
+    });
 
     // Clean up active tracking
     this.activeRuns.delete(context.runId);
@@ -197,10 +202,10 @@ export class RunMetadataService {
   /**
    * Complete tracking for a failed request
    */
-  completeRequestWithError(
+  async completeRequestWithError(
     context: MetadataContext,
     error: Error
-  ): RunMetadata {
+  ): Promise<RunMetadata> {
     const endTime = Date.now();
     const duration = endTime - context.startTime;
     
@@ -215,6 +220,16 @@ export class RunMetadataService {
       status: 'error',
       errorMessage: error.message,
     };
+
+    // Update database record with error (async, non-blocking)
+    this.updateUsageRecord(context.runId, {
+      status: 'error',
+      durationMs: duration,
+      errorMessage: error.message,
+      completedAt: new Date().toISOString(),
+    }).catch(dbError => {
+      this.logger.error(`Failed to update error record for ${context.runId}:`, dbError);
+    });
 
     // Clean up active tracking
     this.activeRuns.delete(context.runId);
@@ -348,22 +363,111 @@ export class RunMetadataService {
     durationMs?: number;
     completedAt?: string;
     errorMessage?: string;
+    enhancedMetrics?: LLMUsageMetrics;
   }): Promise<void> {
     const client = this.supabaseService.getServiceClient();
     
+    // Prepare update data with enhanced metrics
+    const updateData: any = {
+      status: updates.status,
+      input_tokens: updates.inputTokens,
+      output_tokens: updates.outputTokens,
+      input_cost: updates.inputCost,
+      output_cost: updates.outputCost,
+      // Note: total_cost is a generated column, so we don't update it manually
+      duration_ms: updates.durationMs,
+      completed_at: updates.completedAt,
+      error_message: updates.errorMessage,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Add enhanced metrics if provided
+    if (updates.enhancedMetrics) {
+      const metrics = updates.enhancedMetrics;
+      
+      // Data sanitization fields
+      if (metrics.dataSanitizationApplied !== undefined) {
+        updateData.data_sanitization_applied = metrics.dataSanitizationApplied;
+      }
+      if (metrics.sanitizationLevel !== undefined) {
+        updateData.sanitization_level = metrics.sanitizationLevel;
+      }
+      
+      // PII detection fields
+      if (metrics.piiDetected !== undefined) {
+        updateData.pii_detected = metrics.piiDetected;
+      }
+      if (metrics.piiTypes !== undefined) {
+        updateData.pii_types = JSON.stringify(metrics.piiTypes);
+      }
+      if (metrics.pseudonymsUsed !== undefined) {
+        updateData.pseudonyms_used = metrics.pseudonymsUsed;
+      }
+      if (metrics.pseudonymTypes !== undefined) {
+        updateData.pseudonym_types = JSON.stringify(metrics.pseudonymTypes);
+      }
+      
+      // Redaction fields
+      if (metrics.redactionsApplied !== undefined) {
+        updateData.redactions_applied = metrics.redactionsApplied;
+      }
+      if (metrics.redactionTypes !== undefined) {
+        updateData.redaction_types = JSON.stringify(metrics.redactionTypes);
+      }
+      
+      // Source blinding fields
+      if (metrics.sourceBlindingApplied !== undefined) {
+        updateData.source_blinding_applied = metrics.sourceBlindingApplied;
+      }
+      if (metrics.headersStripped !== undefined) {
+        updateData.headers_stripped = metrics.headersStripped;
+      }
+      if (metrics.customUserAgentUsed !== undefined) {
+        updateData.custom_user_agent_used = metrics.customUserAgentUsed;
+      }
+      if (metrics.proxyUsed !== undefined) {
+        updateData.proxy_used = metrics.proxyUsed;
+      }
+      if (metrics.noTrainHeaderSent !== undefined) {
+        updateData.no_train_header_sent = metrics.noTrainHeaderSent;
+      }
+      if (metrics.noRetainHeaderSent !== undefined) {
+        updateData.no_retain_header_sent = metrics.noRetainHeaderSent;
+      }
+      
+      // Performance fields
+      if (metrics.sanitizationTimeMs !== undefined) {
+        updateData.sanitization_time_ms = metrics.sanitizationTimeMs;
+      }
+      if (metrics.reversalContextSize !== undefined) {
+        updateData.reversal_context_size = metrics.reversalContextSize;
+      }
+      
+      // Policy and classification fields
+      if (metrics.policyProfile !== undefined) {
+        updateData.policy_profile = metrics.policyProfile;
+      }
+      if (metrics.sovereignMode !== undefined) {
+        updateData.sovereign_mode = metrics.sovereignMode;
+      }
+      if (metrics.dataClassification !== undefined) {
+        updateData.data_classification = metrics.dataClassification;
+      }
+      
+      // Compliance fields
+      if (metrics.complianceFlags !== undefined) {
+        updateData.compliance_flags = JSON.stringify(metrics.complianceFlags);
+      }
+      
+      // Additional metadata
+      if (metrics.langsmithRunId !== undefined) {
+        updateData.langsmith_run_id = metrics.langsmithRunId;
+      }
+    }
+
     const { error } = await client
       .from(getTableName('llm_usage'))
-      .update({
-        status: updates.status,
-        input_tokens: updates.inputTokens,
-        output_tokens: updates.outputTokens,
-        input_cost: updates.inputCost,
-        output_cost: updates.outputCost,
-        duration_ms: updates.durationMs,
-        completed_at: updates.completedAt,
-        error_message: updates.errorMessage,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('run_id', runId);
 
     if (error) {

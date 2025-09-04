@@ -1,0 +1,131 @@
+# Task ID: 1
+# Title: Enhance Existing LLMService with Centralized Routing
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Enhance the existing LLMService at apps/api/src/llms/llm.service.ts with centralized routing capabilities and provider client rejection mechanism.
+# Details:
+1. Enhance existing LLMService at `apps/api/src/llms/llm.service.ts`
+2. Implement enforced routing to centralized service
+3. Add provider client rejection mechanism that throws errors on direct instantiation
+4. Implement automatic header injection system for:
+   - `X-Policy-Profile` (default: 'standard')
+   - `X-Data-Class` (default: 'public')
+   - `X-Sovereign-Mode` (default: 'false')
+5. Create enhanced response wrapper with run metadata
+6. Implement utility functions for service configuration
+
+Example implementation:
+```typescript
+// apps/api/src/llms/llm.service.ts
+@Injectable()
+export class LLMService {
+  constructor(
+    private readonly centralizedRoutingService: CentralizedRoutingService,
+    private readonly runMetadataService: RunMetadataService,
+    private readonly providerConfigService: ProviderConfigService,
+    private readonly secretRedactionService: SecretRedactionService,
+    private readonly localModelStatusService: LocalModelStatusService,
+  ) {}
+  
+  async generateResponse(prompt: string, options: any = {}): Promise<{
+    response: string;
+    runMetadata: {
+      runId: string;
+      provider: string;
+      model: string;
+      tier: 'local' | 'centralized' | 'external';
+      cost: number;
+      duration: number;
+    }
+  }> {
+    // Get routing decision from centralized routing service
+    const routingDecision = await this.centralizedRoutingService.determineRoute(prompt, options);
+    
+    // Start tracking metadata
+    const metadataContext = this.runMetadataService.startRequest(routingDecision);
+    
+    try {
+      // Get provider configuration
+      const providerConfig = this.providerConfigService.getConfig(routingDecision.provider);
+      
+      // Add required headers
+      const headers = this.getDefaultHeaders(options, providerConfig);
+      
+      // Call provider with appropriate configuration
+      const response = await this.callProvider(routingDecision, prompt, headers, options);
+      
+      // Complete metadata tracking
+      const runMetadata = this.runMetadataService.completeRequest(metadataContext, response);
+      
+      return {
+        response: response.content,
+        runMetadata
+      };
+    } catch (error) {
+      // Handle errors and still return metadata
+      const runMetadata = this.runMetadataService.completeRequestWithError(metadataContext, error);
+      throw new Error(`LLM request failed: ${error.message}`);
+    }
+  }
+  
+  private getDefaultHeaders(options: any, providerConfig: any) {
+    return {
+      'X-Policy-Profile': options.policyProfile || 'standard',
+      'X-Data-Class': options.dataClass || 'public',
+      'X-Sovereign-Mode': options.sovereignMode || 'false',
+      ...providerConfig.headers
+    };
+  }
+  
+  private async callProvider(routingDecision: any, prompt: string, headers: any, options: any) {
+    // Implementation of provider-specific calls
+  }
+}
+```
+
+# Test Strategy:
+1. Write unit tests to verify LLMService enforces routing to centralized service
+2. Test that direct provider client instantiation throws appropriate errors
+3. Verify automatic header injection for all required headers
+4. Test response wrapper correctly includes run metadata
+5. Create integration tests to verify end-to-end flow
+6. Test edge cases like service unavailability and error handling
+
+# Subtasks:
+## 1. Create CentralizedRoutingService [done]
+### Dependencies: None
+### Description: Implement a service that handles routing decisions for LLM requests based on complexity analysis, tier selection, and availability of local models.
+### Details:
+Create a new file at apps/api/src/llms/centralized-routing.service.ts that implements routing logic. The service should analyze request complexity, select appropriate tiers (local, centralized, external), prefer local models when available, and fall back to external providers when needed. Include interfaces for routing decisions and configuration options.
+
+## 2. Implement RunMetadataService [done]
+### Dependencies: None
+### Description: Create a service for generating unique run IDs and collecting metadata about LLM requests including timing, cost estimation, and provider information.
+### Details:
+Create a new file at apps/api/src/llms/run-metadata.service.ts that implements UUID v4 generation for unique run IDs, tracks request timing (start/end), estimates costs based on provider and model, and formats metadata for inclusion in responses. Include methods for starting, completing, and error-handling requests.
+
+## 3. Develop ProviderConfigService [done]
+### Dependencies: None
+### Description: Create a service to manage provider configurations, including default settings, API endpoints, and header management.
+### Details:
+Create a new file at apps/api/src/llms/provider-config.service.ts that stores and manages configurations for different LLM providers. Implement methods to retrieve provider-specific settings, manage default and custom headers, and handle provider-specific authentication. Include configuration for local, centralized, and external providers.
+
+## 4. Implement SecretRedactionService [done]
+### Dependencies: None
+### Description: Create a service that handles logging with secret redaction to prevent sensitive information from appearing in logs.
+### Details:
+Create a new file at apps/api/src/llms/secret-redaction.service.ts that implements patterns for detecting and redacting sensitive information like API keys, tokens, and credentials. Include methods for safe logging that automatically redact secrets, correlate logs with runId, and implement production-specific logging controls.
+
+## 5. Create LocalModelStatusService [done]
+### Dependencies: None
+### Description: Implement a service that integrates with Ollama API to manage and monitor the status of local models.
+### Details:
+Create a new file at apps/api/src/llms/local-model-status.service.ts that implements an Ollama API client to list available models, get model details, and pull models when needed. Include a health checking system with status caching (5-second TTL) and methods to determine if specific models are available for routing decisions.
+
+## 6. Update LLMService and Module Integration [done]
+### Dependencies: None
+### Description: Enhance the existing LLMService to use the new services and update the LLMModule to include all new services.
+### Details:
+Update the existing LLMService at apps/api/src/llms/llm.service.ts to inject and use all the new services. Implement the generateResponse method to use CentralizedRoutingService for routing decisions, RunMetadataService for tracking, ProviderConfigService for configuration, and SecretRedactionService for safe logging. Add provider client rejection mechanism and update the LLMModule to include all new services in the providers array.
+

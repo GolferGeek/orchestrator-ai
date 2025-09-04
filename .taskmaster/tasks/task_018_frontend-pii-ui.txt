@@ -1,0 +1,11 @@
+# Task ID: 18
+# Title: Implement Accessibility Features
+# Status: pending
+# Dependencies: 17
+# Priority: high
+# Description: Ensure WCAG 2.1 AA compliance across all UI components.
+# Details:
+Add ARIA attributes, keyboard navigation, screen reader support, and color contrast checks. Use axe-core and Lighthouse for automated accessibility audits.
+
+# Test Strategy:
+Automated accessibility tests (axe-core, Lighthouse). Manual keyboard and screen reader testing.

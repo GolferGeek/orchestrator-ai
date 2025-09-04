@@ -1,0 +1,11 @@
+# Task ID: 12
+# Title: Develop SanitizationInspector Component
+# Status: pending
+# Dependencies: 2, 3
+# Priority: medium
+# Description: Build inspector for step-by-step sanitization process visualization.
+# Details:
+Show each sanitization phase with color-coded PII highlighting (names=blue, emails=green, etc.), matched patterns, reversibility demo, and performance metrics. Use API results and Pinia store.
+
+# Test Strategy:
+Unit test phase display and highlighting. Integration test with sample sanitization results.

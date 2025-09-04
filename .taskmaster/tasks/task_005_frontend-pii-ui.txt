@@ -1,0 +1,11 @@
+# Task ID: 5
+# Title: Develop PIIPatternTable Component
+# Status: pending
+# Dependencies: 2, 3
+# Priority: high
+# Description: Build the main table for listing, sorting, filtering, and bulk-managing PII patterns.
+# Details:
+Use Ionic Table/Grid components. Implement sortable columns, real-time search, filtering by type/category/priority, bulk enable/disable/delete, and visual indicators for built-in/custom patterns. Connect to Pinia and Axios service.
+
+# Test Strategy:
+Unit test sorting, filtering, bulk actions. Integration test with API for CRUD operations.

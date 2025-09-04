@@ -11,6 +11,9 @@ import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-proto
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
+import { SourceBlindingService } from '@/llms/source-blinding.service';
+import { BlindedLLMService } from '@/llms/blinded-llm.service';
+import { BlindedHttpService } from '@/llms/blinded-http.service';
 
 /**
  * Service container that aggregates all commonly needed agent services.
@@ -37,6 +40,11 @@ export class AgentServicesContext {
     @Optional() public readonly loggingService?: LoggingService,
     @Optional() public readonly authService?: AuthService,
     @Optional() public readonly configurationService?: ConfigurationService,
+
+    // Source blinding services (optional for backwards compatibility)
+    @Optional() public readonly sourceBlindingService?: SourceBlindingService,
+    @Optional() public readonly blindedLLMService?: BlindedLLMService,
+    @Optional() public readonly blindedHttpService?: BlindedHttpService,
   ) {}
 
   /**
@@ -52,6 +60,10 @@ export class AgentServicesContext {
       tasksService: this.tasksService,
       deliverablesService: this.deliverablesService,
       deliverableVersionsService: this.deliverableVersionsService,
+      // Include source blinding services in base services
+      sourceBlindingService: this.sourceBlindingService,
+      blindedLLMService: this.blindedLLMService,
+      blindedHttpService: this.blindedHttpService,
     };
 
     switch (agentType) {

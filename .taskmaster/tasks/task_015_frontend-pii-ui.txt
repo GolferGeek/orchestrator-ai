@@ -1,0 +1,11 @@
+# Task ID: 15
+# Title: Develop AdminPrivacySettings Component
+# Status: pending
+# Dependencies: 2, 3
+# Priority: high
+# Description: Create admin panel for global privacy settings, access control, and audit configuration.
+# Details:
+Implement toggles for ENABLE_REDACTION, default sanitization preferences, access control (role-based, e.g. using Supabase Auth), and audit logging settings. Use environment variables and Pinia.
+
+# Test Strategy:
+Unit test settings toggles and access control. Integration test with backend and audit logs.

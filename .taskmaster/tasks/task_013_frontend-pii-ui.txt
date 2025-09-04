@@ -1,0 +1,11 @@
+# Task ID: 13
+# Title: Develop PrivacyMetricsDashboard Component
+# Status: pending
+# Dependencies: 2, 3
+# Priority: medium
+# Description: Create dashboard for privacy metrics, pattern usage, cost analysis, and health indicators.
+# Details:
+Use Ionic Cards/Charts (Chart.js v4.x). Display detection stats by type, pattern usage, cost savings, performance trends, and system health. Fetch data from /sanitization/stats and Pinia.
+
+# Test Strategy:
+Unit test chart rendering and data aggregation. Integration test with API stats.

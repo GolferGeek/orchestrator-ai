@@ -1,0 +1,318 @@
+# Task ID: 6
+# Title: Implement CentralizedRoutingService
+# Status: done
+# Dependencies: 2, 3, 5
+# Priority: high
+# Description: Create a CentralizedRoutingService at apps/api/src/llms/centralized-routing.service.ts with complexity analysis, tier selection algorithm, local-first routing preference, and external fallback when local is unavailable.
+# Details:
+1. Create CentralizedRoutingService at apps/api/src/llms/centralized-routing.service.ts with the following components:
+   - Complexity analysis for request classification
+   - Tier selection algorithm
+   - Local-first routing preference
+   - External fallback when local unavailable
+
+```typescript
+// apps/api/src/llms/centralized-routing.service.ts
+import { Injectable } from '@nestjs/common';
+import { LocalModelStatusService } from './local-model-status.service';
+
+export interface RoutingDecision {
+  provider: string;
+  model: string;
+  isLocal: boolean;
+  modelTier?: string;
+  fallbackUsed: boolean;
+}
+
+export interface LLMRequest {
+  prompt: string;
+  options?: any;
+}
+
+@Injectable()
+export class CentralizedRoutingService {
+  constructor(
+    private localModelService: LocalModelStatusService,
+    private databaseService: any // Inject your database service
+  ) {}
+  
+  async determineRoute(prompt: string, options: any = {}): Promise<RoutingDecision> {
+    // If specific provider/model is requested, honor it
+    if (options.provider && options.model) {
+      return {
+        provider: options.provider,
+        model: options.model,
+        isLocal: options.provider === 'ollama',
+        fallbackUsed: false
+      };
+    }
+    
+    // 1. Analyze request complexity
+    const complexity = this.analyzeComplexity({ prompt, options });
+    
+    // 2. Select appropriate tier based on complexity
+    const tier = this.selectTierForComplexity(complexity);
+    
+    // 3. Check if local models in the tier are available
+    const availableModels = await this.getAvailableLocalModels(tier);
+    
+    if (availableModels.length > 0) {
+      // 4a. Select best local model from tier
+      const selectedModel = this.selectBestModel(availableModels, { prompt, options });
+      return {
+        provider: 'ollama',
+        model: selectedModel.name,
+        isLocal: true,
+        modelTier: tier,
+        fallbackUsed: false
+      };
+    } else {
+      // 4b. Fall back to external provider
+      return this.getExternalFallback(tier, { prompt, options });
+    }
+  }
+  
+  private analyzeComplexity(request: LLMRequest): 'simple' | 'medium' | 'complex' {
+    const { prompt } = request;
+    
+    // Simple heuristics for complexity analysis
+    const wordCount = prompt.split(/\s+/).length;
+    const sentenceCount = prompt.split(/[.!?]+/).length;
+    
+    if (wordCount < 20) {
+      return 'simple';
+    } else if (wordCount < 100) {
+      return 'medium';
+    } else {
+      return 'complex';
+    }
+    
+    // More sophisticated analysis could include:
+    // - Keyword detection for complex tasks
+    // - Sentiment analysis
+    // - Topic classification
+  }
+  
+  private selectTierForComplexity(complexity: 'simple' | 'medium' | 'complex'): string {
+    switch (complexity) {
+      case 'simple':
+        return 'ultra-fast';
+      case 'medium':
+        return 'general';
+      case 'complex':
+        return 'fast-thinking';
+    }
+  }
+  
+  private async getAvailableLocalModels(tier: string): Promise<any[]> {
+    // 1. Query database for models in the specified tier
+    const models = await this.databaseService.query(`
+      SELECT * FROM llm_models 
+      WHERE is_local = TRUE AND model_tier = $1
+      ORDER BY loading_priority DESC
+    `, [tier]);
+    
+    // 2. Check with localModelService if they're currently loaded
+    const availableModels = [];
+    
+    for (const model of models) {
+      const health = await this.localModelService.checkModelHealth(model.name);
+      if (health.available) {
+        availableModels.push({
+          ...model,
+          health
+        });
+      }
+    }
+    
+    return availableModels;
+  }
+  
+  private selectBestModel(models: any[], request: LLMRequest): any {
+    // Select best model based on priority and request characteristics
+    // For now, simply return the highest priority model
+    return models[0];
+  }
+  
+  private getExternalFallback(tier: string, request: LLMRequest): RoutingDecision {
+    // Map local tier to appropriate external provider/model
+    switch (tier) {
+      case 'fast-thinking':
+        return {
+          provider: 'openai',
+          model: 'gpt-4',
+          isLocal: false,
+          modelTier: 'external-advanced',
+          fallbackUsed: true
+        };
+      case 'general':
+        return {
+          provider: 'openai',
+          model: 'gpt-3.5-turbo',
+          isLocal: false,
+          modelTier: 'external-standard',
+          fallbackUsed: true
+        };
+      case 'ultra-fast':
+        return {
+          provider: 'openai',
+          model: 'gpt-3.5-turbo-instruct',
+          isLocal: false,
+          modelTier: 'external-fast',
+          fallbackUsed: true
+        };
+      default:
+        return {
+          provider: 'openai',
+          model: 'gpt-3.5-turbo',
+          isLocal: false,
+          fallbackUsed: true
+        };
+    }
+  }
+}
+```
+
+2. Implement model preloading system:
+```typescript
+// apps/api/src/llms/model-preloader.service.ts
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { LocalModelStatusService } from './local-model-status.service';
+
+@Injectable()
+export class ModelPreloaderService implements OnModuleInit {
+  constructor(
+    private databaseService: any, // Inject your database service
+    private localModelService: LocalModelStatusService
+  ) {}
+  
+  async onModuleInit() {
+    // Preload models when the application starts
+    await this.preloadHighPriorityModels();
+  }
+  
+  async preloadHighPriorityModels(): Promise<void> {
+    const models = await this.databaseService.query(`
+      SELECT * FROM llm_models 
+      WHERE is_local = TRUE
+      ORDER BY loading_priority DESC
+      LIMIT 5
+    `);
+    
+    for (const model of models) {
+      try {
+        console.log(`Preloading model: ${model.name}`);
+        await this.localModelService.ensureModelLoaded(model.name);
+        await this.databaseService.query(`
+          UPDATE llm_models
+          SET is_currently_loaded = TRUE
+          WHERE name = $1
+        `, [model.name]);
+      } catch (error) {
+        console.error(`Failed to preload model ${model.name}:`, error);
+      }
+    }
+  }
+  
+  async ensureThreeTierModelsLoaded(): Promise<void> {
+    // Ensure at least one model from each tier is loaded
+    const tiers = ['fast-thinking', 'ultra-fast', 'general'];
+    
+    for (const tier of tiers) {
+      const models = await this.databaseService.query(`
+        SELECT * FROM llm_models 
+        WHERE is_local = TRUE AND model_tier = $1
+        ORDER BY loading_priority DESC
+        LIMIT 1
+      `, [tier]);
+      
+      if (models.length > 0) {
+        await this.localModelService.ensureModelLoaded(models[0].name);
+      }
+    }
+  }
+}
+```
+
+3. Create routing decision logging
+4. Add performance monitoring per tier
+
+# Test Strategy:
+1. Test complexity analysis with various request types
+2. Verify tier selection algorithm chooses appropriate tiers
+3. Test local-first routing preference works correctly
+4. Validate external fallback when local models are unavailable
+5. Test model preloading system loads high-priority models
+6. Verify three-tier models remain loaded during operation
+7. Test routing decision logging for accuracy
+8. Validate performance monitoring across all tiers
+
+# Subtasks:
+## 1. Implement Complexity Analysis System [done]
+### Dependencies: None
+### Description: Create the complexity analysis component of the CentralizedRoutingService that classifies LLM requests based on their complexity using various heuristics.
+### Details:
+Enhance the analyzeComplexity method to use more sophisticated analysis techniques beyond just word and sentence count. Implement keyword detection for complex tasks, analyze request structure, and consider the presence of code or structured data. Create a scoring system that weighs multiple factors:
+- Word and token count analysis
+- Presence of specialized terminology or technical keywords
+- Detection of code blocks or structured data
+- Estimated cognitive load based on sentence complexity
+- Task type classification (e.g., summarization, generation, analysis)
+
+Return standardized complexity levels ('simple', 'medium', 'complex') based on the combined score.
+
+## 2. Implement Tier Selection Algorithm [done]
+### Dependencies: 6.1
+### Description: Develop the tier selection algorithm that maps request complexity to appropriate model tiers and considers user preferences and system load.
+### Details:
+Enhance the selectTierForComplexity method to consider additional factors beyond just complexity:
+- Create a mapping configuration between complexity levels and model tiers
+- Add consideration for user preferences (if specified in options)
+- Implement system load awareness to potentially downgrade tier during high load
+- Add context-specific tier selection (e.g., code-related prompts to code-specialized models)
+- Implement cost-awareness to optimize for lower-cost tiers when appropriate
+
+The method should return the appropriate tier ('ultra-fast', 'general', 'fast-thinking') based on these combined factors.
+
+## 3. Implement Local Model Selection Logic [done]
+### Dependencies: 6.2
+### Description: Create the logic for selecting the best available local model within a given tier based on model capabilities, health status, and performance metrics.
+### Details:
+Enhance the getAvailableLocalModels and selectBestModel methods to:
+- Query the database for models in the specified tier with proper sorting
+- Check model health status using the LocalModelStatusService
+- Consider model performance metrics (if available) for selection
+- Implement a scoring system that balances model capability, health, and performance
+- Add fallback logic within the same tier if preferred model is unavailable
+- Cache model availability status with appropriate TTL
+
+The methods should return a prioritized list of available models and select the best one based on the request characteristics.
+
+## 4. Implement External Fallback System [done]
+### Dependencies: 6.3
+### Description: Develop the external fallback system that selects appropriate external providers and models when local models are unavailable.
+### Details:
+Enhance the getExternalFallback method to:
+- Create a configurable mapping between local tiers and external provider/model combinations
+- Consider cost optimization when selecting external providers
+- Implement provider-specific parameter adjustments for equivalent performance
+- Add capability to respect user preferences for external providers
+- Include retry logic with different providers if primary external provider fails
+- Log fallback events for monitoring and optimization
+
+The method should return a complete RoutingDecision with appropriate external provider details.
+
+## 5. Integrate with Model Preloading System [done]
+### Dependencies: 6.3, 6.4
+### Description: Integrate the CentralizedRoutingService with the ModelPreloaderService to ensure high-priority models are available and implement dynamic model loading based on usage patterns.
+### Details:
+Create integration between CentralizedRoutingService and ModelPreloaderService:
+- Implement a feedback mechanism to inform preloader about model usage patterns
+- Add priority boosting for frequently used models
+- Create a method to request model loading when needed but unavailable
+- Implement tier-based preloading to ensure at least one model per tier is available
+- Add background health checking for preloaded models
+- Create a model unloading strategy for rarely used models to free resources
+
+Update the determineRoute method to work with this integration, potentially waiting for critical models to load if requested.
+

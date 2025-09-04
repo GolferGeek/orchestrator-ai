@@ -1,0 +1,130 @@
+# Task ID: 3
+# Title: Implement LocalModelStatusService
+# Status: done
+# Dependencies: 2
+# Priority: high
+# Description: Create a LocalModelStatusService at apps/api/src/llms/local-model-status.service.ts that integrates with Ollama API to manage local models, including health checking and status caching.
+# Details:
+1. Create `LocalModelStatusService` at `apps/api/src/llms/local-model-status.service.ts`
+2. Implement Ollama API client with the following endpoints:
+   - GET `/api/tags` - list available models
+   - GET `/api/show/:model` - get model details
+   - POST `/api/pull` - download models if needed
+
+3. Build model health checking system:
+```typescript
+// apps/api/src/llms/local-model-status.service.ts
+@Injectable()
+export class LocalModelStatusService {
+  private cache = new Map<string, {status: ModelHealthStatus, timestamp: number}>();
+  private TTL = 5000; // 5 seconds
+  
+  constructor(private httpService: HttpService) {}
+  
+  async checkModelHealth(modelName: string): Promise<ModelHealthStatus> {
+    // Check cache first
+    const cached = this.getStatusFromCache(modelName);
+    if (cached) return cached;
+    
+    try {
+      const startTime = Date.now();
+      const response = await this.testModelResponse(modelName);
+      const responseTime = Date.now() - startTime;
+      
+      const status = {
+        available: true,
+        responseTime,
+        memoryUsage: await this.getModelMemoryUsage(modelName),
+        lastChecked: new Date().toISOString()
+      };
+      
+      this.setStatusInCache(modelName, status);
+      return status;
+    } catch (error) {
+      const errorStatus = {
+        available: false,
+        error: error.message,
+        lastChecked: new Date().toISOString()
+      };
+      
+      this.setStatusInCache(modelName, errorStatus);
+      return errorStatus;
+    }
+  }
+  
+  private async testModelResponse(modelName: string) {
+    // Send a simple prompt to test model responsiveness
+    return this.httpService.post('http://localhost:11434/api/generate', {
+      model: modelName,
+      prompt: 'Hello',
+      stream: false
+    }).toPromise();
+  }
+  
+  private async getModelMemoryUsage(modelName: string) {
+    // Query Ollama for model memory usage
+    const response = await this.httpService.get(
+      `http://localhost:11434/api/show?name=${modelName}`
+    ).toPromise();
+    
+    return response.data.size || 0;
+  }
+  
+  getStatusFromCache(modelName: string): ModelHealthStatus | null {
+    const cached = this.cache.get(modelName);
+    if (cached && Date.now() - cached.timestamp < this.TTL) {
+      return cached.status;
+    }
+    return null;
+  }
+  
+  setStatusInCache(modelName: string, status: ModelHealthStatus): void {
+    this.cache.set(modelName, {
+      status,
+      timestamp: Date.now()
+    });
+  }
+  
+  async listAvailableModels(): Promise<string[]> {
+    try {
+      const response = await this.httpService.get('http://localhost:11434/api/tags').toPromise();
+      return response.data.models.map(model => model.name);
+    } catch (error) {
+      console.error('Failed to list Ollama models:', error);
+      return [];
+    }
+  }
+  
+  async ensureModelLoaded(modelName: string): Promise<boolean> {
+    try {
+      // Check if model exists
+      const models = await this.listAvailableModels();
+      if (!models.includes(modelName)) {
+        // Pull the model if it doesn't exist
+        await this.httpService.post('http://localhost:11434/api/pull', {
+          name: modelName
+        }).toPromise();
+      }
+      
+      // Verify model is working
+      const health = await this.checkModelHealth(modelName);
+      return health.available;
+    } catch (error) {
+      console.error(`Failed to ensure model ${modelName} is loaded:`, error);
+      return false;
+    }
+  }
+}
+```
+
+4. Add error handling and retry logic for Ollama API calls
+5. Implement service methods to check if models are currently loaded
+
+# Test Strategy:
+1. Unit test the Ollama API client with mocked responses
+2. Test health checking system with various model states
+3. Verify caching works correctly with the 5-second TTL
+4. Test error handling and retry logic with simulated failures
+5. Verify service correctly detects which models are loaded
+6. Test performance under load with multiple concurrent requests
+7. Validate graceful handling of Ollama unavailability

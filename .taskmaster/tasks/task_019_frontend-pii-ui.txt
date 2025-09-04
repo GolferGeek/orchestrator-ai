@@ -1,0 +1,11 @@
+# Task ID: 19
+# Title: Implement Undo/Redo Functionality
+# Status: pending
+# Dependencies: 6, 8
+# Priority: medium
+# Description: Enable safe editing of PII patterns and dictionaries with rollback support.
+# Details:
+Use Pinia store history or a custom undo stack. Implement undo/redo buttons in PIIPatternEditor and PseudonymDictionaryManager. Persist changes only on confirmation.
+
+# Test Strategy:
+Unit test undo/redo stack logic. Integration test rollback scenarios.

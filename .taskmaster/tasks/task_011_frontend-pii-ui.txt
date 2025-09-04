@@ -1,0 +1,11 @@
+# Task ID: 11
+# Title: Develop LLMRequestFlowDiagram Component
+# Status: pending
+# Dependencies: 2, 3
+# Priority: medium
+# Description: Create animated flow diagram for LLM request lifecycle visualization.
+# Details:
+Use SVG or D3.js (v7.x) for interactive flow. Show input→sanitization→routing→LLM call→response. Visualize timing breakdown, decision points, and provider indicators. Add pause/replay/step controls.
+
+# Test Strategy:
+Unit test diagram rendering and controls. Integration test with live request data.

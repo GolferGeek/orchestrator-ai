@@ -1,0 +1,93 @@
+# Task ID: 10
+# Title: Perform Comprehensive Integration Testing
+# Status: pending
+# Dependencies: 9
+# Priority: high
+# Description: Conduct end-to-end flow testing, no-train header verification, secret redaction validation, runId correlation testing, error handling, and establish performance baseline.
+# Details:
+1. End-to-end flow testing:
+   - Agent → LLMService → Provider → Response
+   - Local model routing validation
+   - External fallback verification
+
+2. Create test cases for each flow:
+```typescript
+// tests/integration/end-to-end.test.ts
+describe('End-to-end LLM Service Flow', () => {
+  test('Agent request flows through centralized service to local model', async () => {
+    // Setup test agent with LLMService
+    const agent = new TestAgent(llmService);
+    
+    // Mock Ollama to ensure local routing
+    mockOllamaAvailable(true);
+    
+    // Execute agent request
+    const result = await agent.executeRequest('simple test prompt');
+    
+    // Verify flow
+    expect(result.runMetadata.tier).toBe('local');
+    expect(result.runMetadata.provider).toBe('ollama');
+    expect(result.runMetadata.runId).toBeDefined();
+    expect(result.response).toBeDefined();
+  });
+  
+  test('Falls back to external provider when local unavailable', async () => {
+    // Setup test agent with LLMService
+    const agent = new TestAgent(llmService);
+    
+    // Mock Ollama to force fallback
+    mockOllamaAvailable(false);
+    
+    // Execute agent request
+    const result = await agent.executeRequest('test prompt');
+    
+    // Verify fallback
+    expect(result.runMetadata.tier).toBe('external');
+    expect(['openai', 'anthropic']).toContain(result.runMetadata.provider);
+    expect(result.runMetadata.runId).toBeDefined();
+    expect(result.response).toBeDefined();
+  });
+});
+```
+
+3. No-train header verification across all providers:
+```typescript
+// tests/integration/no-train-headers.test.ts
+describe('No-train Header Verification', () => {
+  test('OpenAI requests include no-train headers', async () => {
+    // Mock network to capture headers
+    const headerSpy = mockProviderRequest('openai');
+    
+    // Force routing to OpenAI
+    mockRoutingDecision({ provider: 'openai', model: 'gpt-4' });
+    
+    // Execute request through LLMService
+    await llmService.generateResponse('test prompt');
+    
+    // Verify headers
+    expect(headerSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-No-Store': 'true'
+        })
+      })
+    );
+  });
+  
+  // Similar tests for other providers
+});
+```
+
+4. Secret redaction validation in logs
+5. RunId correlation testing across entire request flow
+6. Error handling and fallback behavior testing
+7. Performance baseline establishment
+
+# Test Strategy:
+1. Create automated integration tests for all end-to-end flows
+2. Use network mocking to verify headers sent to providers
+3. Implement log capture and analysis to verify secret redaction
+4. Test runId correlation by tracing through all system components
+5. Simulate various error conditions to test fallback behavior
+6. Measure and document performance metrics as baseline
+7. Create test report template for ongoing regression testing

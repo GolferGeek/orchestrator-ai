@@ -1,0 +1,11 @@
+# Task ID: 21
+# Title: Implement Access Control for Admin Features
+# Status: pending
+# Dependencies: 15
+# Priority: high
+# Description: Restrict access to admin privacy settings and PII management based on user roles.
+# Details:
+Integrate Supabase Auth for authentication and role-based access. Protect routes and components using navigation guards and Pinia state.
+
+# Test Strategy:
+Unit test access control logic. Integration test with Supabase Auth and protected routes.

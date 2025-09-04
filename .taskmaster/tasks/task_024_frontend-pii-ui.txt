@@ -1,0 +1,11 @@
+# Task ID: 24
+# Title: Comprehensive Testing Suite
+# Status: pending
+# Dependencies: 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23
+# Priority: high
+# Description: Develop unit, integration, and end-to-end tests for all components and flows.
+# Details:
+Use Vitest (unit), Cypress (e2e), and Vue Test Utils. Cover component logic, API integration, state management, validation, error scenarios, and demo workflows.
+
+# Test Strategy:
+Run full test suite. Measure coverage. Validate demo scenarios and edge cases.

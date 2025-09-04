@@ -1,0 +1,11 @@
+# Task ID: 3
+# Title: Set Up Axios API Service Layer
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Implement a centralized Axios service for all API interactions with backend endpoints.
+# Details:
+Install Axios (v1.x). Create a service module with typed methods for each endpoint. Configure base URL, HTTPS, error interceptors, and retry logic. Use environment variables for endpoint configuration.
+
+# Test Strategy:
+Mock API calls in unit tests. Validate error handling and retry logic. Confirm HTTPS usage.

@@ -1,0 +1,94 @@
+# Task ID: 14
+# Title: Perform End-to-End System Validation
+# Status: pending
+# Dependencies: 13
+# Priority: high
+# Description: Conduct full system validation testing, verify network traffic, trace complete request flow, validate UI integration, and perform security audit.
+# Details:
+1. Full system validation testing:
+   - All agents working through centralized service
+   - Network traffic verification (no direct external calls)
+   - Complete request flow tracing
+   - UI integration validation
+
+2. Network traffic verification:
+```bash
+# Script to detect direct provider API calls
+#!/bin/bash
+
+# Start tcpdump to capture API traffic
+tcpdump -i any -n -A -s 0 'tcp port 443 and (host api.openai.com or host api.anthropic.com)' -w provider_traffic.pcap &
+TCPDUMP_PID=$!
+
+# Run system tests
+echo "Running system tests..."
+npm run test:system
+
+# Stop tcpdump
+kill $TCPDUMP_PID
+
+# Analyze captured traffic
+echo "Analyzing network traffic..."
+tcpdump -r provider_traffic.pcap -A | grep -E 'Authorization:|api-key:'
+
+# Check if any direct calls were made
+if [ $? -eq 0 ]; then
+  echo "FAIL: Direct provider API calls detected!"
+  exit 1
+else
+  echo "PASS: No direct provider API calls detected."
+fi
+```
+
+3. Complete request flow tracing:
+```typescript
+// tests/system/request-flow.test.ts
+describe('End-to-End Request Flow Tracing', () => {
+  test('Request flows through all components correctly', async () => {
+    // Setup tracing collectors at each component
+    const traceCollector = new TraceCollector();
+    
+    // Register trace points
+    traceCollector.registerTracePoint('agent', 'before-request');
+    traceCollector.registerTracePoint('llm-service', 'request-received');
+    traceCollector.registerTracePoint('routing-service', 'routing-decision');
+    traceCollector.registerTracePoint('provider-config', 'provider-selected');
+    traceCollector.registerTracePoint('provider-adapter', 'request-to-provider');
+    traceCollector.registerTracePoint('provider-adapter', 'response-from-provider');
+    traceCollector.registerTracePoint('llm-service', 'response-processed');
+    traceCollector.registerTracePoint('agent', 'response-received');
+    
+    // Execute test request
+    const agent = new TestAgent(llmService, traceCollector);
+    const result = await agent.executeRequest('test prompt');
+    
+    // Get collected trace
+    const trace = traceCollector.getTrace(result.runMetadata.runId);
+    
+    // Verify complete flow
+    expect(trace).toHaveLength(8); // All trace points hit
+    expect(trace[0].point).toBe('agent.before-request');
+    expect(trace[1].point).toBe('llm-service.request-received');
+    // ... verify remaining trace points
+    expect(trace[7].point).toBe('agent.response-received');
+    
+    // Verify timing
+    for (let i = 1; i < trace.length; i++) {
+      expect(trace[i].timestamp).toBeGreaterThan(trace[i-1].timestamp);
+    }
+  });
+});
+```
+
+4. Performance validation under load
+5. Security audit of logging and secret handling
+6. Documentation review and updates
+
+# Test Strategy:
+1. Create comprehensive system validation test suite
+2. Implement network traffic monitoring to detect direct provider calls
+3. Use distributed tracing to verify complete request flow
+4. Test UI integration with developer panel
+5. Conduct load testing to validate performance under stress
+6. Perform security audit focusing on secret handling
+7. Review and update all documentation for accuracy
