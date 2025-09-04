@@ -7,6 +7,7 @@ import {
   PseudonymStatsResponse,
   ReversePseudonymizationRequest,
   ReversePseudonymizationResponse,
+  PseudonymMapping,
   PseudonymDictionaryEntry,
   PseudonymDictionaryImportData,
   PseudonymDictionaryExportData,
@@ -17,6 +18,75 @@ import {
 
 class PseudonymService {
   private readonly basePath = '/sanitization';
+
+  // =====================================
+  // PSEUDONYM MAPPINGS
+  // =====================================
+
+  /**
+   * Get all pseudonym mappings
+   */
+  async getPseudonymMappings(): Promise<PseudonymMapping[]> {
+    try {
+      const response = await apiService.get(`${this.basePath}/pseudonym/mappings`);
+      return response.mappings || [];
+    } catch (error) {
+      console.error('Error fetching pseudonym mappings:', error);
+      // For now, return empty array if endpoint doesn't exist
+      if ((error as any)?.response?.status === 404) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get pseudonym mappings with filters
+   */
+  async getPseudonymMappingsFiltered(filters: {
+    dataType?: PIIDataType | 'all';
+    context?: string;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<{ mappings: PseudonymMapping[]; total: number }> {
+    try {
+      const params = new URLSearchParams();
+      if (filters.dataType && filters.dataType !== 'all') {
+        params.append('dataType', filters.dataType);
+      }
+      if (filters.context) {
+        params.append('context', filters.context);
+      }
+      if (filters.limit) {
+        params.append('limit', filters.limit.toString());
+      }
+      if (filters.offset) {
+        params.append('offset', filters.offset.toString());
+      }
+
+      const response = await apiService.get(`${this.basePath}/pseudonym/mappings?${params.toString()}`);
+      return {
+        mappings: response.mappings || [],
+        total: response.total || 0
+      };
+    } catch (error) {
+      console.error('Error fetching filtered pseudonym mappings:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a specific pseudonym mapping by ID
+   */
+  async getPseudonymMapping(id: string): Promise<PseudonymMapping> {
+    try {
+      const response = await apiService.get(`${this.basePath}/pseudonym/mappings/${id}`);
+      return response.mapping;
+    } catch (error) {
+      console.error(`Error fetching pseudonym mapping ${id}:`, error);
+      throw error;
+    }
+  }
 
   // =====================================
   // PSEUDONYM GENERATION & LOOKUP

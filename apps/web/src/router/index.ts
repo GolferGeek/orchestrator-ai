@@ -106,6 +106,17 @@ const routes: Array<RouteRecordRaw> = [
         meta: { requiresAuth: true, requiresRole: ['admin'] }
       },
       {
+        path: 'admin/pseudonym-mappings',
+        name: 'PseudonymMappings',
+        component: () => import('../views/PseudonymMappingPage.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresRole: ['admin'],
+          title: 'Pseudonym Mapping Viewer',
+          description: 'Visualize PII to pseudonym mappings and usage history'
+        }
+      },
+      {
         path: 'admin/settings',
         name: 'AdminSettings',
         component: () => import('../views/AdminSettingsPage.vue'),

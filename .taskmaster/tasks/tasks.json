@@ -1080,14 +1080,14 @@
         "dependencies": [
           8
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
             "title": "Design Mapping Table UI and Color-Coded Indicators",
             "description": "Create the user interface for displaying the mapping table showing PII to pseudonym relationships, usage counts, and reversibility status. Implement color-coded indicators for mapping status and reversibility.",
             "dependencies": [],
-            "details": "Define table structure and visual cues for mapping status and reversibility. Ensure the design supports accessibility and clarity.",
+            "details": "Define table structure and visual cues for mapping status and reversibility. Ensure the design supports accessibility and clarity.\n<info added on 2025-09-04T23:14:09.771Z>\nSuccessfully designed and implemented the mapping table UI with comprehensive features including responsive table with grid layout, color-coded indicators for data types, visual status indicators, usage count visualization, and statistics cards. Implemented a color-coding system with distinct colors and icons for data types and status indicators. Added interactive features such as search, filtering, sortable columns, pagination, and detailed information modals. Ensured responsive design with mobile-first approach and touch-friendly controls. Incorporated security considerations by displaying only pseudonym values, clearly marking reversibility demos, and including appropriate warning messages.\n</info added on 2025-09-04T23:14:09.771Z>",
             "status": "pending",
             "testStrategy": "Verify correct rendering of table columns, color indicators, and accessibility compliance."
           },
@@ -1098,7 +1098,7 @@
             "dependencies": [
               "9.1"
             ],
-            "details": "Integrate API calls and Pinia store access. Handle loading, error, and empty states. Ensure no actual PII is stored in frontend state.",
+            "details": "Integrate API calls and Pinia store access. Handle loading, error, and empty states. Ensure no actual PII is stored in frontend state.\n<info added on 2025-09-04T23:17:25.803Z>\nAPI Service Updates:\n- Added `getPseudonymMappings()` endpoint to pseudonymService\n- Added `getPseudonymMappingsFiltered()` with filtering capabilities\n- Added `getPseudonymMapping(id)` for individual mapping retrieval\n- Properly imported `PseudonymMapping` interface\n\nPinia Store Implementation:\n- Created comprehensive `pseudonymMappingsStore` with full state management\n- Implemented reactive state for mappings, loading, error handling\n- Added filtering and sorting capabilities with computed properties\n- Included statistics tracking and caching with 5-minute freshness\n- Added mock data fallback for development when API endpoints aren't available\n- Implemented efficient data fetching with force refresh options\n\nComponent Integration:\n- Updated PseudonymMappingViewer to use Pinia store instead of local state\n- Converted local computed properties to use store data\n- Updated methods to call store actions (refreshMappings, etc.)\n- Maintained local UI state (pagination, modals) while using store for data\n\nRouting & Navigation:\n- Created PseudonymMappingPage wrapper component\n- Added route `/app/admin/pseudonym-mappings` with admin protection\n- Added menu item in AgentsPage with swap icon\n- Properly imported required icons\n\nError Handling:\n- Graceful fallback to mock data if API endpoint doesn't exist (404)\n- Comprehensive error states and loading indicators\n- Proper TypeScript typing throughout\n</info added on 2025-09-04T23:17:25.803Z>",
             "status": "pending",
             "testStrategy": "Mock API and store responses to test data loading, error handling, and state management."
           },
@@ -1843,7 +1843,7 @@
         "dependencies": [
           15
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2120,11 +2120,25 @@
             "testStrategy": "Review documentation for completeness and clarity. Conduct a dry run of the demo to ensure readiness and smooth delivery."
           }
         ]
+      },
+      {
+        "id": 26,
+        "title": "Develop LLM Routing Dashboard Tab for CentralizedRoutingService Visualization",
+        "description": "Create a new 'Routing' tab in the LLM Usage Dashboard to visualize routing decisions, distribution, reasoning paths, performance metrics, complexity analysis, and provide interactive routing rules management.",
+        "details": "Implement a new tab within the existing LLM Usage Dashboard at /app/admin/llm-usage using a modular, maintainable component structure. The dashboard should include:\n\n- **Routing Distribution Visualization:** Use Chart.js v4.x to display a pie chart showing the proportion of requests routed locally vs. to the cloud, leveraging the RoutingDecision data already captured by the backend.\n- **Reasoning Path Display:** For each routing decision, provide a detailed, expandable view of the reasoningPath, using a tree or stepper UI to help users trace the logic behind each route. Consider using a collapsible panel or modal for in-depth inspection.\n- **Performance Metrics by Route:** Present comparative charts (bar or line) for latency, success rate, and fallback usage, grouped by route (local/cloud). Fetch and aggregate relevant metrics from the backend API.\n- **Complexity Analysis Visualization:** Visualize complexityScore distributions using histograms or scatter plots, enabling users to correlate complexity with routing outcomes and performance.\n- **Routing Rules Management UI:** Build an interactive configuration panel allowing admins to view, edit, and test routing rules. Use form validation and preview features to ensure safe updates. Integrate with the backend API for rule persistence and validation.\n- **Tab Integration:** Add the 'Routing' tab using the dashboard's existing tab navigation pattern, ensuring seamless UX and consistent styling.\n- **Accessibility & Responsiveness:** Follow accessibility best practices (WCAG 2.1), ensure keyboard navigation, and optimize for various screen sizes.\n- **State Management:** Use Pinia for state management, defining stores for routing decisions, metrics, and rules. Ensure type safety with TypeScript interfaces matching backend models.\n- **Error Handling:** Integrate with the global error boundary for robust error reporting and fallback UI.\n\nReference dashboard design patterns for multi-page/tabbed layouts and parameterized controls to allow filtering by date range, route type, or complexity[4][5]. Follow best practices for LLM routing visualization, emphasizing clarity, drill-down capability, and actionable insights[1][2][3][5].",
+        "testStrategy": "1. Unit test all UI components: pie charts, reasoning path displays, performance charts, and rules management forms, including edge cases and error states.\n2. Integration test dashboard data fetching, aggregation, and state updates using mocked and live RoutingDecision data.\n3. Validate that the routing distribution, performance metrics, and complexity visualizations accurately reflect backend data.\n4. Test routing rules management UI for correct validation, preview, and persistence of rule changes.\n5. Perform accessibility audits (using axe or Lighthouse) and responsive layout checks.\n6. Simulate backend/API failures to verify error boundary integration and user feedback.\n7. Conduct user acceptance testing with admin users to ensure usability and clarity of insights.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          4
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-04T22:59:18.919Z",
+      "updated": "2025-09-04T23:11:22.257Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }
