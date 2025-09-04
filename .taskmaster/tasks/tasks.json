@@ -1109,7 +1109,7 @@
             "dependencies": [
               "9.2"
             ],
-            "details": "Fetch and render usage statistics per mapping. Ensure updates reflect changes from API or store without exposing PII.",
+            "details": "Fetch and render usage statistics per mapping. Ensure updates reflect changes from API or store without exposing PII.\n<info added on 2025-09-04T23:21:36.451Z>\nSuccessfully implemented comprehensive usage history visualization and trends without any artificial data:\n\n**Real Data-Based Visualizations:**\n- Daily Usage Activity chart showing actual mapping usage over last 14 days\n- Data Type Distribution with real usage counts and percentages\n- Recent Activity Patterns showing most active/recent mappings and growth rates\n- Usage Intensity Heatmap displaying hourly usage patterns based on actual timestamps\n\n**Key Features Implemented:**\n- CSS-based charts (no external chart library dependencies)\n- Responsive design with mobile-optimized layouts\n- Interactive hover effects and tooltips\n- Real-time data calculations from store mappings\n- Growth rate analysis comparing recent vs historical usage\n- Hourly activity heatmap with intensity color coding\n\n**Data Sources (All Real):**\n- Daily trends: Based on actual lastUsedAt timestamps from mappings\n- Type distribution: Calculated from actual mapping data types and usage counts\n- Activity patterns: Derived from real mapping creation and usage dates\n- Heatmap: Generated from actual hour-of-day usage patterns\n- Statistics: Computed from real mapping counts and usage data\n\n**Visual Design:**\n- Consistent color scheme matching data type indicators\n- Professional chart styling with legends and labels\n- Responsive grid layout for different screen sizes\n- Clean typography and spacing following Ionic design principles\n\n**Removed All Artificial Elements:**\n- Eliminated all random data generation and simulation\n- Removed fallback data patterns\n- Cleaned up store to return empty arrays instead of generated data\n- All visualizations now reflect actual system usage patterns\n</info added on 2025-09-04T23:21:36.451Z>",
             "status": "pending",
             "testStrategy": "Simulate usage updates and verify correct display and real-time updates."
           },
@@ -2134,11 +2134,27 @@
         ],
         "priority": "medium",
         "subtasks": []
+      },
+      {
+        "id": 27,
+        "title": "Create Incremental Migration for Realistic Sample Data Seeding",
+        "description": "Develop a database migration that seeds the Supabase database with realistic sample data for PII patterns, pseudonym dictionaries, mappings, LLM usage, user evaluations, and admin audit logs, supporting comprehensive frontend testing and demonstration.",
+        "details": "1. Create a new SQL migration file in apps/api/supabase/migrations/incremental/ following the project's naming conventions (e.g., <timestamp>_seed_realistic_sample_data.sql).\n2. Analyze the current schema for agents, LLM configurations, PII patterns, pseudonym dictionaries, mappings, usage records, evaluation metrics, and audit logs to ensure data integrity and relational consistency.\n3. For each table:\n   - Insert realistic sample data reflecting actual usage patterns:\n     - PII patterns: Use regexes for emails, phones, SSNs, etc., with plausible descriptions and categories.\n     - Pseudonym dictionaries: Populate with diverse, category-specific word lists (e.g., names, locations, organizations) and frequency weights.\n     - Pseudonym mappings: Generate mappings with usage history, timestamps, and relationships to agents/LLMs.\n     - LLM usage records: Simulate agent interactions with varied prompts, responses, timestamps, and routing decisions.\n     - User evaluation data: Insert privacy metrics and feedback reflecting a range of realistic outcomes.\n     - Admin audit logs: Add entries for representative system activities (e.g., settings changes, data access, error events) with timestamps and user/admin references.\n4. Use SQL best practices for bulk inserts, ensuring referential integrity and avoiding hardcoded IDs by leveraging subqueries or CTEs where necessary.\n5. Document the migration for maintainability, and ensure it is idempotent (safe to re-run without duplicating data).\n6. Validate that the seeded data supports all frontend components, especially those currently showing empty states.\n7. Follow Supabase migration and seeding best practices: test locally, avoid destructive changes, and ensure compatibility with existing migrations and schema evolution workflows.",
+        "testStrategy": "- Run the migration in a local development environment and verify that all relevant tables are populated with realistic, relationally consistent data.\n- Use the frontend to confirm that previously empty states (e.g., dashboards, viewers, managers) now display populated, plausible data.\n- Query the database directly to check for data integrity, correct relationships, and absence of duplicate or orphaned records.\n- Reset and reapply migrations to ensure idempotency and repeatability.\n- Review logs and error outputs for any migration failures or constraint violations.",
+        "status": "pending",
+        "dependencies": [
+          6,
+          8,
+          9,
+          15
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-04T23:11:22.257Z",
+      "updated": "2025-09-04T23:29:03.262Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }

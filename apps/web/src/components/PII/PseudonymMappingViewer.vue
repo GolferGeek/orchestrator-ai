@@ -150,8 +150,180 @@
       </ion-card-content>
     </ion-card>
 
+    <!-- Usage Trends Section -->
+    <div v-if="!isLoading && !error" class="trends-section">
+      <ion-card class="trends-card">
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon :icon="trendingUpOutline" />
+            Usage Trends & History
+          </ion-card-title>
+          <ion-card-subtitle>Pseudonym usage patterns over time</ion-card-subtitle>
+        </ion-card-header>
+        
+        <ion-card-content>
+          <ion-grid>
+            <ion-row>
+              <!-- Usage Over Time Chart -->
+              <ion-col size="12" size-md="8">
+                <div class="trend-chart-container">
+                  <h4>Daily Usage Activity</h4>
+                  <div class="trend-chart">
+                    <div class="chart-bars">
+                      <div 
+                        v-for="(day, index) in usageTrendData" 
+                        :key="index"
+                        class="trend-bar"
+                        :title="`${day.date}: ${day.usage} uses`"
+                      >
+                        <div 
+                          class="bar-fill"
+                          :style="{ height: `${(day.usage / maxDailyUsage) * 100}%` }"
+                        ></div>
+                        <div class="bar-label">{{ formatTrendDate(day.date) }}</div>
+                      </div>
+                    </div>
+                    <div class="chart-legend">
+                      <div class="legend-item">
+                        <div class="legend-color usage"></div>
+                        <span>Daily Usage</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ion-col>
+              
+              <!-- Data Type Distribution -->
+              <ion-col size="12" size-md="4">
+                <div class="distribution-chart">
+                  <h4>Usage by Data Type</h4>
+                  <div class="distribution-items">
+                    <div 
+                      v-for="(typeData, index) in dataTypeDistribution" 
+                      :key="index"
+                      class="distribution-item"
+                    >
+                      <div class="distribution-info">
+                        <ion-chip 
+                          :color="getDataTypeColor(typeData.dataType)"
+                          size="small"
+                        >
+                          <ion-icon :icon="getDataTypeIcon(typeData.dataType)" />
+                          <ion-label>{{ formatDataType(typeData.dataType) }}</ion-label>
+                        </ion-chip>
+                        <span class="usage-count">{{ typeData.totalUsage }}</span>
+                      </div>
+                      <div class="distribution-bar">
+                        <div 
+                          class="distribution-fill"
+                          :style="{ 
+                            width: `${(typeData.totalUsage / maxTypeUsage) * 100}%`,
+                            backgroundColor: `var(--ion-color-${getDataTypeColor(typeData.dataType)})`
+                          }"
+                        ></div>
+                      </div>
+                      <div class="distribution-percentage">
+                        {{ Math.round((typeData.totalUsage / totalUsage) * 100) }}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ion-col>
+            </ion-row>
+            
+            <ion-row>
+              <!-- Recent Activity Trends -->
+              <ion-col size="12" size-md="6">
+                <div class="activity-trends">
+                  <h4>Recent Activity Patterns</h4>
+                  <div class="activity-items">
+                    <div class="activity-item">
+                      <div class="activity-icon">
+                        <ion-icon :icon="trendingUpOutline" color="success" />
+                      </div>
+                      <div class="activity-info">
+                        <div class="activity-title">Most Active</div>
+                        <div class="activity-description">
+                          {{ mostActiveMapping?.pseudonym || 'N/A' }} ({{ mostActiveMapping?.usageCount || 0 }} uses)
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="activity-item">
+                      <div class="activity-icon">
+                        <ion-icon :icon="timeOutline" color="primary" />
+                      </div>
+                      <div class="activity-info">
+                        <div class="activity-title">Most Recent</div>
+                        <div class="activity-description">
+                          {{ mostRecentMapping?.pseudonym || 'N/A' }} 
+                          ({{ mostRecentMapping ? formatRelativeTime(mostRecentMapping.lastUsedAt) : 'N/A' }})
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="activity-item">
+                      <div class="activity-icon">
+                        <ion-icon :icon="sparklesOutline" color="warning" />
+                      </div>
+                      <div class="activity-info">
+                        <div class="activity-title">New This Week</div>
+                        <div class="activity-description">
+                          {{ newThisWeekCount }} new mappings created
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="activity-item">
+                      <div class="activity-icon">
+                        <ion-icon :icon="pulseOutline" color="tertiary" />
+                      </div>
+                      <div class="activity-info">
+                        <div class="activity-title">Growth Rate</div>
+                        <div class="activity-description">
+                          {{ usageGrowthRate >= 0 ? '+' : '' }}{{ Math.round(usageGrowthRate) }}% vs last week
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ion-col>
+              
+              <!-- Usage Heatmap -->
+              <ion-col size="12" size-md="6">
+                <div class="usage-heatmap">
+                  <h4>Usage Intensity Heatmap</h4>
+                  <div class="heatmap-grid">
+                    <div 
+                      v-for="(hour, index) in usageHeatmapData" 
+                      :key="index"
+                      class="heatmap-cell"
+                      :class="getHeatmapIntensity(hour.usage)"
+                      :title="`${hour.hour}:00 - ${hour.usage} uses`"
+                    >
+                      <div class="heatmap-hour">{{ hour.hour }}</div>
+                    </div>
+                  </div>
+                  <div class="heatmap-legend">
+                    <span class="legend-label">Less</span>
+                    <div class="intensity-scale">
+                      <div class="intensity-cell low"></div>
+                      <div class="intensity-cell medium"></div>
+                      <div class="intensity-cell high"></div>
+                      <div class="intensity-cell very-high"></div>
+                    </div>
+                    <span class="legend-label">More</span>
+                  </div>
+                </div>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <!-- Mappings Table -->
-    <ion-card v-else class="mappings-table-card">
+    <ion-card v-else-if="!isLoading && !error" class="mappings-table-card">
       <ion-card-header>
         <ion-card-title>
           Pseudonym Mappings
@@ -328,9 +500,9 @@
                 <div class="demo-content">
                   <ion-icon :icon="warningOutline" color="warning" />
                   <div>
-                    <h4>Demo Mode</h4>
+                    <h4>Reversibility Notice</h4>
                     <p>
-                      This is a safe demonstration using mock data. In a real scenario, 
+                      This demonstrates the reversibility feature. In production, 
                       reversibility would only be available through secure, audited processes 
                       with proper authorization.
                     </p>
@@ -503,7 +675,11 @@ import {
   globeOutline,
   cardOutline,
   keyOutline,
-  documentTextOutline
+  documentTextOutline,
+  trendingUpOutline,
+  timeOutline,
+  sparklesOutline,
+  pulseOutline
 } from 'ionicons/icons';
 
 import { PseudonymMapping, PIIDataType } from '@/types/pii';
@@ -599,6 +775,104 @@ const paginatedMappings = computed(() => {
 
 const totalPages = computed(() => {
   return Math.ceil(filteredMappings.value.length / pageSize.value);
+});
+
+// Usage trends computed properties
+const usageTrendData = computed(() => {
+  // Generate daily usage data for the last 14 days based on actual mapping data
+  const days = [];
+  const now = new Date();
+  
+  for (let i = 13; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+    
+    // Calculate actual usage based on when mappings were last used
+    const dayUsage = mappingsStore.mappings.reduce((sum, mapping) => {
+      const lastUsed = new Date(mapping.lastUsedAt);
+      const isSameDay = lastUsed.toDateString() === date.toDateString();
+      return isSameDay ? sum + 1 : sum; // Count actual usage events
+    }, 0);
+    
+    days.push({
+      date: date.toISOString().split('T')[0],
+      usage: dayUsage
+    });
+  }
+  
+  return days;
+});
+
+const maxDailyUsage = computed(() => {
+  const usages = usageTrendData.value.map(d => d.usage);
+  return Math.max(...usages, 1);
+});
+
+const dataTypeDistribution = computed(() => {
+  const distribution = mappingsStore.mappingsByDataType;
+  
+  return Object.entries(distribution).map(([dataType, mappings]) => ({
+    dataType: dataType as PIIDataType,
+    totalUsage: mappings.reduce((sum, mapping) => sum + mapping.usageCount, 0),
+    count: mappings.length
+  })).sort((a, b) => b.totalUsage - a.totalUsage);
+});
+
+const maxTypeUsage = computed(() => {
+  const usages = dataTypeDistribution.value.map(d => d.totalUsage);
+  return Math.max(...usages, 1);
+});
+
+const mostActiveMapping = computed(() => {
+  return mappingsStore.mappings.reduce((prev, current) => 
+    (prev.usageCount > current.usageCount) ? prev : current
+  );
+});
+
+const mostRecentMapping = computed(() => {
+  return mappingsStore.mappings.reduce((prev, current) => 
+    (new Date(prev.lastUsedAt) > new Date(current.lastUsedAt)) ? prev : current
+  );
+});
+
+const newThisWeekCount = computed(() => {
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  
+  return mappingsStore.mappings.filter(mapping => 
+    new Date(mapping.createdAt) >= oneWeekAgo
+  ).length;
+});
+
+const usageGrowthRate = computed(() => {
+  // Calculate growth rate based on recent vs older usage
+  const recentUsage = mappingsStore.recentMappings.reduce((sum, m) => sum + m.usageCount, 0);
+  const totalUsage = mappingsStore.totalUsage;
+  const olderUsage = totalUsage - recentUsage;
+  
+  if (olderUsage === 0) return 100; // All usage is recent
+  return ((recentUsage - olderUsage) / olderUsage) * 100;
+});
+
+const usageHeatmapData = computed(() => {
+  // Calculate hourly usage data (0-23 hours) based on actual mapping timestamps
+  const hours = [];
+  
+  for (let hour = 0; hour < 24; hour++) {
+    // Count actual usage events for this hour across all mappings
+    const hourUsage = mappingsStore.mappings.reduce((sum, mapping) => {
+      const lastUsed = new Date(mapping.lastUsedAt);
+      const mappingHour = lastUsed.getHours();
+      return mappingHour === hour ? sum + 1 : sum;
+    }, 0);
+    
+    hours.push({
+      hour: hour,
+      usage: hourUsage
+    });
+  }
+  
+  return hours;
 });
 
 // Methods
@@ -749,6 +1023,19 @@ const formatRelativeTime = (dateString: string): string => {
     const diffMonths = Math.floor(diffDays / 30);
     return `${diffMonths}mo ago`;
   }
+};
+
+// Utility functions for trends
+const formatTrendDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+const getHeatmapIntensity = (usage: number): string => {
+  if (usage <= 2) return 'low';
+  if (usage <= 5) return 'medium';
+  if (usage <= 10) return 'high';
+  return 'very-high';
 };
 
 // Initialize component
@@ -1094,6 +1381,283 @@ onMounted(async () => {
   padding: 1rem;
 }
 
+/* Usage Trends Styles */
+.trends-section {
+  margin-bottom: 1.5rem;
+}
+
+.trends-card {
+  margin: 0;
+}
+
+.trends-card ion-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trend-chart-container {
+  padding: 1rem;
+}
+
+.trend-chart h4,
+.distribution-chart h4,
+.activity-trends h4,
+.usage-heatmap h4 {
+  margin: 0 0 1rem 0;
+  color: var(--ion-color-dark);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.trend-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: end;
+  gap: 4px;
+  height: 200px;
+  padding: 1rem;
+  background: var(--ion-color-light-tint);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.trend-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 30px;
+  height: 100%;
+  position: relative;
+}
+
+.bar-fill {
+  width: 20px;
+  background: var(--ion-color-primary);
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s ease;
+  margin-top: auto;
+}
+
+.bar-label {
+  font-size: 0.7rem;
+  color: var(--ion-color-medium);
+  margin-top: 0.25rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  text-align: center;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-color.usage {
+  background: var(--ion-color-primary);
+}
+
+/* Distribution Chart */
+.distribution-chart {
+  padding: 1rem;
+}
+
+.distribution-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.distribution-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.distribution-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.usage-count {
+  font-weight: 600;
+  color: var(--ion-color-dark);
+}
+
+.distribution-bar {
+  height: 8px;
+  background: var(--ion-color-light-shade);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.distribution-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.distribution-percentage {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+  text-align: right;
+}
+
+/* Activity Trends */
+.activity-trends {
+  padding: 1rem;
+}
+
+.activity-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--ion-color-light-tint);
+  border-radius: 8px;
+}
+
+.activity-icon {
+  flex-shrink: 0;
+}
+
+.activity-icon ion-icon {
+  font-size: 1.5rem;
+}
+
+.activity-info {
+  flex: 1;
+}
+
+.activity-title {
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin-bottom: 0.25rem;
+}
+
+.activity-description {
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+}
+
+/* Usage Heatmap */
+.usage-heatmap {
+  padding: 1rem;
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+  margin-bottom: 1rem;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.1);
+}
+
+.heatmap-cell.low {
+  background: var(--ion-color-light-shade);
+  color: var(--ion-color-medium);
+}
+
+.heatmap-cell.medium {
+  background: var(--ion-color-primary-tint);
+  color: var(--ion-color-primary-contrast);
+}
+
+.heatmap-cell.high {
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+}
+
+.heatmap-cell.very-high {
+  background: var(--ion-color-primary-shade);
+  color: var(--ion-color-primary-contrast);
+}
+
+.heatmap-hour {
+  font-size: 0.7rem;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+}
+
+.intensity-scale {
+  display: flex;
+  gap: 2px;
+}
+
+.intensity-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.intensity-cell.low {
+  background: var(--ion-color-light-shade);
+}
+
+.intensity-cell.medium {
+  background: var(--ion-color-primary-tint);
+}
+
+.intensity-cell.high {
+  background: var(--ion-color-primary);
+}
+
+.intensity-cell.very-high {
+  background: var(--ion-color-primary-shade);
+}
+
+.legend-label {
+  font-size: 0.7rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .viewer-header {
@@ -1143,6 +1707,42 @@ onMounted(async () => {
 
   .flow-arrow {
     transform: rotate(90deg);
+  }
+
+  /* Responsive trends */
+  .chart-bars {
+    height: 150px;
+    padding: 0.5rem;
+  }
+
+  .trend-bar {
+    min-width: 20px;
+  }
+
+  .bar-label {
+    writing-mode: horizontal-tb;
+    text-orientation: unset;
+    font-size: 0.6rem;
+  }
+
+  .distribution-items {
+    gap: 0.5rem;
+  }
+
+  .activity-items {
+    gap: 0.5rem;
+  }
+
+  .activity-item {
+    padding: 0.75rem;
+  }
+
+  .heatmap-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .heatmap-cell {
+    font-size: 0.6rem;
   }
 }
 </style>

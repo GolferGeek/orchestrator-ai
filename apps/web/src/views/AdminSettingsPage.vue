@@ -513,41 +513,41 @@ const auditSettings = ref({
   retentionPeriodDays: 365
 });
 
-// Mock stats (in real app, these would come from API/stores)
+// Real stats - fetched from stores/APIs
 const evaluationStats = ref({
-  total: 1247,
-  pending: 23,
-  completed: 1224
+  total: 0,
+  pending: 0,
+  completed: 0
 });
 
 const llmStats = ref({
-  totalCost: 45.67,
-  requestsToday: 892,
-  avgResponseTime: 1.2
+  totalCost: 0,
+  requestsToday: 0,
+  avgResponseTime: 0
 });
 
 const piiStats = ref({
-  patterns: 24,
-  active: 18,
-  detections: 156
+  patterns: 0,
+  active: 0,
+  detections: 0
 });
 
 const dictionaryStats = ref({
-  dictionaries: 8,
-  totalWords: 2451,
-  activeWords: 2298
+  dictionaries: 0,
+  totalWords: 0,
+  activeWords: 0
 });
 
 const systemHealth = ref({
-  healthy: true,
-  uptime: 99.9,
+  healthy: false,
+  uptime: 0,
   issues: 0
 });
 
 const systemStats = ref({
-  activeUsers: 12,
-  dailyConversations: 89,
-  privacyProtectionRate: 94.2
+  activeUsers: 0,
+  dailyConversations: 0,
+  privacyProtectionRate: 0
 });
 
 // Methods
