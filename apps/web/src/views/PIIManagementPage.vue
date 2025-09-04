@@ -14,11 +14,46 @@
           <p>Manage patterns for detecting and handling personally identifiable information (PII)</p>
         </div>
         
-        <!-- PIIPatternTable Component -->
-        <PIIPatternTable 
-          @edit-pattern="handleEditPattern"
-          @create-pattern="handleCreatePattern"
-        />
+                        <!-- PIIPatternTable Component -->
+                <PIIPatternTable 
+                  @edit-pattern="handleEditPattern"
+                  @create-pattern="handleCreatePattern"
+                />
+                
+                <!-- Demo: Role Guard Directive Usage -->
+                <div class="role-guard-demo" style="margin-top: 2rem; padding: 1rem; background: var(--ion-color-light-shade); border-radius: 8px;">
+                  <h3>Role Guard Demo (Admin Only)</h3>
+                  <p>The following elements demonstrate role-based protection:</p>
+                  
+                  <!-- This button will only show for admins -->
+                  <ion-button 
+                    v-role-guard="{ roles: ['admin'] }"
+                    color="danger" 
+                    size="small"
+                    style="margin-right: 0.5rem;"
+                  >
+                    Admin Only Button
+                  </ion-button>
+                  
+                  <!-- This button will be disabled for non-developers -->
+                  <ion-button 
+                    v-role-guard="{ roles: ['developer'], disable: true }"
+                    color="secondary" 
+                    size="small"
+                    style="margin-right: 0.5rem;"
+                  >
+                    Developer Button (Disabled)
+                  </ion-button>
+                  
+                  <!-- This button will be hidden for non-evaluation-monitors -->
+                  <ion-button 
+                    v-role-guard="{ roles: ['evaluation-monitor'], hide: true }"
+                    color="tertiary" 
+                    size="small"
+                  >
+                    Evaluation Monitor (Hidden)
+                  </ion-button>
+                </div>
         
         <!-- PIIPatternEditor Modal -->
         <PIIPatternEditor
