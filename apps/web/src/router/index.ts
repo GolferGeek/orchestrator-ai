@@ -92,6 +92,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'PIITesting',
         component: () => import('../views/PIITestingPage.vue'),
         meta: { requiresAuth: true, requiresRole: ['admin'] }
+      },
+      {
+        path: 'admin/pseudonym-dictionary',
+        name: 'PseudonymDictionary',
+        component: () => import('../views/PseudonymDictionaryPage.vue'),
+        meta: { requiresAuth: true, requiresRole: ['admin'] }
       }
     ]
   },
