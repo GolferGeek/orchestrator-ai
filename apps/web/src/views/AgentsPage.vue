@@ -54,6 +54,47 @@
                   <ion-label>Evaluations</ion-label>
                 </ion-item>
               </ion-menu-toggle>
+              
+              <!-- Admin Section -->
+              <div v-if="auth.user && auth.user.roles && (auth.user.roles.includes('admin') || auth.user.roles.includes('evaluation-monitor'))">
+                <ion-list-header>Admin</ion-list-header>
+                <ion-menu-toggle v-if="auth.user.roles.includes('admin')">
+                  <ion-item 
+                    router-direction="root" 
+                    router-link="/app/admin/pii-patterns" 
+                    lines="none" 
+                    :detail="false"
+                    :class="{ 'selected': $route.path === '/app/admin/pii-patterns' }"
+                  >
+                    <ion-icon aria-hidden="true" :icon="shieldCheckmarkOutline" slot="start"></ion-icon>
+                    <ion-label>PII Patterns</ion-label>
+                  </ion-item>
+                </ion-menu-toggle>
+                <ion-menu-toggle v-if="auth.user.roles.includes('admin') || auth.user.roles.includes('evaluation-monitor')">
+                  <ion-item 
+                    router-direction="root" 
+                    router-link="/app/admin/evaluations" 
+                    lines="none" 
+                    :detail="false"
+                    :class="{ 'selected': $route.path === '/app/admin/evaluations' }"
+                  >
+                    <ion-icon aria-hidden="true" :icon="analyticsOutline" slot="start"></ion-icon>
+                    <ion-label>Admin Evaluations</ion-label>
+                  </ion-item>
+                </ion-menu-toggle>
+                <ion-menu-toggle v-if="auth.user.roles.includes('admin')">
+                  <ion-item 
+                    router-direction="root" 
+                    router-link="/app/admin/llm-usage" 
+                    lines="none" 
+                    :detail="false"
+                    :class="{ 'selected': $route.path === '/app/admin/llm-usage' }"
+                  >
+                    <ion-icon aria-hidden="true" :icon="barChartOutline" slot="start"></ion-icon>
+                    <ion-label>LLM Usage</ion-label>
+                  </ion-item>
+                </ion-menu-toggle>
+              </div>
               <!-- Agents & Conversations Accordion - Takes remaining space -->
               <ion-accordion-group :value="agentsExpanded ? 'agents' : undefined">
                 <ion-accordion value="agents">
@@ -104,7 +145,7 @@ import { computed, ref } from 'vue';
 import { 
   IonPage, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup, IonSearchbar, IonButton
 } from '@ionic/vue';
-import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, refreshOutline, documentTextOutline } from 'ionicons/icons';
+import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, refreshOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useRouter } from 'vue-router';

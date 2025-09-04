@@ -80,6 +80,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Organization',
         component: () => import('../views/OrganizationPage.vue'),
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'admin/pii-patterns',
+        name: 'PIIManagement',
+        component: () => import('../views/PIIManagementPage.vue'),
+        meta: { requiresAuth: true, requiresRole: ['admin'] }
       }
     ]
   },

@@ -801,7 +801,7 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -809,7 +809,7 @@
             "description": "Create the responsive table structure using Ionic Grid, IonRow, and IonCol components to display PII patterns in a tabular format.",
             "dependencies": [],
             "details": "Utilize Ionic's grid system for layout and ensure proper alignment and responsiveness. Integrate IonTable or ngx-datatable for advanced features as needed.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify table renders correctly across devices and columns align as expected."
           },
           {
@@ -820,7 +820,7 @@
               "5.1"
             ],
             "details": "Use ngx-datatable or custom logic to enable sortable columns and multi-criteria filtering. Implement a search input that updates results in real time.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test sorting and filtering logic. Validate search updates table instantly."
           },
           {
@@ -831,7 +831,7 @@
               "5.2"
             ],
             "details": "Add checkboxes for row selection and bulk action buttons. Integrate with Axios service for API calls to perform bulk operations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test bulk selection and action triggers. Integration test API calls for bulk operations."
           },
           {
@@ -842,7 +842,7 @@
               "5.1"
             ],
             "details": "Use icons, chips, or color coding to differentiate pattern types. Ensure indicators are accessible and consistent.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test indicator rendering. Validate correct marker for each pattern type."
           },
           {
@@ -856,7 +856,7 @@
               "5.4"
             ],
             "details": "Fetch, update, and synchronize PII pattern data using Pinia and Axios. Ensure all table actions reflect backend state.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration test data fetching, updates, and synchronization. Validate error handling and state consistency."
           }
         ]
@@ -871,7 +871,7 @@
         "dependencies": [
           5
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -879,7 +879,7 @@
             "description": "Set up the PIIPatternEditor modal using Ionic Modal components, ensuring proper layout and accessibility for all required form fields.",
             "dependencies": [],
             "details": "Use IonModal and related Ionic components to create a modal dialog. Include header, content, and footer sections. Ensure modal can be triggered for both add and edit modes.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test modal open/close behavior, accessibility, and correct rendering of modal structure."
           },
           {
@@ -890,7 +890,7 @@
               "6.1"
             ],
             "details": "Use reactive forms or form state management. Validate required fields, enforce unique name (against existing patterns), and provide real-time error feedback for invalid input.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test form validation logic, including edge cases for uniqueness and required fields."
           },
           {
@@ -901,7 +901,7 @@
               "6.2"
             ],
             "details": "Parse and validate regex input on change. Catch and display syntax errors or unsafe patterns. Disable form submission if regex is invalid.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test regex validation with valid, invalid, and edge-case patterns. Verify error feedback display."
           },
           {
@@ -912,7 +912,7 @@
               "6.3"
             ],
             "details": "Allow user to input or select sample text. Apply regex and visually highlight matched substrings. Update preview as regex or sample text changes.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test preview updates and highlighting accuracy for various regex and sample text combinations."
           },
           {
@@ -923,7 +923,7 @@
               "6.4"
             ],
             "details": "On form submission, send data to API. Handle success and error responses, including rollback on failure. Close modal and refresh parent data on success.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration test API calls, error handling, and data refresh. Mock API responses for unit testing."
           }
         ]
@@ -1834,73 +1834,6 @@
         ]
       },
       {
-        "id": 20,
-        "title": "Implement Secure Communication",
-        "description": "Enforce HTTPS for all API calls and sanitize user inputs on the frontend.",
-        "details": "Configure Axios to use HTTPS endpoints. Validate and sanitize all user inputs before API submission. Use DOMPurify (v3.x) for input sanitization.",
-        "testStrategy": "Security tests for HTTPS enforcement. Unit test input sanitization logic.",
-        "priority": "high",
-        "dependencies": [
-          3
-        ],
-        "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Configure Axios to Use HTTPS Endpoints",
-            "description": "Ensure all API calls made via Axios are directed to HTTPS endpoints to enforce secure communication.",
-            "dependencies": [],
-            "details": "Update Axios base URLs and interceptors to require HTTPS. Audit all API endpoint references for protocol compliance.",
-            "status": "pending",
-            "testStrategy": "Perform security tests to verify all requests use HTTPS and reject non-secure (HTTP) endpoints."
-          },
-          {
-            "id": 2,
-            "title": "Validate User Inputs on the Frontend",
-            "description": "Implement input validation logic to check user data for expected format, type, and length before submission.",
-            "dependencies": [],
-            "details": "Use validation libraries or custom logic to enforce constraints such as string type, minimum/maximum length, and required fields.",
-            "status": "pending",
-            "testStrategy": "Unit test validation logic for various input scenarios, including edge cases and invalid data."
-          },
-          {
-            "id": 3,
-            "title": "Sanitize User Inputs Using DOMPurify v3.x",
-            "description": "Integrate DOMPurify v3.x to sanitize all user inputs before sending them to the API, preventing XSS and injection attacks.",
-            "dependencies": [
-              "20.2"
-            ],
-            "details": "Apply DOMPurify.sanitize to all validated input fields. Configure DOMPurify profiles to restrict allowed HTML, SVG, and MathML as needed.",
-            "status": "pending",
-            "testStrategy": "Unit test sanitization logic with malicious and benign input samples to ensure proper cleaning."
-          },
-          {
-            "id": 4,
-            "title": "Audit and Refactor Input Handling Code",
-            "description": "Review and refactor existing input handling code to ensure validation and sanitization are consistently applied before API submission.",
-            "dependencies": [
-              "20.2",
-              "20.3"
-            ],
-            "details": "Identify all user input sources in the frontend codebase. Refactor to enforce validation and sanitization order, and remove any bypasses.",
-            "status": "pending",
-            "testStrategy": "Code review and automated tests to confirm no input reaches the API unsanitized or unvalidated."
-          },
-          {
-            "id": 5,
-            "title": "Implement Automated Security Testing for Communication and Input Handling",
-            "description": "Set up automated tests to verify HTTPS enforcement and input sanitization across all relevant components.",
-            "dependencies": [
-              "20.1",
-              "20.4"
-            ],
-            "details": "Use security testing tools to simulate attacks and validate that HTTPS is enforced and that input sanitization prevents XSS and injection.",
-            "status": "pending",
-            "testStrategy": "Run automated security tests for HTTPS and input sanitization. Review test coverage and results regularly."
-          }
-        ]
-      },
-      {
         "id": 21,
         "title": "Implement Access Control for Admin Features",
         "description": "Restrict access to admin privacy settings and PII management based on user roles.",
@@ -1964,73 +1897,6 @@
             "details": "Write unit tests for role checks and navigation guards, perform integration tests with Supabase Auth, and review audit logs for unauthorized access attempts.",
             "status": "pending",
             "testStrategy": "Run automated tests for all access control logic and manually attempt to bypass controls to validate robustness."
-          }
-        ]
-      },
-      {
-        "id": 22,
-        "title": "Implement Audit Trail Logging",
-        "description": "Log all PII pattern management actions for compliance and transparency.",
-        "details": "Create audit log Pinia store. Log CRUD actions, access changes, and errors. Display logs in AdminPrivacySettings. Integrate with backend audit endpoints if available.",
-        "testStrategy": "Unit test log creation and display. Integration test with backend audit logs.",
-        "priority": "medium",
-        "dependencies": [
-          15
-        ],
-        "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Design Audit Log Data Model and Pinia Store",
-            "description": "Define the audit log schema to capture all relevant PII pattern management actions, including CRUD operations, access changes, and errors. Implement a Pinia store to manage audit log entries.",
-            "dependencies": [],
-            "details": "Ensure the data model includes fields for actor, action type, timestamp, affected resource, and error details. The Pinia store should support structured log entry creation and retrieval.",
-            "status": "pending",
-            "testStrategy": "Unit test schema validation and Pinia store CRUD operations."
-          },
-          {
-            "id": 2,
-            "title": "Implement Logging of PII Pattern Management Actions",
-            "description": "Integrate audit logging into all PII pattern management workflows to record CRUD actions, access changes, and errors in real time.",
-            "dependencies": [
-              "22.1"
-            ],
-            "details": "Add hooks or middleware to trigger log entry creation on each relevant action. Ensure sensitive data is masked and timestamps are accurate.",
-            "status": "pending",
-            "testStrategy": "Unit test log entry creation for each action type; verify masking and timestamp accuracy."
-          },
-          {
-            "id": 3,
-            "title": "Integrate with Backend Audit Endpoints",
-            "description": "Connect the frontend audit log Pinia store with backend audit trail endpoints, if available, to synchronize logs and ensure centralized storage.",
-            "dependencies": [
-              "22.2"
-            ],
-            "details": "Implement API calls to send log entries to backend endpoints. Handle failures gracefully and ensure log integrity during sync.",
-            "status": "pending",
-            "testStrategy": "Integration test API communication and log synchronization; simulate backend failures."
-          },
-          {
-            "id": 4,
-            "title": "Display Audit Logs in AdminPrivacySettings",
-            "description": "Develop UI components in AdminPrivacySettings to display audit logs, supporting filtering, searching, and pagination for transparency and compliance review.",
-            "dependencies": [
-              "22.3"
-            ],
-            "details": "Ensure logs are presented in a secure, readable format. Implement role-based access control to restrict log visibility to authorized users.",
-            "status": "pending",
-            "testStrategy": "UI test log display, filtering, and access control; verify compliance with display requirements."
-          },
-          {
-            "id": 5,
-            "title": "Establish Audit Log Review and Integrity Procedures",
-            "description": "Define and implement procedures for regular audit log review, integrity verification, and retention policy enforcement.",
-            "dependencies": [
-              "22.4"
-            ],
-            "details": "Set up automated integrity checks (e.g., cryptographic hashing), document review workflows, and configure log retention and backup policies.",
-            "status": "pending",
-            "testStrategy": "Test integrity verification, retention enforcement, and review workflow automation."
           }
         ]
       },
@@ -2136,9 +2002,7 @@
           17,
           18,
           19,
-          20,
           21,
-          22,
           23
         ],
         "status": "pending",
@@ -2260,7 +2124,7 @@
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-04T14:43:54.991Z",
+      "updated": "2025-09-04T21:54:08.436Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }
