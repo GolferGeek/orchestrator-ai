@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import axiosRetry from 'axios-retry';
 import { TaskResponse, AgentInfo } from '../types/chat';
 import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
 
@@ -26,6 +27,21 @@ class ApiService {
         'Content-Type': 'application/json',
       },
       timeout: 60000,
+    });
+
+    // Configure retry logic for failed requests
+    axiosRetry(this.axiosInstance, {
+      retries: 3, // Number of retry attempts
+      retryDelay: axiosRetry.exponentialDelay, // Exponential backoff
+      retryCondition: (error) => {
+        // Retry on network errors or 5xx server errors
+        return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+               (error.response?.status ? error.response.status >= 500 : false) ||
+               error.response?.status === 429; // Rate limiting
+      },
+      onRetry: (retryCount, error, requestConfig) => {
+        console.log(`🔄 API Retry attempt ${retryCount} for ${requestConfig.url}:`, error.message);
+      }
     });
 
     // Add response interceptor for error handling and automatic token refresh
