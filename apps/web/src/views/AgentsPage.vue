@@ -61,6 +61,18 @@
                 <ion-menu-toggle v-if="auth.user.roles.includes('admin')">
                   <ion-item 
                     router-direction="root" 
+                    router-link="/app/admin/settings" 
+                    lines="none" 
+                    :detail="false"
+                    :class="{ 'selected': $route.path === '/app/admin/settings' }"
+                  >
+                    <ion-icon aria-hidden="true" :icon="settingsOutline" slot="start"></ion-icon>
+                    <ion-label>Admin Settings</ion-label>
+                  </ion-item>
+                </ion-menu-toggle>
+                <ion-menu-toggle v-if="auth.user.roles.includes('admin')">
+                  <ion-item 
+                    router-direction="root" 
                     router-link="/app/admin/pii-patterns" 
                     lines="none" 
                     :detail="false"
@@ -169,7 +181,7 @@ import { computed, ref } from 'vue';
 import { 
   IonPage, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup, IonSearchbar, IonButton
 } from '@ionic/vue';
-import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, refreshOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline, libraryOutline } from 'ionicons/icons';
+import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, refreshOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline, libraryOutline, settingsOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useRouter } from 'vue-router';

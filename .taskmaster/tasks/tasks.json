@@ -1500,7 +1500,7 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1508,7 +1508,7 @@
             "description": "Create the admin panel interface with toggles for ENABLE_REDACTION, default sanitization preferences, and audit logging settings.",
             "dependencies": [],
             "details": "Implement a Vue component using Pinia for state management. Ensure toggles are clearly labeled and reflect current environment variable values. Provide real-time feedback for changes.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test toggle rendering and state updates. Verify UI reflects environment variable changes."
           },
           {
@@ -1519,7 +1519,7 @@
               "15.1"
             ],
             "details": "Use Supabase Auth to determine user roles. Hide or disable settings for unauthorized users using v-if or similar directives. Ensure only admins can modify privacy settings.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test access restrictions. Attempt access with different roles and verify correct UI visibility and permissions."
           },
           {
@@ -1530,7 +1530,7 @@
               "15.1"
             ],
             "details": "Read initial values from environment variables. Update Pinia store on toggle changes and ensure two-way binding between UI and store. Persist changes as needed.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test Pinia store updates and environment variable synchronization. Integration test with backend if applicable."
           },
           {
@@ -1542,7 +1542,7 @@
               "15.3"
             ],
             "details": "Provide UI controls for audit logging settings. Ensure changes are reflected in the Pinia store and, if required, persisted to backend or environment.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test audit logging toggle and preference changes. Integration test with backend audit log endpoints."
           },
           {
@@ -1555,7 +1555,7 @@
               "15.4"
             ],
             "details": "Write tests to cover toggle functionality, access control enforcement, Pinia store synchronization, and audit logging configuration. Include integration tests with backend and audit log systems.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run automated unit tests for all UI and logic. Perform integration tests with backend and verify audit log entries."
           }
         ]
@@ -2124,7 +2124,7 @@
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-04T22:13:30.751Z",
+      "updated": "2025-09-04T22:20:40.767Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }
