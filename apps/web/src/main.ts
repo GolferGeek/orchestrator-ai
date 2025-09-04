@@ -3,6 +3,7 @@ import App from './App.vue'
 import router from './router';
 import { createPinia } from 'pinia';
 import { IonicVue } from '@ionic/vue';
+import { registerRoleGuardDirective } from './directives/roleGuard';
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/vue/css/core.css';
 /* Basic CSS for apps built with Ionic */
@@ -32,6 +33,10 @@ const app = createApp(App)
   .use(IonicVue)
   .use(router)
   .use(createPinia());
+
+// Register role guard directive
+registerRoleGuardDirective(app);
+
 router.isReady().then(() => {
   app.mount('#app');
 });

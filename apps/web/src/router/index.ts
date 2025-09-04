@@ -86,7 +86,12 @@ const routes: Array<RouteRecordRaw> = [
         path: 'admin/pii-patterns',
         name: 'PIIManagement',
         component: () => import('../views/PIIManagementPage.vue'),
-        meta: { requiresAuth: true, requiresRole: ['admin'] }
+        meta: { 
+          requiresAuth: true, 
+          requiresRole: ['admin'],
+          title: 'PII Pattern Management',
+          description: 'Manage PII detection patterns and rules'
+        }
       },
       {
         path: 'admin/pii-testing',
@@ -118,6 +123,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/login', 
     name: 'Login',
     component: LoginPage
+  },
+  {
+    path: '/access-denied',
+    name: 'AccessDenied',
+    component: () => import('../views/AccessDeniedPage.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 const router = createRouter({
@@ -164,7 +175,14 @@ router.beforeEach(async (to, from, next) => {
         
         if (!hasRequiredRole) {
           console.warn(`Access denied. User roles: ${authStore.user.roles}, Required: ${normalizedRequiredRoles}`);
-          next({ path: '/app/home' }); // Redirect to home if insufficient permissions
+          // Redirect to access denied page with role information
+          next({ 
+            path: '/access-denied', 
+            query: { 
+              requiredRoles: normalizedRequiredRoles.join(','),
+              attemptedPath: to.fullPath 
+            } 
+          });
           return;
         }
       } else {
