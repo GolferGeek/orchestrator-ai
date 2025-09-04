@@ -1148,7 +1148,7 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1156,7 +1156,7 @@
             "description": "Display PII detection counts by type within the RunMetadataPanel, sourcing data from API stats and Pinia store.",
             "dependencies": [],
             "details": "Fetch and render counts for each PII type detected in the run, ensuring accurate mapping from API response to UI.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test rendering of PII counts by type. Integration test with API stats for accuracy."
           },
           {
@@ -1167,7 +1167,7 @@
               "10.1"
             ],
             "details": "Aggregate and display counts for pseudonymized and redacted items, ensuring correct categorization and data source usage.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test metric display logic. Integration test with API for metric accuracy."
           },
           {
@@ -1178,7 +1178,7 @@
               "10.1"
             ],
             "details": "Render classification labels and categories based on API stats, with clear visual indicators for sensitivity.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test classification rendering. Integration test with API for correct mapping."
           },
           {
@@ -1190,7 +1190,7 @@
               "10.3"
             ],
             "details": "Implement UI logic for expandable panels showing before/after text, ensuring correct data binding and accessibility.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test expand/collapse behavior. Validate text comparison accuracy and accessibility."
           },
           {
@@ -1203,7 +1203,7 @@
               "10.3"
             ],
             "details": "Calculate and render cost components (e.g., API calls, processing time) and performance metrics, highlighting any overhead from privacy operations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test cost and performance metric display. Integration test with API for metric validation."
           }
         ]
@@ -2124,7 +2124,7 @@
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-04T22:07:15.490Z",
+      "updated": "2025-09-04T22:13:30.751Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }
