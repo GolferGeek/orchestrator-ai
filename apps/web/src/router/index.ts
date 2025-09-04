@@ -98,6 +98,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'PseudonymDictionary',
         component: () => import('../views/PseudonymDictionaryPage.vue'),
         meta: { requiresAuth: true, requiresRole: ['admin'] }
+      },
+      {
+        path: 'admin/settings',
+        name: 'AdminSettings',
+        component: () => import('../views/AdminSettingsPage.vue'),
+        meta: { requiresAuth: true, requiresRole: ['admin'] }
       }
     ]
   },
