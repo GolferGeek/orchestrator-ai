@@ -110,6 +110,17 @@ const routes: Array<RouteRecordRaw> = [
         name: 'AdminSettings',
         component: () => import('../views/AdminSettingsPage.vue'),
         meta: { requiresAuth: true, requiresRole: ['admin'] }
+      },
+      {
+        path: 'admin/audit',
+        name: 'AdminAudit',
+        component: () => import('../views/AdminAuditDashboard.vue'),
+        meta: { 
+          requiresAuth: true, 
+          requiresRole: ['admin'],
+          title: 'Access Control Audit Dashboard',
+          description: 'Monitor access attempts and security events'
+        }
       }
     ]
   },

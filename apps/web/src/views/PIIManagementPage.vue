@@ -20,6 +20,9 @@
                   @create-pattern="handleCreatePattern"
                 />
                 
+                <!-- Role Testing Panel (Development/Testing Only) -->
+                <RoleTestingPanel v-if="showTestingTools" />
+                
                 <!-- Demo: Enhanced Access Control System -->
                 <div class="access-control-demo" style="margin-top: 2rem; padding: 1rem; background: var(--ion-color-light-shade); border-radius: 8px;">
                   <h3>Enhanced Access Control Demo</h3>
@@ -156,6 +159,7 @@ import {
 } from '@ionic/vue';
 import PIIPatternTable from '@/components/PII/PIIPatternTable.vue';
 import PIIPatternEditor from '@/components/PII/PIIPatternEditor.vue';
+import RoleTestingPanel from '@/components/Testing/RoleTestingPanel.vue';
 import type { PIIPattern } from '@/types/pii';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -169,6 +173,11 @@ const selectedPattern = ref<PIIPattern | null>(null);
 // Computed properties for demo
 const userPermissions = computed(() => auth.getUserPermissions());
 const accessAttempts = computed(() => auth.getAccessAttempts());
+
+// Show testing tools in development or for admin users
+const showTestingTools = computed(() => {
+  return import.meta.env.DEV || auth.hasPermission('ACCESS_DEV_TOOLS');
+});
 
 // Event handlers
 const handleEditPattern = (pattern: PIIPattern) => {
