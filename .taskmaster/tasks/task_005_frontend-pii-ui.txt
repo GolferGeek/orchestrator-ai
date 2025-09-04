@@ -9,3 +9,35 @@ Use Ionic Table/Grid components. Implement sortable columns, real-time search, f
 
 # Test Strategy:
 Unit test sorting, filtering, bulk actions. Integration test with API for CRUD operations.
+
+# Subtasks:
+## 1. Design Table Layout Using Ionic Grid/Table Components [pending]
+### Dependencies: None
+### Description: Create the responsive table structure using Ionic Grid, IonRow, and IonCol components to display PII patterns in a tabular format.
+### Details:
+Utilize Ionic's grid system for layout and ensure proper alignment and responsiveness. Integrate IonTable or ngx-datatable for advanced features as needed.
+
+## 2. Implement Sorting, Filtering, and Real-Time Search [pending]
+### Dependencies: 5.1
+### Description: Add functionality for sorting columns, filtering by type/category/priority, and real-time search within the table.
+### Details:
+Use ngx-datatable or custom logic to enable sortable columns and multi-criteria filtering. Implement a search input that updates results in real time.
+
+## 3. Enable Bulk Actions for Enable/Disable/Delete [pending]
+### Dependencies: 5.2
+### Description: Provide UI controls for bulk enabling, disabling, or deleting selected PII patterns.
+### Details:
+Add checkboxes for row selection and bulk action buttons. Integrate with Axios service for API calls to perform bulk operations.
+
+## 4. Display Visual Indicators for Built-in and Custom Patterns [pending]
+### Dependencies: 5.1
+### Description: Show distinct visual markers for built-in versus custom PII patterns within the table rows.
+### Details:
+Use icons, chips, or color coding to differentiate pattern types. Ensure indicators are accessible and consistent.
+
+## 5. Integrate Table with Pinia Store and Axios Service [pending]
+### Dependencies: 5.1, 5.2, 5.3, 5.4
+### Description: Connect the table component to Pinia for state management and Axios for CRUD operations with the backend.
+### Details:
+Fetch, update, and synchronize PII pattern data using Pinia and Axios. Ensure all table actions reflect backend state.
+

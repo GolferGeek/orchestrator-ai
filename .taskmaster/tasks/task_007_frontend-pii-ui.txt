@@ -9,3 +9,35 @@ Large textarea input, highlight detected PII as user types. Show matched pattern
 
 # Test Strategy:
 Integration test with backend. Measure detection time. Validate highlighting and preview accuracy.
+
+# Subtasks:
+## 1. Design Real-Time Textarea Input with PII Highlighting [pending]
+### Dependencies: None
+### Description: Implement a large textarea input that highlights detected PII entities as the user types, providing immediate visual feedback.
+### Details:
+Integrate frontend logic to dynamically highlight PII patterns using results from the backend. Ensure seamless user experience and accessibility.
+
+## 2. Integrate POST /sanitization/pii/test Endpoint for Detection [pending]
+### Dependencies: 7.1
+### Description: Connect the interface to the backend endpoint for real-time PII detection and sanitization, sending user input and receiving detection results.
+### Details:
+Implement API call logic to POST user input and handle response data, including detected patterns, sanitized text, and detection time.
+
+## 3. Display Matched Patterns and Detection Metadata [pending]
+### Dependencies: 7.2
+### Description: Show a list of matched PII patterns, detection time, and the set of patterns checked for each input.
+### Details:
+Render detection metadata in a clear, user-friendly format. Include pattern names, types, and timing information.
+
+## 4. Implement Original vs Sanitized Text Preview [pending]
+### Dependencies: 7.2
+### Description: Provide a side-by-side preview of the original input and the sanitized output, highlighting differences.
+### Details:
+Design and implement a comparison view that clearly shows changes made by the sanitization process.
+
+## 5. Optimize Detection Workflow for Sub-2s Response [pending]
+### Dependencies: 7.2, 7.3, 7.4
+### Description: Ensure the entire detection and preview workflow consistently responds in under 2 seconds for typical input sizes.
+### Details:
+Profile frontend and backend interactions, optimize API calls, and implement loading indicators or fallback logic as needed.
+

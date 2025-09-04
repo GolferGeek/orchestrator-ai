@@ -9,3 +9,35 @@ Group words by data type/category. Add/edit/delete words, adjust frequency weigh
 
 # Test Strategy:
 Unit test CRUD, import/export, and frequency adjustment. Integration test with backend.
+
+# Subtasks:
+## 1. Design Data Model and Grouping Logic [pending]
+### Dependencies: None
+### Description: Define the data structure for pseudonym entries, including fields for word, data type/category, and frequency weight. Implement logic to group words by data type or category.
+### Details:
+Ensure the model supports efficient grouping and future extensibility. Specify how categories are managed and how frequency weights are stored and updated.
+
+## 2. Implement CRUD Operations for Dictionary Entries [pending]
+### Dependencies: 8.1
+### Description: Develop functionality to add, edit, and delete pseudonym words, including adjusting frequency weights. Integrate with Pinia store and backend API for persistence.
+### Details:
+Ensure all CRUD actions update both the frontend state (Pinia) and backend API. Provide UI feedback for successful and failed operations.
+
+## 3. Develop Bulk Import/Export Functionality (CSV/JSON) [pending]
+### Dependencies: 8.1, 8.2
+### Description: Implement bulk import and export of dictionary entries using PapaParse (v5.x) for CSV and native JSON handling. Support both formats for interoperability.
+### Details:
+Validate imported data for schema compliance and handle errors gracefully. Ensure export includes all relevant fields and grouping information.
+
+## 4. Display Usage Statistics and Analytics [pending]
+### Dependencies: 8.1, 8.2
+### Description: Show usage statistics for pseudonym entries, such as frequency of use and distribution by category. Integrate with backend or local tracking as needed.
+### Details:
+Design UI components for statistics visualization. Ensure statistics update in real time as dictionary changes.
+
+## 5. Integrate Component with Pinia Store and API [pending]
+### Dependencies: 8.2, 8.3, 8.4
+### Description: Connect all component logic to the Pinia store for state management and synchronize with backend API endpoints for persistent storage.
+### Details:
+Ensure all state changes are reflected in both frontend and backend. Handle API errors and loading states appropriately.
+

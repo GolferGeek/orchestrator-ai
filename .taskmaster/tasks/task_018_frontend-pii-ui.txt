@@ -9,3 +9,35 @@ Add ARIA attributes, keyboard navigation, screen reader support, and color contr
 
 # Test Strategy:
 Automated accessibility tests (axe-core, Lighthouse). Manual keyboard and screen reader testing.
+
+# Subtasks:
+## 1. Conduct Comprehensive Accessibility Audit [pending]
+### Dependencies: None
+### Description: Evaluate all UI components for WCAG 2.1 AA compliance using both automated tools (axe-core, Lighthouse) and manual testing to identify accessibility barriers.
+### Details:
+Run axe-core and Lighthouse audits across the application. Manually test for keyboard navigation, screen reader compatibility, and color contrast issues. Document all findings and prioritize issues based on severity and user impact.
+
+## 2. Implement ARIA Attributes and Semantic Markup [pending]
+### Dependencies: 18.1
+### Description: Add appropriate ARIA attributes and semantic HTML to all UI components to enhance accessibility for assistive technologies.
+### Details:
+Update components to include ARIA roles, states, and properties where necessary. Ensure use of semantic HTML elements for structure and meaning.
+
+## 3. Enable Full Keyboard Navigation [pending]
+### Dependencies: 18.1
+### Description: Ensure all interactive elements are accessible and operable via keyboard alone, following logical tab order and visible focus indicators.
+### Details:
+Implement and test keyboard navigation for all UI controls, dialogs, and menus. Ensure focus management and skip navigation links are present where needed.
+
+## 4. Verify and Enhance Screen Reader Support [pending]
+### Dependencies: 18.2
+### Description: Test and refine UI components to ensure accurate and meaningful output for screen reader users.
+### Details:
+Test with multiple screen readers (e.g., NVDA, JAWS, VoiceOver). Adjust ARIA labels, roles, and live regions to provide clear context and feedback.
+
+## 5. Check and Remediate Color Contrast Issues [pending]
+### Dependencies: 18.1
+### Description: Assess and adjust color schemes to meet WCAG 2.1 AA contrast requirements for text, icons, and UI elements.
+### Details:
+Use automated tools and manual inspection to identify insufficient color contrast. Update styles to ensure minimum contrast ratios are met.
+

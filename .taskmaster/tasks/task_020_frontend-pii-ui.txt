@@ -9,3 +9,35 @@ Configure Axios to use HTTPS endpoints. Validate and sanitize all user inputs be
 
 # Test Strategy:
 Security tests for HTTPS enforcement. Unit test input sanitization logic.
+
+# Subtasks:
+## 1. Configure Axios to Use HTTPS Endpoints [pending]
+### Dependencies: None
+### Description: Ensure all API calls made via Axios are directed to HTTPS endpoints to enforce secure communication.
+### Details:
+Update Axios base URLs and interceptors to require HTTPS. Audit all API endpoint references for protocol compliance.
+
+## 2. Validate User Inputs on the Frontend [pending]
+### Dependencies: None
+### Description: Implement input validation logic to check user data for expected format, type, and length before submission.
+### Details:
+Use validation libraries or custom logic to enforce constraints such as string type, minimum/maximum length, and required fields.
+
+## 3. Sanitize User Inputs Using DOMPurify v3.x [pending]
+### Dependencies: 20.2
+### Description: Integrate DOMPurify v3.x to sanitize all user inputs before sending them to the API, preventing XSS and injection attacks.
+### Details:
+Apply DOMPurify.sanitize to all validated input fields. Configure DOMPurify profiles to restrict allowed HTML, SVG, and MathML as needed.
+
+## 4. Audit and Refactor Input Handling Code [pending]
+### Dependencies: 20.2, 20.3
+### Description: Review and refactor existing input handling code to ensure validation and sanitization are consistently applied before API submission.
+### Details:
+Identify all user input sources in the frontend codebase. Refactor to enforce validation and sanitization order, and remove any bypasses.
+
+## 5. Implement Automated Security Testing for Communication and Input Handling [pending]
+### Dependencies: 20.1, 20.4
+### Description: Set up automated tests to verify HTTPS enforcement and input sanitization across all relevant components.
+### Details:
+Use security testing tools to simulate attacks and validate that HTTPS is enforced and that input sanitization prevents XSS and injection.
+

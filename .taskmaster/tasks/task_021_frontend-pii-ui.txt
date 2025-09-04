@@ -9,3 +9,35 @@ Integrate Supabase Auth for authentication and role-based access. Protect routes
 
 # Test Strategy:
 Unit test access control logic. Integration test with Supabase Auth and protected routes.
+
+# Subtasks:
+## 1. Define Admin Roles and Permissions in Supabase [pending]
+### Dependencies: None
+### Description: Establish the necessary admin roles and specify permissions for privacy settings and PII management in Supabase using RBAC.
+### Details:
+Use Supabase's RBAC features to create roles such as 'admin' and assign granular permissions for accessing privacy and PII management features.
+
+## 2. Integrate Supabase Auth and Role Assignment [pending]
+### Dependencies: 21.1
+### Description: Set up Supabase Auth in the application and ensure users are assigned appropriate roles upon registration or by admin action.
+### Details:
+Configure Supabase Auth to authenticate users and use custom claims or a user_roles table to associate users with their roles. Implement hooks to add role claims to JWT tokens.
+
+## 3. Implement Route and Component Protection Using Navigation Guards [pending]
+### Dependencies: 21.2
+### Description: Protect admin routes and components by checking user roles with navigation guards before granting access.
+### Details:
+Use navigation guards in the frontend router to restrict access to admin features based on the user's role from Supabase Auth claims.
+
+## 4. Manage and Enforce Access State with Pinia Store [pending]
+### Dependencies: 21.3
+### Description: Store and manage user authentication and role state in Pinia, and use this state to control UI rendering and access.
+### Details:
+Implement Pinia stores to hold user session and role information, updating state on login/logout and using it to conditionally render admin components.
+
+## 5. Test and Audit Access Control Implementation [pending]
+### Dependencies: 21.4
+### Description: Conduct unit and integration tests for access control logic, and audit the system to ensure compliance and security.
+### Details:
+Write unit tests for role checks and navigation guards, perform integration tests with Supabase Auth, and review audit logs for unauthorized access attempts.
+

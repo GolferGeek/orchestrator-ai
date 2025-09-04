@@ -9,3 +9,35 @@ Display mapping table (PII → pseudonym), usage counts, and reversibility demo.
 
 # Test Strategy:
 Unit test mapping display and history. Validate reversibility demo logic.
+
+# Subtasks:
+## 1. Design Mapping Table UI and Color-Coded Indicators [pending]
+### Dependencies: None
+### Description: Create the user interface for displaying the mapping table showing PII to pseudonym relationships, usage counts, and reversibility status. Implement color-coded indicators for mapping status and reversibility.
+### Details:
+Define table structure and visual cues for mapping status and reversibility. Ensure the design supports accessibility and clarity.
+
+## 2. Implement Data Fetching from API and Pinia Store [pending]
+### Dependencies: 9.1
+### Description: Develop logic to fetch mapping data from the backend API and synchronize with the Pinia store, ensuring efficient updates and error handling.
+### Details:
+Integrate API calls and Pinia store access. Handle loading, error, and empty states. Ensure no actual PII is stored in frontend state.
+
+## 3. Integrate Usage History and Counts Display [pending]
+### Dependencies: 9.2
+### Description: Display usage history and usage counts for each mapping entry, updating in real time as data changes.
+### Details:
+Fetch and render usage statistics per mapping. Ensure updates reflect changes from API or store without exposing PII.
+
+## 4. Develop Reversibility Demonstration Logic [pending]
+### Dependencies: 9.3
+### Description: Implement a demo feature to show how pseudonym mappings can be reversed, using only pseudonym data and without exposing actual PII.
+### Details:
+Provide a safe, illustrative reversibility demo using mock or placeholder data. Clearly indicate demo status to users.
+
+## 5. Write Unit Tests for Mapping Display and Reversibility Demo [pending]
+### Dependencies: 9.4
+### Description: Create comprehensive unit tests for the mapping table, usage history, and reversibility demo logic.
+### Details:
+Cover all UI states, data flows, and edge cases. Validate that no PII is present in any frontend state or test artifacts.
+

@@ -9,3 +9,35 @@ Show each sanitization phase with color-coded PII highlighting (names=blue, emai
 
 # Test Strategy:
 Unit test phase display and highlighting. Integration test with sample sanitization results.
+
+# Subtasks:
+## 1. Design Sanitization Phase Visualization [pending]
+### Dependencies: None
+### Description: Create a visual representation for each sanitization phase, including step-by-step progression and clear separation of phases.
+### Details:
+Define the structure and UI for displaying each phase. Ensure phases are sequentially ordered and visually distinct.
+
+## 2. Implement Color-Coded PII Highlighting [pending]
+### Dependencies: 12.1
+### Description: Develop logic to highlight detected PII types (e.g., names, emails) with distinct colors per type within each sanitization phase.
+### Details:
+Map PII types to colors (e.g., names=blue, emails=green). Apply highlighting to matched text segments using API results.
+
+## 3. Display Matched Patterns and Reversibility Demo [pending]
+### Dependencies: 12.1, 12.2
+### Description: Show matched PII patterns for each phase and provide a demo illustrating reversibility of sanitization steps.
+### Details:
+Extract and display pattern matches from API results. Implement a UI toggle or preview for reversibility demonstration.
+
+## 4. Integrate Performance Metrics Visualization [pending]
+### Dependencies: 12.1
+### Description: Visualize performance metrics (e.g., processing time, resource usage) for each sanitization phase.
+### Details:
+Fetch and display metrics from API results. Use charts or numeric indicators for clarity.
+
+## 5. Connect Component to API and Pinia Store [pending]
+### Dependencies: 12.1, 12.2, 12.3, 12.4
+### Description: Implement data fetching and state management by integrating with the backend API and Pinia store.
+### Details:
+Set up API calls for sanitization results and metrics. Manage component state and updates using Pinia.
+

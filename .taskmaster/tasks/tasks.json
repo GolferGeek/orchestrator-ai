@@ -135,9 +135,7 @@
         "details": "1. Implement RunMetadataService at apps/api/src/llms/run-metadata.service.ts\n2. Create unique runId generation using UUID v4\n3. Add basic timing and cost estimation functionality\n4. Implement correlation logging with runId\n5. Update response format to include metadata\n\n```typescript\n// apps/api/src/llms/run-metadata.service.ts\nimport { Injectable } from '@nestjs/common';\nimport { v4 as uuidv4 } from 'uuid';\n\nexport interface RunMetadata {\n  runId: string;\n  provider: string;\n  model: string;\n  tier: 'local' | 'centralized' | 'external';\n  cost: number;\n  duration: number;\n  timestamp: string;\n}\n\nexport interface RequestContext {\n  runId: string;\n  startTime: number;\n  provider: string;\n  model: string;\n  tier: 'local' | 'centralized' | 'external';\n}\n\n@Injectable()\nexport class RunMetadataService {\n  generateRunId(): string {\n    return uuidv4();\n  }\n  \n  startRequest(routingDecision: any): RequestContext {\n    const runId = this.generateRunId();\n    const startTime = Date.now();\n    \n    return {\n      runId,\n      startTime,\n      provider: routingDecision.provider,\n      model: routingDecision.model,\n      tier: this.determineTier(routingDecision)\n    };\n  }\n  \n  completeRequest(context: RequestContext, response: any): RunMetadata {\n    const duration = Date.now() - context.startTime;\n    const cost = this.estimateCost(context.provider, context.model, duration);\n    \n    return {\n      runId: context.runId,\n      provider: context.provider,\n      model: context.model,\n      tier: context.tier,\n      duration,\n      cost,\n      timestamp: new Date().toISOString()\n    };\n  }\n  \n  completeRequestWithError(context: RequestContext, error: any): RunMetadata {\n    const duration = Date.now() - context.startTime;\n    \n    return {\n      runId: context.runId,\n      provider: context.provider,\n      model: context.model,\n      tier: context.tier,\n      duration,\n      cost: 0, // No cost for failed requests\n      timestamp: new Date().toISOString()\n    };\n  }\n  \n  private determineTier(routingDecision: any): 'local' | 'centralized' | 'external' {\n    if (routingDecision.isLocal) {\n      return 'local';\n    } else if (routingDecision.provider === 'internal') {\n      return 'centralized';\n    } else {\n      return 'external';\n    }\n  }\n  \n  private estimateCost(provider: string, model: string, durationMs: number): number {\n    // Implement cost estimation logic based on provider and model\n    // Return approximate cost in USD\n    switch (provider.toLowerCase()) {\n      case 'openai':\n        if (model.includes('gpt-4')) {\n          return (durationMs / 1000) * 0.03; // Simplified cost estimate\n        } else {\n          return (durationMs / 1000) * 0.002;\n        }\n      case 'anthropic':\n        return (durationMs / 1000) * 0.025;\n      case 'ollama':\n      case 'local':\n        return 0.0001; // Nominal cost for tracking\n      default:\n        return 0.01; // Default cost\n    }\n  }\n}\n```",
         "testStrategy": "1. Test runId generation for uniqueness and proper UUID v4 format\n2. Verify metadata collection captures all required fields\n3. Test timing accuracy for latency measurements\n4. Validate cost estimation for different providers and models\n5. Test correlation logging to ensure runId is included in all log entries\n6. Verify response format includes all required metadata fields\n7. Test edge cases like errors during processing",
         "priority": "medium",
-        "dependencies": [
-          1
-        ],
+        "dependencies": [],
         "status": "done",
         "subtasks": []
       },
@@ -149,7 +147,6 @@
         "testStrategy": "1. Test provider configuration for each supported provider\n2. Verify no-train flags are correctly set for each provider\n3. Test timeout and retry policy implementation\n4. Validate provider adapter factory creates correct adapters\n5. Test environment variable handling and defaults\n6. Verify all existing provider configs are properly migrated\n7. Test with actual API calls to ensure headers are properly sent",
         "priority": "high",
         "dependencies": [
-          1,
           4
         ],
         "status": "done",
@@ -304,7 +301,6 @@
         "testStrategy": "1. Test agent functionality before and after migration to ensure identical results\n2. Verify all direct provider client usage is removed\n3. Test that agent requests generate proper metadata\n4. Validate logging includes runId correlation\n5. Test three-tier routing works correctly with agent requests\n6. Verify error handling and fallback behavior\n7. Test performance impact of centralized routing",
         "priority": "high",
         "dependencies": [
-          1,
           5,
           6,
           7
@@ -530,41 +526,203 @@
   "frontend-pii-ui": {
     "tasks": [
       {
-        "id": 1,
-        "title": "Initialize Vue 3 + Ionic Project",
-        "description": "Set up the project repository using Vue.js 3 with the Composition API and integrate Ionic Vue for UI components.",
-        "details": "Use the latest Vue CLI or Vite (recommended for performance) to scaffold the project. Install Ionic Vue (v7.x) and configure for mobile-first responsiveness. Ensure Node.js (v20+) and npm/yarn are used. Set up ESLint, Prettier, and Husky for code quality.",
-        "testStrategy": "Verify project builds and Ionic components render. Run lint and format checks. Confirm mobile responsiveness on device emulators.",
-        "priority": "high",
-        "dependencies": [],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
         "id": 2,
         "title": "Configure Pinia State Management",
         "description": "Integrate Pinia for global state management across all frontend modules.",
-        "details": "Install Pinia (v3.x) and set up root store. Create modular stores for PII patterns, pseudonym dictionaries, LLM monitoring, and analytics. Use TypeScript for type safety and define interfaces matching backend models.",
-        "testStrategy": "Unit test store actions, mutations, and getters. Validate type safety and state updates.",
-        "priority": "high",
-        "dependencies": [
-          1
-        ],
         "status": "pending",
-        "subtasks": []
+        "dependencies": [],
+        "priority": "high",
+        "details": "Create modular stores for PII patterns, pseudonym dictionaries, LLM monitoring, and analytics. Use TypeScript for type safety and define interfaces matching backend models. Pinia 3.0 is already installed and configured in the project.",
+        "testStrategy": "Unit test store actions, mutations, and getters. Validate type safety and state updates.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Install and Initialize Pinia in Vue Project",
+            "description": "Add Pinia (v3.x) to the project dependencies and initialize it in the main entry file to enable global state management.",
+            "status": "completed",
+            "dependencies": [],
+            "details": "Run 'npm install pinia' or 'yarn add pinia'. Import and use Pinia in main.js or main.ts to inject it into the Vue app instance.",
+            "testStrategy": "Verify Pinia is correctly registered by checking that stores can be created and accessed in components."
+          },
+          {
+            "id": 2,
+            "title": "Set Up Root Store Structure and Folder Organization",
+            "description": "Create a dedicated 'stores' directory and establish a root store to serve as the central entry point for all modular stores.",
+            "status": "completed",
+            "dependencies": [
+              1
+            ],
+            "details": "Organize the 'src/stores' folder and define a root store file that imports and aggregates all modular stores for global access.",
+            "testStrategy": "Ensure all modular stores are accessible from the root store and that state can be shared across modules."
+          },
+          {
+            "id": 3,
+            "title": "Create PII Patterns Store",
+            "description": "Develop a Pinia store for managing PII patterns, including state for pattern listing, filtering, and manipulation.",
+            "status": "pending",
+            "dependencies": [
+              2
+            ],
+            "details": "Define state for PII patterns with properties like id, name, pattern, type, category, priority, and enabled status. Implement actions for CRUD operations, filtering, and bulk actions. Create getters for filtered and sorted views of patterns.",
+            "testStrategy": "Unit test pattern store actions for adding, updating, deleting, and filtering patterns. Verify state updates correctly reflect API responses."
+          },
+          {
+            "id": 4,
+            "title": "Create Pseudonym Dictionaries Store",
+            "description": "Implement a store for managing pseudonym dictionaries used in PII anonymization.",
+            "status": "pending",
+            "dependencies": [
+              2
+            ],
+            "details": "Define state for dictionary entries with properties like category, original values, and pseudonym values. Implement actions for dictionary management and lookups. Create getters for accessing dictionaries by category.",
+            "testStrategy": "Test dictionary store for correct state management, dictionary lookups, and integration with the anonymization process."
+          },
+          {
+            "id": 5,
+            "title": "Create LLM Monitoring Store",
+            "description": "Develop a store for tracking and managing LLM usage, performance metrics, and compliance monitoring.",
+            "status": "pending",
+            "dependencies": [
+              2
+            ],
+            "details": "Define state for LLM monitoring data including usage statistics, performance metrics, and compliance flags. Implement actions for updating monitoring data and analyzing trends. Create getters for filtered views and aggregated statistics.",
+            "testStrategy": "Test monitoring store for correct state updates from API data, calculation of derived metrics, and proper filtering of monitoring data."
+          },
+          {
+            "id": 6,
+            "title": "Create Analytics Store",
+            "description": "Implement a store for application-wide analytics data collection and reporting.",
+            "status": "pending",
+            "dependencies": [
+              2
+            ],
+            "details": "Define state for analytics data including user actions, system performance, and business metrics. Implement actions for recording events and generating reports. Create getters for different analytical views and time-based aggregations.",
+            "testStrategy": "Test analytics store for proper event recording, data aggregation, and report generation capabilities."
+          },
+          {
+            "id": 7,
+            "title": "Implement TypeScript Interfaces for Store State",
+            "description": "Define TypeScript interfaces for each store's state, ensuring type safety and alignment with backend data models.",
+            "status": "pending",
+            "dependencies": [
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "Create and apply TypeScript interfaces to all store state definitions. Synchronize interfaces with backend models for consistency across the application.",
+            "testStrategy": "Validate type safety by compiling the project and writing type-based unit tests for store actions and state."
+          },
+          {
+            "id": 8,
+            "title": "Integrate and Test Store Functionality Across Frontend Modules",
+            "description": "Connect Pinia stores to relevant frontend components and modules, ensuring seamless state sharing and updates throughout the application.",
+            "status": "pending",
+            "dependencies": [
+              7
+            ],
+            "details": "Inject and use stores in Vue components, validate state reactivity, and ensure stores are correctly updating and reflecting changes in the UI.",
+            "testStrategy": "Write integration tests to confirm state updates propagate across modules and UI reflects store changes as expected."
+          }
+        ]
       },
       {
         "id": 3,
         "title": "Set Up Axios API Service Layer",
-        "description": "Implement a centralized Axios service for all API interactions with backend endpoints.",
-        "details": "Install Axios (v1.x). Create a service module with typed methods for each endpoint. Configure base URL, HTTPS, error interceptors, and retry logic. Use environment variables for endpoint configuration.",
-        "testStrategy": "Mock API calls in unit tests. Validate error handling and retry logic. Confirm HTTPS usage.",
-        "priority": "high",
-        "dependencies": [
-          1
-        ],
+        "description": "Implement a centralized Axios service for all API interactions with the PII management API endpoints.",
         "status": "pending",
-        "subtasks": []
+        "dependencies": [],
+        "priority": "high",
+        "details": "Use the existing Axios (v1.9) installation. Create a service module with typed methods for PII management API endpoints at localhost:9000/sanitization. Configure base URL, HTTPS, error interceptors, and retry logic. Use environment variables for endpoint configuration.",
+        "testStrategy": "Mock API calls in unit tests. Validate error handling and retry logic. Confirm HTTPS usage.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Verify Existing Axios Library",
+            "description": "Verify that Axios (v1.9) is already installed in the project and available for use in the service layer.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "Confirm the correct version of Axios is installed and import Axios in the service module. No need to install as it's already available.",
+            "testStrategy": "Check Axios availability by importing it in a test file and making a sample request to a mock endpoint."
+          },
+          {
+            "id": 2,
+            "title": "Configure Axios Instance with PII Management API Base URL",
+            "description": "Create a dedicated Axios instance with the PII management API base URL (localhost:9000/sanitization), enforce HTTPS, and configure it to use environment variables.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "Set up an Axios instance using axios.create(). Configure the base URL to point to the PII management API at localhost:9000/sanitization. Read relevant settings from environment variables. Ensure all endpoints use HTTPS.",
+            "testStrategy": "Verify that the Axios instance uses the correct base URL and HTTPS by inspecting requests in development and test environments."
+          },
+          {
+            "id": 3,
+            "title": "Implement Error Handling and Interceptors",
+            "description": "Add global error handling using Axios interceptors to manage API errors and provide consistent error responses.",
+            "status": "pending",
+            "dependencies": [
+              2
+            ],
+            "details": "Configure request and response interceptors to catch errors, handle authentication failures, and standardize error messages for the PII management API.",
+            "testStrategy": "Mock API errors and confirm that interceptors handle and log errors as expected."
+          },
+          {
+            "id": 4,
+            "title": "Add Retry Logic for Failed Requests",
+            "description": "Integrate retry logic into the Axios instance to automatically retry failed requests based on configurable rules.",
+            "status": "pending",
+            "dependencies": [
+              3
+            ],
+            "details": "Use an Axios retry library or custom logic to retry failed requests, with parameters such as max retries and delay between attempts.",
+            "testStrategy": "Simulate transient network failures and verify that requests are retried according to the configured policy."
+          },
+          {
+            "id": 5,
+            "title": "Create Typed Service Methods for PII Pattern Endpoints",
+            "description": "Develop service methods for PII pattern CRUD operations using the configured Axios instance.",
+            "status": "pending",
+            "dependencies": [
+              4
+            ],
+            "details": "Define TypeScript interfaces for PII pattern request and response payloads. Implement and export functions for creating, reading, updating, and deleting PII patterns, ensuring type safety.",
+            "testStrategy": "Write unit tests for each service method, mocking API responses and validating type correctness and error handling."
+          },
+          {
+            "id": 6,
+            "title": "Create Typed Service Methods for Pseudonym Dictionary Endpoints",
+            "description": "Develop service methods for pseudonym dictionary CRUD operations using the configured Axios instance.",
+            "status": "pending",
+            "dependencies": [
+              4
+            ],
+            "details": "Define TypeScript interfaces for pseudonym dictionary request and response payloads. Implement and export functions for creating, reading, updating, and deleting pseudonym dictionaries, ensuring type safety.",
+            "testStrategy": "Write unit tests for each service method, mocking API responses and validating type correctness and error handling."
+          },
+          {
+            "id": 7,
+            "title": "Create Typed Service Methods for Testing Endpoints",
+            "description": "Develop service methods for PII testing endpoints using the configured Axios instance.",
+            "status": "pending",
+            "dependencies": [
+              4
+            ],
+            "details": "Define TypeScript interfaces for PII testing request and response payloads. Implement and export functions for testing PII detection and sanitization, ensuring type safety.",
+            "testStrategy": "Write unit tests for each service method, mocking API responses and validating type correctness and error handling."
+          },
+          {
+            "id": 8,
+            "title": "Create Typed Service Methods for Stats Endpoints",
+            "description": "Develop service methods for PII statistics endpoints using the configured Axios instance.",
+            "status": "pending",
+            "dependencies": [
+              4
+            ],
+            "details": "Define TypeScript interfaces for PII statistics request and response payloads. Implement and export functions for retrieving usage statistics and performance metrics, ensuring type safety.",
+            "testStrategy": "Write unit tests for each service method, mocking API responses and validating type correctness and error handling."
+          }
+        ]
       },
       {
         "id": 4,
@@ -573,11 +731,64 @@
         "details": "Create an ErrorBoundary component using Vue's errorCaptured hook. Integrate with Pinia for global error state. Display fallback UI and actionable recovery options. Log errors for audit trail.",
         "testStrategy": "Simulate API/network failures and verify fallback UI and error logging.",
         "priority": "high",
-        "dependencies": [
-          1
-        ],
+        "dependencies": [],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design ErrorBoundary Component Using errorCaptured Hook",
+            "description": "Create a reusable ErrorBoundary component leveraging Vue's errorCaptured (or onErrorCaptured) hook to catch errors from child components.",
+            "dependencies": [],
+            "details": "Implement the ErrorBoundary component to wrap potentially unstable child components and capture rendering or lifecycle errors. Ensure the component exposes error state and supports scoped slots for custom fallback UI.",
+            "status": "pending",
+            "testStrategy": "Unit test ErrorBoundary by injecting components that throw errors and verifying error state and slot rendering."
+          },
+          {
+            "id": 2,
+            "title": "Integrate ErrorBoundary with Pinia for Global Error State",
+            "description": "Connect the ErrorBoundary component to a Pinia store to manage and propagate global error state across the application.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Define a Pinia store module for error state. Update the store from within ErrorBoundary when errors are captured, enabling centralized error tracking and cross-component communication.",
+            "status": "pending",
+            "testStrategy": "Simulate errors in wrapped components and verify that the Pinia store reflects the correct error state."
+          },
+          {
+            "id": 3,
+            "title": "Implement Fallback UI and Actionable Recovery Options",
+            "description": "Display user-friendly fallback UI and provide actionable recovery options (e.g., retry, reload, navigation) when errors are detected.",
+            "dependencies": [
+              "4.2"
+            ],
+            "details": "Design fallback UI templates for common error scenarios. Integrate recovery actions such as retry buttons or navigation links, and ensure they interact with the error state and clear errors as needed.",
+            "status": "pending",
+            "testStrategy": "Trigger errors and verify that fallback UI and recovery actions are displayed and function correctly."
+          },
+          {
+            "id": 4,
+            "title": "Log Errors for Audit Trail",
+            "description": "Implement error logging to persist error details for auditing and debugging purposes.",
+            "dependencies": [
+              "4.2"
+            ],
+            "details": "Capture error details (message, stack trace, component info) and send them to a logging service or backend endpoint. Ensure sensitive data is not logged.",
+            "status": "pending",
+            "testStrategy": "Simulate errors and verify that error logs are generated and transmitted as expected."
+          },
+          {
+            "id": 5,
+            "title": "Test Global Error Handling and Graceful Degradation",
+            "description": "Simulate various error scenarios, including API/network failures, to validate global error handling, fallback UI, and error logging.",
+            "dependencies": [
+              "4.3",
+              "4.4"
+            ],
+            "details": "Develop test cases for synchronous and asynchronous errors, component failures, and network issues. Ensure the application degrades gracefully and provides clear feedback to users.",
+            "status": "pending",
+            "testStrategy": "Perform manual and automated tests to confirm error boundaries, global state updates, fallback UI, recovery actions, and logging all function as intended."
+          }
+        ]
       },
       {
         "id": 5,
@@ -591,7 +802,64 @@
           3
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Table Layout Using Ionic Grid/Table Components",
+            "description": "Create the responsive table structure using Ionic Grid, IonRow, and IonCol components to display PII patterns in a tabular format.",
+            "dependencies": [],
+            "details": "Utilize Ionic's grid system for layout and ensure proper alignment and responsiveness. Integrate IonTable or ngx-datatable for advanced features as needed.",
+            "status": "pending",
+            "testStrategy": "Verify table renders correctly across devices and columns align as expected."
+          },
+          {
+            "id": 2,
+            "title": "Implement Sorting, Filtering, and Real-Time Search",
+            "description": "Add functionality for sorting columns, filtering by type/category/priority, and real-time search within the table.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Use ngx-datatable or custom logic to enable sortable columns and multi-criteria filtering. Implement a search input that updates results in real time.",
+            "status": "pending",
+            "testStrategy": "Unit test sorting and filtering logic. Validate search updates table instantly."
+          },
+          {
+            "id": 3,
+            "title": "Enable Bulk Actions for Enable/Disable/Delete",
+            "description": "Provide UI controls for bulk enabling, disabling, or deleting selected PII patterns.",
+            "dependencies": [
+              "5.2"
+            ],
+            "details": "Add checkboxes for row selection and bulk action buttons. Integrate with Axios service for API calls to perform bulk operations.",
+            "status": "pending",
+            "testStrategy": "Unit test bulk selection and action triggers. Integration test API calls for bulk operations."
+          },
+          {
+            "id": 4,
+            "title": "Display Visual Indicators for Built-in and Custom Patterns",
+            "description": "Show distinct visual markers for built-in versus custom PII patterns within the table rows.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Use icons, chips, or color coding to differentiate pattern types. Ensure indicators are accessible and consistent.",
+            "status": "pending",
+            "testStrategy": "Unit test indicator rendering. Validate correct marker for each pattern type."
+          },
+          {
+            "id": 5,
+            "title": "Integrate Table with Pinia Store and Axios Service",
+            "description": "Connect the table component to Pinia for state management and Axios for CRUD operations with the backend.",
+            "dependencies": [
+              "5.1",
+              "5.2",
+              "5.3",
+              "5.4"
+            ],
+            "details": "Fetch, update, and synchronize PII pattern data using Pinia and Axios. Ensure all table actions reflect backend state.",
+            "status": "pending",
+            "testStrategy": "Integration test data fetching, updates, and synchronization. Validate error handling and state consistency."
+          }
+        ]
       },
       {
         "id": 6,
@@ -604,7 +872,61 @@
           5
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design and Implement Ionic Modal Structure",
+            "description": "Set up the PIIPatternEditor modal using Ionic Modal components, ensuring proper layout and accessibility for all required form fields.",
+            "dependencies": [],
+            "details": "Use IonModal and related Ionic components to create a modal dialog. Include header, content, and footer sections. Ensure modal can be triggered for both add and edit modes.",
+            "status": "pending",
+            "testStrategy": "Unit test modal open/close behavior, accessibility, and correct rendering of modal structure."
+          },
+          {
+            "id": 2,
+            "title": "Build Form with Validation and Unique Name Enforcement",
+            "description": "Develop the form inside the modal with fields: name (unique), regex, data type, description, priority, and category. Implement client-side validation for all fields, including uniqueness check for name.",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Use reactive forms or form state management. Validate required fields, enforce unique name (against existing patterns), and provide real-time error feedback for invalid input.",
+            "status": "pending",
+            "testStrategy": "Unit test form validation logic, including edge cases for uniqueness and required fields."
+          },
+          {
+            "id": 3,
+            "title": "Implement Live Regex Validation and Error Feedback",
+            "description": "Add live validation for the regex field, providing immediate feedback for invalid patterns and displaying error messages as needed.",
+            "dependencies": [
+              "6.2"
+            ],
+            "details": "Parse and validate regex input on change. Catch and display syntax errors or unsafe patterns. Disable form submission if regex is invalid.",
+            "status": "pending",
+            "testStrategy": "Unit test regex validation with valid, invalid, and edge-case patterns. Verify error feedback display."
+          },
+          {
+            "id": 4,
+            "title": "Develop Live Preview with Sample Text",
+            "description": "Create a live preview area that applies the entered regex to a sample text, highlighting matches in real time.",
+            "dependencies": [
+              "6.3"
+            ],
+            "details": "Allow user to input or select sample text. Apply regex and visually highlight matched substrings. Update preview as regex or sample text changes.",
+            "status": "pending",
+            "testStrategy": "Unit test preview updates and highlighting accuracy for various regex and sample text combinations."
+          },
+          {
+            "id": 5,
+            "title": "Integrate API for Add/Edit Operations",
+            "description": "Connect the modal form to backend API endpoints for creating and updating PII patterns, handling POST and PUT requests as appropriate.",
+            "dependencies": [
+              "6.4"
+            ],
+            "details": "On form submission, send data to API. Handle success and error responses, including rollback on failure. Close modal and refresh parent data on success.",
+            "status": "pending",
+            "testStrategy": "Integration test API calls, error handling, and data refresh. Mock API responses for unit testing."
+          }
+        ]
       },
       {
         "id": 7,
@@ -618,7 +940,63 @@
           5
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Real-Time Textarea Input with PII Highlighting",
+            "description": "Implement a large textarea input that highlights detected PII entities as the user types, providing immediate visual feedback.",
+            "dependencies": [],
+            "details": "Integrate frontend logic to dynamically highlight PII patterns using results from the backend. Ensure seamless user experience and accessibility.",
+            "status": "pending",
+            "testStrategy": "Unit test highlighting logic with various PII patterns. Validate accessibility and responsiveness."
+          },
+          {
+            "id": 2,
+            "title": "Integrate POST /sanitization/pii/test Endpoint for Detection",
+            "description": "Connect the interface to the backend endpoint for real-time PII detection and sanitization, sending user input and receiving detection results.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "Implement API call logic to POST user input and handle response data, including detected patterns, sanitized text, and detection time.",
+            "status": "pending",
+            "testStrategy": "Integration test with backend. Measure response time and validate data mapping."
+          },
+          {
+            "id": 3,
+            "title": "Display Matched Patterns and Detection Metadata",
+            "description": "Show a list of matched PII patterns, detection time, and the set of patterns checked for each input.",
+            "dependencies": [
+              "7.2"
+            ],
+            "details": "Render detection metadata in a clear, user-friendly format. Include pattern names, types, and timing information.",
+            "status": "pending",
+            "testStrategy": "Unit test metadata rendering. Validate accuracy against backend response."
+          },
+          {
+            "id": 4,
+            "title": "Implement Original vs Sanitized Text Preview",
+            "description": "Provide a side-by-side preview of the original input and the sanitized output, highlighting differences.",
+            "dependencies": [
+              "7.2"
+            ],
+            "details": "Design and implement a comparison view that clearly shows changes made by the sanitization process.",
+            "status": "pending",
+            "testStrategy": "Unit test preview rendering. Validate highlighting and difference detection."
+          },
+          {
+            "id": 5,
+            "title": "Optimize Detection Workflow for Sub-2s Response",
+            "description": "Ensure the entire detection and preview workflow consistently responds in under 2 seconds for typical input sizes.",
+            "dependencies": [
+              "7.2",
+              "7.3",
+              "7.4"
+            ],
+            "details": "Profile frontend and backend interactions, optimize API calls, and implement loading indicators or fallback logic as needed.",
+            "status": "pending",
+            "testStrategy": "Performance test with varied input sizes. Monitor and log detection times."
+          }
+        ]
       },
       {
         "id": 8,
@@ -632,7 +1010,65 @@
           3
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Data Model and Grouping Logic",
+            "description": "Define the data structure for pseudonym entries, including fields for word, data type/category, and frequency weight. Implement logic to group words by data type or category.",
+            "dependencies": [],
+            "details": "Ensure the model supports efficient grouping and future extensibility. Specify how categories are managed and how frequency weights are stored and updated.",
+            "status": "pending",
+            "testStrategy": "Unit test grouping logic and data model integrity for various input scenarios."
+          },
+          {
+            "id": 2,
+            "title": "Implement CRUD Operations for Dictionary Entries",
+            "description": "Develop functionality to add, edit, and delete pseudonym words, including adjusting frequency weights. Integrate with Pinia store and backend API for persistence.",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "Ensure all CRUD actions update both the frontend state (Pinia) and backend API. Provide UI feedback for successful and failed operations.",
+            "status": "pending",
+            "testStrategy": "Unit test all CRUD actions and frequency adjustment. Integration test with backend API."
+          },
+          {
+            "id": 3,
+            "title": "Develop Bulk Import/Export Functionality (CSV/JSON)",
+            "description": "Implement bulk import and export of dictionary entries using PapaParse (v5.x) for CSV and native JSON handling. Support both formats for interoperability.",
+            "dependencies": [
+              "8.1",
+              "8.2"
+            ],
+            "details": "Validate imported data for schema compliance and handle errors gracefully. Ensure export includes all relevant fields and grouping information.",
+            "status": "pending",
+            "testStrategy": "Unit test import/export logic with valid and invalid files. Verify data integrity after round-trip operations."
+          },
+          {
+            "id": 4,
+            "title": "Display Usage Statistics and Analytics",
+            "description": "Show usage statistics for pseudonym entries, such as frequency of use and distribution by category. Integrate with backend or local tracking as needed.",
+            "dependencies": [
+              "8.1",
+              "8.2"
+            ],
+            "details": "Design UI components for statistics visualization. Ensure statistics update in real time as dictionary changes.",
+            "status": "pending",
+            "testStrategy": "Unit test statistics calculations. Integration test with backend data sources if applicable."
+          },
+          {
+            "id": 5,
+            "title": "Integrate Component with Pinia Store and API",
+            "description": "Connect all component logic to the Pinia store for state management and synchronize with backend API endpoints for persistent storage.",
+            "dependencies": [
+              "8.2",
+              "8.3",
+              "8.4"
+            ],
+            "details": "Ensure all state changes are reflected in both frontend and backend. Handle API errors and loading states appropriately.",
+            "status": "pending",
+            "testStrategy": "Integration test Pinia synchronization and API calls. Validate state consistency after concurrent operations."
+          }
+        ]
       },
       {
         "id": 9,
@@ -645,7 +1081,61 @@
           8
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Mapping Table UI and Color-Coded Indicators",
+            "description": "Create the user interface for displaying the mapping table showing PII to pseudonym relationships, usage counts, and reversibility status. Implement color-coded indicators for mapping status and reversibility.",
+            "dependencies": [],
+            "details": "Define table structure and visual cues for mapping status and reversibility. Ensure the design supports accessibility and clarity.",
+            "status": "pending",
+            "testStrategy": "Verify correct rendering of table columns, color indicators, and accessibility compliance."
+          },
+          {
+            "id": 2,
+            "title": "Implement Data Fetching from API and Pinia Store",
+            "description": "Develop logic to fetch mapping data from the backend API and synchronize with the Pinia store, ensuring efficient updates and error handling.",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "Integrate API calls and Pinia store access. Handle loading, error, and empty states. Ensure no actual PII is stored in frontend state.",
+            "status": "pending",
+            "testStrategy": "Mock API and store responses to test data loading, error handling, and state management."
+          },
+          {
+            "id": 3,
+            "title": "Integrate Usage History and Counts Display",
+            "description": "Display usage history and usage counts for each mapping entry, updating in real time as data changes.",
+            "dependencies": [
+              "9.2"
+            ],
+            "details": "Fetch and render usage statistics per mapping. Ensure updates reflect changes from API or store without exposing PII.",
+            "status": "pending",
+            "testStrategy": "Simulate usage updates and verify correct display and real-time updates."
+          },
+          {
+            "id": 4,
+            "title": "Develop Reversibility Demonstration Logic",
+            "description": "Implement a demo feature to show how pseudonym mappings can be reversed, using only pseudonym data and without exposing actual PII.",
+            "dependencies": [
+              "9.3"
+            ],
+            "details": "Provide a safe, illustrative reversibility demo using mock or placeholder data. Clearly indicate demo status to users.",
+            "status": "pending",
+            "testStrategy": "Test reversibility demo logic for correctness and ensure no PII is exposed in the process."
+          },
+          {
+            "id": 5,
+            "title": "Write Unit Tests for Mapping Display and Reversibility Demo",
+            "description": "Create comprehensive unit tests for the mapping table, usage history, and reversibility demo logic.",
+            "dependencies": [
+              "9.4"
+            ],
+            "details": "Cover all UI states, data flows, and edge cases. Validate that no PII is present in any frontend state or test artifacts.",
+            "status": "pending",
+            "testStrategy": "Run automated tests for all component features, including mapping display, usage updates, and reversibility demo. Review test coverage and ensure PII safety."
+          }
+        ]
       },
       {
         "id": 10,
@@ -659,7 +1149,64 @@
           3
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Integrate PII Detection Metrics",
+            "description": "Display PII detection counts by type within the RunMetadataPanel, sourcing data from API stats and Pinia store.",
+            "dependencies": [],
+            "details": "Fetch and render counts for each PII type detected in the run, ensuring accurate mapping from API response to UI.",
+            "status": "pending",
+            "testStrategy": "Unit test rendering of PII counts by type. Integration test with API stats for accuracy."
+          },
+          {
+            "id": 2,
+            "title": "Add Pseudonymization and Redaction Metrics",
+            "description": "Show pseudonymization and redaction counts, categorized by type, in the panel using API and Pinia data.",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Aggregate and display counts for pseudonymized and redacted items, ensuring correct categorization and data source usage.",
+            "status": "pending",
+            "testStrategy": "Unit test metric display logic. Integration test with API for metric accuracy."
+          },
+          {
+            "id": 3,
+            "title": "Implement Data Classification Display",
+            "description": "Present data classification results for the run, including sensitivity levels and categories.",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Render classification labels and categories based on API stats, with clear visual indicators for sensitivity.",
+            "status": "pending",
+            "testStrategy": "Unit test classification rendering. Integration test with API for correct mapping."
+          },
+          {
+            "id": 4,
+            "title": "Create Expandable Before/After Text Comparison",
+            "description": "Enable expandable sections to compare original and sanitized text for each run, supporting detailed inspection.",
+            "dependencies": [
+              "10.2",
+              "10.3"
+            ],
+            "details": "Implement UI logic for expandable panels showing before/after text, ensuring correct data binding and accessibility.",
+            "status": "pending",
+            "testStrategy": "Unit test expand/collapse behavior. Validate text comparison accuracy and accessibility."
+          },
+          {
+            "id": 5,
+            "title": "Display Cost Breakdown and Performance Impact",
+            "description": "Show detailed cost breakdown and performance impact metrics for each run, leveraging API stats.",
+            "dependencies": [
+              "10.1",
+              "10.2",
+              "10.3"
+            ],
+            "details": "Calculate and render cost components (e.g., API calls, processing time) and performance metrics, highlighting any overhead from privacy operations.",
+            "status": "pending",
+            "testStrategy": "Unit test cost and performance metric display. Integration test with API for metric validation."
+          }
+        ]
       },
       {
         "id": 11,
@@ -673,7 +1220,63 @@
           3
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Flow Diagram Structure and States",
+            "description": "Define the stages of the LLM request lifecycle (input, sanitization, routing, LLM call, response) and specify the data model for timing breakdowns, decision points, and provider indicators.",
+            "dependencies": [],
+            "details": "Document each lifecycle stage, required metadata, and visualization requirements. Specify how timing and provider data will be represented for animation and interactivity.",
+            "status": "pending",
+            "testStrategy": "Review design with stakeholders and validate completeness against requirements."
+          },
+          {
+            "id": 2,
+            "title": "Implement Interactive SVG/D3.js Flow Rendering",
+            "description": "Develop the animated flow diagram using SVG or D3.js v7.x, rendering each lifecycle stage, transitions, and visual indicators for timing and providers.",
+            "dependencies": [
+              "11.1"
+            ],
+            "details": "Use D3.js for dynamic rendering and transitions. Encode stages as nodes and transitions as links. Integrate timing and provider indicators as visual elements.",
+            "status": "pending",
+            "testStrategy": "Unit test rendering of each stage, transitions, and indicator accuracy."
+          },
+          {
+            "id": 3,
+            "title": "Integrate Controls for Pause, Replay, and Step",
+            "description": "Add interactive controls to pause, replay, and step through the flow diagram animation, ensuring synchronization with lifecycle visualization.",
+            "dependencies": [
+              "11.2"
+            ],
+            "details": "Implement UI controls and event handlers to manage animation state. Ensure controls update diagram and timing breakdowns correctly.",
+            "status": "pending",
+            "testStrategy": "Unit test control functionality and state transitions. Simulate user interactions."
+          },
+          {
+            "id": 4,
+            "title": "Connect Diagram to Live Request Data",
+            "description": "Enable the flow diagram to visualize real-time LLM request data, updating stages, timing, and decision points dynamically.",
+            "dependencies": [
+              "11.2"
+            ],
+            "details": "Integrate with backend or mock API to fetch live request lifecycle data. Map incoming data to diagram states and update visualization in real time.",
+            "status": "pending",
+            "testStrategy": "Integration test with live data. Validate diagram updates and accuracy."
+          },
+          {
+            "id": 5,
+            "title": "Test and Validate Component Functionality",
+            "description": "Perform comprehensive unit and integration testing of the flow diagram rendering, controls, and data integration.",
+            "dependencies": [
+              "11.2",
+              "11.3",
+              "11.4"
+            ],
+            "details": "Write tests for diagram rendering, control interactions, and live data updates. Validate against expected lifecycle flows and edge cases.",
+            "status": "pending",
+            "testStrategy": "Unit test rendering and controls. Integration test with live request data. Review with QA for usability and correctness."
+          }
+        ]
       },
       {
         "id": 12,
@@ -687,7 +1290,65 @@
           3
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Sanitization Phase Visualization",
+            "description": "Create a visual representation for each sanitization phase, including step-by-step progression and clear separation of phases.",
+            "dependencies": [],
+            "details": "Define the structure and UI for displaying each phase. Ensure phases are sequentially ordered and visually distinct.",
+            "status": "pending",
+            "testStrategy": "Unit test phase rendering and order. Validate correct phase separation with sample data."
+          },
+          {
+            "id": 2,
+            "title": "Implement Color-Coded PII Highlighting",
+            "description": "Develop logic to highlight detected PII types (e.g., names, emails) with distinct colors per type within each sanitization phase.",
+            "dependencies": [
+              "12.1"
+            ],
+            "details": "Map PII types to colors (e.g., names=blue, emails=green). Apply highlighting to matched text segments using API results.",
+            "status": "pending",
+            "testStrategy": "Unit test color mapping and highlighting accuracy. Integration test with sample API results."
+          },
+          {
+            "id": 3,
+            "title": "Display Matched Patterns and Reversibility Demo",
+            "description": "Show matched PII patterns for each phase and provide a demo illustrating reversibility of sanitization steps.",
+            "dependencies": [
+              "12.1",
+              "12.2"
+            ],
+            "details": "Extract and display pattern matches from API results. Implement a UI toggle or preview for reversibility demonstration.",
+            "status": "pending",
+            "testStrategy": "Unit test pattern extraction and display. Validate reversibility demo logic with controlled input."
+          },
+          {
+            "id": 4,
+            "title": "Integrate Performance Metrics Visualization",
+            "description": "Visualize performance metrics (e.g., processing time, resource usage) for each sanitization phase.",
+            "dependencies": [
+              "12.1"
+            ],
+            "details": "Fetch and display metrics from API results. Use charts or numeric indicators for clarity.",
+            "status": "pending",
+            "testStrategy": "Unit test metric extraction and display. Integration test with varied API metric data."
+          },
+          {
+            "id": 5,
+            "title": "Connect Component to API and Pinia Store",
+            "description": "Implement data fetching and state management by integrating with the backend API and Pinia store.",
+            "dependencies": [
+              "12.1",
+              "12.2",
+              "12.3",
+              "12.4"
+            ],
+            "details": "Set up API calls for sanitization results and metrics. Manage component state and updates using Pinia.",
+            "status": "pending",
+            "testStrategy": "Integration test API connectivity and Pinia state updates. Validate data flow and error handling."
+          }
+        ]
       },
       {
         "id": 13,
@@ -701,7 +1362,63 @@
           3
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Dashboard Layout with Ionic Cards",
+            "description": "Define and implement the overall dashboard structure using Ionic Cards to organize sections for privacy metrics, pattern usage, cost analysis, performance trends, and system health.",
+            "dependencies": [],
+            "details": "Establish a responsive layout that clearly separates each metric area, ensuring compatibility with mobile and desktop views.",
+            "status": "pending",
+            "testStrategy": "Verify card rendering and layout responsiveness across device sizes."
+          },
+          {
+            "id": 2,
+            "title": "Integrate Chart.js v4.x for Data Visualization",
+            "description": "Set up Chart.js v4.x within the component and configure chart types (bar, line, pie, etc.) to visualize detection stats, pattern usage, cost savings, and performance trends.",
+            "dependencies": [
+              "13.1"
+            ],
+            "details": "Import Chart.js, create reusable chart components, and ensure charts are styled and interactive within Ionic Cards.",
+            "status": "pending",
+            "testStrategy": "Unit test chart rendering with mock data and validate chart responsiveness."
+          },
+          {
+            "id": 3,
+            "title": "Implement Data Fetching from /sanitization/stats and Pinia Store",
+            "description": "Develop logic to fetch and aggregate required data from the /sanitization/stats API endpoint and Pinia store for all dashboard metrics.",
+            "dependencies": [
+              "13.1"
+            ],
+            "details": "Ensure efficient data retrieval, error handling, and state management for real-time updates.",
+            "status": "pending",
+            "testStrategy": "Integration test API calls and Pinia state updates; mock API failures to test error handling."
+          },
+          {
+            "id": 4,
+            "title": "Display System Health and Cost Analysis Indicators",
+            "description": "Create visual indicators and summary cards for system health (e.g., uptime, error rates) and cost analysis (e.g., cost savings, resource usage).",
+            "dependencies": [
+              "13.3"
+            ],
+            "details": "Design and implement clear, color-coded indicators and summary statistics, integrating with fetched data.",
+            "status": "pending",
+            "testStrategy": "Unit test indicator rendering and value accuracy; simulate edge cases for health/cost metrics."
+          },
+          {
+            "id": 5,
+            "title": "Test Dashboard Functionality and Data Aggregation",
+            "description": "Develop and execute unit and integration tests for chart rendering, data aggregation, and dashboard interactivity.",
+            "dependencies": [
+              "13.2",
+              "13.3",
+              "13.4"
+            ],
+            "details": "Ensure all dashboard elements update correctly with live data and handle edge cases gracefully.",
+            "status": "pending",
+            "testStrategy": "Automate tests for chart updates, data refresh, and error scenarios; validate overall dashboard stability."
+          }
+        ]
       },
       {
         "id": 14,
@@ -715,7 +1432,62 @@
           3
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Analytics Dashboard Layout and Chart Structure",
+            "description": "Define the overall layout for the LLMUsageAnalytics dashboard, specifying sections for request volume, routing ratios, response times, cost trends, and sanitization overhead. Select appropriate Chart.js chart types for each metric.",
+            "dependencies": [],
+            "details": "Create wireframes or component blueprints. Map each analytic metric to a Chart.js visualization (e.g., line chart for trends, pie chart for routing ratios). Ensure the layout supports responsive design and clear data presentation.",
+            "status": "pending",
+            "testStrategy": "Review layout for completeness and clarity. Validate that each metric has a designated chart and section."
+          },
+          {
+            "id": 2,
+            "title": "Integrate Data Fetching from API and Pinia Store",
+            "description": "Implement logic to fetch analytics data from the backend API and synchronize with the Pinia store for state management.",
+            "dependencies": [
+              "14.1"
+            ],
+            "details": "Define API endpoints and Pinia store modules for analytics data. Implement data fetching, error handling, and state updates. Ensure data is available in the correct format for Chart.js components.",
+            "status": "pending",
+            "testStrategy": "Unit test data fetching logic and Pinia store updates. Mock API responses to verify correct state synchronization."
+          },
+          {
+            "id": 3,
+            "title": "Implement Chart.js Visualizations for All Metrics",
+            "description": "Develop Chart.js components for request volume, routing percentages, response time comparisons, cost trends, and sanitization overhead, using data from the Pinia store.",
+            "dependencies": [
+              "14.2"
+            ],
+            "details": "Configure each Chart.js instance with dynamic data, labels, and tooltips. Apply custom styling and interactivity as needed. Ensure charts update in real time when data changes.",
+            "status": "pending",
+            "testStrategy": "Unit test chart rendering with sample data. Verify correct chart types, labels, and dynamic updates."
+          },
+          {
+            "id": 4,
+            "title": "Implement Data Aggregation and Transformation Logic",
+            "description": "Develop functions to aggregate and transform raw analytics data into formats suitable for each chart (e.g., time series, percentage breakdowns, averages).",
+            "dependencies": [
+              "14.2"
+            ],
+            "details": "Write utility functions to process API data for each metric. Handle edge cases such as missing data or outliers. Ensure transformations are efficient and accurate.",
+            "status": "pending",
+            "testStrategy": "Unit test aggregation and transformation functions with diverse data sets. Validate output against expected chart inputs."
+          },
+          {
+            "id": 5,
+            "title": "Test Dashboard Integration and User Interactions",
+            "description": "Conduct integration testing of the complete dashboard, including chart rendering, data updates, and user interactions such as filtering or time range selection.",
+            "dependencies": [
+              "14.3",
+              "14.4"
+            ],
+            "details": "Simulate real-world usage scenarios. Test dashboard responsiveness, error handling, and performance under varying data loads. Validate that all charts and metrics update correctly in response to user actions.",
+            "status": "pending",
+            "testStrategy": "Integration test with live API and Pinia store. Perform end-to-end tests for user flows and data refresh cycles."
+          }
+        ]
       },
       {
         "id": 15,
@@ -729,7 +1501,64 @@
           3
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Privacy Settings UI with Toggles",
+            "description": "Create the admin panel interface with toggles for ENABLE_REDACTION, default sanitization preferences, and audit logging settings.",
+            "dependencies": [],
+            "details": "Implement a Vue component using Pinia for state management. Ensure toggles are clearly labeled and reflect current environment variable values. Provide real-time feedback for changes.",
+            "status": "pending",
+            "testStrategy": "Unit test toggle rendering and state updates. Verify UI reflects environment variable changes."
+          },
+          {
+            "id": 2,
+            "title": "Implement Role-Based Access Control",
+            "description": "Restrict access to the AdminPrivacySettings component using role-based access control, integrating with Supabase Auth.",
+            "dependencies": [
+              "15.1"
+            ],
+            "details": "Use Supabase Auth to determine user roles. Hide or disable settings for unauthorized users using v-if or similar directives. Ensure only admins can modify privacy settings.",
+            "status": "pending",
+            "testStrategy": "Unit test access restrictions. Attempt access with different roles and verify correct UI visibility and permissions."
+          },
+          {
+            "id": 3,
+            "title": "Integrate Environment Variables and Pinia Store",
+            "description": "Connect UI toggles and settings to environment variables and synchronize with the Pinia store for reactive updates.",
+            "dependencies": [
+              "15.1"
+            ],
+            "details": "Read initial values from environment variables. Update Pinia store on toggle changes and ensure two-way binding between UI and store. Persist changes as needed.",
+            "status": "pending",
+            "testStrategy": "Unit test Pinia store updates and environment variable synchronization. Integration test with backend if applicable."
+          },
+          {
+            "id": 4,
+            "title": "Configure and Display Audit Logging Options",
+            "description": "Add configuration options for audit logging, allowing admins to enable/disable and set preferences for audit trails.",
+            "dependencies": [
+              "15.1",
+              "15.3"
+            ],
+            "details": "Provide UI controls for audit logging settings. Ensure changes are reflected in the Pinia store and, if required, persisted to backend or environment.",
+            "status": "pending",
+            "testStrategy": "Unit test audit logging toggle and preference changes. Integration test with backend audit log endpoints."
+          },
+          {
+            "id": 5,
+            "title": "Develop and Execute Comprehensive Testing",
+            "description": "Create unit and integration tests for all privacy settings, access control, and audit configuration features.",
+            "dependencies": [
+              "15.2",
+              "15.3",
+              "15.4"
+            ],
+            "details": "Write tests to cover toggle functionality, access control enforcement, Pinia store synchronization, and audit logging configuration. Include integration tests with backend and audit log systems.",
+            "status": "pending",
+            "testStrategy": "Run automated unit tests for all UI and logic. Perform integration tests with backend and verify audit log entries."
+          }
+        ]
       },
       {
         "id": 16,
@@ -743,7 +1572,61 @@
           3
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Privacy Indicator UI Elements",
+            "description": "Create visual designs for privacy indicators including 'Data Protected' badges, sanitization status, routing display (local/external), and trust signals to be integrated into the chat interface.",
+            "dependencies": [],
+            "details": "Define iconography, color schemes, and placement within the chat UI for each indicator type. Ensure accessibility and clarity for real-time feedback.",
+            "status": "pending",
+            "testStrategy": "Review UI mockups with stakeholders and perform accessibility checks."
+          },
+          {
+            "id": 2,
+            "title": "Implement Real-Time Privacy Status Logic",
+            "description": "Develop logic to track and update privacy statuses such as data protection, sanitization, and routing in real-time within the chat component.",
+            "dependencies": [
+              "16.1"
+            ],
+            "details": "Integrate with backend or local services to fetch and update privacy states. Ensure updates are reflected instantly in the UI.",
+            "status": "pending",
+            "testStrategy": "Unit test state updates and verify real-time changes using mock data."
+          },
+          {
+            "id": 3,
+            "title": "Integrate Privacy Indicators with Pinia Store",
+            "description": "Connect privacy indicator states to the Pinia store for centralized state management and synchronization across chat sessions.",
+            "dependencies": [
+              "16.2"
+            ],
+            "details": "Define Pinia modules for privacy indicators, implement actions/mutations, and ensure chat UI components reactively display indicator changes.",
+            "status": "pending",
+            "testStrategy": "Unit test Pinia store actions and mutations. Validate state synchronization in integration tests."
+          },
+          {
+            "id": 4,
+            "title": "Embed Privacy Indicators into Chat UI",
+            "description": "Add privacy indicator components to the chat interface, ensuring seamless integration and responsive updates based on Pinia state.",
+            "dependencies": [
+              "16.3"
+            ],
+            "details": "Modify chat UI templates to include indicator components. Ensure indicators are contextually displayed for each chat message or session.",
+            "status": "pending",
+            "testStrategy": "Integration test with live chat data. Verify correct rendering and updates of indicators."
+          },
+          {
+            "id": 5,
+            "title": "Develop Automated Tests for Privacy Indicators",
+            "description": "Create unit and integration tests to validate rendering, state updates, and real-time feedback of privacy indicators within the chat interface.",
+            "dependencies": [
+              "16.4"
+            ],
+            "details": "Write test cases for indicator visibility, state transitions, and interaction with Pinia. Simulate various privacy scenarios and routing conditions.",
+            "status": "pending",
+            "testStrategy": "Automated test suite covering rendering, state changes, and integration with chat data."
+          }
+        ]
       },
       {
         "id": 17,
@@ -767,7 +1650,53 @@
           16
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Configure Ionic Responsive Grid and Layouts",
+            "description": "Set up Ionic's ion-grid and ion-col components to create scalable, mobile-first layouts for all UI components.",
+            "dependencies": [],
+            "details": "Utilize Ionic's built-in responsive grid system and platform-specific styling utilities to ensure layouts adapt seamlessly across device sizes and orientations.",
+            "status": "pending",
+            "testStrategy": "Verify layout scaling and proportionality on multiple device emulators and real devices."
+          },
+          {
+            "id": 2,
+            "title": "Implement CSS Media Queries and Relative Units",
+            "description": "Apply CSS media queries and use relative units (rem, em, %, vw, vh) to adjust styles for different screen sizes and orientations.",
+            "dependencies": [],
+            "details": "Design CSS rules that respond to device width, height, and orientation, ensuring consistent appearance and usability on phones, tablets, and desktops.",
+            "status": "pending",
+            "testStrategy": "Test style adjustments by resizing browser windows and rotating devices; validate appearance on iOS and Android."
+          },
+          {
+            "id": 3,
+            "title": "Optimize Touch Targets and Mobile Navigation",
+            "description": "Ensure all interactive elements are touch-friendly and navigation is optimized for mobile usability.",
+            "dependencies": [],
+            "details": "Increase touch target sizes, space interactive elements appropriately, and refine navigation patterns for mobile-first interaction.",
+            "status": "pending",
+            "testStrategy": "Conduct manual usability tests focusing on touch interactions and navigation flow on various devices."
+          },
+          {
+            "id": 4,
+            "title": "Test Responsiveness Across Device Sizes and Platforms",
+            "description": "Perform manual and automated UI tests to validate responsiveness and usability on a range of device sizes and platforms.",
+            "dependencies": [],
+            "details": "Use device emulators, real devices, and automated test suites to ensure consistent behavior and appearance across iOS, Android, and desktop.",
+            "status": "pending",
+            "testStrategy": "Run cross-platform UI tests and collect user feedback for edge cases."
+          },
+          {
+            "id": 5,
+            "title": "Optimize Performance for Mobile Devices",
+            "description": "Enhance performance by minifying CSS/JS, lazy loading images, and minimizing HTTP requests for mobile users.",
+            "dependencies": [],
+            "details": "Apply best practices for asset optimization, code splitting, and resource management to ensure fast load times and smooth interactions.",
+            "status": "pending",
+            "testStrategy": "Measure performance metrics before and after optimizations using profiling tools; validate improvements on low-end devices."
+          }
+        ]
       },
       {
         "id": 18,
@@ -780,7 +1709,61 @@
           17
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Conduct Comprehensive Accessibility Audit",
+            "description": "Evaluate all UI components for WCAG 2.1 AA compliance using both automated tools (axe-core, Lighthouse) and manual testing to identify accessibility barriers.",
+            "dependencies": [],
+            "details": "Run axe-core and Lighthouse audits across the application. Manually test for keyboard navigation, screen reader compatibility, and color contrast issues. Document all findings and prioritize issues based on severity and user impact.",
+            "status": "pending",
+            "testStrategy": "Automated audits with axe-core and Lighthouse; manual testing with keyboard and screen readers; review audit reports for actionable issues."
+          },
+          {
+            "id": 2,
+            "title": "Implement ARIA Attributes and Semantic Markup",
+            "description": "Add appropriate ARIA attributes and semantic HTML to all UI components to enhance accessibility for assistive technologies.",
+            "dependencies": [
+              "18.1"
+            ],
+            "details": "Update components to include ARIA roles, states, and properties where necessary. Ensure use of semantic HTML elements for structure and meaning.",
+            "status": "pending",
+            "testStrategy": "Verify ARIA attributes and semantic tags using browser accessibility tools and screen readers."
+          },
+          {
+            "id": 3,
+            "title": "Enable Full Keyboard Navigation",
+            "description": "Ensure all interactive elements are accessible and operable via keyboard alone, following logical tab order and visible focus indicators.",
+            "dependencies": [
+              "18.1"
+            ],
+            "details": "Implement and test keyboard navigation for all UI controls, dialogs, and menus. Ensure focus management and skip navigation links are present where needed.",
+            "status": "pending",
+            "testStrategy": "Manual keyboard-only navigation testing; automated focus order checks."
+          },
+          {
+            "id": 4,
+            "title": "Verify and Enhance Screen Reader Support",
+            "description": "Test and refine UI components to ensure accurate and meaningful output for screen reader users.",
+            "dependencies": [
+              "18.2"
+            ],
+            "details": "Test with multiple screen readers (e.g., NVDA, JAWS, VoiceOver). Adjust ARIA labels, roles, and live regions to provide clear context and feedback.",
+            "status": "pending",
+            "testStrategy": "Manual screen reader testing; user feedback from assistive technology users."
+          },
+          {
+            "id": 5,
+            "title": "Check and Remediate Color Contrast Issues",
+            "description": "Assess and adjust color schemes to meet WCAG 2.1 AA contrast requirements for text, icons, and UI elements.",
+            "dependencies": [
+              "18.1"
+            ],
+            "details": "Use automated tools and manual inspection to identify insufficient color contrast. Update styles to ensure minimum contrast ratios are met.",
+            "status": "pending",
+            "testStrategy": "Automated color contrast analysis (axe-core, Lighthouse); manual visual checks."
+          }
+        ]
       },
       {
         "id": 19,
@@ -794,7 +1777,61 @@
           8
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Undo/Redo State Management",
+            "description": "Define the state structure and history tracking mechanism for PII patterns and dictionaries using Pinia or a custom undo stack.",
+            "dependencies": [],
+            "details": "Establish how state changes are recorded and rolled back, leveraging Pinia's reactivity and possibly VueUse's useRefHistory for history management.",
+            "status": "pending",
+            "testStrategy": "Unit test state initialization and history tracking logic."
+          },
+          {
+            "id": 2,
+            "title": "Implement Undo/Redo Stack Logic",
+            "description": "Develop the core logic for pushing, undoing, and redoing changes to PII patterns and dictionaries.",
+            "dependencies": [
+              "19.1"
+            ],
+            "details": "Ensure each edit is captured in the stack and can be reverted or reapplied safely, supporting multiple consecutive undo/redo operations.",
+            "status": "pending",
+            "testStrategy": "Unit test stack operations and edge cases (e.g., empty stack, consecutive undos/redos)."
+          },
+          {
+            "id": 3,
+            "title": "Integrate Undo/Redo Controls in Editors",
+            "description": "Add undo and redo buttons to the PIIPatternEditor and PseudonymDictionaryManager components.",
+            "dependencies": [
+              "19.2"
+            ],
+            "details": "Connect UI controls to the undo/redo stack logic, updating the interface state and disabling controls when actions are unavailable.",
+            "status": "pending",
+            "testStrategy": "Integration test UI controls and verify correct state transitions."
+          },
+          {
+            "id": 4,
+            "title": "Implement Conditional Persistence",
+            "description": "Ensure changes to PII patterns and dictionaries are only persisted to storage upon explicit user confirmation.",
+            "dependencies": [
+              "19.3"
+            ],
+            "details": "Decouple in-memory editing from persistence, allowing rollback before confirmation and saving only finalized changes.",
+            "status": "pending",
+            "testStrategy": "Integration test persistence logic and rollback scenarios."
+          },
+          {
+            "id": 5,
+            "title": "Validate and Test Rollback Scenarios",
+            "description": "Develop and execute tests to verify safe rollback of edits and correct undo/redo behavior across all supported scenarios.",
+            "dependencies": [
+              "19.4"
+            ],
+            "details": "Create unit and integration tests for undo/redo stack, UI controls, and persistence, ensuring no data corruption or loss.",
+            "status": "pending",
+            "testStrategy": "Comprehensive unit and integration tests for all rollback and confirmation flows."
+          }
+        ]
       },
       {
         "id": 20,
@@ -807,7 +1844,61 @@
           3
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Configure Axios to Use HTTPS Endpoints",
+            "description": "Ensure all API calls made via Axios are directed to HTTPS endpoints to enforce secure communication.",
+            "dependencies": [],
+            "details": "Update Axios base URLs and interceptors to require HTTPS. Audit all API endpoint references for protocol compliance.",
+            "status": "pending",
+            "testStrategy": "Perform security tests to verify all requests use HTTPS and reject non-secure (HTTP) endpoints."
+          },
+          {
+            "id": 2,
+            "title": "Validate User Inputs on the Frontend",
+            "description": "Implement input validation logic to check user data for expected format, type, and length before submission.",
+            "dependencies": [],
+            "details": "Use validation libraries or custom logic to enforce constraints such as string type, minimum/maximum length, and required fields.",
+            "status": "pending",
+            "testStrategy": "Unit test validation logic for various input scenarios, including edge cases and invalid data."
+          },
+          {
+            "id": 3,
+            "title": "Sanitize User Inputs Using DOMPurify v3.x",
+            "description": "Integrate DOMPurify v3.x to sanitize all user inputs before sending them to the API, preventing XSS and injection attacks.",
+            "dependencies": [
+              "20.2"
+            ],
+            "details": "Apply DOMPurify.sanitize to all validated input fields. Configure DOMPurify profiles to restrict allowed HTML, SVG, and MathML as needed.",
+            "status": "pending",
+            "testStrategy": "Unit test sanitization logic with malicious and benign input samples to ensure proper cleaning."
+          },
+          {
+            "id": 4,
+            "title": "Audit and Refactor Input Handling Code",
+            "description": "Review and refactor existing input handling code to ensure validation and sanitization are consistently applied before API submission.",
+            "dependencies": [
+              "20.2",
+              "20.3"
+            ],
+            "details": "Identify all user input sources in the frontend codebase. Refactor to enforce validation and sanitization order, and remove any bypasses.",
+            "status": "pending",
+            "testStrategy": "Code review and automated tests to confirm no input reaches the API unsanitized or unvalidated."
+          },
+          {
+            "id": 5,
+            "title": "Implement Automated Security Testing for Communication and Input Handling",
+            "description": "Set up automated tests to verify HTTPS enforcement and input sanitization across all relevant components.",
+            "dependencies": [
+              "20.1",
+              "20.4"
+            ],
+            "details": "Use security testing tools to simulate attacks and validate that HTTPS is enforced and that input sanitization prevents XSS and injection.",
+            "status": "pending",
+            "testStrategy": "Run automated security tests for HTTPS and input sanitization. Review test coverage and results regularly."
+          }
+        ]
       },
       {
         "id": 21,
@@ -820,7 +1911,61 @@
           15
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define Admin Roles and Permissions in Supabase",
+            "description": "Establish the necessary admin roles and specify permissions for privacy settings and PII management in Supabase using RBAC.",
+            "dependencies": [],
+            "details": "Use Supabase's RBAC features to create roles such as 'admin' and assign granular permissions for accessing privacy and PII management features.",
+            "status": "pending",
+            "testStrategy": "Verify that roles and permissions are correctly defined in the Supabase dashboard and that only intended roles have access to sensitive resources."
+          },
+          {
+            "id": 2,
+            "title": "Integrate Supabase Auth and Role Assignment",
+            "description": "Set up Supabase Auth in the application and ensure users are assigned appropriate roles upon registration or by admin action.",
+            "dependencies": [
+              "21.1"
+            ],
+            "details": "Configure Supabase Auth to authenticate users and use custom claims or a user_roles table to associate users with their roles. Implement hooks to add role claims to JWT tokens.",
+            "status": "pending",
+            "testStrategy": "Unit test user registration and login flows to confirm correct role assignment and JWT claims."
+          },
+          {
+            "id": 3,
+            "title": "Implement Route and Component Protection Using Navigation Guards",
+            "description": "Protect admin routes and components by checking user roles with navigation guards before granting access.",
+            "dependencies": [
+              "21.2"
+            ],
+            "details": "Use navigation guards in the frontend router to restrict access to admin features based on the user's role from Supabase Auth claims.",
+            "status": "pending",
+            "testStrategy": "Integration test navigation to ensure unauthorized users are redirected or denied access to admin routes."
+          },
+          {
+            "id": 4,
+            "title": "Manage and Enforce Access State with Pinia Store",
+            "description": "Store and manage user authentication and role state in Pinia, and use this state to control UI rendering and access.",
+            "dependencies": [
+              "21.3"
+            ],
+            "details": "Implement Pinia stores to hold user session and role information, updating state on login/logout and using it to conditionally render admin components.",
+            "status": "pending",
+            "testStrategy": "Unit test Pinia store logic and verify UI updates correctly based on user role."
+          },
+          {
+            "id": 5,
+            "title": "Test and Audit Access Control Implementation",
+            "description": "Conduct unit and integration tests for access control logic, and audit the system to ensure compliance and security.",
+            "dependencies": [
+              "21.4"
+            ],
+            "details": "Write unit tests for role checks and navigation guards, perform integration tests with Supabase Auth, and review audit logs for unauthorized access attempts.",
+            "status": "pending",
+            "testStrategy": "Run automated tests for all access control logic and manually attempt to bypass controls to validate robustness."
+          }
+        ]
       },
       {
         "id": 22,
@@ -833,7 +1978,61 @@
           15
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Audit Log Data Model and Pinia Store",
+            "description": "Define the audit log schema to capture all relevant PII pattern management actions, including CRUD operations, access changes, and errors. Implement a Pinia store to manage audit log entries.",
+            "dependencies": [],
+            "details": "Ensure the data model includes fields for actor, action type, timestamp, affected resource, and error details. The Pinia store should support structured log entry creation and retrieval.",
+            "status": "pending",
+            "testStrategy": "Unit test schema validation and Pinia store CRUD operations."
+          },
+          {
+            "id": 2,
+            "title": "Implement Logging of PII Pattern Management Actions",
+            "description": "Integrate audit logging into all PII pattern management workflows to record CRUD actions, access changes, and errors in real time.",
+            "dependencies": [
+              "22.1"
+            ],
+            "details": "Add hooks or middleware to trigger log entry creation on each relevant action. Ensure sensitive data is masked and timestamps are accurate.",
+            "status": "pending",
+            "testStrategy": "Unit test log entry creation for each action type; verify masking and timestamp accuracy."
+          },
+          {
+            "id": 3,
+            "title": "Integrate with Backend Audit Endpoints",
+            "description": "Connect the frontend audit log Pinia store with backend audit trail endpoints, if available, to synchronize logs and ensure centralized storage.",
+            "dependencies": [
+              "22.2"
+            ],
+            "details": "Implement API calls to send log entries to backend endpoints. Handle failures gracefully and ensure log integrity during sync.",
+            "status": "pending",
+            "testStrategy": "Integration test API communication and log synchronization; simulate backend failures."
+          },
+          {
+            "id": 4,
+            "title": "Display Audit Logs in AdminPrivacySettings",
+            "description": "Develop UI components in AdminPrivacySettings to display audit logs, supporting filtering, searching, and pagination for transparency and compliance review.",
+            "dependencies": [
+              "22.3"
+            ],
+            "details": "Ensure logs are presented in a secure, readable format. Implement role-based access control to restrict log visibility to authorized users.",
+            "status": "pending",
+            "testStrategy": "UI test log display, filtering, and access control; verify compliance with display requirements."
+          },
+          {
+            "id": 5,
+            "title": "Establish Audit Log Review and Integrity Procedures",
+            "description": "Define and implement procedures for regular audit log review, integrity verification, and retention policy enforcement.",
+            "dependencies": [
+              "22.4"
+            ],
+            "details": "Set up automated integrity checks (e.g., cryptographic hashing), document review workflows, and configure log retention and backup policies.",
+            "status": "pending",
+            "testStrategy": "Test integrity verification, retention enforcement, and review workflow automation."
+          }
+        ]
       },
       {
         "id": 23,
@@ -858,7 +2057,61 @@
           16
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Global API Failure Detection",
+            "description": "Implement a mechanism to detect API failures across the application in real time.",
+            "dependencies": [],
+            "details": "Integrate centralized error handling for API requests, using interceptors or middleware to monitor and flag failures globally.",
+            "status": "pending",
+            "testStrategy": "Simulate API outages and verify that failures are consistently detected and logged throughout the app."
+          },
+          {
+            "id": 2,
+            "title": "User-Friendly Error Messaging",
+            "description": "Design and display clear, actionable error messages when API failures occur.",
+            "dependencies": [
+              "23.1"
+            ],
+            "details": "Create UI components that present informative error messages and suggest recovery steps, such as retrying or checking connectivity.",
+            "status": "pending",
+            "testStrategy": "Trigger API failures and confirm that appropriate error messages and recovery suggestions are shown to users."
+          },
+          {
+            "id": 3,
+            "title": "Offline Pattern Editing Support",
+            "description": "Enable users to edit patterns and data offline when the API is unavailable.",
+            "dependencies": [
+              "23.1"
+            ],
+            "details": "Implement local storage or caching to allow pattern editing without API access, ensuring changes are tracked for later synchronization.",
+            "status": "pending",
+            "testStrategy": "Disable API access, perform offline edits, and verify that changes are stored locally and persist across sessions."
+          },
+          {
+            "id": 4,
+            "title": "Change Queueing and Deferred Sync",
+            "description": "Queue user changes made offline and synchronize them with the API once connectivity is restored.",
+            "dependencies": [
+              "23.3"
+            ],
+            "details": "Develop a queuing system to store offline changes and implement logic to automatically sync queued changes when the API becomes available.",
+            "status": "pending",
+            "testStrategy": "Edit patterns offline, restore API connectivity, and validate that queued changes are correctly synchronized."
+          },
+          {
+            "id": 5,
+            "title": "Fallback UI and Partial Functionality",
+            "description": "Provide fallback UI elements and maintain partial functionality during API outages.",
+            "dependencies": [
+              "23.1"
+            ],
+            "details": "Design UI states that allow users to continue using essential features, such as viewing cached data or accessing limited editing capabilities, even when the API is down.",
+            "status": "pending",
+            "testStrategy": "Simulate API failures and confirm that fallback UI is rendered and core features remain usable."
+          }
+        ]
       },
       {
         "id": 24,
@@ -889,7 +2142,53 @@
           23
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop Unit Tests for Component Logic",
+            "description": "Write unit tests for all Vue components to validate their logic, props, events, and rendering using Vitest and Vue Test Utils.",
+            "dependencies": [],
+            "details": "Focus on testing public interfaces, including props, events, and slots. Use shallowMount for isolated logic and simulate user interactions. Ensure coverage of edge cases and error handling.",
+            "status": "pending",
+            "testStrategy": "Run Vitest suite for each component. Measure coverage and assert correct output for various inputs and states."
+          },
+          {
+            "id": 2,
+            "title": "Implement Integration Tests for API and State Management",
+            "description": "Create integration tests to verify interactions between components, API endpoints, and global state (Pinia/Vuex).",
+            "dependencies": [],
+            "details": "Test how components react to changes in global state and API responses. Validate data flow, state updates, and error scenarios. Use Vue Test Utils and mock API calls.",
+            "status": "pending",
+            "testStrategy": "Simulate API responses and state changes. Assert correct UI updates and error handling. Measure integration coverage."
+          },
+          {
+            "id": 3,
+            "title": "Design End-to-End Tests for User Flows and Demo Scenarios",
+            "description": "Build Cypress end-to-end tests to cover complete user workflows, navigation, and demo scenarios across the application.",
+            "dependencies": [],
+            "details": "Automate user interactions, navigation, and validation of expected outcomes. Cover critical flows, edge cases, and error scenarios. Ensure demo workflows are reproducible.",
+            "status": "pending",
+            "testStrategy": "Run Cypress tests simulating real user actions. Validate navigation, form submissions, error displays, and workflow completion."
+          },
+          {
+            "id": 4,
+            "title": "Validate Input, Form, and Data Validation Logic",
+            "description": "Test all validation logic for forms, user inputs, and data processing across components and flows.",
+            "dependencies": [],
+            "details": "Ensure client-side and server-side validation rules are enforced. Test error feedback, rollback scenarios, and edge cases for invalid data.",
+            "status": "pending",
+            "testStrategy": "Assert validation errors, correct feedback messages, and successful handling of valid/invalid inputs using unit and integration tests."
+          },
+          {
+            "id": 5,
+            "title": "Measure Test Coverage and Maintain Test Suite Quality",
+            "description": "Configure and run coverage tools to measure test completeness. Continuously review and refactor tests for reliability and maintainability.",
+            "dependencies": [],
+            "details": "Integrate coverage reporting with Vitest and Cypress. Identify untested code paths, improve coverage, and ensure tests remain robust as code evolves.",
+            "status": "pending",
+            "testStrategy": "Run full test suite, review coverage reports, and refactor brittle or outdated tests. Validate demo scenarios and edge cases."
+          }
+        ]
       },
       {
         "id": 25,
@@ -902,7 +2201,61 @@
           24
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Code Splitting and Lazy Loading with Vite",
+            "description": "Configure Vite to optimize code splitting and implement lazy loading for major routes and components to reduce initial bundle size and improve load times.",
+            "dependencies": [],
+            "details": "Leverage Vite's automatic and manual code splitting using dynamic imports and the manualChunks configuration. Apply lazy loading to non-critical components and routes to ensure only necessary code is loaded initially.",
+            "status": "pending",
+            "testStrategy": "Verify bundle sizes and chunking using Vite build output. Confirm lazy-loaded components are fetched on demand. Run Lighthouse to measure initial load performance."
+          },
+          {
+            "id": 2,
+            "title": "Optimize Static Assets and Implement Caching Strategies",
+            "description": "Compress and optimize images, fonts, and other static assets. Configure caching headers and strategies for both static and dynamic resources.",
+            "dependencies": [
+              "25.1"
+            ],
+            "details": "Use tools like imagemin or Vite plugins for asset optimization. Set up cache-control headers for static assets and implement service worker or HTTP caching for dynamic content.",
+            "status": "pending",
+            "testStrategy": "Analyze asset sizes and verify compression. Use browser dev tools to confirm proper caching headers and cache behavior."
+          },
+          {
+            "id": 3,
+            "title": "Profile and Optimize Response Times and UI Rendering",
+            "description": "Measure and analyze backend response times and frontend UI rendering performance. Identify and address bottlenecks.",
+            "dependencies": [
+              "25.2"
+            ],
+            "details": "Use profiling tools (e.g., Chrome DevTools, WebPageTest) to monitor API response times and UI rendering. Optimize slow API endpoints and refactor inefficient UI code as needed.",
+            "status": "pending",
+            "testStrategy": "Compare pre- and post-optimization metrics for API and UI performance. Ensure improvements are measurable and consistent."
+          },
+          {
+            "id": 4,
+            "title": "Polish UI and Finalize User Experience",
+            "description": "Refine UI components, ensure visual consistency, and address usability issues for a polished final appearance.",
+            "dependencies": [
+              "25.3"
+            ],
+            "details": "Conduct a UI/UX review, fix layout inconsistencies, improve accessibility, and ensure responsiveness across devices. Apply final design tweaks as needed.",
+            "status": "pending",
+            "testStrategy": "Perform cross-browser and device testing. Solicit feedback from team members and stakeholders to validate polish."
+          },
+          {
+            "id": 5,
+            "title": "Finalize Documentation and Prepare Demo Scripts",
+            "description": "Complete technical and user documentation, and create clear demo scripts for the stakeholder presentation.",
+            "dependencies": [
+              "25.4"
+            ],
+            "details": "Update README, deployment guides, and user manuals. Draft and rehearse demo scripts highlighting key features and performance improvements.",
+            "status": "pending",
+            "testStrategy": "Review documentation for completeness and clarity. Conduct a dry run of the demo to ensure readiness and smooth delivery."
+          }
+        ]
       }
     ],
     "metadata": {
