@@ -70,6 +70,18 @@
                     <ion-label>PII Patterns</ion-label>
                   </ion-item>
                 </ion-menu-toggle>
+                <ion-menu-toggle v-if="auth.user.roles.includes('admin')">
+                  <ion-item 
+                    router-direction="root" 
+                    router-link="/app/admin/pii-testing" 
+                    lines="none" 
+                    :detail="false"
+                    :class="{ 'selected': $route.path === '/app/admin/pii-testing' }"
+                  >
+                    <ion-icon aria-hidden="true" :icon="flaskOutline" slot="start"></ion-icon>
+                    <ion-label>PII Testing</ion-label>
+                  </ion-item>
+                </ion-menu-toggle>
                 <ion-menu-toggle v-if="auth.user.roles.includes('admin') || auth.user.roles.includes('evaluation-monitor')">
                   <ion-item 
                     router-direction="root" 
@@ -145,7 +157,7 @@ import { computed, ref } from 'vue';
 import { 
   IonPage, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup, IonSearchbar, IonButton
 } from '@ionic/vue';
-import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, refreshOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline } from 'ionicons/icons';
+import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, refreshOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useRouter } from 'vue-router';
