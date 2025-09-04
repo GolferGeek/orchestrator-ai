@@ -12,12 +12,7 @@ import { ValidationHelpers } from '@/utils/validationHelpers';
 import { ValidationCodes } from '@/types/validation';
 import ValidationMessage from '@/components/common/ValidationMessage.vue';
 
-// Mock DOMPurify
-vi.mock('dompurify', () => ({
-  default: {
-    sanitize: vi.fn((input: string) => input.replace(/<[^>]*>/g, '')),
-  },
-}));
+// Note: Using real DOMPurify for comprehensive testing
 
 describe('Validation System', () => {
   beforeEach(() => {
