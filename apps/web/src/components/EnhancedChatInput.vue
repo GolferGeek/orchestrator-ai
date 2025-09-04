@@ -79,7 +79,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, defineEmits, onUnmounted, watch } from 'vue';
+import { ref, computed, defineEmits, onUnmounted, watch, onMounted } from 'vue';
 import { IonTextarea, IonButtons, IonButton, IonIcon, IonToolbar, toastController } from '@ionic/vue';
 import { sendOutline, micOutline, micOffOutline, chevronUpOutline } from 'ionicons/icons';
 import { useUiStore } from '../stores/uiStore';
@@ -87,6 +87,7 @@ import { useLLMStore } from '../stores/llmStore';
 import { Capacitor } from '@capacitor/core';
 import LLMSelector from './LLMSelector.vue';
 import CIDAFMControls from './CIDAFMControls.vue';
+import { useValidation, ValidationRules } from '@/composables/useValidation';
 const inputText = ref('');
 const isRecording = ref(false);
 const showLLMPanel = ref(false);
@@ -94,6 +95,16 @@ const activeTab = ref<'model' | 'behavior'>('model');
 const showCostEstimate = ref(true);
 const uiStore = useUiStore();
 const llmStore = useLLMStore();
+const validation = useValidation();
+
+// Setup validation rules
+onMounted(() => {
+  validation.addRule('message', ValidationRules.required('Message cannot be empty'));
+  validation.addRule('message', ValidationRules.maxLength(4000, 'Message must not exceed 4000 characters'));
+  validation.addRule('message', ValidationRules.security('Potentially unsafe content detected in message'));
+  validation.addRule('message', ValidationRules.sanitizeApiInput());
+});
+
 // Speech Recognition setup (copied from original ChatInput)
 // @ts-ignore: next-line 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -175,12 +186,24 @@ const estimatedCost = computed(() => {
   return totalCost > 0.001 ? totalCost.toFixed(4) : '< 0.001';
 });
 // Event handlers
-const sendMessage = () => {
-  if (inputText.value.trim() && !isRecording.value) {
-    const llmSelection = llmStore.currentLLMSelection;
-    emit('sendMessage', inputText.value.trim(), llmSelection);
-    inputText.value = '';
+const sendMessage = async () => {
+  if (!inputText.value.trim() || isRecording.value) return;
+  
+  // Validate and sanitize the message before sending
+  const validationResult = await validation.validate('message', inputText.value.trim());
+  
+  if (!validationResult.isValid) {
+    const errorMessages = validationResult.errors.map(e => e.message).join(', ');
+    presentToast(`Message validation failed: ${errorMessages}`, 3000, 'danger');
+    return;
   }
+  
+  // Use the sanitized value if available
+  const messageToSend = validationResult.sanitizedValue || inputText.value.trim();
+  const llmSelection = llmStore.currentLLMSelection;
+  
+  emit('sendMessage', messageToSend, llmSelection);
+  inputText.value = '';
 };
 const handleEnterKey = (event: KeyboardEvent) => {
   if (!event.shiftKey && !isRecording.value) {

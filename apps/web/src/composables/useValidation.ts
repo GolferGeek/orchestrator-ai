@@ -19,6 +19,11 @@ import {
   ValidationCodes,
   ValidationPatterns
 } from '@/types/validation';
+import { 
+  sanitizeWithProfile, 
+  SanitizationHelpers, 
+  type SanitizationOptions 
+} from '@/utils/sanitizationProfiles';
 
 // =====================================
 // DEFAULT CONFIGURATION
@@ -41,14 +46,12 @@ const DEFAULT_CONFIG: ValidationConfig = {
 
 /**
  * Sanitize input to prevent XSS and other security issues
+ * Enhanced with profile support for different input types
  */
-function sanitizeInput(value: any): any {
+function sanitizeInput(value: any, options?: SanitizationOptions): any {
   if (typeof value === 'string') {
-    return DOMPurify.sanitize(value, {
-      ALLOWED_TAGS: [],
-      ALLOWED_ATTR: [],
-      KEEP_CONTENT: true,
-    });
+    const result = sanitizeWithProfile(value, options || { profile: 'moderate' });
+    return result.sanitized;
   }
   return value;
 }
@@ -305,12 +308,45 @@ export const ValidationRules = {
     }
   }),
 
-  sanitize: (): ValidationRule => ({
+  sanitize: (options?: SanitizationOptions): ValidationRule => ({
     name: 'sanitize',
     priority: 10, // Low priority, runs after other validations
-    description: 'Sanitize input for security',
+    description: `Sanitize input for security${options?.profile ? ` (${options.profile} profile)` : ''}`,
     validator: (value: any) => {
-      const sanitized = sanitizeInput(value);
+      const result = sanitizeWithProfile(value, options || { profile: 'moderate' });
+      return {
+        isValid: true,
+        errors: [],
+        warnings: result.wasModified ? [{
+          field: 'sanitization',
+          code: 'CONTENT_MODIFIED',
+          message: 'Input was sanitized for security',
+          severity: 'info' as const,
+          context: { 
+            profile: result.profile,
+            originalLength: typeof value === 'string' ? value.length : 0,
+            sanitizedLength: typeof result.sanitized === 'string' ? result.sanitized.length : 0
+          }
+        }] : [],
+        sanitizedValue: result.sanitized,
+        metadata: {
+          validatedAt: new Date().toISOString(),
+          validationTime: 0,
+          rules: ['sanitize'],
+          sanitizationApplied: result.wasModified,
+          sanitizationProfile: result.profile
+        }
+      };
+    }
+  }),
+
+  // Specialized sanitization rules for different input types
+  sanitizeApiInput: (): ValidationRule => ({
+    name: 'sanitizeApiInput',
+    priority: 10,
+    description: 'Sanitize input for API calls (strict)',
+    validator: (value: any) => {
+      const sanitized = SanitizationHelpers.forApiInput(value);
       return {
         isValid: true,
         errors: [],
@@ -319,8 +355,53 @@ export const ValidationRules = {
         metadata: {
           validatedAt: new Date().toISOString(),
           validationTime: 0,
-          rules: ['sanitize'],
-          sanitizationApplied: sanitized !== value
+          rules: ['sanitizeApiInput'],
+          sanitizationApplied: sanitized !== value,
+          sanitizationProfile: 'apiInput'
+        }
+      };
+    }
+  }),
+
+  sanitizeSearch: (): ValidationRule => ({
+    name: 'sanitizeSearch',
+    priority: 10,
+    description: 'Sanitize search query input',
+    validator: (value: any) => {
+      const sanitized = SanitizationHelpers.forSearch(value);
+      return {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedValue: sanitized,
+        metadata: {
+          validatedAt: new Date().toISOString(),
+          validationTime: 0,
+          rules: ['sanitizeSearch'],
+          sanitizationApplied: sanitized !== value,
+          sanitizationProfile: 'search'
+        }
+      };
+    }
+  }),
+
+  sanitizeRichText: (): ValidationRule => ({
+    name: 'sanitizeRichText',
+    priority: 10,
+    description: 'Sanitize rich text content (allows formatting)',
+    validator: (value: any) => {
+      const sanitized = SanitizationHelpers.forRichText(value);
+      return {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedValue: sanitized,
+        metadata: {
+          validatedAt: new Date().toISOString(),
+          validationTime: 0,
+          rules: ['sanitizeRichText'],
+          sanitizationApplied: sanitized !== value,
+          sanitizationProfile: 'richText'
         }
       };
     }

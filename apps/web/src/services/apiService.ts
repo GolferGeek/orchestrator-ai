@@ -3,6 +3,7 @@ import axiosRetry from 'axios-retry';
 import { TaskResponse, AgentInfo } from '../types/chat';
 import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
 import { getSecureApiBaseUrl, getSecureHeaders, validateSecureContext, logSecurityConfig } from '../utils/securityConfig';
+import { useApiSanitization } from '@/composables/useApiSanitization';
 
 // Validate security context on startup
 validateSecureContext();
@@ -23,6 +24,7 @@ interface JsonRpcResponse {
 
 class ApiService {
   private axiosInstance: AxiosInstance;
+  private apiSanitization = useApiSanitization();
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -167,7 +169,7 @@ class ApiService {
         }
       }
       
-      // NestJS expects JSON-RPC 2.0 format
+      // Create and sanitize the request payload
       const requestPayload = {
         jsonrpc: '2.0',
         method: 'handle_request',
@@ -183,9 +185,17 @@ class ApiService {
         id: Date.now() // Use timestamp as unique ID
       };
 
+      // Sanitize the orchestrator request params
+      const paramsToSanitize = {
+        ...requestPayload.params,
+        session_id: requestPayload.params.session_id || undefined // Convert null to undefined
+      };
+      const sanitizedParams = this.apiSanitization.sanitizeOrchestratorRequest(paramsToSanitize);
+      const sanitizedPayload = { ...requestPayload, params: sanitizedParams };
+
       const response = await this.axiosInstance.post<JsonRpcResponse>(
         '/agents/orchestrator/orchestrator/tasks', 
-        requestPayload,
+        sanitizedPayload,
         {
           headers: {
             'Authorization': authToken ? `Bearer ${authToken}` : undefined
