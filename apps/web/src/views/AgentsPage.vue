@@ -56,9 +56,9 @@
               </ion-menu-toggle>
               
               <!-- Admin Section -->
-              <div v-if="auth.user && auth.user.roles && (auth.user.roles.includes('admin') || auth.user.roles.includes('evaluation-monitor'))">
+              <div v-if="auth.hasAdminAccess || auth.hasEvaluationAccess">
                 <ion-list-header>Admin</ion-list-header>
-                <ion-menu-toggle v-if="auth.user.roles.includes('admin')">
+                <ion-menu-toggle v-if="auth.hasAdminAccess">
                   <ion-item 
                     router-direction="root" 
                     router-link="/app/admin/settings" 
@@ -70,7 +70,7 @@
                     <ion-label>Admin Settings</ion-label>
                   </ion-item>
                 </ion-menu-toggle>
-                <ion-menu-toggle v-if="auth.user.roles.includes('admin')">
+                <ion-menu-toggle v-if="auth.hasAdminAccess">
                   <ion-item 
                     router-direction="root" 
                     router-link="/app/admin/pii-patterns" 
@@ -82,7 +82,7 @@
                     <ion-label>PII Patterns</ion-label>
                   </ion-item>
                 </ion-menu-toggle>
-                <ion-menu-toggle v-if="auth.user.roles.includes('admin')">
+                <ion-menu-toggle v-if="auth.hasAdminAccess">
                   <ion-item 
                     router-direction="root" 
                     router-link="/app/admin/pii-testing" 
@@ -94,7 +94,7 @@
                     <ion-label>PII Testing</ion-label>
                   </ion-item>
                 </ion-menu-toggle>
-                <ion-menu-toggle v-if="auth.user.roles.includes('admin')">
+                <ion-menu-toggle v-if="auth.hasAdminAccess">
                   <ion-item 
                     router-direction="root" 
                     router-link="/app/admin/pseudonym-dictionary" 
@@ -106,7 +106,7 @@
                     <ion-label>Pseudonym Dictionary</ion-label>
                   </ion-item>
                 </ion-menu-toggle>
-                <ion-menu-toggle v-if="auth.user.roles.includes('admin') || auth.user.roles.includes('evaluation-monitor')">
+                <ion-menu-toggle v-if="auth.hasEvaluationAccess">
                   <ion-item 
                     router-direction="root" 
                     router-link="/app/admin/evaluations" 
@@ -118,7 +118,7 @@
                     <ion-label>Admin Evaluations</ion-label>
                   </ion-item>
                 </ion-menu-toggle>
-                <ion-menu-toggle v-if="auth.user.roles.includes('admin')">
+                <ion-menu-toggle v-if="auth.hasAdminAccess">
                   <ion-item 
                     router-direction="root" 
                     router-link="/app/admin/llm-usage" 

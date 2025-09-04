@@ -5,6 +5,7 @@ import AgentsPage from '../views/AgentsPage.vue';
 import HomePage from '../views/HomePage.vue';
 import LoginPage from '../views/LoginPage.vue';
 import EvaluationsPage from '../views/EvaluationsPage.vue';
+import { useAuthStore, UserRole } from '../stores/authStore';
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
@@ -127,41 +128,52 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   // Check if route requires auth
   if (to.matched.some(record => record.meta.requiresAuth)) {
+    const authStore = useAuthStore();
+    
     // Check if user is authenticated
-    const token = localStorage.getItem('authToken');
-    if (!token) {
+    if (!authStore.isAuthenticated) {
       next({ 
         path: '/login',
         query: { redirect: to.fullPath }
       });
       return;
     }
+
     // Check if route requires specific roles
-    const requiredRoles = to.meta.requiresRole as string[] | undefined;
+    const requiredRoles = to.meta.requiresRole as (string | UserRole)[] | undefined;
     if (requiredRoles && requiredRoles.length > 0) {
-      try {
-        // Get current user info to check roles
-        const userDataStr = localStorage.getItem('userData');
-        if (userDataStr) {
-          const userData = JSON.parse(userDataStr);
-          const userRoles = userData.roles || ['user'];
-          // Check if user has any of the required roles
-          const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role));
-          if (!hasRequiredRole) {
-            next({ path: '/app/home' }); // Redirect to home if insufficient permissions
-            return;
-          }
-        } else {
-          // No user data, redirect to login
+      // Ensure user data is loaded
+      if (!authStore.user) {
+        try {
+          await authStore.fetchCurrentUser();
+        } catch (error) {
+          console.error('Failed to fetch user data for role check:', error);
           next({ path: '/login', query: { redirect: to.fullPath } });
           return;
         }
-      } catch (error) {
+      }
 
+      if (authStore.user) {
+        // Convert string roles to UserRole enum values for consistency
+        const normalizedRequiredRoles = requiredRoles.map(role => 
+          typeof role === 'string' ? role as UserRole : role
+        );
+        
+        // Check if user has any of the required roles
+        const hasRequiredRole = authStore.hasAnyRole(normalizedRequiredRoles);
+        
+        if (!hasRequiredRole) {
+          console.warn(`Access denied. User roles: ${authStore.user.roles}, Required: ${normalizedRequiredRoles}`);
+          next({ path: '/app/home' }); // Redirect to home if insufficient permissions
+          return;
+        }
+      } else {
+        // No user data available, redirect to login
         next({ path: '/login', query: { redirect: to.fullPath } });
         return;
       }
     }
+    
     next();
   } else {
     next();

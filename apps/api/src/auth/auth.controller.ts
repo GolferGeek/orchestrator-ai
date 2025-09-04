@@ -2,7 +2,10 @@ import {
   Controller,
   Post,
   Get,
+  Put,
+  Delete,
   Body,
+  Param,
   UseGuards,
   Request,
   HttpCode,
@@ -19,6 +22,7 @@ import {
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { AdminOnly } from './decorators/roles.decorator';
 import {
   UserCreateDto,
   UserLoginDto,
@@ -26,6 +30,14 @@ import {
   AuthenticatedUserResponseDto,
   SupabaseAuthUserDto,
 } from './dto/auth.dto';
+import {
+  UserListResponseDto,
+  UpdateUserRolesDto,
+  AddUserRoleDto,
+  RemoveUserRoleDto,
+  CreateUserDto,
+  CreateUserResponseDto,
+} from './dto/admin-user-management.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -160,5 +172,136 @@ export class AuthController {
     }
 
     return this.authService.getCurrentUser(currentAuthUser, token);
+  }
+
+  // Admin User Management Endpoints
+
+  @Post('admin/users')
+  @UseGuards(JwtAuthGuard)
+  @AdminOnly()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create new user (admin only)' })
+  @ApiResponse({
+    status: 201,
+    description: 'User created successfully',
+    type: CreateUserResponseDto,
+  })
+  async createUser(
+    @Body() createUserDto: CreateUserDto,
+    @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
+  ): Promise<CreateUserResponseDto> {
+    return this.authService.createUser(createUserDto, currentAuthUser.id);
+  }
+
+  @Get('admin/users')
+  @UseGuards(JwtAuthGuard)
+  @AdminOnly()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all users (admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all users with their roles',
+    type: [UserListResponseDto],
+  })
+  async getAllUsers(
+    @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
+  ): Promise<UserListResponseDto[]> {
+    return this.authService.getAllUsers(currentAuthUser.id);
+  }
+
+  @Get('admin/users/:userId')
+  @UseGuards(JwtAuthGuard)
+  @AdminOnly()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get user by ID (admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'User details with roles',
+    type: UserListResponseDto,
+  })
+  async getUserById(
+    @Param('userId') userId: string,
+    @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
+  ): Promise<UserListResponseDto> {
+    return this.authService.getUserById(userId, currentAuthUser.id);
+  }
+
+  @Put('admin/users/:userId/roles')
+  @UseGuards(JwtAuthGuard)
+  @AdminOnly()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Set user roles (admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'User roles updated successfully',
+  })
+  async setUserRoles(
+    @Param('userId') userId: string,
+    @Body() updateUserRolesDto: UpdateUserRolesDto,
+    @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.authService.setUserRoles(
+      userId,
+      updateUserRolesDto.roles,
+      currentAuthUser.id,
+      updateUserRolesDto.reason,
+    );
+    return {
+      success: true,
+      message: `User roles updated to: ${updateUserRolesDto.roles.join(', ')}`,
+    };
+  }
+
+  @Post('admin/users/:userId/roles')
+  @UseGuards(JwtAuthGuard)
+  @AdminOnly()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Add role to user (admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Role added successfully',
+  })
+  async addUserRole(
+    @Param('userId') userId: string,
+    @Body() addUserRoleDto: AddUserRoleDto,
+    @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.authService.addUserRole(
+      userId,
+      addUserRoleDto.role,
+      currentAuthUser.id,
+      addUserRoleDto.reason,
+    );
+    return {
+      success: true,
+      message: `Role '${addUserRoleDto.role}' added to user`,
+    };
+  }
+
+  @Delete('admin/users/:userId/roles/:role')
+  @UseGuards(JwtAuthGuard)
+  @AdminOnly()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove role from user (admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Role removed successfully',
+  })
+  async removeUserRole(
+    @Param('userId') userId: string,
+    @Param('role') role: string,
+    @Body() removeUserRoleDto: RemoveUserRoleDto,
+    @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.authService.removeUserRole(
+      userId,
+      role as any,
+      currentAuthUser.id,
+      removeUserRoleDto.reason,
+    );
+    return {
+      success: true,
+      message: `Role '${role}' removed from user`,
+    };
   }
 }

@@ -522,4 +522,116 @@ export class AuthService {
 
     }
   }
+
+  /**
+   * Create new user (admin only)
+   * Creates both auth user and profile record
+   */
+  async createUser(createUserDto: any, adminUserId: string): Promise<any> {
+    try {
+      const serviceClient = this.supabaseService.getServiceClient();
+
+      // Create user in Supabase Auth using Admin API
+      const { data: authUser, error: authError } = await serviceClient.auth.admin.createUser({
+        email: createUserDto.email,
+        password: createUserDto.password,
+        email_confirm: createUserDto.emailConfirm !== false, // Default to true
+        user_metadata: {
+          display_name: createUserDto.displayName || '',
+        }
+      });
+
+      if (authError) {
+        throw new Error(`Failed to create auth user: ${authError.message}`);
+      }
+
+      if (!authUser.user) {
+        throw new Error('Auth user creation returned no user data');
+      }
+
+      // Set default roles if none provided
+      const roles = createUserDto.roles || [UserRole.USER];
+
+      // Create user profile record
+      const { data: profileUser, error: profileError } = await serviceClient
+        .from(getTableName('users'))
+        .insert({
+          id: authUser.user.id,
+          email: createUserDto.email,
+          display_name: createUserDto.displayName || null,
+          roles: roles,
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (profileError) {
+        // If profile creation fails, we should clean up the auth user
+        await serviceClient.auth.admin.deleteUser(authUser.user.id);
+        throw new Error(`Failed to create user profile: ${profileError.message}`);
+      }
+
+      return {
+        id: authUser.user.id,
+        email: createUserDto.email,
+        displayName: createUserDto.displayName,
+        roles: roles,
+        emailConfirmationRequired: !authUser.user.email_confirmed_at,
+        message: 'User created successfully'
+      };
+    } catch (error) {
+      throw new Error(`Failed to create user: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get all users (admin only)
+   */
+  async getAllUsers(adminUserId: string): Promise<any[]> {
+    try {
+      const serviceClient = this.supabaseService.getServiceClient();
+
+      const { data: users, error } = await serviceClient
+        .from(getTableName('users'))
+        .select('id, email, display_name, roles, created_at, status')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(`Failed to fetch users: ${error.message}`);
+      }
+
+      return users || [];
+    } catch (error) {
+      throw new Error(`Failed to get all users: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get user by ID (admin only)
+   */
+  async getUserById(userId: string, adminUserId: string): Promise<any> {
+    try {
+      const serviceClient = this.supabaseService.getServiceClient();
+
+      const { data: user, error } = await serviceClient
+        .from(getTableName('users'))
+        .select('id, email, display_name, roles, created_at, status')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to fetch user: ${error.message}`);
+      }
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      return user;
+    } catch (error) {
+      throw new Error(`Failed to get user by ID: ${error.message}`);
+    }
+  }
 }
