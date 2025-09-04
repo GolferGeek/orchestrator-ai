@@ -1,0 +1,324 @@
+/**
+ * API Sanitization Composable
+ * Ensures all API requests use properly sanitized inputs
+ */
+
+import { SanitizationHelpers } from '@/utils/sanitizationProfiles';
+import type { SanitizationOptions } from '@/utils/sanitizationProfiles';
+
+// =====================================
+// TYPES
+// =====================================
+
+export interface ApiSanitizationOptions {
+  /** Enable deep sanitization of nested objects */
+  deep?: boolean;
+  /** Custom sanitization profile */
+  profile?: string;
+  /** Fields to exclude from sanitization */
+  excludeFields?: string[];
+  /** Fields that require specific sanitization profiles */
+  fieldProfiles?: Record<string, string>;
+  /** Enable logging of sanitization actions */
+  logSanitization?: boolean;
+}
+
+export interface SanitizationResult {
+  sanitized: any;
+  modified: boolean;
+  modifiedFields: string[];
+  profile: string;
+}
+
+// =====================================
+// API SANITIZATION COMPOSABLE
+// =====================================
+
+export function useApiSanitization() {
+  
+  /**
+   * Sanitize data before sending to API
+   */
+  function sanitizeApiData(
+    data: any,
+    options: ApiSanitizationOptions = {}
+  ): SanitizationResult {
+    const {
+      deep = true,
+      profile = 'apiInput',
+      excludeFields = [],
+      fieldProfiles = {},
+      logSanitization = false
+    } = options;
+
+    const modifiedFields: string[] = [];
+    let modified = false;
+
+    function sanitizeValue(value: any, key?: string): any {
+      // Skip excluded fields
+      if (key && excludeFields.includes(key)) {
+        return value;
+      }
+
+      // Use field-specific profile if available
+      const sanitizationProfile = (key && fieldProfiles[key]) || profile;
+      
+      if (typeof value === 'string') {
+        const sanitized = getSanitizedValue(value, sanitizationProfile);
+        if (sanitized !== value) {
+          modified = true;
+          if (key) modifiedFields.push(key);
+          if (logSanitization) {
+            console.log(`🧹 Sanitized field "${key}":`, {
+              original: value.substring(0, 100),
+              sanitized: sanitized.substring(0, 100),
+              profile: sanitizationProfile
+            });
+          }
+        }
+        return sanitized;
+      }
+
+      if (deep && Array.isArray(value)) {
+        return value.map((item, index) => sanitizeValue(item, `${key}[${index}]`));
+      }
+
+      if (deep && value && typeof value === 'object') {
+        const sanitizedObj: any = {};
+        for (const [objKey, objValue] of Object.entries(value)) {
+          const fullKey = key ? `${key}.${objKey}` : objKey;
+          sanitizedObj[objKey] = sanitizeValue(objValue, fullKey);
+        }
+        return sanitizedObj;
+      }
+
+      return value;
+    }
+
+    const sanitized = sanitizeValue(data);
+
+    return {
+      sanitized,
+      modified,
+      modifiedFields,
+      profile
+    };
+  }
+
+  /**
+   * Get sanitized value based on profile
+   */
+  function getSanitizedValue(value: string, profile: string): string {
+    switch (profile) {
+      case 'apiInput':
+        return SanitizationHelpers.forApiInput(value);
+      case 'search':
+        return SanitizationHelpers.forSearch(value);
+      case 'email':
+        return SanitizationHelpers.forEmail(value);
+      case 'richText':
+        return SanitizationHelpers.forRichText(value);
+      case 'strict':
+        return SanitizationHelpers.strict(value);
+      case 'moderate':
+        return SanitizationHelpers.moderate(value);
+      default:
+        return SanitizationHelpers.forApiInput(value);
+    }
+  }
+
+  /**
+   * Sanitize request payload for orchestrator
+   */
+  function sanitizeOrchestratorRequest(payload: {
+    message: string;
+    session_id?: string;
+    conversation_history?: Array<{ role: string; content: string; metadata?: any }>;
+    [key: string]: any;
+  }): typeof payload {
+    const result = sanitizeApiData(payload, {
+      fieldProfiles: {
+        'message': 'apiInput',
+        'conversation_history.content': 'apiInput'
+      },
+      excludeFields: ['session_id', 'authToken', 'currentUser'],
+      logSanitization: true
+    });
+
+    return result.sanitized;
+  }
+
+  /**
+   * Sanitize task creation request
+   */
+  function sanitizeTaskRequest(request: {
+    method: string;
+    prompt: string;
+    params?: any;
+    [key: string]: any;
+  }): typeof request {
+    const result = sanitizeApiData(request, {
+      fieldProfiles: {
+        'prompt': 'apiInput',
+        'method': 'strict'
+      },
+      excludeFields: ['timeoutSeconds', 'conversationId'],
+      logSanitization: true
+    });
+
+    return result.sanitized;
+  }
+
+  /**
+   * Sanitize PII test request
+   */
+  function sanitizePIIRequest(request: {
+    text: string;
+    [key: string]: any;
+  }): typeof request {
+    const result = sanitizeApiData(request, {
+      fieldProfiles: {
+        'text': 'moderate' // Allow some formatting for PII testing
+      },
+      logSanitization: true
+    });
+
+    return result.sanitized;
+  }
+
+  /**
+   * Sanitize error report payload
+   */
+  function sanitizeErrorReport(payload: {
+    error: any;
+    userFeedback?: string;
+    reproductionSteps?: string;
+    expectedBehavior?: string;
+    [key: string]: any;
+  }): typeof payload {
+    const result = sanitizeApiData(payload, {
+      fieldProfiles: {
+        'userFeedback': 'moderate',
+        'reproductionSteps': 'moderate',
+        'expectedBehavior': 'moderate'
+      },
+      excludeFields: ['error', 'reportTimestamp', 'reportId'],
+      logSanitization: true
+    });
+
+    return result.sanitized;
+  }
+
+  /**
+   * Sanitize form data before API submission
+   */
+  function sanitizeFormData(formData: Record<string, any>, fieldTypes: Record<string, string> = {}): Record<string, any> {
+    const result = sanitizeApiData(formData, {
+      fieldProfiles: fieldTypes,
+      logSanitization: true
+    });
+
+    return result.sanitized;
+  }
+
+  /**
+   * Create a sanitized API wrapper function
+   */
+  function createSanitizedApiCall<T extends (...args: any[]) => Promise<any>>(
+    apiFunction: T,
+    sanitizationOptions: ApiSanitizationOptions = {}
+  ): T {
+    return (async (...args: Parameters<T>) => {
+      // Sanitize all string arguments
+      const sanitizedArgs = args.map((arg, index) => {
+        if (typeof arg === 'string') {
+          return getSanitizedValue(arg, sanitizationOptions.profile || 'apiInput');
+        }
+        if (arg && typeof arg === 'object') {
+          return sanitizeApiData(arg, sanitizationOptions).sanitized;
+        }
+        return arg;
+      });
+
+      return apiFunction(...sanitizedArgs);
+    }) as T;
+  }
+
+  /**
+   * Validate that data has been sanitized
+   */
+  function validateSanitization(data: any): { isValid: boolean; issues: string[] } {
+    const issues: string[] = [];
+
+    function checkValue(value: any, path: string = ''): void {
+      if (typeof value === 'string') {
+        // Check for common XSS patterns
+        if (/<script|javascript:|on\w+\s*=/i.test(value)) {
+          issues.push(`Potential XSS in ${path || 'root'}: ${value.substring(0, 50)}`);
+        }
+        
+        // Check for SQL injection patterns
+        if (/(\bUNION\b|\bSELECT\b|\bDROP\b|\bINSERT\b|\bUPDATE\b|\bDELETE\b).*(\bFROM\b|\bWHERE\b|\bTABLE\b)/i.test(value)) {
+          issues.push(`Potential SQL injection in ${path || 'root'}: ${value.substring(0, 50)}`);
+        }
+      }
+
+      if (Array.isArray(value)) {
+        value.forEach((item, index) => checkValue(item, `${path}[${index}]`));
+      } else if (value && typeof value === 'object') {
+        Object.entries(value).forEach(([key, val]) => {
+          checkValue(val, path ? `${path}.${key}` : key);
+        });
+      }
+    }
+
+    checkValue(data);
+
+    return {
+      isValid: issues.length === 0,
+      issues
+    };
+  }
+
+  return {
+    sanitizeApiData,
+    sanitizeOrchestratorRequest,
+    sanitizeTaskRequest,
+    sanitizePIIRequest,
+    sanitizeErrorReport,
+    sanitizeFormData,
+    createSanitizedApiCall,
+    validateSanitization
+  };
+}
+
+// =====================================
+// GLOBAL API SANITIZATION INTERCEPTOR
+// =====================================
+
+/**
+ * Axios interceptor to automatically sanitize request data
+ */
+export function createApiSanitizationInterceptor(options: ApiSanitizationOptions = {}) {
+  return (config: any) => {
+    if (config.data && typeof config.data === 'object') {
+      const { sanitizeApiData } = useApiSanitization();
+      const result = sanitizeApiData(config.data, {
+        profile: 'apiInput',
+        logSanitization: true,
+        ...options
+      });
+      
+      config.data = result.sanitized;
+      
+      // Add sanitization metadata to headers
+      config.headers = {
+        ...config.headers,
+        'X-Sanitization-Applied': result.modified.toString(),
+        'X-Sanitization-Profile': result.profile
+      };
+    }
+    
+    return config;
+  };
+}
