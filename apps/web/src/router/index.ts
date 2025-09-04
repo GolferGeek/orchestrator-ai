@@ -86,6 +86,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'PIIManagement',
         component: () => import('../views/PIIManagementPage.vue'),
         meta: { requiresAuth: true, requiresRole: ['admin'] }
+      },
+      {
+        path: 'admin/pii-testing',
+        name: 'PIITesting',
+        component: () => import('../views/PIITestingPage.vue'),
+        meta: { requiresAuth: true, requiresRole: ['admin'] }
       }
     ]
   },
