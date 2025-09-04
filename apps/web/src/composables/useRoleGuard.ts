@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore, UserRole } from '@/stores/authStore';
+import { useAuthStore, UserRole, Permission } from '@/stores/authStore';
 import { toastController } from '@ionic/vue';
 
 export interface RoleGuardOptions {
@@ -12,6 +12,12 @@ export interface RoleGuardOptions {
   requiredRoles?: UserRole[];
   /** Roles required for access (user needs ALL of these roles) */
   requiredAllRoles?: UserRole[];
+  /** Permissions required for access (user needs ANY of these permissions) */
+  requiredPermissions?: Permission[];
+  /** Permissions required for access (user needs ALL of these permissions) */
+  requiredAllPermissions?: Permission[];
+  /** Resource and action for access control */
+  resource?: { name: string; action: string };
   /** Show loading state while checking roles */
   showLoading?: boolean;
 }
@@ -32,19 +38,27 @@ export function useRoleGuard(options: RoleGuardOptions = {}) {
     deniedMessage = 'You do not have permission to perform this action.',
     requiredRoles = [],
     requiredAllRoles = [],
+    requiredPermissions = [],
+    requiredAllPermissions = [],
+    resource,
   } = options;
 
-  // Computed role checks
+  // Computed access checks
   const hasRequiredAccess = computed(() => {
     if (!auth.user?.roles) return false;
     
-    // Check if user has any of the required roles
+    // Check role requirements
     const hasAnyRole = requiredRoles.length === 0 || auth.hasAnyRole(requiredRoles);
-    
-    // Check if user has all of the required roles
     const hasAllRoles = requiredAllRoles.length === 0 || auth.hasAllRoles(requiredAllRoles);
     
-    return hasAnyRole && hasAllRoles;
+    // Check permission requirements
+    const hasAnyPermission = requiredPermissions.length === 0 || auth.hasAnyPermission(requiredPermissions);
+    const hasAllPermissions = requiredAllPermissions.length === 0 || auth.hasAllPermissions(requiredAllPermissions);
+    
+    // Check resource-based access
+    const hasResourceAccess = !resource || auth.canAccessResource(resource.name, resource.action);
+    
+    return hasAnyRole && hasAllRoles && hasAnyPermission && hasAllPermissions && hasResourceAccess;
   });
 
   // Access level checks
