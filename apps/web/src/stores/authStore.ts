@@ -10,12 +10,23 @@ interface TokenData {
   tokenType: string;
   expiresIn?: number;
 }
+// Define user roles enum to match backend
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+  DEVELOPER = 'developer',
+  EVALUATION_MONITOR = 'evaluation-monitor',
+  BETA_TESTER = 'beta-tester',
+  SUPPORT = 'support',
+}
+
 // Define a shape for the user object you want to store (fetched from /auth/me)
 // This should align with what AuthenticatedUserResponse from backend auth/schemas.py provides
 interface UserProfile {
   id: string; // UUID typically comes as string
   email?: string;
   displayName?: string;
+  roles: UserRole[]; // Array of user roles
   // Add other relevant user properties from your /auth/me endpoint
 }
 export const useAuthStore = defineStore('auth', () => {
@@ -25,6 +36,44 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const isAuthenticated = computed(() => !!token.value);
+
+  // Role-based computed properties
+  const isAdmin = computed(() => user.value?.roles?.includes(UserRole.ADMIN) ?? false);
+  const isDeveloper = computed(() => user.value?.roles?.includes(UserRole.DEVELOPER) ?? false);
+  const isEvaluationMonitor = computed(() => user.value?.roles?.includes(UserRole.EVALUATION_MONITOR) ?? false);
+  const isBetaTester = computed(() => user.value?.roles?.includes(UserRole.BETA_TESTER) ?? false);
+  const isSupport = computed(() => user.value?.roles?.includes(UserRole.SUPPORT) ?? false);
+
+  // Helper methods for role checking
+  const hasRole = (role: UserRole): boolean => {
+    return user.value?.roles?.includes(role) ?? false;
+  };
+
+  const hasAnyRole = (roles: UserRole[]): boolean => {
+    return roles.some(role => user.value?.roles?.includes(role)) ?? false;
+  };
+
+  const hasAllRoles = (roles: UserRole[]): boolean => {
+    return roles.every(role => user.value?.roles?.includes(role)) ?? false;
+  };
+
+  // Admin-level access (admin role)
+  const hasAdminAccess = computed(() => isAdmin.value);
+
+  // Evaluation access (admin, evaluation-monitor, or developer)
+  const hasEvaluationAccess = computed(() => 
+    hasAnyRole([UserRole.ADMIN, UserRole.EVALUATION_MONITOR, UserRole.DEVELOPER])
+  );
+
+  // Developer access (admin or developer)
+  const hasDeveloperAccess = computed(() => 
+    hasAnyRole([UserRole.ADMIN, UserRole.DEVELOPER])
+  );
+
+  // Support access (admin or support)
+  const hasSupportAccess = computed(() => 
+    hasAnyRole([UserRole.ADMIN, UserRole.SUPPORT])
+  );
   // This function is primarily for internal state update after successful token acquisition
   function setTokenData(tokenData: TokenData) {
     token.value = tokenData.accessToken;
@@ -155,6 +204,26 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     error,
     isAuthenticated,
+    
+    // Role-based computed properties
+    isAdmin,
+    isDeveloper,
+    isEvaluationMonitor,
+    isBetaTester,
+    isSupport,
+    
+    // Role helper methods
+    hasRole,
+    hasAnyRole,
+    hasAllRoles,
+    
+    // Access level computed properties
+    hasAdminAccess,
+    hasEvaluationAccess,
+    hasDeveloperAccess,
+    hasSupportAccess,
+    
+    // Auth methods
     login,
     signupAndLogin,
     logout,
