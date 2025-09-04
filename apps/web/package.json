@@ -33,8 +33,10 @@
     "marked": "^15.0.11",
     "pinia": "^3.0.2",
     "socket.io-client": "^4.8.1",
+    "vee-validate": "^4.15.1",
     "vue": "^3.3.0",
-    "vue-router": "^4.2.0"
+    "vue-router": "^4.2.0",
+    "yup": "^1.7.0"
   },
   "devDependencies": {
     "@capacitor/cli": "7.2.0",
