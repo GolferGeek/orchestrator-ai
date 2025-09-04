@@ -17,6 +17,7 @@ import { SecretRedactionService } from './secret-redaction.service';
 import { PIIPatternService, PIIDataType } from './pii-pattern.service';
 import { PseudonymizationService } from './pseudonymization.service';
 import { DataSanitizationService } from './data-sanitization.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import { IsString, IsOptional, IsEnum, IsNumber, IsBoolean, Min, Max } from 'class-validator';
 
 // DTO Classes for API validation
@@ -91,6 +92,7 @@ export class SanitizationManagementController {
     private readonly piiPatternService: PIIPatternService,
     private readonly pseudonymizationService: PseudonymizationService,
     private readonly dataSanitizationService: DataSanitizationService,
+    private readonly supabaseService: SupabaseService,
   ) {}
 
   // =====================================
@@ -275,7 +277,7 @@ export class SanitizationManagementController {
   async updatePIIPattern(@Param('name') name: string, @Body() updatePatternDto: CreatePIIPatternDto) {
     try {
       // Update in database
-      const client = this.dataSanitizationService['supabaseService'].getServiceClient();
+      const client = this.supabaseService.getServiceClient();
       const { error } = await client
         .from('redaction_patterns')
         .update({
@@ -315,7 +317,7 @@ export class SanitizationManagementController {
   async deletePIIPattern(@Param('name') name: string) {
     try {
       // Remove from database
-      const client = this.dataSanitizationService['supabaseService'].getServiceClient();
+      const client = this.supabaseService.getServiceClient();
       const { error } = await client
         .from('redaction_patterns')
         .delete()
