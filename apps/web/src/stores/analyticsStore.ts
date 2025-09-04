@@ -106,7 +106,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
     if (filters.value.timeRange === 'custom' && filters.value.customTimeRange) {
       return filters.value.customTimeRange;
     }
-    return analyticsService.getDateRange(filters.value.timeRange || 'last30days');
+    return analyticsService.getDateRange(filters.value.timeRange as 'today' | 'yesterday' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth' || 'last30days');
   });
   
   const isLoading = computed(() => 
