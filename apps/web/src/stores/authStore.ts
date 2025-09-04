@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { authService } from '@/services/authService'; // Removed AuthResponse import from here
 import { apiService } from '@/services/apiService';
 import { tokenManager } from '@/services/tokenManager';
@@ -20,6 +20,135 @@ export enum UserRole {
   SUPPORT = 'support',
 }
 
+// Define granular permissions
+export enum Permission {
+  // User Management
+  CREATE_USERS = 'create_users',
+  READ_USERS = 'read_users',
+  UPDATE_USERS = 'update_users',
+  DELETE_USERS = 'delete_users',
+  MANAGE_USER_ROLES = 'manage_user_roles',
+  
+  // PII Management
+  CREATE_PII_PATTERNS = 'create_pii_patterns',
+  READ_PII_PATTERNS = 'read_pii_patterns',
+  UPDATE_PII_PATTERNS = 'update_pii_patterns',
+  DELETE_PII_PATTERNS = 'delete_pii_patterns',
+  TEST_PII_DETECTION = 'test_pii_detection',
+  
+  // Pseudonym Management
+  CREATE_PSEUDONYMS = 'create_pseudonyms',
+  READ_PSEUDONYMS = 'read_pseudonyms',
+  UPDATE_PSEUDONYMS = 'update_pseudonyms',
+  DELETE_PSEUDONYMS = 'delete_pseudonyms',
+  IMPORT_PSEUDONYMS = 'import_pseudonyms',
+  EXPORT_PSEUDONYMS = 'export_pseudonyms',
+  
+  // System Administration
+  VIEW_SYSTEM_SETTINGS = 'view_system_settings',
+  UPDATE_SYSTEM_SETTINGS = 'update_system_settings',
+  VIEW_AUDIT_LOGS = 'view_audit_logs',
+  MANAGE_AUDIT_SETTINGS = 'manage_audit_settings',
+  
+  // Analytics & Monitoring
+  VIEW_ANALYTICS = 'view_analytics',
+  VIEW_LLM_USAGE = 'view_llm_usage',
+  VIEW_EVALUATIONS = 'view_evaluations',
+  MANAGE_EVALUATIONS = 'manage_evaluations',
+  
+  // Development & Testing
+  ACCESS_DEV_TOOLS = 'access_dev_tools',
+  RUN_TESTS = 'run_tests',
+  VIEW_DEBUG_INFO = 'view_debug_info',
+}
+
+// Permission mappings for roles
+const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  [UserRole.USER]: [
+    Permission.READ_PII_PATTERNS,
+    Permission.TEST_PII_DETECTION,
+    Permission.READ_PSEUDONYMS,
+  ],
+  [UserRole.ADMIN]: [
+    // User Management
+    Permission.CREATE_USERS,
+    Permission.READ_USERS,
+    Permission.UPDATE_USERS,
+    Permission.DELETE_USERS,
+    Permission.MANAGE_USER_ROLES,
+    
+    // PII Management
+    Permission.CREATE_PII_PATTERNS,
+    Permission.READ_PII_PATTERNS,
+    Permission.UPDATE_PII_PATTERNS,
+    Permission.DELETE_PII_PATTERNS,
+    Permission.TEST_PII_DETECTION,
+    
+    // Pseudonym Management
+    Permission.CREATE_PSEUDONYMS,
+    Permission.READ_PSEUDONYMS,
+    Permission.UPDATE_PSEUDONYMS,
+    Permission.DELETE_PSEUDONYMS,
+    Permission.IMPORT_PSEUDONYMS,
+    Permission.EXPORT_PSEUDONYMS,
+    
+    // System Administration
+    Permission.VIEW_SYSTEM_SETTINGS,
+    Permission.UPDATE_SYSTEM_SETTINGS,
+    Permission.VIEW_AUDIT_LOGS,
+    Permission.MANAGE_AUDIT_SETTINGS,
+    
+    // Analytics & Monitoring
+    Permission.VIEW_ANALYTICS,
+    Permission.VIEW_LLM_USAGE,
+    Permission.VIEW_EVALUATIONS,
+    Permission.MANAGE_EVALUATIONS,
+  ],
+  [UserRole.DEVELOPER]: [
+    Permission.READ_PII_PATTERNS,
+    Permission.TEST_PII_DETECTION,
+    Permission.READ_PSEUDONYMS,
+    Permission.VIEW_ANALYTICS,
+    Permission.VIEW_LLM_USAGE,
+    Permission.VIEW_EVALUATIONS,
+    Permission.ACCESS_DEV_TOOLS,
+    Permission.RUN_TESTS,
+    Permission.VIEW_DEBUG_INFO,
+  ],
+  [UserRole.EVALUATION_MONITOR]: [
+    Permission.READ_PII_PATTERNS,
+    Permission.READ_PSEUDONYMS,
+    Permission.VIEW_ANALYTICS,
+    Permission.VIEW_LLM_USAGE,
+    Permission.VIEW_EVALUATIONS,
+    Permission.MANAGE_EVALUATIONS,
+  ],
+  [UserRole.BETA_TESTER]: [
+    Permission.READ_PII_PATTERNS,
+    Permission.TEST_PII_DETECTION,
+    Permission.READ_PSEUDONYMS,
+    Permission.RUN_TESTS,
+  ],
+  [UserRole.SUPPORT]: [
+    Permission.READ_USERS,
+    Permission.READ_PII_PATTERNS,
+    Permission.READ_PSEUDONYMS,
+    Permission.VIEW_AUDIT_LOGS,
+    Permission.VIEW_ANALYTICS,
+  ],
+};
+
+// Access attempt logging interface
+interface AccessAttempt {
+  timestamp: Date;
+  resource: string;
+  action: string;
+  granted: boolean;
+  roles: UserRole[];
+  permissions?: Permission[];
+  reason?: string;
+}
+
 // Define a shape for the user object you want to store (fetched from /auth/me)
 // This should align with what AuthenticatedUserResponse from backend auth/schemas.py provides
 interface UserProfile {
@@ -30,12 +159,45 @@ interface UserProfile {
   // Add other relevant user properties from your /auth/me endpoint
 }
 export const useAuthStore = defineStore('auth', () => {
+  // Core authentication state
   const token = ref<string | null>(localStorage.getItem('authToken'));
   const refreshToken = ref<string | null>(localStorage.getItem('refreshToken'));
   const user = ref<UserProfile | null>(null); // Store more detailed user info
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const isAuthenticated = computed(() => !!token.value);
+
+  // Enhanced access control state
+  const permissionCache = ref<Map<string, boolean>>(new Map());
+  const accessAttempts = ref<AccessAttempt[]>([]);
+  const sessionStartTime = ref<Date | null>(null);
+  const lastActivityTime = ref<Date | null>(null);
+  const sessionTimeoutMinutes = ref(480); // 8 hours default
+  
+  // Session management
+  const isSessionActive = computed(() => {
+    if (!sessionStartTime.value || !lastActivityTime.value) return false;
+    const now = new Date();
+    const timeSinceLastActivity = now.getTime() - lastActivityTime.value.getTime();
+    return timeSinceLastActivity < (sessionTimeoutMinutes.value * 60 * 1000);
+  });
+
+  // Update last activity time
+  const updateActivity = () => {
+    lastActivityTime.value = new Date();
+  };
+
+  // Watch for user activity and update timestamp
+  watch(isAuthenticated, (newVal) => {
+    if (newVal && !sessionStartTime.value) {
+      sessionStartTime.value = new Date();
+      lastActivityTime.value = new Date();
+    } else if (!newVal) {
+      sessionStartTime.value = null;
+      lastActivityTime.value = null;
+      permissionCache.value.clear();
+    }
+  });
 
   // Role-based computed properties
   const isAdmin = computed(() => user.value?.roles?.includes(UserRole.ADMIN) ?? false);
@@ -74,6 +236,172 @@ export const useAuthStore = defineStore('auth', () => {
   const hasSupportAccess = computed(() => 
     hasAnyRole([UserRole.ADMIN, UserRole.SUPPORT])
   );
+
+  // Permission-based methods
+  const getUserPermissions = (): Permission[] => {
+    if (!user.value?.roles) return [];
+    
+    const permissions = new Set<Permission>();
+    user.value.roles.forEach(role => {
+      ROLE_PERMISSIONS[role]?.forEach(permission => {
+        permissions.add(permission);
+      });
+    });
+    
+    return Array.from(permissions);
+  };
+
+  const hasPermission = (permission: Permission): boolean => {
+    updateActivity(); // Track activity
+    
+    const cacheKey = `permission_${permission}`;
+    if (permissionCache.value.has(cacheKey)) {
+      return permissionCache.value.get(cacheKey)!;
+    }
+    
+    const userPermissions = getUserPermissions();
+    const hasAccess = userPermissions.includes(permission);
+    
+    // Cache the result for performance
+    permissionCache.value.set(cacheKey, hasAccess);
+    
+    // Log access attempt
+    logAccessAttempt({
+      resource: 'permission',
+      action: permission,
+      granted: hasAccess,
+      roles: user.value?.roles || [],
+      permissions: [permission]
+    });
+    
+    return hasAccess;
+  };
+
+  const hasAnyPermission = (permissions: Permission[]): boolean => {
+    return permissions.some(permission => hasPermission(permission));
+  };
+
+  const hasAllPermissions = (permissions: Permission[]): boolean => {
+    return permissions.every(permission => hasPermission(permission));
+  };
+
+  // Resource access control
+  const canAccessResource = (resource: string, action: string): boolean => {
+    updateActivity();
+    
+    const cacheKey = `resource_${resource}_${action}`;
+    if (permissionCache.value.has(cacheKey)) {
+      return permissionCache.value.get(cacheKey)!;
+    }
+    
+    // Define resource-permission mappings
+    const resourcePermissions: Record<string, Record<string, Permission[]>> = {
+      'users': {
+        'create': [Permission.CREATE_USERS],
+        'read': [Permission.READ_USERS],
+        'update': [Permission.UPDATE_USERS],
+        'delete': [Permission.DELETE_USERS],
+        'manage_roles': [Permission.MANAGE_USER_ROLES],
+      },
+      'pii-patterns': {
+        'create': [Permission.CREATE_PII_PATTERNS],
+        'read': [Permission.READ_PII_PATTERNS],
+        'update': [Permission.UPDATE_PII_PATTERNS],
+        'delete': [Permission.DELETE_PII_PATTERNS],
+        'test': [Permission.TEST_PII_DETECTION],
+      },
+      'pseudonyms': {
+        'create': [Permission.CREATE_PSEUDONYMS],
+        'read': [Permission.READ_PSEUDONYMS],
+        'update': [Permission.UPDATE_PSEUDONYMS],
+        'delete': [Permission.DELETE_PSEUDONYMS],
+        'import': [Permission.IMPORT_PSEUDONYMS],
+        'export': [Permission.EXPORT_PSEUDONYMS],
+      },
+      'system-settings': {
+        'read': [Permission.VIEW_SYSTEM_SETTINGS],
+        'update': [Permission.UPDATE_SYSTEM_SETTINGS],
+      },
+      'audit-logs': {
+        'read': [Permission.VIEW_AUDIT_LOGS],
+        'manage': [Permission.MANAGE_AUDIT_SETTINGS],
+      },
+      'analytics': {
+        'read': [Permission.VIEW_ANALYTICS],
+      },
+      'evaluations': {
+        'read': [Permission.VIEW_EVALUATIONS],
+        'manage': [Permission.MANAGE_EVALUATIONS],
+      },
+    };
+    
+    const requiredPermissions = resourcePermissions[resource]?.[action];
+    if (!requiredPermissions) {
+      // If no specific permissions defined, default to deny
+      logAccessAttempt({
+        resource,
+        action,
+        granted: false,
+        roles: user.value?.roles || [],
+        reason: 'No permission mapping defined'
+      });
+      return false;
+    }
+    
+    const hasAccess = hasAnyPermission(requiredPermissions);
+    permissionCache.value.set(cacheKey, hasAccess);
+    
+    logAccessAttempt({
+      resource,
+      action,
+      granted: hasAccess,
+      roles: user.value?.roles || [],
+      permissions: requiredPermissions
+    });
+    
+    return hasAccess;
+  };
+
+  // Access logging
+  const logAccessAttempt = (attempt: Omit<AccessAttempt, 'timestamp'>) => {
+    const fullAttempt: AccessAttempt = {
+      ...attempt,
+      timestamp: new Date()
+    };
+    
+    accessAttempts.value.push(fullAttempt);
+    
+    // Keep only last 100 access attempts to prevent memory issues
+    if (accessAttempts.value.length > 100) {
+      accessAttempts.value = accessAttempts.value.slice(-100);
+    }
+  };
+
+  // Clear permission cache (useful when roles change)
+  const clearPermissionCache = () => {
+    permissionCache.value.clear();
+  };
+
+  // Get access attempts for audit
+  const getAccessAttempts = (limit?: number): AccessAttempt[] => {
+    return limit ? accessAttempts.value.slice(-limit) : [...accessAttempts.value];
+  };
+
+  // Session timeout management
+  const extendSession = (minutes?: number) => {
+    if (minutes) {
+      sessionTimeoutMinutes.value = minutes;
+    }
+    updateActivity();
+  };
+
+  const getRemainingSessionTime = (): number => {
+    if (!lastActivityTime.value) return 0;
+    const now = new Date();
+    const elapsed = now.getTime() - lastActivityTime.value.getTime();
+    const remaining = (sessionTimeoutMinutes.value * 60 * 1000) - elapsed;
+    return Math.max(0, remaining);
+  };
   // This function is primarily for internal state update after successful token acquisition
   function setTokenData(tokenData: TokenData) {
     token.value = tokenData.accessToken;
@@ -222,6 +550,26 @@ export const useAuthStore = defineStore('auth', () => {
     hasEvaluationAccess,
     hasDeveloperAccess,
     hasSupportAccess,
+    
+    // Permission-based access control
+    getUserPermissions,
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    canAccessResource,
+    
+    // Session management
+    isSessionActive,
+    updateActivity,
+    extendSession,
+    getRemainingSessionTime,
+    sessionStartTime: computed(() => sessionStartTime.value),
+    lastActivityTime: computed(() => lastActivityTime.value),
+    
+    // Access logging and audit
+    logAccessAttempt,
+    getAccessAttempts,
+    clearPermissionCache,
     
     // Auth methods
     login,
