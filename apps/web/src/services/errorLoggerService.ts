@@ -1,5 +1,6 @@
 import { apiService } from './apiService';
 import type { AppError, ErrorReportPayload, ErrorLogger } from '@/stores/errorStore';
+import { useApiSanitization } from '@/composables/useApiSanitization';
 
 /**
  * Error Logger Service
@@ -10,6 +11,7 @@ class ErrorLoggerService implements ErrorLogger {
   private isEnabled = true;
   private retryQueue: Array<() => Promise<void>> = [];
   private isProcessingQueue = false;
+  private apiSanitization = useApiSanitization();
 
   /**
    * Log an error to the backend
@@ -46,7 +48,7 @@ class ErrorLoggerService implements ErrorLogger {
     }
 
     try {
-      const sanitizedPayload = {
+      const payload_sanitized = {
         error: this.sanitizeError(payload.error),
         userFeedback: payload.userFeedback?.substring(0, 1000), // Limit feedback length
         reproductionSteps: payload.reproductionSteps?.substring(0, 2000),
@@ -54,6 +56,9 @@ class ErrorLoggerService implements ErrorLogger {
         reportTimestamp: Date.now(),
         reportId: `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       };
+
+      // Apply additional sanitization for security
+      const sanitizedPayload = this.apiSanitization.sanitizeErrorReport(payload_sanitized);
 
       await apiService.post(`${this.basePath}/report`, sanitizedPayload);
       

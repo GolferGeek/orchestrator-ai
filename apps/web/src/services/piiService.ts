@@ -7,9 +7,11 @@ import {
   PIIPatternBulkOperation,
   PIIPatternBulkResult
 } from '@/types/pii';
+import { useApiSanitization } from '@/composables/useApiSanitization';
 
 class PIIService {
   private readonly basePath = '/sanitization';
+  private apiSanitization = useApiSanitization();
 
   // =====================================
   // PII PATTERN ENDPOINTS
@@ -101,7 +103,9 @@ class PIIService {
    */
   async testPIIDetection(request: PIITestRequest): Promise<PIITestResponse> {
     try {
-      const response = await apiService.post(`${this.basePath}/pii/test`, request);
+      // Sanitize the PII test request
+      const sanitizedRequest = this.apiSanitization.sanitizePIIRequest(request);
+      const response = await apiService.post(`${this.basePath}/pii/test`, sanitizedRequest);
       return response;
     } catch (error) {
       console.error('Error testing PII detection:', error);
@@ -114,7 +118,9 @@ class PIIService {
    */
   async sanitizeText(request: PIITestRequest): Promise<PIITestResponse> {
     try {
-      const response = await apiService.post(`${this.basePath}/sanitize`, request);
+      // Sanitize the request before sending
+      const sanitizedRequest = this.apiSanitization.sanitizePIIRequest(request);
+      const response = await apiService.post(`${this.basePath}/sanitize`, sanitizedRequest);
       return response;
     } catch (error) {
       console.error('Error sanitizing text:', error);

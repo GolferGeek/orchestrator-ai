@@ -1,4 +1,5 @@
 import { apiService } from './apiService';
+import { useApiSanitization } from '@/composables/useApiSanitization';
 interface Task {
   id: string;
   agentConversationId: string;
@@ -85,6 +86,7 @@ interface TaskProgressEvent {
 }
 class TasksService {
   private readonly baseUrl = '/tasks';
+  private apiSanitization = useApiSanitization();
   /**
    * List tasks
    */
@@ -226,7 +228,9 @@ class TasksService {
   }> {
     const url = `/agents/${agentType}/${agentName}/tasks`;
     try {
-      const response = await apiService.post(url, taskData);
+      // Sanitize the task data before sending
+      const sanitizedTaskData = this.apiSanitization.sanitizeTaskRequest(taskData);
+      const response = await apiService.post(url, sanitizedTaskData);
       return response;
     } catch (error) {
       throw error;

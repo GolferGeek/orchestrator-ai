@@ -2,9 +2,14 @@ import axios, { AxiosInstance } from 'axios';
 import axiosRetry from 'axios-retry';
 import { TaskResponse, AgentInfo } from '../types/chat';
 import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
+import { getSecureApiBaseUrl, getSecureHeaders, validateSecureContext, logSecurityConfig } from '../utils/securityConfig';
+import { useApiSanitization } from '@/composables/useApiSanitization';
 
-// API endpoint configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:9000';
+// Validate security context on startup
+validateSecureContext();
+
+// API endpoint configuration with HTTPS enforcement
+const API_BASE_URL = getSecureApiBaseUrl();
 
 interface JsonRpcResponse {
   jsonrpc: '2.0';
@@ -19,15 +24,22 @@ interface JsonRpcResponse {
 
 class ApiService {
   private axiosInstance: AxiosInstance;
+  private apiSanitization = useApiSanitization();
 
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: API_BASE_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getSecureHeaders(),
       timeout: 60000,
+      // Additional security settings
+      withCredentials: false, // Don't send credentials cross-origin unless explicitly needed
+      maxRedirects: 0, // Prevent redirect attacks
     });
+
+    // Log security configuration in development
+    if (import.meta.env.DEV) {
+      logSecurityConfig();
+    }
 
     // Configure retry logic for failed requests
     axiosRetry(this.axiosInstance, {
@@ -157,7 +169,7 @@ class ApiService {
         }
       }
       
-      // NestJS expects JSON-RPC 2.0 format
+      // Create and sanitize the request payload
       const requestPayload = {
         jsonrpc: '2.0',
         method: 'handle_request',
@@ -173,9 +185,17 @@ class ApiService {
         id: Date.now() // Use timestamp as unique ID
       };
 
+      // Sanitize the orchestrator request params
+      const paramsToSanitize = {
+        ...requestPayload.params,
+        session_id: requestPayload.params.session_id || undefined // Convert null to undefined
+      };
+      const sanitizedParams = this.apiSanitization.sanitizeOrchestratorRequest(paramsToSanitize);
+      const sanitizedPayload = { ...requestPayload, params: sanitizedParams };
+
       const response = await this.axiosInstance.post<JsonRpcResponse>(
         '/agents/orchestrator/orchestrator/tasks', 
-        requestPayload,
+        sanitizedPayload,
         {
           headers: {
             'Authorization': authToken ? `Bearer ${authToken}` : undefined

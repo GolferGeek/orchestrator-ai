@@ -3,7 +3,40 @@
 import legacy from '@vitejs/plugin-legacy'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
+import fs from 'fs'
 import { defineConfig, loadEnv } from 'vite'
+
+/**
+ * Get HTTPS configuration for Vite dev server
+ */
+function getHttpsConfig(env: Record<string, string>) {
+  // Only use HTTPS if explicitly enabled
+  if (env.VITE_ENFORCE_HTTPS !== 'true') {
+    return false;
+  }
+
+  const certPath = path.resolve(__dirname, 'certs', 'localhost-cert.pem');
+  const keyPath = path.resolve(__dirname, 'certs', 'localhost-key.pem');
+
+  // Check if certificates exist
+  if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
+    console.warn('⚠️  HTTPS enabled but certificates not found!');
+    console.warn('   Run: node scripts/setup-https-dev.js');
+    console.warn('   Falling back to HTTP...');
+    return false;
+  }
+
+  try {
+    return {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath)
+    };
+  } catch (error) {
+    console.error('❌ Failed to read SSL certificates:', error.message);
+    console.warn('   Falling back to HTTP...');
+    return false;
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -39,14 +72,14 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: parseInt(env.WEB_PORT || '9001'),
+      port: parseInt(env.WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '9443' : '9001')),
       host: true,
-      https: false, // Keep HTTP for now, let Cloudflare handle HTTPS
+      https: getHttpsConfig(env),
       hmr: {
         // Server binds to localhost (this is what Vite can actually bind to)
         host: 'localhost',
-        port: 9001,
-        protocol: 'ws'
+        port: parseInt(env.WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '9443' : '9001')),
+        protocol: env.VITE_ENFORCE_HTTPS === 'true' ? 'wss' : 'ws'
       }
     },
     build: {
