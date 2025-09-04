@@ -56,14 +56,16 @@ const handleSignup = async () => {
     //   error.value = result.message || 'Signup failed.';
     //   emit('signup-failed', error.value);
     // }
-    // Simulate API call
+    // API call - would connect to real authentication service
     await new Promise(resolve => setTimeout(resolve, 1000));
-    // Simulate error for now
-    // error.value = 'Signup failed: Email already taken (Simulated)'; 
-    // emit('signup-failed', error.value);
-    // To simulate success:
-    successMessage.value = "Signup successful (Simulated)! You are now logged in.";
-    emit('signup-success', { token: 'fake-jwt-token', user: { email: email.value, displayName: displayName.value } });
+    
+    // This would be replaced with actual API integration
+    error.value = 'Signup API not yet implemented';
+    emit('signup-failed', error.value);
+    
+    // Real implementation would:
+    // const response = await authService.signup({ email: email.value, password: password.value, displayName: displayName.value });
+    // emit('signup-success', response);
   } catch (e: any) {
     error.value = e.message || 'An unexpected error occurred during signup.';
     emit('signup-failed', error.value);

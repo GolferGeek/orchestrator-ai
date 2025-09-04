@@ -324,7 +324,7 @@ class AnalyticsService {
       };
     } catch (error) {
       console.error('Error fetching task metrics:', error);
-      // Return fallback data for now
+      // Return empty data structure when API fails
       return {
         success: true,
         data: {
@@ -377,7 +377,7 @@ class AnalyticsService {
       };
     } catch (error) {
       console.error('Error fetching system analytics:', error);
-      // Return fallback data for now
+      // Return empty data structure when API fails
       return {
         success: true,
         data: {

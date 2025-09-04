@@ -175,12 +175,12 @@ export const usePseudonymMappingsStore = defineStore('pseudonymMappings', () => 
       error.value = err.message || 'Failed to fetch pseudonym mappings';
       console.error('Error fetching pseudonym mappings:', err);
       
-      // If API endpoint doesn't exist yet, use mock data for development
+      // If API endpoint doesn't exist yet, return empty array
       if (err.response?.status === 404) {
-        console.warn('Pseudonym mappings endpoint not available, using mock data');
-        mappings.value = getMockMappings();
+        console.warn('Pseudonym mappings endpoint not available');
+        mappings.value = [];
         lastFetched.value = new Date();
-        error.value = null;
+        error.value = 'Pseudonym mappings API endpoint not yet implemented';
       }
     } finally {
       isLoading.value = false;
@@ -270,96 +270,6 @@ export const usePseudonymMappingsStore = defineStore('pseudonymMappings', () => 
     ]);
   };
 
-  // Helper function for mock data during development
-  const getMockMappings = (): PseudonymMapping[] => [
-    {
-      id: '1',
-      originalHash: 'hash1',
-      pseudonym: 'Alice Johnson',
-      dataType: 'name' as PIIDataType,
-      context: 'customer',
-      usageCount: 15,
-      createdAt: '2024-01-15T10:30:00Z',
-      updatedAt: '2024-01-20T14:22:00Z',
-      lastUsedAt: '2024-01-20T14:22:00Z'
-    },
-    {
-      id: '2',
-      originalHash: 'hash2',
-      pseudonym: 'bob.wilson@example.com',
-      dataType: 'email' as PIIDataType,
-      context: 'support',
-      usageCount: 8,
-      createdAt: '2024-01-16T09:15:00Z',
-      updatedAt: '2024-01-19T16:45:00Z',
-      lastUsedAt: '2024-01-19T16:45:00Z'
-    },
-    {
-      id: '3',
-      originalHash: 'hash3',
-      pseudonym: '555-0123',
-      dataType: 'phone' as PIIDataType,
-      context: 'verification',
-      usageCount: 3,
-      createdAt: '2024-01-17T13:20:00Z',
-      updatedAt: '2024-01-18T11:30:00Z',
-      lastUsedAt: '2024-01-18T11:30:00Z'
-    },
-    {
-      id: '4',
-      originalHash: 'hash4',
-      pseudonym: '123 Main Street',
-      dataType: 'address' as PIIDataType,
-      context: 'shipping',
-      usageCount: 22,
-      createdAt: '2024-01-10T08:45:00Z',
-      updatedAt: '2024-01-21T09:15:00Z',
-      lastUsedAt: '2024-01-21T09:15:00Z'
-    },
-    {
-      id: '5',
-      originalHash: 'hash5',
-      pseudonym: '192.168.1.100',
-      dataType: 'ip_address' as PIIDataType,
-      usageCount: 1,
-      createdAt: '2024-01-21T15:30:00Z',
-      updatedAt: '2024-01-21T15:30:00Z',
-      lastUsedAt: '2024-01-21T15:30:00Z'
-    },
-    {
-      id: '6',
-      originalHash: 'hash6',
-      pseudonym: 'john_doe_123',
-      dataType: 'username' as PIIDataType,
-      context: 'forum',
-      usageCount: 12,
-      createdAt: '2024-01-12T16:20:00Z',
-      updatedAt: '2024-01-20T10:30:00Z',
-      lastUsedAt: '2024-01-20T10:30:00Z'
-    },
-    {
-      id: '7',
-      originalHash: 'hash7',
-      pseudonym: '4532-****-****-9876',
-      dataType: 'credit_card' as PIIDataType,
-      context: 'payment',
-      usageCount: 5,
-      createdAt: '2024-01-18T14:10:00Z',
-      updatedAt: '2024-01-19T08:25:00Z',
-      lastUsedAt: '2024-01-19T08:25:00Z'
-    },
-    {
-      id: '8',
-      originalHash: 'hash8',
-      pseudonym: 'mary.smith@company.org',
-      dataType: 'email' as PIIDataType,
-      context: 'business',
-      usageCount: 18,
-      createdAt: '2024-01-11T11:45:00Z',
-      updatedAt: '2024-01-21T13:20:00Z',
-      lastUsedAt: '2024-01-21T13:20:00Z'
-    }
-  ];
 
   return {
     // State

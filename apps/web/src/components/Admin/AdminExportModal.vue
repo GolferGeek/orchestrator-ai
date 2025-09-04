@@ -360,10 +360,10 @@ function getIncludedFields(): string[] {
 async function generatePreview() {
   isGeneratingPreview.value = true;
   try {
-    // Simulate API call to get export preview
+    // API call to get export preview
     await new Promise(resolve => setTimeout(resolve, 1000));
-    // Mock preview data - in real implementation, this would come from API
-    previewData.estimatedRecords = Math.floor(Math.random() * 1000) + 100;
+    // Real implementation would fetch actual data from API
+    previewData.estimatedRecords = 0; // Would come from actual API call
     previewData.estimatedSize = getEstimatedFileSize();
     previewData.includedFields = getIncludedFields();
     showPreview.value = true;
@@ -401,19 +401,14 @@ async function performExport() {
   exportProgress.percent = 0;
   exportProgress.message = 'Preparing export...';
   try {
-    // Simulate export progress
-    const progressSteps = [
-      { percent: 20, message: 'Querying evaluation data...' },
-      { percent: 40, message: 'Processing user information...' },
-      { percent: 60, message: 'Including workflow data...' },
-      { percent: 80, message: 'Formatting export file...' },
-      { percent: 100, message: 'Export complete!' }
-    ];
-    for (const step of progressSteps) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      exportProgress.percent = step.percent;
-      exportProgress.message = step.message;
-    }
+    // Real export progress would be tracked via API calls
+    // This would be replaced with actual export API integration
+    exportProgress.percent = 0;
+    exportProgress.message = 'Export API not yet implemented';
+    
+    // Real implementation would:
+    // const exportResult = await exportService.startExport(exportOptions);
+    // Track progress via WebSocket or polling
     // Emit export event with options
     emit('export', exportOptions);
     // Reset state

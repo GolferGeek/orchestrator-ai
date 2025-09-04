@@ -38,13 +38,16 @@ const handleLogin = async () => {
     //   error.value = result.message || 'Login failed.';
     //   emit('login-failed', error.value);
     // }
-    // Simulate API call
+    // API call - would connect to real authentication service
     await new Promise(resolve => setTimeout(resolve, 1000));
-    // Simulate error for now, or a success to test flow
-    // error.value = 'Login failed: Invalid credentials (Simulated)'; 
-    // emit('login-failed', error.value);
-    // To simulate success:
-    emit('login-success', { token: 'fake-jwt-token', user: { email: email.value } });
+    
+    // This would be replaced with actual API integration
+    error.value = 'Login API not yet implemented';
+    emit('login-failed', error.value);
+    
+    // Real implementation would:
+    // const response = await authService.login({ email: email.value, password: password.value });
+    // emit('login-success', response);
   } catch (e: any) {
     error.value = e.message || 'An unexpected error occurred.';
     emit('login-failed', error.value);
