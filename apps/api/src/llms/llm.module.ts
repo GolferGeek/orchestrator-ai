@@ -18,6 +18,9 @@ import { MemoryManagerService } from './memory-manager.service';
 import { ModelMonitorService } from './model-monitor.service';
 import { ProductionOptimizationController } from './production-optimization.controller';
 import { LlmUsageController } from './llm-usage.controller';
+import { SourceBlindingService } from './source-blinding.service';
+import { BlindedLLMService } from './blinded-llm.service';
+import { BlindedHttpService } from './blinded-http.service';
 
 @Module({
   imports: [SupabaseModule, CIDAFMModule, HttpModule],
@@ -35,6 +38,9 @@ import { LlmUsageController } from './llm-usage.controller';
     LocalLLMService,
     MemoryManagerService,
     ModelMonitorService,
+    SourceBlindingService,
+    BlindedLLMService,
+    BlindedHttpService,
   ],
   exports: [
     LLMService,
@@ -49,6 +55,9 @@ import { LlmUsageController } from './llm-usage.controller';
     LocalLLMService,
     MemoryManagerService,
     ModelMonitorService,
+    SourceBlindingService,
+    BlindedLLMService,
+    BlindedHttpService,
   ],
 })
 export class LLMModule {}

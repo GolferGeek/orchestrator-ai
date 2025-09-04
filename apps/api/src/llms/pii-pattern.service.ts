@@ -172,6 +172,7 @@ export class PIIPatternService {
 
   constructor(private readonly supabaseService: SupabaseService) {
     this.logger.log(`PIIPatternService initialized with ${this.builtInPatterns.length} built-in patterns`);
+    this.logger.log(`✅ SupabaseService injected: ${!!this.supabaseService}`);
   }
 
   /**
@@ -191,6 +192,9 @@ export class PIIPatternService {
       minConfidence = 0.7,
       maxMatches = 100,
     } = options;
+
+    this.logger.log(`🔍 PIIPatternService.detectPII called with text length: ${text?.length || 0}`);
+    this.logger.log(`🔍 Options: ${JSON.stringify(options)}`);
 
     // Refresh custom patterns if needed
     await this.refreshCustomPatternsIfNeeded();

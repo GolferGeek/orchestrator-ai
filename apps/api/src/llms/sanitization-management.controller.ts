@@ -266,6 +266,81 @@ export class SanitizationManagementController {
     };
   }
 
+  @Put('pii/patterns/:name')
+  @ApiOperation({ summary: 'Update existing PII pattern' })
+  @ApiParam({ name: 'name', description: 'Pattern name to update' })
+  @ApiResponse({ status: 200, description: 'PII pattern updated successfully' })
+  @ApiResponse({ status: 404, description: 'Pattern not found' })
+  @UsePipes(new ValidationPipe())
+  async updatePIIPattern(@Param('name') name: string, @Body() updatePatternDto: CreatePIIPatternDto) {
+    try {
+      // Update in database
+      const client = this.dataSanitizationService['supabaseService'].getServiceClient();
+      const { error } = await client
+        .from('redaction_patterns')
+        .update({
+          name: updatePatternDto.name,
+          pattern_regex: updatePatternDto.pattern,
+          description: updatePatternDto.description || '',
+          priority: updatePatternDto.priority || 50,
+        })
+        .eq('name', name)
+        .eq('category', 'pii_custom');
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Force refresh of local cache
+      this.piiPatternService['lastPatternRefresh'] = 0;
+
+      return {
+        success: true,
+        message: `PII pattern '${name}' updated successfully`,
+        pattern: updatePatternDto,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to update PII pattern: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  @Delete('pii/patterns/:name')
+  @ApiOperation({ summary: 'Delete PII pattern by name' })
+  @ApiParam({ name: 'name', description: 'Pattern name to delete' })
+  @ApiResponse({ status: 200, description: 'PII pattern deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Pattern not found' })
+  async deletePIIPattern(@Param('name') name: string) {
+    try {
+      // Remove from database
+      const client = this.dataSanitizationService['supabaseService'].getServiceClient();
+      const { error } = await client
+        .from('redaction_patterns')
+        .delete()
+        .eq('name', name)
+        .eq('category', 'pii_custom');
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Force refresh of local cache
+      this.piiPatternService['lastPatternRefresh'] = 0;
+
+      return {
+        success: true,
+        message: `PII pattern '${name}' deleted successfully`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to delete PII pattern: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
   @Get('pii/patterns/:dataType')
   @ApiOperation({ summary: 'Get PII patterns by data type' })
   @ApiParam({ name: 'dataType', enum: ['email', 'phone', 'name', 'address', 'ip_address', 'username', 'credit_card', 'ssn', 'custom'] })

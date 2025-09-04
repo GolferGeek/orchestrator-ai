@@ -19,6 +19,18 @@ export interface SanitizationResult {
   reversalContext?: any; // Context needed to reverse pseudonymization
 }
 
+export interface DetailedSanitizationMetrics {
+  piiDetected: boolean;
+  piiTypes: string[];
+  pseudonymsUsed: number;
+  pseudonymTypes: string[];
+  redactionsApplied: number;
+  redactionTypes: string[];
+  sanitizationTimeMs: number;
+  reversalContextSize: number;
+  sanitizationLevel: 'none' | 'basic' | 'standard' | 'strict';
+}
+
 export interface LogEntry {
   runId: string;
   timestamp: string;
@@ -33,6 +45,7 @@ export class DataSanitizationService {
   private readonly logger = new Logger(DataSanitizationService.name);
   private readonly isProduction = process.env.NODE_ENV === 'production';
   private readonly enableVerboseLogging = process.env.ENABLE_VERBOSE_LOGGING === 'true';
+  private readonly enableRedactionByDefault = process.env.ENABLE_REDACTION === 'true';
   
   // In-memory cache for pseudonym contexts (fast lookup)
   private readonly contextCache = new Map<string, any>();
@@ -44,6 +57,9 @@ export class DataSanitizationService {
     private readonly pseudonymizationService: PseudonymizationService
   ) {
     this.logger.log(`DataSanitizationService initialized (production: ${this.isProduction})`);
+    this.logger.log(`🔐 Redaction enabled by default: ${this.enableRedactionByDefault}`);
+    this.logger.log(`✅ SecretRedactionService injected: ${!!this.secretRedactionService}`);
+    this.logger.log(`✅ PseudonymizationService injected: ${!!this.pseudonymizationService}`);
   }
 
   /**
@@ -56,7 +72,11 @@ export class DataSanitizationService {
     const startTime = Date.now();
     const originalLength = text?.length || 0;
 
+    this.logger.log(`🔍 DataSanitizationService.sanitizeText called with text length: ${originalLength}`);
+    this.logger.log(`🔍 Options: ${JSON.stringify(options)}`);
+
     if (!text) {
+      this.logger.log(`⚠️ Empty text provided to sanitizeText`);
       return {
         sanitizedText: text,
         originalLength: 0,
@@ -66,7 +86,7 @@ export class DataSanitizationService {
     }
 
     const {
-      enableRedaction = true,
+      enableRedaction = this.enableRedactionByDefault,
       enablePseudonymization = true,
       pseudonymizationContext = 'general',
       preserveFormatting = true,
@@ -77,20 +97,24 @@ export class DataSanitizationService {
     let pseudonymizationResult: PseudonymizationResult | undefined;
 
     try {
-      // First apply secret redaction
-      if (enableRedaction) {
-        const redactionResponse = this.secretRedactionService.redactSecrets(sanitizedText);
-        sanitizedText = redactionResponse.redactedText;
-        redactionResult = redactionResponse.result;
-      }
-
-      // Then apply pseudonymization to the redacted text
+      // First apply pseudonymization to detect and replace PII
       if (enablePseudonymization) {
+        this.logger.log(`🎭 Applying pseudonymization...`);
         pseudonymizationResult = await this.pseudonymizationService.pseudonymizeText(
           sanitizedText,
           { context: pseudonymizationContext }
         );
         sanitizedText = pseudonymizationResult.pseudonymizedText;
+        this.logger.log(`🎭 Pseudonymization complete. Pseudonyms: ${pseudonymizationResult?.pseudonyms?.length || 0}`);
+      }
+
+      // Then apply secret redaction to catch any remaining secrets
+      if (enableRedaction) {
+        this.logger.log(`🔐 Applying secret redaction...`);
+        const redactionResponse = this.secretRedactionService.redactSecrets(sanitizedText);
+        sanitizedText = redactionResponse.redactedText;
+        redactionResult = redactionResponse.result;
+        this.logger.log(`🔐 Redaction complete. Redactions: ${redactionResult?.redactionCount || 0}, Patterns: ${redactionResult?.patternsMatched?.join(', ') || 'none'}`);
       }
 
       const result: SanitizationResult = {
@@ -223,7 +247,7 @@ export class DataSanitizationService {
     }
 
     const {
-      enableRedaction = true,
+      enableRedaction = this.enableRedactionByDefault,
       enablePseudonymization = true,
       pseudonymizationContext = 'llm-request',
     } = options;
@@ -379,7 +403,10 @@ export class DataSanitizationService {
     sanitizedSystemPrompt: string;
     sanitizedUserMessage: string;
     reversalContext: any;
+    systemSanitizationResult: SanitizationResult;
+    userSanitizationResult: SanitizationResult;
   }> {
+    console.log(`🔍 DEBUG: DataSanitizationService.sanitizeForLLM called`);
     // Sanitize both system prompt and user message
     const systemResult = await this.reversibleSanitizeText(systemPrompt, `${requestId}-system`, options);
     const userResult = await this.reversibleSanitizeText(userMessage, `${requestId}-user`, options);
@@ -394,6 +421,8 @@ export class DataSanitizationService {
       sanitizedSystemPrompt: systemResult.sanitizedText,
       sanitizedUserMessage: userResult.sanitizedText,
       reversalContext: combinedReversalContext,
+      systemSanitizationResult: systemResult.result,
+      userSanitizationResult: userResult.result,
     };
   }
 
@@ -442,7 +471,7 @@ export class DataSanitizationService {
     try {
       // Sanitize the message
       const sanitizedMessageResult = await this.sanitizeText(message, {
-        enableRedaction: true,
+        enableRedaction: this.enableRedactionByDefault,
         enablePseudonymization: true,
         pseudonymizationContext: 'logging',
       });
@@ -451,7 +480,7 @@ export class DataSanitizationService {
       let sanitizedMetadata = metadata;
       if (metadata) {
         const sanitizedMetadataResult = await this.sanitizeObject(metadata, {
-          enableRedaction: true,
+          enableRedaction: this.enableRedactionByDefault,
           enablePseudonymization: true,
           pseudonymizationContext: 'logging',
         });
@@ -560,7 +589,7 @@ export class DataSanitizationService {
     pseudonymizationDetails?: any;
   }> {
     const sanitizationResult = await this.sanitizeText(text, {
-      enableRedaction: true,
+      enableRedaction: this.enableRedactionByDefault,
       enablePseudonymization: true,
       pseudonymizationContext: 'testing',
     });
@@ -667,6 +696,88 @@ export class DataSanitizationService {
         this.contextCache.delete(key);
       }
     }
+  }
+
+  /**
+   * Extract detailed sanitization metrics from a sanitization result
+   */
+  extractSanitizationMetrics(
+    sanitizationResult?: SanitizationResult,
+    isLocalProvider: boolean = false
+  ): DetailedSanitizationMetrics {
+    if (isLocalProvider || !sanitizationResult) {
+      return {
+        piiDetected: false,
+        piiTypes: [],
+        pseudonymsUsed: 0,
+        pseudonymTypes: [],
+        redactionsApplied: 0,
+        redactionTypes: [],
+        sanitizationTimeMs: 0,
+        reversalContextSize: 0,
+        sanitizationLevel: 'none',
+      };
+    }
+
+    const redactionResult = sanitizationResult.redactionResult;
+    const pseudonymResult = sanitizationResult.pseudonymizationResult;
+    
+    // Extract PII types from redaction results
+    const piiTypes: string[] = [];
+    const redactionTypes = redactionResult?.patternsMatched || [];
+    
+    // Map patterns to PII types
+    redactionTypes.forEach(pattern => {
+      if (pattern.includes('email')) piiTypes.push('email');
+      else if (pattern.includes('phone')) piiTypes.push('phone');
+      else if (pattern.includes('ssn')) piiTypes.push('ssn');
+      else if (pattern.includes('credit')) piiTypes.push('credit_card');
+      else if (pattern.includes('key')) piiTypes.push('api_key');
+      else piiTypes.push('other');
+    });
+    
+    // Extract pseudonym information
+    const pseudonymTypes: string[] = [];
+    let pseudonymsUsed = 0;
+    
+    if (pseudonymResult?.pseudonyms) {
+      pseudonymsUsed = pseudonymResult.pseudonyms.length;
+      
+      // Extract types from pseudonym data
+      pseudonymResult.pseudonyms.forEach(pseudonym => {
+        pseudonymTypes.push(pseudonym.dataType);
+      });
+    }
+
+    return {
+      piiDetected: piiTypes.length > 0 || pseudonymsUsed > 0,
+      piiTypes: [...new Set(piiTypes)], // Remove duplicates
+      pseudonymsUsed,
+      pseudonymTypes: [...new Set(pseudonymTypes)], // Remove duplicates
+      redactionsApplied: redactionResult?.redactionCount || 0,
+      redactionTypes: [...new Set(redactionTypes)],
+      sanitizationTimeMs: sanitizationResult.processingTimeMs,
+      reversalContextSize: sanitizationResult.reversalContext 
+        ? JSON.stringify(sanitizationResult.reversalContext).length 
+        : 0,
+      sanitizationLevel: this.determineSanitizationLevel(piiTypes, pseudonymsUsed, redactionResult?.redactionCount || 0),
+    };
+  }
+
+  /**
+   * Determine the sanitization level based on what was processed
+   */
+  private determineSanitizationLevel(
+    piiTypes: string[],
+    pseudonymsUsed: number,
+    redactionsApplied: number
+  ): 'none' | 'basic' | 'standard' | 'strict' {
+    const totalActions = piiTypes.length + pseudonymsUsed + redactionsApplied;
+    
+    if (totalActions === 0) return 'none';
+    if (totalActions <= 2) return 'basic';
+    if (totalActions <= 5) return 'standard';
+    return 'strict';
   }
 
   /**
