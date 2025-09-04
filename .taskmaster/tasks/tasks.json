@@ -1009,7 +1009,7 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1017,7 +1017,7 @@
             "description": "Define the data structure for pseudonym entries, including fields for word, data type/category, and frequency weight. Implement logic to group words by data type or category.",
             "dependencies": [],
             "details": "Ensure the model supports efficient grouping and future extensibility. Specify how categories are managed and how frequency weights are stored and updated.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test grouping logic and data model integrity for various input scenarios."
           },
           {
@@ -1028,7 +1028,7 @@
               "8.1"
             ],
             "details": "Ensure all CRUD actions update both the frontend state (Pinia) and backend API. Provide UI feedback for successful and failed operations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test all CRUD actions and frequency adjustment. Integration test with backend API."
           },
           {
@@ -1040,7 +1040,7 @@
               "8.2"
             ],
             "details": "Validate imported data for schema compliance and handle errors gracefully. Ensure export includes all relevant fields and grouping information.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test import/export logic with valid and invalid files. Verify data integrity after round-trip operations."
           },
           {
@@ -1052,7 +1052,7 @@
               "8.2"
             ],
             "details": "Design UI components for statistics visualization. Ensure statistics update in real time as dictionary changes.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test statistics calculations. Integration test with backend data sources if applicable."
           },
           {
@@ -1065,7 +1065,7 @@
               "8.4"
             ],
             "details": "Ensure all state changes are reflected in both frontend and backend. Handle API errors and loading states appropriately.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration test Pinia synchronization and API calls. Validate state consistency after concurrent operations."
           }
         ]
@@ -2124,7 +2124,7 @@
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-04T22:01:07.198Z",
+      "updated": "2025-09-04T22:07:15.490Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }
