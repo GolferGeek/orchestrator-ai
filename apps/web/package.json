@@ -4,8 +4,11 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev-with-https.cjs",
+    "dev:http": "vite",
+    "dev:https": "VITE_ENFORCE_HTTPS=true node scripts/dev-with-https.cjs",
     "dev:production": "vite --mode production",
+    "setup-https": "node scripts/setup-https-dev.cjs",
     "build": "vite build",
     "build:check": "vue-tsc && vite build",
     "preview": "vite preview",

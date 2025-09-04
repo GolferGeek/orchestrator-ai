@@ -1843,15 +1843,15 @@
         "dependencies": [
           3
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
             "title": "Configure Axios to Use HTTPS Endpoints",
             "description": "Ensure all API calls made via Axios are directed to HTTPS endpoints to enforce secure communication.",
             "dependencies": [],
-            "details": "Update Axios base URLs and interceptors to require HTTPS. Audit all API endpoint references for protocol compliance.",
-            "status": "pending",
+            "details": "Update Axios base URLs and interceptors to require HTTPS. Audit all API endpoint references for protocol compliance.\n<info added on 2025-09-04T14:49:46.160Z>\n# HTTPS Enforcement Implementation Details\n\n## Security Configuration System\n- Created `securityConfig.ts` as a central security configuration utility\n- Implemented automatic HTTP to HTTPS URL conversion\n- Configured environment-specific security levels (dev vs production)\n- Added host validation with whitelisting for enhanced security\n- Implemented protocol validation to ensure only allowed protocols\n\n## Development HTTPS Setup\n- Created `setup-https-dev.cjs` script for automated SSL certificate generation\n- Implemented self-signed certificate generation for localhost development\n- Integrated with OpenSSL for certificate creation\n- Added certificate validation with expiry checking and regeneration\n- Set secure file permissions for certificate files\n\n## Vite Configuration\n- Implemented dynamic HTTPS based on environment variables\n- Added automatic certificate file loading\n- Configured graceful fallback to HTTP when certificates are missing\n- Enabled WebSocket Secure (WSS) for HTTPS hot module replacement\n\n## API Service Integration\n- Enforced secure base URLs for all API endpoints\n- Added security headers for API requests\n- Implemented secure context validation on startup\n- Added security logging for development environments\n\n## Environment Variables and NPM Scripts\n- Added environment variables for HTTPS configuration\n- Created npm scripts for certificate generation and HTTPS development\n- All testing completed with successful validation of the implementation\n</info added on 2025-09-04T14:49:46.160Z>",
+            "status": "done",
             "testStrategy": "Perform security tests to verify all requests use HTTPS and reject non-secure (HTTP) endpoints."
           },
           {
@@ -2260,7 +2260,7 @@
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-04T14:43:54.991Z",
+      "updated": "2025-09-04T14:49:51.148Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }

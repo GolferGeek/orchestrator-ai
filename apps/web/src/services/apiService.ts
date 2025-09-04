@@ -2,9 +2,13 @@ import axios, { AxiosInstance } from 'axios';
 import axiosRetry from 'axios-retry';
 import { TaskResponse, AgentInfo } from '../types/chat';
 import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
+import { getSecureApiBaseUrl, getSecureHeaders, validateSecureContext, logSecurityConfig } from '../utils/securityConfig';
 
-// API endpoint configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:9000';
+// Validate security context on startup
+validateSecureContext();
+
+// API endpoint configuration with HTTPS enforcement
+const API_BASE_URL = getSecureApiBaseUrl();
 
 interface JsonRpcResponse {
   jsonrpc: '2.0';
@@ -23,11 +27,17 @@ class ApiService {
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: API_BASE_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getSecureHeaders(),
       timeout: 60000,
+      // Additional security settings
+      withCredentials: false, // Don't send credentials cross-origin unless explicitly needed
+      maxRedirects: 0, // Prevent redirect attacks
     });
+
+    // Log security configuration in development
+    if (import.meta.env.DEV) {
+      logSecurityConfig();
+    }
 
     // Configure retry logic for failed requests
     axiosRetry(this.axiosInstance, {
