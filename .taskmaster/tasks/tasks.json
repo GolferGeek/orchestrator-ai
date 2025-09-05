@@ -1080,7 +1080,7 @@
         "dependencies": [
           8
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1088,7 +1088,7 @@
             "description": "Create the user interface for displaying the mapping table showing PII to pseudonym relationships, usage counts, and reversibility status. Implement color-coded indicators for mapping status and reversibility.",
             "dependencies": [],
             "details": "Define table structure and visual cues for mapping status and reversibility. Ensure the design supports accessibility and clarity.\n<info added on 2025-09-04T23:14:09.771Z>\nSuccessfully designed and implemented the mapping table UI with comprehensive features including responsive table with grid layout, color-coded indicators for data types, visual status indicators, usage count visualization, and statistics cards. Implemented a color-coding system with distinct colors and icons for data types and status indicators. Added interactive features such as search, filtering, sortable columns, pagination, and detailed information modals. Ensured responsive design with mobile-first approach and touch-friendly controls. Incorporated security considerations by displaying only pseudonym values, clearly marking reversibility demos, and including appropriate warning messages.\n</info added on 2025-09-04T23:14:09.771Z>",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify correct rendering of table columns, color indicators, and accessibility compliance."
           },
           {
@@ -1099,7 +1099,7 @@
               "9.1"
             ],
             "details": "Integrate API calls and Pinia store access. Handle loading, error, and empty states. Ensure no actual PII is stored in frontend state.\n<info added on 2025-09-04T23:17:25.803Z>\nAPI Service Updates:\n- Added `getPseudonymMappings()` endpoint to pseudonymService\n- Added `getPseudonymMappingsFiltered()` with filtering capabilities\n- Added `getPseudonymMapping(id)` for individual mapping retrieval\n- Properly imported `PseudonymMapping` interface\n\nPinia Store Implementation:\n- Created comprehensive `pseudonymMappingsStore` with full state management\n- Implemented reactive state for mappings, loading, error handling\n- Added filtering and sorting capabilities with computed properties\n- Included statistics tracking and caching with 5-minute freshness\n- Added mock data fallback for development when API endpoints aren't available\n- Implemented efficient data fetching with force refresh options\n\nComponent Integration:\n- Updated PseudonymMappingViewer to use Pinia store instead of local state\n- Converted local computed properties to use store data\n- Updated methods to call store actions (refreshMappings, etc.)\n- Maintained local UI state (pagination, modals) while using store for data\n\nRouting & Navigation:\n- Created PseudonymMappingPage wrapper component\n- Added route `/app/admin/pseudonym-mappings` with admin protection\n- Added menu item in AgentsPage with swap icon\n- Properly imported required icons\n\nError Handling:\n- Graceful fallback to mock data if API endpoint doesn't exist (404)\n- Comprehensive error states and loading indicators\n- Proper TypeScript typing throughout\n</info added on 2025-09-04T23:17:25.803Z>",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Mock API and store responses to test data loading, error handling, and state management."
           },
           {
@@ -1110,7 +1110,7 @@
               "9.2"
             ],
             "details": "Fetch and render usage statistics per mapping. Ensure updates reflect changes from API or store without exposing PII.\n<info added on 2025-09-04T23:21:36.451Z>\nSuccessfully implemented comprehensive usage history visualization and trends without any artificial data:\n\n**Real Data-Based Visualizations:**\n- Daily Usage Activity chart showing actual mapping usage over last 14 days\n- Data Type Distribution with real usage counts and percentages\n- Recent Activity Patterns showing most active/recent mappings and growth rates\n- Usage Intensity Heatmap displaying hourly usage patterns based on actual timestamps\n\n**Key Features Implemented:**\n- CSS-based charts (no external chart library dependencies)\n- Responsive design with mobile-optimized layouts\n- Interactive hover effects and tooltips\n- Real-time data calculations from store mappings\n- Growth rate analysis comparing recent vs historical usage\n- Hourly activity heatmap with intensity color coding\n\n**Data Sources (All Real):**\n- Daily trends: Based on actual lastUsedAt timestamps from mappings\n- Type distribution: Calculated from actual mapping data types and usage counts\n- Activity patterns: Derived from real mapping creation and usage dates\n- Heatmap: Generated from actual hour-of-day usage patterns\n- Statistics: Computed from real mapping counts and usage data\n\n**Visual Design:**\n- Consistent color scheme matching data type indicators\n- Professional chart styling with legends and labels\n- Responsive grid layout for different screen sizes\n- Clean typography and spacing following Ionic design principles\n\n**Removed All Artificial Elements:**\n- Eliminated all random data generation and simulation\n- Removed fallback data patterns\n- Cleaned up store to return empty arrays instead of generated data\n- All visualizations now reflect actual system usage patterns\n</info added on 2025-09-04T23:21:36.451Z>",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Simulate usage updates and verify correct display and real-time updates."
           },
           {
@@ -1132,7 +1132,7 @@
               "9.4"
             ],
             "details": "Cover all UI states, data flows, and edge cases. Validate that no PII is present in any frontend state or test artifacts.",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": "Run automated tests for all component features, including mapping display, usage updates, and reversibility demo. Review test coverage and ensure PII safety."
           }
         ]
@@ -1219,15 +1219,15 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
             "title": "Design Flow Diagram Structure and States",
             "description": "Define the stages of the LLM request lifecycle (input, sanitization, routing, LLM call, response) and specify the data model for timing breakdowns, decision points, and provider indicators.",
             "dependencies": [],
-            "details": "Document each lifecycle stage, required metadata, and visualization requirements. Specify how timing and provider data will be represented for animation and interactivity.",
-            "status": "pending",
+            "details": "Document each lifecycle stage, required metadata, and visualization requirements. Specify how timing and provider data will be represented for animation and interactivity.\n<info added on 2025-09-05T00:10:35.036Z>\nThe LLM Request Flow Diagram structure has been successfully designed with nine core lifecycle stages: Input Reception, Data Sanitization, Routing Decision, Metadata Tracking, Provider Configuration, LLM Call, Response Processing, Reverse Sanitization, and Final Response.\n\nThe visual design features an interactive SVG-based diagram with color-coded node categories (Input, Processing, Decision, Tracking, Config, External, Output), animated connections with directional arrows, diamond-shaped decision points for complexity routing, provider indicators, timing badges, and a responsive layout.\n\nInteractive controls include animation controls (Start/Pause/Reset), step-by-step progression capability, real-time progress indicators, detailed information panels, and timing breakdown visualizations.\n\nThe data model specifications define the structure for nodes, connections, decision points, provider indicators, and timing data, with comprehensive technical implementation using Vue 3 Composition API, TypeScript, Ionic Framework, SVG-based rendering, reactive state management, configurable animation speed, and responsive design optimizations.\n\nThe flow diagram structure is now ready for integration with live request data and provides a comprehensive visualization of the LLM request lifecycle with detailed timing and decision point tracking.\n</info added on 2025-09-05T00:10:35.036Z>",
+            "status": "done",
             "testStrategy": "Review design with stakeholders and validate completeness against requirements."
           },
           {
@@ -1237,8 +1237,8 @@
             "dependencies": [
               "11.1"
             ],
-            "details": "Use D3.js for dynamic rendering and transitions. Encode stages as nodes and transitions as links. Integrate timing and provider indicators as visual elements.",
-            "status": "pending",
+            "details": "Use D3.js for dynamic rendering and transitions. Encode stages as nodes and transitions as links. Integrate timing and provider indicators as visual elements.\n<info added on 2025-09-05T00:11:21.869Z>\nNative SVG implementation with Vue 3 reactive bindings was chosen instead of D3.js for better performance and to avoid additional dependencies. The implementation includes dynamic node rendering for 9 lifecycle stages with category-based styling, animated transitions between states, interactive connections with directional arrows, and curved path rendering. Visual elements include node components with backgrounds and icons, connection systems with calculated arrow heads, decision points, provider badges, and state indicators. Interactive features support click interactions, state transitions, dynamic styling, and responsive layout. The animation system enables step-by-step progression with timing synchronization and performance-optimized CSS animations. Advanced SVG features include dynamic path calculations, arrow head rendering, text positioning, gradient effects, and drop shadows. The responsive design scales for different screen sizes with touch-friendly interactions. The technical architecture leverages Vue 3 Composition API with TypeScript support, computed properties, and template-based rendering.\n</info added on 2025-09-05T00:11:21.869Z>",
+            "status": "done",
             "testStrategy": "Unit test rendering of each stage, transitions, and indicator accuracy."
           },
           {
@@ -1248,8 +1248,8 @@
             "dependencies": [
               "11.2"
             ],
-            "details": "Implement UI controls and event handlers to manage animation state. Ensure controls update diagram and timing breakdowns correctly.",
-            "status": "pending",
+            "details": "Implement UI controls and event handlers to manage animation state. Ensure controls update diagram and timing breakdowns correctly.\n<info added on 2025-09-05T00:12:01.912Z>\nSuccessfully implemented comprehensive interactive controls for the LLM Request Flow Diagram with full pause, replay, and step functionality.\n\nThe implementation includes a complete control interface with Start, Pause, Reset, and Step buttons that manage animation state. The control logic uses reactive state management with isPlaying boolean, currentStep counter, and animationTimer ref for progression control.\n\nButton states dynamically update based on the current animation state, with appropriate disabling logic and visual feedback. The implementation includes core animation control methods (startFlow, pauseFlow, resetFlow, stepForward, playAnimation) that properly synchronize with the diagram visualization.\n\nAdvanced features include configurable animation speed, auto-start support, state persistence during pause/resume cycles, and robust error handling. The controls fully synchronize with diagram updates, metadata displays, progress tracking, and the details panel.\n\nThe user experience is enhanced with intuitive icons, responsive layout, touch-friendly design, and clear visual feedback. The control system integrates seamlessly with the flow visualization, managing node states, edge animations, timing displays, and metadata updates.\n\nTechnical implementation leverages Vue 3 Composition API for reactive state management, with proper timer management, async-safe control methods, and lifecycle cleanup.\n</info added on 2025-09-05T00:12:01.912Z>",
+            "status": "done",
             "testStrategy": "Unit test control functionality and state transitions. Simulate user interactions."
           },
           {
@@ -1259,8 +1259,8 @@
             "dependencies": [
               "11.2"
             ],
-            "details": "Integrate with backend or mock API to fetch live request lifecycle data. Map incoming data to diagram states and update visualization in real time.",
-            "status": "pending",
+            "details": "Integrate with backend or mock API to fetch live request lifecycle data. Map incoming data to diagram states and update visualization in real time.\n<info added on 2025-09-05T00:14:40.990Z>\nSuccessfully connected the LLM Request Flow Diagram to live request data from the backend API with comprehensive real-time visualization capabilities.\n\n**Live Data Integration Implementation:**\n\n**API Integration:**\n- **LLM Usage Service**: Integrated with `llmUsageService` to fetch recent LLM usage records\n- **Analytics Service**: Connected to `analyticsService` for additional request analytics\n- **Real-time Polling**: Configurable refresh intervals (default 5 seconds) for live data updates\n- **Request Selection**: Users can select specific requests from recent usage records\n\n**Live Data Features:**\n- **Recent Requests**: Fetches last 24 hours of LLM usage records with provider/model details\n- **Request Filtering**: Supports filtering by request ID, user ID, caller type, and date ranges\n- **Automatic Updates**: Polls backend API at configurable intervals for fresh data\n- **Manual Refresh**: Users can manually trigger data refresh with button control\n\n**Data Mapping and Visualization:**\n- **Provider Indicators**: Real-time updates showing actual provider/model used (OpenAI, Anthropic, Ollama)\n- **Timing Data**: Maps actual request timing from `runMetadata` to flow visualization\n- **Metadata Integration**: Displays real request metadata including token counts, costs, PII detection\n- **Step Timing**: Shows actual processing times for sanitization, routing, and LLM calls\n\n**Live UI Controls:**\n- **Live Indicator**: Visual dot indicator showing connection status (green=active, red=loading)\n- **Request Selector**: Dropdown to choose from recent requests with timestamp and provider info\n- **Refresh Button**: Manual data refresh capability\n- **Error Handling**: Graceful error display for API failures\n\n**Real-time Data Processing:**\n- **Sanitization Metrics**: Shows actual PII detection counts, patterns found, sanitization levels\n- **Routing Decisions**: Displays real complexity scores, provider selection reasoning\n- **Performance Metrics**: Real input/output token counts, response times, cost calculations\n- **Timing Breakdown**: Visual bar charts with actual processing durations\n\n**Component Props and Events:**\n- **`liveMode`**: Enables/disables live data polling\n- **`requestId`**: Focuses on specific request when provided\n- **`refreshInterval`**: Configurable polling frequency\n- **Events**: Emits `request-selected` and `data-updated` for parent component integration\n\n**State Management:**\n- **Reactive State**: Vue 3 composition API with reactive live data state\n- **Error Handling**: Comprehensive error states with user-friendly messages\n- **Loading States**: Visual feedback during data fetching operations\n- **Data Persistence**: Maintains selected request across component updates\n\n**Technical Implementation:**\n- **Async Data Fetching**: Non-blocking API calls with proper error handling\n- **Timer Management**: Proper cleanup of polling intervals on component unmount\n- **Watchers**: Reactive updates when props change (liveMode, requestId, requestData)\n- **Type Safety**: Full TypeScript support for all data structures and API responses\n\n**User Experience:**\n- **Visual Feedback**: Live dot indicator, loading states, and error messages\n- **Interactive Controls**: Easy request selection and manual refresh capability\n- **Responsive Design**: Live data controls adapt to mobile and tablet screens\n- **Performance**: Efficient polling with configurable intervals to balance freshness vs. performance\n\nThe flow diagram now provides real-time visualization of actual LLM request lifecycles with comprehensive integration to the backend analytics system.\n</info added on 2025-09-05T00:14:40.990Z>",
+            "status": "done",
             "testStrategy": "Integration test with live data. Validate diagram updates and accuracy."
           },
           {
@@ -2138,9 +2138,7 @@
       {
         "id": 27,
         "title": "Create Incremental Migration for Realistic Sample Data Seeding",
-        "description": "Develop a database migration that seeds the Supabase database with realistic sample data for PII patterns, pseudonym dictionaries, mappings, LLM usage, user evaluations, and admin audit logs, supporting comprehensive frontend testing and demonstration.",
-        "details": "1. Create a new SQL migration file in apps/api/supabase/migrations/incremental/ following the project's naming conventions (e.g., <timestamp>_seed_realistic_sample_data.sql).\n2. Analyze the current schema for agents, LLM configurations, PII patterns, pseudonym dictionaries, mappings, usage records, evaluation metrics, and audit logs to ensure data integrity and relational consistency.\n3. For each table:\n   - Insert realistic sample data reflecting actual usage patterns:\n     - PII patterns: Use regexes for emails, phones, SSNs, etc., with plausible descriptions and categories.\n     - Pseudonym dictionaries: Populate with diverse, category-specific word lists (e.g., names, locations, organizations) and frequency weights.\n     - Pseudonym mappings: Generate mappings with usage history, timestamps, and relationships to agents/LLMs.\n     - LLM usage records: Simulate agent interactions with varied prompts, responses, timestamps, and routing decisions.\n     - User evaluation data: Insert privacy metrics and feedback reflecting a range of realistic outcomes.\n     - Admin audit logs: Add entries for representative system activities (e.g., settings changes, data access, error events) with timestamps and user/admin references.\n4. Use SQL best practices for bulk inserts, ensuring referential integrity and avoiding hardcoded IDs by leveraging subqueries or CTEs where necessary.\n5. Document the migration for maintainability, and ensure it is idempotent (safe to re-run without duplicating data).\n6. Validate that the seeded data supports all frontend components, especially those currently showing empty states.\n7. Follow Supabase migration and seeding best practices: test locally, avoid destructive changes, and ensure compatibility with existing migrations and schema evolution workflows.",
-        "testStrategy": "- Run the migration in a local development environment and verify that all relevant tables are populated with realistic, relationally consistent data.\n- Use the frontend to confirm that previously empty states (e.g., dashboards, viewers, managers) now display populated, plausible data.\n- Query the database directly to check for data integrity, correct relationships, and absence of duplicate or orphaned records.\n- Reset and reapply migrations to ensure idempotency and repeatability.\n- Review logs and error outputs for any migration failures or constraint violations.",
+        "description": "Develop a database migration that seeds the Supabase database with realistic sample data for PII patterns, pseudonym dictionaries, mappings, LLM usage, user evaluations, and admin audit logs, supporting comprehensive frontend testing and demonstration, with special focus on detailed LLM request lifecycle data for visualization components.",
         "status": "pending",
         "dependencies": [
           6,
@@ -2149,12 +2147,78 @@
           15
         ],
         "priority": "medium",
-        "subtasks": []
+        "details": "1. Create a new SQL migration file in apps/api/supabase/migrations/incremental/ following the project's naming conventions (e.g., <timestamp>_seed_realistic_sample_data.sql).\n2. Analyze the current schema for agents, LLM configurations, PII patterns, pseudonym dictionaries, mappings, usage records, evaluation metrics, and audit logs to ensure data integrity and relational consistency.\n3. For each table:\n   - Insert realistic sample data reflecting actual usage patterns:\n     - PII patterns: Use regexes for emails, phones, SSNs, etc., with plausible descriptions and categories.\n     - Pseudonym dictionaries: Populate with diverse, category-specific word lists (e.g., names, locations, organizations) and frequency weights.\n     - Pseudonym mappings: Generate mappings with usage history, timestamps, and relationships to agents/LLMs.\n     - LLM usage records: Generate 50-100 records with comprehensive request lifecycle data including:\n       - Detailed timing metrics (sanitizationTimeMs, routingTimeMs, llmResponseTimeMs, totalRequestTimeMs)\n       - Sanitization metadata (piiDetected, sanitizationLevel, piiTypes, systemPromptLength, userMessageLength)\n       - Routing decision data (complexityScore, routingReason, selectedProvider, selectedModel, isLocal)\n       - Performance and cost data (inputTokens, outputTokens, totalCost, requestStartTime, requestEndTime)\n       - Request context (callerType, callerName, conversationId, dataClassification)\n       - Varied timing patterns (fast: 50-200ms, medium: 200-800ms, slow: 800-3000ms)\n       - Mix of providers (OpenAI, Anthropic, Ollama, Mistral) and models based on complexity\n       - Realistic token counts and cost calculations based on actual provider pricing\n       - Recent timestamps (last 7 days) for visualization\n     - User evaluation data: Insert privacy metrics and feedback reflecting a range of realistic outcomes.\n     - Admin audit logs: Add entries for representative system activities (e.g., settings changes, data access, error events) with timestamps and user/admin references.\n4. Use SQL best practices for bulk inserts, ensuring referential integrity and avoiding hardcoded IDs by leveraging subqueries or CTEs where necessary.\n5. Document the migration for maintainability, and ensure it is idempotent (safe to re-run without duplicating data).\n6. Validate that the seeded data supports all frontend components, especially those currently showing empty states and the LLMRequestFlowDiagram visualization component.\n7. Follow Supabase migration and seeding best practices: test locally, avoid destructive changes, and ensure compatibility with existing migrations and schema evolution workflows.",
+        "testStrategy": "- Run the migration in a local development environment and verify that all relevant tables are populated with realistic, relationally consistent data.\n- Use the frontend to confirm that previously empty states (e.g., dashboards, viewers, managers) now display populated, plausible data.\n- Specifically test the LLMRequestFlowDiagram component to ensure it can visualize the complete request lifecycle with timing breakdowns, provider selections, and performance metrics.\n- Verify that the LLM usage records contain all required metadata fields with appropriate variation in values.\n- Query the database directly to check for data integrity, correct relationships, and absence of duplicate or orphaned records.\n- Reset and reapply migrations to ensure idempotency and repeatability.\n- Review logs and error outputs for any migration failures or constraint violations.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "",
+            "description": "Create SQL migration file with basic structure and table analysis",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "",
+            "description": "Implement PII patterns and pseudonym dictionaries seeding",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "",
+            "description": "Implement comprehensive LLM request lifecycle data seeding with detailed timing, sanitization, routing, performance, and context metadata",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "",
+            "description": "Generate varied LLM usage patterns with different timing profiles, complexity scores, and provider selections",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "",
+            "description": "Implement user evaluation data and admin audit logs seeding",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "",
+            "description": "Test migration with LLMRequestFlowDiagram component to verify visualization capabilities",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "",
+            "description": "Document migration and ensure idempotency",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-04T23:50:21.232Z",
+      "updated": "2025-09-05T00:15:24.823Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }
