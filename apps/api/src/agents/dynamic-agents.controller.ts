@@ -91,6 +91,13 @@ export class DynamicAgentsController {
     @CurrentUser() currentUser: SupabaseAuthUserDto,
     @Request() req: any,
   ) {
+    // 🔍 DEBUG: Log incoming request at the very top
+    this.logger.debug(`🚀 [DynamicAgentsController] Incoming request to ${agentType}/${agentName}`);
+    this.logger.debug(`🚀 [DynamicAgentsController] Request body type: ${typeof taskRequest}`);
+    this.logger.debug(`🚀 [DynamicAgentsController] Request method: ${taskRequest?.method || 'undefined'}`);
+    this.logger.debug(`🚀 [DynamicAgentsController] User ID: ${currentUser?.id || 'undefined'}`);
+    this.logger.debug(`🚀 [DynamicAgentsController] Full request body: ${JSON.stringify(taskRequest, null, 2)}`);
+
 
     // Check if this is a JSON-RPC request and convert it to CreateTaskDto format
     let normalizedTaskRequest: CreateTaskDto;
@@ -235,8 +242,24 @@ export class DynamicAgentsController {
       const executionMode = normalizedTaskRequest.executionMode;
       this.logger.log(`🚀 Processing task ${task.id} in ${executionMode} mode - will await completion`);
 
+      // 🔍 DEBUG: Log before calling processTask
+      this.logger.debug(`🎯 [DynamicAgentsController] About to call processTask on agent: ${agentName}`);
+      this.logger.debug(`🎯 [DynamicAgentsController] Agent instance type: ${agentInstance.constructor.name}`);
+      this.logger.debug(`🎯 [DynamicAgentsController] Task request method: ${authenticatedTaskRequest.method}`);
+      this.logger.debug(`🎯 [DynamicAgentsController] Task request prompt: ${authenticatedTaskRequest.prompt?.substring(0, 100)}...`);
+
       // All modes now await the result for proper A2A behavior
       const result = await agentInstance.processTask(authenticatedTaskRequest);
+
+      // 🔍 DEBUG: Log the result from processTask
+      this.logger.debug(`🎯 [DynamicAgentsController] processTask completed for ${agentName}`);
+      this.logger.debug(`🎯 [DynamicAgentsController] Result type: ${typeof result}`);
+      this.logger.debug(`🎯 [DynamicAgentsController] Result keys: ${result ? Object.keys(result).join(', ') : 'null'}`);
+      this.logger.debug(`🎯 [DynamicAgentsController] Result success: ${result?.success}`);
+      this.logger.debug(`🎯 [DynamicAgentsController] Result message length: ${result?.message?.length || 0}`);
+      if (result?.response) {
+        this.logger.debug(`🎯 [DynamicAgentsController] Result response length: ${result.response?.length || 0}`);
+      }
 
       // Store the result in the task record with deliverable auto-creation
       // Use the agent's completeTask method to enable deliverable creation

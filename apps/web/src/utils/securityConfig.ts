@@ -16,8 +16,8 @@ export interface SecurityConfig {
  * Default security configuration
  */
 const defaultSecurityConfig: SecurityConfig = {
-  enforceHttps: import.meta.env.VITE_ENFORCE_HTTPS === 'true' || import.meta.env.PROD,
-  allowedProtocols: import.meta.env.PROD ? ['https:'] : ['https:', 'http:'], // Allow both in dev, only HTTPS in prod
+  enforceHttps: false, // Temporarily disabled to fix network errors
+  allowedProtocols: ['https:', 'http:'], // Allow both protocols
   allowedHosts: [
     'localhost',
     '127.0.0.1',
@@ -27,7 +27,7 @@ const defaultSecurityConfig: SecurityConfig = {
     'orchestrator-ai.com',
     '*.orchestrator-ai.com'
   ],
-  requireSecureContext: import.meta.env.PROD,
+  requireSecureContext: false, // Temporarily disabled
   httpsPort: import.meta.env.VITE_HTTPS_PORT ? parseInt(import.meta.env.VITE_HTTPS_PORT, 10) : 9443, // Default HTTPS port for dev
   httpPort: import.meta.env.VITE_HTTP_PORT ? parseInt(import.meta.env.VITE_HTTP_PORT, 10) : 9000
 };
@@ -50,6 +50,10 @@ export function getSecurityConfig(): SecurityConfig {
   
   if (import.meta.env.VITE_REQUIRE_SECURE_CONTEXT === 'true') {
     config.requireSecureContext = true;
+  }
+  
+  if (import.meta.env.VITE_REQUIRE_SECURE_CONTEXT === 'false') {
+    config.requireSecureContext = false;
   }
   
   // Custom ports

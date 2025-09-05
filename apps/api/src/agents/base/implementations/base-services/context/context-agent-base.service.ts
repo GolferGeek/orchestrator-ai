@@ -46,6 +46,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   setContextData(contextData: string): void {
     this.contextData = contextData;
+    this.contextLogger.log(`🤖 Context data set, length: ${contextData?.length || 0}`);
   }
 
   /**
@@ -56,6 +57,15 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     const agentType = this.getAgentType();
 
     try {
+      this.contextLogger.debug(`🤖 [${agentName}] executeTask called with params:`, {
+        method,
+        sessionId: params.sessionId,
+        taskId: params.taskId,
+        conversationId: params.conversationId,
+        hasCurrentUser: !!params.currentUser,
+        paramsKeys: Object.keys(params)
+      });
+
       // Extract user message from params
       const userMessage = this.extractUserMessage(params);
 
@@ -82,8 +92,11 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
 
       // If no context data available, use fallback
       if (!this.contextData) {
+        this.contextLogger.warn(`🤖 [${agentName}] No context data available, using fallback processing`);
         return this.processWithoutContext(method, params, agentName, agentType);
       }
+      
+      this.contextLogger.debug(`🤖 [${agentName}] Using context data, length: ${this.contextData.length}`);
 
       // Process with LLM using context
       const systemPrompt = this.buildSystemPrompt(agentName, agentType);
@@ -103,29 +116,120 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         const historyPrompt = formattedHistory.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n');
         const fullPrompt = `${systemPrompt}\n\nConversation History:\n${historyPrompt}\n\nCurrent User Message: ${userMessage}`;
         
+        this.contextLogger.debug(`🔍 [${agentName}] [HISTORY] userMessage: "${userMessage}"`);
+        this.contextLogger.debug(`🔍 [${agentName}] [HISTORY] systemPrompt length: ${systemPrompt.length}`);
+        this.contextLogger.debug(`🔍 [${agentName}] [HISTORY] historyPrompt length: ${historyPrompt.length}`);
+        
+        this.contextLogger.debug(`🤖 [${agentName}] Using conversation history branch - calling LLM with full prompt length: ${fullPrompt.length}`);
+        this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] Full prompt preview: "${fullPrompt.substring(0, 500)}..."`);
+        this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] Full prompt ending: "...${fullPrompt.substring(fullPrompt.length - 200)}"`);
+        this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] Conversation history length: ${params.conversationHistory?.length || 0}`);
+        
+        // 🌐 Using frontend model selection (no backend override)
+        this.contextLogger.debug(`🌐 [${agentName}] Using frontend model selection - respecting user choice`);
+        
+        this.contextLogger.debug(`🧠 [${agentName}] [HISTORY] About to call LLM service - START TIME: ${new Date().toISOString()}`);
+        
+        const startTime = Date.now();
+        
+        // Always use frontend model selection - no backend override
+        const llmOptions: any = {
+          callerType: 'agent',
+          callerName: agentName,
+          conversationId: params.sessionId,
+          dataClassification: 'internal', // Default for context agents
+          // Pass through the frontend model selection
+          providerId: params.llmSelection?.providerId,
+          modelId: params.llmSelection?.modelId,
+          cidafmOptions: params.llmSelection?.cidafmOptions,
+          temperature: params.llmSelection?.temperature,
+        };
+        
+        this.contextLogger.debug(`🌐 [${agentName}] [HISTORY] Using frontend model selection: providerId=${llmOptions.providerId}, modelId=${llmOptions.modelId}`);
+        
         llmResult = await this.services.llmService.generateResponse(
-          fullPrompt,
-          '',
-          {
-            callerType: 'agent',
-            callerName: agentName,
-            conversationId: params.sessionId,
-            dataClassification: 'internal', // Default for context agents
-          },
+          systemPrompt,
+          `${historyPrompt}\n\nCurrent User Message: ${userMessage}`,
+          llmOptions,
         );
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+        
+        this.contextLogger.debug(`🧠 [${agentName}] [HISTORY] LLM service call completed - DURATION: ${duration}ms, END TIME: ${new Date().toISOString()}`);
+        
+        // Add the same LLM result debugging as the other branch
+        try {
+          this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] LLM service returned type: ${typeof llmResult}`);
+          this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] LLM result is string: ${typeof llmResult === 'string'}`);
+          this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] LLM result is object: ${typeof llmResult === 'object'}`);
+          this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] LLM result is null: ${llmResult === null}`);
+          this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] LLM result is undefined: ${llmResult === undefined}`);
+          
+          if (typeof llmResult === 'string') {
+            this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] String length: ${llmResult.length}`);
+            this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] String preview: "${llmResult.substring(0, 100)}"`);
+          }
+          
+          if (typeof llmResult === 'object' && llmResult !== null) {
+            this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] Object keys: ${Object.keys(llmResult)}`);
+            this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] Has content property: ${!!llmResult.content}`);
+            if (llmResult.content) {
+              this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] Content length: ${llmResult.content.length}`);
+              this.contextLogger.debug(`🤖 [${agentName}] [HISTORY] Content preview: "${llmResult.content.substring(0, 100)}"`);
+            }
+          }
+        } catch (error) {
+          this.contextLogger.error(`🤖 [${agentName}] [HISTORY] Error logging LLM result: ${error instanceof Error ? error.message : String(error)}`);
+        }
       } else {
         // Use standard LLM processing for first message
+        this.contextLogger.log(`🤖 [${agentName}] Calling LLM service with system prompt length: ${systemPrompt.length}, user message: "${userMessage.substring(0, 100)}..."`);
+        
+        const llmOptions = {
+          ...params, // Pass all params including LLM preferences
+          callerType: 'agent',
+          callerName: agentName,
+          conversationId: params.sessionId || params.conversationId || params.taskId,
+          dataClassification: 'internal', // Default for context agents
+        };
+        
+        this.contextLogger.log(`🤖 [${agentName}] LLM options:`, {
+          conversationId: llmOptions.conversationId,
+          callerName: llmOptions.callerName,
+          hasTaskId: !!params.taskId,
+          hasSessionId: !!params.sessionId,
+          hasConversationId: !!params.conversationId
+        });
+        
         llmResult = await this.services.llmService.generateResponse(
           systemPrompt,
           userMessage,
-          {
-            ...params, // Pass all params including LLM preferences
-            callerType: 'agent',
-            callerName: agentName,
-            conversationId: params.sessionId,
-            dataClassification: 'internal', // Default for context agents
-          },
+          llmOptions,
         );
+        
+        try {
+          this.contextLogger.debug(`🤖 [${agentName}] LLM service returned type: ${typeof llmResult}`);
+          this.contextLogger.debug(`🤖 [${agentName}] LLM result is string: ${typeof llmResult === 'string'}`);
+          this.contextLogger.debug(`🤖 [${agentName}] LLM result is object: ${typeof llmResult === 'object'}`);
+          this.contextLogger.debug(`🤖 [${agentName}] LLM result is null: ${llmResult === null}`);
+          this.contextLogger.debug(`🤖 [${agentName}] LLM result is undefined: ${llmResult === undefined}`);
+          
+          if (typeof llmResult === 'string') {
+            this.contextLogger.debug(`🤖 [${agentName}] String length: ${llmResult.length}`);
+            this.contextLogger.debug(`🤖 [${agentName}] String preview: "${llmResult.substring(0, 100)}"`);
+          }
+          
+          if (typeof llmResult === 'object' && llmResult !== null) {
+            this.contextLogger.debug(`🤖 [${agentName}] Object keys: ${Object.keys(llmResult)}`);
+            this.contextLogger.debug(`🤖 [${agentName}] Has content property: ${!!llmResult.content}`);
+            if (llmResult.content) {
+              this.contextLogger.debug(`🤖 [${agentName}] Content length: ${llmResult.content.length}`);
+              this.contextLogger.debug(`🤖 [${agentName}] Content preview: "${llmResult.content.substring(0, 100)}"`);
+            }
+          }
+        } catch (error) {
+          this.contextLogger.error(`🤖 [${agentName}] Error logging LLM result: ${error instanceof Error ? error.message : String(error)}`);
+        }
       }
 
       // Extract response content and metadata
@@ -133,6 +237,9 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         typeof llmResult === 'string' ? llmResult : llmResult.content;
       const llmMetadata =
         typeof llmResult === 'object' ? llmResult.llmMetadata : undefined;
+      
+      this.contextLogger.log(`🤖 [${agentName}] Extracted response content length: ${responseContent?.length || 0}, content preview: "${responseContent?.substring(0, 100) || 'EMPTY'}..."`);
+      this.contextLogger.log(`🤖 [${agentName}] LLM metadata:`, llmMetadata);
 
       const result = {
         success: true,

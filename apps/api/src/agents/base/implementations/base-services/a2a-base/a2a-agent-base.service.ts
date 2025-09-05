@@ -285,6 +285,10 @@ export abstract class A2AAgentBaseService
   // ============================================================================
 
   async processTask(taskRequest: any): Promise<any> {
+    // 🔍 DEBUG: Log processTask entry point
+    this.logger.debug(`🔄 [${this.getAgentName()}] processTask called with request type: ${typeof taskRequest}`);
+    this.logger.debug(`🔄 [${this.getAgentName()}] Request keys: ${taskRequest ? Object.keys(taskRequest).join(', ') : 'null'}`);
+    
     // Check if this is a JSON-RPC request
     if (
       taskRequest &&
@@ -293,9 +297,11 @@ export abstract class A2AAgentBaseService
       taskRequest.id
     ) {
       // Process as JSON-RPC request
+      this.logger.debug(`🔄 [${this.getAgentName()}] Processing as JSON-RPC request`);
       return this.processJsonRpcRequest(taskRequest);
     } else {
       // Legacy direct call - delegate to executeTask
+      this.logger.debug(`🔄 [${this.getAgentName()}] Processing as legacy call - delegating to executeTask`);
       return this.executeTask('processTask', taskRequest);
     }
   }
@@ -755,20 +761,31 @@ export abstract class A2AAgentBaseService
 
     try {
       // Extract content from various result formats
+      this.logger.debug(`📄 [${this.getAgentName()}] Checking for deliverable content in result:`, {
+        resultType: typeof result,
+        hasResponse: !!(result?.response),
+        responseLength: result?.response?.length || 0,
+        responsePreview: result?.response?.substring(0, 100) || 'N/A'
+      });
 
       const content = this.extractContentFromResult(result);
 
       if (!content) {
-
+        this.logger.debug(`📄 [${this.getAgentName()}] No content extracted from result - no deliverable will be created`);
 
         return null;
       }
+      
+      this.logger.debug(`📄 [${this.getAgentName()}] Extracted content length: ${content.length}, preview: "${content.substring(0, 100)}..."`);
 
 
 
       // Check if content contains deliverable markers
-      if (!this.isDeliverableContent(content)) {
-
+      const isDeliverable = this.isDeliverableContent(content);
+      this.logger.debug(`📄 [${this.getAgentName()}] Content deliverable check: ${isDeliverable}`);
+      
+      if (!isDeliverable) {
+        this.logger.debug(`📄 [${this.getAgentName()}] Content does not contain deliverable markers - no deliverable will be created`);
         return null;
       }
 
