@@ -556,11 +556,11 @@ const providerDistributionData = computed(() => {
   
   if (providerStats.length === 0) {
     return {
-      labels: ['No Data'],
+      labels: [],
       datasets: [{
-        data: [1],
-        backgroundColor: ['rgba(128, 128, 128, 0.8)'],
-        borderColor: ['rgb(128, 128, 128)'],
+        data: [],
+        backgroundColor: [],
+        borderColor: [],
         borderWidth: 2
       }]
     };
@@ -831,12 +831,12 @@ const sanitizationOverheadData = computed(() => {
   
   if (!breakdown) {
     return {
-      labels: ['No Sanitization Data'],
+      labels: [],
       datasets: [{
         label: 'Processing Time (ms)',
-        data: [0],
-        backgroundColor: ['rgba(128, 128, 128, 0.8)'],
-        borderColor: ['rgb(128, 128, 128)'],
+        data: [],
+        backgroundColor: [],
+        borderColor: [],
         borderWidth: 2
       }]
     };
