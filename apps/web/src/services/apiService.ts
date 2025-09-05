@@ -26,7 +26,7 @@ interface JsonRpcResponse {
 class ApiService {
   private axiosInstance: AxiosInstance;
   private apiSanitization = useApiSanitization();
-  private errorStore = useErrorStore();
+  private _errorStore?: ReturnType<typeof useErrorStore>;
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -111,6 +111,16 @@ class ApiService {
         return Promise.reject(error);
       }
     );
+  }
+
+  /**
+   * Get error store instance (lazy-loaded)
+   */
+  private get errorStore() {
+    if (!this._errorStore) {
+      this._errorStore = useErrorStore();
+    }
+    return this._errorStore;
   }
 
   /**

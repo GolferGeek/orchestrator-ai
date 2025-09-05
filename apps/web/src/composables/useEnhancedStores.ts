@@ -109,8 +109,8 @@ export function useMonitoringAnalytics() {
   const { isAutoRefreshEnabled, toggleAutoRefresh, refreshNow } = useStoreAutoRefresh([
     () => llmMonitoringStore.loadUsageRecords(),
     () => llmMonitoringStore.loadSystemHealth(),
-    () => analyticsStore.fetchDashboardData(),
-    () => analyticsStore.fetchRealTimeAnalytics()
+    () => analyticsStore.loadDashboardData(),
+    () => analyticsStore.loadRealTimeAnalytics()
   ], 30000); // 30 second refresh
 
   // Combined dashboard data
@@ -268,7 +268,7 @@ export function useSystemOverview() {
       piiManagement.pseudonymStore.loadDictionaries(),
       monitoringAnalytics.llmMonitoringStore.loadUsageRecords(),
       monitoringAnalytics.llmMonitoringStore.loadSystemHealth(),
-      monitoringAnalytics.analyticsStore.fetchDashboardData()
+      monitoringAnalytics.analyticsStore.loadDashboardData()
     ]);
   };
 
