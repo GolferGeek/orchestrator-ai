@@ -19,4 +19,3 @@
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonMenuButton } from '@ionic/vue';
 import PseudonymMappingViewer from '@/components/PII/PseudonymMappingViewer.vue';
 </script>
-</template>

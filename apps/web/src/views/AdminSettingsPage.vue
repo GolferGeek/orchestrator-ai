@@ -483,7 +483,7 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { usePrivacyDashboardStore } from '@/stores/privacyDashboardStore';
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
-import { usePiiPatternsStore } from '@/stores/piiPatternsStore';
+import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
 import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
 
@@ -494,7 +494,7 @@ const router = useRouter();
 // Initialize all stores for reactive data
 const privacyDashboardStore = usePrivacyDashboardStore();
 const llmUsageStore = useLlmUsageStore();
-const piiPatternsStore = usePiiPatternsStore();
+const piiPatternsStore = usePIIPatternsStore();
 const pseudonymDictionariesStore = usePseudonymDictionariesStore();
 const analyticsStore = useAnalyticsStore();
 
