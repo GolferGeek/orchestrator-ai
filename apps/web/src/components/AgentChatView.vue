@@ -21,6 +21,8 @@
         v-for="message in messages"
         :key="message.id"
         :message="message"
+        :conversationId="conversationId"
+        :agentName="currentAgent?.name"
       />
     </div>
     <!-- Input Area -->
@@ -57,7 +59,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue';
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
 import {
   IonIcon,
   IonButton,
@@ -70,6 +72,7 @@ import {
   sendOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
@@ -78,8 +81,9 @@ interface Props {
   conversation?: any; // The conversation object from the store
 }
 const props = defineProps<Props>();
-// Store
+// Stores
 const agentChatStore = useAgentChatStore();
+const privacyIndicatorsStore = usePrivacyIndicatorsStore();
 // Reactive state
 const messageText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
@@ -101,6 +105,10 @@ const isSendingMessage = computed(() =>
 );
 const canSend = computed(() => 
   messageText.value.trim().length > 0 && currentAgent.value && !isSendingMessage.value
+);
+
+const conversationId = computed(() => 
+  props.conversation?.id || agentChatStore.getActiveConversation()?.id
 );
 // Methods
 const sendMessage = async () => {
@@ -138,6 +146,44 @@ const scrollToBottom = async () => {
 // Watch for new messages to auto-scroll
 watch(() => messages.value.length, () => {
   scrollToBottom();
+});
+
+// Initialize privacy indicators store
+onMounted(async () => {
+  await privacyIndicatorsStore.initialize();
+  
+  // Set up conversation privacy settings if we have a conversation
+  if (conversationId.value) {
+    privacyIndicatorsStore.setConversationSettings(conversationId.value, {
+      enableRealTimeUpdates: true,
+      updateInterval: 2000,
+      compactMode: false,
+      position: 'inline'
+    });
+  }
+});
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (conversationId.value) {
+    privacyIndicatorsStore.stopConversationRealTimeUpdates(conversationId.value);
+  }
+});
+
+// Watch for conversation changes
+watch(() => conversationId.value, (newConversationId, oldConversationId) => {
+  if (oldConversationId) {
+    privacyIndicatorsStore.stopConversationRealTimeUpdates(oldConversationId);
+  }
+  
+  if (newConversationId) {
+    privacyIndicatorsStore.setConversationSettings(newConversationId, {
+      enableRealTimeUpdates: true,
+      updateInterval: 2000,
+      compactMode: false,
+      position: 'inline'
+    });
+  }
 });
 </script>
 <style scoped>

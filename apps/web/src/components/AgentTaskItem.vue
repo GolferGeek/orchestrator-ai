@@ -105,6 +105,25 @@
           </div>
         </div>
         
+        <!-- Privacy Indicators for assistant messages -->
+        <UserPrivacyIndicators
+          v-if="message.role === 'assistant' && showPrivacyIndicators"
+          :showDataProtection="privacySettings.showDataProtection"
+          :isDataProtected="privacyState?.isDataProtected || false"
+          :showSanitizationStatus="privacySettings.showSanitizationStatus"
+          :sanitizationStatus="privacyState?.sanitizationStatus || 'none'"
+          :piiDetectionCount="privacyState?.piiDetectionCount || 0"
+          :showRoutingDisplay="privacySettings.showRoutingDisplay"
+          :routingMode="privacyState?.routingMode || 'local'"
+          :showTrustSignal="privacySettings.showTrustSignal"
+          :trustLevel="privacyState?.trustLevel || 'medium'"
+          :trustScore="privacyState?.trustScore"
+          :showPiiCount="privacySettings.showPiiCount"
+          :showProcessingTime="privacySettings.showProcessingTime"
+          :processingTimeMs="privacyState?.processingTimeMs || 0"
+          :compact="privacySettings.compactMode"
+        />
+        
         <!-- Task timestamp -->
         <div class="task-timestamp">{{ formattedTimestamp }}</div>
         
@@ -161,7 +180,9 @@ import {
 import TaskRating from './TaskRating.vue';
 import TaskMetadataModal from './TaskMetadataModal.vue';
 import LLMInfo from './LLMInfo.vue';
+import UserPrivacyIndicators from './UserPrivacyIndicators.vue';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 
 export interface AgentTaskMessage {
   id: string;
@@ -189,6 +210,7 @@ const emit = defineEmits<{
 
 // Stores
 const deliverablesStore = useDeliverablesStore();
+const privacyIndicatorsStore = usePrivacyIndicatorsStore();
 
 // Reactive state
 const showMetadataModal = ref(false);
@@ -404,6 +426,42 @@ const workflowProgress = computed(() => {
   return Math.round((completed / total) * 100);
 });
 
+// Privacy indicators computed properties
+const privacyState = computed(() => {
+  return privacyIndicatorsStore.getMessagePrivacyState(props.message.id);
+});
+
+const privacySettings = computed(() => {
+  const defaultSettings = {
+    showDataProtection: true,
+    showSanitizationStatus: true,
+    showRoutingDisplay: true,
+    showTrustSignal: true,
+    showPiiCount: true,
+    showProcessingTime: false,
+    compactMode: false
+  };
+
+  if (!props.conversationId) return defaultSettings;
+  
+  const conversationSettings = privacyIndicatorsStore.getConversationSettings(props.conversationId);
+  return conversationSettings ? {
+    showDataProtection: conversationSettings.showDataProtection,
+    showSanitizationStatus: conversationSettings.showSanitizationStatus,
+    showRoutingDisplay: conversationSettings.showRoutingDisplay,
+    showTrustSignal: conversationSettings.showTrustSignal,
+    showPiiCount: conversationSettings.showPiiCount,
+    showProcessingTime: conversationSettings.showProcessingTime,
+    compactMode: conversationSettings.compactMode
+  } : defaultSettings;
+});
+
+const showPrivacyIndicators = computed(() => {
+  // Only show for assistant messages with metadata
+  return props.message.role === 'assistant' && 
+         (props.message.metadata || privacyState.value);
+});
+
 // Methods
 
 const handleCalloutClick = () => {
@@ -464,6 +522,14 @@ watch(() => hasBackendDeliverable.value, (newVal, oldVal) => {
 
   }
 }, { immediate: true });
+
+// Initialize privacy state for this message
+watch(() => props.message, (newMessage) => {
+  if (newMessage && newMessage.role === 'assistant' && newMessage.metadata) {
+    // Update privacy state from message metadata
+    privacyIndicatorsStore.updateMessagePrivacyFromSources(newMessage.id, newMessage);
+  }
+}, { immediate: true, deep: true });
 
 watch(() => backendDeliverable.value, (newVal, oldVal) => {
   if (newVal !== oldVal) {
