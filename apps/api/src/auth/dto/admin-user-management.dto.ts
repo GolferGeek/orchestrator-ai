@@ -4,10 +4,10 @@ import { UserRole } from '../decorators/roles.decorator';
 
 export class UserListResponseDto {
   @ApiProperty({ description: 'User ID' })
-  id: string;
+  id!: string;
 
   @ApiProperty({ description: 'User email address' })
-  email: string;
+  email!: string;
 
   @ApiProperty({ description: 'User display name', required: false })
   displayName?: string;
@@ -18,13 +18,13 @@ export class UserListResponseDto {
     isArray: true,
     example: [UserRole.USER, UserRole.ADMIN]
   })
-  roles: UserRole[];
+  roles!: UserRole[];
 
   @ApiProperty({ description: 'User creation timestamp' })
-  createdAt: string;
+  createdAt!: string;
 
   @ApiProperty({ description: 'User status' })
-  status: string;
+  status!: string;
 }
 
 export class UpdateUserRolesDto {
@@ -36,7 +36,7 @@ export class UpdateUserRolesDto {
   })
   @IsArray()
   @IsEnum(UserRole, { each: true })
-  roles: UserRole[];
+  roles!: UserRole[];
 
   @ApiProperty({ 
     description: 'Optional reason for role change',
@@ -55,7 +55,7 @@ export class AddUserRoleDto {
     example: UserRole.ADMIN
   })
   @IsEnum(UserRole)
-  role: UserRole;
+  role!: UserRole;
 
   @ApiProperty({ 
     description: 'Optional reason for adding role',
@@ -74,7 +74,7 @@ export class RemoveUserRoleDto {
     example: UserRole.ADMIN
   })
   @IsEnum(UserRole)
-  role: UserRole;
+  role!: UserRole;
 
   @ApiProperty({ 
     description: 'Optional reason for removing role',
@@ -92,7 +92,7 @@ export class CreateUserDto {
     example: 'newuser@example.com'
   })
   @IsEmail()
-  email: string;
+  email!: string;
 
   @ApiProperty({
     description: 'Temporary password (user should change on first login)',
@@ -101,7 +101,7 @@ export class CreateUserDto {
   })
   @IsString()
   @MinLength(8)
-  password: string;
+  password!: string;
 
   @ApiProperty({
     description: 'User display name',
@@ -135,10 +135,10 @@ export class CreateUserDto {
 
 export class CreateUserResponseDto {
   @ApiProperty({ description: 'Created user ID' })
-  id: string;
+  id!: string;
 
   @ApiProperty({ description: 'User email address' })
-  email: string;
+  email!: string;
 
   @ApiProperty({ description: 'User display name', required: false })
   displayName?: string;
@@ -148,11 +148,11 @@ export class CreateUserResponseDto {
     enum: UserRole,
     isArray: true
   })
-  roles: UserRole[];
+  roles!: UserRole[];
 
   @ApiProperty({ description: 'Whether email confirmation is required' })
-  emailConfirmationRequired: boolean;
+  emailConfirmationRequired!: boolean;
 
   @ApiProperty({ description: 'Success message' })
-  message: string;
+  message!: string;
 }

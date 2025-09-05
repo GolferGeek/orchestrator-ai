@@ -582,7 +582,7 @@ export class AuthService {
         message: 'User created successfully'
       };
     } catch (error) {
-      throw new Error(`Failed to create user: ${error.message}`);
+      throw new Error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -604,7 +604,7 @@ export class AuthService {
 
       return users || [];
     } catch (error) {
-      throw new Error(`Failed to get all users: ${error.message}`);
+      throw new Error(`Failed to get all users: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -631,7 +631,7 @@ export class AuthService {
 
       return user;
     } catch (error) {
-      throw new Error(`Failed to get user by ID: ${error.message}`);
+      throw new Error(`Failed to get user by ID: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }
