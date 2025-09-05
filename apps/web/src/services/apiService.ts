@@ -1,10 +1,11 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import axiosRetry from 'axios-retry';
 import { TaskResponse, AgentInfo } from '../types/chat';
 import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
 import { getSecureApiBaseUrl, getSecureHeaders, validateSecureContext, logSecurityConfig } from '../utils/securityConfig';
 import { useApiSanitization } from '@/composables/useApiSanitization';
 import { useErrorStore } from '@/stores/errorStore';
+import { trackAPI } from '../utils/performanceMonitor';
 
 // Validate security context on startup
 validateSecureContext();
@@ -58,11 +59,40 @@ class ApiService {
       }
     });
 
-    // Add response interceptor for error handling and automatic token refresh
+    // Add request interceptor for performance tracking
+    this.axiosInstance.interceptors.request.use(
+      (config) => {
+        // Add start time for performance tracking
+        config.metadata = { startTime: performance.now() };
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // Add response interceptor for error handling, automatic token refresh, and performance tracking
     this.axiosInstance.interceptors.response.use(
-      (response) => response,
+      (response: AxiosResponse) => {
+        // Track API performance
+        const config = response.config as any;
+        if (config.metadata?.startTime) {
+          const responseTime = performance.now() - config.metadata.startTime;
+          const endpoint = config.url || 'unknown';
+          const method = (config.method || 'GET').toUpperCase();
+          trackAPI(endpoint, method, responseTime, response.status);
+        }
+        return response;
+      },
       async (error) => {
         const originalRequest = error.config;
+        
+        // Track API performance for errors too
+        if (originalRequest.metadata?.startTime) {
+          const responseTime = performance.now() - originalRequest.metadata.startTime;
+          const endpoint = originalRequest.url || 'unknown';
+          const method = (originalRequest.method || 'GET').toUpperCase();
+          const status = error.response?.status || 0;
+          trackAPI(endpoint, method, responseTime, status);
+        }
         
         // Global API failure detection - log all API errors
         this.logApiFailure(error, originalRequest);
