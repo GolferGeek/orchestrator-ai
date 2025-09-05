@@ -550,6 +550,14 @@ const requestVolumeData = computed(() => {
 const requestVolumeOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  animation: {
+    duration: 750,
+    easing: 'easeInOutQuart'
+  },
+  interaction: {
+    intersect: false,
+    mode: 'index'
+  },
   plugins: {
     legend: {
       display: false
@@ -557,6 +565,19 @@ const requestVolumeOptions = computed(() => ({
     tooltip: {
       mode: 'index',
       intersect: false,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      titleColor: 'white',
+      bodyColor: 'white',
+      borderColor: 'rgba(75, 192, 192, 1)',
+      borderWidth: 1,
+      callbacks: {
+        title: (tooltipItems: any) => {
+          return `Date: ${tooltipItems[0].label}`;
+        },
+        label: (context: any) => {
+          return `Requests: ${context.parsed.y.toLocaleString()}`;
+        }
+      }
     }
   },
   scales: {
@@ -564,16 +585,40 @@ const requestVolumeOptions = computed(() => ({
       display: true,
       title: {
         display: true,
-        text: 'Time'
+        text: 'Time',
+        color: 'var(--ion-color-medium)',
+        font: {
+          size: 12,
+          weight: 'bold'
+        }
+      },
+      grid: {
+        color: 'rgba(128, 128, 128, 0.1)'
+      },
+      ticks: {
+        color: 'var(--ion-color-medium)',
+        maxTicksLimit: 8
       }
     },
     y: {
       display: true,
       title: {
         display: true,
-        text: 'Requests'
+        text: 'Requests',
+        color: 'var(--ion-color-medium)',
+        font: {
+          size: 12,
+          weight: 'bold'
+        }
       },
-      beginAtZero: true
+      beginAtZero: true,
+      grid: {
+        color: 'rgba(128, 128, 128, 0.1)'
+      },
+      ticks: {
+        color: 'var(--ion-color-medium)',
+        callback: (value: any) => value.toLocaleString()
+      }
     }
   }
 }));
@@ -632,20 +677,38 @@ const providerDistributionData = computed(() => {
 const providerDistributionOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  animation: {
+    animateRotate: true,
+    animateScale: true,
+    duration: 1000,
+    easing: 'easeInOutQuart'
+  },
   plugins: {
     legend: {
       position: 'bottom' as const,
       labels: {
         padding: 20,
-        usePointStyle: true
+        usePointStyle: true,
+        color: 'var(--ion-color-medium)',
+        font: {
+          size: 12,
+          weight: 'bold'
+        }
       }
     },
     tooltip: {
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      titleColor: 'white',
+      bodyColor: 'white',
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+      borderWidth: 1,
       callbacks: {
+        title: (tooltipItems: any) => `Provider: ${tooltipItems[0].label}`,
         label: (context: any) => {
           const label = context.label || '';
           const value = context.parsed || 0;
-          return `${label}: ${value}%`;
+          const count = Math.round(totalRequests.value * value / 100);
+          return `${label}: ${value}% (${count.toLocaleString()} requests)`;
         }
       }
     }
@@ -716,13 +779,23 @@ const responseTimeData = computed(() => {
 const responseTimeOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  animation: {
+    duration: 800,
+    easing: 'easeInOutQuart'
+  },
   plugins: {
     legend: {
       display: false
     },
     tooltip: {
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      titleColor: 'white',
+      bodyColor: 'white',
+      borderColor: 'rgba(54, 162, 235, 1)',
+      borderWidth: 1,
       callbacks: {
-        label: (context: any) => `${context.parsed.y}ms`
+        title: (tooltipItems: any) => `Provider: ${tooltipItems[0].label}`,
+        label: (context: any) => `Average Response Time: ${context.parsed.y}ms`
       }
     }
   },
@@ -731,16 +804,39 @@ const responseTimeOptions = computed(() => ({
       display: true,
       title: {
         display: true,
-        text: 'Provider'
+        text: 'Provider',
+        color: 'var(--ion-color-medium)',
+        font: {
+          size: 12,
+          weight: 'bold'
+        }
+      },
+      grid: {
+        color: 'rgba(128, 128, 128, 0.1)'
+      },
+      ticks: {
+        color: 'var(--ion-color-medium)'
       }
     },
     y: {
       display: true,
       title: {
         display: true,
-        text: 'Response Time (ms)'
+        text: 'Response Time (ms)',
+        color: 'var(--ion-color-medium)',
+        font: {
+          size: 12,
+          weight: 'bold'
+        }
       },
-      beginAtZero: true
+      beginAtZero: true,
+      grid: {
+        color: 'rgba(128, 128, 128, 0.1)'
+      },
+      ticks: {
+        color: 'var(--ion-color-medium)',
+        callback: (value: any) => `${value}ms`
+      }
     }
   }
 }));
@@ -783,13 +879,29 @@ const costTrendsData = computed(() => {
 const costTrendsOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  animation: {
+    duration: 750,
+    easing: 'easeInOutQuart'
+  },
+  interaction: {
+    intersect: false,
+    mode: 'index'
+  },
   plugins: {
     legend: {
       display: false
     },
     tooltip: {
+      mode: 'index',
+      intersect: false,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      titleColor: 'white',
+      bodyColor: 'white',
+      borderColor: 'rgba(255, 159, 64, 1)',
+      borderWidth: 1,
       callbacks: {
-        label: (context: any) => `$${context.parsed.y.toFixed(2)}`
+        title: (tooltipItems: any) => `Date: ${tooltipItems[0].label}`,
+        label: (context: any) => `Daily Cost: $${context.parsed.y.toFixed(2)}`
       }
     }
   },
@@ -798,17 +910,38 @@ const costTrendsOptions = computed(() => ({
       display: true,
       title: {
         display: true,
-        text: 'Day'
+        text: 'Day',
+        color: 'var(--ion-color-medium)',
+        font: {
+          size: 12,
+          weight: 'bold'
+        }
+      },
+      grid: {
+        color: 'rgba(128, 128, 128, 0.1)'
+      },
+      ticks: {
+        color: 'var(--ion-color-medium)',
+        maxTicksLimit: 8
       }
     },
     y: {
       display: true,
       title: {
         display: true,
-        text: 'Cost ($)'
+        text: 'Cost ($)',
+        color: 'var(--ion-color-medium)',
+        font: {
+          size: 12,
+          weight: 'bold'
+        }
       },
       beginAtZero: true,
+      grid: {
+        color: 'rgba(128, 128, 128, 0.1)'
+      },
       ticks: {
+        color: 'var(--ion-color-medium)',
         callback: function(value: any) {
           return '$' + value.toFixed(2);
         }
@@ -817,38 +950,90 @@ const costTrendsOptions = computed(() => ({
   }
 }));
 
-const sanitizationOverheadData = computed(() => ({
-  labels: ['Input Sanitization', 'Output Sanitization', 'PII Detection', 'Pseudonymization'],
-  datasets: [{
-    label: 'Processing Time (ms)',
-    data: [45, 32, 28, 18],
-    backgroundColor: [
-      'rgba(153, 102, 255, 0.8)',
-      'rgba(255, 159, 64, 0.8)',
-      'rgba(255, 99, 132, 0.8)',
-      'rgba(75, 192, 192, 0.8)'
-    ],
-    borderColor: [
-      'rgb(153, 102, 255)',
-      'rgb(255, 159, 64)',
-      'rgb(255, 99, 132)',
-      'rgb(75, 192, 192)'
-    ],
-    borderWidth: 2
-  }]
-}));
+const sanitizationOverheadData = computed(() => {
+  if (!usageRecords.value.length) {
+    return {
+      labels: ['No Data'],
+      datasets: [{
+        label: 'Processing Time (ms)',
+        data: [0],
+        backgroundColor: ['rgba(128, 128, 128, 0.8)'],
+        borderColor: ['rgb(128, 128, 128)'],
+        borderWidth: 2
+      }]
+    };
+  }
+
+  // Calculate average sanitization times from real usage data
+  const sanitizedRecords = usageRecords.value.filter(record => record.sanitization_time_ms > 0);
+  
+  if (sanitizedRecords.length === 0) {
+    return {
+      labels: ['No Sanitization Data'],
+      datasets: [{
+        label: 'Processing Time (ms)',
+        data: [0],
+        backgroundColor: ['rgba(128, 128, 128, 0.8)'],
+        borderColor: ['rgb(128, 128, 128)'],
+        borderWidth: 2
+      }]
+    };
+  }
+
+  // Calculate averages for different sanitization phases based on available data
+  const avgSanitizationTime = sanitizedRecords.reduce((sum, record) => sum + record.sanitization_time_ms, 0) / sanitizedRecords.length;
+  const avgPiiDetectionTime = avgSanitizationTime * 0.3; // Estimated 30% of total time
+  const avgPseudonymizationTime = avgSanitizationTime * 0.25; // Estimated 25% of total time
+  const avgRedactionTime = avgSanitizationTime * 0.45; // Remaining 45%
+
+  return {
+    labels: ['PII Detection', 'Pseudonymization', 'Redaction', 'Total Overhead'],
+    datasets: [{
+      label: 'Processing Time (ms)',
+      data: [
+        Math.round(avgPiiDetectionTime),
+        Math.round(avgPseudonymizationTime), 
+        Math.round(avgRedactionTime),
+        Math.round(avgSanitizationTime)
+      ],
+      backgroundColor: [
+        'rgba(153, 102, 255, 0.8)',
+        'rgba(255, 159, 64, 0.8)',
+        'rgba(255, 99, 132, 0.8)',
+        'rgba(75, 192, 192, 0.8)'
+      ],
+      borderColor: [
+        'rgb(153, 102, 255)',
+        'rgb(255, 159, 64)',
+        'rgb(255, 99, 132)',
+        'rgb(75, 192, 192)'
+      ],
+      borderWidth: 2
+    }]
+  };
+});
 
 const sanitizationOverheadOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   indexAxis: 'y' as const,
+  animation: {
+    duration: 800,
+    easing: 'easeInOutQuart'
+  },
   plugins: {
     legend: {
       display: false
     },
     tooltip: {
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      titleColor: 'white',
+      bodyColor: 'white',
+      borderColor: 'rgba(153, 102, 255, 1)',
+      borderWidth: 1,
       callbacks: {
-        label: (context: any) => `${context.parsed.x}ms`
+        title: (tooltipItems: any) => `Process: ${tooltipItems[0].label}`,
+        label: (context: any) => `Processing Time: ${context.parsed.x}ms`
       }
     }
   },
@@ -857,15 +1042,38 @@ const sanitizationOverheadOptions = computed(() => ({
       display: true,
       title: {
         display: true,
-        text: 'Processing Time (ms)'
+        text: 'Processing Time (ms)',
+        color: 'var(--ion-color-medium)',
+        font: {
+          size: 12,
+          weight: 'bold'
+        }
       },
-      beginAtZero: true
+      beginAtZero: true,
+      grid: {
+        color: 'rgba(128, 128, 128, 0.1)'
+      },
+      ticks: {
+        color: 'var(--ion-color-medium)',
+        callback: (value: any) => `${value}ms`
+      }
     },
     y: {
       display: true,
       title: {
         display: true,
-        text: 'Process'
+        text: 'Process',
+        color: 'var(--ion-color-medium)',
+        font: {
+          size: 12,
+          weight: 'bold'
+        }
+      },
+      grid: {
+        color: 'rgba(128, 128, 128, 0.1)'
+      },
+      ticks: {
+        color: 'var(--ion-color-medium)'
       }
     }
   }
