@@ -4,6 +4,7 @@ import { TaskResponse, AgentInfo } from '../types/chat';
 import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
 import { getSecureApiBaseUrl, getSecureHeaders, validateSecureContext, logSecurityConfig } from '../utils/securityConfig';
 import { useApiSanitization } from '@/composables/useApiSanitization';
+import { useErrorStore } from '@/stores/errorStore';
 
 // Validate security context on startup
 validateSecureContext();
@@ -25,6 +26,7 @@ interface JsonRpcResponse {
 class ApiService {
   private axiosInstance: AxiosInstance;
   private apiSanitization = useApiSanitization();
+  private errorStore = useErrorStore();
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -62,6 +64,9 @@ class ApiService {
       async (error) => {
         const originalRequest = error.config;
         
+        // Global API failure detection - log all API errors
+        this.logApiFailure(error, originalRequest);
+        
         // If error is 401 and we haven't already tried to refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
@@ -98,14 +103,201 @@ class ApiService {
             localStorage.removeItem('refreshToken');
             this.clearAuth();
             
-            // You might want to emit an event or call a global auth handler here
-            // For now, we'll just let the error propagate
+            // Log the refresh token failure as a critical error
+            this.logApiFailure(refreshError, { url: '/auth/refresh', method: 'POST' });
           }
         }
         
         return Promise.reject(error);
       }
     );
+  }
+
+  /**
+   * Global API failure detection and logging
+   */
+  private logApiFailure(error: any, requestConfig: any) {
+    try {
+      // Determine error type and severity
+      const errorType = this.determineErrorType(error);
+      const severity = this.determineErrorSeverity(error);
+      
+      // Create comprehensive error context
+      const context = {
+        url: requestConfig?.url || 'unknown',
+        method: requestConfig?.method?.toUpperCase() || 'unknown',
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data,
+        requestData: requestConfig?.data,
+        timeout: error.code === 'ECONNABORTED',
+        networkError: !error.response,
+        retryCount: requestConfig?._retryCount || 0,
+        timestamp: Date.now()
+      };
+
+      // Log to error store
+      const apiError = new Error(this.formatErrorMessage(error, context));
+      apiError.stack = error.stack;
+      apiError.name = 'ApiError';
+      
+      this.errorStore.addError(apiError, {
+        component: 'ApiService',
+        url: context.url,
+        additionalContext: {
+          ...context,
+          originalErrorType: errorType,
+          originalSeverity: severity
+        }
+      });
+
+      // Console logging for development
+      if (import.meta.env.DEV) {
+        console.group(`🚨 API Failure Detected [${severity.toUpperCase()}]`);
+        console.error('Error:', error.message);
+        console.log('Request:', context);
+        console.log('Full Error:', error);
+        console.groupEnd();
+      }
+
+      // Check for critical patterns that need immediate attention
+      this.checkForCriticalPatterns(error, context);
+
+    } catch (loggingError) {
+      console.error('Failed to log API failure:', loggingError);
+    }
+  }
+
+  /**
+   * Determine the type of error for categorization
+   */
+  private determineErrorType(error: any): 'network' | 'api' | 'permission' | 'validation' | 'unknown' {
+    if (!error.response) {
+      return 'network'; // Network/connection errors
+    }
+    
+    const status = error.response.status;
+    if (status === 401 || status === 403) {
+      return 'permission';
+    }
+    if (status >= 400 && status < 500) {
+      return 'validation'; // Client errors
+    }
+    if (status >= 500) {
+      return 'api'; // Server errors
+    }
+    
+    return 'unknown';
+  }
+
+  /**
+   * Determine error severity based on status and context
+   */
+  private determineErrorSeverity(error: any): 'low' | 'medium' | 'high' | 'critical' {
+    const status = error.response?.status;
+    
+    // Network errors are always high severity
+    if (!error.response) {
+      return 'high';
+    }
+    
+    // Critical server errors
+    if (status >= 500) {
+      return 'critical';
+    }
+    
+    // Auth errors are high priority
+    if (status === 401 || status === 403) {
+      return 'high';
+    }
+    
+    // Client errors are medium
+    if (status >= 400 && status < 500) {
+      return 'medium';
+    }
+    
+    return 'low';
+  }
+
+  /**
+   * Format a user-friendly error message
+   */
+  private formatErrorMessage(error: any, context: any): string {
+    const { status, method, url } = context;
+    
+    if (!error.response) {
+      return `Network connection failed for ${method} ${url}`;
+    }
+    
+    switch (status) {
+      case 401:
+        return 'Authentication required - please log in again';
+      case 403:
+        return 'Access denied - insufficient permissions';
+      case 404:
+        return `Resource not found: ${method} ${url}`;
+      case 429:
+        return 'Too many requests - please wait and try again';
+      case 500:
+        return 'Server error - our team has been notified';
+      case 502:
+      case 503:
+      case 504:
+        return 'Service temporarily unavailable - please try again';
+      default:
+        return `API request failed: ${method} ${url} (${status})`;
+    }
+  }
+
+  /**
+   * Check for patterns that indicate critical system issues
+   */
+  private checkForCriticalPatterns(error: any, context: any) {
+    // Pattern 1: Multiple 5xx errors in short time frame
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const recentServerErrors = this.errorStore.recentErrors
+      .filter((e: any) => e.timestamp > fiveMinutesAgo && e.context?.status >= 500);
+    
+    if (recentServerErrors.length >= 3) {
+      const outageError = new Error('Critical: Multiple server errors detected - possible system outage');
+      outageError.name = 'SystemOutageError';
+      this.errorStore.addError(outageError, {
+        component: 'ApiService',
+        additionalContext: { 
+          pattern: 'server_outage', 
+          errorCount: recentServerErrors.length,
+          severity: 'critical'
+        }
+      });
+    }
+
+    // Pattern 2: Network connectivity issues
+    if (!error.response && context.retryCount >= 2) {
+      const networkError = new Error('Critical: Persistent network connectivity issues detected');
+      networkError.name = 'NetworkOutageError';
+      this.errorStore.addError(networkError, {
+        component: 'ApiService',
+        additionalContext: { 
+          pattern: 'network_outage', 
+          retryCount: context.retryCount,
+          severity: 'critical'
+        }
+      });
+    }
+
+    // Pattern 3: Auth system failures
+    if (context.status === 401 && context.url.includes('/auth/')) {
+      const authError = new Error('Critical: Authentication system failure detected');
+      authError.name = 'AuthSystemFailureError';
+      this.errorStore.addError(authError, {
+        component: 'ApiService',
+        url: context.url,
+        additionalContext: { 
+          pattern: 'auth_system_failure',
+          severity: 'critical'
+        }
+      });
+    }
   }
 
   /**
