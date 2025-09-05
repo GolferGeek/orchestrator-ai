@@ -79,9 +79,11 @@
       </div>
     </div>
 
-    <div class="diagram-content">
-      <!-- SVG Flow Diagram -->
-      <div class="flow-svg-container">
+    <ion-grid>
+      <ion-row>
+        <ion-col size="12" size-lg="8">
+          <!-- SVG Flow Diagram -->
+          <div class="flow-svg-container">
         <svg 
           ref="flowSvg"
           :viewBox="`0 0 ${svgWidth} ${svgHeight}`"
@@ -253,10 +255,11 @@
             </g>
           </g>
         </svg>
-      </div>
-
-      <!-- Flow Details Panel -->
-      <div class="flow-details">
+          </div>
+        </ion-col>
+        <ion-col size="12" size-lg="4">
+          <!-- Flow Details Panel -->
+          <div class="flow-details">
         <div class="current-step-info">
           <h4>Current Step: {{ currentStepData?.title || 'Ready to Start' }}</h4>
           <p v-if="currentStepData?.description">{{ currentStepData.description }}</p>
@@ -297,8 +300,10 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
+          </div>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
 
     <!-- Progress Indicator -->
     <div class="flow-progress">
@@ -1022,12 +1027,7 @@ watch(() => props.requestData, (newData) => {
   gap: 0.5rem;
 }
 
-.diagram-content {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 2rem;
-  margin-bottom: 1.5rem;
-}
+/* Removed: Using Ionic grid instead */
 
 .flow-svg-container {
   background: #f8f9fa;
@@ -1316,10 +1316,7 @@ watch(() => props.requestData, (newData) => {
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-  .diagram-content {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
+  /* Responsive handled by Ionic grid */
   
   .diagram-header {
     flex-direction: column;

@@ -281,8 +281,10 @@
                   <ion-icon :icon="alertCircleOutline" color="danger"></ion-icon>
                   <ion-note color="danger">{{ error }}</ion-note>
                 </div>
-                <div v-else class="health-indicators">
-                  <div class="health-indicator">
+                <ion-grid v-else>
+                  <ion-row>
+                    <ion-col size="12" size-md="6">
+                      <div class="health-indicator">
                     <div class="health-icon" :class="getHealthStatusClass(systemHealth?.apiStatus)">
                       <ion-icon :icon="serverOutline" :color="getHealthColor(systemHealth?.apiStatus)"></ion-icon>
                     </div>
@@ -294,11 +296,12 @@
                         </ion-badge>
                       </div>
                     </div>
-                  </div>
-
-                  <div class="health-indicator">
-                    <div class="health-icon" :class="getHealthStatusClass(systemHealth?.dbStatus)">
-                      <ion-icon :icon="serverOutline" :color="getHealthColor(systemHealth?.dbStatus)"></ion-icon>
+                      </div>
+                    </ion-col>
+                    <ion-col size="12" size-md="6">
+                      <div class="health-indicator">
+                        <div class="health-icon" :class="getHealthStatusClass(systemHealth?.dbStatus)">
+                          <ion-icon :icon="serverOutline" :color="getHealthColor(systemHealth?.dbStatus)"></ion-icon>
                     </div>
                     <div class="health-info">
                       <div class="health-label">Database</div>
@@ -308,11 +311,14 @@
                         </ion-badge>
                       </div>
                     </div>
-                  </div>
-
-                  <div class="health-indicator">
-                    <div class="health-icon" :class="getUptimeStatusClass()">
-                      <ion-icon :icon="flashOutline" :color="getUptimeColor()"></ion-icon>
+                      </div>
+                    </ion-col>
+                  </ion-row>
+                  <ion-row>
+                    <ion-col size="12" size-md="6">
+                      <div class="health-indicator">
+                        <div class="health-icon" :class="getUptimeStatusClass()">
+                          <ion-icon :icon="flashOutline" :color="getUptimeColor()"></ion-icon>
                     </div>
                     <div class="health-info">
                       <div class="health-label">System Uptime</div>
@@ -321,20 +327,23 @@
                         <ion-badge :color="getUptimeColor()">{{ systemHealth?.uptimeStatus || 'unknown' }}</ion-badge>
                       </div>
                     </div>
-                  </div>
-
-                  <div class="health-indicator">
-                    <div class="health-icon healthy">
-                      <ion-icon :icon="checkmarkCircleOutline" color="success"></ion-icon>
-                    </div>
-                    <div class="health-info">
-                      <div class="health-label">Last Check</div>
-                      <div class="health-value">
-                        <ion-note>{{ formatTime(systemHealth?.lastHealthCheck || new Date()) }}</ion-note>
                       </div>
-                    </div>
-                  </div>
-                </div>
+                    </ion-col>
+                    <ion-col size="12" size-md="6">
+                      <div class="health-indicator">
+                        <div class="health-icon healthy">
+                          <ion-icon :icon="checkmarkCircleOutline" color="success"></ion-icon>
+                        </div>
+                        <div class="health-info">
+                          <div class="health-label">Last Check</div>
+                          <div class="health-value">
+                            <ion-note>{{ formatTime(systemHealth?.lastHealthCheck || new Date()) }}</ion-note>
+                          </div>
+                        </div>
+                      </div>
+                    </ion-col>
+                  </ion-row>
+                </ion-grid>
               </ion-card-content>
             </ion-card>
           </ion-col>
@@ -358,8 +367,10 @@
                   <ion-icon :icon="alertCircleOutline" color="danger"></ion-icon>
                   <ion-note color="danger">{{ error }}</ion-note>
                 </div>
-                <div v-else class="cost-indicators">
-                  <div class="cost-indicator">
+                <ion-grid v-else>
+                  <ion-row>
+                    <ion-col size="12" size-md="6">
+                      <div class="cost-indicator">
                     <div class="cost-icon">
                       <ion-icon :icon="cashOutline" color="success" size="large"></ion-icon>
                     </div>
@@ -371,11 +382,12 @@
                         <span>{{ metrics?.costSavingsTrend === 'up' ? 'Increasing' : 'Decreasing' }}</span>
                       </div>
                     </div>
-                  </div>
-
-                  <div class="cost-indicator">
-                    <div class="cost-icon">
-                      <ion-icon :icon="speedometerOutline" color="primary" size="large"></ion-icon>
+                      </div>
+                    </ion-col>
+                    <ion-col size="12" size-md="6">
+                      <div class="cost-indicator">
+                        <div class="cost-icon">
+                          <ion-icon :icon="speedometerOutline" color="primary" size="large"></ion-icon>
                     </div>
                     <div class="cost-info">
                       <div class="cost-label">Avg Processing Time</div>
@@ -385,11 +397,14 @@
                         <span>{{ metrics?.processingTimeTrend === 'down' ? 'Improving' : 'Degrading' }}</span>
                       </div>
                     </div>
-                  </div>
-
-                  <div class="cost-indicator">
-                    <div class="cost-icon">
-                      <ion-icon :icon="walletOutline" color="tertiary" size="large"></ion-icon>
+                      </div>
+                    </ion-col>
+                  </ion-row>
+                  <ion-row>
+                    <ion-col size="12" size-md="6">
+                      <div class="cost-indicator">
+                        <div class="cost-icon">
+                          <ion-icon :icon="walletOutline" color="tertiary" size="large"></ion-icon>
                     </div>
                     <div class="cost-info">
                       <div class="cost-label">Cost per Detection</div>
@@ -400,21 +415,24 @@
                         <ion-note>Based on {{ formatNumber(metrics?.totalPIIDetections || 0) }} detections</ion-note>
                       </div>
                     </div>
-                  </div>
-
-                  <div class="cost-indicator">
-                    <div class="cost-icon">
-                      <ion-icon :icon="trendingUpOutline" color="success" size="large"></ion-icon>
-                    </div>
-                    <div class="cost-info">
-                      <div class="cost-label">ROI Estimate</div>
-                      <div class="cost-value">{{ calculateROI() }}%</div>
-                      <div class="cost-description">
-                        <ion-note>Return on privacy investment</ion-note>
                       </div>
-                    </div>
-                  </div>
-                </div>
+                    </ion-col>
+                    <ion-col size="12" size-md="6">
+                      <div class="cost-indicator">
+                        <div class="cost-icon">
+                          <ion-icon :icon="trendingUpOutline" color="success" size="large"></ion-icon>
+                        </div>
+                        <div class="cost-info">
+                          <div class="cost-label">ROI Estimate</div>
+                          <div class="cost-value">{{ calculateROI() }}%</div>
+                          <div class="cost-description">
+                            <ion-note>Return on privacy investment</ion-note>
+                          </div>
+                        </div>
+                      </div>
+                    </ion-col>
+                  </ion-row>
+                </ion-grid>
               </ion-card-content>
             </ion-card>
           </ion-col>
@@ -880,11 +898,7 @@ onUnmounted(() => {
   box-shadow: var(--ion-box-shadow);
 }
 
-.health-indicators, .cost-indicators {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+/* Removed: Using Ionic grid instead */
 
 .health-indicator, .cost-indicator {
   display: flex;
@@ -993,24 +1007,7 @@ onUnmounted(() => {
   font-size: 2em;
 }
 
-/* Responsive adjustments for health and cost indicators */
-@media (min-width: 768px) {
-  .health-indicators, .cost-indicators {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .health-indicators {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .cost-indicators {
-    grid-template-columns: 1fr 1fr;
-  }
-}
+/* Responsive handled by Ionic grid */
 
 .pattern-list {
   display: flex;

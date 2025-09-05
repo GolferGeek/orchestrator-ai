@@ -126,10 +126,12 @@
             </ion-card-header>
             
             <ion-card-content>
-              <div class="settings-grid">
-                <!-- PII Detection Settings -->
-                <div class="setting-group">
-                  <h3>PII Detection & Sanitization</h3>
+              <ion-grid>
+                <ion-row>
+                  <ion-col size="12" size-lg="6">
+                    <!-- PII Detection Settings -->
+                    <div class="setting-group">
+                      <h3>PII Detection & Sanitization</h3>
                   
                   <ion-item>
                     <ion-label>
@@ -184,11 +186,12 @@
                       <ion-select-option value="strict">Strict</ion-select-option>
                     </ion-select>
                   </ion-item>
-                </div>
-
-                <!-- Data Classification Settings -->
-                <div class="setting-group">
-                  <h3>Data Classification</h3>
+                    </div>
+                  </ion-col>
+                  <ion-col size="12" size-lg="6">
+                    <!-- Data Classification Settings -->
+                    <div class="setting-group">
+                      <h3>Data Classification</h3>
                   
                   <ion-item>
                     <ion-label>
@@ -219,11 +222,14 @@
                       <ion-select-option value="restricted">Restricted</ion-select-option>
                     </ion-select>
                   </ion-item>
-                </div>
-
-                <!-- Compliance Settings -->
-                <div class="setting-group">
-                  <h3>Compliance & Regulations</h3>
+                    </div>
+                  </ion-col>
+                </ion-row>
+                <ion-row>
+                  <ion-col size="12" size-lg="6">
+                    <!-- Compliance Settings -->
+                    <div class="setting-group">
+                      <h3>Compliance & Regulations</h3>
                   
                   <ion-item>
                     <ion-label>
@@ -260,11 +266,12 @@
                       :disabled="isUpdating"
                     />
                   </ion-item>
-                </div>
-
-                <!-- Source Protection Settings -->
-                <div class="setting-group">
-                  <h3>Source Protection</h3>
+                    </div>
+                  </ion-col>
+                  <ion-col size="12" size-lg="6">
+                    <!-- Source Protection Settings -->
+                    <div class="setting-group">
+                      <h3>Source Protection</h3>
                   
                   <ion-item>
                     <ion-label>
@@ -301,8 +308,10 @@
                       :disabled="isUpdating"
                     />
                   </ion-item>
-                </div>
-              </div>
+                    </div>
+                  </ion-col>
+                </ion-row>
+              </ion-grid>
             </ion-card-content>
           </ion-card>
         </div>
@@ -321,9 +330,11 @@
             </ion-card-header>
             
             <ion-card-content>
-              <div class="settings-grid">
-                <div class="setting-group">
-                  <h3>Audit Logging</h3>
+              <ion-grid>
+                <ion-row>
+                  <ion-col size="12" size-lg="6">
+                    <div class="setting-group">
+                      <h3>Audit Logging</h3>
                   
                   <ion-item>
                     <ion-label>
@@ -375,8 +386,10 @@
                       :disabled="isUpdating"
                     />
                   </ion-item>
-                </div>
-              </div>
+                    </div>
+                  </ion-col>
+                </ion-row>
+              </ion-grid>
             </ion-card-content>
           </ion-card>
         </div>
@@ -390,8 +403,10 @@
           
           <ion-card>
             <ion-card-content>
-              <div class="status-grid">
-                <div class="status-item">
+              <ion-grid>
+                <ion-row>
+                  <ion-col size="12" size-md="6" size-lg="3">
+                    <div class="status-item">
                   <div class="status-icon" :class="{ 'status-healthy': systemHealth.healthy }">
                     <ion-icon :icon="systemHealth.healthy ? checkmarkCircleOutline : alertCircleOutline" />
                   </div>
@@ -399,38 +414,43 @@
                     <h3>System Health</h3>
                     <p>{{ systemHealth.healthy ? 'All systems operational' : 'Issues detected' }}</p>
                   </div>
-                </div>
-                
-                <div class="status-item">
-                  <div class="status-icon status-info">
-                    <ion-icon :icon="peopleOutline" />
+                    </div>
+                  </ion-col>
+                  <ion-col size="12" size-md="6" size-lg="3">
+                    <div class="status-item">
+                      <div class="status-icon status-info">
+                        <ion-icon :icon="peopleOutline" />
                   </div>
                   <div class="status-info">
                     <h3>Active Users</h3>
                     <p>{{ systemStats.activeUsers }} users online</p>
                   </div>
-                </div>
-                
-                <div class="status-item">
-                  <div class="status-icon status-info">
-                    <ion-icon :icon="chatbubblesOutline" />
+                    </div>
+                  </ion-col>
+                  <ion-col size="12" size-md="6" size-lg="3">
+                    <div class="status-item">
+                      <div class="status-icon status-info">
+                        <ion-icon :icon="chatbubblesOutline" />
                   </div>
                   <div class="status-info">
                     <h3>Daily Conversations</h3>
                     <p>{{ systemStats.dailyConversations }} conversations today</p>
                   </div>
-                </div>
-                
-                <div class="status-item">
-                  <div class="status-icon status-success">
-                    <ion-icon :icon="shieldCheckmarkOutline" />
-                  </div>
-                  <div class="status-info">
-                    <h3>Privacy Protection Rate</h3>
-                    <p>{{ systemStats.privacyProtectionRate }}% of data protected</p>
-                  </div>
-                </div>
-              </div>
+                    </div>
+                  </ion-col>
+                  <ion-col size="12" size-md="6" size-lg="3">
+                    <div class="status-item">
+                      <div class="status-icon status-success">
+                        <ion-icon :icon="shieldCheckmarkOutline" />
+                      </div>
+                      <div class="status-info">
+                        <h3>Privacy Protection Rate</h3>
+                        <p>{{ systemStats.privacyProtectionRate }}% of data protected</p>
+                      </div>
+                    </div>
+                  </ion-col>
+                </ion-row>
+              </ion-grid>
             </ion-card-content>
           </ion-card>
         </div>
@@ -771,10 +791,7 @@ onMounted(async () => {
   margin-bottom: 1rem;
 }
 
-.settings-grid {
-  display: grid;
-  gap: 2rem;
-}
+/* Removed: Using Ionic grid instead */
 
 .setting-group {
   border: 1px solid var(--ion-color-light);
@@ -789,11 +806,7 @@ onMounted(async () => {
   font-size: 1.1rem;
 }
 
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-}
+/* Removed: Using Ionic grid instead */
 
 .status-item {
   display: flex;
@@ -862,13 +875,7 @@ onMounted(async () => {
     padding: 0.5rem;
   }
   
-  .settings-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .status-grid {
-    grid-template-columns: 1fr;
-  }
+  /* Responsive handled by Ionic grid */
   
   .setting-group {
     padding: 1rem;
