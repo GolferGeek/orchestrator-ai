@@ -512,32 +512,94 @@
             </ion-card>
             
             <div class="reversibility-flow">
-              <div class="flow-step">
+              <div class="flow-step" :class="{ active: demoStep >= 1 }">
                 <div class="step-number">1</div>
                 <div class="step-content">
                   <h4>Pseudonym Input</h4>
                   <ion-chip color="secondary">{{ selectedMapping.pseudonym }}</ion-chip>
+                  <p class="step-description">The pseudonym to be reversed</p>
                 </div>
               </div>
               
-              <ion-icon :icon="arrowForwardOutline" class="flow-arrow" />
+              <ion-icon :icon="arrowForwardOutline" class="flow-arrow" :class="{ active: demoStep >= 2 }" />
               
-              <div class="flow-step">
+              <div class="flow-step" :class="{ active: demoStep >= 2, processing: demoStep === 2 && demoProcessing }">
                 <div class="step-number">2</div>
                 <div class="step-content">
                   <h4>Lookup Process</h4>
-                  <p>Secure hash lookup in mapping database</p>
+                  <div v-if="demoProcessing && demoStep === 2" class="processing-indicator">
+                    <ion-spinner name="crescent" />
+                    <p>Performing secure hash lookup...</p>
+                  </div>
+                  <div v-else>
+                    <p>Secure hash lookup in mapping database</p>
+                    <p class="step-description">Hash: {{ selectedMapping.originalHash.substring(0, 12) }}...</p>
+                  </div>
                 </div>
               </div>
               
-              <ion-icon :icon="arrowForwardOutline" class="flow-arrow" />
+              <ion-icon :icon="arrowForwardOutline" class="flow-arrow" :class="{ active: demoStep >= 3 }" />
               
-              <div class="flow-step">
+              <div class="flow-step" :class="{ active: demoStep >= 3 }">
                 <div class="step-number">3</div>
                 <div class="step-content">
-                  <h4>Result (Demo)</h4>
-                  <ion-chip color="success">[DEMO: Original Value]</ion-chip>
-                  <p class="demo-note">Actual value never displayed in production</p>
+                  <h4>Authorized Result</h4>
+                  <div v-if="demoStep >= 3 && !demoProcessing">
+                    <ion-chip color="success">{{ generateDemoValue(selectedMapping) }}</ion-chip>
+                    <p class="demo-note">Demo value - actual PII never stored or displayed</p>
+                    <div class="security-notice">
+                      <ion-icon :icon="shieldCheckmarkOutline" color="primary" />
+                      <span>Requires admin authorization & audit logging</span>
+                    </div>
+                  </div>
+                  <div v-else-if="demoStep < 3">
+                    <ion-chip color="medium" fill="outline">[Pending Authorization]</ion-chip>
+                    <p class="demo-note">Result available after secure lookup</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="demo-controls">
+              <ion-button 
+                @click="startReversibilityDemo" 
+                :disabled="demoProcessing"
+                color="primary"
+                fill="outline"
+              >
+                <ion-icon :icon="playOutline" slot="start" />
+                {{ demoStep === 0 ? 'Start Demo' : 'Restart Demo' }}
+              </ion-button>
+              
+              <ion-button 
+                @click="resetDemo" 
+                :disabled="demoProcessing || demoStep === 0"
+                color="medium"
+                fill="clear"
+              >
+                <ion-icon :icon="refreshOutline" slot="start" />
+                Reset
+              </ion-button>
+            </div>
+
+            <div class="security-requirements" v-if="demoStep >= 3">
+              <h4>Production Security Requirements</h4>
+              <div class="requirement-list">
+                <div class="requirement-item">
+                  <ion-icon :icon="personOutline" color="primary" />
+                  <span>Admin-level authorization required</span>
+                </div>
+                <div class="requirement-item">
+                  <ion-icon :icon="documentTextOutline" color="primary" />
+                  <span>All reversals logged with audit trail</span>
+                </div>
+                <div class="requirement-item">
+                  <ion-icon :icon="timeOutline" color="primary" />
+                  <span>Time-limited access with expiration</span>
+                </div>
+                <div class="requirement-item">
+                  <ion-icon :icon="lockClosedOutline" color="primary" />
+                  <span>Encrypted transmission and storage</span>
                 </div>
               </div>
             </div>
@@ -625,7 +687,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import {
   IonButton,
   IonButtons,
@@ -679,7 +741,10 @@ import {
   trendingUpOutline,
   timeOutline,
   sparklesOutline,
-  pulseOutline
+  pulseOutline,
+  playOutline,
+  shieldCheckmarkOutline,
+  lockClosedOutline
 } from 'ionicons/icons';
 
 import { PseudonymMapping, PIIDataType } from '@/types/pii';
@@ -703,6 +768,10 @@ const showReversibilityDemo = ref(false);
 const reversibilityModalOpen = ref(false);
 const detailsModalOpen = ref(false);
 const selectedMapping = ref<PseudonymMapping | null>(null);
+
+// Reversibility demo state
+const demoStep = ref(0); // 0: not started, 1: input shown, 2: processing, 3: result shown
+const demoProcessing = ref(false);
 
 // Computed properties using store data
 const availableDataTypes = computed(() => mappingsStore.availableDataTypes);
@@ -1037,6 +1106,57 @@ const getHeatmapIntensity = (usage: number): string => {
   if (usage <= 10) return 'high';
   return 'very-high';
 };
+
+// Reversibility demo methods
+const generateDemoValue = (mapping: PseudonymMapping): string => {
+  // Generate a realistic demo value based on the data type
+  const demoValues: Record<PIIDataType, string[]> = {
+    email: ['demo.user@example.com', 'sample.person@test.org', 'placeholder@demo.net'],
+    phone: ['(555) 123-4567', '(555) 987-6543', '(555) 246-8135'],
+    name: ['Demo Person', 'Sample User', 'Test Individual'],
+    address: ['123 Demo St, Sample City', '456 Test Ave, Example Town', '789 Mock Rd, Placeholder City'],
+    ip_address: ['192.168.1.100', '10.0.0.50', '172.16.0.25'],
+    username: ['demo_user', 'sample_person', 'test_individual'],
+    credit_card: ['**** **** **** 1234', '**** **** **** 5678', '**** **** **** 9012'],
+    ssn: ['***-**-1234', '***-**-5678', '***-**-9012'],
+    custom: ['Demo Value', 'Sample Data', 'Test Content']
+  };
+
+  const values = demoValues[mapping.dataType] || demoValues.custom;
+  // Use a consistent hash-based selection to always show the same demo value for the same mapping
+  const index = Math.abs(mapping.originalHash.charCodeAt(0)) % values.length;
+  return values[index];
+};
+
+const startReversibilityDemo = async () => {
+  if (!selectedMapping.value) return;
+  
+  demoProcessing.value = true;
+  demoStep.value = 1;
+  
+  // Step 1: Show input (immediate)
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Step 2: Processing phase
+  demoStep.value = 2;
+  await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
+  
+  // Step 3: Show result
+  demoStep.value = 3;
+  demoProcessing.value = false;
+};
+
+const resetDemo = () => {
+  demoStep.value = 0;
+  demoProcessing.value = false;
+};
+
+// Watch for modal changes to reset demo
+watch(reversibilityModalOpen, (isOpen) => {
+  if (isOpen) {
+    resetDemo(); // Reset demo when modal opens
+  }
+});
 
 // Initialize component
 onMounted(async () => {
@@ -1374,6 +1494,93 @@ onMounted(async () => {
 .flow-arrow {
   font-size: 1.5rem;
   color: var(--ion-color-medium);
+  transition: color 0.3s ease;
+}
+
+.flow-arrow.active {
+  color: var(--ion-color-primary);
+}
+
+.flow-step {
+  transition: all 0.3s ease;
+  opacity: 0.5;
+}
+
+.flow-step.active {
+  opacity: 1;
+}
+
+.flow-step.processing {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.processing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ion-color-primary);
+}
+
+.step-description {
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+  margin-top: 0.25rem;
+}
+
+.demo-controls {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ion-color-light-shade);
+}
+
+.security-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--ion-color-primary);
+}
+
+.security-requirements {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: var(--ion-color-light-tint);
+  border-radius: 8px;
+  border-left: 4px solid var(--ion-color-primary);
+}
+
+.security-requirements h4 {
+  margin: 0 0 1rem 0;
+  color: var(--ion-color-primary);
+  font-size: 1rem;
+}
+
+.requirement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.requirement-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--ion-color-dark);
+}
+
+.requirement-item ion-icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
 }
 
 /* Mapping Details Styles */
@@ -1743,6 +1950,24 @@ onMounted(async () => {
 
   .heatmap-cell {
     font-size: 0.6rem;
+  }
+
+  /* Responsive demo controls */
+  .demo-controls {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .security-requirements {
+    padding: 0.75rem;
+  }
+
+  .requirement-list {
+    gap: 0.5rem;
+  }
+
+  .requirement-item {
+    font-size: 0.8rem;
   }
 }
 </style>

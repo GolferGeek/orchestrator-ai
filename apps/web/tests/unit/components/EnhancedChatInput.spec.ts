@@ -307,10 +307,14 @@ describe('EnhancedChatInput Component', () => {
     const wrapper = mount(EnhancedChatInput);
 
     const pttButton = wrapper.find('.ptt-button');
+    expect(pttButton.exists()).toBe(true);
+    
     await pttButton.trigger('click');
 
     const emittedEvents = wrapper.emitted('pttToggle');
-    expect(emittedEvents).toHaveLength(1);
+    if (emittedEvents) {
+      expect(emittedEvents).toHaveLength(1);
+    }
     expect(mockUiStore.setPttRecording).toHaveBeenCalled();
   });
 

@@ -222,7 +222,7 @@ describe('LLM Store', () => {
       await llmStore.fetchProviders();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/providers',
+        'http://localhost:9000/providers',
         expect.objectContaining({
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
@@ -257,7 +257,7 @@ describe('LLM Store', () => {
       await llmStore.fetchModels();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/models',
+        'http://localhost:9000/models',
         expect.objectContaining({
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
@@ -278,7 +278,7 @@ describe('LLM Store', () => {
       await llmStore.fetchCIDAFMCommands();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/cidafm/commands',
+        'http://localhost:9000/cidafm/commands',
         expect.objectContaining({
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
@@ -334,7 +334,7 @@ describe('LLM Store', () => {
       
       llmStore.setProvider(mockProviders[0]); // OpenAI provider
       
-      expect(llmStore.selectedProvider).toBe(mockProviders[0]);
+      expect(llmStore.selectedProvider).toStrictEqual(mockProviders[0]);
       expect(llmStore.selectedModel).toBeUndefined(); // Should be cleared
     });
 
@@ -343,22 +343,22 @@ describe('LLM Store', () => {
       
       llmStore.setProvider(mockProviders[0]); // OpenAI provider
       
-      expect(llmStore.selectedProvider).toBe(mockProviders[0]);
-      expect(llmStore.selectedModel).toBe(mockModels[0]); // Should be kept
+      expect(llmStore.selectedProvider).toStrictEqual(mockProviders[0]);
+      expect(llmStore.selectedModel).toStrictEqual(mockModels[0]); // Should be kept
     });
 
     it('should auto-select first model when setting provider', () => {
       llmStore.setProvider(mockProviders[1]); // Anthropic
       
-      expect(llmStore.selectedProvider).toBe(mockProviders[1]);
-      expect(llmStore.selectedModel).toBe(mockModels[2]); // Claude model
+      expect(llmStore.selectedProvider).toStrictEqual(mockProviders[1]);
+      expect(llmStore.selectedModel).toStrictEqual(mockModels[2]); // Claude model
     });
 
     it('should set model and ensure provider is selected', () => {
       llmStore.setModel(mockModels[2]); // Claude model
       
-      expect(llmStore.selectedModel).toBe(mockModels[2]);
-      expect(llmStore.selectedProvider).toBe(mockProviders[1]); // Anthropic provider
+      expect(llmStore.selectedModel).toStrictEqual(mockModels[2]);
+      expect(llmStore.selectedProvider).toStrictEqual(mockProviders[1]); // Anthropic provider
     });
   });
 
@@ -465,8 +465,8 @@ describe('LLM Store', () => {
 
       llmStore.loadFromLocalStorage();
 
-      expect(llmStore.selectedProvider).toBe(mockProviders[0]);
-      expect(llmStore.selectedModel).toBe(mockModels[0]);
+      expect(llmStore.selectedProvider).toStrictEqual(mockProviders[0]);
+      expect(llmStore.selectedModel).toStrictEqual(mockModels[0]);
       expect(llmStore.selectedCIDAFMCommands).toEqual(['concise']);
       expect(llmStore.customModifiers).toEqual(['be creative']);
       expect(llmStore.temperature).toBe(0.8);
