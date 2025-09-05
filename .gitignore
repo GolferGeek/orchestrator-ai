@@ -44,6 +44,5 @@ apps/web/dist/
 # Environment variables
 .env
 
-# Task files
-# tasks.json
-# tasks/ 
+# TaskMaster files - exclude from Git
+.taskmaster/ 
