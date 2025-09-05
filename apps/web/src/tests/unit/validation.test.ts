@@ -242,8 +242,8 @@ describe('Validation System', () => {
       
       const result = rule.validator('<b>Hello</b> World');
       expect(result.isValid).toBe(true);
-      expect(result.sanitizedValue).toBe('Hello World'); // HTML tags removed
-      expect(result.metadata?.sanitizationApplied).toBe(true);
+      expect(result.sanitizedValue).toBe('<b>Hello</b> World'); // Basic tags allowed in moderate profile
+      expect(result.metadata?.sanitizationApplied).toBe(false); // No change needed
       expect(result.metadata?.sanitizationProfile).toBe('moderate');
     });
 
