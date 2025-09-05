@@ -153,7 +153,8 @@ function navigateToApp() {
   }
   .nav-link {
     font-size: 0.8rem;
-    padding: 0.25rem;
+    padding: 0.75rem; /* Better touch target padding */
+    min-height: 2.75rem; /* 44px minimum touch target */
   }
   .nav-link span {
     display: none;

@@ -778,8 +778,8 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 2.75rem; /* 44px minimum touch target */
+  height: 2.75rem;
   background: transparent;
   border: 1px solid var(--border-color, #e1e5e9);
   border-radius: 6px;
@@ -830,8 +830,9 @@ export default defineComponent({
 .tab-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem; /* Better touch target padding */
+  min-height: 2.75rem; /* 44px minimum touch target */
   background: transparent;
   border: none;
   cursor: pointer;
@@ -1179,8 +1180,9 @@ export default defineComponent({
 .action-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem; /* Better touch target padding */
+  min-height: 2.75rem; /* 44px minimum touch target */
   background: var(--primary-color, #3b82f6);
   color: white;
   border: none;
@@ -1261,8 +1263,8 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 2.75rem; /* 44px minimum touch target */
+  height: 2.75rem;
   background: transparent;
   border: none;
   cursor: pointer;

@@ -104,7 +104,7 @@ const closeModal = () => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 40px;
+  min-height: 2.75rem; /* 44px minimum touch target */
 }
 .compact-display:hover {
   background: var(--ion-color-step-100);

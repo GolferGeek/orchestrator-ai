@@ -1030,9 +1030,15 @@ watch(() => props.deliverable?.id, async () => {
 .header-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 0.5rem; /* Better spacing for touch targets */
   align-items: center;
   justify-content: flex-end;
+}
+
+/* Ensure all header buttons have proper touch targets */
+.header-actions ion-button {
+  min-width: 2.75rem; /* 44px minimum touch target */
+  min-height: 2.75rem;
 }
 @media (max-width: 767px) {
   .header-actions {
@@ -1288,7 +1294,7 @@ watch(() => props.deliverable?.id, async () => {
 }
 .edit-controls {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem; /* Better spacing for touch targets */
   align-items: center;
   flex-wrap: wrap;
 }
@@ -1503,7 +1509,7 @@ html[data-theme="dark"] .rating-context {
 
 .normal-actions {
   display: flex;
-  gap: 4px;
+  gap: 0.5rem; /* Better spacing for touch targets */
   align-items: center;
 }
 

@@ -329,7 +329,15 @@ watch(() => props.taskId, () => {
 .rating-buttons {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0.5rem; /* Better spacing for touch targets */
+}
+
+/* Ensure all rating buttons have proper touch targets */
+.rating-buttons ion-button,
+.star-rating ion-button,
+.rating-header ion-button {
+  min-width: 2.75rem; /* 44px minimum touch target */
+  min-height: 2.75rem;
 }
 .rating-status {
   font-size: 0.75rem;
@@ -365,7 +373,7 @@ watch(() => props.taskId, () => {
 .star-rating {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0.25rem; /* Better spacing between star buttons */
 }
 .rating-actions {
   display: flex;
