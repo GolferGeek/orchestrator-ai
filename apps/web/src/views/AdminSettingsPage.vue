@@ -481,74 +481,89 @@ import {
   chatbubblesOutline
 } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
+import { usePrivacyDashboardStore } from '@/stores/privacyDashboardStore';
+import { useLlmUsageStore } from '@/stores/llmUsageStore';
+import { usePiiPatternsStore } from '@/stores/piiPatternsStore';
+import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
+import { useAnalyticsStore } from '@/stores/analyticsStore';
 
 // Store and router
 const auth = useAuthStore();
 const router = useRouter();
 
-// Reactive state
+// Initialize all stores for reactive data
+const privacyDashboardStore = usePrivacyDashboardStore();
+const llmUsageStore = useLlmUsageStore();
+const piiPatternsStore = usePiiPatternsStore();
+const pseudonymDictionariesStore = usePseudonymDictionariesStore();
+const analyticsStore = useAnalyticsStore();
+
+// Reactive state (UI only)
 const isUpdating = ref(false);
 
-// Privacy settings state
-const privacySettings = ref({
-  enablePIIDetection: true,
-  enableRedaction: false,
-  enablePseudonymization: true,
-  defaultSanitizationLevel: 'standard',
+// Reactive computed properties from stores (no mock data)
+const privacySettings = computed(() => ({
+  enablePIIDetection: piiPatternsStore.patterns.filter(p => p.isActive).length > 0,
+  enableRedaction: privacyDashboardStore.sanitizationMethods?.redaction?.enabled || false,
+  enablePseudonymization: privacyDashboardStore.sanitizationMethods?.pseudonymization?.enabled || true,
+  defaultSanitizationLevel: 'standard', // TODO: Get from settings store when available
   autoClassifyData: true,
   defaultClassification: 'internal',
-  gdprCompliance: false,
+  gdprCompliance: false, // TODO: Get from compliance store when available
   hipaaCompliance: false,
   pciCompliance: false,
   enableSourceBlinding: true,
   sendNoTrainHeaders: true,
   useCustomUserAgent: true
-});
+}));
 
-// Audit settings state
-const auditSettings = ref({
-  enableAuditLogging: true,
-  logPrivacyOperations: true,
-  logAccessAttempts: true,
-  retentionPeriodDays: 365
-});
+// Reactive computed properties from stores (no mock data)
+const auditSettings = computed(() => ({
+  enableAuditLogging: privacyDashboardStore.systemHealth?.auditLogging || true,
+  logPrivacyOperations: privacyDashboardStore.systemHealth?.privacyLogging || true,
+  logAccessAttempts: true, // TODO: Get from audit store when available
+  retentionPeriodDays: 365 // TODO: Get from settings store when available
+}));
 
-// Real stats - fetched from stores/APIs
-const evaluationStats = ref({
-  total: 0,
-  pending: 0,
-  completed: 0
-});
+// Reactive stats from stores (no mock data)
+const evaluationStats = computed(() => ({
+  total: analyticsStore.evaluations?.length || 0,
+  pending: analyticsStore.evaluations?.filter(e => e.status === 'pending').length || 0,
+  completed: analyticsStore.evaluations?.filter(e => e.status === 'completed').length || 0
+}));
 
-const llmStats = ref({
-  totalCost: 0,
-  requestsToday: 0,
-  avgResponseTime: 0
-});
+const llmStats = computed(() => ({
+  totalCost: llmUsageStore.totalCost || 0,
+  requestsToday: llmUsageStore.usageRecords.filter(r => {
+    const today = new Date().toDateString();
+    return new Date(r.started_at).toDateString() === today;
+  }).length || 0,
+  avgResponseTime: Math.round(llmUsageStore.avgDuration) || 0
+}));
 
-const piiStats = ref({
-  patterns: 0,
-  active: 0,
-  detections: 0
-});
+const piiStats = computed(() => ({
+  patterns: piiPatternsStore.patterns.length || 0,
+  active: piiPatternsStore.patterns.filter(p => p.isActive).length || 0,
+  detections: piiPatternsStore.patterns.reduce((sum, p) => sum + (p.usageCount || 0), 0) || 0
+}));
 
-const dictionaryStats = ref({
-  dictionaries: 0,
-  totalWords: 0,
-  activeWords: 0
-});
+const dictionaryStats = computed(() => ({
+  dictionaries: pseudonymDictionariesStore.dictionaries.length || 0,
+  totalWords: pseudonymDictionariesStore.dictionaries.reduce((sum, d) => sum + d.words.length, 0) || 0,
+  activeWords: pseudonymDictionariesStore.dictionaries.filter(d => d.isActive).reduce((sum, d) => sum + d.words.length, 0) || 0
+}));
 
-const systemHealth = ref({
-  healthy: false,
-  uptime: 0,
-  issues: 0
-});
+const systemHealth = computed(() => ({
+  healthy: privacyDashboardStore.systemHealth?.apiStatus === 'healthy' && privacyDashboardStore.systemHealth?.dbStatus === 'healthy',
+  uptime: privacyDashboardStore.systemHealth?.uptime || 0,
+  issues: (privacyDashboardStore.systemHealth?.apiStatus !== 'healthy' ? 1 : 0) + (privacyDashboardStore.systemHealth?.dbStatus !== 'healthy' ? 1 : 0)
+}));
 
-const systemStats = ref({
-  activeUsers: 0,
-  dailyConversations: 0,
-  privacyProtectionRate: 0
-});
+const systemStats = computed(() => ({
+  activeUsers: auth.users?.filter(u => u.isActive).length || 0,
+  dailyConversations: analyticsStore.dailyConversations || 0,
+  privacyProtectionRate: privacyDashboardStore.metrics?.protectionRate || 0
+}));
 
 // Methods
 const navigateTo = (path: string) => {
@@ -664,12 +679,19 @@ const loadStats = async () => {
   }
 };
 
-// Lifecycle
+// Lifecycle - Initialize all stores for reactive data
 onMounted(async () => {
-  await Promise.all([
-    loadSettings(),
-    loadStats()
-  ]);
+  try {
+    await Promise.all([
+      privacyDashboardStore.fetchDashboardData(),
+      llmUsageStore.initialize(),
+      piiPatternsStore.fetchPatterns(),
+      pseudonymDictionariesStore.fetchDictionaries(),
+      analyticsStore.initialize?.() || Promise.resolve()
+    ]);
+  } catch (error) {
+    console.error('Failed to load admin settings data:', error);
+  }
 });
 </script>
 

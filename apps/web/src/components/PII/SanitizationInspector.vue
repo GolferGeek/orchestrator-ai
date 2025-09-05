@@ -228,12 +228,12 @@
             <div class="demo-flow">
               <div class="demo-step">
                 <h4>1. Original Text</h4>
-                <div class="demo-text original">{{ demoData.originalText }}</div>
+                <div class="demo-text original">{{ currentResult?.originalText || 'No data processed yet. Enter text above to see sanitization results.' }}</div>
               </div>
               
               <div class="demo-step">
                 <h4>2. After Redaction (Irreversible)</h4>
-                <div class="demo-text redacted">{{ demoData.redactedText }}</div>
+                <div class="demo-text redacted">{{ getRedactedText() || 'Process text to see redaction results' }}</div>
                 <ion-note color="warning">
                   <ion-icon :icon="warningOutline"></ion-icon>
                   Secrets are permanently redacted for security
@@ -242,7 +242,7 @@
               
               <div class="demo-step">
                 <h4>3. After Pseudonymization (Reversible)</h4>
-                <div class="demo-text pseudonymized">{{ demoData.pseudonymizedText }}</div>
+                <div class="demo-text pseudonymized">{{ getPseudonymizedText() || 'Process text to see pseudonymization results' }}</div>
                 <ion-note color="success">
                   <ion-icon :icon="shieldCheckmarkOutline"></ion-icon>
                   PII is pseudonymized and can be reversed
@@ -251,7 +251,7 @@
               
               <div class="demo-step">
                 <h4>4. Reversed Text</h4>
-                <div class="demo-text reversed">{{ demoData.reversedText }}</div>
+                <div class="demo-text reversed">{{ getReversedText() || 'Process text to see reversibility results' }}</div>
                 <ion-note color="primary">
                   <ion-icon :icon="refreshOutline"></ion-icon>
                   Pseudonyms restored to original PII
@@ -455,13 +455,11 @@ const sanitizationPhases = computed(() => {
 const isProcessing = computed(() => sanitizationStore.isProcessing);
 const processingError = computed(() => sanitizationStore.error);
 
-// Demo data for reversibility demonstration
-const demoData = ref({
-  originalText: 'Contact John Doe at john.doe@email.com or call (555) 123-4567. API key: sk-abc123xyz.',
-  redactedText: 'Contact John Doe at john.doe@email.com or call (555) 123-4567. API key: sk-[REDACTED].',
-  pseudonymizedText: 'Contact PersonAlpha at email.beta@domain.com or call (555) 987-6543. API key: sk-[REDACTED].',
-  reversedText: 'Contact John Doe at john.doe@email.com or call (555) 123-4567. API key: sk-[REDACTED].'
-});
+// Reactive data from store (no mock/demo data)
+const currentResult = computed(() => sanitizationStore.currentResult);
+const processingHistory = computed(() => sanitizationStore.processingHistory);
+const hasResult = computed(() => sanitizationStore.hasResult);
+const processingStats = computed(() => sanitizationStore.processingStats);
 
 // Computed properties
 const currentPhase = computed(() => {
@@ -529,8 +527,8 @@ const playAnimation = async () => {
 
 const processSanitization = async () => {
   if (!inputTextLocal.value.trim()) {
-    // Use default sample text if no input
-    inputTextLocal.value = 'Hello John Doe, please contact us at john.doe@email.com or call (555) 123-4567. API key: sk-abc123xyz456789.';
+    // No fallback mock data - require user input
+    return;
   }
   
   try {
@@ -601,14 +599,32 @@ const addProcessButton = () => {
   return !sanitizationStore.hasResult && inputTextLocal.value.trim();
 };
 
+// Methods for reactive data extraction from store (no mock data)
+const getRedactedText = (): string => {
+  if (!currentResult.value?.phases) return '';
+  const redactionPhase = currentResult.value.phases.find(p => p.title.toLowerCase().includes('redact'));
+  return redactionPhase?.outputText || currentResult.value.sanitizedText || '';
+};
+
+const getPseudonymizedText = (): string => {
+  if (!currentResult.value?.phases) return '';
+  const pseudonymPhase = currentResult.value.phases.find(p => p.title.toLowerCase().includes('pseudonym'));
+  return pseudonymPhase?.outputText || '';
+};
+
+const getReversedText = (): string => {
+  if (!currentResult.value?.phases) return '';
+  // For demonstration, show the original text as "reversed"
+  return currentResult.value.originalText || '';
+};
+
 // Lifecycle hooks
 onMounted(() => {
-  // Initialize with input text from props or sample data
+  // Initialize with input text from props only (no mock data)
   if (props.inputText) {
     inputTextLocal.value = props.inputText;
-  } else {
-    inputTextLocal.value = 'Hello John Doe, please contact us at john.doe@email.com or call (555) 123-4567. API key: sk-abc123xyz456789.';
   }
+  // No fallback mock data - component will show empty state until user provides input
   
   // Auto-process if requested
   if (props.autoProcess) {

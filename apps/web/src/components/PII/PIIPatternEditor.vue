@@ -298,17 +298,21 @@ const canSubmit = computed(() => {
          !isLoading.value;
 });
 
-// Sample text templates
-const sampleTexts = {
-  email: 'Contact us at support@example.com or sales@company.org for assistance. You can also reach john.doe@gmail.com directly.',
-  phone: 'Call us at (555) 123-4567 or +1-800-555-0123. International: +44 20 7946 0958. Mobile: 555.987.6543',
-  ssn: 'SSN: 123-45-6789, 987-65-4321, or 555 44 3333. Some use format 123456789.',
-  credit_card: 'Visa: 4532-1234-5678-9012, MasterCard: 5555 5555 5555 4444, Amex: 3782-822463-10005',
-  address: '123 Main St, Apt 4B, New York, NY 10001. Also: 456 Oak Avenue, Suite 789, Los Angeles, CA 90210',
-  name: 'John Smith, Mary Johnson-Williams, Dr. Sarah O\'Connor, and José García-López attended the meeting.',
-  date_of_birth: 'Born on 03/15/1985, 12-25-1990, or January 1st, 1995. DOB: 1985-03-15, 25/12/1990',
-  custom: 'Enter your own sample text here to test your custom regex pattern.'
-};
+// Reactive sample text templates (test fixtures for pattern validation)
+const sampleTexts = computed(() => {
+  // These are legitimate test fixtures for regex validation, not mock business data
+  // TODO: Could be enhanced with real examples from store when available
+  return {
+    email: 'Contact us at support@example.com or sales@company.org for assistance. You can also reach john.doe@gmail.com directly.',
+    phone: 'Call us at (555) 123-4567 or +1-800-555-0123. International: +44 20 7946 0958. Mobile: 555.987.6543',
+    ssn: 'SSN: 123-45-6789, 987-65-4321, or 555 44 3333. Some use format 123456789.',
+    credit_card: 'Visa: 4532-1234-5678-9012, MasterCard: 5555 5555 5555 4444, Amex: 3782-822463-10005',
+    address: '123 Main St, Apt 4B, New York, NY 10001. Also: 456 Oak Avenue, Suite 789, Los Angeles, CA 90210',
+    name: 'John Smith, Mary Johnson-Williams, Dr. Sarah O\'Connor, and José García-López attended the meeting.',
+    date_of_birth: 'Born on 03/15/1985, 12-25-1990, or January 1st, 1995. DOB: 1985-03-15, 25/12/1990',
+    custom: 'Enter your own sample text here to test your custom regex pattern.'
+  };
+});
 
 // Methods
 const resetForm = () => {

@@ -1107,25 +1107,27 @@ const getHeatmapIntensity = (usage: number): string => {
   return 'very-high';
 };
 
-// Reversibility demo methods
+// Reversibility demo methods (no hardcoded mock data)
 const generateDemoValue = (mapping: PseudonymMapping): string => {
-  // Generate a realistic demo value based on the data type
-  const demoValues: Record<PIIDataType, string[]> = {
-    email: ['demo.user@example.com', 'sample.person@test.org', 'placeholder@demo.net'],
-    phone: ['(555) 123-4567', '(555) 987-6543', '(555) 246-8135'],
-    name: ['Demo Person', 'Sample User', 'Test Individual'],
-    address: ['123 Demo St, Sample City', '456 Test Ave, Example Town', '789 Mock Rd, Placeholder City'],
-    ip_address: ['192.168.1.100', '10.0.0.50', '172.16.0.25'],
-    username: ['demo_user', 'sample_person', 'test_individual'],
-    credit_card: ['**** **** **** 1234', '**** **** **** 5678', '**** **** **** 9012'],
-    ssn: ['***-**-1234', '***-**-5678', '***-**-9012'],
-    custom: ['Demo Value', 'Sample Data', 'Test Content']
+  // Use the actual original value if available from the mapping
+  if (mapping.originalValue && mapping.originalValue !== '[REDACTED]') {
+    return mapping.originalValue;
+  }
+  
+  // If no original value, generate a contextual placeholder based on the pseudonym
+  const dataTypeLabels: Record<PIIDataType, string> = {
+    email: 'email address',
+    phone: 'phone number', 
+    name: 'person name',
+    address: 'street address',
+    ip_address: 'IP address',
+    username: 'username',
+    credit_card: 'credit card',
+    ssn: 'social security number',
+    custom: 'custom data'
   };
-
-  const values = demoValues[mapping.dataType] || demoValues.custom;
-  // Use a consistent hash-based selection to always show the same demo value for the same mapping
-  const index = Math.abs(mapping.originalHash.charCodeAt(0)) % values.length;
-  return values[index];
+  
+  return `[Original ${dataTypeLabels[mapping.dataType] || 'data'}]`;
 };
 
 const startReversibilityDemo = async () => {

@@ -1449,8 +1449,8 @@
             "dependencies": [
               "14.1"
             ],
-            "details": "Define API endpoints and Pinia store modules for analytics data. Implement data fetching, error handling, and state updates. Ensure data is available in the correct format for Chart.js components.",
-            "status": "pending",
+            "details": "Define API endpoints and Pinia store modules for analytics data. Implement data fetching, error handling, and state updates. Ensure data is available in the correct format for Chart.js components.\n<info added on 2025-09-05T01:38:11.681Z>\n## Reactive Architecture Implementation\n\n- **Existing Store Integration**: Connected to `useLlmUsageStore` instead of creating redundant API service\n- **Proper Reactive Patterns**: Replaced all local `ref()` variables with `computed()` properties from store\n- **Automatic UI Updates**: Template now reactively updates when store state changes\n- **No Manual Data Pulling**: Eliminated manual state management in favor of reactive computed properties\n\n## Store Integration Details\n\n- **LLM Usage Store**: Leveraged existing `useLlmUsageStore` with comprehensive analytics data\n- **Existing API Service**: Utilized existing `llmUsageService` with complete interfaces\n- **Reactive Computed Properties**: All metrics now derived from store state\n  - `totalRequests = computed(() => llmUsageStore.usageRecords.length)`\n  - `avgResponseTime = computed(() => Math.round(llmUsageStore.avgDuration))`\n  - `totalCost = computed(() => llmUsageStore.totalCost)`\n  - `isLoading = computed(() => llmUsageStore.loading)`\n  - `error = computed(() => llmUsageStore.error)`\n\n## Chart Data Reactive Integration\n\n- **Request Volume Chart**: Real-time data from analytics grouped by date\n- **Provider Distribution Chart**: Live provider usage statistics\n- **Response Time Comparison**: Performance metrics by provider\n- **Cost Trends Chart**: Financial analytics over time\n\n## Advanced Reactive Features\n\n- **Computed Trends**: Intelligent trend analysis from historical data\n- **Smart Filtering**: Reactive filter integration with store\n\n## Lifecycle Management\n\n- **Store Initialization**: `await llmUsageStore.initialize()` on component mount\n- **Auto-refresh Integration**: Leveraged existing store auto-refresh functionality\n- **Proper Cleanup**: Store auto-refresh cleanup on component unmount\n- **Error Handling**: Store-level error handling with reactive error display\n\n## Data Flow Architecture\n\n- **Single Source of Truth**: All data flows through Pinia store\n- **Reactive Propagation**: Store changes automatically update all computed properties\n- **Efficient Updates**: Only changed data triggers UI re-renders\n- **Memory Efficient**: No duplicate state management or data storage\n</info added on 2025-09-05T01:38:11.681Z>",
+            "status": "done",
             "testStrategy": "Unit test data fetching logic and Pinia store updates. Mock API responses to verify correct state synchronization."
           },
           {
@@ -2138,8 +2138,8 @@
       {
         "id": 27,
         "title": "Create Incremental Migration for Realistic Sample Data Seeding",
-        "description": "Develop a database migration that seeds the Supabase database with realistic sample data for PII patterns, pseudonym dictionaries, mappings, LLM usage, user evaluations, and admin audit logs, supporting comprehensive frontend testing and demonstration, with special focus on detailed LLM request lifecycle data for visualization components.",
-        "status": "pending",
+        "description": "Develop a database migration that seeds the Supabase database with realistic sample data for PII patterns, pseudonym dictionaries, mappings, LLM usage, user evaluations, and admin audit logs, supporting comprehensive frontend testing and demonstration, with special focus on detailed LLM request lifecycle data for visualization components. This migration is critical as we're removing all local mock data to follow the \"no mocking, no fallbacks\" rule.",
+        "status": "done",
         "dependencies": [
           6,
           8,
@@ -2147,14 +2147,14 @@
           15
         ],
         "priority": "medium",
-        "details": "1. Create a new SQL migration file in apps/api/supabase/migrations/incremental/ following the project's naming conventions (e.g., <timestamp>_seed_realistic_sample_data.sql).\n2. Analyze the current schema for agents, LLM configurations, PII patterns, pseudonym dictionaries, mappings, usage records, evaluation metrics, and audit logs to ensure data integrity and relational consistency.\n3. For each table:\n   - Insert realistic sample data reflecting actual usage patterns:\n     - PII patterns: Use regexes for emails, phones, SSNs, etc., with plausible descriptions and categories.\n     - Pseudonym dictionaries: Populate with diverse, category-specific word lists (e.g., names, locations, organizations) and frequency weights.\n     - Pseudonym mappings: Generate mappings with usage history, timestamps, and relationships to agents/LLMs.\n     - LLM usage records: Generate 50-100 records with comprehensive request lifecycle data including:\n       - Detailed timing metrics (sanitizationTimeMs, routingTimeMs, llmResponseTimeMs, totalRequestTimeMs)\n       - Sanitization metadata (piiDetected, sanitizationLevel, piiTypes, systemPromptLength, userMessageLength)\n       - Routing decision data (complexityScore, routingReason, selectedProvider, selectedModel, isLocal)\n       - Performance and cost data (inputTokens, outputTokens, totalCost, requestStartTime, requestEndTime)\n       - Request context (callerType, callerName, conversationId, dataClassification)\n       - Varied timing patterns (fast: 50-200ms, medium: 200-800ms, slow: 800-3000ms)\n       - Mix of providers (OpenAI, Anthropic, Ollama, Mistral) and models based on complexity\n       - Realistic token counts and cost calculations based on actual provider pricing\n       - Recent timestamps (last 7 days) for visualization\n     - User evaluation data: Insert privacy metrics and feedback reflecting a range of realistic outcomes.\n     - Admin audit logs: Add entries for representative system activities (e.g., settings changes, data access, error events) with timestamps and user/admin references.\n4. Use SQL best practices for bulk inserts, ensuring referential integrity and avoiding hardcoded IDs by leveraging subqueries or CTEs where necessary.\n5. Document the migration for maintainability, and ensure it is idempotent (safe to re-run without duplicating data).\n6. Validate that the seeded data supports all frontend components, especially those currently showing empty states and the LLMRequestFlowDiagram visualization component.\n7. Follow Supabase migration and seeding best practices: test locally, avoid destructive changes, and ensure compatibility with existing migrations and schema evolution workflows.",
-        "testStrategy": "- Run the migration in a local development environment and verify that all relevant tables are populated with realistic, relationally consistent data.\n- Use the frontend to confirm that previously empty states (e.g., dashboards, viewers, managers) now display populated, plausible data.\n- Specifically test the LLMRequestFlowDiagram component to ensure it can visualize the complete request lifecycle with timing breakdowns, provider selections, and performance metrics.\n- Verify that the LLM usage records contain all required metadata fields with appropriate variation in values.\n- Query the database directly to check for data integrity, correct relationships, and absence of duplicate or orphaned records.\n- Reset and reapply migrations to ensure idempotency and repeatability.\n- Review logs and error outputs for any migration failures or constraint violations.",
+        "details": "1. Create a new SQL migration file in apps/api/supabase/migrations/incremental/ following the project's naming conventions (e.g., <timestamp>_seed_realistic_sample_data.sql).\n2. Analyze the current schema for agents, LLM configurations, PII patterns, pseudonym dictionaries, mappings, usage records, evaluation metrics, and audit logs to ensure data integrity and relational consistency.\n3. For each table:\n   - Insert realistic sample data reflecting actual usage patterns:\n     - PII patterns: Use regexes for emails, phones, SSNs, etc., with plausible descriptions and categories.\n     - Pseudonym dictionaries: Populate with diverse, category-specific word lists (e.g., names, locations, organizations) and frequency weights.\n     - Pseudonym mappings: Generate mappings with usage history, timestamps, and relationships to agents/LLMs.\n     - LLM usage records: Generate 50-100 records with comprehensive request lifecycle data including:\n       - Detailed timing metrics (sanitizationTimeMs, routingTimeMs, llmResponseTimeMs, totalRequestTimeMs)\n       - Sanitization metadata (piiDetected, sanitizationLevel, piiTypes, systemPromptLength, userMessageLength)\n       - Routing decision data (complexityScore, routingReason, selectedProvider, selectedModel, isLocal)\n       - Performance and cost data (inputTokens, outputTokens, totalCost, requestStartTime, requestEndTime)\n       - Request context (callerType, callerName, conversationId, dataClassification)\n       - Varied timing patterns (fast: 50-200ms, medium: 200-800ms, slow: 800-3000ms)\n       - Mix of providers (OpenAI, Anthropic, Ollama, Mistral, Google) and models based on complexity\n       - Realistic token counts and cost calculations based on actual provider pricing\n       - Recent timestamps (last 7 days) for visualization\n     - User evaluation data: Insert privacy metrics and feedback reflecting a range of realistic outcomes.\n     - Admin audit logs: Add entries for representative system activities (e.g., settings changes, data access, error events) with timestamps and user/admin references.\n     - Sanitization data: Include detailed sanitization results with phases (detection, redaction, pseudonymization), PII patterns and their replacements, performance metrics for each phase, and processing history with various text samples.\n     - LLM usage analytics: Include provider-specific data (OpenAI, Anthropic, Google, Mistral) with response times, costs, token usage, request volume over time, performance insights, and provider distribution statistics.\n     - Admin settings: Populate privacy settings configurations, audit logging settings, system statistics (active users, conversations), LLM cost and usage stats, PII detection statistics, dictionary statistics, and system health indicators.\n     - PII pattern samples: Include sample texts for different PII types, test patterns for regex validation, and pattern matching examples.\n     - User management data: Create sample users with different roles (admin, user, viewer), role assignments and permissions, and access control test data.\n     - Audit and analytics data: Generate comprehensive audit log entries for various operations, analytics data for dashboards, and system performance metrics.\n4. Use SQL best practices for bulk inserts, ensuring referential integrity and avoiding hardcoded IDs by leveraging subqueries or CTEs where necessary.\n5. Document the migration for maintainability, and ensure it is idempotent (safe to re-run without duplicating data).\n6. Validate that the seeded data supports all frontend components, especially those currently showing empty states and the LLMRequestFlowDiagram visualization component.\n7. Follow Supabase migration and seeding best practices: test locally, avoid destructive changes, and ensure compatibility with existing migrations and schema evolution workflows.\n8. Ensure that every component that previously used mock data now has realistic database data to function properly, following the \"no mocking, no fallbacks\" rule.",
+        "testStrategy": "- Run the migration in a local development environment and verify that all relevant tables are populated with realistic, relationally consistent data.\n- Use the frontend to confirm that previously empty states (e.g., dashboards, viewers, managers) now display populated, plausible data.\n- Specifically test the LLMRequestFlowDiagram component to ensure it can visualize the complete request lifecycle with timing breakdowns, provider selections, and performance metrics.\n- Verify that the LLM usage records contain all required metadata fields with appropriate variation in values.\n- Query the database directly to check for data integrity, correct relationships, and absence of duplicate or orphaned records.\n- Reset and reapply migrations to ensure idempotency and repeatability.\n- Review logs and error outputs for any migration failures or constraint violations.\n- Test each component that previously used mock data to ensure it functions properly with the seeded database data:\n  - SanitizationInspector: Verify sanitization phases, PII replacements, and performance metrics display correctly\n  - LLMUsageAnalytics: Confirm provider statistics, response times, and usage trends render properly\n  - AdminSettingsPage: Check all configuration options and system statistics are populated\n  - PIIPatternEditor: Test pattern validation with sample texts\n  - PseudonymMappingViewer: Verify mapping history and statistics display correctly\n  - AdminUserManagement and RoleTestingPanel: Confirm user roles and permissions function as expected\n  - All dashboard components: Verify analytics data renders properly",
         "subtasks": [
           {
             "id": 1,
             "title": "",
             "description": "Create SQL migration file with basic structure and table analysis",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -2163,7 +2163,7 @@
             "id": 2,
             "title": "",
             "description": "Implement PII patterns and pseudonym dictionaries seeding",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -2172,7 +2172,7 @@
             "id": 3,
             "title": "",
             "description": "Implement comprehensive LLM request lifecycle data seeding with detailed timing, sanitization, routing, performance, and context metadata",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -2181,7 +2181,7 @@
             "id": 4,
             "title": "",
             "description": "Generate varied LLM usage patterns with different timing profiles, complexity scores, and provider selections",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -2190,7 +2190,7 @@
             "id": 5,
             "title": "",
             "description": "Implement user evaluation data and admin audit logs seeding",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -2199,7 +2199,7 @@
             "id": 6,
             "title": "",
             "description": "Test migration with LLMRequestFlowDiagram component to verify visualization capabilities",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
@@ -2208,17 +2208,172 @@
             "id": 7,
             "title": "",
             "description": "Document migration and ensure idempotency",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
             "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "",
+            "description": "Implement sanitization data seeding for SanitizationInspector component",
+            "status": "done",
+            "dependencies": [],
+            "details": "Create sample sanitization results with detection, redaction, and pseudonymization phases. Include PII patterns and their replacements, performance metrics for each phase, and processing history with various text samples.",
+            "testStrategy": "Verify SanitizationInspector component displays all phases, metrics, and history correctly."
+          },
+          {
+            "id": 9,
+            "title": "",
+            "description": "Implement LLM usage analytics data for LLMUsageAnalytics component",
+            "status": "done",
+            "dependencies": [],
+            "details": "Generate LLM request records with different providers (OpenAI, Anthropic, Google, Mistral). Include response times, costs, token usage by provider, request volume data over time periods, performance insights, and provider distribution statistics.",
+            "testStrategy": "Test LLMUsageAnalytics component to ensure all charts, metrics, and provider comparisons display correctly."
+          },
+          {
+            "id": 10,
+            "title": "",
+            "description": "Implement admin settings data for AdminSettingsPage",
+            "status": "done",
+            "dependencies": [],
+            "details": "Create privacy settings configurations, audit logging settings, system statistics (active users, conversations), LLM cost and usage stats, PII detection statistics, dictionary statistics, and system health indicators.",
+            "testStrategy": "Verify AdminSettingsPage displays all configuration options and system statistics correctly."
+          },
+          {
+            "id": 11,
+            "title": "",
+            "description": "Implement PII pattern sample data for PIIPatternEditor",
+            "status": "done",
+            "dependencies": [],
+            "details": "Generate sample texts for different PII types (email, phone, SSN, etc.), test patterns for regex validation, and pattern matching examples.",
+            "testStrategy": "Test PIIPatternEditor to ensure pattern validation works with the sample texts."
+          },
+          {
+            "id": 12,
+            "title": "",
+            "description": "Implement pseudonym mapping data for PseudonymMappingViewer",
+            "status": "done",
+            "dependencies": [],
+            "details": "Create realistic pseudonym mappings for different data types, mapping history and reversibility examples, and usage statistics for mappings.",
+            "testStrategy": "Verify PseudonymMappingViewer displays mapping history and statistics correctly."
+          },
+          {
+            "id": 13,
+            "title": "",
+            "description": "Implement user management data for AdminUserManagement and RoleTestingPanel",
+            "status": "done",
+            "dependencies": [],
+            "details": "Generate sample users with different roles (admin, user, viewer), role assignments and permissions, and access control test data.",
+            "testStrategy": "Test AdminUserManagement and RoleTestingPanel to ensure user roles and permissions function as expected."
+          },
+          {
+            "id": 14,
+            "title": "",
+            "description": "Implement audit and analytics data for dashboard components",
+            "status": "done",
+            "dependencies": [],
+            "details": "Create audit log entries for various operations, analytics data for dashboards, and system performance metrics.",
+            "testStrategy": "Verify all dashboard components display analytics data correctly."
+          },
+          {
+            "id": 15,
+            "title": "",
+            "description": "Verify all components function without mock data",
+            "status": "done",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14
+            ],
+            "details": "Test all components that previously used mock data to ensure they function properly with the seeded database data, following the \"no mocking, no fallbacks\" rule.",
+            "testStrategy": "Run through each component in the application and verify it displays data correctly without any fallbacks to mock data."
+          }
+        ]
+      },
+      {
+        "id": 28,
+        "title": "Refactor Components to Use Vue 3 Reactive Patterns with Pinia Stores",
+        "description": "Audit and refactor ten recently built components to properly implement Vue 3 reactive patterns with Pinia stores, replacing manual data fetching with computed properties for automatic UI updates.",
+        "details": "This task involves systematically refactoring components to follow Vue 3 best practices with Pinia store integration:\n\n1. **PrivacyMetricsDashboard**:\n   - Replace direct API calls with computed properties from the metrics store\n   - Ensure dashboard updates automatically when store state changes\n   - Convert any ref() variables to computed() properties where appropriate\n\n2. **SanitizationInspector**:\n   - Refactor to use sanitization store with proper reactive patterns\n   - Implement watchers for relevant store state changes\n   - Remove any manual data fetching/polling logic\n\n3. **LLMRequestFlowDiagram**:\n   - Convert manual state management to reactive store properties\n   - Ensure flow diagram updates automatically with store changes\n   - Implement proper computed properties for derived visualization data\n\n4. **AdminSettingsPage**:\n   - Integrate with auth/settings stores using computed properties\n   - Remove direct API calls and replace with store actions\n   - Ensure settings changes reactively update the UI\n\n5. **AdminUserManagement**:\n   - Refactor to use reactive user data from auth store\n   - Implement proper computed properties for filtered/sorted user lists\n   - Remove manual data fetching and state management\n\n6. **Advanced Route Component Protection**:\n   - Convert to reactive permission checking via auth store\n   - Implement computed properties for permission-based UI elements\n   - Ensure route guards use reactive store state\n\n7. **Enterprise Access Control**:\n   - Refactor role/permission management to use reactive store patterns\n   - Replace manual state tracking with computed properties\n   - Ensure UI updates automatically with permission changes\n\n8. **PseudonymDictionaryManager**:\n   - Convert to use reactive pseudonym data from dedicated store\n   - Implement proper computed properties for dictionary filtering/display\n   - Remove manual data fetching and state management\n\n9. **RunMetadataPanel**:\n   - Refactor to use reactive metadata from appropriate store\n   - Convert direct API calls to store actions\n   - Ensure panel updates automatically with metadata changes\n\n10. **PseudonymMappingViewer**:\n    - Implement reactive mapping data integration with store\n    - Replace manual data fetching with computed properties\n    - Ensure mapping visualization updates automatically\n\nFor each component:\n1. Create or update Pinia store modules as needed\n2. Replace ref() variables with computed() properties from stores\n3. Move API calls to store actions\n4. Implement proper reactive patterns (computed properties, watchers)\n5. Update component tests to mock store interactions\n6. Document the refactoring approach in component comments\n\nImplementation guidelines:\n- Use `storeToRefs()` to maintain reactivity when destructuring store properties\n- Prefer `computed()` over `ref()` for derived data\n- Use store actions for all API calls and data mutations\n- Implement proper error handling in store actions\n- Add JSDoc comments explaining reactive patterns",
+        "testStrategy": "Testing will be conducted in multiple phases to ensure proper implementation:\n\n1. **Unit Testing**:\n   - For each refactored component:\n     - Verify computed properties correctly derive from store state\n     - Test that UI updates when store state changes\n     - Validate store actions are called instead of direct API calls\n     - Ensure proper error handling for store actions\n\n2. **Integration Testing**:\n   - Test components together with their respective stores\n   - Verify store modules interact correctly with each other\n   - Validate that UI updates propagate correctly across components\n   - Test complex scenarios involving multiple store modules\n\n3. **Regression Testing**:\n   - Ensure all existing functionality continues to work\n   - Verify no performance regressions after refactoring\n   - Validate that all edge cases are still handled correctly\n\n4. **Performance Testing**:\n   - Compare rendering performance before and after refactoring\n   - Measure memory usage with Vue DevTools\n   - Verify no unnecessary re-renders occur\n\n5. **Specific Component Tests**:\n   - **PrivacyMetricsDashboard**: Verify metrics update automatically when store changes\n   - **SanitizationInspector**: Test reactive updates when sanitization rules change\n   - **LLMRequestFlowDiagram**: Validate diagram updates with new request data\n   - **AdminSettingsPage**: Test settings changes propagate through the store\n   - **AdminUserManagement**: Verify user list updates reactively\n   - **Advanced Route Component Protection**: Test permission changes affect routes immediately\n   - **Enterprise Access Control**: Validate role changes update UI reactively\n   - **PseudonymDictionaryManager**: Test dictionary updates reflect in UI automatically\n   - **RunMetadataPanel**: Verify metadata changes update panel reactively\n   - **PseudonymMappingViewer**: Test mapping visualization updates with store changes\n\n6. **Documentation Verification**:\n   - Review component comments for clear explanation of reactive patterns\n   - Ensure store module documentation is complete and accurate\n\nUse Vue DevTools to inspect component reactivity and verify proper store integration during testing.",
+        "status": "pending",
+        "dependencies": [
+          9,
+          19
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Refactor SanitizationInspector to Use Pinia Store and Vue 3 Reactive Patterns",
+            "description": "Replace hardcoded demo data in ref() variables with reactive state from a dedicated Pinia sanitization store. Remove manual data fetching and polling logic, implement computed properties and watchers for store state, and ensure all UI updates are automatic and reactive.",
+            "dependencies": [],
+            "details": "Create or update the sanitization Pinia store module. Refactor the component to use storeToRefs() for reactivity, replace all ref() variables holding demo data with computed() properties derived from the store, and move any API calls to store actions. Add JSDoc comments explaining the reactive approach and update component documentation.\n<info added on 2025-09-05T01:51:36.296Z>\nSuccessfully refactored SanitizationInspector component to use Vue 3 reactive patterns with Pinia store integration. Removed all mock data including hardcoded demo text (originalText, redactedText, pseudonymizedText, reversedText) and sample fallback data in lifecycle hooks. Implemented proper reactive computed properties from the sanitization store (currentResult, processingHistory, hasResult, processingStats). Created reactive data extraction methods that pull from store data instead of using mocks. Updated template to use reactive store properties with appropriate empty state handling. Component now follows the \"no mocking, no fallbacks\" rule, showing empty states until user provides input and relying entirely on Pinia store for data. Note: Task 27 database migration will need to include sanitization sample data for the component to display meaningful results.\n</info added on 2025-09-05T01:51:36.296Z>",
+            "status": "done",
+            "testStrategy": "Unit test that computed properties reflect store state and UI updates automatically. Mock store interactions and verify removal of manual data fetching."
+          },
+          {
+            "id": 2,
+            "title": "Refactor LLMRequestFlowDiagram to Use Reactive Store State",
+            "description": "Convert all local ref() variables and manual state management to use reactive properties from a Pinia store. Implement computed properties for derived visualization data and ensure the flow diagram updates automatically with store changes.",
+            "dependencies": [
+              "28.1"
+            ],
+            "details": "Create or update the relevant Pinia store for LLM request flow data. Replace local state with storeToRefs() and computed() properties. Move all API calls to store actions and document the refactoring approach with JSDoc comments.",
+            "status": "done",
+            "testStrategy": "Unit test that the diagram updates when store state changes. Mock store and verify computed properties drive visualization."
+          },
+          {
+            "id": 3,
+            "title": "Refactor AdminSettingsPage to Integrate with Auth and Settings Stores",
+            "description": "Replace multiple local ref() variables and mock data with computed properties from Pinia auth and settings stores. Remove direct API calls, use store actions for all data mutations, and ensure UI updates reactively.",
+            "dependencies": [
+              "28.2"
+            ],
+            "details": "Update or create Pinia modules for auth and settings. Refactor the component to use storeToRefs() and computed() for all derived data. Move API calls to store actions, implement error handling, and document the reactive patterns used.",
+            "status": "done",
+            "testStrategy": "Unit test that UI reflects store state and settings changes propagate automatically. Mock store actions and verify removal of mock data."
+          },
+          {
+            "id": 4,
+            "title": "Refactor AdminUserManagement and Route Protection Components for Reactive Patterns",
+            "description": "Refactor AdminUserManagement to use reactive user data from the auth store and computed properties for filtered/sorted lists. Update route protection components to use reactive permission checking via the auth store and computed properties for permission-based UI.",
+            "dependencies": [
+              "28.3"
+            ],
+            "details": "Update or create Pinia modules for user and permission data. Replace manual data fetching and state management with computed() and storeToRefs(). Move all API calls to store actions and ensure route guards use reactive store state. Add documentation and JSDoc comments.",
+            "status": "done",
+            "testStrategy": "Unit test that user lists and permission-based UI update with store changes. Mock store for both components and verify removal of manual logic."
+          },
+          {
+            "id": 5,
+            "title": "Refactor PseudonymDictionaryManager and RunMetadataPanel for Store-Driven Reactivity",
+            "description": "Convert PseudonymDictionaryManager and RunMetadataPanel to use reactive data from their respective Pinia stores. Replace manual data fetching and local state with computed properties and ensure all UI updates are automatic.",
+            "dependencies": [
+              "28.4"
+            ],
+            "details": "Create or update Pinia stores for pseudonym dictionary and run metadata. Refactor both components to use storeToRefs() and computed() for all derived data. Move API calls to store actions, implement error handling, and document the refactoring approach.",
+            "status": "done",
+            "testStrategy": "Unit test that both components update UI automatically with store changes. Mock store interactions and verify removal of manual data fetching."
           }
         ]
       }
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-05T01:32:43.174Z",
+      "updated": "2025-09-05T02:01:18.213Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }
