@@ -258,72 +258,168 @@
       </ion-row>
     </div>
 
-    <!-- System Health Indicators -->
-    <div class="health-indicators-section">
-      <ion-card>
-        <ion-card-header>
-          <ion-card-title>
-            <ion-icon :icon="heartOutline"></ion-icon>
-            System Health & Status
-          </ion-card-title>
-          <ion-card-subtitle>Real-time system monitoring and alerts</ion-card-subtitle>
-        </ion-card-header>
-        <ion-card-content>
-          <ion-grid>
-            <ion-row>
-              <ion-col size="6" size-md="3">
-                <div class="health-indicator">
-                  <div class="health-icon" :class="systemHealth.overall.status">
-                    <ion-icon :icon="checkmarkCircleOutline" v-if="systemHealth.overall.status === 'healthy'"></ion-icon>
-                    <ion-icon :icon="warningOutline" v-else-if="systemHealth.overall.status === 'warning'"></ion-icon>
-                    <ion-icon :icon="alertCircleOutline" v-else></ion-icon>
+    <!-- System Health & Cost Analysis -->
+    <div class="health-cost-section">
+      <ion-grid>
+        <ion-row>
+          <!-- System Health Indicators -->
+          <ion-col size="12" size-lg="6">
+            <ion-card class="health-card">
+              <ion-card-header>
+                <ion-card-title>
+                  <ion-icon :icon="heartOutline" :color="getOverallHealthColor()"></ion-icon>
+                  System Health
+                </ion-card-title>
+                <ion-card-subtitle>Real-time monitoring and status</ion-card-subtitle>
+              </ion-card-header>
+              <ion-card-content>
+                <div v-if="isLoading" class="loading-state">
+                  <ion-spinner name="crescent"></ion-spinner>
+                  <ion-note>Loading health data...</ion-note>
+                </div>
+                <div v-else-if="error" class="error-state">
+                  <ion-icon :icon="alertCircleOutline" color="danger"></ion-icon>
+                  <ion-note color="danger">{{ error }}</ion-note>
+                </div>
+                <div v-else class="health-indicators">
+                  <div class="health-indicator">
+                    <div class="health-icon" :class="getHealthStatusClass(systemHealth?.apiStatus)">
+                      <ion-icon :icon="serverOutline" :color="getHealthColor(systemHealth?.apiStatus)"></ion-icon>
+                    </div>
+                    <div class="health-info">
+                      <div class="health-label">API Status</div>
+                      <div class="health-value">
+                        <ion-badge :color="getHealthColor(systemHealth?.apiStatus)">
+                          {{ formatHealthStatus(systemHealth?.apiStatus) }}
+                        </ion-badge>
+                      </div>
+                    </div>
                   </div>
-                  <div class="health-info">
-                    <div class="health-label">System Status</div>
-                    <div class="health-value">{{ systemHealth.overall.label }}</div>
+
+                  <div class="health-indicator">
+                    <div class="health-icon" :class="getHealthStatusClass(systemHealth?.dbStatus)">
+                      <ion-icon :icon="serverOutline" :color="getHealthColor(systemHealth?.dbStatus)"></ion-icon>
+                    </div>
+                    <div class="health-info">
+                      <div class="health-label">Database</div>
+                      <div class="health-value">
+                        <ion-badge :color="getHealthColor(systemHealth?.dbStatus)">
+                          {{ formatHealthStatus(systemHealth?.dbStatus) }}
+                        </ion-badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="health-indicator">
+                    <div class="health-icon" :class="getUptimeStatusClass()">
+                      <ion-icon :icon="flashOutline" :color="getUptimeColor()"></ion-icon>
+                    </div>
+                    <div class="health-info">
+                      <div class="health-label">System Uptime</div>
+                      <div class="health-value">
+                        <span class="uptime-value">{{ systemHealth?.uptime || 'N/A' }}</span>
+                        <ion-badge :color="getUptimeColor()">{{ systemHealth?.uptimeStatus || 'unknown' }}</ion-badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="health-indicator">
+                    <div class="health-icon healthy">
+                      <ion-icon :icon="checkmarkCircleOutline" color="success"></ion-icon>
+                    </div>
+                    <div class="health-info">
+                      <div class="health-label">Last Check</div>
+                      <div class="health-value">
+                        <ion-note>{{ formatTime(systemHealth?.lastHealthCheck || new Date()) }}</ion-note>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </ion-col>
-              
-              <ion-col size="6" size-md="3">
-                <div class="health-indicator">
-                  <div class="health-icon healthy">
-                    <ion-icon :icon="serverOutline"></ion-icon>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+
+          <!-- Cost Analysis Indicators -->
+          <ion-col size="12" size-lg="6">
+            <ion-card class="cost-analysis-card">
+              <ion-card-header>
+                <ion-card-title>
+                  <ion-icon :icon="cashOutline" color="warning"></ion-icon>
+                  Cost Analysis
+                </ion-card-title>
+                <ion-card-subtitle>Financial impact and savings</ion-card-subtitle>
+              </ion-card-header>
+              <ion-card-content>
+                <div v-if="isLoading" class="loading-state">
+                  <ion-spinner name="crescent"></ion-spinner>
+                  <ion-note>Loading cost data...</ion-note>
+                </div>
+                <div v-else-if="error" class="error-state">
+                  <ion-icon :icon="alertCircleOutline" color="danger"></ion-icon>
+                  <ion-note color="danger">{{ error }}</ion-note>
+                </div>
+                <div v-else class="cost-indicators">
+                  <div class="cost-indicator">
+                    <div class="cost-icon">
+                      <ion-icon :icon="cashOutline" color="success" size="large"></ion-icon>
+                    </div>
+                    <div class="cost-info">
+                      <div class="cost-label">Total Savings</div>
+                      <div class="cost-value">{{ formatCurrency(metrics?.totalCostSavings || 0) }}</div>
+                      <div class="cost-trend" :class="{ positive: metrics?.costSavingsTrend === 'up', negative: metrics?.costSavingsTrend === 'down' }">
+                        <ion-icon :icon="metrics?.costSavingsTrend === 'up' ? arrowUpOutline : arrowDownOutline"></ion-icon>
+                        <span>{{ metrics?.costSavingsTrend === 'up' ? 'Increasing' : 'Decreasing' }}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div class="health-info">
-                    <div class="health-label">Uptime</div>
-                    <div class="health-value">{{ systemHealth.uptime }}</div>
+
+                  <div class="cost-indicator">
+                    <div class="cost-icon">
+                      <ion-icon :icon="speedometerOutline" color="primary" size="large"></ion-icon>
+                    </div>
+                    <div class="cost-info">
+                      <div class="cost-label">Avg Processing Time</div>
+                      <div class="cost-value">{{ metrics?.avgProcessingTimeMs || 0 }}ms</div>
+                      <div class="cost-trend" :class="{ positive: metrics?.processingTimeTrend === 'down', negative: metrics?.processingTimeTrend === 'up' }">
+                        <ion-icon :icon="metrics?.processingTimeTrend === 'down' ? arrowDownOutline : arrowUpOutline"></ion-icon>
+                        <span>{{ metrics?.processingTimeTrend === 'down' ? 'Improving' : 'Degrading' }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="cost-indicator">
+                    <div class="cost-icon">
+                      <ion-icon :icon="walletOutline" color="tertiary" size="large"></ion-icon>
+                    </div>
+                    <div class="cost-info">
+                      <div class="cost-label">Cost per Detection</div>
+                      <div class="cost-value">
+                        {{ formatCurrency(calculateCostPerDetection()) }}
+                      </div>
+                      <div class="cost-description">
+                        <ion-note>Based on {{ formatNumber(metrics?.totalPIIDetections || 0) }} detections</ion-note>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="cost-indicator">
+                    <div class="cost-icon">
+                      <ion-icon :icon="trendingUpOutline" color="success" size="large"></ion-icon>
+                    </div>
+                    <div class="cost-info">
+                      <div class="cost-label">ROI Estimate</div>
+                      <div class="cost-value">{{ calculateROI() }}%</div>
+                      <div class="cost-description">
+                        <ion-note>Return on privacy investment</ion-note>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </ion-col>
-              
-              <ion-col size="6" size-md="3">
-                <div class="health-indicator">
-                  <div class="health-icon" :class="systemHealth.errorRate.status">
-                    <ion-icon :icon="bugOutline"></ion-icon>
-                  </div>
-                  <div class="health-info">
-                    <div class="health-label">Error Rate</div>
-                    <div class="health-value">{{ systemHealth.errorRate.value }}%</div>
-                  </div>
-                </div>
-              </ion-col>
-              
-              <ion-col size="6" size-md="3">
-                <div class="health-indicator">
-                  <div class="health-icon" :class="systemHealth.throughput.status">
-                    <ion-icon :icon="flashOutline"></ion-icon>
-                  </div>
-                  <div class="health-info">
-                    <div class="health-label">Throughput</div>
-                    <div class="health-value">{{ systemHealth.throughput.value }}/min</div>
-                  </div>
-                </div>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </ion-card-content>
-      </ion-card>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
     </div>
 
     <!-- Recent Activity Feed -->
@@ -376,7 +472,9 @@ import {
   IonRow,
   IonSelect,
   IonSelectOption,
-  IonBadge
+  IonBadge,
+  IonSpinner,
+  IonNote
 } from '@ionic/vue';
 import {
   refreshOutline,
@@ -399,7 +497,9 @@ import {
   flashOutline,
   listOutline,
   arrowUpOutline,
-  removeOutline
+  arrowDownOutline,
+  removeOutline,
+  walletOutline
 } from 'ionicons/icons';
 
 // Chart components
@@ -529,6 +629,94 @@ const formatTypeLabel = (type: string): string => {
     api_key: 'API Key'
   };
   return labels[type] || type;
+};
+
+// Health status methods
+const getHealthColor = (status: string | undefined): string => {
+  switch (status) {
+    case 'operational': return 'success';
+    case 'degraded': return 'warning';
+    case 'down': return 'danger';
+    default: return 'medium';
+  }
+};
+
+const getHealthStatusClass = (status: string | undefined): string => {
+  switch (status) {
+    case 'operational': return 'healthy';
+    case 'degraded': return 'warning';
+    case 'down': return 'critical';
+    default: return 'unknown';
+  }
+};
+
+const formatHealthStatus = (status: string | undefined): string => {
+  switch (status) {
+    case 'operational': return 'Operational';
+    case 'degraded': return 'Degraded';
+    case 'down': return 'Down';
+    default: return 'Unknown';
+  }
+};
+
+const getOverallHealthColor = (): string => {
+  if (!systemHealth.value) return 'medium';
+  
+  if (systemHealth.value.apiStatus === 'operational' && systemHealth.value.dbStatus === 'operational') {
+    return 'success';
+  } else if (systemHealth.value.apiStatus === 'down' || systemHealth.value.dbStatus === 'down') {
+    return 'danger';
+  } else {
+    return 'warning';
+  }
+};
+
+const getUptimeColor = (): string => {
+  if (!systemHealth.value?.uptimeStatus) return 'medium';
+  
+  switch (systemHealth.value.uptimeStatus) {
+    case 'healthy': return 'success';
+    case 'warning': return 'warning';
+    case 'critical': return 'danger';
+    default: return 'medium';
+  }
+};
+
+const getUptimeStatusClass = (): string => {
+  if (!systemHealth.value?.uptimeStatus) return 'unknown';
+  
+  switch (systemHealth.value.uptimeStatus) {
+    case 'healthy': return 'healthy';
+    case 'warning': return 'warning';
+    case 'critical': return 'critical';
+    default: return 'unknown';
+  }
+};
+
+// Cost analysis methods
+const calculateCostPerDetection = (): number => {
+  if (!metrics.value || !metrics.value.totalPIIDetections || metrics.value.totalPIIDetections === 0) {
+    return 0;
+  }
+  
+  // Estimate cost per detection based on total cost savings divided by detections
+  // This is a simplified calculation - in reality, this would come from actual cost tracking
+  const estimatedTotalCost = metrics.value.totalCostSavings * 0.1; // Assume savings represent 10x the actual cost
+  return estimatedTotalCost / metrics.value.totalPIIDetections;
+};
+
+const calculateROI = (): number => {
+  if (!metrics.value || !metrics.value.totalCostSavings) {
+    return 0;
+  }
+  
+  // Simplified ROI calculation: (Cost Savings - Investment) / Investment * 100
+  // Assume investment is 20% of the total cost savings for this calculation
+  const estimatedInvestment = metrics.value.totalCostSavings * 0.2;
+  const netBenefit = metrics.value.totalCostSavings - estimatedInvestment;
+  const roi = (netBenefit / estimatedInvestment) * 100;
+  
+  return Math.round(roi);
 };
 
 const getActivityIcon = (type: string): string => {
@@ -674,6 +862,149 @@ onUnmounted(() => {
 }
 
 /* Chart mock styles removed - using Chart.js components */
+
+/* Health and Cost Analysis Styles */
+.health-cost-section {
+  margin-bottom: 24px;
+}
+
+.health-card, .cost-analysis-card {
+  height: 100%;
+  border-radius: 12px;
+  box-shadow: var(--ion-box-shadow);
+}
+
+.health-indicators, .cost-indicators {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.health-indicator, .cost-indicator {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--ion-color-step-50);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.health-indicator:hover, .cost-indicator:hover {
+  background: var(--ion-color-step-100);
+  transform: translateY(-2px);
+}
+
+.health-icon, .cost-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.health-icon.healthy, .health-icon.operational {
+  background: var(--ion-color-success-tint);
+  color: var(--ion-color-success);
+}
+
+.health-icon.warning, .health-icon.degraded {
+  background: var(--ion-color-warning-tint);
+  color: var(--ion-color-warning);
+}
+
+.health-icon.critical, .health-icon.down {
+  background: var(--ion-color-danger-tint);
+  color: var(--ion-color-danger);
+}
+
+.health-icon.unknown {
+  background: var(--ion-color-medium-tint);
+  color: var(--ion-color-medium);
+}
+
+.health-info, .cost-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.health-label, .cost-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ion-color-medium);
+}
+
+.health-value, .cost-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--ion-color-dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.uptime-value {
+  font-size: 20px;
+  color: var(--ion-color-primary);
+}
+
+.cost-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.cost-trend.positive {
+  color: var(--ion-color-success);
+}
+
+.cost-trend.negative {
+  color: var(--ion-color-danger);
+}
+
+.cost-description {
+  margin-top: 4px;
+}
+
+.loading-state, .error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  text-align: center;
+}
+
+.error-state ion-icon {
+  font-size: 2em;
+}
+
+/* Responsive adjustments for health and cost indicators */
+@media (min-width: 768px) {
+  .health-indicators, .cost-indicators {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .health-indicators {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .cost-indicators {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 
 .pattern-list {
   display: flex;
