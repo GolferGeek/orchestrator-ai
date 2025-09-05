@@ -152,13 +152,19 @@
           <!-- Pattern Matches -->
           <div v-if="currentPhase.patterns && currentPhase.patterns.length > 0" class="pattern-matches">
             <h4>Detected Patterns</h4>
-            <div class="patterns-grid">
-              <div 
-                v-for="pattern in currentPhase.patterns" 
-                :key="pattern.id"
-                class="pattern-item"
-                :class="`pattern-${pattern.type}`"
-              >
+            <ion-grid>
+              <ion-row>
+                <ion-col 
+                  v-for="pattern in currentPhase.patterns" 
+                  :key="pattern.id"
+                  size="12" 
+                  size-md="6" 
+                  size-lg="4"
+                >
+                  <div 
+                    class="pattern-item"
+                    :class="`pattern-${pattern.type}`"
+                  >
                 <div class="pattern-header">
                   <span class="pattern-type">{{ formatPatternType(pattern.type) }}</span>
                   <ion-badge :color="getPatternColor(pattern.type)">{{ pattern.type }}</ion-badge>
@@ -172,9 +178,10 @@
                   <div class="pattern-info">
                     <span class="pattern-description">{{ pattern.description }}</span>
                   </div>
-                </div>
-              </div>
-            </div>
+                  </div>
+                </ion-col>
+              </ion-row>
+            </ion-grid>
           </div>
 
           <!-- Performance Metrics Chart -->
@@ -922,11 +929,7 @@ watch(processingError, (error) => {
   color: var(--ion-color-primary);
 }
 
-.patterns-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
-}
+/* Removed: Using Ionic grid instead */
 
 .pattern-item {
   padding: 16px;
@@ -1117,9 +1120,7 @@ watch(processingError, (error) => {
     width: 100%;
   }
   
-  .patterns-grid {
-    grid-template-columns: 1fr;
-  }
+  /* Responsive handled by Ionic grid */
 }
 
 /* PII Highlighting Styles */
