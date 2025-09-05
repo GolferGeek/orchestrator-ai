@@ -128,7 +128,39 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       setupFiles: ['./src/tests/setup.ts'],
       testTimeout: 10000,
-      hookTimeout: 10000
+      hookTimeout: 10000,
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'html', 'json', 'json-summary'],
+        reportsDirectory: './coverage',
+        include: [
+          'src/**/*.{ts,tsx,vue}',
+        ],
+        exclude: [
+          'node_modules',
+          'src/tests/**',
+          '**/*.d.ts',
+          '**/*.config.{ts,js}',
+          'src/**/*.spec.{ts,js}',
+          'src/**/*.test.{ts,js}',
+          'src/**/types.ts',
+          'src/**/interfaces.ts',
+        ],
+        thresholds: {
+          global: {
+            branches: 70,
+            functions: 70,
+            lines: 70,
+            statements: 70
+          },
+          each: {
+            branches: 60,
+            functions: 60,
+            lines: 60,
+            statements: 60
+          }
+        }
+      }
     }
   }
 })

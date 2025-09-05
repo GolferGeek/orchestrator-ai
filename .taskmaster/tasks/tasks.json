@@ -1912,7 +1912,7 @@
             "description": "Configure and run coverage tools to measure test completeness. Continuously review and refactor tests for reliability and maintainability.",
             "dependencies": [],
             "details": "Integrate coverage reporting with Vitest and Cypress. Identify untested code paths, improve coverage, and ensure tests remain robust as code evolves.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": "Run full test suite, review coverage reports, and refactor brittle or outdated tests. Validate demo scenarios and edge cases."
           }
         ]
@@ -2235,7 +2235,7 @@
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-05T20:28:25.477Z",
+      "updated": "2025-09-05T20:30:16.555Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }

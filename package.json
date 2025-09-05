@@ -29,7 +29,7 @@
     "initiative:recipe": "node scripts/initiative-recipe.js | cat",
     "initiative:archive": "node scripts/archive-initiative.js",
     "ollama:simple": "./scripts/ollama-simple.sh",
-    "ollama:medium": "./scripts/ollama-medium.sh", 
+    "ollama:medium": "./scripts/ollama-medium.sh",
     "ollama:full": "./scripts/ollama-full.sh",
     "ollama:server": "./scripts/ollama-server.sh",
     "ollama:stop:all": "./scripts/ollama-stop-all-models.sh",
@@ -44,8 +44,10 @@
     "@babel/plugin-transform-private-property-in-object": "^7.27.1",
     "@babel/preset-env": "^7.28.0",
     "@babel/preset-typescript": "^7.27.1",
+    "@vitest/coverage-v8": "^3.2.4",
     "concurrently": "^8.2.2",
-    "turbo": "^2.3.3"
+    "turbo": "^2.3.3",
+    "vitest": "^3.2.4"
   },
   "workspaces": [
     "apps/api",
