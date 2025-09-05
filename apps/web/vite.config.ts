@@ -6,6 +6,7 @@ import path from 'path'
 import fs from 'fs'
 import { defineConfig, loadEnv } from 'vite'
 import { visualizer } from 'rollup-plugin-visualizer'
+import viteCompression from 'vite-plugin-compression'
 
 /**
  * Get HTTPS configuration for Vite dev server
@@ -73,7 +74,22 @@ export default defineConfig(({ mode }) => {
         gzipSize: true,
         brotliSize: true,
         template: 'treemap'
-      })
+      }),
+      // Enable gzip and brotli compression for production builds
+      ...(mode === 'production' ? [
+        viteCompression({
+          algorithm: 'gzip',
+          ext: '.gz',
+          threshold: 1024, // Only compress files larger than 1KB
+          deleteOriginFile: false
+        }),
+        viteCompression({
+          algorithm: 'brotliCompress',
+          ext: '.br',
+          threshold: 1024,
+          deleteOriginFile: false
+        })
+      ] : [])
     ],
     resolve: {
       alias: {
@@ -95,29 +111,82 @@ export default defineConfig(({ mode }) => {
       sourcemap: true,
       // CSS optimization
       cssCodeSplit: true,
-      cssMinify: true,
+      cssMinify: 'esbuild', // Use esbuild for faster CSS minification
       // Asset optimization
       assetsInlineLimit: 4096, // Inline assets smaller than 4KB
+      assetsDir: 'assets', // Organize assets in subdirectory
+      // Enable asset optimization
+      reportCompressedSize: true,
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true, // Remove console.logs in production
+          drop_debugger: true,
+          pure_funcs: ['console.log', 'console.info', 'console.debug']
+        },
+        mangle: {
+          safari10: true
+        }
+      },
       rollupOptions: {
         output: {
-          manualChunks: {
-            // Vendor chunks for better caching
-            'vue-vendor': ['vue', '@vue/runtime-core', '@vue/runtime-dom', '@vue/reactivity'],
-            'ionic-vendor': ['@ionic/vue', '@ionic/vue-router'],
-            'chart-vendor': ['chart.js'],
-            'pinia-vendor': ['pinia'],
-            'router-vendor': ['vue-router'],
-            'axios-vendor': ['axios'],
+          manualChunks(id) {
+            // Dynamic chunking strategy for better optimization
+            if (id.includes('node_modules')) {
+              // Core framework chunks
+              if (id.includes('vue') && !id.includes('@ionic/vue')) {
+                return 'vue-vendor';
+              }
+              if (id.includes('@ionic/vue-router')) {
+                return 'ionic-router';
+              }
+              if (id.includes('@ionic/vue')) {
+                return 'ionic-core';
+              }
+              if (id.includes('@ionic/core')) {
+                return 'ionic-components';
+              }
+              if (id.includes('vue-router')) {
+                return 'router-vendor';
+              }
+              if (id.includes('pinia')) {
+                return 'pinia-vendor';
+              }
+              if (id.includes('axios')) {
+                return 'axios-vendor';
+              }
+              if (id.includes('chart.js')) {
+                return 'chart-vendor';
+              }
+              if (id.includes('dompurify')) {
+                return 'security-vendor';
+              }
+              if (id.includes('yup') || id.includes('vee-validate')) {
+                return 'validation-vendor';
+              }
+              // Other vendor dependencies
+              return 'vendor';
+            }
             
-            // Store chunks for better organization
-            'stores-auth': ['./src/stores/authStore.ts'],
-            'stores-agent': ['./src/stores/agentChatStore/store.ts', './src/stores/agentChatStore/conversation.ts'],
-            'stores-pii': ['./src/stores/piiPatternsStore.ts', './src/stores/pseudonymDictionariesStore.ts', './src/stores/pseudonymMappingsStore.ts'],
-            'stores-analytics': ['./src/stores/analyticsStore.ts', './src/stores/llmUsageStore.ts', './src/stores/privacyDashboardStore.ts'],
-            
-            // Service chunks
-            'services-api': ['./src/services/piiService.ts', './src/services/llmUsageService.ts', './src/services/sanitizationAnalyticsService.ts'],
-            'services-utils': ['./src/services/projectsService.ts', './src/services/pseudonymService.ts']
+            // Application chunks based on feature areas
+            if (id.includes('stores/auth') || id.includes('services/auth')) {
+              return 'auth-module';
+            }
+            if (id.includes('stores/agent') || id.includes('services/agent')) {
+              return 'agent-module';
+            }
+            if (id.includes('stores/pii') || id.includes('services/pii') || id.includes('PII')) {
+              return 'pii-module';
+            }
+            if (id.includes('stores/analytics') || id.includes('services/analytics') || id.includes('LlmUsage')) {
+              return 'analytics-module';
+            }
+            if (id.includes('stores/project') || id.includes('services/project') || id.includes('deliverables')) {
+              return 'project-module';
+            }
+            if (id.includes('composables/useValidation') || id.includes('utils/validation') || id.includes('utils/sanitization')) {
+              return 'validation-module';
+            }
           }
         }
       },
