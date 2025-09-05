@@ -70,10 +70,9 @@ export class LocalModelStatusService {
     this.ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
     this.logger.log(`LocalModelStatusService initialized (Ollama: ${this.ollamaBaseUrl})`);
     
-    // Initial health check
-    this.checkOllamaConnection().catch(error => {
-      this.logger.warn('Initial Ollama connection check failed', error);
-    });
+    // Don't perform initial health check - only check when explicitly requested
+    // This prevents startup connection attempts to services that may not be running
+    // Use 'ollama ps' to check only running models instead of proactive health checks
   }
 
   /**
