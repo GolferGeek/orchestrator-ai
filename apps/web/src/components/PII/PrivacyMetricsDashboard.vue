@@ -4,7 +4,7 @@
     <div class="dashboard-header">
       <h2>Privacy Metrics Dashboard</h2>
       <div class="header-controls">
-        <ion-button fill="outline" size="small" @click="refreshData">
+        <ion-button fill="outline" size="small" @click="refreshData" data-testid="refresh-button">
           <ion-icon :icon="refreshOutline" slot="start"></ion-icon>
           Refresh
         </ion-button>
@@ -21,7 +21,7 @@
         <div class="filter-controls">
           <div class="filter-group">
             <ion-label>Time Range:</ion-label>
-            <ion-select v-model="selectedTimeRange" placeholder="Select Range">
+            <ion-select v-model="selectedTimeRange" placeholder="Select Range" data-testid="time-range-filter">
               <ion-select-option value="24h">Last 24 Hours</ion-select-option>
               <ion-select-option value="7d">Last 7 Days</ion-select-option>
               <ion-select-option value="30d">Last 30 Days</ion-select-option>
@@ -30,7 +30,7 @@
           </div>
           <div class="filter-group">
             <ion-label>Data Type:</ion-label>
-            <ion-select v-model="selectedDataType" placeholder="All Types">
+            <ion-select v-model="selectedDataType" placeholder="All Types" data-testid="data-type-filter">
               <ion-select-option value="all">All Types</ion-select-option>
               <ion-select-option value="email">Email</ion-select-option>
               <ion-select-option value="phone">Phone</ion-select-option>
@@ -533,6 +533,8 @@ const dashboardStore = usePrivacyDashboardStore();
 
 // Local reactive state
 const showFilters = ref(false);
+const selectedTimeRange = ref('24h');
+const selectedDataType = ref('all');
 
 // Computed properties from store
 const metrics = computed(() => dashboardStore.metrics);
@@ -602,6 +604,10 @@ const refreshData = async () => {
   } catch (err: any) {
     console.error('Failed to refresh dashboard data:', err);
   }
+};
+
+const onFilterChange = () => {
+  refreshData();
 };
 
 // Use store utility methods
