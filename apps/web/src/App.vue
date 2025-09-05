@@ -13,6 +13,9 @@
     
     <!-- Global error notifications -->
     <GlobalErrorNotification />
+    
+    <!-- User-friendly error boundary -->
+    <GlobalErrorBoundary />
   </ion-app>
 </template>
 <script lang="ts" setup>
@@ -20,6 +23,7 @@ import { onMounted } from 'vue';
 import { IonApp, IonRouterOutlet } from '@ionic/vue';
 import ErrorBoundary from '@/components/common/ErrorBoundary.vue';
 import GlobalErrorNotification from '@/components/common/GlobalErrorNotification.vue';
+import GlobalErrorBoundary from '@/components/ErrorHandling/GlobalErrorBoundary.vue';
 import { useGlobalErrorHandler } from '@/composables/useGlobalErrorHandler';
 
 // Environment check
