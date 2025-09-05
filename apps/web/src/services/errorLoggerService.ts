@@ -8,7 +8,7 @@ import { useApiSanitization } from '@/composables/useApiSanitization';
  */
 class ErrorLoggerService implements ErrorLogger {
   private readonly basePath = '/errors';
-  private isEnabled = true;
+  private isEnabled = false; // Disabled until backend endpoint is implemented
   private retryQueue: Array<() => Promise<void>> = [];
   private isProcessingQueue = false;
   private apiSanitization = useApiSanitization();
