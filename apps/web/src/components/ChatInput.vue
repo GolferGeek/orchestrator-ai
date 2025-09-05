@@ -196,7 +196,7 @@ onUnmounted(() => {
 .custom-button-padding {
   --padding-start: 8px; /* Add horizontal padding */
   --padding-end: 8px;   /* Add horizontal padding */
-  height: 40px; /* Ensure vertical touch target */
+  height: 2.75rem; /* 44px minimum touch target */
   /* min-width: 40px; /* Ensure horizontal touch target */
 }
 .ptt-button {

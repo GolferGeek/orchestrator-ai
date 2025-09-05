@@ -231,7 +231,7 @@ const formattedProcessingTime = computed(() => {
   transition: all 0.2s ease;
   background: var(--ion-color-light-tint);
   color: var(--ion-color-dark);
-  min-height: 24px;
+  min-height: 1.5rem;
 }
 
 .privacy-badge ion-icon {
@@ -406,7 +406,7 @@ const formattedProcessingTime = computed(() => {
 .privacy-indicators.compact .privacy-badge {
   padding: 2px 6px;
   font-size: 0.7em;
-  min-height: 20px;
+  min-height: 1.25rem;
 }
 
 .privacy-indicators.compact .privacy-badge ion-icon {

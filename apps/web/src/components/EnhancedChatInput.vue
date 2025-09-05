@@ -290,8 +290,8 @@ onUnmounted(() => {
   font-size: 1.5rem;
   cursor: pointer;
   color: #666;
-  width: 32px;
-  height: 32px;
+  width: 2.75rem; /* 44px minimum touch target */
+  height: 2.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -315,13 +315,14 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: white;
   cursor: pointer;
   transition: all 0.2s ease;
   min-width: 120px;
+  min-height: 2.75rem; /* 44px minimum touch target */
 }
 .llm-toggle-btn:hover {
   border-color: #3498db;
@@ -364,7 +365,7 @@ onUnmounted(() => {
 .input-buttons {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem; /* Better spacing between touch targets */
 }
 .cost-estimate {
   font-size: 0.7rem;
@@ -377,12 +378,31 @@ onUnmounted(() => {
 .custom-button-padding {
   --padding-start: 8px;
   --padding-end: 8px;
-  height: 40px;
+  height: 2.75rem; /* 44px minimum touch target */
 }
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .llm-toggle-btn {
     min-width: 100px;
+    padding: 0.75rem 0.5rem; /* Adjust padding for smaller screens */
+  }
+  
+  .input-buttons {
+    gap: 0.75rem; /* More spacing on mobile for easier tapping */
+  }
+  
+  .chat-input-toolbar {
+    --padding-start: 0.75rem;
+    --padding-end: 0.75rem;
+    --padding-top: 0.5rem;
+    --padding-bottom: 0.5rem;
+  }
+  
+  /* Ensure touch targets are thumb-friendly on mobile */
+  .custom-button-padding {
+    --padding-start: 0.75rem;
+    --padding-end: 0.75rem;
+    min-width: 2.75rem; /* Square touch target */
   }
   .provider-name {
     font-size: 0.7rem;
