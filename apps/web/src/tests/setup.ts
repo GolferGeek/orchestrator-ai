@@ -2,6 +2,11 @@
 import { beforeEach, afterEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 
+// Configure environment for testing - disable HTTPS enforcement
+// Set process.env which Vite will use
+process.env.VITE_ENFORCE_HTTPS = 'false';
+process.env.NODE_ENV = 'test';
+
 // Global test setup
 beforeEach(() => {
   // Create a fresh Pinia instance for each test
