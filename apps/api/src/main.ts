@@ -107,19 +107,35 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      // Allow requests with no origin (like mobile apps or curl)
+      // Allow requests with no origin (like mobile apps, curl, or tests)
       if (!origin) return callback(null, true);
+      
+      // In development mode, allow localhost and test environments
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+        // Allow localhost and common test origins
+        if (origin.startsWith('http://localhost') || 
+            origin.startsWith('https://localhost') ||
+            origin.includes('127.0.0.1') ||
+            origin === 'null' ||
+            origin === 'file://') {
+          return callback(null, true);
+        }
+      }
       
       // Check if origin is in our list
       if (corsOrigins.includes(origin)) {
         return callback(null, true);
       }
       
-      // Log unrecognized origins for debugging
-
       // In production, you might want to be more restrictive
       // For now, let's allow all orchestratorai.io subdomains
       if (origin.includes('orchestratorai.io')) {
+        return callback(null, true);
+      }
+      
+      // In development, be more permissive for testing
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`🚨 CORS: Allowing unrecognized origin in development: ${origin}`);
         return callback(null, true);
       }
       
