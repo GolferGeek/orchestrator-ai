@@ -789,8 +789,8 @@ onUnmounted(() => {
 
 <style scoped>
 .privacy-metrics-dashboard {
-  padding: 16px;
-  max-width: 1400px;
+  padding: 1rem;
+  max-width: 87.5rem;
   margin: 0 auto;
 }
 
@@ -798,7 +798,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .dashboard-header h2 {
@@ -808,42 +808,42 @@ onUnmounted(() => {
 
 .header-controls {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .filter-card {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .filter-controls {
   display: flex;
-  gap: 24px;
+  gap: 1.5rem;
   align-items: center;
 }
 
 .filter-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .filter-group ion-label {
-  min-width: 80px;
+  min-width: 5rem;
   font-weight: 600;
 }
 
 .metrics-overview {
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
 }
 
 .metric-card {
-  height: 120px;
+  height: 7.5rem;
 }
 
 .metric-content {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1rem;
   height: 100%;
 }
 
@@ -852,16 +852,16 @@ onUnmounted(() => {
 }
 
 .metric-value {
-  font-size: 28px;
+  font-size: 1.75rem;
   font-weight: bold;
   color: var(--ion-color-primary);
   line-height: 1;
 }
 
 .metric-label {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--ion-color-medium);
-  margin-top: 4px;
+  margin-top: 0.25rem;
 }
 
 .detection-stats-section,
@@ -869,17 +869,17 @@ onUnmounted(() => {
 .performance-cost-section,
 .health-indicators-section,
 .activity-feed-section {
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
 }
 
 .chart-container {
-  min-height: 300px;
+  min-height: 18.75rem;
   position: relative;
 }
 
 .chart-placeholder {
   width: 100%;
-  height: 300px;
+  height: 18.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -889,12 +889,12 @@ onUnmounted(() => {
 
 /* Health and Cost Analysis Styles */
 .health-cost-section {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .health-card, .cost-analysis-card {
   height: 100%;
-  border-radius: 12px;
+  border-radius: 0.75rem;
   box-shadow: var(--ion-box-shadow);
 }
 
@@ -903,10 +903,10 @@ onUnmounted(() => {
 .health-indicator, .cost-indicator {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: 1rem;
+  padding: 1rem;
   background: var(--ion-color-step-50);
-  border-radius: 8px;
+  border-radius: 0.5rem;
   transition: all 0.3s ease;
 }
 
@@ -919,8 +919,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
   transition: all 0.3s ease;
 }
@@ -953,22 +953,22 @@ onUnmounted(() => {
 }
 
 .health-label, .cost-label {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--ion-color-medium);
 }
 
 .health-value, .cost-value {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: bold;
   color: var(--ion-color-dark);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .uptime-value {
-  font-size: 20px;
+  font-size: 1.25rem;
   color: var(--ion-color-primary);
 }
 
@@ -976,9 +976,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
-  margin-top: 4px;
+  margin-top: 0.25rem;
 }
 
 .cost-trend.positive {
@@ -990,7 +990,7 @@ onUnmounted(() => {
 }
 
 .cost-description {
-  margin-top: 4px;
+  margin-top: 0.25rem;
 }
 
 .loading-state, .error-state {
@@ -998,8 +998,8 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 40px;
+  gap: 0.75rem;
+  padding: 2.5rem;
   text-align: center;
 }
 
@@ -1012,16 +1012,16 @@ onUnmounted(() => {
 .pattern-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
 }
 
 .pattern-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px;
+  gap: 1rem;
+  padding: 0.75rem;
   background: var(--ion-color-light);
-  border-radius: 8px;
+  border-radius: 0.5rem;
 }
 
 .pattern-info {
@@ -1034,7 +1034,7 @@ onUnmounted(() => {
 }
 
 .pattern-description {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--ion-color-medium);
   margin-top: 2px;
 }
@@ -1042,29 +1042,29 @@ onUnmounted(() => {
 .pattern-stats {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 120px;
+  gap: 0.75rem;
+  min-width: 7.5rem;
 }
 
 .usage-count {
   font-weight: bold;
   color: var(--ion-color-primary);
-  min-width: 40px;
+  min-width: 2.5rem;
   text-align: right;
 }
 
 .usage-bar {
   flex: 1;
-  height: 8px;
+  height: 0.5rem;
   background: var(--ion-color-light-shade);
-  border-radius: 4px;
+  border-radius: 0.25rem;
   overflow: hidden;
 }
 
 .usage-fill {
   height: 100%;
   background: var(--ion-color-primary);
-  border-radius: 4px;
+  border-radius: 0.25rem;
   transition: width 0.3s ease;
 }
 
@@ -1073,33 +1073,33 @@ onUnmounted(() => {
 .cost-metrics {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.25rem;
 }
 
 .cost-item {
-  padding: 16px;
+  padding: 1rem;
   background: var(--ion-color-light);
-  border-radius: 8px;
+  border-radius: 0.5rem;
 }
 
 .cost-label {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--ion-color-medium);
   margin-bottom: 4px;
 }
 
 .cost-value {
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: bold;
   color: var(--ion-color-primary);
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .cost-trend {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .cost-trend.positive {
@@ -1117,16 +1117,16 @@ onUnmounted(() => {
 .health-indicator {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
+  gap: 0.75rem;
+  padding: 1rem;
   background: var(--ion-color-light);
-  border-radius: 8px;
+  border-radius: 0.5rem;
   height: 100%;
 }
 
 .health-icon {
-  width: 48px;
-  height: 48px;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1153,13 +1153,13 @@ onUnmounted(() => {
 }
 
 .health-label {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--ion-color-medium);
-  margin-bottom: 2px;
+  margin-bottom: 0.125rem;
 }
 
 .health-value {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: bold;
   color: var(--ion-color-dark);
 }
@@ -1167,21 +1167,21 @@ onUnmounted(() => {
 .activity-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
 }
 
 .activity-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: 1rem;
+  padding: 1rem;
   background: var(--ion-color-light);
-  border-radius: 8px;
+  border-radius: 0.5rem;
 }
 
 .activity-icon {
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1210,17 +1210,17 @@ onUnmounted(() => {
 .activity-title {
   font-weight: 600;
   color: var(--ion-color-dark);
-  margin-bottom: 2px;
+  margin-bottom: 0.125rem;
 }
 
 .activity-description {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--ion-color-medium);
   margin-bottom: 4px;
 }
 
 .activity-time {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--ion-color-medium-shade);
 }
 
@@ -1230,28 +1230,28 @@ onUnmounted(() => {
 }
 
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .filter-controls {
     flex-direction: column;
     align-items: stretch;
-    gap: 16px;
+    gap: 1rem;
   }
   
   .filter-group {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 0.5rem;
   }
   
   .metric-content {
     flex-direction: column;
     text-align: center;
-    gap: 8px;
+    gap: 0.5rem;
   }
   
   .chart-mock {
-    gap: 8px;
-    padding: 0 10px;
+    gap: 0.5rem;
+    padding: 0 0.625rem;
   }
   
   .pattern-item {

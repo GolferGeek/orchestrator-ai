@@ -570,7 +570,7 @@ const highlightPIIInText = (text: string): string => {
   
   piiPatterns.forEach(({ type, pattern, color }) => {
     highlightedText = highlightedText.replace(pattern, (match) => {
-      return `<span class="pii-highlight pii-${type}" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40; border-radius: 3px; padding: 1px 3px;">${match}</span>`;
+      return `<span class="pii-highlight pii-${type}" style="background-color: ${color}20; color: ${color}; border: 0.0625rem solid ${color}40; border-radius: 0.1875rem; padding: 0.0625rem 0.1875rem;">${match}</span>`;
     });
   });
   
@@ -672,8 +672,8 @@ watch(processingError, (error) => {
 
 <style scoped>
 .sanitization-inspector {
-  padding: 16px;
-  max-width: 1200px;
+  padding: 1rem;
+  max-width: 75rem;
   margin: 0 auto;
 }
 
@@ -681,32 +681,32 @@ watch(processingError, (error) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .input-section {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .input-controls {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
 }
 
 .input-actions {
   display: flex;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .error-message {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
+  gap: 0.5rem;
+  padding: 0.75rem;
   background: var(--ion-color-danger-tint);
-  border: 1px solid var(--ion-color-danger);
-  border-radius: 8px;
+  border: 0.0625rem solid var(--ion-color-danger);
+  border-radius: 0.5rem;
 }
 
 .error-message ion-icon {
@@ -720,16 +720,16 @@ watch(processingError, (error) => {
 
 .header-controls {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .phase-navigation {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .phase-steps {
   display: flex;
-  gap: 16px;
+  gap: 1rem;
   margin-bottom: 16px;
   overflow-x: auto;
   padding-bottom: 8px;
@@ -738,14 +738,14 @@ watch(processingError, (error) => {
 .phase-step {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   background: var(--ion-color-light);
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 200px;
-  border: 2px solid transparent;
+  min-width: 12.5rem;
+  border: 0.125rem solid transparent;
 }
 
 .phase-step:hover {
@@ -774,8 +774,8 @@ watch(processingError, (error) => {
 }
 
 .step-number {
-  width: 32px;
-  height: 32px;
+  width: 2rem;
+  height: 2rem;
   border-radius: 50%;
   background: var(--ion-color-medium);
   color: white;
@@ -783,7 +783,7 @@ watch(processingError, (error) => {
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .phase-step.active .step-number {
@@ -800,14 +800,14 @@ watch(processingError, (error) => {
 
 .step-title {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--ion-color-dark);
 }
 
 .step-subtitle {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--ion-color-medium-shade);
-  margin-top: 2px;
+  margin-top: 0.125rem;
 }
 
 .step-status {
@@ -817,7 +817,7 @@ watch(processingError, (error) => {
 
 .status-complete {
   color: var(--ion-color-success);
-  font-size: 20px;
+  font-size: 1.25rem;
 }
 
 .status-processing {
@@ -826,13 +826,13 @@ watch(processingError, (error) => {
 
 .status-pending {
   color: var(--ion-color-medium);
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .phase-progress {
-  height: 4px;
+  height: 0.25rem;
   background: var(--ion-color-light-shade);
-  border-radius: 2px;
+  border-radius: 0.125rem;
   overflow: hidden;
 }
 
@@ -843,7 +843,7 @@ watch(processingError, (error) => {
 }
 
 .phase-content {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .phase-header {
@@ -860,13 +860,13 @@ watch(processingError, (error) => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 200px;
+  min-width: 12.5rem;
 }
 
 .metric-item {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .metric-label {
@@ -880,9 +880,9 @@ watch(processingError, (error) => {
 
 .text-visualization {
   display: flex;
-  gap: 24px;
+  gap: 1.5rem;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .text-section {
@@ -892,17 +892,17 @@ watch(processingError, (error) => {
 .text-section h4 {
   margin: 0 0 12px 0;
   color: var(--ion-color-primary);
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .text-content {
-  padding: 16px;
+  padding: 1rem;
   background: var(--ion-color-light);
-  border-radius: 8px;
-  border: 1px solid var(--ion-color-light-shade);
-  min-height: 80px;
+  border-radius: 0.5rem;
+  border: 0.0625rem solid var(--ion-color-light-shade);
+  min-height: 5rem;
   font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
@@ -912,16 +912,16 @@ watch(processingError, (error) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
+  min-width: 2.5rem;
 }
 
 .transformation-arrow ion-icon {
-  font-size: 24px;
+  font-size: 1.5rem;
   color: var(--ion-color-primary);
 }
 
 .pattern-matches {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .pattern-matches h4 {
@@ -932,9 +932,9 @@ watch(processingError, (error) => {
 /* Removed: Using Ionic grid instead */
 
 .pattern-item {
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid var(--ion-color-light-shade);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 0.0625rem solid var(--ion-color-light-shade);
   background: var(--ion-color-light);
 }
 
@@ -953,15 +953,15 @@ watch(processingError, (error) => {
 .pattern-details {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .pattern-match {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .original {
@@ -976,11 +976,11 @@ watch(processingError, (error) => {
 
 .arrow {
   color: var(--ion-color-medium);
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .pattern-info {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--ion-color-medium-shade);
 }
 
@@ -991,15 +991,15 @@ watch(processingError, (error) => {
 
 .metrics-chart {
   background: var(--ion-color-light);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 0.5rem;
+  padding: 1rem;
 }
 
 .chart-bars {
   display: flex;
-  gap: 16px;
+  gap: 1rem;
   align-items: end;
-  height: 150px;
+  height: 9.375rem;
 }
 
 .metric-bar {
@@ -1007,14 +1007,14 @@ watch(processingError, (error) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .bar-container {
   flex: 1;
-  width: 40px;
+  width: 2.5rem;
   background: var(--ion-color-light-shade);
-  border-radius: 4px;
+  border-radius: 0.25rem;
   position: relative;
   display: flex;
   align-items: end;
@@ -1022,25 +1022,25 @@ watch(processingError, (error) => {
 
 .bar-fill {
   width: 100%;
-  border-radius: 4px;
+  border-radius: 0.25rem;
   transition: height 0.3s ease;
-  min-height: 4px;
+  min-height: 0.25rem;
 }
 
 .bar-label {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--ion-color-medium-shade);
   text-align: center;
 }
 
 .bar-value {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--ion-color-primary);
 }
 
 .reversibility-demo {
-  padding: 16px;
+  padding: 1rem;
 }
 
 .demo-section h3 {
@@ -1051,7 +1051,7 @@ watch(processingError, (error) => {
 .demo-flow {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 1.5rem;
 }
 
 .demo-step h4 {
@@ -1060,39 +1060,39 @@ watch(processingError, (error) => {
 }
 
 .demo-text {
-  padding: 16px;
-  border-radius: 8px;
+  padding: 1rem;
+  border-radius: 0.5rem;
   font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.5;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .demo-text.original {
   background: var(--ion-color-light);
-  border: 1px solid var(--ion-color-medium);
+  border: 0.0625rem solid var(--ion-color-medium);
 }
 
 .demo-text.redacted {
   background: var(--ion-color-warning-tint);
-  border: 1px solid var(--ion-color-warning);
+  border: 0.0625rem solid var(--ion-color-warning);
 }
 
 .demo-text.pseudonymized {
   background: var(--ion-color-primary-tint);
-  border: 1px solid var(--ion-color-primary);
+  border: 0.0625rem solid var(--ion-color-primary);
 }
 
 .demo-text.reversed {
   background: var(--ion-color-success-tint);
-  border: 1px solid var(--ion-color-success);
+  border: 0.0625rem solid var(--ion-color-success);
 }
 
 .control-panel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-top: 24px;
+  gap: 1rem;
+  margin-top: 1.5rem;
 }
 
 .control-section {
@@ -1100,10 +1100,10 @@ watch(processingError, (error) => {
 }
 
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .text-visualization {
     flex-direction: column;
-    gap: 16px;
+    gap: 1rem;
   }
   
   .transformation-arrow {
@@ -1112,7 +1112,7 @@ watch(processingError, (error) => {
   
   .phase-header {
     flex-direction: column;
-    gap: 12px;
+    gap: 0.75rem;
   }
   
   .phase-metrics {

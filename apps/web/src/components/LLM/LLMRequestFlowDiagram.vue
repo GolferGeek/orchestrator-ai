@@ -946,7 +946,7 @@ watch(() => props.requestData, (newData) => {
 <style scoped>
 .llm-request-flow-diagram {
   background: white;
-  border-radius: 12px;
+  border-radius: 0.75rem;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -957,7 +957,7 @@ watch(() => props.requestData, (newData) => {
   align-items: center;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 0.0625rem solid #e0e0e0;
 }
 
 .diagram-header h3 {
@@ -978,8 +978,8 @@ watch(() => props.requestData, (newData) => {
   gap: 1rem;
   padding: 0.5rem 1rem;
   background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border-radius: 0.5rem;
+  border: 0.0625rem solid #e0e0e0;
 }
 
 .live-indicator {
@@ -989,8 +989,8 @@ watch(() => props.requestData, (newData) => {
 }
 
 .live-dot {
-  width: 8px;
-  height: 8px;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
   background: #dc3545;
   animation: pulse 2s infinite;
