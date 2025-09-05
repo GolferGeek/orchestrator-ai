@@ -327,6 +327,7 @@ import {
   refreshOutline, 
   playSkipForwardOutline 
 } from 'ionicons/icons';
+import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { llmUsageService } from '@/services/llmUsageService';
 import { analyticsService } from '@/services/analyticsService';
 
@@ -360,11 +361,14 @@ const isPlaying = ref(false);
 const animationTimer = ref<NodeJS.Timeout>();
 const liveDataTimer = ref<NodeJS.Timeout>();
 
-// Live Data State
+// Store integration
+const llmUsageStore = useLlmUsageStore();
+
+// Live Data State (using reactive computed from store)
 const liveRequestData = ref<any>(null);
-const isLoadingLiveData = ref(false);
-const liveDataError = ref<string | null>(null);
-const recentRequests = ref<any[]>([]);
+const isLoadingLiveData = computed(() => llmUsageStore.loading);
+const liveDataError = computed(() => llmUsageStore.error);
+const recentRequests = computed(() => llmUsageStore.usageRecords.slice(0, 10)); // Last 10 requests
 const selectedRequestId = ref<string | null>(null);
 
 // SVG Dimensions
@@ -894,7 +898,10 @@ const selectRequest = (requestId: string) => {
 };
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
+  // Initialize store data
+  await llmUsageStore.fetchUsageRecords();
+  
   if (props.liveMode) {
     startLiveDataPolling();
   }

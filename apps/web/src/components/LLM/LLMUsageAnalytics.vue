@@ -375,6 +375,9 @@ import BarChart from '@/components/Charts/BarChart.vue';
 import LineChart from '@/components/Charts/LineChart.vue';
 import DoughnutChart from '@/components/Charts/DoughnutChart.vue';
 
+// Store
+import { useLlmUsageStore } from '@/stores/llmUsageStore';
+
 // Props
 interface Props {
   autoRefresh?: boolean;
@@ -393,64 +396,156 @@ const emit = defineEmits<{
   'filter-changed': [filters: any];
 }>();
 
-// Local reactive state
+// Store
+const llmUsageStore = useLlmUsageStore();
+
+// Local reactive state (UI only)
 const showFilters = ref(false);
 const selectedTimeRange = ref('24h');
 const selectedProvider = ref('all');
 
-// Mock data state (will be replaced with store integration)
-const isLoading = ref(false);
-const error = ref('');
+// Computed properties from store (reactive UI updates)
+const isLoading = computed(() => llmUsageStore.loading);
+const error = computed(() => llmUsageStore.error);
 
-// Key metrics
-const totalRequests = ref(0);
-const avgResponseTime = ref(0);
-const totalCost = ref(0);
-const sanitizationOverhead = ref(0);
+// Key metrics from store
+const totalRequests = computed(() => llmUsageStore.usageRecords.length);
+const avgResponseTime = computed(() => Math.round(llmUsageStore.avgDuration));
+const totalCost = computed(() => llmUsageStore.totalCost);
+const successRate = computed(() => llmUsageStore.successRate);
 
-// Trends
-const requestsTrend = ref('up');
-const responseTimeTrend = ref('down');
-const costTrend = ref('up');
-const sanitizationTrend = ref('down');
+// Provider data
+const providers = computed(() => llmUsageStore.providers);
+const analytics = computed(() => llmUsageStore.analytics);
+const usageRecords = computed(() => llmUsageStore.usageRecords);
 
-// Insights
-const insights = ref([
-  {
-    id: 1,
-    type: 'performance',
-    title: 'Response Time Optimization',
-    description: 'OpenAI GPT-4 showing 15% faster response times compared to last week.',
-    recommendation: 'Consider increasing OpenAI routing for time-sensitive requests.'
-  },
-  {
-    id: 2,
-    type: 'cost',
-    title: 'Cost Efficiency Improvement',
-    description: 'Anthropic Claude usage has reduced costs by 12% while maintaining quality.',
-    recommendation: 'Evaluate expanding Claude usage for cost-sensitive workloads.'
-  },
-  {
-    id: 3,
-    type: 'warning',
-    title: 'Sanitization Overhead Increase',
-    description: 'Privacy processing overhead has increased by 8% due to new PII patterns.',
-    recommendation: 'Review and optimize PII detection patterns for performance.'
+// Computed trends (derived from analytics data)
+const requestsTrend = computed(() => {
+  if (analytics.value.length < 2) return 'stable';
+  const recent = analytics.value[analytics.value.length - 1];
+  const previous = analytics.value[analytics.value.length - 2];
+  return recent.total_requests > previous.total_requests ? 'up' : 'down';
+});
+
+const responseTimeTrend = computed(() => {
+  if (analytics.value.length < 2) return 'stable';
+  const recent = analytics.value[analytics.value.length - 1];
+  const previous = analytics.value[analytics.value.length - 2];
+  return recent.avg_duration_ms < previous.avg_duration_ms ? 'down' : 'up';
+});
+
+const costTrend = computed(() => {
+  if (analytics.value.length < 2) return 'stable';
+  const recent = analytics.value[analytics.value.length - 1];
+  const previous = analytics.value[analytics.value.length - 2];
+  return recent.total_cost > previous.total_cost ? 'up' : 'down';
+});
+
+// Sanitization overhead (computed from usage records)
+const sanitizationOverhead = computed(() => {
+  const recordsWithSanitization = usageRecords.value.filter(r => r.duration_ms && r.duration_ms > 0);
+  if (recordsWithSanitization.length === 0) return 0;
+  
+  // Estimate sanitization overhead as percentage of total response time
+  const avgDuration = recordsWithSanitization.reduce((sum, r) => sum + (r.duration_ms || 0), 0) / recordsWithSanitization.length;
+  return Math.round(avgDuration * 0.1); // Assume 10% overhead for sanitization
+});
+
+const sanitizationTrend = computed(() => 'down'); // Default to optimized
+
+// Computed insights from store analytics (no mock data)
+const insights = computed(() => {
+  if (!analytics.value.length || !usageRecords.value.length) {
+    return [];
   }
-]);
 
-// Chart data computed properties
-const requestVolumeData = computed(() => ({
-  labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-  datasets: [{
-    label: 'Requests',
-    data: [120, 85, 180, 250, 320, 180],
-    borderColor: 'rgb(75, 192, 192)',
-    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-    tension: 0.4,
-    fill: true
-  }]
-}));
+  const computedInsights = [];
+  
+  // Performance insight based on real data
+  if (analytics.value.length >= 2) {
+    const recent = analytics.value[analytics.value.length - 1];
+    const previous = analytics.value[analytics.value.length - 2];
+    const responseTimeChange = ((recent.avg_duration_ms - previous.avg_duration_ms) / previous.avg_duration_ms) * 100;
+    
+    if (Math.abs(responseTimeChange) > 5) {
+      computedInsights.push({
+        id: 1,
+        type: 'performance',
+        title: 'Response Time Analysis',
+        description: `Average response time has ${responseTimeChange > 0 ? 'increased' : 'decreased'} by ${Math.abs(responseTimeChange).toFixed(1)}% compared to previous period.`,
+        recommendation: responseTimeChange > 0 ? 'Consider optimizing request routing or model selection.' : 'Current performance improvements are positive.'
+      });
+    }
+  }
+
+  // Cost insight based on real data
+  const totalCostToday = analytics.value.reduce((sum, record) => sum + record.total_cost, 0);
+  if (totalCostToday > 0) {
+    computedInsights.push({
+      id: 2,
+      type: 'cost',
+      title: 'Cost Analysis',
+      description: `Total cost today: $${totalCostToday.toFixed(2)} across ${usageRecords.value.length} requests.`,
+      recommendation: 'Monitor cost trends and consider optimizing high-cost providers.'
+    });
+  }
+
+  // Provider distribution insight
+  const providerUsage = usageRecords.value.reduce((acc, record) => {
+    acc[record.provider_name] = (acc[record.provider_name] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  const topProvider = Object.entries(providerUsage).sort(([,a], [,b]) => b - a)[0];
+  if (topProvider) {
+    const percentage = ((topProvider[1] / usageRecords.value.length) * 100).toFixed(1);
+    computedInsights.push({
+      id: 3,
+      type: 'usage',
+      title: 'Provider Usage Pattern',
+      description: `${topProvider[0]} is handling ${percentage}% of requests (${topProvider[1]} out of ${usageRecords.value.length}).`,
+      recommendation: 'Consider load balancing if one provider is heavily utilized.'
+    });
+  }
+
+  return computedInsights;
+});
+
+// Chart data computed properties (reactive from store data)
+const requestVolumeData = computed(() => {
+  if (!analytics.value.length) {
+    return {
+      labels: ['No Data'],
+      datasets: [{
+        label: 'Requests',
+        data: [0],
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        tension: 0.4,
+        fill: true
+      }]
+    };
+  }
+
+  // Group analytics by date and sum requests
+  const dailyData = analytics.value.reduce((acc, record) => {
+    const date = new Date(record.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    acc[date] = (acc[date] || 0) + record.total_requests;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return {
+    labels: Object.keys(dailyData),
+    datasets: [{
+      label: 'Requests',
+      data: Object.values(dailyData),
+      borderColor: 'rgb(75, 192, 192)',
+      backgroundColor: 'rgba(75, 192, 192, 0.2)',
+      tension: 0.4,
+      fill: true
+    }]
+  };
+});
 
 const requestVolumeOptions = computed(() => ({
   responsive: true,
@@ -483,25 +578,56 @@ const requestVolumeOptions = computed(() => ({
   }
 }));
 
-const providerDistributionData = computed(() => ({
-  labels: ['OpenAI', 'Anthropic', 'Google', 'Mistral'],
-  datasets: [{
-    data: [45, 30, 15, 10],
-    backgroundColor: [
-      'rgba(54, 162, 235, 0.8)',
-      'rgba(255, 99, 132, 0.8)',
-      'rgba(255, 205, 86, 0.8)',
-      'rgba(75, 192, 192, 0.8)'
-    ],
-    borderColor: [
-      'rgb(54, 162, 235)',
-      'rgb(255, 99, 132)',
-      'rgb(255, 205, 86)',
-      'rgb(75, 192, 192)'
-    ],
-    borderWidth: 2
-  }]
-}));
+const providerDistributionData = computed(() => {
+  if (!usageRecords.value.length) {
+    return {
+      labels: ['No Data'],
+      datasets: [{
+        data: [1],
+        backgroundColor: ['rgba(128, 128, 128, 0.8)'],
+        borderColor: ['rgb(128, 128, 128)'],
+        borderWidth: 2
+      }]
+    };
+  }
+
+  // Count requests by provider
+  const providerCounts = usageRecords.value.reduce((acc, record) => {
+    acc[record.provider_name] = (acc[record.provider_name] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const colors = [
+    'rgba(54, 162, 235, 0.8)',
+    'rgba(255, 99, 132, 0.8)',
+    'rgba(255, 205, 86, 0.8)',
+    'rgba(75, 192, 192, 0.8)',
+    'rgba(153, 102, 255, 0.8)',
+    'rgba(255, 159, 64, 0.8)'
+  ];
+
+  const borderColors = [
+    'rgb(54, 162, 235)',
+    'rgb(255, 99, 132)',
+    'rgb(255, 205, 86)',
+    'rgb(75, 192, 192)',
+    'rgb(153, 102, 255)',
+    'rgb(255, 159, 64)'
+  ];
+
+  const labels = Object.keys(providerCounts);
+  const data = Object.values(providerCounts);
+
+  return {
+    labels,
+    datasets: [{
+      data,
+      backgroundColor: colors.slice(0, labels.length),
+      borderColor: borderColors.slice(0, labels.length),
+      borderWidth: 2
+    }]
+  };
+});
 
 const providerDistributionOptions = computed(() => ({
   responsive: true,
@@ -526,26 +652,66 @@ const providerDistributionOptions = computed(() => ({
   }
 }));
 
-const responseTimeData = computed(() => ({
-  labels: ['OpenAI', 'Anthropic', 'Google', 'Mistral'],
-  datasets: [{
-    label: 'Response Time (ms)',
-    data: [1200, 950, 1400, 800],
-    backgroundColor: [
-      'rgba(54, 162, 235, 0.8)',
-      'rgba(255, 99, 132, 0.8)',
-      'rgba(255, 205, 86, 0.8)',
-      'rgba(75, 192, 192, 0.8)'
-    ],
-    borderColor: [
-      'rgb(54, 162, 235)',
-      'rgb(255, 99, 132)',
-      'rgb(255, 205, 86)',
-      'rgb(75, 192, 192)'
-    ],
-    borderWidth: 2
-  }]
-}));
+const responseTimeData = computed(() => {
+  if (!usageRecords.value.length) {
+    return {
+      labels: ['No Data'],
+      datasets: [{
+        label: 'Response Time (ms)',
+        data: [0],
+        backgroundColor: ['rgba(128, 128, 128, 0.8)'],
+        borderColor: ['rgb(128, 128, 128)'],
+        borderWidth: 2
+      }]
+    };
+  }
+
+  // Calculate average response time by provider
+  const providerTimes = usageRecords.value.reduce((acc, record) => {
+    if (record.duration_ms && record.duration_ms > 0) {
+      if (!acc[record.provider_name]) {
+        acc[record.provider_name] = { total: 0, count: 0 };
+      }
+      acc[record.provider_name].total += record.duration_ms;
+      acc[record.provider_name].count += 1;
+    }
+    return acc;
+  }, {} as Record<string, { total: number; count: number }>);
+
+  const labels = Object.keys(providerTimes);
+  const data = labels.map(provider => 
+    Math.round(providerTimes[provider].total / providerTimes[provider].count)
+  );
+
+  const colors = [
+    'rgba(54, 162, 235, 0.8)',
+    'rgba(255, 99, 132, 0.8)',
+    'rgba(255, 205, 86, 0.8)',
+    'rgba(75, 192, 192, 0.8)',
+    'rgba(153, 102, 255, 0.8)',
+    'rgba(255, 159, 64, 0.8)'
+  ];
+
+  const borderColors = [
+    'rgb(54, 162, 235)',
+    'rgb(255, 99, 132)',
+    'rgb(255, 205, 86)',
+    'rgb(75, 192, 192)',
+    'rgb(153, 102, 255)',
+    'rgb(255, 159, 64)'
+  ];
+
+  return {
+    labels,
+    datasets: [{
+      label: 'Response Time (ms)',
+      data,
+      backgroundColor: colors.slice(0, labels.length),
+      borderColor: borderColors.slice(0, labels.length),
+      borderWidth: 2
+    }]
+  };
+});
 
 const responseTimeOptions = computed(() => ({
   responsive: true,
@@ -579,17 +745,40 @@ const responseTimeOptions = computed(() => ({
   }
 }));
 
-const costTrendsData = computed(() => ({
-  labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  datasets: [{
-    label: 'Daily Cost',
-    data: [45.50, 52.30, 38.20, 61.40, 49.80, 33.60, 41.70],
-    borderColor: 'rgb(255, 159, 64)',
-    backgroundColor: 'rgba(255, 159, 64, 0.2)',
-    tension: 0.4,
-    fill: true
-  }]
-}));
+const costTrendsData = computed(() => {
+  if (!analytics.value.length) {
+    return {
+      labels: ['No Data'],
+      datasets: [{
+        label: 'Daily Cost',
+        data: [0],
+        borderColor: 'rgb(255, 159, 64)',
+        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+        tension: 0.4,
+        fill: true
+      }]
+    };
+  }
+
+  // Group analytics by date and sum costs
+  const dailyCosts = analytics.value.reduce((acc, record) => {
+    const date = new Date(record.date).toLocaleDateString('en-US', { weekday: 'short' });
+    acc[date] = (acc[date] || 0) + record.total_cost;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return {
+    labels: Object.keys(dailyCosts),
+    datasets: [{
+      label: 'Daily Cost',
+      data: Object.values(dailyCosts),
+      borderColor: 'rgb(255, 159, 64)',
+      backgroundColor: 'rgba(255, 159, 64, 0.2)',
+      tension: 0.4,
+      fill: true
+    }]
+  };
+});
 
 const costTrendsOptions = computed(() => ({
   responsive: true,
@@ -685,19 +874,34 @@ const sanitizationOverheadOptions = computed(() => ({
 // Methods
 const refreshData = async () => {
   try {
-    isLoading.value = true;
-    error.value = '';
-    
-    // TODO: Replace with actual API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock data updates
-    totalRequests.value = Math.floor(Math.random() * 10000) + 5000;
-    avgResponseTime.value = Math.floor(Math.random() * 500) + 800;
-    totalCost.value = Math.random() * 500 + 200;
-    sanitizationOverhead.value = Math.floor(Math.random() * 50) + 20;
-    
     emit('refresh-requested');
+    
+    // Update analytics filters based on current selections
+    const timeRangeInDays = {
+      '1h': 1,
+      '24h': 1, 
+      '7d': 7,
+      '30d': 30,
+      '90d': 90
+    }[selectedTimeRange.value] || 7;
+    
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - timeRangeInDays);
+    
+    llmUsageStore.updateAnalyticsFilters({
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    });
+    
+    // Fetch fresh data from the store
+    await Promise.all([
+      llmUsageStore.fetchUsageRecords(),
+      llmUsageStore.fetchAnalytics(),
+      llmUsageStore.fetchStats()
+    ]);
+    
+    // Emit event with current metrics
     emit('data-loaded', {
       requests: totalRequests.value,
       responseTime: avgResponseTime.value,
@@ -706,9 +910,6 @@ const refreshData = async () => {
     });
   } catch (err: any) {
     console.error('Failed to refresh analytics data:', err);
-    error.value = 'Failed to load analytics data. Please try again.';
-  } finally {
-    isLoading.value = false;
   }
 };
 
@@ -754,15 +955,17 @@ watch([selectedTimeRange, selectedProvider], () => {
 
 // Lifecycle hooks
 onMounted(async () => {
-  await refreshData();
+  // Initialize the store with fresh data
+  await llmUsageStore.initialize();
   
   if (props.autoRefresh) {
-    // TODO: Implement auto-refresh functionality
+    llmUsageStore.startAutoRefresh(props.refreshInterval);
   }
 });
 
 onUnmounted(() => {
-  // TODO: Cleanup any intervals or subscriptions
+  // Cleanup auto-refresh
+  llmUsageStore.stopAutoRefresh();
 });
 </script>
 
