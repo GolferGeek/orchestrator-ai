@@ -51,7 +51,7 @@ export function transformToTimeSeries(
   dateFormat: 'short' | 'weekday' = 'short'
 ): TimeSeriesData {
   if (!analytics.length) {
-    return { labels: ['No Data'], values: [0] };
+    return { labels: [], values: [] };
   }
 
   const dailyData = analytics.reduce((acc, record) => {
@@ -128,7 +128,7 @@ export function calculateProviderResponseTimes(usageRecords: LlmUsageRecord[]): 
   responseTimes: number[];
 } {
   if (!usageRecords.length) {
-    return { providers: ['No Data'], responseTimes: [0] };
+    return { providers: [], responseTimes: [] };
   }
 
   const providerTimes = usageRecords.reduce((acc, record) => {

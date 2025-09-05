@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "7.2.0",
+    "@pinia/testing": "^1.0.2",
     "@types/diff": "^7.0.2",
     "@types/dom-speech-recognition": "^0.0.6",
     "@types/dompurify": "^3.0.5",
