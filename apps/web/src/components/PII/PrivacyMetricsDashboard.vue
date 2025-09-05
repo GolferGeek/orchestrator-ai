@@ -53,7 +53,7 @@
                 <div class="metric-content">
                   <ion-icon :icon="eyeOutline" color="primary" size="large"></ion-icon>
                   <div class="metric-info">
-                    <div class="metric-value">{{ formatNumber(totalDetections) }}</div>
+                    <div class="metric-value">{{ formatNumber(metrics?.totalPIIDetections || 0) }}</div>
                     <div class="metric-label">PII Detections</div>
                   </div>
                 </div>
@@ -67,7 +67,7 @@
                 <div class="metric-content">
                   <ion-icon :icon="shieldCheckmarkOutline" color="success" size="large"></ion-icon>
                   <div class="metric-info">
-                    <div class="metric-value">{{ formatNumber(totalSanitized) }}</div>
+                    <div class="metric-value">{{ formatNumber(metrics?.itemsSanitized || 0) }}</div>
                     <div class="metric-label">Items Sanitized</div>
                   </div>
                 </div>
@@ -81,7 +81,7 @@
                 <div class="metric-content">
                   <ion-icon :icon="swapHorizontalOutline" color="secondary" size="large"></ion-icon>
                   <div class="metric-info">
-                    <div class="metric-value">{{ formatNumber(totalPseudonyms) }}</div>
+                    <div class="metric-value">{{ formatNumber(metrics?.pseudonymsCreated || 0) }}</div>
                     <div class="metric-label">Pseudonyms Created</div>
                   </div>
                 </div>
@@ -227,7 +227,7 @@
               <div class="cost-metrics">
                 <div class="cost-item">
                   <div class="cost-label">Processing Cost</div>
-                  <div class="cost-value">${{ formatCurrency(processingCost) }}</div>
+                  <div class="cost-value">{{ formatCurrency(metrics?.costSavings || 0) }}</div>
                   <div class="cost-trend positive">
                     <ion-icon :icon="arrowUpOutline"></ion-icon>
                     {{ costTrend.processing }}% vs last period
@@ -361,7 +361,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import {
   IonButton,
   IonCard,
@@ -407,6 +407,9 @@ import BarChart from '@/components/Charts/BarChart.vue';
 import LineChart from '@/components/Charts/LineChart.vue';
 import DoughnutChart from '@/components/Charts/DoughnutChart.vue';
 
+// Store
+import { usePrivacyDashboardStore } from '@/stores/privacyDashboardStore';
+
 // Props
 interface Props {
   autoRefresh?: boolean;
@@ -425,160 +428,86 @@ const emit = defineEmits<{
   'filter-changed': [filters: any];
 }>();
 
-// Reactive state
+// Store
+const dashboardStore = usePrivacyDashboardStore();
+
+// Local reactive state
 const showFilters = ref(false);
-const selectedTimeRange = ref('7d');
-const selectedDataType = ref('all');
-const isLoading = ref(false);
-const error = ref<string | null>(null);
 
-// Sample data (will be replaced with real API data)
-const totalDetections = ref(15420);
-const totalSanitized = ref(14890);
-const totalPseudonyms = ref(8750);
-const costSavings = ref(12450);
+// Computed properties from store
+const metrics = computed(() => dashboardStore.metrics);
+const detectionStats = computed(() => dashboardStore.detectionStats);
+const isLoading = computed(() => dashboardStore.isLoading);
+const error = computed(() => dashboardStore.error);
+const hasData = computed(() => dashboardStore.hasData);
 
-const detectionStats = ref([
-  { type: 'email', count: 5420 },
-  { type: 'phone', count: 3890 },
-  { type: 'name', count: 3210 },
-  { type: 'ssn', count: 1890 },
-  { type: 'api_key', count: 1010 }
-]);
+const patternUsage = computed(() => dashboardStore.patternUsage);
+const sanitizationMethods = computed(() => dashboardStore.sanitizationMethods);
+const performanceData = computed(() => dashboardStore.performanceData);
+const systemHealth = computed(() => dashboardStore.systemHealth);
+const recentActivity = computed(() => dashboardStore.recentActivity);
 
-const topPatterns = ref([
-  { id: 1, name: 'Email Pattern', description: 'Standard email validation', usageCount: 5420 },
-  { id: 2, name: 'Phone Pattern', description: 'US phone number format', usageCount: 3890 },
-  { id: 3, name: 'Name Pattern', description: 'First Last name format', usageCount: 3210 },
-  { id: 4, name: 'SSN Pattern', description: 'Social security number', usageCount: 1890 },
-  { id: 5, name: 'API Key Pattern', description: 'API key detection', usageCount: 1010 }
-]);
-
-const sanitizationMethods = ref([
-  { name: 'Pseudonymization', percentage: 65, color: '#3b82f6' },
-  { name: 'Redaction', percentage: 25, color: '#ef4444' },
-  { name: 'Masking', percentage: 10, color: '#f59e0b' }
-]);
-
-const processingCost = ref(890.50);
-const storageSavings = ref(2340.75);
-const complianceValue = ref(15000);
-
-const costTrend = ref({
-  processing: -12.5,
-  storage: 18.3
+// Chart data computed properties
+const performanceLabels = computed(() => {
+  if (!performanceData.value?.length) return ['No Data'];
+  return performanceData.value.map(point => {
+    const date = new Date(point.timestamp);
+    const now = new Date();
+    const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    return diffHours === 0 ? 'Now' : `${diffHours}h ago`;
+  });
 });
 
-const systemHealth = ref({
-  overall: { status: 'healthy', label: 'Operational' },
-  uptime: '99.8%',
-  errorRate: { status: 'healthy', value: 0.2 },
-  throughput: { status: 'healthy', value: 1250 }
-});
-
-const recentActivity = ref([
-  {
-    id: 1,
-    type: 'detection',
-    title: 'PII Detection Spike',
-    description: 'Detected 45 email addresses in batch processing',
-    timestamp: new Date(Date.now() - 300000), // 5 minutes ago
-    count: 45
-  },
-  {
-    id: 2,
-    type: 'sanitization',
-    title: 'Pseudonymization Complete',
-    description: 'Successfully pseudonymized 23 names in user data',
-    timestamp: new Date(Date.now() - 600000), // 10 minutes ago
-    count: 23
-  },
-  {
-    id: 3,
-    type: 'redaction',
-    title: 'API Keys Redacted',
-    description: 'Removed 8 API keys from log files',
-    timestamp: new Date(Date.now() - 900000), // 15 minutes ago
-    count: 8
+const performanceDatasets = computed(() => {
+  if (!performanceData.value?.length) {
+    return [
+      { label: 'Processing Time (ms)', data: [], borderColor: '#3b82f6', backgroundColor: '#3b82f620', fill: true },
+      { label: 'Throughput (req/min)', data: [], borderColor: '#10b981', backgroundColor: '#10b98120', fill: true }
+    ];
   }
-]);
-
-// Computed properties
-const maxDetections = computed(() => {
-  return Math.max(...detectionStats.value.map(s => s.count));
+  
+  return [
+    {
+      label: 'Processing Time (ms)',
+      data: performanceData.value.map(point => point.processingTimeMs),
+      borderColor: '#3b82f6',
+      backgroundColor: '#3b82f620',
+      fill: true
+    },
+    {
+      label: 'Throughput (req/min)',
+      data: performanceData.value.map(point => point.throughputPerMin),
+      borderColor: '#10b981',
+      backgroundColor: '#10b98120',
+      fill: true
+    }
+  ];
 });
-
-const maxPatternUsage = computed(() => {
-  return Math.max(...topPatterns.value.map(p => p.usageCount));
-});
-
-const performanceLabels = ref(['6h ago', '5h ago', '4h ago', '3h ago', '2h ago', '1h ago', 'Now']);
-
-const performanceDatasets = computed(() => [
-  {
-    label: 'Processing Time (ms)',
-    data: [150, 120, 80, 100, 60, 90, 40],
-    borderColor: '#3b82f6',
-    backgroundColor: '#3b82f620',
-    fill: true
-  },
-  {
-    label: 'Throughput (req/min)',
-    data: [1200, 1350, 1500, 1400, 1600, 1450, 1700],
-    borderColor: '#10b981',
-    backgroundColor: '#10b98120',
-    fill: true
-  }
-]);
 
 // Methods
 const refreshData = async () => {
-  isLoading.value = true;
-  error.value = null;
-  
   try {
     emit('refresh-requested');
-    // TODO: Implement actual API calls
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+    await dashboardStore.refreshData();
     
-    emit('data-loaded', {
-      detections: totalDetections.value,
-      sanitized: totalSanitized.value,
-      pseudonyms: totalPseudonyms.value
-    });
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to refresh data';
-  } finally {
-    isLoading.value = false;
+    // Emit event to notify parent component
+    if (metrics.value) {
+      emit('data-loaded', {
+        detections: metrics.value.totalPIIDetections,
+        sanitized: metrics.value.itemsSanitized,
+        pseudonyms: metrics.value.pseudonymsCreated,
+        savings: metrics.value.costSavings
+      });
+    }
+  } catch (err: any) {
+    console.error('Failed to refresh dashboard data:', err);
   }
 };
 
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
-  }
-  return num.toString();
-};
-
-const formatCurrency = (amount: number): string => {
-  return amount.toFixed(2);
-};
-
-const formatTime = (timestamp: Date): string => {
-  const now = new Date();
-  const diff = now.getTime() - timestamp.getTime();
-  const minutes = Math.floor(diff / 60000);
-  
-  if (minutes < 60) {
-    return `${minutes}m ago`;
-  } else if (minutes < 1440) {
-    return `${Math.floor(minutes / 60)}h ago`;
-  } else {
-    return `${Math.floor(minutes / 1440)}d ago`;
-  }
-};
+// Use store utility methods
+const formatNumber = (num: number): string => dashboardStore.formatNumber(num);
+const formatCurrency = (amount: number): string => dashboardStore.formatCurrency(amount);
+const formatTime = (timestamp: Date | string): string => dashboardStore.formatRelativeTime(timestamp);
 
 const getTypeColor = (type: string): string => {
   const colors: Record<string, string> = {
@@ -630,12 +559,19 @@ watch([selectedTimeRange, selectedDataType], () => {
 });
 
 // Lifecycle hooks
-onMounted(() => {
-  refreshData();
+onMounted(async () => {
+  // Initialize dashboard data on component mount
+  await dashboardStore.fetchDashboardData();
   
+  // Set up auto-refresh if enabled
   if (props.autoRefresh) {
-    setInterval(refreshData, props.refreshInterval);
+    dashboardStore.startAutoRefresh(props.refreshInterval);
   }
+});
+
+onUnmounted(() => {
+  // Clean up auto-refresh interval
+  dashboardStore.stopAutoRefresh();
 });
 </script>
 
