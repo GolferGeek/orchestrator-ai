@@ -1,21 +1,17 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
-import LandingPage from '../views/LandingPage.vue';
-import AgentsPage from '../views/AgentsPage.vue';
-import HomePage from '../views/HomePage.vue';
-import LoginPage from '../views/LoginPage.vue';
-import EvaluationsPage from '../views/EvaluationsPage.vue';
+// Dynamic imports for better code splitting - all views loaded on demand
 import { useAuthStore, UserRole } from '../stores/authStore';
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'Landing',
-    component: LandingPage,
+    component: () => import('../views/LandingPage.vue'),
     meta: { requiresAuth: false, public: true }
   },
   {
     path: '/app',
-    component: AgentsPage,
+    component: () => import('../views/AgentsPage.vue'),
     meta: { requiresAuth: true },
     children: [
       {
@@ -25,19 +21,19 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: 'home',
         name: 'Home',
-        component: HomePage,
+        component: () => import('../views/HomePage.vue'),
         meta: { requiresAuth: true }
       },
       {
         path: 'chat',
         name: 'Chat', 
-        component: HomePage,
+        component: () => import('../views/HomePage.vue'),
         meta: { requiresAuth: true }
       },
       {
         path: 'evaluations',
         name: 'Evaluations',
-        component: EvaluationsPage,
+        component: () => import('../views/EvaluationsPage.vue'),
         meta: { requiresAuth: true }
       },
       {
@@ -144,7 +140,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/login', 
     name: 'Login',
-    component: LoginPage
+    component: () => import('../views/LoginPage.vue')
   },
   {
     path: '/access-denied',

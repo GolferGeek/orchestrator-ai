@@ -5,6 +5,7 @@ import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import fs from 'fs'
 import { defineConfig, loadEnv } from 'vite'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 /**
  * Get HTTPS configuration for Vite dev server
@@ -64,7 +65,15 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       vue(),
-      legacy()
+      legacy(),
+      // Add bundle analyzer for performance optimization
+      visualizer({
+        filename: 'dist/stats.html',
+        open: false,
+        gzipSize: true,
+        brotliSize: true,
+        template: 'treemap'
+      })
     ],
     resolve: {
       alias: {
@@ -84,6 +93,35 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       sourcemap: true,
+      // CSS optimization
+      cssCodeSplit: true,
+      cssMinify: true,
+      // Asset optimization
+      assetsInlineLimit: 4096, // Inline assets smaller than 4KB
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Vendor chunks for better caching
+            'vue-vendor': ['vue', '@vue/runtime-core', '@vue/runtime-dom', '@vue/reactivity'],
+            'ionic-vendor': ['@ionic/vue', '@ionic/vue-router'],
+            'chart-vendor': ['chart.js'],
+            'pinia-vendor': ['pinia'],
+            'router-vendor': ['vue-router'],
+            'axios-vendor': ['axios'],
+            
+            // Store chunks for better organization
+            'stores-auth': ['./src/stores/authStore.ts'],
+            'stores-agent': ['./src/stores/agentChatStore/store.ts', './src/stores/agentChatStore/conversation.ts'],
+            'stores-pii': ['./src/stores/piiPatternsStore.ts', './src/stores/pseudonymDictionariesStore.ts', './src/stores/pseudonymMappingsStore.ts'],
+            'stores-analytics': ['./src/stores/analyticsStore.ts', './src/stores/llmUsageStore.ts', './src/stores/privacyDashboardStore.ts'],
+            
+            // Service chunks
+            'services-api': ['./src/services/piiService.ts', './src/services/llmUsageService.ts', './src/services/sanitizationAnalyticsService.ts'],
+            'services-utils': ['./src/services/projectsService.ts', './src/services/pseudonymService.ts']
+          }
+        }
+      },
+      chunkSizeWarningLimit: 1000, // Increase warning limit temporarily
     },
     test: {
       globals: true,
