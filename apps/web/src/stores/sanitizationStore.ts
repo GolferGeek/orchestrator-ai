@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, readonly } from 'vue';
 import { piiService } from '@/services/piiService';
 import { PIITestRequest, PIITestResponse } from '@/types/pii';
 

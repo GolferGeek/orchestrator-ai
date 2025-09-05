@@ -129,6 +129,9 @@ export class AgentFactoryService {
    * Create an agent instance from discovered metadata
    */
   async createAgent(discoveredAgent: DiscoveredAgent): Promise<any> {
+    // 🔍 DEBUG: Log agent creation attempt
+    this.logger.debug(`🏭 [AgentFactory] Creating agent: ${discoveredAgent.name} (${discoveredAgent.type})`);
+    this.logger.debug(`🏭 [AgentFactory] Agent path: ${discoveredAgent.servicePath}`);
 
     try {
       // Load agent configuration from YAML

@@ -168,17 +168,26 @@ export const useLLMStore = defineStore('llm', {
       ]);
       // Set default selections if available
       if (this.providers.length > 0 && !this.selectedProvider) {
-        // Default to OpenAI if available
+        // Default to Ollama if available (for local thinking models), otherwise OpenAI
+        const ollama = this.providers.find(p => p.name.toLowerCase().includes('ollama'));
         const openai = this.providers.find(p => p.name.toLowerCase().includes('openai'));
-        this.selectedProvider = openai || this.providers[0];
+        this.selectedProvider = ollama || openai || this.providers[0];
       }
       if (this.selectedProvider && this.availableModels.length > 0 && !this.selectedModel) {
-        // Default to a reasonable model (gpt-4o-mini if available)
-        const defaultModel = this.availableModels.find(m => 
+        // Default to thinking models for content creation
+        const thinkingModel = this.availableModels.find(m => 
+          m.modelId.includes('deepseek-r1') ||
+          m.modelId.includes('qwq') ||
+          m.modelId.includes('qwen') ||
+          m.name.toLowerCase().includes('reasoning') ||
+          m.name.toLowerCase().includes('thinking')
+        );
+        // Fallback to GPT models if no thinking models available
+        const fallbackModel = this.availableModels.find(m => 
           m.modelId.includes('gpt-4o-mini') || 
           m.modelId.includes('gpt-3.5-turbo')
         );
-        this.selectedModel = defaultModel || this.availableModels[0];
+        this.selectedModel = thinkingModel || fallbackModel || this.availableModels[0];
       }
     },
     // Set selected provider and clear model if incompatible
