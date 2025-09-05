@@ -19,7 +19,7 @@ describe('Store Integration Tests - Real API', () => {
       const store = usePIIPatternsStore();
       
       expect(store.patterns).toEqual([]);
-      expect(store.loading).toBe(false);
+      expect(store.isLoading).toBe(false);
       expect(store.error).toBeNull();
     });
 
@@ -30,7 +30,7 @@ describe('Store Integration Tests - Real API', () => {
       
       // Real API should return actual patterns or empty array
       expect(Array.isArray(store.patterns)).toBe(true);
-      expect(store.loading).toBe(false);
+      expect(store.isLoading).toBe(false);
       
       // If patterns exist, verify structure
       if (store.patterns.length > 0) {
@@ -53,7 +53,7 @@ describe('Store Integration Tests - Real API', () => {
       } catch (error) {
         // If API returns error, store should handle it gracefully
         expect(store.error).toBeDefined();
-        expect(store.loading).toBe(false);
+        expect(store.isLoading).toBe(false);
       }
     }, API_TIMEOUT);
 
@@ -75,7 +75,7 @@ describe('Store Integration Tests - Real API', () => {
       const store = usePseudonymDictionariesStore();
       
       expect(store.dictionaries).toEqual([]);
-      expect(store.loading).toBe(false);
+      expect(store.isLoading).toBe(false);
     });
 
     it('should load dictionaries from real API', async () => {
@@ -85,7 +85,7 @@ describe('Store Integration Tests - Real API', () => {
       
       // Real API should return actual dictionaries or empty array
       expect(Array.isArray(store.dictionaries)).toBe(true);
-      expect(store.loading).toBe(false);
+      expect(store.isLoading).toBe(false);
       
       // If dictionaries exist, verify structure
       if (store.dictionaries.length > 0) {
@@ -103,7 +103,7 @@ describe('Store Integration Tests - Real API', () => {
       const store = useLlmUsageStore();
       
       expect(store.usageRecords).toEqual([]);
-      expect(store.loading).toBe(false);
+      expect(store.isLoading).toBe(false);
     });
 
     it('should load usage records from real API', async () => {
@@ -113,7 +113,7 @@ describe('Store Integration Tests - Real API', () => {
       
       // Real API should return actual records or empty array
       expect(Array.isArray(store.usageRecords)).toBe(true);
-      expect(store.loading).toBe(false);
+      expect(store.isLoading).toBe(false);
       
       // If records exist, verify structure
       if (store.usageRecords.length > 0) {
@@ -132,9 +132,9 @@ describe('Store Integration Tests - Real API', () => {
       
       // Test computed properties work with real data
       expect(typeof store.totalCost).toBe('number');
-      expect(typeof store.totalRequests).toBe('number');
-      expect(Array.isArray(store.providerBreakdown)).toBe(true);
-      expect(Array.isArray(store.modelBreakdown)).toBe(true);
+      expect(typeof store.successRate).toBe('number');
+      expect(Array.isArray(store.providers)).toBe(true);
+      expect(Array.isArray(store.models)).toBe(true);
     }, API_TIMEOUT);
   });
 
@@ -144,7 +144,8 @@ describe('Store Integration Tests - Real API', () => {
       
       expect(store.dashboardData).toBeNull();
       expect(store.realTimeAnalytics).toBeNull();
-      expect(store.loading).toBe(false);
+      expect(store.isLoadingDashboard).toBe(false);
+      expect(store.isLoadingRealTime).toBe(false);
     });
 
     it('should load dashboard data from real API', async () => {
@@ -152,7 +153,7 @@ describe('Store Integration Tests - Real API', () => {
       
       await store.loadDashboardData();
       
-      expect(store.loading).toBe(false);
+      expect(store.isLoadingDashboard).toBe(false);
       
       // If dashboard data exists, verify structure
       if (store.dashboardData) {
@@ -166,7 +167,7 @@ describe('Store Integration Tests - Real API', () => {
       
       await store.loadRealTimeAnalytics();
       
-      expect(store.loading).toBe(false);
+      expect(store.isLoadingRealTime).toBe(false);
       
       // If real-time data exists, verify structure
       if (store.realTimeAnalytics) {
@@ -206,13 +207,13 @@ describe('Store Integration Tests - Real API', () => {
     }, API_TIMEOUT);
 
     it('should integrate monitoring and analytics stores correctly', async () => {
-      const { llmUsageStore, analyticsStore, refreshAll } = useMonitoringAnalytics();
+      const { llmMonitoringStore, analyticsStore, refreshNow } = useMonitoringAnalytics();
       
-      await refreshAll();
+      await refreshNow();
       
-      // Verify stores are populated from real API
-      expect(Array.isArray(llmUsageStore.usageRecords)).toBe(true);
-      expect(typeof llmUsageStore.totalCost).toBe('number');
+      // Verify stores are populated from real API (llmMonitoringStore has different properties)
+      expect(Array.isArray(llmMonitoringStore.usageRecords)).toBe(true);
+      expect(typeof llmMonitoringStore.totalCostToday).toBe('number');
       
       // Analytics data might be null if API is unavailable
       if (analyticsStore.dashboardData) {
@@ -231,8 +232,9 @@ describe('Store Integration Tests - Real API', () => {
       
       await initializeAll();
       
-      // Verify system overview computed properties
-      expect(typeof systemHealth.value).toBe('string');
+      // Verify system overview computed properties  
+      expect(typeof systemHealth.value).toBe('object');
+      expect(typeof systemHealth.value.status).toBe('string');
       expect(typeof totalCost.value).toBe('number');
       expect(typeof activePatterns.value).toBe('number');
       
@@ -258,7 +260,7 @@ describe('Store Integration Tests - Real API', () => {
       
       // Verify reactive updates with real data
       expect(Array.isArray(piiStore.patterns)).toBe(true);
-      expect(Array.isArray(pseudonymStore.dictionaries)).toBe(true);
+      expect(Array.isArray(pseudonymDictionariesStore.dictionaries)).toBe(true);
       
       // Test computed properties reactivity
       expect(typeof piiStore.selectedPatternsCount).toBe('number');
@@ -273,11 +275,11 @@ describe('Store Integration Tests - Real API', () => {
         await store.loadPatterns();
         // If successful, error should be null
         expect(store.error).toBeNull();
-        expect(store.loading).toBe(false);
+        expect(store.isLoading).toBe(false);
       } catch (error) {
         // If API fails, error should be set
         expect(store.error).toBeDefined();
-        expect(store.loading).toBe(false);
+        expect(store.isLoading).toBe(false);
       }
     }, API_TIMEOUT);
 
@@ -293,7 +295,7 @@ describe('Store Integration Tests - Real API', () => {
       await loadPromise;
       
       // Loading should be false after completion
-      expect(store.loading).toBe(false);
+      expect(store.isLoading).toBe(false);
     }, API_TIMEOUT);
   });
 
@@ -312,7 +314,7 @@ describe('Store Integration Tests - Real API', () => {
       // Verify data structure for components
       expect(Array.isArray(piiPatternsStore.patterns)).toBe(true);
       expect(Array.isArray(piiPatternsStore.enabledPatterns)).toBe(true);
-      expect(Array.isArray(pseudonymStore.dictionaries)).toBe(true);
+      expect(Array.isArray(pseudonymDictionariesStore.dictionaries)).toBe(true);
       expect(Array.isArray(pseudonymStore.activeDictionaries)).toBe(true);
       
       // Verify computed properties components rely on
@@ -333,8 +335,8 @@ describe('Store Integration Tests - Real API', () => {
       // Verify data structure for dashboard components
       expect(Array.isArray(llmUsageStore.usageRecords)).toBe(true);
       expect(typeof llmUsageStore.totalCost).toBe('number');
-      expect(typeof llmUsageStore.totalRequests).toBe('number');
-      expect(Array.isArray(llmUsageStore.providerBreakdown)).toBe(true);
+      expect(typeof llmUsageStore.successRate).toBe('number');
+      expect(Array.isArray(llmUsageStore.providers)).toBe(true);
       
       // Analytics data might be null if service unavailable
       if (analyticsStore.dashboardData) {
@@ -352,11 +354,11 @@ describe('Store Integration Tests - Real API', () => {
         await store.loadPatterns();
         // Success case
         expect(store.error).toBeNull();
-        expect(store.loading).toBe(false);
+        expect(store.isLoading).toBe(false);
       } catch (error) {
         // Error case - store should handle gracefully
         expect(store.error).toBeDefined();
-        expect(store.loading).toBe(false);
+        expect(store.isLoading).toBe(false);
         expect(Array.isArray(store.patterns)).toBe(true); // Should remain array
       }
     }, API_TIMEOUT);
@@ -371,7 +373,7 @@ describe('Store Integration Tests - Real API', () => {
       } catch (error) {
         // Network error case
         expect(store.error).toBeDefined();
-        expect(store.loading).toBe(false);
+        expect(store.isLoading).toBe(false);
       }
     }, API_TIMEOUT);
 
@@ -388,7 +390,7 @@ describe('Store Integration Tests - Real API', () => {
         // Try again to test recovery
         await store.loadPatterns();
         expect(store.error).toBeNull();
-        expect(store.loading).toBe(false);
+        expect(store.isLoading).toBe(false);
       } catch (error) {
         // If API is unavailable, that's expected
         expect(store.error).toBeDefined();
