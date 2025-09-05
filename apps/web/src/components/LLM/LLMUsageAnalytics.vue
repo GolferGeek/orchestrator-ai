@@ -16,6 +16,20 @@
       </div>
     </div>
 
+    <!-- Tab Navigation -->
+    <div class="dashboard-tabs">
+      <ion-segment v-model="selectedTab" @ionChange="onTabChange">
+        <ion-segment-button value="overview">
+          <ion-icon :icon="analyticsOutline"></ion-icon>
+          <ion-label>Overview</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="routing">
+          <ion-icon :icon="gitNetworkOutline"></ion-icon>
+          <ion-label>Routing</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </div>
+
     <!-- Time Range and Provider Filters -->
     <ion-card v-if="showFilters" class="filter-card">
       <ion-card-content>
@@ -44,7 +58,11 @@
       </ion-card-content>
     </ion-card>
 
-    <!-- Key Metrics Overview -->
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Overview Tab -->
+      <div v-show="selectedTab === 'overview'" class="tab-panel overview-panel">
+        <!-- Key Metrics Overview -->
     <div class="metrics-overview">
       <ion-grid>
         <ion-row>
@@ -327,6 +345,16 @@
         </ion-card-content>
       </ion-card>
     </div>
+      </div>
+
+      <!-- Routing Tab -->
+      <div v-show="selectedTab === 'routing'" class="tab-panel routing-panel">
+        <LLMRoutingDashboard 
+          :timeRange="selectedTimeRange" 
+          :provider="selectedProvider" 
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -347,7 +375,9 @@ import {
   IonSelect,
   IonSelectOption,
   IonSpinner,
-  IonNote
+  IonNote,
+  IonSegment,
+  IonSegmentButton
 } from '@ionic/vue';
 import {
   refreshOutline,
@@ -359,6 +389,8 @@ import {
   barChartOutline,
   pieChartOutline,
   speedometerOutline,
+  analyticsOutline,
+  gitNetworkOutline,
   trendingUpOutline,
   alertCircleOutline,
   arrowUpOutline,
@@ -374,6 +406,7 @@ import {
 import BarChart from '@/components/Charts/BarChart.vue';
 import LineChart from '@/components/Charts/LineChart.vue';
 import DoughnutChart from '@/components/Charts/DoughnutChart.vue';
+import LLMRoutingDashboard from './LLMRoutingDashboard.vue';
 
 // Store
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
@@ -411,6 +444,9 @@ const emit = defineEmits<{
 const llmUsageStore = useLlmUsageStore();
 
 // Local reactive state (UI only)
+// Tab state
+const selectedTab = ref('overview');
+
 const showFilters = ref(false);
 const selectedTimeRange = ref('24h');
 const selectedProvider = ref('all');
@@ -977,6 +1013,11 @@ const refreshData = async () => {
   }
 };
 
+// Tab change handler
+const onTabChange = (event: any) => {
+  selectedTab.value = event.detail.value;
+};
+
 const formatNumber = (num: number): string => {
   return new Intl.NumberFormat().format(num);
 };
@@ -1067,6 +1108,42 @@ onUnmounted(() => {
   gap: 12px;
   align-items: center;
   margin-top: 16px;
+}
+
+/* Tab Styles */
+.dashboard-tabs {
+  margin-bottom: 1.5rem;
+}
+
+.dashboard-tabs ion-segment {
+  --background: var(--ion-color-light);
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+}
+
+.dashboard-tabs ion-segment-button {
+  --background-checked: var(--ion-color-primary);
+  --color-checked: white;
+  --indicator-color: transparent;
+  margin: 0 0.25rem;
+  border-radius: 0.375rem;
+  min-height: 3rem;
+}
+
+.tab-content {
+  width: 100%;
+}
+
+.tab-panel {
+  width: 100%;
+}
+
+.overview-panel {
+  /* Existing styles will apply */
+}
+
+.routing-panel {
+  /* Routing dashboard styles */
 }
 
 /* Filter Styles */
