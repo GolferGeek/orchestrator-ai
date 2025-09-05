@@ -415,7 +415,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
 
     // Store alert in database (optional)
     this.storeAlert(alert).catch(error => {
-      this.logger.error('Failed to store alert in database', error);
+      this.logger.debug('Failed to store alert in database', error);
     });
   }
 
@@ -432,7 +432,7 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
       
       // Update in database
       this.updateAlertInDatabase(alert).catch(error => {
-        this.logger.error('Failed to update resolved alert in database', error);
+        this.logger.debug('Failed to update resolved alert in database', error);
       });
     }
   }
@@ -460,7 +460,8 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
         });
 
       if (error) {
-        this.logger.error('Failed to store alert', error);
+        // Only log debug message for database errors to avoid spam
+        this.logger.debug('Alert storage failed (database may not be configured)', error);
       }
     } catch (error) {
       // Fail silently if table doesn't exist
