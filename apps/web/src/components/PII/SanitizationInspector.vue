@@ -22,6 +22,45 @@
       </div>
     </div>
 
+    <!-- Input Section -->
+    <div class="input-section" v-if="!sanitizationStore.hasResult || processingError">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Text Input</ion-card-title>
+          <ion-card-subtitle>Enter text to analyze through the sanitization process</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="input-controls">
+            <ion-textarea
+              v-model="inputTextLocal"
+              placeholder="Enter text to sanitize (e.g., 'Contact John Doe at john@email.com')"
+              rows="3"
+              :disabled="isProcessing"
+            ></ion-textarea>
+            
+            <div class="input-actions">
+              <ion-button 
+                expand="block"
+                @click="processSanitization"
+                :disabled="!inputTextLocal.trim() || isProcessing"
+              >
+                <ion-spinner v-if="isProcessing" name="crescent" slot="start"></ion-spinner>
+                <ion-icon v-else :icon="playOutline" slot="start"></ion-icon>
+                {{ isProcessing ? 'Processing...' : 'Analyze Text' }}
+              </ion-button>
+            </div>
+            
+            <div v-if="processingError" class="error-message">
+              <ion-note color="danger">
+                <ion-icon :icon="warningOutline"></ion-icon>
+                {{ processingError }}
+              </ion-note>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
     <!-- Phase Navigation -->
     <div class="phase-navigation">
       <div class="phase-steps">
@@ -281,6 +320,7 @@ import {
   IonModal,
   IonNote,
   IonSpinner,
+  IonTextarea,
   IonTitle,
   IonToolbar,
   IonBadge
@@ -298,93 +338,122 @@ import {
   chevronForwardOutline,
   playOutline
 } from 'ionicons/icons';
+import { useSanitizationStore, type SanitizationPhaseData } from '@/stores/sanitizationStore';
 
 // Props
 interface Props {
-  sanitizationData?: any;
+  inputText?: string;
+  autoProcess?: boolean;
   autoPlay?: boolean;
   animationSpeed?: number;
+  sanitizationOptions?: {
+    enableRedaction?: boolean;
+    enablePseudonymization?: boolean;
+    context?: string;
+  };
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  autoProcess: false,
   autoPlay: false,
-  animationSpeed: 2000
+  animationSpeed: 2000,
+  sanitizationOptions: () => ({
+    enableRedaction: true,
+    enablePseudonymization: true,
+    context: 'sanitization-inspector'
+  })
 });
 
 // Emits
 const emit = defineEmits<{
   'phase-changed': [phase: number];
   'animation-complete': [];
+  'processing-started': [];
+  'processing-complete': [result: any];
+  'processing-error': [error: string];
 }>();
+
+// Store
+const sanitizationStore = useSanitizationStore();
 
 // Reactive state
 const currentPhaseIndex = ref(0);
-const isProcessing = ref(false);
 const showReversibilityDemo = ref(false);
+const inputTextLocal = ref('');
 
-// Sanitization phases structure
-const sanitizationPhases = ref([
-  {
-    id: 'input',
-    title: 'Input Text',
-    subtitle: 'Original text before processing',
-    inputLabel: 'Raw Input',
-    outputLabel: 'Validated Input',
-    inputText: '',
-    outputText: '',
-    patterns: [],
-    metrics: null,
-    performanceData: null
-  },
-  {
-    id: 'pii-detection',
-    title: 'PII Detection',
-    subtitle: 'Scanning for personally identifiable information',
-    inputLabel: 'Input Text',
-    outputLabel: 'Detected PII Patterns',
-    inputText: '',
-    outputText: '',
-    patterns: [],
-    metrics: { processingTimeMs: 0, detectedCount: 0 },
-    performanceData: []
-  },
-  {
-    id: 'secret-redaction',
-    title: 'Secret Redaction',
-    subtitle: 'Removing API keys and sensitive secrets',
-    inputLabel: 'Text with Secrets',
-    outputLabel: 'Redacted Text',
-    inputText: '',
-    outputText: '',
-    patterns: [],
-    metrics: { processingTimeMs: 0, detectedCount: 0 },
-    performanceData: []
-  },
-  {
-    id: 'pseudonymization',
-    title: 'Pseudonymization',
-    subtitle: 'Replacing PII with reversible pseudonyms',
-    inputLabel: 'Text with PII',
-    outputLabel: 'Pseudonymized Text',
-    inputText: '',
-    outputText: '',
-    patterns: [],
-    metrics: { processingTimeMs: 0, detectedCount: 0 },
-    performanceData: []
-  },
-  {
-    id: 'final-output',
-    title: 'Final Output',
-    subtitle: 'Sanitized text ready for LLM processing',
-    inputLabel: 'Processed Text',
-    outputLabel: 'Final Sanitized Text',
-    inputText: '',
-    outputText: '',
-    patterns: [],
-    metrics: { processingTimeMs: 0 },
-    performanceData: []
+// Computed properties for store integration
+const sanitizationPhases = computed(() => {
+  if (sanitizationStore.currentResult && sanitizationStore.currentResult.phases.length > 0) {
+    return sanitizationStore.currentResult.phases;
   }
-]);
+  
+  // Return default phases if no result
+  return [
+    {
+      id: 'input',
+      title: 'Input Text',
+      subtitle: 'Original text before processing',
+      inputLabel: 'Raw Input',
+      outputLabel: 'Validated Input',
+      inputText: inputTextLocal.value,
+      outputText: inputTextLocal.value,
+      patterns: [],
+      metrics: null,
+      performanceData: null
+    },
+    {
+      id: 'pii-detection',
+      title: 'PII Detection',
+      subtitle: 'Scanning for personally identifiable information',
+      inputLabel: 'Input Text',
+      outputLabel: 'Detected PII Patterns',
+      inputText: inputTextLocal.value,
+      outputText: inputTextLocal.value,
+      patterns: [],
+      metrics: { processingTimeMs: 0, detectedCount: 0 },
+      performanceData: []
+    },
+    {
+      id: 'secret-redaction',
+      title: 'Secret Redaction',
+      subtitle: 'Removing API keys and sensitive secrets',
+      inputLabel: 'Text with Secrets',
+      outputLabel: 'Redacted Text',
+      inputText: inputTextLocal.value,
+      outputText: inputTextLocal.value,
+      patterns: [],
+      metrics: { processingTimeMs: 0, detectedCount: 0 },
+      performanceData: []
+    },
+    {
+      id: 'pseudonymization',
+      title: 'Pseudonymization',
+      subtitle: 'Replacing PII with reversible pseudonyms',
+      inputLabel: 'Text with PII',
+      outputLabel: 'Pseudonymized Text',
+      inputText: inputTextLocal.value,
+      outputText: inputTextLocal.value,
+      patterns: [],
+      metrics: { processingTimeMs: 0, detectedCount: 0 },
+      performanceData: []
+    },
+    {
+      id: 'final-output',
+      title: 'Final Output',
+      subtitle: 'Sanitized text ready for LLM processing',
+      inputLabel: 'Processed Text',
+      outputLabel: 'Final Sanitized Text',
+      inputText: inputTextLocal.value,
+      outputText: inputTextLocal.value,
+      patterns: [],
+      metrics: { processingTimeMs: 0 },
+      performanceData: []
+    }
+  ];
+});
+
+const isProcessing = computed(() => sanitizationStore.isProcessing);
+const processingError = computed(() => sanitizationStore.error);
 
 // Demo data for reversibility demonstration
 const demoData = ref({
@@ -437,12 +506,15 @@ const previousPhase = () => {
 
 const resetInspection = () => {
   currentPhaseIndex.value = 0;
-  isProcessing.value = false;
+  sanitizationStore.clearResult();
   emit('phase-changed', 0);
 };
 
 const playAnimation = async () => {
-  isProcessing.value = true;
+  if (!sanitizationStore.hasResult) {
+    // Process text first if no result
+    await processSanitization();
+  }
   
   for (let i = 0; i < sanitizationPhases.value.length; i++) {
     currentPhaseIndex.value = i;
@@ -452,8 +524,28 @@ const playAnimation = async () => {
     await new Promise(resolve => setTimeout(resolve, props.animationSpeed));
   }
   
-  isProcessing.value = false;
   emit('animation-complete');
+};
+
+const processSanitization = async () => {
+  if (!inputTextLocal.value.trim()) {
+    // Use default sample text if no input
+    inputTextLocal.value = 'Hello John Doe, please contact us at john.doe@email.com or call (555) 123-4567. API key: sk-abc123xyz456789.';
+  }
+  
+  try {
+    emit('processing-started');
+    
+    const result = await sanitizationStore.processText(
+      inputTextLocal.value,
+      props.sanitizationOptions
+    );
+    
+    emit('processing-complete', result);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Processing failed';
+    emit('processing-error', errorMessage);
+  }
 };
 
 const highlightPIIInText = (text: string): string => {
@@ -504,93 +596,53 @@ const getPatternColor = (type: string): string => {
   return colorMap[type] || 'medium';
 };
 
-// Initialize with sample data
-const initializeSampleData = () => {
-  const sampleText = 'Hello John Doe, please contact us at john.doe@email.com or (555) 123-4567. API Key: sk-abc123xyz456789.';
-  
-  sanitizationPhases.value[0].inputText = sampleText;
-  sanitizationPhases.value[0].outputText = sampleText;
-  
-  sanitizationPhases.value[1].inputText = sampleText;
-  sanitizationPhases.value[1].outputText = sampleText;
-  sanitizationPhases.value[1].patterns = [
-    {
-      id: '1',
-      type: 'name',
-      originalValue: 'John Doe',
-      replacementValue: 'PersonAlpha',
-      description: 'Person name detected using pattern matching'
-    },
-    {
-      id: '2',
-      type: 'email',
-      originalValue: 'john.doe@email.com',
-      replacementValue: 'email.beta@domain.com',
-      description: 'Email address identified and flagged for pseudonymization'
-    },
-    {
-      id: '3',
-      type: 'phone',
-      originalValue: '(555) 123-4567',
-      replacementValue: '(555) 987-6543',
-      description: 'Phone number pattern matched'
-    }
-  ];
-  sanitizationPhases.value[1].metrics = { processingTimeMs: 45, detectedCount: 3 };
-  
-  sanitizationPhases.value[2].inputText = sampleText;
-  sanitizationPhases.value[2].outputText = 'Hello John Doe, please contact us at john.doe@email.com or (555) 123-4567. API Key: sk-[REDACTED].';
-  sanitizationPhases.value[2].patterns = [
-    {
-      id: '4',
-      type: 'api_key',
-      originalValue: 'sk-abc123xyz456789',
-      replacementValue: 'sk-[REDACTED]',
-      description: 'API key detected and redacted for security'
-    }
-  ];
-  sanitizationPhases.value[2].metrics = { processingTimeMs: 12, detectedCount: 1 };
-  
-  sanitizationPhases.value[3].inputText = 'Hello John Doe, please contact us at john.doe@email.com or (555) 123-4567. API Key: sk-[REDACTED].';
-  sanitizationPhases.value[3].outputText = 'Hello PersonAlpha, please contact us at email.beta@domain.com or (555) 987-6543. API Key: sk-[REDACTED].';
-  sanitizationPhases.value[3].patterns = [
-    {
-      id: '5',
-      type: 'pseudonym',
-      originalValue: 'John Doe → PersonAlpha',
-      replacementValue: 'PersonAlpha',
-      description: 'Name pseudonymized with reversible mapping'
-    },
-    {
-      id: '6',
-      type: 'pseudonym',
-      originalValue: 'john.doe@email.com → email.beta@domain.com',
-      replacementValue: 'email.beta@domain.com',
-      description: 'Email pseudonymized with reversible mapping'
-    }
-  ];
-  sanitizationPhases.value[3].metrics = { processingTimeMs: 67, detectedCount: 2 };
-  
-  sanitizationPhases.value[4].inputText = 'Hello PersonAlpha, please contact us at email.beta@domain.com or (555) 987-6543. API Key: sk-[REDACTED].';
-  sanitizationPhases.value[4].outputText = 'Hello PersonAlpha, please contact us at email.beta@domain.com or (555) 987-6543. API Key: sk-[REDACTED].';
-  sanitizationPhases.value[4].metrics = { processingTimeMs: 124 };
+// Helper to add processing control button
+const addProcessButton = () => {
+  return !sanitizationStore.hasResult && inputTextLocal.value.trim();
 };
 
 // Lifecycle hooks
 onMounted(() => {
-  initializeSampleData();
+  // Initialize with input text from props or sample data
+  if (props.inputText) {
+    inputTextLocal.value = props.inputText;
+  } else {
+    inputTextLocal.value = 'Hello John Doe, please contact us at john.doe@email.com or call (555) 123-4567. API key: sk-abc123xyz456789.';
+  }
   
+  // Auto-process if requested
+  if (props.autoProcess) {
+    processSanitization();
+  }
+  
+  // Auto-play animation if requested
   if (props.autoPlay) {
     playAnimation();
   }
 });
 
 // Watchers
-watch(() => props.sanitizationData, (newData) => {
-  if (newData) {
-    // Process real sanitization data when provided
-    // This will be implemented when connecting to the API
-    console.log('Processing sanitization data:', newData);
+watch(() => props.inputText, (newText) => {
+  if (newText && newText !== inputTextLocal.value) {
+    inputTextLocal.value = newText;
+    
+    if (props.autoProcess) {
+      processSanitization();
+    }
+  }
+});
+
+watch(() => sanitizationStore.currentResult, (newResult) => {
+  if (newResult) {
+    // Reset to first phase when new result is available
+    currentPhaseIndex.value = 0;
+    emit('phase-changed', 0);
+  }
+});
+
+watch(processingError, (error) => {
+  if (error) {
+    emit('processing-error', error);
   }
 });
 </script>
@@ -607,6 +659,35 @@ watch(() => props.sanitizationData, (newData) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+}
+
+.input-section {
+  margin-bottom: 24px;
+}
+
+.input-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.input-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--ion-color-danger-tint);
+  border: 1px solid var(--ion-color-danger);
+  border-radius: 8px;
+}
+
+.error-message ion-icon {
+  color: var(--ion-color-danger);
 }
 
 .inspector-header h3 {
