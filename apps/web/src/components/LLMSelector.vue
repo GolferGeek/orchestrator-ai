@@ -1,5 +1,33 @@
 <template>
   <div class="llm-selector">
+    <!-- Sovereign Mode Toggle -->
+    <div v-if="sovereignPolicyStore.canUserControlSovereignMode" class="sovereign-mode-section">
+      <div class="sovereign-toggle-group">
+        <label class="sovereign-label">
+          <input 
+            type="checkbox" 
+            v-model="userSovereignMode"
+            :disabled="sovereignPolicyStore.policy?.enforced || loadingSovereignUpdate"
+            class="sovereign-checkbox"
+            @change="onSovereignModeChange"
+          />
+          <span class="sovereign-text">Sovereign Mode</span>
+          <span class="sovereign-badge" :class="effectiveSovereignModeClass">
+            {{ effectiveSovereignModeText }}
+          </span>
+        </label>
+        <div class="sovereign-description">
+          {{ sovereignModeDescription }}
+        </div>
+      </div>
+      
+      <!-- Policy Override Messages -->
+      <div v-if="policyMessage" class="policy-message" :class="policyMessageClass">
+        <span class="policy-icon">{{ policyMessageIcon }}</span>
+        {{ policyMessage }}
+      </div>
+    </div>
+
     <!-- Provider Selection -->
     <div class="selection-group">
       <label class="selection-label">AI Provider</label>
@@ -142,22 +170,46 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useLLMStore } from '../stores/llmStore';
+import { useSovereignPolicyStore } from '../stores/sovereignPolicyStore';
+import { useSovereignPolicy } from '../composables/useSovereignPolicy';
 import type { Provider, Model } from '../types/llm';
+
 const llmStore = useLLMStore();
+const sovereignPolicyStore = useSovereignPolicyStore();
+const { 
+  initialize: initializeSovereignPolicy,
+  refresh: refreshSovereignPolicy,
+  updateUserPreference: updateSovereignUserPreference
+} = useSovereignPolicy();
+
 const showAdvanced = ref(false);
+
 // Local reactive state for v-model
 const selectedProvider = ref<Provider | ''>('');
 const selectedModel = ref<Model | ''>('');
 const temperature = ref(0.7);
 const maxTokens = ref<number | undefined>(undefined);
+
+// Sovereign mode state
+const userSovereignMode = ref(false);
+const loadingSovereignUpdate = ref(false);
 // Initialize store and sync local state
 onMounted(async () => {
-  await llmStore.initialize();
+  // Initialize both stores
+  await Promise.all([
+    llmStore.initialize(),
+    initializeSovereignPolicy()
+  ]);
+  
   // Sync with store state
   selectedProvider.value = llmStore.selectedProvider || '';
   selectedModel.value = llmStore.selectedModel || '';
   temperature.value = llmStore.temperature;
   maxTokens.value = llmStore.maxTokens;
+  
+  // Sync sovereign mode state
+  userSovereignMode.value = sovereignPolicyStore.userSovereignMode;
+  
   // Load saved preferences
   llmStore.loadFromLocalStorage();
 });
@@ -189,6 +241,24 @@ const onMaxTokensChange = () => {
   llmStore.setMaxTokens(maxTokens.value);
   llmStore.saveToLocalStorage();
 };
+
+// Sovereign mode event handler
+const onSovereignModeChange = async () => {
+  if (loadingSovereignUpdate.value) return;
+  
+  loadingSovereignUpdate.value = true;
+  try {
+    await updateSovereignUserPreference(userSovereignMode.value);
+    // Refresh models when sovereign mode changes
+    await llmStore.refreshModelsForSovereignMode();
+  } catch (error) {
+    console.error('Failed to update sovereign mode:', error);
+    // Revert the toggle on error
+    userSovereignMode.value = !userSovereignMode.value;
+  } finally {
+    loadingSovereignUpdate.value = false;
+  }
+};
 // Computed properties
 const isLoading = computed(() => 
   llmStore.loadingProviders || llmStore.loadingModels
@@ -196,6 +266,59 @@ const isLoading = computed(() =>
 const hasErrors = computed(() => 
   llmStore.providerError || llmStore.modelError
 );
+
+// Sovereign mode computed properties
+const effectiveSovereignModeClass = computed(() => {
+  const isActive = sovereignPolicyStore.effectiveSovereignMode;
+  return {
+    'sovereign-active': isActive,
+    'sovereign-inactive': !isActive
+  };
+});
+
+const effectiveSovereignModeText = computed(() => {
+  return sovereignPolicyStore.effectiveSovereignMode ? 'ON' : 'OFF';
+});
+
+const sovereignModeDescription = computed(() => {
+  if (sovereignPolicyStore.policy?.enforced) {
+    return 'Organization policy enforces sovereign mode for all users';
+  }
+  if (userSovereignMode.value) {
+    return 'Only local models (Ollama) will be used for enhanced privacy';
+  }
+  return 'External AI providers allowed - toggle for local-only models';
+});
+
+const policyMessage = computed(() => {
+  if (sovereignPolicyStore.policy?.enforced && !userSovereignMode.value) {
+    return 'Organization policy requires sovereign mode to be enabled';
+  }
+  if (sovereignPolicyStore.policyWarnings.length > 0) {
+    return sovereignPolicyStore.policyWarnings[0];
+  }
+  return null;
+});
+
+const policyMessageClass = computed(() => {
+  if (sovereignPolicyStore.policy?.enforced) {
+    return 'policy-enforced';
+  }
+  if (sovereignPolicyStore.policyWarnings.length > 0) {
+    return 'policy-warning';
+  }
+  return 'policy-info';
+});
+
+const policyMessageIcon = computed(() => {
+  if (sovereignPolicyStore.policy?.enforced) {
+    return '🔒';
+  }
+  if (sovereignPolicyStore.policyWarnings.length > 0) {
+    return '⚠️';
+  }
+  return 'ℹ️';
+});
 </script>
 <style scoped>
 .llm-selector {
@@ -357,5 +480,104 @@ const hasErrors = computed(() =>
 }
 .toggle-advanced:hover {
   background: #2980b9;
+}
+
+/* Sovereign Mode Styles */
+.sovereign-mode-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+
+.sovereign-toggle-group {
+  margin-bottom: 0.75rem;
+}
+
+.sovereign-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.sovereign-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.sovereign-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.sovereign-text {
+  font-size: 1rem;
+  color: #333;
+}
+
+.sovereign-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sovereign-active {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.sovereign-inactive {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.sovereign-description {
+  font-size: 0.85rem;
+  color: #666;
+  line-height: 1.4;
+  margin-left: 1.5rem;
+}
+
+.policy-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.policy-enforced {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.policy-warning {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.policy-info {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.policy-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 </style>
