@@ -395,6 +395,42 @@ export class ProjectsController {
   }
 
   /**
+   * Get general project analytics metrics
+   */
+  @Get('analytics/metrics')
+  async getProjectAnalyticsMetrics(
+    @CurrentUser() user: any,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<{
+    totalProjects: number;
+    activeProjects: number;
+    completedProjects: number;
+    failedProjects: number;
+    averageCompletionTime: number;
+    successRate: number;
+    projectsByStatus: Record<string, number>;
+    recentActivity: Array<{
+      projectId: string;
+      name: string;
+      status: string;
+      lastActivity: string;
+    }>;
+  }> {
+    try {
+      // Get date range
+      const now = new Date();
+      const start = startDate ? new Date(startDate) : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const end = endDate ? new Date(endDate) : now;
+
+      return await this.projectsService.getProjectMetrics(user.id, start, end);
+    } catch (error) {
+      this.logger.error('Failed to get project analytics metrics', error);
+      throw new InternalServerErrorException('Failed to get project analytics metrics');
+    }
+  }
+
+  /**
    * Get project analytics and progress metrics
    */
   @Get(':id/analytics')

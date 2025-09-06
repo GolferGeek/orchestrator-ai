@@ -496,7 +496,25 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
    * Get current system health metrics
    */
   async getSystemHealthMetrics(): Promise<SystemHealthMetrics> {
-    const status = await this.localModelStatusService.getOllamaStatus();
+    // Add timeout to prevent hanging on Ollama connection
+    let status;
+    try {
+      status = await Promise.race([
+        this.localModelStatusService.getOllamaStatus(),
+        new Promise<any>((_, reject) => 
+          setTimeout(() => reject(new Error('Ollama status timeout')), 5000)
+        )
+      ]);
+    } catch (error) {
+      // Fallback status if Ollama is unavailable
+      status = {
+        connected: false,
+        version: 'unknown',
+        models: [],
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+    
     const memoryStats = this.memoryManagerService.getMemoryStats();
     const stats = this.localModelStatusService.getStats();
     

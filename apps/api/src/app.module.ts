@@ -57,6 +57,7 @@ import { UniversalAgentServicesContextModule } from './agents/base/services/univ
 // import supabaseConfig from './supabase/supabase.config';
 import { MCPModule } from './mcp/mcp.module';
 import { SovereignPolicyModule } from './config/sovereign-policy.module';
+import { SystemModule } from './system/system.module';
 
 @Module({
   imports: [
@@ -117,6 +118,7 @@ import { SovereignPolicyModule } from './config/sovereign-policy.module';
     UniversalAgentServicesContextModule, // Universal service container for all agent types
     MCPModule, // MCP (Model Context Protocol) server and client functionality
     SovereignPolicyModule, // Sovereign mode policy management
+    SystemModule, // System analytics and monitoring
   ],
   controllers: [
     AppController,

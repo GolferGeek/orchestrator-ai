@@ -520,10 +520,10 @@ export class RunMetadataService {
     let query = client
       .from('llm_usage_analytics')
       .select('*')
-      .order('date', { ascending: false });
+      .order('date_day', { ascending: false });
 
-    if (filters?.startDate) query = query.gte('date', filters.startDate);
-    if (filters?.endDate) query = query.lte('date', filters.endDate);
+    if (filters?.startDate) query = query.gte('date_day', filters.startDate);
+    if (filters?.endDate) query = query.lte('date_day', filters.endDate);
     if (filters?.callerType) query = query.eq('caller_type', filters.callerType);
 
     const { data, error } = await query;

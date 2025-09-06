@@ -55,106 +55,123 @@
                 </ion-item>
               </ion-menu-toggle>
               
-              <!-- Admin Section -->
-              <div v-if="auth.hasAdminAccess || auth.hasEvaluationAccess">
-                <ion-list-header>Admin</ion-list-header>
-                          <ion-menu-toggle v-if="auth.hasAdminAccess">
-            <ion-item 
-              router-direction="root" 
-              router-link="/app/admin/settings" 
-              lines="none" 
-              :detail="false"
-              :class="{ 'selected': $route.path === '/app/admin/settings' }"
-            >
-              <ion-icon aria-hidden="true" :icon="settingsOutline" slot="start"></ion-icon>
-              <ion-label>Admin Settings</ion-label>
-            </ion-item>
-          </ion-menu-toggle>
-          <ion-menu-toggle v-if="auth.hasAdminAccess">
-            <ion-item 
-              router-direction="root" 
-              router-link="/app/admin/audit" 
-              lines="none" 
-              :detail="false"
-              :class="{ 'selected': $route.path === '/app/admin/audit' }"
-            >
-              <ion-icon aria-hidden="true" :icon="shieldCheckmarkOutline" slot="start"></ion-icon>
-              <ion-label>Audit Dashboard</ion-label>
-            </ion-item>
-          </ion-menu-toggle>
-                <ion-menu-toggle v-if="auth.hasAdminAccess">
-                  <ion-item 
-                    router-direction="root" 
-                    router-link="/app/admin/pii-patterns" 
-                    lines="none" 
-                    :detail="false"
-                    :class="{ 'selected': $route.path === '/app/admin/pii-patterns' }"
-                  >
-                    <ion-icon aria-hidden="true" :icon="shieldCheckmarkOutline" slot="start"></ion-icon>
-                    <ion-label>PII Patterns</ion-label>
+              <!-- Admin Accordion -->
+              <ion-accordion-group v-if="auth.hasAdminAccess || auth.hasEvaluationAccess" :value="adminExpanded ? 'admin' : undefined">
+                <ion-accordion value="admin">
+                  <ion-item slot="header" color="none">
+                    <ion-icon aria-hidden="true" :icon="settingsOutline" slot="start"></ion-icon>
+                    <ion-label>Admin</ion-label>
                   </ion-item>
-                </ion-menu-toggle>
-                <ion-menu-toggle v-if="auth.hasAdminAccess">
-                  <ion-item 
-                    router-direction="root" 
-                    router-link="/app/admin/pii-testing" 
-                    lines="none" 
-                    :detail="false"
-                    :class="{ 'selected': $route.path === '/app/admin/pii-testing' }"
-                  >
-                    <ion-icon aria-hidden="true" :icon="flaskOutline" slot="start"></ion-icon>
-                    <ion-label>PII Testing</ion-label>
-                  </ion-item>
-                </ion-menu-toggle>
-                <ion-menu-toggle v-if="auth.hasAdminAccess">
-                  <ion-item 
-                    router-direction="root" 
-                    router-link="/app/admin/pseudonym-dictionary" 
-                    lines="none" 
-                    :detail="false"
-                    :class="{ 'selected': $route.path === '/app/admin/pseudonym-dictionary' }"
-                  >
-                    <ion-icon aria-hidden="true" :icon="libraryOutline" slot="start"></ion-icon>
-                    <ion-label>Pseudonym Dictionary</ion-label>
-                  </ion-item>
-                </ion-menu-toggle>
-                <ion-menu-toggle v-if="auth.hasAdminAccess">
-                  <ion-item 
-                    router-direction="root" 
-                    router-link="/app/admin/pseudonym-mappings" 
-                    lines="none" 
-                    :detail="false"
-                    :class="{ 'selected': $route.path === '/app/admin/pseudonym-mappings' }"
-                  >
-                    <ion-icon aria-hidden="true" :icon="swapHorizontalOutline" slot="start"></ion-icon>
-                    <ion-label>Pseudonym Mappings</ion-label>
-                  </ion-item>
-                </ion-menu-toggle>
-                <ion-menu-toggle v-if="auth.hasEvaluationAccess">
-                  <ion-item 
-                    router-direction="root" 
-                    router-link="/app/admin/evaluations" 
-                    lines="none" 
-                    :detail="false"
-                    :class="{ 'selected': $route.path === '/app/admin/evaluations' }"
-                  >
-                    <ion-icon aria-hidden="true" :icon="analyticsOutline" slot="start"></ion-icon>
-                    <ion-label>Admin Evaluations</ion-label>
-                  </ion-item>
-                </ion-menu-toggle>
-                <ion-menu-toggle v-if="auth.hasAdminAccess">
-                  <ion-item 
-                    router-direction="root" 
-                    router-link="/app/admin/llm-usage" 
-                    lines="none" 
-                    :detail="false"
-                    :class="{ 'selected': $route.path === '/app/admin/llm-usage' }"
-                  >
-                    <ion-icon aria-hidden="true" :icon="barChartOutline" slot="start"></ion-icon>
-                    <ion-label>LLM Usage</ion-label>
-                  </ion-item>
-                </ion-menu-toggle>
-              </div>
+                  <div slot="content" class="admin-content">
+                    <!-- Test content to see if accordion content renders -->
+                    <div style="padding: 16px; background: #f0f0f0; margin: 8px; border-radius: 4px;">
+                      🔧 Test: Admin content is rendering
+                    </div>
+                    <ion-list>
+                      <ion-item 
+                        v-if="auth.hasAdminAccess"
+                        :button="true"
+                        lines="none" 
+                        :detail="false"
+                        @click="$router.push('/app/admin/settings')"
+                        :class="{ 'selected': $route.path === '/app/admin/settings' }"
+                      >
+                        <ion-icon aria-hidden="true" :icon="settingsOutline" slot="start"></ion-icon>
+                        <ion-label>Admin Settings</ion-label>
+                      </ion-item>
+                      <ion-item 
+                        v-if="auth.hasAdminAccess"
+                        :button="true"
+                        lines="none" 
+                        :detail="false"
+                        @click="$router.push('/app/admin/audit')"
+                        :class="{ 'selected': $route.path === '/app/admin/audit' }"
+                      >
+                        <ion-icon aria-hidden="true" :icon="shieldCheckmarkOutline" slot="start"></ion-icon>
+                        <ion-label>Audit Dashboard</ion-label>
+                      </ion-item>
+                      <ion-menu-toggle v-if="auth.hasAdminAccess">
+                        <ion-item 
+                          :button="true"
+                          router-direction="root" 
+                          router-link="/app/admin/pii-patterns" 
+                          lines="none" 
+                          :detail="false"
+                          :class="{ 'selected': $route.path === '/app/admin/pii-patterns' }"
+                        >
+                          <ion-icon aria-hidden="true" :icon="shieldCheckmarkOutline" slot="start"></ion-icon>
+                          <ion-label>PII Patterns</ion-label>
+                        </ion-item>
+                      </ion-menu-toggle>
+                      <ion-menu-toggle v-if="auth.hasAdminAccess">
+                        <ion-item 
+                          :button="true"
+                          router-direction="root" 
+                          router-link="/app/admin/pii-testing" 
+                          lines="none" 
+                          :detail="false"
+                          :class="{ 'selected': $route.path === '/app/admin/pii-testing' }"
+                        >
+                          <ion-icon aria-hidden="true" :icon="flaskOutline" slot="start"></ion-icon>
+                          <ion-label>PII Testing</ion-label>
+                        </ion-item>
+                      </ion-menu-toggle>
+                      <ion-menu-toggle v-if="auth.hasAdminAccess">
+                        <ion-item 
+                          :button="true"
+                          router-direction="root" 
+                          router-link="/app/admin/pseudonym-dictionary" 
+                          lines="none" 
+                          :detail="false"
+                          :class="{ 'selected': $route.path === '/app/admin/pseudonym-dictionary' }"
+                        >
+                          <ion-icon aria-hidden="true" :icon="libraryOutline" slot="start"></ion-icon>
+                          <ion-label>Pseudonym Dictionary</ion-label>
+                        </ion-item>
+                      </ion-menu-toggle>
+                      <ion-menu-toggle v-if="auth.hasAdminAccess">
+                        <ion-item 
+                          :button="true"
+                          router-direction="root" 
+                          router-link="/app/admin/pseudonym-mappings" 
+                          lines="none" 
+                          :detail="false"
+                          :class="{ 'selected': $route.path === '/app/admin/pseudonym-mappings' }"
+                        >
+                          <ion-icon aria-hidden="true" :icon="swapHorizontalOutline" slot="start"></ion-icon>
+                          <ion-label>Pseudonym Mappings</ion-label>
+                        </ion-item>
+                      </ion-menu-toggle>
+                      <ion-menu-toggle v-if="auth.hasEvaluationAccess">
+                        <ion-item 
+                          :button="true"
+                          router-direction="root" 
+                          router-link="/app/admin/evaluations" 
+                          lines="none" 
+                          :detail="false"
+                          :class="{ 'selected': $route.path === '/app/admin/evaluations' }"
+                        >
+                          <ion-icon aria-hidden="true" :icon="analyticsOutline" slot="start"></ion-icon>
+                          <ion-label>Admin Evaluations</ion-label>
+                        </ion-item>
+                      </ion-menu-toggle>
+                      <ion-menu-toggle v-if="auth.hasAdminAccess">
+                        <ion-item 
+                          :button="true"
+                          router-direction="root" 
+                          router-link="/app/admin/llm-usage" 
+                          lines="none" 
+                          :detail="false"
+                          :class="{ 'selected': $route.path === '/app/admin/llm-usage' }"
+                        >
+                          <ion-icon aria-hidden="true" :icon="barChartOutline" slot="start"></ion-icon>
+                          <ion-label>LLM Usage</ion-label>
+                        </ion-item>
+                      </ion-menu-toggle>
+                    </ion-list>
+                  </div>
+                </ion-accordion>
+              </ion-accordion-group>
               <!-- Agents & Conversations Accordion - Takes remaining space -->
               <ion-accordion-group :value="agentsExpanded ? 'agents' : undefined">
                 <ion-accordion value="agents">
@@ -215,6 +232,7 @@ const agentChatStore = useAgentChatStore();
 const router = useRouter();
 // State for accordion and search
 const agentsExpanded = ref(true);
+const adminExpanded = ref(false); // Admin accordion starts collapsed
 const searchQuery = ref('');
 const isRefreshing = ref(false);
 // Dynamic titles based on current route
@@ -301,6 +319,23 @@ ion-menu {
     --width: 300px; /* Also increased mobile width proportionally */
   }
 }
+/* Admin accordion content */
+.admin-content {
+  padding: 0;
+  background: transparent;
+}
+
+.admin-content ion-list {
+  padding: 0;
+  background: transparent;
+}
+
+.admin-content ion-item {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  font-size: 0.9rem;
+}
+
 /* Agents & Conversations accordion content */
 .agents-content {
   padding: 0;

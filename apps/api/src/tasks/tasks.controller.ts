@@ -57,6 +57,20 @@ export class TasksController {
   }
 
   /**
+   * Get task metrics and analytics
+   * GET /tasks/metrics
+   */
+  @Get('metrics')
+  async getTaskMetrics(@CurrentUser() currentUser: SupabaseAuthUserDto) {
+    try {
+      return this.tasksService.getTaskMetrics(currentUser.id);
+    } catch (error) {
+      this.logger.error('Failed to get task metrics:', error);
+      throw new Error('Failed to retrieve task metrics');
+    }
+  }
+
+  /**
    * Get a specific task by ID
    * GET /tasks/:id
    */

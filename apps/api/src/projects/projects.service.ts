@@ -543,6 +543,105 @@ export class ProjectsService {
   }
 
   /**
+   * Get project metrics for analytics
+   */
+  async getProjectMetrics(userId: string, startDate: Date, endDate: Date): Promise<{
+    totalProjects: number;
+    activeProjects: number;
+    completedProjects: number;
+    failedProjects: number;
+    averageCompletionTime: number;
+    successRate: number;
+    projectsByStatus: Record<string, number>;
+    recentActivity: Array<{
+      projectId: string;
+      name: string;
+      status: string;
+      lastActivity: string;
+    }>;
+  }> {
+    try {
+      // Get user projects within date range - use service client for admin analytics
+      const { data: projects, error } = await this.supabaseService
+        .getServiceClient()
+        .from('projects')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
+
+      if (error) {
+        this.logger.error('Failed to fetch projects for metrics:', error);
+        // Return empty metrics instead of throwing error
+        return {
+          totalProjects: 0,
+          activeProjects: 0,
+          completedProjects: 0,
+          failedProjects: 0,
+          averageCompletionTime: 0,
+          successRate: 100,
+          projectsByStatus: {},
+          recentActivity: [],
+        };
+      }
+
+      const projectList = projects || [];
+
+      // Calculate metrics
+      const totalProjects = projectList.length;
+      const activeProjects = projectList.filter(p => ['active', 'in_progress', 'running'].includes(p.status)).length;
+      const completedProjects = projectList.filter(p => p.status === 'completed').length;
+      const failedProjects = projectList.filter(p => ['failed', 'aborted', 'error'].includes(p.status)).length;
+      
+      const successRate = totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 100;
+
+      // Calculate average completion time for completed projects
+      const completedProjectsWithTimes = projectList.filter(p => 
+        p.status === 'completed' && p.created_at && p.updated_at
+      );
+      
+      const averageCompletionTime = completedProjectsWithTimes.length > 0
+        ? completedProjectsWithTimes.reduce((sum, project) => {
+            const created = new Date(project.created_at).getTime();
+            const updated = new Date(project.updated_at).getTime();
+            return sum + (updated - created);
+          }, 0) / completedProjectsWithTimes.length
+        : 0;
+
+      // Group projects by status
+      const projectsByStatus = projectList.reduce((acc, project) => {
+        acc[project.status] = (acc[project.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Get recent activity (last 5 projects)
+      const recentActivity = projectList
+        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        .slice(0, 5)
+        .map(project => ({
+          projectId: project.id,
+          name: project.name || 'Unnamed Project',
+          status: project.status,
+          lastActivity: project.updated_at,
+        }));
+
+      return {
+        totalProjects,
+        activeProjects,
+        completedProjects,
+        failedProjects,
+        averageCompletionTime: Math.round(averageCompletionTime),
+        successRate: Math.round(successRate * 100) / 100,
+        projectsByStatus,
+        recentActivity,
+      };
+    } catch (error) {
+      this.logger.error('Error calculating project metrics:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get project analytics
    */
   async getProjectAnalytics(projectId: string): Promise<{

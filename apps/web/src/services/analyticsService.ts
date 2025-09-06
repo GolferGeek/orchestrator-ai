@@ -470,7 +470,7 @@ class AnalyticsService {
       }
 
       if (systemAnalytics.status === 'fulfilled') {
-        dashboardData.overview.systemHealth = systemAnalytics.value.data.systemHealth.status as 'healthy' | 'warning' | 'critical';
+        dashboardData.overview.systemHealth = systemAnalytics.value.data.health?.status as 'healthy' | 'warning' | 'critical' || 'warning';
       }
 
       return {
