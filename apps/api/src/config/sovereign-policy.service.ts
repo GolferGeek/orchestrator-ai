@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 export interface SovereignPolicy {
   enforced: boolean;
   defaultMode: 'strict' | 'relaxed';
-  allowedProviders: string[];
   auditLevel: 'none' | 'basic' | 'full';
   realtimeUpdates: boolean;
 }
@@ -21,15 +20,12 @@ export class SovereignPolicyService {
   getPolicy(): SovereignPolicy {
     const enforced = this.configService.get('SOVEREIGN_MODE_ENFORCED', 'false') === 'true';
     const defaultMode = this.configService.get('SOVEREIGN_MODE_DEFAULT', 'relaxed') as 'strict' | 'relaxed';
-    const allowedProvidersStr = this.configService.get('SOVEREIGN_MODE_ALLOWED_PROVIDERS', 'ollama,local');
-    const allowedProviders = allowedProvidersStr.split(',').map((p: string) => p.trim()).filter(Boolean);
     const auditLevel = this.configService.get('SOVEREIGN_MODE_AUDIT_LEVEL', 'basic') as 'none' | 'basic' | 'full';
     const realtimeUpdates = this.configService.get('SOVEREIGN_MODE_REALTIME_UPDATES', 'true') === 'true';
 
     return {
       enforced,
       defaultMode,
-      allowedProviders,
       auditLevel,
       realtimeUpdates,
     };
@@ -50,13 +46,6 @@ export class SovereignPolicyService {
   }
 
   /**
-   * Get allowed LLM providers in sovereign mode
-   */
-  getAllowedProviders(): string[] {
-    return this.getPolicy().allowedProviders;
-  }
-
-  /**
    * Get audit logging level
    */
   getAuditLevel(): 'none' | 'basic' | 'full' {
@@ -65,9 +54,10 @@ export class SovereignPolicyService {
 
   /**
    * Check if a provider is allowed in sovereign mode
+   * In sovereign mode, only ollama is allowed
    */
   isProviderAllowed(provider: string): boolean {
-    return this.getAllowedProviders().includes(provider.toLowerCase());
+    return provider.toLowerCase() === 'ollama';
   }
 
   /**
@@ -84,28 +74,11 @@ export class SovereignPolicyService {
       );
     }
 
-    // If default is strict, allowed providers should only include local ones
-    if (policy.defaultMode === 'strict') {
-      const hasExternalProviders = policy.allowedProviders.some(
-        provider => !['ollama', 'local'].includes(provider.toLowerCase())
-      );
-      if (hasExternalProviders) {
-        warnings.push(
-          'Default mode is strict but allowed providers include external ones. This may confuse users.'
-        );
-      }
-    }
-
     // If audit level is 'none' but enforced is true, suggest basic logging
     if (policy.enforced && policy.auditLevel === 'none') {
       warnings.push(
         'Sovereign mode is enforced but audit level is none. Consider enabling basic audit logging for compliance.'
       );
-    }
-
-    // Validate allowed providers format
-    if (policy.allowedProviders.length === 0) {
-      warnings.push('No allowed providers specified. At least one provider should be configured.');
     }
 
     return {

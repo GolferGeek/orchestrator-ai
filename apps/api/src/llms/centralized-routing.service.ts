@@ -73,7 +73,7 @@ export class CentralizedRoutingService {
         
         if (sovereignModeActive) {
           reasoningPath.push(`Sovereign mode active (enforced: ${sovereignPolicy.enforced}, user: ${userSovereignMode})`);
-          reasoningPath.push(`Allowed providers: ${sovereignPolicy.allowedProviders.join(', ')}`);
+          reasoningPath.push(`Allowed providers: ollama only`);
         }
       } else {
         reasoningPath.push('Sovereign routing feature flag: DISABLED - using legacy routing');
@@ -87,7 +87,7 @@ export class CentralizedRoutingService {
         // Validate against sovereign mode if active and feature flag is enabled
         if (sovereignRoutingEnabled && sovereignModeActive && sovereignPolicy && !this.sovereignPolicyService.isProviderAllowed(options.provider)) {
           reasoningPath.push(`SOVEREIGN MODE VIOLATION: Provider ${options.provider} not allowed`);
-          this.logger.warn(`Sovereign mode violation: Provider ${options.provider} not in allowed list: ${sovereignPolicy.allowedProviders.join(', ')}`);
+          this.logger.warn(`Sovereign mode violation: Provider ${options.provider} not allowed (only ollama permitted)`);
           
           // Fall through to sovereign-compliant routing
         } else {
@@ -116,17 +116,10 @@ export class CentralizedRoutingService {
       // Step 5: Determine provider preference (sovereign mode overrides user preference)
       let preferLocal = options.preferLocal !== false; // Default to true
       
-      if (sovereignRoutingEnabled && sovereignModeActive && sovereignPolicy) {
-        // In sovereign mode, force local preference if only local providers are allowed
-        const hasOnlyLocalProviders = sovereignPolicy.allowedProviders.every(p => 
-          ['ollama', 'local'].includes(p.toLowerCase())
-        );
-        if (hasOnlyLocalProviders) {
-          preferLocal = true;
-          reasoningPath.push('Sovereign mode: forced local preference (only local providers allowed)');
-        } else {
-          reasoningPath.push('Sovereign mode: filtering providers based on policy');
-        }
+      if (sovereignRoutingEnabled && sovereignModeActive) {
+        // In sovereign mode, only local providers are allowed
+        preferLocal = true;
+        reasoningPath.push('Sovereign mode: forced local preference (local providers only)');
       }
       if (preferLocal) {
         reasoningPath.push('Attempting local-first routing');
@@ -135,7 +128,7 @@ export class CentralizedRoutingService {
         const localModelAvailable = await this.checkLocalModelAvailability(tier);
         
         if (localModelAvailable) {
-          const localModel = await this.selectBestLocalModel(tier);
+          const localModel = await this.selectBestLocalModel(tier, sovereignPolicy);
           reasoningPath.push(`Selected local model: ${localModel}`);
           
           return {
@@ -154,42 +147,13 @@ export class CentralizedRoutingService {
         }
       }
 
-      // Step 6: Fall back to external provider (with sovereign mode validation)
-      if (sovereignRoutingEnabled && sovereignModeActive && sovereignPolicy) {
-        // Check if any external providers are allowed
-        const allowedExternalProviders = sovereignPolicy.allowedProviders.filter(p => 
-          !['ollama', 'local'].includes(p.toLowerCase())
-        );
+      // Step 6: Fall back to external provider (blocked in sovereign mode)
+      if (sovereignRoutingEnabled && sovereignModeActive) {
+        // In sovereign mode, no external providers are allowed
+        reasoningPath.push('SOVEREIGN MODE: No external providers allowed, no fallback available');
+        this.logger.error('Sovereign mode violation: No external providers allowed but local models unavailable');
         
-        if (allowedExternalProviders.length === 0) {
-          reasoningPath.push('SOVEREIGN MODE: No external providers allowed, no fallback available');
-          this.logger.error('Sovereign mode violation: No external providers allowed but local models unavailable');
-          
-          // Return a sovereign mode violation response
-          return {
-            provider: 'none',
-            model: 'none',
-            isLocal: false,
-            modelTier: tier,
-            fallbackUsed: true,
-            complexityScore,
-            reasoningPath,
-            sovereignModeEnforced: true,
-            sovereignModeViolation: true,
-          };
-        } else {
-          reasoningPath.push(`Sovereign mode: limiting external providers to ${allowedExternalProviders.join(', ')}`);
-        }
-      }
-      
-      const externalDecision = this.getExternalFallback(tier, request, (sovereignRoutingEnabled && sovereignModeActive && sovereignPolicy) ? sovereignPolicy.allowedProviders : undefined);
-      reasoningPath.push(`External fallback: ${externalDecision.provider}/${externalDecision.model}`);
-
-      // Validate the external decision against sovereign mode
-      if (sovereignRoutingEnabled && sovereignModeActive && !this.sovereignPolicyService.isProviderAllowed(externalDecision.provider)) {
-        reasoningPath.push(`SOVEREIGN MODE VIOLATION: Fallback provider ${externalDecision.provider} not allowed`);
-        this.logger.error(`Sovereign mode violation in fallback: ${externalDecision.provider} not in allowed list`);
-        
+        // Return a sovereign mode violation response
         return {
           provider: 'none',
           model: 'none',
@@ -202,6 +166,11 @@ export class CentralizedRoutingService {
           sovereignModeViolation: true,
         };
       }
+      
+      const externalDecision = this.getExternalFallback(tier, request);
+      reasoningPath.push(`External fallback: ${externalDecision.provider}/${externalDecision.model}`);
+
+      // External provider selected (sovereign mode already handled above)
 
       return {
         ...externalDecision,
@@ -313,10 +282,14 @@ export class CentralizedRoutingService {
   /**
    * Select the best local model for the given tier
    */
-  private async selectBestLocalModel(tier: string): Promise<string> {
+  private async selectBestLocalModel(tier: string, sovereignPolicy?: any): Promise<string> {
     try {
       const models = await this.localModelStatusService.getModelsByTier(tier);
-      const availableModels = models.filter(model => model.status === 'loaded');
+      let availableModels = models.filter(model => model.status === 'loaded');
+      
+      // If sovereign mode is active, we could add additional filtering here
+      // For now, all local models are considered compliant with sovereign mode
+      // since they're from the 'ollama' provider which should be in allowedProviders
       
       if (availableModels.length > 0) {
         // Return the first available model (they're already sorted by priority)
@@ -385,7 +358,7 @@ export class CentralizedRoutingService {
   /**
    * Get external provider fallback for the given tier
    */
-  private getExternalFallback(tier: string, request: LLMRequest, allowedProviders?: string[]): Omit<RoutingDecision, 'complexityScore' | 'reasoningPath' | 'fallbackUsed'> {
+  private getExternalFallback(tier: string, request: LLMRequest): Omit<RoutingDecision, 'complexityScore' | 'reasoningPath' | 'fallbackUsed'> {
     // Define tier-based provider preferences (in order of preference)
     const tierProviderMap: Record<string, Array<{provider: string, model: string, modelTier: string}>> = {
       'fast-thinking': [
@@ -406,32 +379,7 @@ export class CentralizedRoutingService {
 
     const candidates = tierProviderMap[tier] || tierProviderMap['general'];
     
-    // Filter candidates based on allowed providers (sovereign mode)
-    if (allowedProviders && allowedProviders.length > 0 && candidates) {
-      const allowedCandidates = candidates.filter(candidate => 
-        allowedProviders.includes(candidate.provider.toLowerCase())
-      );
-      
-      if (allowedCandidates.length > 0) {
-        const selected = allowedCandidates[0]!; // Pick the first allowed candidate (we know it exists)
-        return {
-          provider: selected.provider,
-          model: selected.model,
-          isLocal: false,
-          modelTier: selected.modelTier,
-        };
-      }
-      
-      // No allowed providers found - this should be handled by the caller
-      return {
-        provider: 'none',
-        model: 'none',
-        isLocal: false,
-        modelTier: 'none',
-      };
-    }
-    
-    // No sovereign mode restrictions - use first preference
+    // Use first available external provider (sovereign mode is handled by caller)
     if (candidates && candidates.length > 0) {
       const selected = candidates[0]!; // We know it exists because we checked length > 0
       return {

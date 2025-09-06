@@ -35,7 +35,7 @@ export class SovereignPolicyController {
     return {
       enforced: policy.enforced,
       defaultMode: policy.defaultMode,
-      allowedProviders: policy.allowedProviders,
+      allowedProviders: policy.enforced ? ['ollama'] : ['ollama', 'openai', 'anthropic'],
     };
   }
 }
