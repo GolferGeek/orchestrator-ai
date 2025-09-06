@@ -3,6 +3,46 @@ import { LocalModelStatusService } from './local-model-status.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import { SovereignPolicyService } from '../config/sovereign-policy.service';
 import { FeatureFlagService, FeatureFlagContext } from '../config/feature-flag.service';
+import { createHash } from 'crypto';
+
+interface RoutingAuditLog {
+  timestamp: string;
+  userId?: string;
+  organizationId?: string;
+  requestId?: string;
+  prompt: {
+    length: number;
+    wordCount: number;
+    hash: string; // For privacy - don't log actual content
+  };
+  sovereignMode: {
+    enabled: boolean;
+    enforced: boolean;
+    defaultMode: string;
+    auditLevel: string;
+  };
+  featureFlags: {
+    sovereignRoutingEnabled: boolean;
+  };
+  routing: {
+    complexityScore: number;
+    tier: string;
+    preferLocal: boolean;
+    localModelsAvailable: boolean;
+    selectedProvider: string;
+    selectedModel: string;
+    isLocal: boolean;
+    fallbackUsed: boolean;
+    reasoningPath: string[];
+  };
+  policy: {
+    violations: string[];
+    warnings: string[];
+  };
+  performance: {
+    routingDurationMs: number;
+  };
+}
 
 export interface RoutingDecision {
   provider: string;
@@ -49,8 +89,11 @@ export class CentralizedRoutingService {
    * Main routing method that determines the best provider/model for a request
    */
   async determineRoute(prompt: string, options: any = {}): Promise<RoutingDecision> {
+    const startTime = Date.now();
     const request: LLMRequest = { prompt, options };
     const reasoningPath: string[] = [];
+    const violations: string[] = [];
+    const warnings: string[] = [];
 
     try {
       // Step 1: Check feature flag for sovereign routing
@@ -88,10 +131,11 @@ export class CentralizedRoutingService {
         if (sovereignRoutingEnabled && sovereignModeActive && sovereignPolicy && !this.sovereignPolicyService.isProviderAllowed(options.provider)) {
           reasoningPath.push(`SOVEREIGN MODE VIOLATION: Provider ${options.provider} not allowed`);
           this.logger.warn(`Sovereign mode violation: Provider ${options.provider} not allowed (only ollama permitted)`);
+          violations.push(`Explicit provider ${options.provider} blocked by sovereign mode policy`);
           
           // Fall through to sovereign-compliant routing
         } else {
-          return {
+          const explicitDecision = {
             provider: options.provider,
             model: options.model,
             isLocal: options.provider === 'ollama',
@@ -101,6 +145,20 @@ export class CentralizedRoutingService {
             sovereignModeEnforced: sovereignModeActive,
             sovereignModeViolation: false,
           };
+
+          // Log the explicit override decision
+          this.logRoutingDecision(
+            request,
+            explicitDecision,
+            sovereignPolicy,
+            sovereignModeActive,
+            sovereignRoutingEnabled,
+            violations,
+            warnings,
+            startTime
+          );
+
+          return explicitDecision;
         }
       }
 
@@ -131,7 +189,7 @@ export class CentralizedRoutingService {
           const localModel = await this.selectBestLocalModel(tier, sovereignPolicy);
           reasoningPath.push(`Selected local model: ${localModel}`);
           
-          return {
+          const localDecision = {
             provider: 'ollama',
             model: localModel,
             isLocal: true,
@@ -142,6 +200,20 @@ export class CentralizedRoutingService {
             sovereignModeEnforced: sovereignModeActive,
             sovereignModeViolation: false,
           };
+
+          // Log the local model selection decision
+          this.logRoutingDecision(
+            request,
+            localDecision,
+            sovereignPolicy,
+            sovereignModeActive,
+            sovereignRoutingEnabled,
+            violations,
+            warnings,
+            startTime
+          );
+
+          return localDecision;
         } else {
           reasoningPath.push('No local models available, falling back to external');
         }
@@ -150,29 +222,44 @@ export class CentralizedRoutingService {
       // Step 6: Fall back to external provider (blocked in sovereign mode)
       if (sovereignRoutingEnabled && sovereignModeActive) {
         // In sovereign mode, no external providers are allowed
-        reasoningPath.push('SOVEREIGN MODE: No external providers allowed, no fallback available');
-        this.logger.error('Sovereign mode violation: No external providers allowed but local models unavailable');
+        reasoningPath.push('SOVEREIGN MODE: No external providers allowed, no local models available');
+        this.logger.error('Sovereign mode violation: No local models available - check Ollama setup');
         
-        // Return a sovereign mode violation response
-        return {
-          provider: 'none',
-          model: 'none',
+        // Return error - this indicates a configuration issue that needs to be fixed
+        violations.push('No local models available in sovereign mode - configuration issue');
+        
+        const sovereignErrorDecision = {
+          provider: 'error',
+          model: 'no_local_models_available',
           isLocal: false,
           modelTier: tier,
           fallbackUsed: true,
           complexityScore,
           reasoningPath,
           sovereignModeEnforced: true,
-          sovereignModeViolation: true,
+          sovereignModeViolation: false, // This is a setup issue, not a policy violation
         };
+
+        // Log the sovereign mode error decision
+        this.logRoutingDecision(
+          request,
+          sovereignErrorDecision,
+          sovereignPolicy,
+          sovereignModeActive,
+          sovereignRoutingEnabled,
+          violations,
+          warnings,
+          startTime
+        );
+
+        return sovereignErrorDecision;
       }
       
       const externalDecision = this.getExternalFallback(tier, request);
       reasoningPath.push(`External fallback: ${externalDecision.provider}/${externalDecision.model}`);
 
       // External provider selected (sovereign mode already handled above)
-
-      return {
+      const finalDecision = {
         ...externalDecision,
         complexityScore,
         reasoningPath,
@@ -181,12 +268,27 @@ export class CentralizedRoutingService {
         sovereignModeViolation: false,
       };
 
+      // Log the routing decision for audit purposes
+      this.logRoutingDecision(
+        request,
+        finalDecision,
+        sovereignPolicy,
+        sovereignModeActive,
+        sovereignRoutingEnabled,
+        violations,
+        warnings,
+        startTime
+      );
+
+      return finalDecision;
+
     } catch (error) {
       this.logger.error('Error in routing decision', error);
       reasoningPath.push(`Error occurred: ${error instanceof Error ? error.message : 'Unknown error'}, using default fallback`);
+      violations.push('Routing error occurred, using emergency fallback');
       
       // Emergency fallback to OpenAI GPT-3.5
-      return {
+      const emergencyDecision = {
         provider: 'openai',
         model: 'gpt-3.5-turbo',
         isLocal: false,
@@ -196,6 +298,25 @@ export class CentralizedRoutingService {
         sovereignModeEnforced: false,
         sovereignModeViolation: false,
       };
+
+      // Log the emergency fallback decision
+      try {
+        this.logRoutingDecision(
+          request,
+          emergencyDecision,
+          null, // No sovereign policy in error case
+          false,
+          false,
+          violations,
+          warnings,
+          startTime
+        );
+      } catch (logError) {
+        // Don't let logging errors break the emergency fallback
+        this.logger.error('Failed to log emergency routing decision', logError);
+      }
+
+      return emergencyDecision;
     }
   }
 
@@ -352,6 +473,86 @@ export class CentralizedRoutingService {
     } catch (error) {
       this.logger.error(`Database query failed for fallback model:`, error);
       return null;
+    }
+  }
+
+
+  /**
+   * Create and log comprehensive audit information for routing decisions
+   */
+  private logRoutingDecision(
+    request: LLMRequest,
+    decision: RoutingDecision,
+    sovereignPolicy: any,
+    sovereignModeActive: boolean,
+    sovereignRoutingEnabled: boolean,
+    violations: string[],
+    warnings: string[],
+    startTime: number
+  ): void {
+    const auditLevel = sovereignPolicy?.auditLevel || 'none';
+    
+    // Only log if audit level is not 'none'
+    if (auditLevel === 'none') {
+      return;
+    }
+
+    const endTime = Date.now();
+    const promptHash = createHash('sha256').update(request.prompt).digest('hex').substring(0, 16);
+    
+    const auditLog: RoutingAuditLog = {
+      timestamp: new Date().toISOString(),
+      userId: request.options?.userId,
+      organizationId: request.options?.organizationId,
+      requestId: request.options?.requestId,
+      prompt: {
+        length: request.prompt.length,
+        wordCount: request.prompt.split(/\s+/).length,
+        hash: promptHash,
+      },
+      sovereignMode: {
+        enabled: sovereignModeActive,
+        enforced: sovereignPolicy?.enforced || false,
+        defaultMode: sovereignPolicy?.defaultMode || 'relaxed',
+        auditLevel: auditLevel,
+      },
+      featureFlags: {
+        sovereignRoutingEnabled: sovereignRoutingEnabled,
+      },
+      routing: {
+        complexityScore: decision.complexityScore || 0,
+        tier: decision.modelTier || 'unknown',
+        preferLocal: sovereignModeActive,
+        localModelsAvailable: decision.provider !== 'error',
+        selectedProvider: decision.provider,
+        selectedModel: decision.model,
+        isLocal: decision.isLocal,
+        fallbackUsed: decision.fallbackUsed || false,
+        reasoningPath: decision.reasoningPath || [],
+      },
+      policy: {
+        violations: violations,
+        warnings: warnings,
+      },
+      performance: {
+        routingDurationMs: endTime - startTime,
+      },
+    };
+
+    // Log based on audit level
+    if (auditLevel === 'basic') {
+      this.logger.log(`ROUTING_AUDIT: ${decision.provider}/${decision.model} | User: ${auditLog.userId} | Org: ${auditLog.organizationId} | Sovereign: ${sovereignModeActive} | Duration: ${auditLog.performance.routingDurationMs}ms`);
+    } else if (auditLevel === 'full') {
+      this.logger.log(`ROUTING_AUDIT_FULL: ${JSON.stringify(auditLog)}`);
+    }
+
+    // Always log violations and warnings
+    if (violations.length > 0) {
+      this.logger.warn(`SOVEREIGN_VIOLATIONS: ${violations.join(', ')} | User: ${auditLog.userId} | Provider: ${decision.provider}`);
+    }
+    
+    if (warnings.length > 0) {
+      this.logger.warn(`SOVEREIGN_WARNINGS: ${warnings.join(', ')} | User: ${auditLog.userId} | Provider: ${decision.provider}`);
     }
   }
 
