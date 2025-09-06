@@ -261,8 +261,8 @@ const onSovereignModeChange = async () => {
   loadingSovereignUpdate.value = true;
   try {
     await updateSovereignUserPreference(userSovereignMode.value);
-    // Refresh models when sovereign mode changes
-    await llmStore.refreshModelsForSovereignMode();
+    // Re-fetch models with new sovereign mode setting
+    await llmStore.fetchModels();
   } catch (error) {
     console.error('Failed to update sovereign mode:', error);
     // Revert the toggle on error
