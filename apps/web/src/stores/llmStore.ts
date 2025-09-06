@@ -8,6 +8,8 @@ import {
   CIDAFMOptions 
 } from '../types/llm';
 import { apiService } from '../services/apiService';
+import { sovereignPolicyService } from '../services/sovereignPolicyService';
+import { useSovereignPolicyStore } from './sovereignPolicyStore';
 export const useLLMStore = defineStore('llm', {
   state: (): LLMPreferencesState => ({
     selectedProvider: undefined,
@@ -109,27 +111,22 @@ export const useLLMStore = defineStore('llm', {
         this.loadingProviders = false;
       }
     },
-    // Fetch all models from API
+    // Fetch all models from API with sovereign mode filtering
     async fetchModels() {
       this.loadingModels = true;
       this.modelError = undefined;
       try {
-        // Use unified API service
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:9000';
-        const authToken = localStorage.getItem('authToken');
-        const response = await fetch(`${baseUrl}/models`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
-          },
-        });
-        if (!response.ok) {
-          throw new Error(`Failed to fetch models: ${response.statusText}`);
-        }
-        this.models = await response.json();
+        // Get sovereign policy store to check if we should filter models
+        const sovereignPolicyStore = useSovereignPolicyStore();
+        const shouldFilterForSovereign = sovereignPolicyStore.effectiveSovereignMode;
+        
+        // Use sovereign policy service to fetch models with appropriate filtering
+        this.models = await sovereignPolicyService.getModels(shouldFilterForSovereign);
+        
+        console.log(`Fetched ${this.models.length} models (sovereign mode: ${shouldFilterForSovereign})`);
       } catch (error) {
         this.modelError = error instanceof Error ? error.message : 'Failed to fetch models';
+        console.error('Error fetching models:', error);
       } finally {
         this.loadingModels = false;
       }
@@ -188,6 +185,41 @@ export const useLLMStore = defineStore('llm', {
           m.modelId.includes('gpt-3.5-turbo')
         );
         this.selectedModel = thinkingModel || fallbackModel || this.availableModels[0];
+      }
+    },
+    // Refresh models when sovereign mode changes
+    async refreshModelsForSovereignMode() {
+      console.log('Refreshing models due to sovereign mode change');
+      await this.fetchModels();
+      
+      // Check if current selection is still valid
+      if (this.selectedModel) {
+        const isModelStillAvailable = this.models.some(m => m.id === this.selectedModel?.id);
+        if (!isModelStillAvailable) {
+          console.log('Current model no longer available, selecting new default');
+          this.selectedModel = undefined;
+          
+          // Auto-select a new model if available
+          if (this.availableModels.length > 0) {
+            // In sovereign mode, prefer local thinking models
+            const sovereignPolicyStore = useSovereignPolicyStore();
+            if (sovereignPolicyStore.effectiveSovereignMode) {
+              const thinkingModel = this.availableModels.find(m => 
+                m.modelId.includes('deepseek-r1') ||
+                m.modelId.includes('qwq') ||
+                m.name.toLowerCase().includes('reasoning')
+              );
+              this.selectedModel = thinkingModel || this.availableModels[0];
+            } else {
+              // Regular mode - prefer GPT models
+              const gptModel = this.availableModels.find(m => 
+                m.modelId.includes('gpt-4o-mini') || 
+                m.modelId.includes('gpt-3.5-turbo')
+              );
+              this.selectedModel = gptModel || this.availableModels[0];
+            }
+          }
+        }
       }
     },
     // Set selected provider and clear model if incompatible
