@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger, LogLevel } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AgentPoolService } from './agent-pool/agent-pool.service';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as express from 'express';
 import * as dotenv from 'dotenv';
 import { join } from 'path';
@@ -79,6 +80,33 @@ async function bootstrap() {
   // Configure body parser with larger limits for conversation histories and metrics responses
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+  // Setup Swagger/OpenAPI documentation
+  const config = new DocumentBuilder()
+    .setTitle('Orchestrator AI API')
+    .setDescription('API for Orchestrator AI platform with sovereign mode support')
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
+    .addTag('sovereign-policy', 'Sovereign mode policy management')
+    .addTag('models', 'Model and provider management')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
 
   // Enable CORS with more permissive settings for production
   const corsOrigins = [
