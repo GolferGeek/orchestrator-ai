@@ -5,6 +5,10 @@
       <div class="conversation-info">
         <h2>{{ conversation?.title || 'Conversation' }}</h2>
         <span class="agent-name">with {{ conversation?.agent?.name }}</span>
+        <!-- Sovereign Mode Indicator -->
+        <SovereignModeTooltip position="bottom" :show-data-flow="true" :show-compliance="true">
+          <SovereignModeBadge variant="compact" :clickable="false" />
+        </SovereignModeTooltip>
       </div>
       <div class="header-controls">
         <!-- Mobile pane toggle -->
@@ -47,6 +51,15 @@
           <p>{{ error }}</p>
           <ion-button @click="clearError">Dismiss</ion-button>
         </div>
+        
+        <!-- Sovereign Mode Banner -->
+        <SovereignModeBanner 
+          v-if="shouldShowSovereignBanner"
+          :variant="sovereignBannerVariant"
+          :dismissible="false"
+          class="sovereign-conversation-banner"
+        />
+        
         <!-- Messages -->
         <div class="messages-container" ref="messagesContainer">
           <!-- Prominent thinking indicator -->
@@ -209,12 +222,16 @@ import {
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useSovereignPolicyStore } from '@/stores/sovereignPolicyStore';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 import DeliverableDisplay from './DeliverableDisplay.vue';
 import ProjectDisplay from './ProjectDisplay.vue';
 import DeliverableMergeView from './DeliverableMergeView.vue';
+import SovereignModeBadge from './SovereignMode/SovereignModeBadge.vue';
+import SovereignModeTooltip from './SovereignMode/SovereignModeTooltip.vue';
+import SovereignModeBanner from './SovereignMode/SovereignModeBanner.vue';
 interface Props {
   conversation?: any;
 }
@@ -223,6 +240,7 @@ const props = defineProps<Props>();
 const agentChatStore = useAgentChatStore();
 const deliverablesStore = useDeliverablesStore();
 const authStore = useAuthStore();
+const sovereignPolicyStore = useSovereignPolicyStore();
 // Reactive state
 const messageText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
@@ -249,6 +267,26 @@ const hasActiveWorkProduct = computed(() => {
 });
 const isOrchestratorConversation = computed(() => {
   return props.conversation?.agent?.name?.toLowerCase().includes('orchestrator') || false;
+});
+
+// Sovereign mode computed properties
+const shouldShowSovereignBanner = computed(() => {
+  // Show banner for enforced policy or when there are warnings
+  return sovereignPolicyStore.policy?.enforced || 
+         sovereignPolicyStore.policyWarnings.length > 0;
+});
+
+const sovereignBannerVariant = computed(() => {
+  if (sovereignPolicyStore.policy?.enforced) {
+    return 'enforced';
+  }
+  if (sovereignPolicyStore.policyWarnings.length > 0) {
+    return 'warning';
+  }
+  if (sovereignPolicyStore.effectiveSovereignMode) {
+    return 'success';
+  }
+  return 'info';
 });
 const deliverableActionButtons = computed(() => {
   const conversationDeliverables = deliverablesStore.getDeliverablesByConversation(props.conversation?.id);
@@ -805,6 +843,40 @@ html[data-theme="dark"] .dot {
   }
   .conversation-pane.hidden {
     display: none;
+  }
+}
+
+/* Sovereign Mode Styles */
+.sovereign-conversation-banner {
+  margin: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.conversation-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.conversation-info h2 {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.agent-name {
+  flex-shrink: 0;
+}
+
+/* Responsive adjustments for sovereign mode */
+@media (max-width: 768px) {
+  .sovereign-conversation-banner {
+    margin: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .conversation-info {
+    gap: 0.5rem;
   }
 }
 </style>
