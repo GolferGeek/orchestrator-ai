@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LocalModelStatusService } from './local-model-status.service';
 import { SupabaseService } from '../supabase/supabase.service';
+import { SovereignPolicyService } from '../config/sovereign-policy.service';
+import { FeatureFlagService, FeatureFlagContext } from '../config/feature-flag.service';
 
 export interface RoutingDecision {
   provider: string;
@@ -10,6 +12,8 @@ export interface RoutingDecision {
   fallbackUsed: boolean;
   complexityScore: number;
   reasoningPath: string[];
+  sovereignModeEnforced?: boolean;
+  sovereignModeViolation?: boolean;
 }
 
 export interface LLMRequest {
@@ -19,6 +23,9 @@ export interface LLMRequest {
     model?: string;
     preferLocal?: boolean;
     maxComplexity?: 'simple' | 'medium' | 'complex';
+    userId?: string;
+    organizationId?: string;
+    userSovereignMode?: boolean;
     [key: string]: any;
   };
 }
@@ -32,6 +39,8 @@ export class CentralizedRoutingService {
   constructor(
     private readonly localModelStatusService: LocalModelStatusService,
     private readonly supabaseService: SupabaseService,
+    private readonly sovereignPolicyService: SovereignPolicyService,
+    private readonly featureFlagService: FeatureFlagService,
   ) {
     this.logger.log('CentralizedRoutingService initialized');
   }
@@ -44,30 +53,81 @@ export class CentralizedRoutingService {
     const reasoningPath: string[] = [];
 
     try {
-      // Step 1: Honor explicit provider/model requests
-      if (options.provider && options.model) {
-        reasoningPath.push(`Explicit provider/model requested: ${options.provider}/${options.model}`);
-        return {
-          provider: options.provider,
-          model: options.model,
-          isLocal: options.provider === 'ollama',
-          fallbackUsed: false,
-          complexityScore: 0,
-          reasoningPath,
-        };
+      // Step 1: Check feature flag for sovereign routing
+      const featureFlagContext: FeatureFlagContext = {
+        userId: options.userId,
+        organizationId: options.organizationId,
+      };
+      const sovereignRoutingEnabled = this.featureFlagService.isSovereignRoutingEnabled(featureFlagContext);
+      
+      let sovereignModeActive = false;
+      let sovereignPolicy = null;
+      
+      if (sovereignRoutingEnabled) {
+        reasoningPath.push('Sovereign routing feature flag: ENABLED');
+        
+        // Check sovereign mode policy
+        sovereignPolicy = this.sovereignPolicyService.getPolicy();
+        const userSovereignMode = options.userSovereignMode || false;
+        sovereignModeActive = sovereignPolicy.enforced || userSovereignMode;
+        
+        if (sovereignModeActive) {
+          reasoningPath.push(`Sovereign mode active (enforced: ${sovereignPolicy.enforced}, user: ${userSovereignMode})`);
+          reasoningPath.push(`Allowed providers: ${sovereignPolicy.allowedProviders.join(', ')}`);
+        }
+      } else {
+        reasoningPath.push('Sovereign routing feature flag: DISABLED - using legacy routing');
+        // Legacy behavior: no sovereign mode restrictions
       }
 
-      // Step 2: Analyze request complexity
+      // Step 2: Honor explicit provider/model requests (with sovereign mode validation)
+      if (options.provider && options.model) {
+        reasoningPath.push(`Explicit provider/model requested: ${options.provider}/${options.model}`);
+        
+        // Validate against sovereign mode if active and feature flag is enabled
+        if (sovereignRoutingEnabled && sovereignModeActive && sovereignPolicy && !this.sovereignPolicyService.isProviderAllowed(options.provider)) {
+          reasoningPath.push(`SOVEREIGN MODE VIOLATION: Provider ${options.provider} not allowed`);
+          this.logger.warn(`Sovereign mode violation: Provider ${options.provider} not in allowed list: ${sovereignPolicy.allowedProviders.join(', ')}`);
+          
+          // Fall through to sovereign-compliant routing
+        } else {
+          return {
+            provider: options.provider,
+            model: options.model,
+            isLocal: options.provider === 'ollama',
+            fallbackUsed: false,
+            complexityScore: 0,
+            reasoningPath,
+            sovereignModeEnforced: sovereignModeActive,
+            sovereignModeViolation: false,
+          };
+        }
+      }
+
+      // Step 3: Analyze request complexity
       const complexity = this.analyzeComplexity(request);
       const complexityScore = this.getComplexityScore(complexity);
       reasoningPath.push(`Complexity analysis: ${complexity} (score: ${complexityScore})`);
 
-      // Step 3: Select appropriate tier based on complexity
+      // Step 4: Select appropriate tier based on complexity
       const tier = this.selectTierForComplexity(complexity);
       reasoningPath.push(`Selected tier: ${tier}`);
 
-      // Step 4: Check if we should prefer local models
-      const preferLocal = options.preferLocal !== false; // Default to true
+      // Step 5: Determine provider preference (sovereign mode overrides user preference)
+      let preferLocal = options.preferLocal !== false; // Default to true
+      
+      if (sovereignRoutingEnabled && sovereignModeActive && sovereignPolicy) {
+        // In sovereign mode, force local preference if only local providers are allowed
+        const hasOnlyLocalProviders = sovereignPolicy.allowedProviders.every(p => 
+          ['ollama', 'local'].includes(p.toLowerCase())
+        );
+        if (hasOnlyLocalProviders) {
+          preferLocal = true;
+          reasoningPath.push('Sovereign mode: forced local preference (only local providers allowed)');
+        } else {
+          reasoningPath.push('Sovereign mode: filtering providers based on policy');
+        }
+      }
       if (preferLocal) {
         reasoningPath.push('Attempting local-first routing');
         
@@ -86,21 +146,70 @@ export class CentralizedRoutingService {
             fallbackUsed: false,
             complexityScore,
             reasoningPath,
+            sovereignModeEnforced: sovereignModeActive,
+            sovereignModeViolation: false,
           };
         } else {
           reasoningPath.push('No local models available, falling back to external');
         }
       }
 
-      // Step 5: Fall back to external provider
-      const externalDecision = this.getExternalFallback(tier, request);
+      // Step 6: Fall back to external provider (with sovereign mode validation)
+      if (sovereignRoutingEnabled && sovereignModeActive && sovereignPolicy) {
+        // Check if any external providers are allowed
+        const allowedExternalProviders = sovereignPolicy.allowedProviders.filter(p => 
+          !['ollama', 'local'].includes(p.toLowerCase())
+        );
+        
+        if (allowedExternalProviders.length === 0) {
+          reasoningPath.push('SOVEREIGN MODE: No external providers allowed, no fallback available');
+          this.logger.error('Sovereign mode violation: No external providers allowed but local models unavailable');
+          
+          // Return a sovereign mode violation response
+          return {
+            provider: 'none',
+            model: 'none',
+            isLocal: false,
+            modelTier: tier,
+            fallbackUsed: true,
+            complexityScore,
+            reasoningPath,
+            sovereignModeEnforced: true,
+            sovereignModeViolation: true,
+          };
+        } else {
+          reasoningPath.push(`Sovereign mode: limiting external providers to ${allowedExternalProviders.join(', ')}`);
+        }
+      }
+      
+      const externalDecision = this.getExternalFallback(tier, request, (sovereignRoutingEnabled && sovereignModeActive && sovereignPolicy) ? sovereignPolicy.allowedProviders : undefined);
       reasoningPath.push(`External fallback: ${externalDecision.provider}/${externalDecision.model}`);
+
+      // Validate the external decision against sovereign mode
+      if (sovereignRoutingEnabled && sovereignModeActive && !this.sovereignPolicyService.isProviderAllowed(externalDecision.provider)) {
+        reasoningPath.push(`SOVEREIGN MODE VIOLATION: Fallback provider ${externalDecision.provider} not allowed`);
+        this.logger.error(`Sovereign mode violation in fallback: ${externalDecision.provider} not in allowed list`);
+        
+        return {
+          provider: 'none',
+          model: 'none',
+          isLocal: false,
+          modelTier: tier,
+          fallbackUsed: true,
+          complexityScore,
+          reasoningPath,
+          sovereignModeEnforced: true,
+          sovereignModeViolation: true,
+        };
+      }
 
       return {
         ...externalDecision,
         complexityScore,
         reasoningPath,
         fallbackUsed: true,
+        sovereignModeEnforced: sovereignModeActive,
+        sovereignModeViolation: false,
       };
 
     } catch (error) {
@@ -115,6 +224,8 @@ export class CentralizedRoutingService {
         fallbackUsed: true,
         complexityScore: 5,
         reasoningPath,
+        sovereignModeEnforced: false,
+        sovereignModeViolation: false,
       };
     }
   }
@@ -274,38 +385,70 @@ export class CentralizedRoutingService {
   /**
    * Get external provider fallback for the given tier
    */
-  private getExternalFallback(tier: string, request: LLMRequest): Omit<RoutingDecision, 'complexityScore' | 'reasoningPath' | 'fallbackUsed'> {
-    // Map local tiers to appropriate external providers
-    switch (tier) {
-      case 'fast-thinking':
+  private getExternalFallback(tier: string, request: LLMRequest, allowedProviders?: string[]): Omit<RoutingDecision, 'complexityScore' | 'reasoningPath' | 'fallbackUsed'> {
+    // Define tier-based provider preferences (in order of preference)
+    const tierProviderMap: Record<string, Array<{provider: string, model: string, modelTier: string}>> = {
+      'fast-thinking': [
+        { provider: 'openai', model: 'gpt-4', modelTier: 'external-advanced' },
+        { provider: 'anthropic', model: 'claude-3-opus', modelTier: 'external-advanced' },
+        { provider: 'openai', model: 'gpt-3.5-turbo', modelTier: 'external-standard' },
+      ],
+      'general': [
+        { provider: 'openai', model: 'gpt-3.5-turbo', modelTier: 'external-standard' },
+        { provider: 'anthropic', model: 'claude-3-haiku', modelTier: 'external-standard' },
+        { provider: 'openai', model: 'gpt-4', modelTier: 'external-advanced' },
+      ],
+      'ultra-fast': [
+        { provider: 'openai', model: 'gpt-3.5-turbo', modelTier: 'external-fast' },
+        { provider: 'anthropic', model: 'claude-3-haiku', modelTier: 'external-fast' },
+      ],
+    };
+
+    const candidates = tierProviderMap[tier] || tierProviderMap['general'];
+    
+    // Filter candidates based on allowed providers (sovereign mode)
+    if (allowedProviders && allowedProviders.length > 0 && candidates) {
+      const allowedCandidates = candidates.filter(candidate => 
+        allowedProviders.includes(candidate.provider.toLowerCase())
+      );
+      
+      if (allowedCandidates.length > 0) {
+        const selected = allowedCandidates[0]!; // Pick the first allowed candidate (we know it exists)
         return {
-          provider: 'openai',
-          model: 'gpt-4',
+          provider: selected.provider,
+          model: selected.model,
           isLocal: false,
-          modelTier: 'external-advanced',
+          modelTier: selected.modelTier,
         };
-      case 'general':
-        return {
-          provider: 'openai',
-          model: 'gpt-3.5-turbo',
-          isLocal: false,
-          modelTier: 'external-standard',
-        };
-      case 'ultra-fast':
-        return {
-          provider: 'openai',
-          model: 'gpt-3.5-turbo',
-          isLocal: false,
-          modelTier: 'external-fast',
-        };
-      default:
-        return {
-          provider: 'openai',
-          model: 'gpt-3.5-turbo',
-          isLocal: false,
-          modelTier: 'external-standard',
-        };
+      }
+      
+      // No allowed providers found - this should be handled by the caller
+      return {
+        provider: 'none',
+        model: 'none',
+        isLocal: false,
+        modelTier: 'none',
+      };
     }
+    
+    // No sovereign mode restrictions - use first preference
+    if (candidates && candidates.length > 0) {
+      const selected = candidates[0]!; // We know it exists because we checked length > 0
+      return {
+        provider: selected.provider,
+        model: selected.model,
+        isLocal: false,
+        modelTier: selected.modelTier,
+      };
+    }
+    
+    // Fallback if no candidates available
+    return {
+      provider: 'openai',
+      model: 'gpt-3.5-turbo',
+      isLocal: false,
+      modelTier: 'external-standard',
+    };
   }
 
   /**
