@@ -471,7 +471,7 @@ GRANT SELECT ON public.agent_conversations_with_stats TO authenticated;
 
 -- Insert Demo Users
 INSERT INTO public.users (id, email, display_name, created_at, updated_at, phone_verified, timezone, locale, status, roles) VALUES
-('d219748a-f7b5-449f-a4cf-dc0551057fbe', 'demo.user@playground.com', 'Demo Playground User', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false, 'UTC', 'en-US', 'active', '["user"]'::jsonb),
+('d219748a-f7b5-449f-a4cf-dc0551057fbe', 'demo.user@playground.com', 'Demo Playground User', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false, 'UTC', 'en-US', 'active', '["user","admin"]'::jsonb),
 ('e2ee07ca-397d-40fa-9196-74cbf02c65ad', 'demo.user2@playground.com', 'Demo User 2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false, 'UTC', 'en-US', 'active', '["user"]'::jsonb),
 ('09f41d4d-1697-4141-a0de-3e258faae92b', 'demo.admin@playground.com', 'Demo Admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false, 'UTC', 'en-US', 'active', '["user","admin"]'::jsonb),
 ('936d0d6c-7d2f-40cf-b0a6-8824fd8e989e', 'business.owner@playground.com', 'Business Owner', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false, 'UTC', 'en-US', 'active', '["user","admin"]'::jsonb)
