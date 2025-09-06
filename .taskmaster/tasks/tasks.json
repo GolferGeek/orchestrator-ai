@@ -533,7 +533,7 @@
         "testStrategy": "Unit tests for parsing/validation (Jest v29+). Integration tests for API endpoints. Mock various env var combinations and assert correct policy exposure and error handling.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -541,7 +541,7 @@
             "description": "Implement logic to load and parse required sovereign mode environment variables (e.g., SOVEREIGN_MODE_ENFORCED, SOVEREIGN_MODE_DEFAULT, SOVEREIGN_MODE_ALLOWED_PROVIDERS, SOVEREIGN_MODE_AUDIT_LEVEL) at application startup using dotenv.",
             "dependencies": [],
             "details": "Use dotenv (v16+) to load environment variables and TypeScript types to ensure correct variable presence and types. Structure parsing logic for maintainability and testability.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests to verify correct parsing of all required variables and handling of missing or malformed values."
           },
           {
@@ -552,7 +552,7 @@
               "29.1"
             ],
             "details": "Define a zod (v3.22+) schema for all sovereign mode variables and their allowed combinations. Throw descriptive errors for invalid configurations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for all valid and invalid combinations, ensuring correct error messages and validation logic."
           },
           {
@@ -564,7 +564,7 @@
               "29.2"
             ],
             "details": "Use chokidar (v3+) to watch the .env file. On change, re-parse and re-validate environment variables, updating the in-memory configuration without restarting the service.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests to simulate .env changes and verify that configuration is reloaded and validated correctly."
           },
           {
@@ -577,7 +577,7 @@
               "29.3"
             ],
             "details": "Implement an endpoint using Node.js (v20+) and TypeScript that returns the current in-memory policy as JSON. Ensure the endpoint always reflects the latest configuration, including after hot-reload.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests for the API endpoint, verifying correct policy exposure and error handling for invalid or missing configuration."
           },
           {
@@ -591,7 +591,7 @@
               "29.4"
             ],
             "details": "Use Jest (v29+) for unit and integration tests. Mock various environment variable scenarios and .env file changes. Ensure errors are logged and surfaced appropriately.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Full test suite covering all code paths, including edge cases, error scenarios, and hot-reload behavior."
           }
         ]
@@ -606,7 +606,7 @@
         "dependencies": [
           29
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -614,7 +614,7 @@
             "description": "Refactor the LLM routing logic to evaluate both organization and user sovereign mode status before selecting model providers.",
             "dependencies": [],
             "details": "Update the routing middleware or core service to query and interpret sovereign mode flags at both the organization and user levels, ensuring these checks precede any provider selection.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit and integration tests simulating various combinations of organization and user sovereign mode settings. Assert correct evaluation and propagation of sovereign mode status."
           },
           {
@@ -624,7 +624,7 @@
             "dependencies": [
               "30.1"
             ],
-            "details": "Integrate feature flag checks into the routing logic. Configure flags for gradual rollout, targeting specific organizations or users as needed. Ensure fallback to legacy routing when the flag is disabled.",
+            "details": "Integrate feature flag checks into the routing logic. Configure flags for gradual rollout, targeting specific organizations or users as needed. Ensure fallback to legacy routing when the flag is disabled.\n<info added on 2025-09-06T00:28:52.422Z>\nFeature flag-based rollout implementation for sovereign routing has been completed. The implementation includes a new `FeatureFlagService` that supports multiple rollout strategies through environment variable configuration. The service enables percentage-based rollouts, user targeting, organization targeting, and exclusions.\n\nThe implementation integrates feature flag checks into the `CentralizedRoutingService`, with all sovereign mode logic now wrapped with the `sovereignRoutingEnabled` flag check. A `FeatureFlagController` was created for admin management and debugging purposes.\n\nThe system uses environment variables such as `FEATURE_FLAG_SOVEREIGN_ROUTING_ENABLED`, `ROLLOUT_PERCENTAGE`, `TARGET_USERS`, `TARGET_ORGANIZATIONS`, `EXCLUDE_USERS`, and `EXCLUDE_ORGANIZATIONS` for configuration. It implements deterministic rollout using hash-based percentage calculation for a consistent user experience.\n\nAdmin APIs are available through `/feature-flags` endpoints for checking status and debugging. When the flag is disabled, the system falls back to legacy routing without sovereign restrictions. The service is context-aware, considering userId and organizationId for targeting decisions.\n\nThe recommended rollout strategy is to start with the flag disabled, then enable for specific test users, proceed with gradual percentage rollout, and finally move to full deployment. Testing can be performed by toggling environment variables and calling the `/feature-flags/sovereign-routing` endpoint.\n</info added on 2025-09-06T00:28:52.422Z>\n<info added on 2025-09-06T00:31:19.190Z>\n✅ COMPLETED: Feature flag-based rollout implementation for sovereign routing\n\n**Implementation Summary:**\n- Created `FeatureFlagService` with environment variable-based configuration\n- Supports multiple rollout strategies: percentage-based, user targeting, organization targeting, exclusions\n- Integrated feature flag checks into `CentralizedRoutingService` \n- All sovereign mode logic now wrapped with `sovereignRoutingEnabled` flag check\n- Created `FeatureFlagController` for admin management and debugging\n- Added comprehensive test coverage\n\n**Key Features:**\n- **Environment Variables**: `FEATURE_FLAG_SOVEREIGN_ROUTING_ENABLED`, `ROLLOUT_PERCENTAGE`, `TARGET_USERS`, `TARGET_ORGANIZATIONS`, `EXCLUDE_USERS`, `EXCLUDE_ORGANIZATIONS`\n- **Deterministic Rollout**: Uses hash-based percentage calculation for consistent user experience\n- **Admin APIs**: `/feature-flags` endpoints for checking status and debugging\n- **Legacy Fallback**: When flag is disabled, system uses legacy routing (no sovereign restrictions)\n- **Context-Aware**: Considers userId and organizationId for targeting decisions\n\n**Easy Testing Setup:**\n- Default: `ENABLED=false` (safe, no impact)\n- For demos: Set `ENABLED=true` in .env to enable globally\n- For targeted testing: Use `TARGET_USERS` to enable just for specific users\n- Quick toggle: Can be turned on/off without redeployment\n\n**Current State**: Feature flag is OFF by default, ready for controlled testing when needed.\n</info added on 2025-09-06T00:31:19.190Z>",
             "status": "pending",
             "testStrategy": "Feature flag toggling tests in staging. Verify routing behavior changes according to flag state. Monitor for regressions during rollout."
           },
@@ -1353,7 +1353,7 @@
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-05T23:44:05.577Z",
+      "updated": "2025-09-06T00:16:07.113Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }
