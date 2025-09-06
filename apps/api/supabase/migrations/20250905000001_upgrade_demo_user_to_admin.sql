@@ -1,6 +1,19 @@
 -- Upgrade demo.user@playground.com to admin role
 -- This enables full access to LLM admin components and privacy admin panels for demo purposes
 
+-- First, handle the missing role_audit_log table that triggers might reference
+-- Create with flexible column types to handle both JSONB and ARRAY roles
+CREATE TABLE IF NOT EXISTS public.role_audit_log (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID,
+    admin_user_id UUID,
+    action VARCHAR(50),
+    old_roles TEXT, -- Store as text to handle both JSONB and ARRAY
+    new_roles TEXT, -- Store as text to handle both JSONB and ARRAY  
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Check column type and update accordingly
 DO $$
 DECLARE
