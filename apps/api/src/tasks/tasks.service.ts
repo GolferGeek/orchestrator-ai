@@ -480,6 +480,61 @@ export class TasksService {
   }
 
   /**
+   * Get task metrics and analytics for the user
+   */
+  async getTaskMetrics(userId: string): Promise<any> {
+    try {
+      const { data: tasks, error } = await this.supabaseService
+        .getAnonClient()
+        .from('tasks')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (error) {
+        this.logger.error('Failed to fetch tasks for metrics:', error);
+        throw new Error(`Failed to fetch task metrics: ${error.message}`);
+      }
+
+      // Calculate basic metrics
+      const totalTasks = tasks?.length || 0;
+      const completedTasks = tasks?.filter(task => task.status === 'completed').length || 0;
+      const activeTasks = tasks?.filter(task => ['pending', 'running'].includes(task.status)).length || 0;
+      const failedTasks = tasks?.filter(task => task.status === 'failed').length || 0;
+      
+      // Calculate success rate
+      const successRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 100;
+
+      // Calculate average completion time (for completed tasks)
+      const completedTasksWithTimes = tasks?.filter(task => 
+        task.status === 'completed' && task.created_at && task.updated_at
+      ) || [];
+      
+      const averageCompletionTime = completedTasksWithTimes.length > 0
+        ? completedTasksWithTimes.reduce((sum, task) => {
+            const created = new Date(task.created_at).getTime();
+            const updated = new Date(task.updated_at).getTime();
+            return sum + (updated - created);
+          }, 0) / completedTasksWithTimes.length
+        : 0;
+
+      return {
+        totalTasks,
+        completedTasks,
+        activeTasks,
+        failedTasks,
+        successRate: Math.round(successRate * 100) / 100, // Round to 2 decimal places
+        averageCompletionTime: Math.round(averageCompletionTime), // in milliseconds
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime() * 1000, // Convert to milliseconds
+        memoryUsage: process.memoryUsage()
+      };
+    } catch (error) {
+      this.logger.error('Error calculating task metrics:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Stream task progress events (for SSE)
    */
   async *streamTaskProgress(taskId: string, userId: string) {

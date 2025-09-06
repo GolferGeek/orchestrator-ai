@@ -377,6 +377,7 @@ export const usePIIPatternsStore = defineStore('piiPatterns', () => {
     
     // Actions
     loadPatterns,
+    fetchPatterns: loadPatterns, // Alias for compatibility
     createPattern,
     updatePattern,
     deletePattern,

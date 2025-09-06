@@ -536,6 +536,7 @@ export const usePseudonymDictionariesStore = defineStore('pseudonymDictionaries'
     
     // Actions
     loadDictionaries,
+    fetchDictionaries: loadDictionaries, // Alias for compatibility
     createDictionary,
     updateDictionary,
     deleteDictionary,

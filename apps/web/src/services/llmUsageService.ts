@@ -1,4 +1,12 @@
 import { apiService } from './apiService';
+import { 
+  codeOutline, 
+  personOutline, 
+  settingsOutline, 
+  serverOutline, 
+  helpOutline,
+  hardwareChipOutline
+} from 'ionicons/icons';
 
 export interface LlmUsageRecord {
   id: string;
@@ -167,20 +175,20 @@ class LlmUsageService {
     }
   }
 
-  getCallerTypeIcon(callerType: string): string {
+  getCallerTypeIcon(callerType: string): any {
     switch (callerType.toLowerCase()) {
       case 'agent':
-        return 'robot-outline';
+        return hardwareChipOutline;
       case 'api':
-        return 'code-outline';
+        return codeOutline;
       case 'user':
-        return 'person-outline';
+        return personOutline;
       case 'system':
-        return 'settings-outline';
+        return settingsOutline;
       case 'service':
-        return 'server-outline';
+        return serverOutline;
       default:
-        return 'help-outline';
+        return helpOutline;
     }
   }
 }

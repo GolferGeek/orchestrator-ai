@@ -302,8 +302,8 @@ import {
 
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { llmUsageService } from '@/services/llmUsageService';
-import LlmUsageTable from '@/components/admin/LlmUsageTable.vue';
-import LlmAnalytics from '@/components/admin/LlmAnalytics.vue';
+import LlmUsageTable from '@/components/Admin/LlmUsageTable.vue';
+import LlmAnalytics from '@/components/Admin/LlmAnalytics.vue';
 
 const store = useLlmUsageStore();
 
@@ -315,7 +315,7 @@ const autoRefreshEnabled = ref(false);
 const { usageRecords, stats, activeRuns, loading } = store;
 
 const recentRecords = computed(() => {
-  return usageRecords.value
+  return (usageRecords.value || [])
     .slice()
     .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
     .slice(0, 5);
@@ -328,7 +328,7 @@ const onTabChange = (event: CustomEvent) => {
   // Load data for the selected tab
   switch (selectedTab.value) {
     case 'records':
-      if (usageRecords.value.length === 0) {
+      if (!usageRecords.value || usageRecords.value.length === 0) {
         store.fetchUsageRecords();
       }
       break;

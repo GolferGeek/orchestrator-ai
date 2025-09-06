@@ -30,6 +30,14 @@ export class LLMController {
         temperature?: number;
         maxTokens?: number;
         provider?: 'openai' | 'anthropic' | 'ollama' | 'google';
+        // Support full LLM preferences from UI
+        providerId?: string;
+        modelId?: string;
+        // Caller tracking for usage analytics
+        callerType?: string;
+        callerName?: string;
+        conversationId?: string;
+        dataClassification?: string;
       };
     },
   ): Promise<{ response: string }> {
@@ -42,9 +50,14 @@ export class LLMController {
           temperature: request.options?.temperature,
           maxTokens: request.options?.maxTokens,
           provider: request.options?.provider,
-          callerType: 'api',
-          callerName: 'llm-controller',
-          dataClassification: 'public',
+          // Support full LLM preferences from UI
+          providerId: request.options?.providerId,
+          modelId: request.options?.modelId,
+          // Caller tracking - use provided values or defaults
+          callerType: request.options?.callerType || 'api',
+          callerName: request.options?.callerName || 'llm-controller',
+          conversationId: request.options?.conversationId,
+          dataClassification: request.options?.dataClassification || 'public',
         },
       );
 

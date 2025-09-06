@@ -318,37 +318,37 @@ const localFilters = ref({
 const { analytics, loading, callerTypes } = store;
 
 const totalRequests = computed(() => {
-  return analytics.value.reduce((sum, item) => sum + item.total_requests, 0);
+  return analytics.value?.reduce((sum, item) => sum + item.total_requests, 0) || 0;
 });
 
 const totalCost = computed(() => {
-  return analytics.value.reduce((sum, item) => sum + item.total_cost, 0);
+  return analytics.value?.reduce((sum, item) => sum + item.total_cost, 0) || 0;
 });
 
 const overallSuccessRate = computed(() => {
   if (totalRequests.value === 0) return 0;
-  const totalSuccessful = analytics.value.reduce((sum, item) => sum + item.successful_requests, 0);
+  const totalSuccessful = analytics.value?.reduce((sum, item) => sum + item.successful_requests, 0) || 0;
   return Math.round((totalSuccessful / totalRequests.value) * 100);
 });
 
 const avgDuration = computed(() => {
-  if (analytics.value.length === 0) return 0;
+  if (!analytics.value || analytics.value.length === 0) return 0;
   const totalDuration = analytics.value.reduce((sum, item) => sum + item.avg_duration_ms, 0);
   return totalDuration / analytics.value.length;
 });
 
 const chartData = computed(() => {
-  return analytics.value.slice().sort((a, b) => a.date.localeCompare(b.date));
+  return analytics.value?.slice().sort((a, b) => a.date.localeCompare(b.date)) || [];
 });
 
 const maxRequests = computed(() => {
-  return Math.max(...analytics.value.map(item => item.total_requests), 1);
+  return Math.max(...(analytics.value?.map(item => item.total_requests) || []), 1);
 });
 
 const callerTypeBreakdown = computed(() => {
   const breakdown = new Map();
   
-  analytics.value.forEach(item => {
+  analytics.value?.forEach(item => {
     if (!breakdown.has(item.caller_type)) {
       breakdown.set(item.caller_type, {
         callerType: item.caller_type,
@@ -377,11 +377,11 @@ const callerTypeBreakdown = computed(() => {
 });
 
 const localRequests = computed(() => {
-  return analytics.value.reduce((sum, item) => sum + item.local_requests, 0);
+  return analytics.value?.reduce((sum, item) => sum + item.local_requests, 0) || 0;
 });
 
 const externalRequests = computed(() => {
-  return analytics.value.reduce((sum, item) => sum + item.external_requests, 0);
+  return analytics.value?.reduce((sum, item) => sum + item.external_requests, 0) || 0;
 });
 
 const localPercentage = computed(() => {
@@ -395,11 +395,11 @@ const externalPercentage = computed(() => {
 });
 
 const totalInputTokens = computed(() => {
-  return analytics.value.reduce((sum, item) => sum + item.total_input_tokens, 0);
+  return analytics.value?.reduce((sum, item) => sum + item.total_input_tokens, 0) || 0;
 });
 
 const totalOutputTokens = computed(() => {
-  return analytics.value.reduce((sum, item) => sum + item.total_output_tokens, 0);
+  return analytics.value?.reduce((sum, item) => sum + item.total_output_tokens, 0) || 0;
 });
 
 const avgInputTokens = computed(() => {

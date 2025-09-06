@@ -190,8 +190,8 @@ export class LLMService {
       // If providerId/modelId are provided, delegate to enhanced response for proper DB lookup
       if (options?.providerId || options?.modelId || options?.cidafmOptions) {
 
-        // Extract user ID from currentUser object or use 'system' as fallback
-        const userId = options.currentUser?.id || 'system';
+        // Extract user ID from currentUser object or use undefined as fallback
+        const userId = options.currentUser?.id;
 
         const enhancedResult = await this.generateEnhancedResponse(
           userId,
@@ -204,6 +204,11 @@ export class LLMService {
             sessionId: options.sessionId,
             temperature: options.temperature,
             maxTokens: options.maxTokens,
+            // Pass caller tracking options
+            callerType: options.callerType,
+            callerName: options.callerName,
+            conversationId: options.conversationId,
+            dataClassification: options.dataClassification,
           },
         );
 
@@ -361,7 +366,7 @@ export class LLMService {
    * Enhanced LLM call with dynamic provider/model selection, CIDAFM processing, and cost tracking
    */
   async generateEnhancedResponse(
-    userId: string,
+    userId: string | undefined,
     systemPrompt: string,
     userMessage: string,
     options?: {
@@ -371,6 +376,11 @@ export class LLMService {
       sessionId?: string;
       temperature?: number;
       maxTokens?: number;
+      // Add caller tracking for usage analytics
+      callerType?: string;
+      callerName?: string;
+      conversationId?: string;
+      dataClassification?: string;
     },
   ): Promise<{
     content: string;
@@ -390,6 +400,7 @@ export class LLMService {
     };
   }> {
     const startTime = Date.now();
+    let metadataContext: any = null;
 
     try {
 
@@ -399,13 +410,36 @@ export class LLMService {
         options?.modelId,
       );
 
+      // Start usage tracking
+      const routingDecision = {
+        provider: provider?.name?.toLowerCase() || 'unknown',
+        model: model?.name || 'unknown',
+        isLocal: provider?.name?.toLowerCase() === 'ollama',
+        modelTier: 'general', // Default tier for enhanced response
+        fallbackUsed: false,
+        complexityLevel: undefined,
+        complexityScore: undefined,
+        routingReason: 'enhanced-response-user-selection'
+      };
+
+      metadataContext = await this.runMetadataService.startRequest(
+        routingDecision,
+        {
+          userId: userId,
+          callerType: options?.callerType || 'enhanced',
+          callerName: options?.callerName || 'enhanced-llm',
+          conversationId: options?.conversationId || options?.sessionId,
+          dataClassification: options?.dataClassification || 'internal'
+        }
+      );
+
       // Process CIDAFM commands if provided
       let processedPrompt = userMessage;
       let cidafmState: any = {};
 
       if (options?.cidafmOptions || options?.sessionId) {
         const cidafmResult = await this.cidafmService.processMessage(
-          userId,
+          userId || 'anonymous',
           userMessage,
           options.cidafmOptions,
           options.sessionId,
@@ -600,6 +634,17 @@ export class LLMService {
         },
       };
 
+      // Complete usage tracking
+      const runMetadata = await this.runMetadataService.completeRequest(
+        metadataContext,
+        {
+          content,
+          inputTokens: inputTokens,
+          outputTokens: outputTokens,
+          enhancedMetrics: usage
+        }
+      );
+
       return {
         content,
         usage,
@@ -618,7 +663,8 @@ export class LLMService {
         },
       };
     } catch (error) {
-
+      // Note: Usage tracking for failed requests would need to be implemented
+      // if we want to track failed enhanced LLM calls
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       throw new Error(`Enhanced LLM service error: ${errorMessage}`);
@@ -1437,7 +1483,29 @@ export class LLMService {
       .single();
 
     if (!defaultProvider || !defaultModel) {
-      throw new Error('Default provider/model not found in database');
+      // If even the default fallback fails, return minimal working defaults
+      this.logger.warn('Default provider/model not found in database, using hardcoded fallbacks');
+      return {
+        provider: {
+          id: 'fallback-ollama',
+          name: 'Ollama',
+          apiBaseUrl: 'http://localhost:11434',
+          authType: 'none',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        model: {
+          id: 'fallback-model',
+          name: 'unknown',
+          providerId: 'ollama',
+          modelId: 'unknown',
+          supportsThinking: false,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      };
     }
 
     return {
