@@ -63,6 +63,12 @@ export class ModelsController {
     type: Boolean,
     description: 'Include provider details in response',
   })
+  @ApiQuery({
+    name: 'sovereign_mode',
+    required: false,
+    type: Boolean,
+    description: 'Filter models based on sovereign mode compliance (true = only local/ollama models)',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of LLM models',
@@ -73,12 +79,14 @@ export class ModelsController {
     @Query('status') status?: 'active' | 'inactive' | 'deprecated',
     @Query('supports_thinking') supportsThinking?: boolean,
     @Query('include_provider') includeProvider?: boolean,
+    @Query('sovereign_mode') sovereignMode?: boolean,
   ): Promise<ModelResponseDto[]> {
     return this.modelsService.findAll({
       providerId,
       status,
       supportsThinking,
       includeProvider,
+      sovereignMode,
     });
   }
 

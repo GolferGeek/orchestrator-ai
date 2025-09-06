@@ -16,6 +16,7 @@ interface ModelFilters {
   status?: ModelStatus;
   supportsThinking?: boolean;
   includeProvider?: boolean;
+  sovereignMode?: boolean;
 }
 
 interface RecommendationFilters {
@@ -33,9 +34,29 @@ export class ModelsService {
   async findAll(filters: ModelFilters = {}): Promise<ModelResponseDto[]> {
     const client = this.supabaseService.getServiceClient();
 
+    // If sovereign mode is enabled, we need to get the Ollama provider ID first
+    let ollamaProviderId: string | null = null;
+    if (filters.sovereignMode === true) {
+      const { data: providerData, error: providerError } = await client
+        .from(getTableName('llm_providers'))
+        .select('id')
+        .ilike('name', '%ollama%')
+        .single();
+
+      if (providerError) {
+        this.logger.warn('Could not find Ollama provider for sovereign mode filtering', providerError);
+        // Return empty array if Ollama provider not found
+        return [];
+      }
+      ollamaProviderId = providerData?.id;
+    }
+
+    // Determine if we need provider data for user request
+    const selectClause = filters.includeProvider ? `*, provider:llm_providers(*)` : '*';
+
     let query = client
       .from(getTableName('llm_models'))
-      .select(filters.includeProvider ? `*, provider:llm_providers(*)` : '*')
+      .select(selectClause)
       .order('display_name');
 
     if (filters.providerId) {
@@ -54,6 +75,11 @@ export class ModelsService {
       } else {
         query = query.not('capabilities', 'cs', ['reasoning']);
       }
+    }
+
+    if (filters.sovereignMode === true && ollamaProviderId) {
+      // In sovereign mode, only show local models (Ollama provider)
+      query = query.eq('provider_id', ollamaProviderId);
     }
 
     const { data, error } = await query;

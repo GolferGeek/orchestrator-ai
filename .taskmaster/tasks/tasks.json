@@ -664,137 +664,68 @@
         ]
       },
       {
-        "id": 31,
-        "title": "Develop Policy Validation and Conflict Resolution Logic",
-        "description": "Implement backend logic to resolve precedence between organization-enforced, default, and user-level sovereign mode settings.",
-        "details": "Create a policy resolution module (TypeScript) that applies precedence: enforced > user > default. Validate at request time and on policy changes. Return clear error messages for invalid or conflicting settings. Document logic for auditability.",
-        "testStrategy": "Unit tests for all precedence scenarios. Fuzz tests for edge cases (e.g., missing env vars, invalid user prefs).",
-        "priority": "high",
-        "dependencies": [
-          29,
-          30
-        ],
-        "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Define Policy Precedence and Resolution Rules",
-            "description": "Specify the exact precedence logic for organization-enforced, user-level, and default sovereign mode settings, ensuring enforced > user > default. Document all resolution scenarios and edge cases.",
-            "dependencies": [],
-            "details": "Create a formal specification of how policies interact, including handling of missing or conflicting values. Ensure this specification is clear for both implementation and audit purposes.",
-            "status": "pending",
-            "testStrategy": "Peer review of documentation and logic tables to ensure completeness and correctness."
-          },
-          {
-            "id": 2,
-            "title": "Implement Policy Resolution Module in TypeScript",
-            "description": "Develop a TypeScript module that applies the defined precedence rules to resolve the effective sovereign mode policy at runtime.",
-            "dependencies": [
-              "31.1"
-            ],
-            "details": "Code the resolution logic as a reusable function or class. Ensure strict typing and modularity for maintainability. Integrate with existing configuration and user preference sources.",
-            "status": "pending",
-            "testStrategy": "Unit tests for all precedence scenarios, including edge cases and invalid input combinations."
-          },
-          {
-            "id": 3,
-            "title": "Integrate Validation Logic for Policy Changes and Requests",
-            "description": "Add validation checks that trigger on policy changes and at each request, ensuring all settings are valid and non-conflicting according to the defined rules.",
-            "dependencies": [
-              "31.2"
-            ],
-            "details": "Implement runtime validation using a schema validation library (e.g., zod) to enforce allowed combinations and detect conflicts. Ensure validation is invoked both on configuration reload and per-request.",
-            "status": "pending",
-            "testStrategy": "Fuzz and integration tests simulating policy changes, invalid configurations, and concurrent requests."
-          },
-          {
-            "id": 4,
-            "title": "Implement Error Handling and Messaging",
-            "description": "Design and implement clear error messages for invalid or conflicting policy settings, ensuring errors are actionable and suitable for both API consumers and audit logs.",
-            "dependencies": [
-              "31.3"
-            ],
-            "details": "Standardize error formats and include context (e.g., which setting is invalid, what the conflict is). Ensure errors are logged for auditability and returned in API responses where appropriate.",
-            "status": "pending",
-            "testStrategy": "Unit and integration tests for all error scenarios, verifying message clarity and completeness."
-          },
-          {
-            "id": 5,
-            "title": "Document Policy Resolution Logic and Validation Flow",
-            "description": "Produce comprehensive documentation of the policy resolution and validation logic, including flow diagrams, example scenarios, and auditability notes.",
-            "dependencies": [
-              "31.4"
-            ],
-            "details": "Ensure documentation covers all logic branches, error cases, and provides guidance for future maintainers and auditors. Include sample API responses and error messages.",
-            "status": "pending",
-            "testStrategy": "Documentation review by stakeholders and maintainers; validation against implemented logic."
-          }
-        ]
-      },
-      {
         "id": 32,
         "title": "Expose Sovereign Mode Policy via API Endpoints",
         "description": "Create REST API endpoints to provide current sovereign mode policy, model/provider listing with sovereignty flags, and configuration validation.",
-        "details": "Add endpoints: GET /api/sovereign-policy, GET /api/models?sovereign=true, POST /api/sovereign-policy/validate. Use OpenAPI 3.1 for schema documentation. Ensure endpoints are secured with JWT-based auth (jsonwebtoken v9+).",
-        "testStrategy": "API contract tests (e.g., with supertest v6+). Security tests for unauthorized access. Schema validation tests.",
-        "priority": "high",
-        "dependencies": [
-          29,
-          31
-        ],
         "status": "pending",
+        "dependencies": [
+          29
+        ],
+        "priority": "high",
+        "details": "Leverage existing SovereignPolicyService and SovereignPolicyController to implement GET /api/sovereign-policy, GET /api/models?sovereign=true, POST /api/sovereign-policy/validate. Use OpenAPI 3.1 for schema documentation. Ensure endpoints are secured with JWT-based auth (jsonwebtoken v9+).",
+        "testStrategy": "API contract tests (e.g., with supertest v6+). Security tests for unauthorized access. Schema validation tests.",
         "subtasks": [
           {
             "id": 1,
             "title": "Design OpenAPI 3.1 Schemas for Sovereign Mode Endpoints",
             "description": "Define OpenAPI 3.1-compliant schemas for the three required endpoints: GET /api/sovereign-policy, GET /api/models?sovereign=true, and POST /api/sovereign-policy/validate, including request/response models and error handling.",
+            "status": "pending",
             "dependencies": [],
             "details": "Ensure all endpoints are documented with accurate data models, parameters, and security requirements using OpenAPI 3.1 standards.",
-            "status": "pending",
             "testStrategy": "Validate schema correctness using OpenAPI tools; review for completeness and alignment with business requirements."
           },
           {
             "id": 2,
-            "title": "Implement REST API Endpoints for Sovereign Mode Policy",
-            "description": "Develop the three REST API endpoints to expose current sovereign mode policy, list models/providers with sovereignty flags, and validate configuration.",
-            "dependencies": [
-              "32.1"
-            ],
-            "details": "Endpoints must follow the designed OpenAPI schemas and support required query parameters and payloads.",
+            "title": "Extend SovereignPolicyController with Required Endpoints",
+            "description": "Extend the existing SovereignPolicyController to implement all required REST API endpoints, building on the existing /sovereign-policy and /sovereign-policy/status endpoints.",
             "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "Leverage the existing SovereignPolicyService with getPolicy() method to implement the remaining endpoints according to the OpenAPI schemas. Ensure proper integration with the existing policy service infrastructure.",
             "testStrategy": "Write API contract tests (e.g., with supertest v6+) to verify endpoint behavior and response formats."
           },
           {
             "id": 3,
             "title": "Integrate JWT-Based Authentication and Authorization",
             "description": "Secure all sovereign mode API endpoints using JWT-based authentication (jsonwebtoken v9+), enforcing token validation and role-based access control.",
+            "status": "pending",
             "dependencies": [
-              "32.2"
+              2
             ],
             "details": "Implement middleware to validate JWTs, check claims (e.g., iss, exp, alg), and restrict access based on user roles and permissions.",
-            "status": "pending",
             "testStrategy": "Perform security tests for unauthorized and forbidden access, including invalid/expired tokens and insufficient permissions."
           },
           {
             "id": 4,
             "title": "Implement Sovereignty Flag Logic in Model/Provider Listing",
             "description": "Ensure GET /api/models?sovereign=true returns only models/providers with sovereignty flags set, accurately reflecting policy constraints.",
-            "dependencies": [
-              "32.2"
-            ],
-            "details": "Filter and annotate models/providers based on sovereignty status, ensuring correct flagging and compliance with policy.",
             "status": "pending",
+            "dependencies": [
+              2
+            ],
+            "details": "Filter and annotate models/providers based on sovereignty status, ensuring correct flagging and compliance with policy. Use the basic precedence rule where organization .env settings override user preferences.",
             "testStrategy": "Write unit and integration tests to verify correct filtering and flag assignment for various policy scenarios."
           },
           {
             "id": 5,
-            "title": "Validate Sovereign Mode Policy Configuration via API",
+            "title": "Implement Basic Policy Validation via API",
             "description": "Implement logic for POST /api/sovereign-policy/validate to check submitted configuration against allowed policy rules and return validation results.",
-            "dependencies": [
-              "32.2"
-            ],
-            "details": "Ensure validation covers all relevant policy constraints and provides clear error messages for invalid configurations.",
             "status": "pending",
+            "dependencies": [
+              2
+            ],
+            "details": "Use the existing basic policy validation functionality to validate submitted configurations. Focus on core validation requirements rather than complex validation logic (which was deferred to post-launch).",
             "testStrategy": "Create schema validation tests and negative test cases to confirm robust error handling and accurate validation."
           }
         ]
@@ -808,8 +739,7 @@
         "priority": "high",
         "dependencies": [
           29,
-          30,
-          31
+          30
         ],
         "status": "pending",
         "subtasks": [
@@ -1013,7 +943,6 @@
         "testStrategy": "Unit and integration tests for preference storage and retrieval. E2E tests for override flows and policy constraint enforcement.",
         "priority": "medium",
         "dependencies": [
-          31,
           34
         ],
         "status": "pending",
@@ -1083,7 +1012,6 @@
         "priority": "medium",
         "dependencies": [
           30,
-          31,
           33
         ],
         "status": "pending",
@@ -1353,7 +1281,7 @@
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-06T01:00:18.552Z",
+      "updated": "2025-09-06T01:04:21.601Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }
