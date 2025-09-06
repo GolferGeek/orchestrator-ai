@@ -1,10 +1,10 @@
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { computed } from 'vue';
 import { useSovereignPolicyStore } from '../stores/sovereignPolicyStore';
 import { storeToRefs } from 'pinia';
 
 /**
- * Composable for managing sovereign policy data with SWR-like behavior
- * Provides reactive access to policy data with automatic polling and caching
+ * Composable for managing sovereign policy with simple Vue reactivity
+ * No polling - just reactive access to store state
  */
 export function useSovereignPolicy() {
   const store = useSovereignPolicyStore();
@@ -12,137 +12,56 @@ export function useSovereignPolicy() {
   // Extract reactive references from the store
   const {
     policy,
-    policyStatus,
-    loadingPolicy,
-    loadingStatus,
-    policyError,
-    statusError,
     userSovereignMode,
-    effectiveSovereignMode,
+    loading,
+    error,
+    initialized,
+    isEnforced,
     canUserControlSovereignMode,
-    allowedProviders,
+    effectiveSovereignMode,
     policyWarnings,
-    hasErrors,
-    isPolicyFresh,
+    allowedProviders,
   } = storeToRefs(store);
 
-  // Local state for the composable
-  const isInitialized = ref(false);
-  const isRefreshing = ref(false);
-
   // Computed properties for convenience
-  const isLoading = computed(() => loadingPolicy.value || loadingStatus.value);
-  const error = computed(() => policyError.value || statusError.value);
-
-  /**
-   * Initialize the policy data
-   */
-  const initialize = async () => {
-    if (isInitialized.value) return;
-    
-    try {
-      await store.initialize();
-      isInitialized.value = true;
-    } catch (error) {
-      console.error('Failed to initialize sovereign policy:', error);
-    }
-  };
-
-  /**
-   * Manually refresh the policy data
-   */
-  const refresh = async () => {
-    isRefreshing.value = true;
-    try {
-      await Promise.all([
-        store.fetchPolicy(),
-        store.fetchPolicyStatus()
-      ]);
-    } catch (error) {
-      console.error('Failed to refresh sovereign policy:', error);
-    } finally {
-      isRefreshing.value = false;
-    }
-  };
-
-  /**
-   * Mutate (update) the user sovereign mode preference
-   */
-  const mutateUserSovereignMode = (enabled: boolean) => {
-    store.setUserSovereignMode(enabled);
-  };
-
-  /**
-   * Validate a policy configuration
-   */
-  const validatePolicy = async (request: {
-    enforced?: boolean;
-    defaultMode?: 'strict' | 'relaxed';
-    userSovereignMode?: boolean;
-    auditLevel?: 'none' | 'basic' | 'full';
-  }) => {
-    return await store.validatePolicy(request);
-  };
-
-  /**
-   * Check if models should be filtered for sovereign mode
-   */
-  const shouldFilterModels = computed(() => effectiveSovereignMode.value);
-
-  /**
-   * Get models with appropriate sovereign mode filtering
-   */
-  const getFilteredModels = async () => {
-    const { sovereignPolicyService } = await import('../services/sovereignPolicyService');
-    return await sovereignPolicyService.getModels(shouldFilterModels.value);
-  };
-
-  // Auto-initialize on mount
-  onMounted(() => {
-    initialize();
+  const hasErrors = computed(() => !!error.value);
+  
+  const statusText = computed(() => {
+    if (loading.value) return 'Loading...';
+    if (error.value) return 'Error';
+    if (effectiveSovereignMode.value) return 'Active';
+    return 'Inactive';
   });
 
-  // Cleanup on unmount
-  onUnmounted(() => {
-    store.cleanup();
-  });
-
-  // Watch for changes in effective sovereign mode and log them
-  watch(effectiveSovereignMode, (newValue, oldValue) => {
-    if (oldValue !== undefined && newValue !== oldValue) {
-      console.log(`Sovereign mode changed: ${oldValue} -> ${newValue}`);
-    }
-  });
+  // Actions
+  const initialize = () => store.initialize();
+  const updateUserPreference = (enabled: boolean) => store.updateUserPreference(enabled);
+  const clearError = () => store.clearError();
+  const reset = () => store.reset();
 
   return {
     // State
-    policy: computed(() => policy.value),
-    policyStatus: computed(() => policyStatus.value),
-    userSovereignMode: computed(() => userSovereignMode.value),
-    effectiveSovereignMode: computed(() => effectiveSovereignMode.value),
-    canUserControlSovereignMode: computed(() => canUserControlSovereignMode.value),
-    allowedProviders: computed(() => allowedProviders.value),
-    policyWarnings: computed(() => policyWarnings.value),
+    policy: policy.value,
+    userSovereignMode: userSovereignMode.value,
+    loading: loading.value,
+    error: error.value,
+    initialized: initialized.value,
     
-    // Loading and error states
-    isLoading,
-    isRefreshing,
-    error,
-    hasErrors: computed(() => hasErrors.value),
-    isPolicyFresh: computed(() => isPolicyFresh.value),
-    isInitialized,
+    // Computed getters
+    isEnforced: isEnforced.value,
+    canUserControlSovereignMode: canUserControlSovereignMode.value,
+    effectiveSovereignMode: effectiveSovereignMode.value,
+    policyWarnings: policyWarnings.value,
+    allowedProviders: allowedProviders.value,
+    
+    // Convenience computed
+    hasErrors: hasErrors.value,
+    statusText: statusText.value,
     
     // Actions
     initialize,
-    refresh,
-    mutateUserSovereignMode,
-    validatePolicy,
-    getFilteredModels,
-    shouldFilterModels,
-    
-    // Store actions (for advanced usage)
-    startPolling: store.startPolling,
-    stopPolling: store.stopPolling,
-    reset: store.reset,
+    updateUserPreference,
+    clearError,
+    reset,
   };
 }

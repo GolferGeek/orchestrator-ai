@@ -187,41 +187,6 @@ export const useLLMStore = defineStore('llm', {
         this.selectedModel = thinkingModel || fallbackModel || this.availableModels[0];
       }
     },
-    // Refresh models when sovereign mode changes
-    async refreshModelsForSovereignMode() {
-      console.log('Refreshing models due to sovereign mode change');
-      await this.fetchModels();
-      
-      // Check if current selection is still valid
-      if (this.selectedModel) {
-        const isModelStillAvailable = this.models.some(m => m.id === this.selectedModel?.id);
-        if (!isModelStillAvailable) {
-          console.log('Current model no longer available, selecting new default');
-          this.selectedModel = undefined;
-          
-          // Auto-select a new model if available
-          if (this.availableModels.length > 0) {
-            // In sovereign mode, prefer local thinking models
-            const sovereignPolicyStore = useSovereignPolicyStore();
-            if (sovereignPolicyStore.effectiveSovereignMode) {
-              const thinkingModel = this.availableModels.find(m => 
-                m.modelId.includes('deepseek-r1') ||
-                m.modelId.includes('qwq') ||
-                m.name.toLowerCase().includes('reasoning')
-              );
-              this.selectedModel = thinkingModel || this.availableModels[0];
-            } else {
-              // Regular mode - prefer GPT models
-              const gptModel = this.availableModels.find(m => 
-                m.modelId.includes('gpt-4o-mini') || 
-                m.modelId.includes('gpt-3.5-turbo')
-              );
-              this.selectedModel = gptModel || this.availableModels[0];
-            }
-          }
-        }
-      }
-    },
     // Set selected provider and clear model if incompatible
     setProvider(provider: Provider) {
       this.selectedProvider = provider;

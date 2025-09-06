@@ -2,248 +2,129 @@ import { defineStore } from 'pinia';
 import { 
   SovereignPolicy, 
   SovereignPolicyStatus, 
-  PolicyValidationRequest,
-  PolicyValidationResponse,
   sovereignPolicyService 
 } from '../services/sovereignPolicyService';
 
 export interface SovereignPolicyState {
-  // Policy data
+  // Corporate policy (read-only, set once on app load)
   policy: SovereignPolicy | null;
-  policyStatus: SovereignPolicyStatus | null;
   
-  // Loading states
-  loadingPolicy: boolean;
-  loadingStatus: boolean;
-  loadingValidation: boolean;
-  
-  // Error states
-  policyError: string | null;
-  statusError: string | null;
-  validationError: string | null;
-  
-  // User preferences
+  // User preference (can be toggled ON if corporate allows)
   userSovereignMode: boolean;
   
-  // Cache and polling
-  lastFetched: number | null;
-  pollingInterval: number | null;
+  // Loading states
+  loading: boolean;
   
-  // Validation results
-  lastValidation: PolicyValidationResponse | null;
+  // Error state
+  error: string | null;
+  
+  // Initialization flag
+  initialized: boolean;
 }
 
 export const useSovereignPolicyStore = defineStore('sovereignPolicy', {
   state: (): SovereignPolicyState => ({
     policy: null,
-    policyStatus: null,
-    loadingPolicy: false,
-    loadingStatus: false,
-    loadingValidation: false,
-    policyError: null,
-    statusError: null,
-    validationError: null,
     userSovereignMode: false,
-    lastFetched: null,
-    pollingInterval: null,
-    lastValidation: null,
+    loading: false,
+    error: null,
+    initialized: false,
   }),
 
   getters: {
-    /**
-     * Get the effective sovereign mode status
-     * Considers both organization policy and user preference
-     */
-    effectiveSovereignMode(): boolean {
-      if (this.policy?.enforced) {
-        return true; // Organization enforces sovereign mode
+    // Corporate policy enforces sovereign mode for everyone
+    isEnforced: (state) => state.policy?.enforced ?? false,
+    
+    // User can control sovereign mode if corporate doesn't enforce it
+    canUserControlSovereignMode: (state) => !state.policy?.enforced,
+    
+    // Effective sovereign mode: corporate enforced OR user enabled
+    effectiveSovereignMode: (state) => {
+      return state.policy?.enforced || state.userSovereignMode;
+    },
+    
+    // Policy warnings (for UI messaging)
+    policyWarnings: (state) => {
+      const warnings: string[] = [];
+      
+      if (state.policy?.enforced && !state.userSovereignMode) {
+        warnings.push('Organization policy requires sovereign mode to be enabled');
       }
-      return this.userSovereignMode; // User preference when not enforced
+      
+      return warnings;
     },
-
-    /**
-     * Check if sovereign mode is available for user control
-     */
-    canUserControlSovereignMode(): boolean {
-      return !this.policy?.enforced;
-    },
-
-    /**
-     * Get allowed providers based on sovereign mode
-     */
-    allowedProviders(): string[] {
-      if (this.effectiveSovereignMode) {
-        return ['ollama']; // Only local models in sovereign mode
-      }
-      return this.policyStatus?.allowedProviders || ['ollama', 'openai', 'anthropic'];
-    },
-
-    /**
-     * Check if policy data is fresh (less than 10 seconds old)
-     */
-    isPolicyFresh(): boolean {
-      if (!this.lastFetched) return false;
-      return Date.now() - this.lastFetched < 10000; // 10 seconds
-    },
-
-    /**
-     * Get policy warnings
-     */
-    policyWarnings(): string[] {
-      return this.policy?.validation?.warnings || [];
-    },
-
-    /**
-     * Check if there are any errors
-     */
-    hasErrors(): boolean {
-      return !!(this.policyError || this.statusError || this.validationError);
+    
+    // Allowed providers based on effective sovereign mode
+    allowedProviders: (state) => {
+      const effectiveMode = state.policy?.enforced || state.userSovereignMode;
+      return effectiveMode ? ['ollama'] : ['ollama', 'openai', 'anthropic'];
     },
   },
 
   actions: {
-    /**
-     * Fetch the current sovereign mode policy
-     */
-    async fetchPolicy(): Promise<void> {
-      this.loadingPolicy = true;
-      this.policyError = null;
-
+    // Initialize: fetch corporate policy once on app startup
+    async initialize() {
+      if (this.initialized) return;
+      
+      this.loading = true;
+      this.error = null;
+      
       try {
+        // Fetch corporate policy from backend
         this.policy = await sovereignPolicyService.getPolicy();
-        this.lastFetched = Date.now();
+        
+        // Load user preference from localStorage
+        const savedPreference = localStorage.getItem('userSovereignMode');
+        if (savedPreference !== null) {
+          this.userSovereignMode = JSON.parse(savedPreference);
+        }
+        
+        this.initialized = true;
       } catch (error) {
-        this.policyError = error instanceof Error ? error.message : 'Failed to fetch policy';
-        console.error('Error fetching sovereign policy:', error);
+        this.error = error instanceof Error ? error.message : 'Failed to load sovereign policy';
+        console.error('Failed to initialize sovereign policy:', error);
       } finally {
-        this.loadingPolicy = false;
+        this.loading = false;
       }
     },
 
-    /**
-     * Fetch simplified policy status
-     */
-    async fetchPolicyStatus(): Promise<void> {
-      this.loadingStatus = true;
-      this.statusError = null;
-
-      try {
-        this.policyStatus = await sovereignPolicyService.getPolicyStatus();
-        this.lastFetched = Date.now();
-      } catch (error) {
-        this.statusError = error instanceof Error ? error.message : 'Failed to fetch policy status';
-        console.error('Error fetching policy status:', error);
-      } finally {
-        this.loadingStatus = false;
+    // Update user preference (can only enable, not disable if corporate enforces)
+    async updateUserPreference(enabled: boolean) {
+      // If corporate enforces sovereign mode, user can't disable it
+      if (this.policy?.enforced && !enabled) {
+        throw new Error('Cannot disable sovereign mode - required by organization policy');
       }
-    },
-
-    /**
-     * Validate policy configuration
-     */
-    async validatePolicy(request: PolicyValidationRequest): Promise<PolicyValidationResponse | null> {
-      this.loadingValidation = true;
-      this.validationError = null;
-
-      try {
-        const result = await sovereignPolicyService.validatePolicy(request);
-        this.lastValidation = result;
-        return result;
-      } catch (error) {
-        this.validationError = error instanceof Error ? error.message : 'Failed to validate policy';
-        console.error('Error validating policy:', error);
-        return null;
-      } finally {
-        this.loadingValidation = false;
-      }
-    },
-
-    /**
-     * Set user sovereign mode preference
-     */
-    setUserSovereignMode(enabled: boolean): void {
-      this.userSovereignMode = enabled;
       
-      // Store in localStorage for persistence
+      this.loading = true;
+      this.error = null;
+      
       try {
+        // Update backend (optional - could be just localStorage)
+        // await sovereignPolicyService.updateUserPreference(enabled);
+        
+        // Update local state
+        this.userSovereignMode = enabled;
+        
+        // Persist to localStorage
         localStorage.setItem('userSovereignMode', JSON.stringify(enabled));
+        
       } catch (error) {
-        console.warn('Failed to save user sovereign mode preference:', error);
+        this.error = error instanceof Error ? error.message : 'Failed to update preference';
+        throw error;
+      } finally {
+        this.loading = false;
       }
     },
 
-    /**
-     * Load user sovereign mode preference from localStorage
-     */
-    loadUserPreferences(): void {
-      try {
-        const stored = localStorage.getItem('userSovereignMode');
-        if (stored !== null) {
-          this.userSovereignMode = JSON.parse(stored);
-        }
-      } catch (error) {
-        console.warn('Failed to load user sovereign mode preference:', error);
-        this.userSovereignMode = false;
-      }
+    // Clear error state
+    clearError() {
+      this.error = null;
     },
 
-    /**
-     * Start polling for policy updates
-     */
-    startPolling(intervalMs: number = 5000): void {
-      this.stopPolling(); // Clear any existing interval
-      
-      this.pollingInterval = window.setInterval(async () => {
-        // Only fetch if data is not fresh
-        if (!this.isPolicyFresh) {
-          await Promise.all([
-            this.fetchPolicy(),
-            this.fetchPolicyStatus()
-          ]);
-        }
-      }, intervalMs);
-    },
-
-    /**
-     * Stop polling for policy updates
-     */
-    stopPolling(): void {
-      if (this.pollingInterval) {
-        clearInterval(this.pollingInterval);
-        this.pollingInterval = null;
-      }
-    },
-
-    /**
-     * Initialize the store - fetch initial data and start polling
-     */
-    async initialize(): Promise<void> {
-      // Load user preferences
-      this.loadUserPreferences();
-      
-      // Fetch initial policy data
-      await Promise.all([
-        this.fetchPolicy(),
-        this.fetchPolicyStatus()
-      ]);
-      
-      // Start polling for updates
-      this.startPolling();
-    },
-
-    /**
-     * Cleanup when store is no longer needed
-     */
-    cleanup(): void {
-      this.stopPolling();
-    },
-
-    /**
-     * Reset all state
-     */
-    reset(): void {
-      this.cleanup();
+    // Reset store (for testing or logout)
+    reset() {
       this.$reset();
+      localStorage.removeItem('userSovereignMode');
     },
   },
 });
