@@ -74,6 +74,18 @@
       <div v-if="llmStore.modelError" class="error-message">
         {{ llmStore.modelError }}
       </div>
+      
+      <!-- No Models Available Error -->
+      <div v-if="showNoModelsError" class="no-models-error">
+        <div class="no-models-icon">🚫</div>
+        <div class="no-models-content">
+          <div class="no-models-title">{{ noModelsErrorTitle }}</div>
+          <div class="no-models-description">{{ noModelsErrorDescription }}</div>
+          <div v-if="noModelsErrorSuggestion" class="no-models-suggestion">
+            {{ noModelsErrorSuggestion }}
+          </div>
+        </div>
+      </div>
     </div>
     <!-- Model Info Display -->
     <div v-if="selectedModel" class="model-info">
@@ -318,6 +330,39 @@ const policyMessageIcon = computed(() => {
     return '⚠️';
   }
   return 'ℹ️';
+});
+
+// No models error computed properties
+const showNoModelsError = computed(() => {
+  // Show error when not loading, no model error, and no available models
+  return !llmStore.loadingModels && 
+         !llmStore.modelError && 
+         llmStore.availableModels.length === 0 &&
+         selectedProvider.value; // Only show when a provider is selected
+});
+
+const noModelsErrorTitle = computed(() => {
+  if (sovereignPolicyStore.effectiveSovereignMode) {
+    return 'No Sovereign-Compliant Models Available';
+  }
+  return 'No Models Available';
+});
+
+const noModelsErrorDescription = computed(() => {
+  if (sovereignPolicyStore.effectiveSovereignMode) {
+    return 'No local models are currently available for the selected provider in sovereign mode.';
+  }
+  return 'No models are currently available for the selected provider.';
+});
+
+const noModelsErrorSuggestion = computed(() => {
+  if (sovereignPolicyStore.effectiveSovereignMode) {
+    if (sovereignPolicyStore.canUserControlSovereignMode) {
+      return 'Try disabling sovereign mode to access external models, or ensure local models are running.';
+    }
+    return 'Please ensure local models (Ollama) are running and available.';
+  }
+  return 'Please try selecting a different provider or check your connection.';
 });
 </script>
 <style scoped>
@@ -579,5 +624,78 @@ const policyMessageIcon = computed(() => {
 .policy-icon {
   font-size: 1rem;
   flex-shrink: 0;
+}
+
+/* No Models Error Styles */
+.no-models-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin-top: 0.5rem;
+  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+  border: 1px solid #feb2b2;
+  border-radius: 8px;
+  color: #742a2a;
+}
+
+.no-models-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.no-models-content {
+  flex: 1;
+}
+
+.no-models-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+  color: #742a2a;
+}
+
+.no-models-description {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+  color: #822727;
+}
+
+.no-models-suggestion {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #975a5a;
+  font-style: italic;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  border-left: 3px solid #feb2b2;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .no-models-error {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+  
+  .no-models-icon {
+    font-size: 1.25rem;
+  }
+  
+  .no-models-title {
+    font-size: 0.9rem;
+  }
+  
+  .no-models-description {
+    font-size: 0.8rem;
+  }
+  
+  .no-models-suggestion {
+    font-size: 0.75rem;
+    padding: 0.375rem;
+  }
 }
 </style>

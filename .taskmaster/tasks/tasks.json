@@ -667,7 +667,7 @@
         "id": 32,
         "title": "Expose Sovereign Mode Policy via API Endpoints",
         "description": "Create REST API endpoints to provide current sovereign mode policy, model/provider listing with sovereignty flags, and configuration validation.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           29
         ],
@@ -741,7 +741,7 @@
           29,
           30
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -808,7 +808,7 @@
         "dependencies": [
           32
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -875,7 +875,7 @@
         "dependencies": [
           34
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -945,7 +945,7 @@
         "dependencies": [
           34
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
