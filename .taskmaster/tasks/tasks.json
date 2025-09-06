@@ -606,7 +606,7 @@
         "dependencies": [
           29
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -636,7 +636,7 @@
               "30.2"
             ],
             "details": "Extend provider selection logic to enforce allowed provider lists and local-only constraints. Ensure compliance with policy variables and reject non-compliant providers.\n<info added on 2025-09-06T00:46:23.622Z>\nSimplified provider filtering implementation for sovereign mode. Removed unnecessary complexity by eliminating the SOVEREIGN_MODE_ALLOWED_PROVIDERS environment variable and the \"local\" provider type concept. Implemented a binary approach where sovereign mode ON restricts to ollama (local models) only, while sovereign mode OFF allows all providers. Updated SovereignPolicyService.isProviderAllowed() to simply check if provider is 'ollama'. Streamlined CentralizedRoutingService to block all external providers in sovereign mode and removed redundant filtering logic from getExternalFallback(). This simplification creates a clearer business rule: sovereign mode means using only local/private models via ollama, while standard mode allows all providers.\n</info added on 2025-09-06T00:46:23.622Z>",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests with various provider lists and local-only settings. Assert only compliant providers are selected. Negative tests for policy violations."
           },
           {
@@ -646,8 +646,8 @@
             "dependencies": [
               "30.3"
             ],
-            "details": "Support fallback actions such as error responses, local-only routing, or user prompts. Ensure fallback logic is invoked only when required by policy and routing context.",
-            "status": "pending",
+            "details": "Support fallback actions such as error responses, local-only routing, or user prompts. Ensure fallback logic is invoked only when required by policy and routing context.\n<info added on 2025-09-06T00:52:13.523Z>\nImplemented comprehensive fallback logic for sovereign mode with three distinct behaviors:\n\n1. Error response: Returns clear error message when no local models are available\n2. Wait notification: Instructs user to wait for local models to load\n3. User prompt: Allows user to choose between switching modes or waiting (default behavior)\n\nImplementation includes:\n- New `SOVEREIGN_MODE_FALLBACK_BEHAVIOR` environment variable with default value of \"prompt_user\"\n- Enhanced `SovereignPolicy` interface with `fallbackBehavior` field\n- Created `handleSovereignModeFallback()` method in `CentralizedRoutingService`\n- Standardized provider/model combinations for frontend handling:\n  - `provider: 'error', model: 'sovereign_mode_no_local_models'`\n  - `provider: 'wait', model: 'local_models_loading'`\n  - `provider: 'prompt', model: 'user_choice_required'`\n\nUpdated `/sovereign-policy/status` endpoint to include fallbackBehavior while maintaining backward compatibility with existing routing logic. This implementation provides clear user feedback, configurable organizational policies, and appropriate UI responses for fallback scenarios.\n</info added on 2025-09-06T00:52:13.523Z>\n<info added on 2025-09-06T00:55:00.948Z>\n✅ COMPLETED (SIMPLIFIED): Implemented simple error fallback for sovereign mode\n\n**User Feedback & Simplification:**\nUser correctly pointed out that complex fallback behaviors were unnecessary. In sovereign mode, if Ollama models aren't available, that's a configuration/setup issue that should be fixed, not worked around.\n\n**Final Implementation:**\n- **Simple Error Response**: When sovereign mode is ON but no local models available, return clear error\n- **Provider/Model**: `provider: 'error', model: 'no_local_models_available'`\n- **Clear Logging**: \"No local models available - check Ollama setup\"\n- **Removed Complexity**: No fallback behavior configuration, no complex switching logic\n\n**Key Insight:**\nThe server should ensure Ollama models are properly loaded/downloaded rather than providing complex fallback mechanisms. This is a setup responsibility, not a runtime policy decision.\n\n**Benefits:**\n- Much simpler codebase\n- Clear error messaging points to the real issue (Ollama setup)\n- Forces proper configuration rather than masking problems\n- Easier to debug and maintain\n</info added on 2025-09-06T00:55:00.948Z>",
+            "status": "done",
             "testStrategy": "Simulate scenarios with no eligible providers. Assert correct fallback action per policy. Verify error handling and user notification mechanisms."
           },
           {
@@ -657,8 +657,8 @@
             "dependencies": [
               "30.4"
             ],
-            "details": "Augment logging to capture all relevant routing context and policy enforcement actions. Structure logs for auditability and compliance reporting.",
-            "status": "pending",
+            "details": "Augment logging to capture all relevant routing context and policy enforcement actions. Structure logs for auditability and compliance reporting.\n<info added on 2025-09-06T00:58:13.975Z>\nImplementation completed for comprehensive routing audit logging with the following features:\n\nCreated structured `RoutingAuditLog` interface capturing user context (userId, organizationId, requestId, timestamp), request details (prompt length/wordcount/hash), sovereign mode status, feature flags, routing logic details, policy compliance information, and performance metrics.\n\nAdded `logRoutingDecision()` method with privacy-conscious prompt hashing and integrated audit logging across all routing paths including explicit overrides, local selections, external fallbacks, sovereign mode errors, and emergency fallbacks.\n\nImplemented configurable audit levels (none, basic, full) with appropriate privacy and security measures including SHA256 hashing of prompt content, protection of sensitive data, and guaranteed logging of violations regardless of audit level.\n\nThe system now provides comprehensive compliance benefits through full audit trails, policy violation tracking, performance monitoring, and structured logs for automated analysis.\n</info added on 2025-09-06T00:58:13.975Z>",
+            "status": "done",
             "testStrategy": "Log inspection in test and staging environments. Automated tests to verify presence and completeness of log entries for all routing scenarios."
           }
         ]
@@ -1353,7 +1353,7 @@
     ],
     "metadata": {
       "created": "2025-09-04T13:10:25.235Z",
-      "updated": "2025-09-06T00:36:22.712Z",
+      "updated": "2025-09-06T01:00:18.552Z",
       "description": "Tasks for frontend-pii-ui context"
     }
   }

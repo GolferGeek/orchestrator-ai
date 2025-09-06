@@ -52,6 +52,7 @@ export class SovereignPolicyService {
     return this.getPolicy().auditLevel;
   }
 
+
   /**
    * Check if a provider is allowed in sovereign mode
    * In sovereign mode, only ollama is allowed
