@@ -16,7 +16,7 @@ interface ModelFilters {
   status?: ModelStatus;
   supportsThinking?: boolean;
   includeProvider?: boolean;
-  sovereignMode?: boolean;
+  sovereignMode?: boolean | string;
 }
 
 interface RecommendationFilters {
@@ -36,11 +36,12 @@ export class ModelsService {
 
     // If sovereign mode is enabled, we need to get the Ollama provider ID first
     let ollamaProviderId: string | null = null;
-    if (filters.sovereignMode === true) {
+    const isSovereignMode = filters.sovereignMode === true || filters.sovereignMode === 'true';
+    if (isSovereignMode) {
       const { data: providerData, error: providerError } = await client
         .from(getTableName('llm_providers'))
         .select('id')
-        .ilike('name', '%ollama%')
+        .eq('name', 'Ollama')
         .single();
 
       if (providerError) {
@@ -77,7 +78,7 @@ export class ModelsService {
       }
     }
 
-    if (filters.sovereignMode === true && ollamaProviderId) {
+    if (isSovereignMode && ollamaProviderId) {
       // In sovereign mode, only show local models (Ollama provider)
       query = query.eq('provider_id', ollamaProviderId);
     }
