@@ -393,27 +393,12 @@ export class SupabaseMCPServer implements IMCPServer {
         finalSQL += ` LIMIT ${max_rows}`;
       }
 
-      // Log the SQL before execution so it's available if execution fails
-      console.log('\n🔍 EXECUTING SQL:');
-      console.log('='.repeat(50));
-      console.log(finalSQL);
-      console.log('='.repeat(50));
-
       // Execute SQL using Supabase RPC function
       const { data, error } = await this.supabaseClient.rpc('exec_sql', {
         query: finalSQL,
       });
 
       const executionTime = Date.now() - startTime;
-
-      // Debug logging to understand what we're getting back
-      console.log('\n📊 SUPABASE RPC RESPONSE:');
-      console.log('='.repeat(50));
-      console.log('data:', JSON.stringify(data));
-      console.log('data type:', typeof data);
-      console.log('data is array:', Array.isArray(data));
-      console.log('error:', JSON.stringify(error));
-      console.log('='.repeat(50));
 
       if (error) {
         throw new Error(`SQL execution error: ${getErrorMessage(error)}`);
