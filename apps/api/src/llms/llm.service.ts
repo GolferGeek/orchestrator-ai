@@ -322,16 +322,12 @@ export class LLMService {
         );
       }
 
-      // Normalize model name for provider-specific requirements
-      const normalizedModelName = this.normalizeModelName(provider, options?.modelName);
-      this.logger.debug(`🔍 Model name normalization: ${options?.modelName} → ${normalizedModelName} (provider: ${provider})`);
-
       // Use LangChain LLM instead of raw OpenAI - this gets automatic LangSmith tracing
       const llm =
         options?.temperature || options?.maxTokens || options?.provider
           ? this.createCustomLangGraphLLM({
               provider: provider as any,
-              model: normalizedModelName,
+              model: options?.modelName,
               temperature: options?.temperature,
               maxTokens: options?.maxTokens,
             })
@@ -1648,23 +1644,6 @@ export class LLMService {
       maxTokens: overrides?.maxTokens || model.maxTokens,
       baseUrl: mappedProvider.apiBaseUrl,
     });
-  }
-
-  /**
-   * Normalize model names for provider-specific requirements
-   */
-  private normalizeModelName(provider: string, modelName?: string): string | undefined {
-    if (!modelName) return modelName;
-
-    // Anthropic model name normalization
-    if (provider === 'anthropic') {
-      // Convert dots to hyphens for Anthropic model names
-      // claude-3.5-haiku-20241022 → claude-3-5-haiku-20241022
-      return modelName.replace(/\./g, '-');
-    }
-
-    // No normalization needed for other providers
-    return modelName;
   }
 
   /**
