@@ -43,43 +43,15 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
    * A2A compliance while enabling rich project orchestration capabilities.
    */
   public async executeTask(method: string, params: any): Promise<any> {
-    this.orchestratorLogger.log(
-      `🔍 DEBUG - Orchestrator processing A2A task: ${method}`,
-    );
-    this.orchestratorLogger.log(
-      `🔍 DEBUG - Facade service available: ${!!this.orchestratorFacadeService}`,
-    );
-
     try {
       // Adapt A2A request to OrchestratorInput (conversation + tasks pattern)
       const input = await this.adaptA2AToOrchestratorInput(method, params);
 
       // Route through facade service (maintains single entry point principle)
-      this.orchestratorLogger.log(
-        `🔍 DEBUG - Passing delegation context to facade: ${this.delegationContext ? 'YES' : 'NO'}`,
-      );
-      if (this.delegationContext) {
-        this.orchestratorLogger.log(
-          `🔍 DEBUG - Delegation context preview: ${this.delegationContext.substring(0, 200)}...`,
-        );
-      }
-
-      this.orchestratorLogger.log(
-        `🔍 DEBUG - About to call facade processRequest with method: ${method}`,
-      );
       const response = await this.orchestratorFacadeService.processRequest(
         method as OrchestratorA2AMethod,
         input,
         this.delegationContext,
-      );
-
-      this.orchestratorLogger.log(
-        `🔍 DEBUG - Orchestrator completed task: ${method}`,
-      );
-
-      // Debug: Log the raw response structure being sent to frontend
-      this.orchestratorLogger.log(
-        `🔍 DEBUG - Raw facade response from executeTask: ${JSON.stringify(response, null, 2)}`,
       );
 
       // Enhance response with orchestrator metadata if needed
