@@ -1519,12 +1519,22 @@ export class LLMService {
     const mappedProvider = mapProviderFromDb(provider);
 
     // Map provider names to our LLM creation logic
+    // Note: Database provider names are lowercase, display_names are title case
     const providerMap: Record<string, string> = {
+      // Database name mappings (lowercase)
+      openai: 'openai',
+      anthropic: 'anthropic', 
+      google: 'google',
+      ollama: 'ollama',
+      grok: 'openai', // Grok uses OpenAI-compatible API
+      // Display name mappings (title case) - for backward compatibility
       OpenAI: 'openai',
       Anthropic: 'anthropic',
       Google: 'google',
+      'Google Gemini': 'google',
       Ollama: 'ollama',
-      'X.AI (Grok)': 'openai', // Grok uses OpenAI-compatible API
+      'Grok (xAI)': 'openai', // Grok uses OpenAI-compatible API
+      'X.AI (Grok)': 'openai', // Alternative Grok name
       Groq: 'openai', // Groq uses OpenAI-compatible API
       'Together AI': 'openai', // Together AI uses OpenAI-compatible API
       Cohere: 'openai', // Cohere can use OpenAI-compatible API
