@@ -219,6 +219,17 @@ export class LLMService {
       // Use centralized routing for intelligent provider/model selection
       // Only use centralized routing if no explicit provider/model is specified
       const hasExplicitSelection = (options?.provider || options?.providerName) && options?.modelName;
+      
+      // Debug logging
+      this.logger.debug(`🔍 LLM Routing Decision:`, {
+        hasExplicitSelection,
+        provider: options?.provider,
+        providerName: options?.providerName,
+        modelName: options?.modelName,
+        complexity: options?.complexity,
+        callerType: options?.callerType
+      });
+      
       if (!hasExplicitSelection && (options?.complexity || options?.callerType || (!options?.provider && !options?.providerName && !options?.modelName))) {
         const centralizedResult = await this.generateCentralizedResponse(
           systemPrompt,
@@ -228,7 +239,7 @@ export class LLMService {
             maxTokens: options?.maxTokens,
             // Map frontend field names to routing service field names
             provider: options?.provider || options?.providerName,
-            model: options?.modelName || options?.model,
+            model: options?.modelName,
             preferLocal: true, // Default to preferring local models
             maxComplexity: options?.complexity, // Pass complexity hint to routing
             authToken: options?.authToken,
@@ -246,8 +257,10 @@ export class LLMService {
       }
 
       // Original simple implementation for backward compatibility
-
+      this.logger.debug(`🔍 Using direct provider routing (bypassing centralized routing)`);
+      
       const provider = options?.provider || options?.providerName || 'openai';
+      this.logger.debug(`🔍 Selected provider: ${provider} (from options.provider: ${options?.provider}, options.providerName: ${options?.providerName})`);
       const isLocalProvider = provider === 'ollama';
 
       // Apply conditional sanitization for external providers only
