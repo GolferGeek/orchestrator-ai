@@ -156,7 +156,7 @@ CREATE POLICY "vault_access_admin_only" ON public.sensitive_data_vault
             SELECT 1 FROM public.users 
             WHERE id = auth.uid() 
             AND (
-                'admin' = ANY(roles) 
+                roles @> '["admin"]'::jsonb
                 OR (roles::text LIKE '%admin%')
             )
         )
@@ -169,7 +169,7 @@ CREATE POLICY "audit_log_read_own_or_admin" ON public.redaction_audit_log
             SELECT 1 FROM public.users 
             WHERE id = auth.uid() 
             AND (
-                'admin' = ANY(roles) 
+                roles @> '["admin"]'::jsonb
                 OR (roles::text LIKE '%admin%')
             )
         )

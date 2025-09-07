@@ -6,21 +6,21 @@
 -- =====================================
 
 -- Insert Sample Users
-INSERT INTO orchestrator.users (id, email, display_name, created_at, updated_at, phone_verified, timezone, locale, status, roles) VALUES
+INSERT INTO public.users (id, email, display_name, created_at, updated_at, phone_verified, timezone, locale, status, roles) VALUES
 ('e2ee07ca-397d-40fa-9196-74cbf02c65ad', 'sample.user@demo.com', 'Sample User', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false, 'UTC', 'en-US', 'active', '["user"]'::jsonb),
 ('09f41d4d-1697-4141-a0de-3e258faae92b', 'demo.admin@demo.com', 'Demo Admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false, 'UTC', 'en-US', 'active', '["user","admin"]'::jsonb),
 ('936d0d6c-7d2f-40cf-b0a6-8824fd8e989e', 'business.owner@demo.com', 'Business Owner', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false, 'UTC', 'en-US', 'active', '["user","admin"]'::jsonb)
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert LLM Providers
-INSERT INTO orchestrator.llm_providers (id, name, display_name, api_base_url, configuration_json, is_active, created_at, updated_at) VALUES
+INSERT INTO public.llm_providers (id, name, display_name, api_base_url, configuration_json, is_active, created_at, updated_at) VALUES
 ('7e157b23-07bb-47cd-9fe6-2c024d69ef6f', 'openai', 'OpenAI', 'https://api.openai.com/v1', '{"timeout":30,"organization":null}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('8e42c293-a4ea-4735-84a3-5fe9d88585f9', 'anthropic', 'Anthropic', 'https://api.anthropic.com', '{"timeout":30,"max_retries":3}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('27e27074-94a5-440c-9a5a-6bc8a949819f', 'ollama', 'Ollama Local', 'http://localhost:11434', '{"local":true,"streaming_supported":true}'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert LLM Models
-INSERT INTO orchestrator.llm_models (id, provider_id, model_name, display_name, model_type, context_window, max_output_tokens, model_parameters_json, pricing_info_json, capabilities, is_active, created_at, updated_at) VALUES
+INSERT INTO public.llm_models (id, provider_id, model_name, display_name, model_type, context_window, max_output_tokens, model_parameters_json, pricing_info_json, capabilities, is_active, created_at, updated_at) VALUES
 ('494308ba-afb1-4bc8-983f-5acdec5920d4', '7e157b23-07bb-47cd-9fe6-2c024d69ef6f', 'gpt-4o', 'GPT-4o', 'text-generation', 128000, 4096, '{}'::jsonb, '{"input_cost_per_token":0.0000025,"output_cost_per_token":0.00001}'::jsonb, '["function_calling","streaming","json_mode","vision"]'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('c1e5d3b2-9876-4321-a0bc-def123456789', '7e157b23-07bb-47cd-9fe6-2c024d69ef6f', 'gpt-4-turbo', 'GPT-4 Turbo', 'text-generation', 128000, 4096, '{}'::jsonb, '{"input_cost_per_token":0.00001,"output_cost_per_token":0.00003}'::jsonb, '["function_calling","streaming","json_mode"]'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('b9e8f706-5432-1098-c7de-f12345678901', '8e42c293-a4ea-4735-84a3-5fe9d88585f9', 'claude-3-5-sonnet-20241022', 'Claude 3.5 Sonnet', 'text-generation', 200000, 8192, '{}'::jsonb, '{"input_cost_per_token":0.000003,"output_cost_per_token":0.000015}'::jsonb, '["function_calling","streaming","vision","computer_use"]'::jsonb, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -29,7 +29,7 @@ INSERT INTO orchestrator.llm_models (id, provider_id, model_name, display_name, 
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert CIDAFM Commands
-INSERT INTO orchestrator.cidafm_commands (id, type, name, description, default_active, is_builtin, created_at, updated_at) VALUES
+INSERT INTO public.cidafm_commands (id, type, name, description, default_active, is_builtin, created_at, updated_at) VALUES
 ('842e1239-f1eb-4226-b912-5cce37795f46', '!', 'import-cid', 'Read a CID and process its contents. If a [Context] section is present, add its contents to current chat memory. If an [AFMs] section is present, store the AFMs without activating them.', false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('95d887ff-1bc7-4516-8d28-b30f72a317f8', '!', 'export-context', 'Summarize the current chat memory in preparation for transfer to a new chat. Returns a detailed, cold-start compatible summary under a [Context] tag.', false, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('a1b2c3d4-e5f6-7890-1234-56789abcdef0', '!', 'list-afms', 'Display all available AFMs (Automatic Function Modifiers) with their descriptions and current activation status.', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),

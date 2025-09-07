@@ -35,6 +35,20 @@ CREATE INDEX IF NOT EXISTS idx_llm_models_loading_status
 ON public.llm_models(is_currently_loaded, loading_priority) 
 WHERE is_local = TRUE;
 
+-- Add unique constraint for provider_id and model_name combination
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'llm_models_provider_model_unique' 
+        AND table_name = 'llm_models'
+    ) THEN
+        ALTER TABLE public.llm_models 
+        ADD CONSTRAINT llm_models_provider_model_unique 
+        UNIQUE (provider_id, model_name);
+    END IF;
+END $$;
+
 -- =====================================
 -- SEED DATA - THREE-TIER LOCAL MODELS
 -- =====================================

@@ -9,15 +9,16 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- CREATE SCHEMAS
 -- =====================================
 
-CREATE SCHEMA IF NOT EXISTS orchestrator;
+-- Using public schema for orchestrator tables
+-- CREATE SCHEMA IF NOT EXISTS orchestrator;
 CREATE SCHEMA IF NOT EXISTS company;
 
 -- =====================================
--- ORCHESTRATOR SCHEMA - PLATFORM TABLES
+-- PUBLIC SCHEMA - PLATFORM TABLES
 -- =====================================
 
 -- Users table - Core user management with full profile support
-CREATE TABLE orchestrator.users (
+CREATE TABLE public.users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
     display_name VARCHAR(255),
@@ -36,7 +37,7 @@ CREATE TABLE orchestrator.users (
 );
 
 -- LLM Providers table - AI service provider configurations
-CREATE TABLE orchestrator.llm_providers (
+CREATE TABLE public.llm_providers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) UNIQUE NOT NULL,
     display_name VARCHAR(255),
@@ -51,9 +52,9 @@ CREATE TABLE orchestrator.llm_providers (
 );
 
 -- LLM Models table - AI model specifications and pricing
-CREATE TABLE orchestrator.llm_models (
+CREATE TABLE public.llm_models (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    provider_id UUID REFERENCES orchestrator.llm_providers(id),
+    provider_id UUID REFERENCES public.llm_providers(id),
     model_name VARCHAR(255) NOT NULL,
     display_name VARCHAR(255),
     model_type VARCHAR(100),
@@ -70,7 +71,7 @@ CREATE TABLE orchestrator.llm_models (
 );
 
 -- CIDAFM Commands table - Command definitions for Context-Import-Delegate-AFM system
-CREATE TABLE orchestrator.cidafm_commands (
+CREATE TABLE public.cidafm_commands (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) UNIQUE NOT NULL,
     type VARCHAR(10) NOT NULL,
@@ -82,19 +83,19 @@ CREATE TABLE orchestrator.cidafm_commands (
 );
 
 -- User CIDAFM Commands table - User-specific command preferences
-CREATE TABLE orchestrator.user_cidafm_commands (
+CREATE TABLE public.user_cidafm_commands (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES orchestrator.users(id) ON DELETE CASCADE,
-    command_id UUID REFERENCES orchestrator.cidafm_commands(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    command_id UUID REFERENCES public.cidafm_commands(id) ON DELETE CASCADE,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, command_id)
 );
 
 -- Agent Conversations table - Conversation sessions with agents
-CREATE TABLE orchestrator.agent_conversations (
+CREATE TABLE public.agent_conversations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES orchestrator.users(id),
+    user_id UUID REFERENCES public.users(id),
     agent_name VARCHAR(255),
     agent_type VARCHAR(100),
     started_at TIMESTAMP WITH TIME ZONE,
@@ -108,10 +109,10 @@ CREATE TABLE orchestrator.agent_conversations (
 );
 
 -- Tasks table - Task execution tracking and results
-CREATE TABLE orchestrator.tasks (
+CREATE TABLE public.tasks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES orchestrator.users(id),
-    agent_conversation_id UUID REFERENCES orchestrator.agent_conversations(id),
+    user_id UUID REFERENCES public.users(id),
+    agent_conversation_id UUID REFERENCES public.agent_conversations(id),
     method VARCHAR(255),
     params JSONB,
     prompt TEXT,
@@ -136,16 +137,16 @@ CREATE TABLE orchestrator.tasks (
 );
 
 -- Projects table - Multi-step project management
-CREATE TABLE orchestrator.projects (
+CREATE TABLE public.projects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES orchestrator.users(id),
-    conversation_id UUID REFERENCES orchestrator.agent_conversations(id),
+    user_id UUID REFERENCES public.users(id),
+    conversation_id UUID REFERENCES public.agent_conversations(id),
     name VARCHAR(255) NOT NULL,
     description TEXT,
     status VARCHAR(50) DEFAULT 'planning',
     plan_json JSONB,
     current_step_id TEXT,
-    parent_project_id UUID REFERENCES orchestrator.projects(id),
+    parent_project_id UUID REFERENCES public.projects(id),
     hierarchy_level INTEGER DEFAULT 0,
     subproject_count INTEGER DEFAULT 0,
     metadata JSONB DEFAULT '{}'::jsonb,
@@ -155,9 +156,9 @@ CREATE TABLE orchestrator.projects (
 );
 
 -- Project Steps table - Individual steps within projects
-CREATE TABLE orchestrator.project_steps (
+CREATE TABLE public.project_steps (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID NOT NULL REFERENCES orchestrator.projects(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
     step_id TEXT NOT NULL,
     step_index INTEGER NOT NULL,
     step_type TEXT NOT NULL CHECK (step_type IN ('agent_step', 'human_approval')),
@@ -179,17 +180,17 @@ CREATE TABLE orchestrator.project_steps (
 );
 
 -- Deliverables table - Work products and outputs
-CREATE TABLE orchestrator.deliverables (
+CREATE TABLE public.deliverables (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES orchestrator.users(id),
-    conversation_id UUID REFERENCES orchestrator.agent_conversations(id),
+    user_id UUID REFERENCES public.users(id),
+    conversation_id UUID REFERENCES public.agent_conversations(id),
     title VARCHAR(255),
     content TEXT,
     deliverable_type VARCHAR(100),
     format VARCHAR(50),
     version INTEGER DEFAULT 1,
     is_latest_version BOOLEAN DEFAULT true,
-    parent_deliverable_id UUID REFERENCES orchestrator.deliverables(id),
+    parent_deliverable_id UUID REFERENCES public.deliverables(id),
     message_id UUID,
     created_by_agent VARCHAR(255),
     tags TEXT[],
@@ -199,9 +200,9 @@ CREATE TABLE orchestrator.deliverables (
 );
 
 -- LangGraph States table - State management for complex workflows
-CREATE TABLE orchestrator.langgraph_states (
+CREATE TABLE public.langgraph_states (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id UUID REFERENCES orchestrator.projects(id) ON DELETE CASCADE,
+    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
     plan_state JSONB,
     step_results JSONB DEFAULT '{}'::jsonb,
     metadata JSONB DEFAULT '{}'::jsonb,
@@ -212,10 +213,10 @@ CREATE TABLE orchestrator.langgraph_states (
 );
 
 -- Human Inputs table - Human-in-the-loop functionality
-CREATE TABLE orchestrator.human_inputs (
+CREATE TABLE public.human_inputs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    task_id UUID NOT NULL REFERENCES orchestrator.tasks(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES orchestrator.users(id) ON DELETE CASCADE,
+    task_id UUID NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     request_type TEXT NOT NULL CHECK (request_type IN ('confirmation', 'choice', 'input', 'approval')),
     prompt TEXT NOT NULL,
     options JSONB,
@@ -291,41 +292,41 @@ CREATE TABLE company.kpi_data (
 -- =====================================
 
 -- Orchestrator schema indexes
-CREATE INDEX idx_orchestrator_users_email ON orchestrator.users(email);
-CREATE INDEX idx_orchestrator_users_status ON orchestrator.users(status);
-CREATE INDEX idx_orchestrator_llm_providers_name ON orchestrator.llm_providers(name);
-CREATE INDEX idx_orchestrator_llm_providers_active ON orchestrator.llm_providers(is_active);
-CREATE INDEX idx_orchestrator_llm_models_provider ON orchestrator.llm_models(provider_id);
-CREATE INDEX idx_orchestrator_llm_models_active ON orchestrator.llm_models(is_active);
-CREATE INDEX idx_orchestrator_cidafm_commands_name ON orchestrator.cidafm_commands(name);
-CREATE INDEX idx_orchestrator_cidafm_commands_type ON orchestrator.cidafm_commands(type);
-CREATE INDEX idx_orchestrator_user_cidafm_user ON orchestrator.user_cidafm_commands(user_id);
-CREATE INDEX idx_orchestrator_user_cidafm_active ON orchestrator.user_cidafm_commands(is_active);
-CREATE INDEX idx_orchestrator_agent_conversations_user ON orchestrator.agent_conversations(user_id);
-CREATE INDEX idx_orchestrator_agent_conversations_agent ON orchestrator.agent_conversations(agent_name);
-CREATE INDEX idx_orchestrator_agent_conversations_active ON orchestrator.agent_conversations(last_active_at);
-CREATE INDEX idx_orchestrator_tasks_user ON orchestrator.tasks(user_id);
-CREATE INDEX idx_orchestrator_tasks_conversation ON orchestrator.tasks(agent_conversation_id);
-CREATE INDEX idx_orchestrator_tasks_status ON orchestrator.tasks(status);
-CREATE INDEX idx_orchestrator_tasks_created ON orchestrator.tasks(created_at DESC);
-CREATE INDEX idx_orchestrator_projects_user ON orchestrator.projects(user_id);
-CREATE INDEX idx_orchestrator_projects_conversation ON orchestrator.projects(conversation_id);
-CREATE INDEX idx_orchestrator_projects_status ON orchestrator.projects(status);
-CREATE INDEX idx_orchestrator_projects_parent ON orchestrator.projects(parent_project_id);
-CREATE INDEX idx_orchestrator_project_steps_project ON orchestrator.project_steps(project_id);
-CREATE INDEX idx_orchestrator_project_steps_status ON orchestrator.project_steps(status);
-CREATE INDEX idx_orchestrator_project_steps_index ON orchestrator.project_steps(project_id, step_index);
-CREATE INDEX idx_orchestrator_deliverables_user ON orchestrator.deliverables(user_id);
-CREATE INDEX idx_orchestrator_deliverables_conversation ON orchestrator.deliverables(conversation_id);
-CREATE INDEX idx_orchestrator_deliverables_type ON orchestrator.deliverables(deliverable_type);
-CREATE INDEX idx_orchestrator_deliverables_latest ON orchestrator.deliverables(is_latest_version);
-CREATE INDEX idx_orchestrator_langgraph_states_project ON orchestrator.langgraph_states(project_id);
-CREATE INDEX idx_orchestrator_langgraph_states_version ON orchestrator.langgraph_states(state_version);
-CREATE INDEX idx_orchestrator_human_inputs_task ON orchestrator.human_inputs(task_id);
-CREATE INDEX idx_orchestrator_human_inputs_user ON orchestrator.human_inputs(user_id);
-CREATE INDEX idx_orchestrator_human_inputs_status ON orchestrator.human_inputs(status);
-CREATE INDEX idx_orchestrator_human_inputs_timeout ON orchestrator.human_inputs(timeout_at) WHERE status = 'pending';
-CREATE INDEX idx_orchestrator_human_inputs_created ON orchestrator.human_inputs(created_at DESC);
+CREATE INDEX idx_orchestrator_users_email ON public.users(email);
+CREATE INDEX idx_orchestrator_users_status ON public.users(status);
+CREATE INDEX idx_orchestrator_llm_providers_name ON public.llm_providers(name);
+CREATE INDEX idx_orchestrator_llm_providers_active ON public.llm_providers(is_active);
+CREATE INDEX idx_orchestrator_llm_models_provider ON public.llm_models(provider_id);
+CREATE INDEX idx_orchestrator_llm_models_active ON public.llm_models(is_active);
+CREATE INDEX idx_orchestrator_cidafm_commands_name ON public.cidafm_commands(name);
+CREATE INDEX idx_orchestrator_cidafm_commands_type ON public.cidafm_commands(type);
+CREATE INDEX idx_orchestrator_user_cidafm_user ON public.user_cidafm_commands(user_id);
+CREATE INDEX idx_orchestrator_user_cidafm_active ON public.user_cidafm_commands(is_active);
+CREATE INDEX idx_orchestrator_agent_conversations_user ON public.agent_conversations(user_id);
+CREATE INDEX idx_orchestrator_agent_conversations_agent ON public.agent_conversations(agent_name);
+CREATE INDEX idx_orchestrator_agent_conversations_active ON public.agent_conversations(last_active_at);
+CREATE INDEX idx_orchestrator_tasks_user ON public.tasks(user_id);
+CREATE INDEX idx_orchestrator_tasks_conversation ON public.tasks(agent_conversation_id);
+CREATE INDEX idx_orchestrator_tasks_status ON public.tasks(status);
+CREATE INDEX idx_orchestrator_tasks_created ON public.tasks(created_at DESC);
+CREATE INDEX idx_orchestrator_projects_user ON public.projects(user_id);
+CREATE INDEX idx_orchestrator_projects_conversation ON public.projects(conversation_id);
+CREATE INDEX idx_orchestrator_projects_status ON public.projects(status);
+CREATE INDEX idx_orchestrator_projects_parent ON public.projects(parent_project_id);
+CREATE INDEX idx_orchestrator_project_steps_project ON public.project_steps(project_id);
+CREATE INDEX idx_orchestrator_project_steps_status ON public.project_steps(status);
+CREATE INDEX idx_orchestrator_project_steps_index ON public.project_steps(project_id, step_index);
+CREATE INDEX idx_orchestrator_deliverables_user ON public.deliverables(user_id);
+CREATE INDEX idx_orchestrator_deliverables_conversation ON public.deliverables(conversation_id);
+CREATE INDEX idx_orchestrator_deliverables_type ON public.deliverables(deliverable_type);
+CREATE INDEX idx_orchestrator_deliverables_latest ON public.deliverables(is_latest_version);
+CREATE INDEX idx_orchestrator_langgraph_states_project ON public.langgraph_states(project_id);
+CREATE INDEX idx_orchestrator_langgraph_states_version ON public.langgraph_states(state_version);
+CREATE INDEX idx_orchestrator_human_inputs_task ON public.human_inputs(task_id);
+CREATE INDEX idx_orchestrator_human_inputs_user ON public.human_inputs(user_id);
+CREATE INDEX idx_orchestrator_human_inputs_status ON public.human_inputs(status);
+CREATE INDEX idx_orchestrator_human_inputs_timeout ON public.human_inputs(timeout_at) WHERE status = 'pending';
+CREATE INDEX idx_orchestrator_human_inputs_created ON public.human_inputs(created_at DESC);
 
 -- Company schema indexes
 CREATE INDEX idx_company_companies_name ON company.companies(name);
@@ -356,27 +357,27 @@ END;
 $$ language 'plpgsql';
 
 -- Orchestrator schema triggers
-CREATE TRIGGER update_orchestrator_users_updated_at BEFORE UPDATE ON orchestrator.users
+CREATE TRIGGER update_orchestrator_users_updated_at BEFORE UPDATE ON public.users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_orchestrator_llm_providers_updated_at BEFORE UPDATE ON orchestrator.llm_providers
+CREATE TRIGGER update_orchestrator_llm_providers_updated_at BEFORE UPDATE ON public.llm_providers
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_orchestrator_llm_models_updated_at BEFORE UPDATE ON orchestrator.llm_models
+CREATE TRIGGER update_orchestrator_llm_models_updated_at BEFORE UPDATE ON public.llm_models
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_orchestrator_cidafm_commands_updated_at BEFORE UPDATE ON orchestrator.cidafm_commands
+CREATE TRIGGER update_orchestrator_cidafm_commands_updated_at BEFORE UPDATE ON public.cidafm_commands
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_orchestrator_agent_conversations_updated_at BEFORE UPDATE ON orchestrator.agent_conversations
+CREATE TRIGGER update_orchestrator_agent_conversations_updated_at BEFORE UPDATE ON public.agent_conversations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_orchestrator_tasks_updated_at BEFORE UPDATE ON orchestrator.tasks
+CREATE TRIGGER update_orchestrator_tasks_updated_at BEFORE UPDATE ON public.tasks
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_orchestrator_projects_updated_at BEFORE UPDATE ON orchestrator.projects
+CREATE TRIGGER update_orchestrator_projects_updated_at BEFORE UPDATE ON public.projects
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_orchestrator_project_steps_updated_at BEFORE UPDATE ON orchestrator.project_steps
+CREATE TRIGGER update_orchestrator_project_steps_updated_at BEFORE UPDATE ON public.project_steps
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_orchestrator_deliverables_updated_at BEFORE UPDATE ON orchestrator.deliverables
+CREATE TRIGGER update_orchestrator_deliverables_updated_at BEFORE UPDATE ON public.deliverables
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_orchestrator_langgraph_states_updated_at BEFORE UPDATE ON orchestrator.langgraph_states
+CREATE TRIGGER update_orchestrator_langgraph_states_updated_at BEFORE UPDATE ON public.langgraph_states
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_orchestrator_human_inputs_updated_at BEFORE UPDATE ON orchestrator.human_inputs
+CREATE TRIGGER update_orchestrator_human_inputs_updated_at BEFORE UPDATE ON public.human_inputs
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Company schema triggers

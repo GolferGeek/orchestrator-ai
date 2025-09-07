@@ -66,7 +66,7 @@ CREATE TABLE public.deliverable_versions (
 -- Deliverables indexes (updated) - use IF NOT EXISTS to avoid conflicts
 CREATE INDEX IF NOT EXISTS idx_deliverables_conversation_id ON public.deliverables(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_deliverables_project_step_id ON public.deliverables(project_step_id);
-CREATE INDEX IF NOT EXISTS idx_deliverables_type ON public.deliverables(type);
+CREATE INDEX IF NOT EXISTS idx_deliverables_type ON public.deliverables(deliverable_type);
 
 -- Versions indexes  
 CREATE INDEX idx_deliverable_versions_deliverable_id ON public.deliverable_versions(deliverable_id);
