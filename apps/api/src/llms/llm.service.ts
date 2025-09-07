@@ -250,6 +250,7 @@ export class LLMService {
       // Original simple implementation for backward compatibility
       const provider = options?.provider || options?.providerName || 'openai';
       const isLocalProvider = provider === 'ollama';
+      
 
       // Apply conditional sanitization for external providers only
       let sanitizedSystemPrompt = systemPrompt;
@@ -874,7 +875,6 @@ export class LLMService {
     outputTokens?: number;
     enhancedMetrics?: LLMUsageMetrics;
   }> {
-    console.log(`🔍 DEBUG: callProviderWithRouting called with provider: ${routingDecision.provider}, isLocal: ${routingDecision.isLocal}`);
     // Use LocalLLMService for local Ollama models - NO SANITIZATION needed
     if (routingDecision.isLocal && routingDecision.provider === 'ollama') {
       await this.dataSanitizationService.debug(
@@ -962,7 +962,6 @@ export class LLMService {
     try {
       // Use the sanitizeForLLM method which handles both system and user messages
       this.logger.log(`🔍 LLMService: Calling sanitizeForLLM for external provider`);
-      console.log(`🔍 DEBUG: LLMService calling sanitizeForLLM for external provider`);
       const sanitizationResult = await this.dataSanitizationService.sanitizeForLLM(
         systemPrompt,
         userMessage,
