@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 export interface LLMCall {
   modelName: string;
-  providerId: string;
+  providerName: string;
   inputTokens: number;
   outputTokens: number;
   cost: number;
@@ -107,7 +107,7 @@ export class MetadataTrackerService {
     if (typeof response === 'object' && response.llmMetadata) {
       const call: LLMCall = {
         modelName: response.llmMetadata.modelName || 'unknown',
-        providerId: response.llmMetadata.providerId || 'unknown',
+        providerName: response.llmMetadata.providerName || 'unknown',
         inputTokens: response.usage?.inputTokens || 0,
         outputTokens: response.usage?.outputTokens || 0,
         cost: response.costCalculation?.totalCost || 0,
@@ -219,8 +219,8 @@ export class MetadataTrackerService {
     calls.forEach((call) => {
       costByModel[call.modelName] =
         (costByModel[call.modelName] || 0) + call.cost;
-      costByProvider[call.providerId] =
-        (costByProvider[call.providerId] || 0) + call.cost;
+      costByProvider[call.providerName] =
+        (costByProvider[call.providerName] || 0) + call.cost;
     });
 
     return {
@@ -297,12 +297,12 @@ export class MetadataTrackerService {
       byModel[call.modelName]!.cost += call.cost;
       byModel[call.modelName]!.tokens += tokens;
 
-      if (!byProvider[call.providerId]) {
-        byProvider[call.providerId] = { calls: 0, cost: 0, tokens: 0 };
+      if (!byProvider[call.providerName]) {
+        byProvider[call.providerName] = { calls: 0, cost: 0, tokens: 0 };
       }
-      byProvider[call.providerId]!.calls++;
-      byProvider[call.providerId]!.cost += call.cost;
-      byProvider[call.providerId]!.tokens += tokens;
+      byProvider[call.providerName]!.calls++;
+      byProvider[call.providerName]!.cost += call.cost;
+      byProvider[call.providerName]!.tokens += tokens;
     });
 
     const timeframeDurationHours =

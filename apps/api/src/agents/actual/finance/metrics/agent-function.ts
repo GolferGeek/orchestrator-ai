@@ -108,8 +108,8 @@ Respond with JSON only:
       analysisPrompt,
       {
         temperature: 0.1,
-        provider: metadata?.providerId,
-        modelId: metadata?.modelId,
+        provider: metadata?.providerName,
+        modelName: metadata?.modelName,
         maxTokens: 1000,
         callerType: 'agent',
         callerName: metadata?.agentName || 'metrics-agent',
@@ -349,8 +349,8 @@ ${
       reportPrompt,
       {
         temperature: 0.3,
-        provider: metadata?.providerId,
-        modelId: metadata?.modelId,
+        provider: metadata?.providerName,
+        modelName: metadata?.modelName,
         maxTokens: 4000,
         callerType: 'agent',
         callerName: metadata?.agentName || 'metrics-agent',

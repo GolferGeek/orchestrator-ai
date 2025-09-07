@@ -565,8 +565,8 @@ export class ProjectsService {
       const { data: projects, error } = await this.supabaseService
         .getServiceClient()
         .from('projects')
-        .select('*')
-        .eq('user_id', userId)
+        .select('*, agent_conversations!inner(user_id)')
+        .eq('agent_conversations.user_id', userId)
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 

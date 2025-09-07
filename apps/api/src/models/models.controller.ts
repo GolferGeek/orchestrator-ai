@@ -75,14 +75,14 @@ export class ModelsController {
     type: [ModelResponseDto],
   })
   async getModels(
-    @Query('provider_id') providerId?: string,
+    @Query('provider_name') providerName?: string,
     @Query('status') status?: 'active' | 'inactive' | 'deprecated',
     @Query('supports_thinking') supportsThinking?: boolean,
     @Query('include_provider') includeProvider?: boolean,
     @Query('sovereign_mode') sovereignMode?: boolean,
   ): Promise<ModelResponseDto[]> {
     return this.modelsService.findAll({
-      providerId,
+      providerName,
       status,
       supportsThinking,
       includeProvider,
@@ -116,13 +116,13 @@ export class ModelsController {
     return model;
   }
 
-  @Get('by-model-id/:modelId')
-  @ApiOperation({ summary: 'Get model by API model ID (e.g., gpt-4o)' })
-  @ApiParam({ name: 'modelId', description: 'API Model ID (e.g., gpt-4o)' })
+  @Get('by-model-name/:modelName')
+  @ApiOperation({ summary: 'Get model by API model name (e.g., gpt-4o)' })
+  @ApiParam({ name: 'modelName', description: 'API Model name (e.g., gpt-4o)' })
   @ApiQuery({
-    name: 'provider_id',
+    name: 'provider_name',
     required: false,
-    description: 'Provider UUID to narrow search',
+    description: 'Provider name to narrow search',
   })
   @ApiResponse({
     status: 200,
@@ -130,11 +130,11 @@ export class ModelsController {
     type: ModelResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Model not found' })
-  async getModelByModelId(
-    @Param('modelId') modelId: string,
-    @Query('provider_id') providerId?: string,
+  async getModelByModelName(
+    @Param('modelName') modelName: string,
+    @Query('provider_name') providerName?: string,
   ): Promise<ModelResponseDto> {
-    const model = await this.modelsService.findByModelId(modelId, providerId);
+    const model = await this.modelsService.findByModelId(modelName, providerName);
     if (!model) {
       throw new HttpException('Model not found', HttpStatus.NOT_FOUND);
     }

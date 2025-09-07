@@ -31,8 +31,8 @@ export class LLMController {
         maxTokens?: number;
         provider?: 'openai' | 'anthropic' | 'ollama' | 'google';
         // Support full LLM preferences from UI
-        providerId?: string;
-        modelId?: string;
+        providerName?: string;
+        modelName?: string;
         // Caller tracking for usage analytics
         callerType?: string;
         callerName?: string;
@@ -51,8 +51,8 @@ export class LLMController {
           maxTokens: request.options?.maxTokens,
           provider: request.options?.provider,
           // Support full LLM preferences from UI
-          providerId: request.options?.providerId,
-          modelId: request.options?.modelId,
+          providerName: request.options?.providerName,
+          modelName: request.options?.modelName,
           // Caller tracking - use provided values or defaults
           callerType: request.options?.callerType || 'api',
           callerName: request.options?.callerName || 'llm-controller',

@@ -296,10 +296,10 @@ export class DynamicAgentsController {
       'gpt-4-turbo': 100000,
       default: 80000,
     };
-    const modelId: string = (llmSelection && llmSelection.modelId) || 'default';
-    const hasKey = Object.prototype.hasOwnProperty.call(budgets, modelId);
+    const modelName: string = (llmSelection && llmSelection.modelName) || 'default';
+    const hasKey = Object.prototype.hasOwnProperty.call(budgets, modelName);
     const value: number = hasKey
-      ? (budgets[modelId] as number)
+      ? (budgets[modelName] as number)
       : (budgets['default'] as number);
     return value;
   }
