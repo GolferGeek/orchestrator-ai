@@ -301,12 +301,13 @@ const formattedProcessingTime = computed(() => {
 /* Routing Display Badge */
 .routing-display.routing-local {
   background: var(--ion-color-tertiary-tint);
-  color: var(--ion-color-tertiary-shade);
+  color: white; /* White text for excellent contrast on purple background */
   border-color: var(--ion-color-tertiary);
+  font-weight: 600; /* Make text bolder */
 }
 
 .routing-display.routing-local ion-icon {
-  color: var(--ion-color-tertiary);
+  color: white; /* White icon for excellent contrast */
 }
 
 .routing-display.routing-external {
@@ -346,12 +347,13 @@ const formattedProcessingTime = computed(() => {
 
 .trust-signal.trust-medium {
   background: var(--ion-color-warning-tint);
-  color: var(--ion-color-warning-shade);
+  color: #92400e; /* Dark orange/brown for better contrast on yellow background */
   border-color: var(--ion-color-warning);
+  font-weight: 600; /* Make text bolder */
 }
 
 .trust-signal.trust-medium ion-icon {
-  color: var(--ion-color-warning);
+  color: #92400e; /* Dark orange/brown for better contrast */
 }
 
 .trust-signal.trust-low {

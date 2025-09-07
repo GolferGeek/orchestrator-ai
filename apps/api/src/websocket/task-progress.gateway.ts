@@ -29,8 +29,8 @@ interface AuthenticatedSocket extends Socket {
       'http://127.0.0.1:5173',
       'https://localhost:5173',
       // Development ports
-      'http://localhost:9001',
-      'http://127.0.0.1:9001',
+      'http://localhost:7101',
+      'http://127.0.0.1:7101',
       'http://localhost:9002',
       'http://127.0.0.1:9002',
       'http://localhost:9003',

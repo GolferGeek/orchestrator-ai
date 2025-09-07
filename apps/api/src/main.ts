@@ -112,8 +112,10 @@ async function bootstrap() {
   const corsOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    'http://localhost:9001',
-    'http://127.0.0.1:9001',
+    'http://localhost:7101',
+    'http://127.0.0.1:7101',
+    'http://localhost:7102',
+    'http://127.0.0.1:7102',
     'http://localhost:3100',
     'http://127.0.0.1:3100',
     'http://localhost:3101',
@@ -175,7 +177,7 @@ async function bootstrap() {
   });
 
   // Start the HTTP server
-  const port = parseInt(process.env.API_PORT || '9000');
+  const port = parseInt(process.env.API_PORT || '7100');
 
   await app.listen(port);
 

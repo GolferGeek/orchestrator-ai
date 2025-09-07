@@ -59,7 +59,7 @@ export default defineConfig(({ mode }) => {
     process.env.VITE_HMR_PROTOCOL = 'wss'
   } else {
     process.env.VITE_HMR_HOST = 'localhost'
-    process.env.VITE_HMR_PORT = '9001'
+    process.env.VITE_HMR_PORT = '7101'
     process.env.VITE_HMR_PROTOCOL = 'ws'
   }
   
@@ -97,13 +97,13 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: parseInt(env.WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '9443' : '9001')),
+      port: parseInt(env.WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '7543' : '7101')),
       host: true,
       https: getHttpsConfig(env),
       hmr: {
         // Server binds to localhost (this is what Vite can actually bind to)
         host: 'localhost',
-        port: parseInt(env.WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '9443' : '9001')),
+        port: parseInt(env.WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '7543' : '7101')),
         protocol: env.VITE_ENFORCE_HTTPS === 'true' ? 'wss' : 'ws'
       }
     },
