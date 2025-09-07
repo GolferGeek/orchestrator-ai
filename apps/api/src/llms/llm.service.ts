@@ -961,7 +961,6 @@ export class LLMService {
 
     try {
       // Use the sanitizeForLLM method which handles both system and user messages
-      this.logger.log(`🔍 LLMService: Calling sanitizeForLLM for external provider`);
       const sanitizationResult = await this.dataSanitizationService.sanitizeForLLM(
         systemPrompt,
         userMessage,
@@ -972,7 +971,6 @@ export class LLMService {
           preserveFormatting: true
         }
       );
-      this.logger.log(`🔍 LLMService: sanitizeForLLM completed`);
 
       sanitizedSystemPrompt = sanitizationResult.sanitizedSystemPrompt;
       sanitizedUserMessage = sanitizationResult.sanitizedUserMessage;

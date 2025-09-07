@@ -72,8 +72,6 @@ export class DataSanitizationService {
     const startTime = Date.now();
     const originalLength = text?.length || 0;
 
-    this.logger.log(`🔍 DataSanitizationService.sanitizeText called with text length: ${originalLength}`);
-    this.logger.log(`🔍 Options: ${JSON.stringify(options)}`);
 
     if (!text) {
       this.logger.log(`⚠️ Empty text provided to sanitizeText`);
