@@ -80,12 +80,6 @@ export class LocalLLMService {
         },
       };
 
-      this.logger.debug(`Generating response with model: ${request.model}`);
-      this.logger.debug(`🔍 [LocalLLM] Prompt length: ${request.prompt?.length || 0}`);
-      this.logger.debug(`🔍 [LocalLLM] System prompt length: ${request.system?.length || 0}`);
-      this.logger.debug(`🔍 [LocalLLM] Temperature: ${payload.options.temperature}`);
-      this.logger.debug(`🔍 [LocalLLM] Max tokens: ${payload.options.num_predict}`);
-      this.logger.debug(`🔍 [LocalLLM] About to call Ollama API at: ${this.ollamaBaseUrl}/api/generate`);
 
       // Make the API call to Ollama
       const apiStartTime = Date.now();
@@ -95,12 +89,6 @@ export class LocalLLMService {
         })
       );
       const apiDuration = Date.now() - apiStartTime;
-      
-      this.logger.debug(`🔍 [LocalLLM] Ollama API call completed in ${apiDuration}ms`);
-      this.logger.debug(`🔍 [LocalLLM] Response data keys: ${Object.keys(response.data).join(', ')}`);
-      this.logger.debug(`🔍 [LocalLLM] Response length: ${response.data.response?.length || 0}`);
-      this.logger.debug(`🔍 [LocalLLM] Response done: ${response.data.done}`);
-      this.logger.debug(`🔍 [LocalLLM] Response preview: "${(response.data.response || '').substring(0, 200)}..."`);
       
       if (response.data.response?.length === 0) {
         this.logger.warn(`🚨 [LocalLLM] Empty response from model ${request.model} - this is unexpected for a blog post request`);

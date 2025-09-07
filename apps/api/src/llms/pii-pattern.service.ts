@@ -193,8 +193,6 @@ export class PIIPatternService {
       maxMatches = 100,
     } = options;
 
-    this.logger.log(`🔍 PIIPatternService.detectPII called with text length: ${text?.length || 0}`);
-    this.logger.log(`🔍 Options: ${JSON.stringify(options)}`);
 
     // Refresh custom patterns if needed
     await this.refreshCustomPatternsIfNeeded();

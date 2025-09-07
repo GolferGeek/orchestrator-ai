@@ -46,7 +46,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   setContextData(contextData: string): void {
     this.contextData = contextData;
-    this.contextLogger.log(`🤖 Context data set, length: ${contextData?.length || 0}`);
   }
 
   /**
@@ -57,14 +56,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     const agentType = this.getAgentType();
 
     try {
-      this.contextLogger.debug(`🤖 [${agentName}] executeTask called with params:`, {
-        method,
-        sessionId: params.sessionId,
-        taskId: params.taskId,
-        conversationId: params.conversationId,
-        hasCurrentUser: !!params.currentUser,
-        paramsKeys: Object.keys(params)
-      });
 
       // Extract user message from params
       const userMessage = this.extractUserMessage(params);
@@ -95,8 +86,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         this.contextLogger.warn(`🤖 [${agentName}] No context data available, using fallback processing`);
         return this.processWithoutContext(method, params, agentName, agentType);
       }
-      
-      this.contextLogger.debug(`🤖 [${agentName}] Using context data, length: ${this.contextData.length}`);
 
       // Process with LLM using context
       const systemPrompt = this.buildSystemPrompt(agentName, agentType);
@@ -132,7 +121,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           temperature: params.llmSelection?.temperature,
         };
         
-        this.contextLogger.debug(`🌐 [${agentName}] [HISTORY] Using frontend model selection: providerName=${llmOptions.providerName}, modelName=${llmOptions.modelName}`);
         
         llmResult = await this.services.llmService.generateResponse(
           systemPrompt,
@@ -151,13 +139,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           dataClassification: 'internal', // Default for context agents
         };
         
-        this.contextLogger.log(`🤖 [${agentName}] LLM options:`, {
-          conversationId: llmOptions.conversationId,
-          callerName: llmOptions.callerName,
-          hasTaskId: !!params.taskId,
-          hasSessionId: !!params.sessionId,
-          hasConversationId: !!params.conversationId
-        });
         
         llmResult = await this.services.llmService.generateResponse(
           systemPrompt,
@@ -165,29 +146,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           llmOptions,
         );
         
-        try {
-          this.contextLogger.debug(`🤖 [${agentName}] LLM service returned type: ${typeof llmResult}`);
-          this.contextLogger.debug(`🤖 [${agentName}] LLM result is string: ${typeof llmResult === 'string'}`);
-          this.contextLogger.debug(`🤖 [${agentName}] LLM result is object: ${typeof llmResult === 'object'}`);
-          this.contextLogger.debug(`🤖 [${agentName}] LLM result is null: ${llmResult === null}`);
-          this.contextLogger.debug(`🤖 [${agentName}] LLM result is undefined: ${llmResult === undefined}`);
-          
-          if (typeof llmResult === 'string') {
-            this.contextLogger.debug(`🤖 [${agentName}] String length: ${llmResult.length}`);
-            this.contextLogger.debug(`🤖 [${agentName}] String preview: "${llmResult.substring(0, 100)}"`);
-          }
-          
-          if (typeof llmResult === 'object' && llmResult !== null) {
-            this.contextLogger.debug(`🤖 [${agentName}] Object keys: ${Object.keys(llmResult)}`);
-            this.contextLogger.debug(`🤖 [${agentName}] Has content property: ${!!llmResult.content}`);
-            if (llmResult.content) {
-              this.contextLogger.debug(`🤖 [${agentName}] Content length: ${llmResult.content.length}`);
-              this.contextLogger.debug(`🤖 [${agentName}] Content preview: "${llmResult.content.substring(0, 100)}"`);
-            }
-          }
-        } catch (error) {
-          this.contextLogger.error(`🤖 [${agentName}] Error logging LLM result: ${error instanceof Error ? error.message : String(error)}`);
-        }
       }
 
       // Extract response content and metadata
