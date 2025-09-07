@@ -317,10 +317,24 @@ export class LLMService {
             })
           : this.getLangGraphLLM(provider as any);
 
-      const messages = [
-        { role: 'system' as const, content: sanitizedSystemPrompt },
-        { role: 'user' as const, content: sanitizedUserMessage },
-      ];
+      // Handle o1 models which don't support system messages
+      const isO1Model = options?.modelName?.includes('o1');
+      let messages;
+      
+      if (isO1Model) {
+        // o1 models don't support system messages - combine system prompt with user message
+        const combinedMessage = sanitizedSystemPrompt 
+          ? `${sanitizedSystemPrompt}\n\nUser: ${sanitizedUserMessage}`
+          : sanitizedUserMessage;
+        messages = [
+          { role: 'user' as const, content: combinedMessage },
+        ];
+      } else {
+        messages = [
+          { role: 'system' as const, content: sanitizedSystemPrompt },
+          { role: 'user' as const, content: sanitizedUserMessage },
+        ];
+      }
 
       const response = await llm.invoke(messages);
       let content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
@@ -995,10 +1009,24 @@ export class LLMService {
       maxTokens: options.maxTokens,
     });
 
-    const messages = [
-      { role: 'system' as const, content: sanitizedSystemPrompt },
-      { role: 'user' as const, content: sanitizedUserMessage },
-    ];
+    // Handle o1 models which don't support system messages
+    const isO1Model = routingDecision.model?.includes('o1');
+    let messages;
+    
+    if (isO1Model) {
+      // o1 models don't support system messages - combine system prompt with user message
+      const combinedMessage = sanitizedSystemPrompt 
+        ? `${sanitizedSystemPrompt}\n\nUser: ${sanitizedUserMessage}`
+        : sanitizedUserMessage;
+      messages = [
+        { role: 'user' as const, content: combinedMessage },
+      ];
+    } else {
+      messages = [
+        { role: 'system' as const, content: sanitizedSystemPrompt },
+        { role: 'user' as const, content: sanitizedUserMessage },
+      ];
+    }
 
     const response = await llm.invoke(messages);
     let responseContent = (response.content as string) || 'I apologize, but I was unable to generate a response.';
@@ -1116,29 +1144,65 @@ export class LLMService {
       const llm = this.getLangGraphLLM('openai');
 
       // Build messages array with system prompt, conversation history, and current message
+      // Note: This method assumes OpenAI models, but we should check for o1 models
       const messages: Array<{
         role: 'system' | 'user' | 'assistant';
         content: string;
-      }> = [
-        {
+      }> = [];
+
+      // Check if this might be an o1 model (this method doesn't have model info, so we'll use a heuristic)
+      const isLikelyO1Model = false; // TODO: Add model detection if needed
+      
+      if (isLikelyO1Model) {
+        // For o1 models, combine system prompt with first user message
+        const firstUserMessage = conversationHistory.find(msg => msg.role === 'user')?.content || currentMessage;
+        const combinedMessage = systemPrompt 
+          ? `${systemPrompt}\n\nUser: ${firstUserMessage}`
+          : firstUserMessage;
+        
+        messages.push({
+          role: 'user',
+          content: combinedMessage,
+        });
+        
+        // Add remaining conversation history (skip the first user message if we used it)
+        conversationHistory.forEach((msg, index) => {
+          if (!(msg.role === 'user' && index === 0)) {
+            messages.push({
+              role: msg.role,
+              content: msg.content,
+            });
+          }
+        });
+        
+        // Add current message if it wasn't the first user message
+        if (conversationHistory.length === 0 || conversationHistory[0].role !== 'user') {
+          messages.push({
+            role: 'user',
+            content: currentMessage,
+          });
+        }
+      } else {
+        // Standard model handling
+        messages.push({
           role: 'system',
           content: systemPrompt,
-        },
-      ];
-
-      // Add conversation history
-      conversationHistory.forEach((msg) => {
-        messages.push({
-          role: msg.role,
-          content: msg.content,
         });
-      });
 
-      // Add current message
-      messages.push({
-        role: 'user',
-        content: currentMessage,
-      });
+        // Add conversation history
+        conversationHistory.forEach((msg) => {
+          messages.push({
+            role: msg.role,
+            content: msg.content,
+          });
+        });
+
+        // Add current message
+        messages.push({
+          role: 'user',
+          content: currentMessage,
+        });
+      }
 
       const response = await llm.invoke(messages);
       const content =
@@ -1186,10 +1250,24 @@ export class LLMService {
         maxTokens: activeConfig.maxTokens,
       });
 
-      const messages = [
-        { role: 'system' as const, content: systemPrompt },
-        { role: 'user' as const, content: userMessage },
-      ];
+      // Handle o1 models which don't support system messages
+      const isO1Model = activeConfig.model?.includes('o1');
+      let messages;
+      
+      if (isO1Model) {
+        // o1 models don't support system messages - combine system prompt with user message
+        const combinedMessage = systemPrompt 
+          ? `${systemPrompt}\n\nUser: ${userMessage}`
+          : userMessage;
+        messages = [
+          { role: 'user' as const, content: combinedMessage },
+        ];
+      } else {
+        messages = [
+          { role: 'system' as const, content: systemPrompt },
+          { role: 'user' as const, content: userMessage },
+        ];
+      }
 
       const response = await llm.invoke(messages);
       const content =
