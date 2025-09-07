@@ -26,19 +26,25 @@ BEGIN
     AND table_name = 'users' 
     AND column_name = 'roles';
     
+    -- Check if user exists first
+    IF NOT EXISTS (SELECT 1 FROM public.users WHERE email = 'demo.user@playground.com') THEN
+        RAISE NOTICE 'User demo.user@playground.com does not exist, skipping upgrade';
+        RETURN;
+    END IF;
+
     -- Update based on column type
     IF column_type = 'jsonb' THEN
         -- JSONB column type
-        UPDATE public.users 
-        SET 
+        UPDATE public.users
+        SET
             roles = '["user","admin"]'::jsonb,
             updated_at = CURRENT_TIMESTAMP
         WHERE email = 'demo.user@playground.com';
-        
+
         -- Verify JSONB update
         IF NOT EXISTS (
-            SELECT 1 FROM public.users 
-            WHERE email = 'demo.user@playground.com' 
+            SELECT 1 FROM public.users
+            WHERE email = 'demo.user@playground.com'
             AND roles ? 'admin'
         ) THEN
             RAISE EXCEPTION 'Failed to upgrade demo.user@playground.com to admin role (JSONB)';

@@ -1,7 +1,7 @@
 -- Add project_steps table for multi-step project orchestration
 -- This table tracks individual steps within projects, enabling complex workflows
 
-CREATE TABLE public.project_steps (
+CREATE TABLE IF NOT EXISTS public.project_steps (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
     step_id VARCHAR(255) NOT NULL,
