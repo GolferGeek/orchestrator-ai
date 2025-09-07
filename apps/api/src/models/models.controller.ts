@@ -28,6 +28,7 @@ import {
   ModelResponseDto,
   CostEstimateDto,
   CostEstimateResponseDto,
+  ModelNameDto,
 } from '../dto/llm-evaluation.dto';
 
 @ApiTags('LLM Models')
@@ -37,9 +38,46 @@ import {
 export class ModelsController {
   constructor(private readonly modelsService: ModelsService) {}
 
+  @Get('names')
+  @Public()
+  @ApiOperation({ summary: 'Get model names only (optimized for frontend dropdowns)' })
+  @ApiQuery({
+    name: 'provider_name',
+    required: false,
+    description: 'Filter by provider name',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['active', 'inactive', 'deprecated'],
+    description: 'Filter by model status',
+  })
+  @ApiQuery({
+    name: 'sovereign_mode',
+    required: false,
+    type: Boolean,
+    description: 'Filter models based on sovereign mode compliance',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of model names with provider info',
+    type: [ModelNameDto],
+  })
+  async getModelNames(
+    @Query('provider_name') providerName?: string,
+    @Query('status') status?: 'active' | 'inactive' | 'deprecated',
+    @Query('sovereign_mode') sovereignMode?: boolean,
+  ): Promise<ModelNameDto[]> {
+    return this.modelsService.findAllNames({
+      providerName,
+      status,
+      sovereignMode,
+    });
+  }
+
   @Get()
   @Public()
-  @ApiOperation({ summary: 'Get all LLM models' })
+  @ApiOperation({ summary: 'Get all LLM models (full details)' })
   @ApiQuery({
     name: 'provider_id',
     required: false,

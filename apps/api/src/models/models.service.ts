@@ -6,6 +6,7 @@ import {
   ModelResponseDto,
   CostEstimateDto,
   CostEstimateResponseDto,
+  ModelNameDto,
 } from '../dto/llm-evaluation.dto';
 import { ModelStatus, CostCalculation } from '../types/llm-evaluation';
 import { mapModelFromDb, mapLLMModelFromDb } from '../utils/case-converter';
@@ -28,8 +29,60 @@ interface RecommendationFilters {
 @Injectable()
 export class ModelsService {
   private readonly logger = new Logger(ModelsService.name);
+  private readonly modelNamesCache = new Map<string, { data: ModelNameDto[]; timestamp: number }>();
+  private readonly cacheExpirationMs = 5 * 60 * 1000; // 5 minutes
 
   constructor(private readonly supabaseService: SupabaseService) {}
+
+  async findAllNames(filters: ModelFilters = {}): Promise<ModelNameDto[]> {
+    const cacheKey = `names:${filters.providerName || 'all'}:${filters.status || 'all'}:${filters.sovereignMode || 'false'}`;
+    const cached = this.modelNamesCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < this.cacheExpirationMs) {
+      return cached.data;
+    }
+
+    const client = this.supabaseService.getServiceClient();
+
+    let query = client
+      .from(getTableName('llm_models'))
+      .select('provider_name, model_name, display_name')
+      .eq('is_active', true)
+      .order('provider_name')
+      .order('display_name');
+
+    if (filters.providerName) {
+      query = query.eq('provider_name', filters.providerName);
+    }
+
+    if (filters.sovereignMode) {
+      // In sovereign mode, only show local models (ollama)
+      query = query.eq('provider_name', 'ollama');
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new HttpException(
+        `Failed to fetch model names: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    const result = (data || []).map(row => ({
+      providerName: row.provider_name,
+      modelName: row.model_name,
+      displayName: row.display_name,
+    }));
+    
+    // Cache the result
+    this.modelNamesCache.set(cacheKey, {
+      data: result,
+      timestamp: Date.now(),
+    });
+    
+    return result;
+  }
 
   async findAll(filters: ModelFilters = {}): Promise<ModelResponseDto[]> {
     const client = this.supabaseService.getServiceClient();

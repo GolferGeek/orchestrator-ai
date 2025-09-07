@@ -81,9 +81,6 @@ export class UpdateProviderDto {
 }
 
 export class ProviderResponseDto {
-  @ApiProperty({ description: 'Provider UUID' })
-  id!: string;
-
   @ApiProperty({ description: 'Provider name' })
   name!: string;
 
@@ -101,6 +98,32 @@ export class ProviderResponseDto {
 
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt!: string;
+}
+
+// ==================== Simple Name List DTOs ====================
+
+export class ProviderNameDto {
+  @ApiProperty({ description: 'Provider name', example: 'openai' })
+  name!: string;
+}
+
+export class ModelNameDto {
+  @ApiProperty({ description: 'Provider name', example: 'openai' })
+  providerName!: string;
+
+  @ApiProperty({ description: 'Model name for API calls', example: 'gpt-4o-mini' })
+  modelName!: string;
+
+  @ApiProperty({ description: 'Human-readable display name', example: 'GPT-4o Mini' })
+  displayName!: string;
+}
+
+export class ProviderWithModelsDto {
+  @ApiProperty({ description: 'Provider name', example: 'openai' })
+  providerName!: string;
+
+  @ApiProperty({ description: 'Available models', type: [ModelNameDto] })
+  models!: ModelNameDto[];
 }
 
 // ==================== Model DTOs ====================

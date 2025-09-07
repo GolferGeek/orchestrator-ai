@@ -27,6 +27,9 @@ import {
   UpdateProviderDto,
   ProviderResponseDto,
   ModelResponseDto,
+  ProviderNameDto,
+  ModelNameDto,
+  ProviderWithModelsDto,
 } from '../dto/llm-evaluation.dto';
 
 @ApiTags('LLM Providers')
@@ -36,9 +39,56 @@ import {
 export class ProvidersController {
   constructor(private readonly providersService: ProvidersService) {}
 
+  @Get('names')
+  @Public()
+  @ApiOperation({ summary: 'Get provider names only (optimized for frontend dropdowns)' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['active', 'inactive', 'deprecated'],
+    description: 'Filter by provider status',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of provider names',
+    type: [ProviderNameDto],
+  })
+  async getProviderNames(
+    @Query('status') status?: 'active' | 'inactive' | 'deprecated',
+  ): Promise<ProviderNameDto[]> {
+    return this.providersService.findAllNames(status);
+  }
+
+  @Get('with-models')
+  @Public()
+  @ApiOperation({ summary: 'Get providers with their available models (optimized for frontend)' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['active', 'inactive', 'deprecated'],
+    description: 'Filter by provider status',
+  })
+  @ApiQuery({
+    name: 'sovereign_mode',
+    required: false,
+    type: Boolean,
+    description: 'Filter models based on sovereign mode compliance',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of providers with their models',
+    type: [ProviderWithModelsDto],
+  })
+  async getProvidersWithModels(
+    @Query('status') status?: 'active' | 'inactive' | 'deprecated',
+    @Query('sovereign_mode') sovereignMode?: boolean,
+  ): Promise<ProviderWithModelsDto[]> {
+    return this.providersService.findAllWithModels(status, sovereignMode);
+  }
+
   @Get()
   @Public()
-  @ApiOperation({ summary: 'Get all LLM providers' })
+  @ApiOperation({ summary: 'Get all LLM providers (full details)' })
   @ApiQuery({
     name: 'status',
     required: false,
