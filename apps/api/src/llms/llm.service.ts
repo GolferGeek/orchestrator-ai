@@ -217,15 +217,18 @@ export class LLMService {
       }
 
       // Use centralized routing for intelligent provider/model selection
-      if (options?.complexity || options?.callerType || (!options?.provider && !options?.modelName)) {
+      // Only use centralized routing if no explicit provider/model is specified
+      const hasExplicitSelection = (options?.provider || options?.providerName) && options?.modelName;
+      if (!hasExplicitSelection && (options?.complexity || options?.callerType || (!options?.provider && !options?.providerName && !options?.modelName))) {
         const centralizedResult = await this.generateCentralizedResponse(
           systemPrompt,
           userMessage,
           {
             temperature: options?.temperature,
             maxTokens: options?.maxTokens,
-            provider: options?.provider,
-            model: options?.modelName,
+            // Map frontend field names to routing service field names
+            provider: options?.provider || options?.providerName,
+            model: options?.modelName || options?.model,
             preferLocal: true, // Default to preferring local models
             maxComplexity: options?.complexity, // Pass complexity hint to routing
             authToken: options?.authToken,
@@ -244,7 +247,7 @@ export class LLMService {
 
       // Original simple implementation for backward compatibility
 
-      const provider = options?.provider || 'openai';
+      const provider = options?.provider || options?.providerName || 'openai';
       const isLocalProvider = provider === 'ollama';
 
       // Apply conditional sanitization for external providers only
@@ -1176,7 +1179,7 @@ export class LLMService {
         });
         
         // Add current message if it wasn't the first user message
-        if (conversationHistory.length === 0 || conversationHistory[0].role !== 'user') {
+        if (conversationHistory.length === 0 || conversationHistory[0]?.role !== 'user') {
           messages.push({
             role: 'user',
             content: currentMessage,
