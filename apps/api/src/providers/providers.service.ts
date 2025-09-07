@@ -375,34 +375,4 @@ export class ProvidersService {
     return data ? mapLLMProviderFromDb(data) : null;
   }
 
-  // Helper method to get all active providers with their models
-  async findAllWithModels(): Promise<
-    (ProviderResponseDto & { models: ModelResponseDto[] })[]
-  > {
-    const client = this.supabaseService.getAnonClient();
-
-    const { data, error } = await client
-      .from(getTableName('llm_providers'))
-      .select(
-        `
-        *,
-        models:llm_models(*)
-      `,
-      )
-      .eq('status', 'active')
-      .eq('models.is_active', true)
-      .order('name');
-
-    if (error) {
-      throw new HttpException(
-        `Failed to fetch providers with models: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    return (data || []).map((provider: any) => ({
-      ...mapLLMProviderFromDb(provider),
-      models: (provider.models || []).map(mapLLMModelFromDb),
-    }));
-  }
 }
