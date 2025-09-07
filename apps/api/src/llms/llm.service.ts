@@ -220,7 +220,8 @@ export class LLMService {
       // Only use centralized routing if no explicit provider/model is specified
       const hasExplicitSelection = (options?.provider || options?.providerName) && options?.modelName;
       
-      if (!hasExplicitSelection && (options?.complexity || options?.callerType || (!options?.provider && !options?.providerName && !options?.modelName))) {
+      // Only use centralized routing if there's no explicit selection AND we have routing hints
+      if (!hasExplicitSelection && (options?.complexity || (!options?.provider && !options?.providerName && !options?.modelName))) {
         const centralizedResult = await this.generateCentralizedResponse(
           systemPrompt,
           userMessage,
