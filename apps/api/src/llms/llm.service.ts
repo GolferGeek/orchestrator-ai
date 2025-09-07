@@ -220,26 +220,7 @@ export class LLMService {
       // Only use centralized routing if no explicit provider/model is specified
       const hasExplicitSelection = (options?.provider || options?.providerName) && options?.modelName;
       
-      // Debug logging - FORCE CONSOLE OUTPUT
-      console.log(`🔍 LLM ROUTING DEBUG:`, {
-        hasExplicitSelection,
-        provider: options?.provider,
-        providerName: options?.providerName,
-        modelName: options?.modelName,
-        complexity: options?.complexity,
-        callerType: options?.callerType
-      });
-      this.logger.debug(`🔍 LLM Routing Decision:`, {
-        hasExplicitSelection,
-        provider: options?.provider,
-        providerName: options?.providerName,
-        modelName: options?.modelName,
-        complexity: options?.complexity,
-        callerType: options?.callerType
-      });
-      
       if (!hasExplicitSelection && (options?.complexity || options?.callerType || (!options?.provider && !options?.providerName && !options?.modelName))) {
-        console.log(`🔍 USING CENTRALIZED ROUTING - explicit selection not detected`);
         const centralizedResult = await this.generateCentralizedResponse(
           systemPrompt,
           userMessage,
@@ -266,12 +247,7 @@ export class LLMService {
       }
 
       // Original simple implementation for backward compatibility
-      console.log(`🔍 USING DIRECT PROVIDER ROUTING (bypassing centralized routing)`);
-      this.logger.debug(`🔍 Using direct provider routing (bypassing centralized routing)`);
-      
       const provider = options?.provider || options?.providerName || 'openai';
-      console.log(`🔍 SELECTED PROVIDER: ${provider} (from options.provider: ${options?.provider}, options.providerName: ${options?.providerName})`);
-      this.logger.debug(`🔍 Selected provider: ${provider} (from options.provider: ${options?.provider}, options.providerName: ${options?.providerName})`);
       const isLocalProvider = provider === 'ollama';
 
       // Apply conditional sanitization for external providers only
