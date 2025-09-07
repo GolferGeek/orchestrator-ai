@@ -549,9 +549,16 @@ const renderedMarkdown = computed(() => {
     return '';
   }
   try {
+    // Configure marked with options
+    marked.setOptions({
+      breaks: true,
+      gfm: true,
+    });
     return marked(displayVersion.value.content);
   } catch (error) {
-
+    console.error('Markdown rendering error:', error);
+    console.log('Content that failed to render:', displayVersion.value.content);
+    // Return raw content as fallback
     return displayVersion.value.content || '';
   }
 });
