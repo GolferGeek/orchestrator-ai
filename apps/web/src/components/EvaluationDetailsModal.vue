@@ -79,17 +79,17 @@
                 </ion-text>
               </ion-col>
             </ion-row>
-            <ion-row v-if="evaluation.provider || evaluation.providerId">
+            <ion-row v-if="evaluation.provider || evaluation.providerName">
               <ion-col size="6">
                 <ion-chip outline color="primary">
-                  <ion-label>Provider: {{ evaluation.provider?.name || evaluation.providerId || 'Unknown' }}</ion-label>
+                  <ion-label>Provider: {{ evaluation.provider?.name || evaluation.providerName || 'Unknown' }}</ion-label>
                 </ion-chip>
               </ion-col>
             </ion-row>
-            <ion-row v-if="evaluation.model || evaluation.modelId">
+            <ion-row v-if="evaluation.model || evaluation.modelName">
               <ion-col size="6">
                 <ion-chip outline color="secondary">
-                  <ion-label>Model: {{ evaluation.model?.name || evaluation.modelId || 'Unknown' }}</ion-label>
+                  <ion-label>Model: {{ evaluation.model?.name || evaluation.modelName || 'Unknown' }}</ion-label>
                 </ion-chip>
               </ion-col>
             </ion-row>

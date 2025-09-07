@@ -382,9 +382,9 @@ const getLLMProviderName = (): string => {
   // First try direct name fields
   if (llmMetadata.providerName) return llmMetadata.providerName;
   if (llmMetadata.provider) return llmMetadata.provider;
-  // Try to get provider by ID from store
+  // Legacy fallback for old data with IDs
   if (llmMetadata.providerId) {
-    const provider = llmStore.getProviderById(llmMetadata.providerId);
+    const provider = llmStore.getProviderByName(llmMetadata.providerId);
     if (provider) return provider.name;
     // If store lookup fails, show ID as fallback
     return `Provider ID: ${llmMetadata.providerId}`;
@@ -397,9 +397,10 @@ const getLLMModelName = (): string => {
   // First try direct name fields
   if (llmMetadata.modelName) return llmMetadata.modelName;
   if (llmMetadata.model) return llmMetadata.model;
-  // Try to get model by ID from store
+  // Legacy fallback for old data with IDs
   if (llmMetadata.modelId) {
-    const model = llmStore.getModelById(llmMetadata.modelId);
+    // For legacy data, try to find by name if the ID is actually a name
+    const model = llmStore.getModelByName(llmMetadata.providerName || '', llmMetadata.modelId);
     if (model) return model.name;
     // If store lookup fails, show ID as fallback
     return `Model ID: ${llmMetadata.modelId}`;

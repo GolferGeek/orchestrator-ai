@@ -426,7 +426,7 @@ describe('PrivacyIndicatorsStore', () => {
       const message = {
         metadata: {
           llmMetadata: {
-            providerId: 'local'
+            providerName: 'local'
           }
         }
       };
@@ -444,7 +444,7 @@ describe('PrivacyIndicatorsStore', () => {
       const message = {
         metadata: {
           llmMetadata: {
-            providerId: 'openai'
+            providerName: 'openai'
           }
         }
       };

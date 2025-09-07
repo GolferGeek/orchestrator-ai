@@ -486,7 +486,7 @@ export const usePrivacyIndicatorsStore = defineStore('privacyIndicators', () => 
     const llmMeta = message.metadata?.llmMetadata;
     if (!llmMeta) return { mode: 'local', provider: null };
     
-    const provider = llmMeta.providerId || llmMeta.providerName;
+    const provider = llmMeta.providerName || llmMeta.providerId;
     
     let mode: 'local' | 'external' | 'hybrid' = 'external';
     if (!provider || provider === 'local' || provider === 'ollama') {

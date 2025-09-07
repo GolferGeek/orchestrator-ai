@@ -3,7 +3,6 @@ export type AuthType = 'api_key' | 'oauth' | 'none';
 export type ProviderStatus = 'active' | 'inactive' | 'maintenance';
 export type CIDAFMCommandType = '^' | '&' | '!';
 export interface Provider {
-  id: string;
   name: string;
   description?: string;
   websiteUrl?: string;
@@ -14,11 +13,10 @@ export interface Provider {
   updatedAt: string;
 }
 export interface Model {
-  id: string;
-  providerId: string;
+  providerName: string;
   name: string;
   description?: string;
-  modelId: string;
+  modelName: string;
   maxTokens?: number;
   supportsStreaming?: boolean;
   supportsFunctionCalling?: boolean;
@@ -51,8 +49,8 @@ export interface CIDAFMOptions {
   customOptions?: Record<string, any>;
 }
 export interface LLMSelection {
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   cidafmOptions?: CIDAFMOptions;
   temperature?: number;
   maxTokens?: number;
@@ -89,8 +87,8 @@ export interface EnhancedMessage {
   order: number;
   metadata?: any;
   // LLM fields
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   input_tokens?: number;
   output_tokens?: number;
   total_cost?: number;

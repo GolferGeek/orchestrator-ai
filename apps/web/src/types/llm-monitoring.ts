@@ -226,8 +226,8 @@ export interface OperationalStatus {
 export interface LLMUsageStatsRequest {
   startDate?: string;
   endDate?: string;
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   includeDetails?: boolean;
   granularity?: 'daily' | 'weekly' | 'monthly';
 }

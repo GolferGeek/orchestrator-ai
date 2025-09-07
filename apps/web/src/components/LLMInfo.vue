@@ -88,9 +88,7 @@ import {
 } from 'ionicons/icons';
 interface Props {
   llmUsed?: {
-    providerId?: string;
     providerName?: string;
-    modelId?: string;
     modelName?: string;
     temperature?: number;
     maxTokens?: number;
