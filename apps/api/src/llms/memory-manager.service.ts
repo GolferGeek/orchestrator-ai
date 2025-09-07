@@ -60,10 +60,13 @@ export class MemoryManagerService implements OnModuleInit {
   }
 
   async onModuleInit() {
+    // Load model definitions from database (metadata only)
     await this.loadThreeTierModels();
-    await this.syncWithCurrentState();
     
-    // Start periodic optimization
+    // Skip automatic sync and health checks - only load models when explicitly requested
+    // await this.syncWithCurrentState();
+    
+    // Start periodic optimization (but only for already-loaded models)
     setInterval(() => {
       this.optimizeMemoryUsage().catch(error => {
         this.logger.error('Periodic memory optimization failed', error);

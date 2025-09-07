@@ -126,9 +126,9 @@ export class CIDAFMController {
   })
   async createUserCommand(
     @CurrentUser() user: any,
-    @Body() createCommandDto: CreateCIDAFMCommandDto,
+    @Body() createCommandDto: { commandId: string },
   ): Promise<CIDAFMCommandResponseDto> {
-    return this.cidafmService.createUserCommand(user.id, createCommandDto);
+    return this.cidafmService.addUserCommand(user.id, createCommandDto.commandId);
   }
 
   @Put('commands/:id')
@@ -144,12 +144,12 @@ export class CIDAFMController {
   async updateUserCommand(
     @CurrentUser() user: any,
     @Param('id') id: string,
-    @Body() updateCommandDto: Partial<CreateCIDAFMCommandDto>,
+    @Body() updateCommandDto: { isActive: boolean },
   ): Promise<CIDAFMCommandResponseDto> {
     const command = await this.cidafmService.updateUserCommand(
       user.id,
       id,
-      updateCommandDto,
+      updateCommandDto.isActive,
     );
     if (!command) {
       throw new HttpException('Command not found', HttpStatus.NOT_FOUND);

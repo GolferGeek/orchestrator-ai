@@ -119,7 +119,8 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
             sessionId: params.sessionId || options?.sessionId,
             callerType: 'agent',
             callerName: agentName,
-            conversationId: params.sessionId || options?.sessionId,
+            conversationId: params.conversationId || options?.conversationId, // Use proper conversation ID, not legacy sessionId
+            userId: params.currentUser?.id || params.userId, // Add user ID for LLM usage tracking
             dataClassification: 'internal', // Default for function agents
           };
 

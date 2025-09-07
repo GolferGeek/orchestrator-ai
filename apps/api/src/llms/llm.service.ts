@@ -5,6 +5,7 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatOllama } from '@langchain/ollama';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
 import { SupabaseService } from '../supabase/supabase.service';
 import { CIDAFMService } from '../cidafm/cidafm.service';
 import { CentralizedRoutingService } from './centralized-routing.service';
@@ -175,6 +176,7 @@ export class LLMService {
       authToken?: string;
       sessionId?: string;
       currentUser?: any; // User object with id, email, etc.
+      userId?: string; // Direct user ID for usage tracking
       // Intelligent routing hints
       complexity?: 'simple' | 'medium' | 'complex' | 'reasoning'; // Task complexity for routing decisions
       // Caller tracking for usage analytics
@@ -184,14 +186,16 @@ export class LLMService {
       dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
     },
   ): Promise<string | any> {
+    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] generateResponse called with callerType: ${options?.callerType}, callerName: ${options?.callerName}, providerName: ${options?.providerName}, modelName: ${options?.modelName}`);
     try {
       // Debug LLM options being received
 
       // If providerName/modelName are provided, delegate to enhanced response for proper DB lookup
       if (options?.providerName || options?.modelName || options?.cidafmOptions) {
+        this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Delegating to generateEnhancedResponse`);
 
-        // Extract user ID from currentUser object or use undefined as fallback
-        const userId = options.currentUser?.id;
+        // Extract user ID from userId field or currentUser object
+        const userId = options.userId || options.currentUser?.id;
 
         const enhancedResult = await this.generateEnhancedResponse(
           userId,
@@ -311,37 +315,49 @@ export class LLMService {
         );
       }
 
-      // Use LangChain LLM instead of raw OpenAI - this gets automatic LangSmith tracing
-      const llm =
-        options?.temperature || options?.maxTokens || options?.provider
-          ? this.createCustomLangGraphLLM({
-              provider: provider as any,
-              model: options?.modelName,
-              temperature: options?.temperature,
-              maxTokens: options?.maxTokens,
-            })
-          : this.getLangGraphLLM(provider as any);
+      // Start usage tracking for simple path
+      const routingDecision = {
+        provider: provider,
+        model: options?.modelName || 'default',
+        tier: provider === 'ollama' ? 'local' : 'external',
+        isLocal: provider === 'ollama',
+        routingReason: 'simple-path-default'
+      };
 
-      // Handle o1 models which don't support system messages
-      const isO1Model = options?.modelName?.includes('o1');
-      let messages;
-      
-      if (isO1Model) {
-        // o1 models don't support system messages - combine system prompt with user message
-        const combinedMessage = sanitizedSystemPrompt 
-          ? `${sanitizedSystemPrompt}\n\nUser: ${sanitizedUserMessage}`
-          : sanitizedUserMessage;
-        messages = [
-          { role: 'user' as const, content: combinedMessage },
-        ];
-      } else {
-        messages = [
-          { role: 'system' as const, content: sanitizedSystemPrompt },
-          { role: 'user' as const, content: sanitizedUserMessage },
-        ];
-      }
+      const metadataContext = await this.runMetadataService.startRequest(routingDecision, {
+        userId: options?.userId || options?.currentUser?.id, // Accept userId directly or from currentUser object
+        callerType: options?.callerType || 'system',
+        callerName: options?.callerName || 'simple-llm',
+        conversationId: options?.conversationId, // Use proper conversation ID from current system
+        dataClassification: options?.dataClassification || 'internal',
+      });
 
-      const response = await llm.invoke(messages);
+      try {
+        // Use LangChain LLM instead of raw OpenAI - this gets automatic LangSmith tracing
+        const llm =
+          options?.temperature || options?.maxTokens || options?.provider
+            ? this.createCustomLangGraphLLM({
+                provider: provider as any,
+                model: options?.modelName,
+                temperature: options?.temperature,
+                maxTokens: options?.maxTokens,
+              })
+            : this.getLangGraphLLM(provider as any);
+
+        // Format messages for the specific provider - LLM service controls the format
+        const messages = this.formatMessagesForProvider(
+          sanitizedSystemPrompt,
+          sanitizedUserMessage,
+          provider,
+          options?.modelName
+        );
+        
+        // Add debug logging to see what's being sent
+        this.logger.debug('🔍 [LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
+        this.logger.debug('🔍 [LLM-DEBUG] Provider:', provider);
+        this.logger.debug('🔍 [LLM-DEBUG] Model:', options?.modelName);
+
+        const response = await llm.invoke(messages);
       let content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
 
       // Restore pseudonyms in the response if sanitization was applied
@@ -372,13 +388,37 @@ export class LLMService {
         }
       }
 
+      // Complete usage tracking for simple path
+      await this.runMetadataService.completeRequest(metadataContext, {
+        content: content,
+        inputTokens: 0, // LangChain doesn't provide token counts easily
+        outputTokens: 0,
+      });
+
       return content;
     } catch (error) {
+      // Complete usage tracking with error for simple path
+      if (metadataContext) {
+        try {
+          await this.runMetadataService.completeRequestWithError(
+            metadataContext,
+            error instanceof Error ? error : new Error(String(error))
+          );
+        } catch (trackingError) {
+          this.logger.error('Failed to complete usage tracking on error:', trackingError);
+        }
+      }
 
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       throw new Error(`LLM service error: ${errorMessage}`);
     }
+  } catch (outerError) {
+    // Handle any errors in the try block setup
+    const errorMessage =
+      outerError instanceof Error ? outerError.message : String(outerError);
+    throw new Error(`LLM service error: ${errorMessage}`);
+  }
   }
 
   /**
@@ -416,6 +456,7 @@ export class LLMService {
       responseTimeMs?: number;
     };
   }> {
+    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] generateEnhancedResponse called with userId: ${userId}, callerType: ${options?.callerType}, callerName: ${options?.callerName}`);
     const startTime = Date.now();
     let metadataContext: any = null;
 
@@ -439,6 +480,7 @@ export class LLMService {
         routingReason: 'enhanced-response-user-selection'
       };
 
+      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Starting usage tracking with routing decision:`, routingDecision);
       metadataContext = await this.runMetadataService.startRequest(
         routingDecision,
         {
@@ -449,6 +491,7 @@ export class LLMService {
           dataClassification: options?.dataClassification || 'internal'
         }
       );
+      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Usage tracking started, runId: ${metadataContext?.runId}`);
 
       // Process CIDAFM commands if provided
       let processedPrompt = userMessage;
@@ -542,10 +585,13 @@ export class LLMService {
         maxTokens: options?.maxTokens,
       });
 
-      const messages = [
-        { role: 'system' as const, content: enhancedSystemPrompt },
-        { role: 'user' as const, content: finalProcessedPrompt },
-      ];
+      // Format messages for the specific provider - LLM service controls the format
+      const messages = this.formatMessagesForProvider(
+        enhancedSystemPrompt,
+        finalProcessedPrompt,
+        model.provider?.name || 'openai',
+        model.name
+      );
 
       // Generate response with token counting
       const response = await llm.invoke(messages);
@@ -652,6 +698,7 @@ export class LLMService {
       };
 
       // Complete usage tracking
+      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Completing usage tracking for runId: ${metadataContext?.runId}, inputTokens: ${inputTokens}, outputTokens: ${outputTokens}`);
       const runMetadata = await this.runMetadataService.completeRequest(
         metadataContext,
         {
@@ -661,6 +708,7 @@ export class LLMService {
           enhancedMetrics: usage
         }
       );
+      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Usage tracking completed successfully for runId: ${runMetadata?.runId}`);
 
       return {
         content,
@@ -702,6 +750,7 @@ export class LLMService {
       authToken?: string;
       sessionId?: string;
       currentUser?: any;
+      userId?: string; // Direct user ID for usage tracking
       // Caller tracking for usage analytics
       callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
       callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
@@ -738,7 +787,7 @@ export class LLMService {
 
       // Step 2: Start tracking metadata
       const metadataContext = await this.runMetadataService.startRequest(routingDecision, {
-        userId: options?.currentUser?.id,
+        userId: options?.userId || options?.currentUser?.id, // Accept userId directly or from currentUser object
         callerType: options?.callerType || 'system',
         callerName: options?.callerName || 'unknown',
         conversationId: options?.sessionId || options?.conversationId,
@@ -1010,24 +1059,18 @@ export class LLMService {
       maxTokens: options.maxTokens,
     });
 
-    // Handle o1 models which don't support system messages
-    const isO1Model = routingDecision.model?.includes('o1');
-    let messages;
+    // Format messages for the specific provider - LLM service controls the format
+    const messages = this.formatMessagesForProvider(
+      sanitizedSystemPrompt,
+      sanitizedUserMessage,
+      routingDecision.provider,
+      routingDecision.model
+    );
     
-    if (isO1Model) {
-      // o1 models don't support system messages - combine system prompt with user message
-      const combinedMessage = sanitizedSystemPrompt 
-        ? `${sanitizedSystemPrompt}\n\nUser: ${sanitizedUserMessage}`
-        : sanitizedUserMessage;
-      messages = [
-        { role: 'user' as const, content: combinedMessage },
-      ];
-    } else {
-      messages = [
-        { role: 'system' as const, content: sanitizedSystemPrompt },
-        { role: 'user' as const, content: sanitizedUserMessage },
-      ];
-    }
+    // Add debug logging to see what's being sent
+    this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
+    this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Provider:', routingDecision.provider);
+    this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Model:', routingDecision.model);
 
     const response = await llm.invoke(messages);
     let responseContent = (response.content as string) || 'I apologize, but I was unable to generate a response.';
@@ -1251,24 +1294,18 @@ export class LLMService {
         maxTokens: activeConfig.maxTokens,
       });
 
-      // Handle o1 models which don't support system messages
-      const isO1Model = activeConfig.model?.includes('o1');
-      let messages;
+      // Format messages for the specific provider - LLM service controls the format
+      const messages = this.formatMessagesForProvider(
+        systemPrompt,
+        userMessage,
+        activeConfig.provider,
+        activeConfig.model
+      );
       
-      if (isO1Model) {
-        // o1 models don't support system messages - combine system prompt with user message
-        const combinedMessage = systemPrompt 
-          ? `${systemPrompt}\n\nUser: ${userMessage}`
-          : userMessage;
-        messages = [
-          { role: 'user' as const, content: combinedMessage },
-        ];
-      } else {
-        messages = [
-          { role: 'system' as const, content: systemPrompt },
-          { role: 'user' as const, content: userMessage },
-        ];
-      }
+      // Add debug logging to see what's being sent
+      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
+      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Provider:', activeConfig.provider);
+      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Model:', activeConfig.model);
 
       const response = await llm.invoke(messages);
       const content =
@@ -1330,6 +1367,67 @@ export class LLMService {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       throw new Error(`User content LLM error: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Format messages for specific provider using proper LangChain message types
+   */
+  private formatMessagesForProvider(
+    systemPrompt: string,
+    userMessage: string,
+    provider: string,
+    modelName?: string
+  ): Array<HumanMessage | SystemMessage | AIMessage> {
+    // Check if this is an o1 model (only supports user/assistant)
+    const isO1Model = modelName?.includes('o1') || false;
+    
+    if (isO1Model) {
+      // O1 models: combine system + user into single HumanMessage
+      const combinedMessage = systemPrompt 
+        ? `${systemPrompt}\n\nUser: ${userMessage}`
+        : userMessage;
+      return [new HumanMessage(combinedMessage)];
+    }
+    
+    // For all other providers, let LangChain handle the conversion properly
+    switch (provider.toLowerCase()) {
+      case 'openai':
+        // OpenAI with ChatOpenAI: use HumanMessage only to avoid system role issues
+        const combinedOpenAI = systemPrompt 
+          ? `${systemPrompt}\n\nUser: ${userMessage}`
+          : userMessage;
+        return [new HumanMessage(combinedOpenAI)];
+        
+      case 'anthropic':
+        // Anthropic: can handle SystemMessage + HumanMessage properly
+        const messages = [];
+        if (systemPrompt) {
+          messages.push(new SystemMessage(systemPrompt));
+        }
+        messages.push(new HumanMessage(userMessage));
+        return messages;
+        
+      case 'ollama':
+        // Ollama: use HumanMessage only for consistency
+        const combinedOllama = systemPrompt 
+          ? `${systemPrompt}\n\nUser: ${userMessage}`
+          : userMessage;
+        return [new HumanMessage(combinedOllama)];
+        
+      case 'google':
+        // Google: use HumanMessage only for consistency
+        const combinedGoogle = systemPrompt 
+          ? `${systemPrompt}\n\nUser: ${userMessage}`
+          : userMessage;
+        return [new HumanMessage(combinedGoogle)];
+        
+      default:
+        // Default: use HumanMessage approach
+        const combinedDefault = systemPrompt 
+          ? `${systemPrompt}\n\nUser: ${userMessage}`
+          : userMessage;
+        return [new HumanMessage(combinedDefault)];
     }
   }
 
@@ -1437,11 +1535,15 @@ export class LLMService {
 
       switch (config.provider) {
         case 'openai':
+          // Check if this is an o1 model (doesn't support custom temperature)
+          const isO1Model = config.model?.includes('o1') || false;
+          const temperature = isO1Model ? undefined : (config.temperature ?? parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'));
+          
           // Use source-blinded LLM for external providers
           llm = this.blindedLLMService.createBlindedLLM({
             provider: 'openai',
             model: config.model || process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
-            temperature: config.temperature ?? parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
+            temperature: temperature,
             maxTokens: config.maxTokens ?? parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
             apiKey: config.apiKey || process.env.OPENAI_API_KEY,
             sourceBlindingOptions: {

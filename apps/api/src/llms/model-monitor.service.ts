@@ -82,11 +82,10 @@ export class ModelMonitorService implements OnModuleInit, OnModuleDestroy {
     // Load alert thresholds from environment or database
     await this.loadAlertThresholds();
     
-    // Initialize model metrics
-    await this.initializeModelMetrics();
-    
-    // Start monitoring intervals
-    this.startMonitoring();
+    // Skip automatic model metrics initialization and monitoring
+    // Only initialize metrics when models are explicitly requested
+    // await this.initializeModelMetrics();
+    // this.startMonitoring();
   }
 
   onModuleDestroy() {
