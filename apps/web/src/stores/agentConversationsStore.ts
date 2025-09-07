@@ -96,6 +96,17 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
         this.conversations.splice(conversationIndex, 1);
         // Make API call
         await agentConversationsService.deleteConversation(conversationId);
+        
+        // ✅ NEW: Close any open tabs for this conversation
+        const { useAgentChatStore } = await import('./agentChatStore');
+        const agentChatStore = useAgentChatStore();
+        agentChatStore.closeConversation(conversationId);
+        
+        // ✅ NEW: Notify deliverables store about conversation deletion
+        const { useDeliverablesStore } = await import('./deliverablesStore');
+        const deliverablesStore = useDeliverablesStore();
+        deliverablesStore.handleConversationDeleted(conversationId);
+        
       } catch (error) {
 
         // Rollback on error - add the conversation back
