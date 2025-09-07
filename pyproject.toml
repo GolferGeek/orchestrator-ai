@@ -1,5 +1,5 @@
 [project]
-name = "orchestrator-ai"
+name = "orchestrator-ai-dev"
 version = "0.1.0"
 description = "Default template for PDM package"
 authors = [
@@ -7,7 +7,7 @@ authors = [
     {name = "GolferGeek", email = "golfergeek@gmail.com"},
 ]
 dependencies = []
-requires-python = "==3.9.*"
+requires-python = "==3.13.*"
 readme = "README.md"
 license = {text = "MIT"}
 

@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 // API endpoint configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:9000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:7100';
 // Deliverable types and interfaces
 export enum DeliverableType {
   DOCUMENT = 'document',

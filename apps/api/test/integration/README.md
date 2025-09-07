@@ -53,7 +53,7 @@ Tests performance baselines and measurements:
 ## Running Tests
 
 ### Prerequisites
-1. API server running on port 9000
+1. API server running on port 7000
 2. Supabase connection configured
 3. Ollama running locally (optional, but improves test coverage)
 

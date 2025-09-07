@@ -22,6 +22,26 @@ else
     echo -e "${RED}⚠️  No .env file found in project root${NC}"
 fi
 
+# Check and start local Supabase (DEV ONLY - port 54321)
+echo -e "${BLUE}🗄️  Checking local Supabase status...${NC}"
+if ! supabase status > /dev/null 2>&1; then
+    echo -e "${BLUE}🚀 Starting local Supabase development instance...${NC}"
+    supabase start
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ Local Supabase started successfully${NC}"
+        echo -e "${BLUE}   Studio: http://127.0.0.1:54323${NC}"
+        echo -e "${BLUE}   API: http://127.0.0.1:54321${NC}"
+        SUPABASE_STARTED_BY_SCRIPT=true
+    else
+        echo -e "${RED}❌ Failed to start local Supabase${NC}"
+        echo -e "${BLUE}💡 Try running: supabase start${NC}"
+    fi
+else
+    echo -e "${GREEN}✅ Local Supabase is already running${NC}"
+    # Show the current status briefly
+    supabase status | grep -E "(Studio URL|API URL)"
+fi
+
 # Function to cleanup on exit
 cleanup() {
     echo -e "\n${RED}🛑 Shutting down services...${NC}"
@@ -72,12 +92,20 @@ export VIRTUAL_ENV="$(pwd)/.venv"
 python_version=$(python --version 2>&1)
 echo -e "${GREEN}✅ Python environment active: $python_version${NC}"
 
-# Verify LangGraph is available
-if python -c "from langgraph.graph import StateGraph" 2>/dev/null; then
+# Verify LangGraph is available (with better error handling)
+echo -e "${BLUE}🔍 Checking LangGraph dependencies...${NC}"
+if .venv/bin/python -c "from langgraph.graph import StateGraph" 2>/dev/null; then
     echo -e "${GREEN}✅ LangGraph dependencies verified${NC}"
 else
-    echo -e "${RED}❌ LangGraph not available. Running 'pdm install'...${NC}"
+    echo -e "${YELLOW}⚠️  LangGraph not available in virtual environment${NC}"
+    echo -e "${BLUE}🔧 Running 'pdm install' to fix dependencies...${NC}"
     pdm install
+    if .venv/bin/python -c "from langgraph.graph import StateGraph" 2>/dev/null; then
+        echo -e "${GREEN}✅ LangGraph dependencies fixed${NC}"
+    else
+        echo -e "${YELLOW}⚠️  LangGraph still not available, but continuing...${NC}"
+        echo -e "${BLUE}💡 Python agents may not work properly${NC}"
+    fi
 fi
 
 # Start NestJS development server in background
@@ -89,7 +117,7 @@ NESTJS_PID=$!
 sleep 2
 
 echo -e "${GREEN}✅ Development environment ready!${NC}"
-echo -e "${BLUE}📡 NestJS API: http://localhost:${API_PORT:-9000}${NC}"
+echo -e "${BLUE}📡 NestJS API: http://localhost:${API_PORT:-7100}${NC}"
 echo -e "${BLUE}🐍 Python Virtual Environment: Active${NC}"
 echo -e "${BLUE}🔧 LangGraph: Available for Python agents${NC}"
 echo -e "\n${BLUE}Press Ctrl+C to stop all services${NC}"
