@@ -227,6 +227,7 @@ export class DynamicAgentsController {
         method: normalizedTaskRequest.method,
         prompt: normalizedTaskRequest.prompt,
         taskId: task.id,
+        conversationId: normalizedTaskRequest.conversationId, // Pass conversation ID to agent services
         currentUser,
         authToken: token,
         llmSelection: normalizedTaskRequest.llmSelection,

@@ -99,6 +99,7 @@ export class RunMetadataService {
     conversationId?: string;
     dataClassification?: string;
   }): Promise<MetadataContext> {
+    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] RunMetadataService.startRequest called with provider: ${routingDecision.provider}, model: ${routingDecision.model}, callerName: ${options?.callerName}`);
     const runId = this.generateRunId();
     const startTime = Date.now();
     
@@ -128,12 +129,13 @@ export class RunMetadataService {
     this.activeRuns.set(runId, context);
     
     // Insert initial record into database (async, non-blocking)
+    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Inserting initial usage record for runId: ${runId}`);
     this.insertUsageRecord(context, 'started')
       .then(() => {
-        this.logger.debug(`Started tracking run ${runId} for ${routingDecision.provider}/${routingDecision.model}`);
+        this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Successfully inserted initial usage record for ${runId} (${routingDecision.provider}/${routingDecision.model})`);
       })
       .catch(error => {
-        this.logger.error(`Failed to insert initial usage record for ${runId}:`, error);
+        this.logger.error(`🔍 [LLM-USAGE-DEBUG] Failed to insert initial usage record for ${runId}:`, error);
         // Continue execution even if database insert fails
       });
     
@@ -152,6 +154,7 @@ export class RunMetadataService {
       enhancedMetrics?: LLMUsageMetrics;
     }
   ): Promise<RunMetadata> {
+    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] RunMetadataService.completeRequest called for runId: ${context.runId}`);
     const endTime = Date.now();
     const duration = endTime - context.startTime;
     
@@ -177,6 +180,7 @@ export class RunMetadataService {
     };
 
     // Update database record (async, non-blocking)
+    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Updating usage record for runId: ${context.runId} with completion data`);
     this.updateUsageRecord(context.runId, {
       status: 'completed',
       inputTokens,
@@ -186,8 +190,10 @@ export class RunMetadataService {
       durationMs: duration,
       completedAt: new Date().toISOString(),
       enhancedMetrics: response.enhancedMetrics,
+    }).then(() => {
+      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Successfully updated usage record for runId: ${context.runId}`);
     }).catch(error => {
-      this.logger.error(`Failed to update usage record for ${context.runId}:`, error);
+      this.logger.error(`🔍 [LLM-USAGE-DEBUG] Failed to update usage record for ${context.runId}:`, error);
       // Continue execution even if database update fails
     });
 
@@ -324,30 +330,37 @@ export class RunMetadataService {
   private async insertUsageRecord(context: MetadataContext, status: string): Promise<void> {
     const client = this.supabaseService.getServiceClient();
     
+    const insertData = {
+      run_id: context.runId,
+      user_id: context.userId, // Ensure user_id is populated
+      caller_type: context.callerType || 'system',
+      agent_name: context.callerName || 'unknown',
+      conversation_id: context.conversationId, // Ensure conversation_id is populated
+      provider_name: context.provider, // Fixed: provider → provider_name
+      model_name: context.model, // Fixed: model → model_name
+      is_local: context.isLocal || false,
+      model_tier: context.modelTier,
+      fallback_used: context.fallbackUsed || false,
+      routing_reason: context.routingReason,
+      complexity_level: context.complexityLevel,
+      complexity_score: context.complexityScore,
+      data_classification: context.dataClassification,
+      status: status,
+      started_at: new Date(context.startTime).toISOString(),
+      duration_ms: 0,
+    };
+    
+    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Inserting into ${getTableName('llm_usage')} table:`, insertData);
+    
     const { error } = await client
       .from(getTableName('llm_usage'))
-      .insert({
-        run_id: context.runId,
-        user_id: context.userId,
-        caller_type: context.callerType || 'system',
-        caller_name: context.callerName || 'unknown',
-        conversation_id: context.conversationId,
-        provider_name: context.provider,
-        model_name: context.model,
-        is_local: context.isLocal || false,
-        model_tier: context.modelTier,
-        fallback_used: context.fallbackUsed || false,
-        routing_reason: context.routingReason,
-        complexity_level: context.complexityLevel,
-        complexity_score: context.complexityScore,
-        data_classification: context.dataClassification,
-        status: status,
-        started_at: new Date(context.startTime).toISOString(),
-        duration_ms: 0,
-      });
+      .insert(insertData);
 
     if (error) {
+      this.logger.error(`🔍 [LLM-USAGE-DEBUG] Database insert failed:`, error);
       throw new Error(`Failed to insert usage record: ${error.message}`);
+    } else {
+      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Database insert successful for runId: ${context.runId}`);
     }
   }
 
@@ -465,13 +478,18 @@ export class RunMetadataService {
       }
     }
 
+    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Updating ${getTableName('llm_usage')} table for runId: ${runId}`, updateData);
+    
     const { error } = await client
       .from(getTableName('llm_usage'))
       .update(updateData)
       .eq('run_id', runId);
 
     if (error) {
+      this.logger.error(`🔍 [LLM-USAGE-DEBUG] Database update failed for runId: ${runId}:`, error);
       throw new Error(`Failed to update usage record: ${error.message}`);
+    } else {
+      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Database update successful for runId: ${runId}`);
     }
   }
 

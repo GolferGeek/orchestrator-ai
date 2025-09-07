@@ -112,7 +112,8 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         const llmOptions: any = {
           callerType: 'agent',
           callerName: agentName,
-          conversationId: params.sessionId,
+          conversationId: params.conversationId, // Use proper conversation ID, not legacy sessionId
+          userId: this.extractUserId(params), // Add user ID for LLM usage tracking
           dataClassification: 'internal', // Default for context agents
           // Pass through the frontend model selection
           providerName: params.llmSelection?.providerName,
@@ -132,10 +133,11 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       } else {
         // Use standard LLM processing for first message
         const llmOptions = {
-          ...params, // Pass all params including LLM preferences
+          ...params,
+          userId: this.extractUserId(params), // Add user ID for LLM usage tracking
           callerType: 'agent',
           callerName: agentName,
-          conversationId: params.sessionId || params.conversationId || params.taskId,
+          conversationId: params.conversationId || params.taskId, // Use proper conversation ID
           dataClassification: 'internal', // Default for context agents
         };
         
@@ -291,6 +293,11 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    * Build system prompt using context data
    */
   private buildSystemPrompt(agentName: string, agentType: string): string {
+    // Debug logging to see what's happening with agent names
+    this.contextLogger.debug('🔍 [AGENT-DEBUG] buildSystemPrompt called with:', { agentName, agentType });
+    this.contextLogger.debug('🔍 [AGENT-DEBUG] contextData available:', !!this.contextData);
+    this.contextLogger.debug('🔍 [AGENT-DEBUG] contextData preview:', this.contextData?.substring(0, 100));
+    
     let prompt = `You are ${agentName}, a ${agentType} agent. Help the user with their request.`;
 
     if (this.contextData) {
@@ -298,6 +305,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       prompt += `\n\nUse this context to provide accurate and helpful responses. If the user's question is not covered by the context, say so and provide general assistance.`;
     }
 
+    this.contextLogger.debug('🔍 [AGENT-DEBUG] Final system prompt:', prompt.substring(0, 200));
     return prompt;
   }
 

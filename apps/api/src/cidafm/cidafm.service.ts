@@ -60,18 +60,31 @@ export class CIDAFMService {
       if (!uuidRegex.test(userId)) {
 
       } else {
-        let userQuery = client
+        // First check if user has any commands
+        const { data: userCommandIds } = await client
           .from('user_cidafm_commands')
-          .select('*')
+          .select('command_id')
           .eq('user_id', userId)
+          .eq('is_active', true);
+
+        if (!userCommandIds || userCommandIds.length === 0) {
+          return []; // User has no commands
+        }
+
+        // Get the actual command details
+        const commandIds = userCommandIds.map(uc => uc.command_id);
+        let commandQuery = client
+          .from('cidafm_commands')
+          .select('*')
+          .in('id', commandIds)
           .order('type')
           .order('name');
 
         if (filters.type) {
-          userQuery = userQuery.eq('type', filters.type);
+          commandQuery = commandQuery.eq('type', filters.type);
         }
 
-        const { data: userCommands, error: userError } = await userQuery;
+        const { data: userCommands, error: userError } = await commandQuery;
 
         if (userError) {
           throw new HttpException(
@@ -110,9 +123,9 @@ export class CIDAFMService {
       return builtinCommand;
     }
 
-    // If not found in built-in, try user commands
+    // If not found in built-in, try regular commands
     const { data: userCommand } = await client
-      .from('user_cidafm_commands')
+      .from('cidafm_commands')
       .select('*')
       .eq('id', id)
       .single();
@@ -128,113 +141,96 @@ export class CIDAFMService {
     return null;
   }
 
-  async createUserCommand(
+  async addUserCommand(
     userId: string,
-    createCommandDto: CreateCIDAFMCommandDto,
+    commandId: string,
   ): Promise<CIDAFMCommandResponseDto> {
     const client = this.supabaseService.getServiceClient();
 
-    // Check if user already has a command with this name and type
-    const { data: existingCommand } = await client
+    // Check if the command exists in the catalog
+    const { data: command } = await client
+      .from('cidafm_commands')
+      .select('*')
+      .eq('id', commandId)
+      .single();
+
+    if (!command) {
+      throw new HttpException(
+        'Command not found in catalog',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check if user already has this command
+    const { data: existingUserCommand } = await client
       .from('user_cidafm_commands')
       .select('id')
       .eq('user_id', userId)
-      .eq('type', createCommandDto.type)
-      .eq('name', createCommandDto.name)
+      .eq('command_id', commandId)
       .single();
 
-    if (existingCommand) {
+    if (existingUserCommand) {
       throw new HttpException(
-        'Command name already exists for this user and type',
+        'User already has this command in their list',
         HttpStatus.CONFLICT,
       );
     }
 
-    const { data, error } = await client
+    // Add the command to user's list
+    const { error: linkError } = await client
       .from('user_cidafm_commands')
       .insert({
         user_id: userId,
-        type: createCommandDto.type,
-        name: createCommandDto.name,
-        description: createCommandDto.description,
-      })
-      .select()
-      .single();
+        command_id: commandId,
+        is_active: true,
+      });
 
-    if (error) {
+    if (linkError) {
       throw new HttpException(
-        `Failed to create user command: ${error.message}`,
+        `Failed to add command to user list: ${linkError.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
 
     return {
-      ...data,
+      ...command,
       default_active: false,
-      is_builtin: false,
     };
   }
 
   async updateUserCommand(
     userId: string,
     commandId: string,
-    updateCommandDto: Partial<CreateCIDAFMCommandDto>,
+    isActive: boolean,
   ): Promise<CIDAFMCommandResponseDto | null> {
     const client = this.supabaseService.getServiceClient();
 
-    // Check if command exists and belongs to user
-    const { data: existing } = await client
+    // Check if user has this command and update its active status
+    const { data: userCommand, error } = await client
       .from('user_cidafm_commands')
-      .select('*')
-      .eq('id', commandId)
+      .update({ is_active: isActive })
+      .eq('command_id', commandId)
       .eq('user_id', userId)
+      .select(`
+        *,
+        cidafm_commands (
+          id,
+          name,
+          type,
+          description,
+          default_active,
+          is_builtin
+        )
+      `)
       .single();
 
-    if (!existing) {
-      return null;
-    }
-
-    // If updating name, check for conflicts
-    if (updateCommandDto.name && updateCommandDto.name !== existing.name) {
-      const { data: conflictCommand } = await client
-        .from('user_cidafm_commands')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('type', updateCommandDto.type || existing.type)
-        .eq('name', updateCommandDto.name)
-        .neq('id', commandId)
-        .single();
-
-      if (conflictCommand) {
-        throw new HttpException(
-          'Command name already exists for this user and type',
-          HttpStatus.CONFLICT,
-        );
-      }
-    }
-
-    const { data, error } = await client
-      .from('user_cidafm_commands')
-      .update({
-        ...updateCommandDto,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', commandId)
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-    if (error) {
-      throw new HttpException(
-        `Failed to update user command: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+    if (error || !userCommand) {
+      return null; // User doesn't have this command
     }
 
     return {
-      ...data,
+      ...userCommand.cidafm_commands,
       default_active: false,
-      is_builtin: false,
     };
   }
 
