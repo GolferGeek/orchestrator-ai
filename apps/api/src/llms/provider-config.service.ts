@@ -82,7 +82,7 @@ export class ProviderConfigService {
     // Anthropic Configuration
     this.providerConfigs.set('anthropic', {
       name: 'Anthropic',
-      baseUrl: 'https://api.anthropic.com/v1',
+      baseUrl: 'https://api.anthropic.com',
       defaultHeaders: {
         'User-Agent': 'OrchestratorAI/1.0',
         'anthropic-version': '2023-06-01',

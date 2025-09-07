@@ -195,7 +195,7 @@ INSERT INTO public.llm_models (
  '{"input_cost_per_token": 0.000003, "output_cost_per_token": 0.000015}'::jsonb,
  '["function_calling", "streaming", "vision", "balanced", "high_output"]'::jsonb, true),
 
-('claude-3.5-haiku', 'anthropic', 'Claude 3.5 Haiku', 'text-generation', 200000, 8192,
+('claude-3.5-haiku-20241022', 'anthropic', 'Claude 3.5 Haiku', 'text-generation', 200000, 8192,
  '{"input_cost_per_token": 0.0008, "output_cost_per_token": 0.004}'::jsonb,
  '["streaming", "fast", "low_latency", "cost_effective"]'::jsonb, true),
 
