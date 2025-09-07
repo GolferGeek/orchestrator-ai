@@ -14,8 +14,8 @@ export interface AnalyticsFilters {
   timeRange?: TimeRange;
   userId?: string;
   userRole?: string;
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   projectId?: string;
   taskId?: string;
   status?: string;

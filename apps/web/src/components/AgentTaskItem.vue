@@ -315,9 +315,7 @@ const llmUsed = computed(() => {
   if (!metadata?.llmMetadata) return null;
   
   return {
-    providerId: metadata.llmMetadata.providerId,
     providerName: metadata.llmMetadata.provider || metadata.llmMetadata.providerName,
-    modelId: metadata.llmMetadata.modelId,
     modelName: metadata.llmMetadata.model || metadata.llmMetadata.modelName,
     temperature: metadata.llmMetadata.temperature,
     maxTokens: metadata.llmMetadata.maxTokens,

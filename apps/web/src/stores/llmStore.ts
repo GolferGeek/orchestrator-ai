@@ -42,8 +42,8 @@ export const useLLMStore = defineStore('llm', {
         },
       };
       return {
-        providerId: this.selectedProvider?.id,
-        modelId: this.selectedModel?.id,
+        providerName: this.selectedProvider?.name,
+        modelName: this.selectedModel?.modelName,
         cidafmOptions: Object.keys(cidafmOptions).some(key => cidafmOptions[key as keyof CIDAFMOptions] !== undefined) ? cidafmOptions : undefined,
         temperature: this.temperature,
         maxTokens: this.maxTokens,
@@ -52,7 +52,7 @@ export const useLLMStore = defineStore('llm', {
     // Get models for the currently selected provider
     availableModels(): Model[] {
       if (!this.selectedProvider) return this.models;
-      return this.models.filter(model => model.providerId === this.selectedProvider?.id);
+      return this.models.filter(model => model.providerName === this.selectedProvider?.name);
     },
     // Get built-in CIDAFM commands grouped by type
     builtinCommandsByType(): Record<string, CIDAFMCommand[]> {
@@ -77,12 +77,12 @@ export const useLLMStore = defineStore('llm', {
       return !!(this.selectedProvider && this.selectedModel);
     },
     // Get provider by ID
-    getProviderById: (state) => (id: string): Provider | undefined => {
-      return state.providers.find(p => p.id === id);
+    getProviderByName: (state) => (name: string): Provider | undefined => {
+      return state.providers.find(p => p.name === name);
     },
-    // Get model by ID
-    getModelById: (state) => (id: string): Model | undefined => {
-      return state.models.find(m => m.id === id);
+    // Get model by name
+    getModelByName: (state) => (providerName: string, modelName: string): Model | undefined => {
+      return state.models.find(m => m.providerName === providerName && m.modelName === modelName);
     },
   },
   actions: {
@@ -173,16 +173,16 @@ export const useLLMStore = defineStore('llm', {
       if (this.selectedProvider && this.availableModels.length > 0 && !this.selectedModel) {
         // Default to thinking models for content creation
         const thinkingModel = this.availableModels.find(m => 
-          m.modelId.includes('deepseek-r1') ||
-          m.modelId.includes('qwq') ||
-          m.modelId.includes('qwen') ||
+          m.modelName.includes('deepseek-r1') ||
+          m.modelName.includes('qwq') ||
+          m.modelName.includes('qwen') ||
           m.name.toLowerCase().includes('reasoning') ||
           m.name.toLowerCase().includes('thinking')
         );
         // Fallback to GPT models if no thinking models available
         const fallbackModel = this.availableModels.find(m => 
-          m.modelId.includes('gpt-4o-mini') || 
-          m.modelId.includes('gpt-3.5-turbo')
+          m.modelName.includes('gpt-4o-mini') || 
+          m.modelName.includes('gpt-3.5-turbo')
         );
         this.selectedModel = thinkingModel || fallbackModel || this.availableModels[0];
       }
@@ -191,7 +191,7 @@ export const useLLMStore = defineStore('llm', {
     setProvider(provider: Provider) {
       this.selectedProvider = provider;
       // Clear model if it doesn't belong to this provider
-      if (this.selectedModel && this.selectedModel.providerId !== provider.id) {
+      if (this.selectedModel && this.selectedModel.providerName !== provider.name) {
         this.selectedModel = undefined;
       }
       // Auto-select first available model for this provider
@@ -203,8 +203,8 @@ export const useLLMStore = defineStore('llm', {
     setModel(model: Model) {
       this.selectedModel = model;
       // Ensure provider is also selected
-      if (!this.selectedProvider || this.selectedProvider.id !== model.providerId) {
-        this.selectedProvider = this.getProviderById(model.providerId);
+      if (!this.selectedProvider || this.selectedProvider.name !== model.providerName) {
+        this.selectedProvider = this.getProviderByName(model.providerName);
       }
     },
     // Toggle CIDAFM command selection
@@ -258,11 +258,11 @@ export const useLLMStore = defineStore('llm', {
         const saved = localStorage.getItem('llm-preferences');
         if (saved) {
           const preferences = JSON.parse(saved);
-          if (preferences.selectedProviderId) {
-            this.selectedProvider = this.getProviderById(preferences.selectedProviderId);
+          if (preferences.selectedProviderName) {
+            this.selectedProvider = this.getProviderByName(preferences.selectedProviderName);
           }
-          if (preferences.selectedModelId) {
-            this.selectedModel = this.getModelById(preferences.selectedModelId);
+          if (preferences.selectedProviderName && preferences.selectedModelName) {
+            this.selectedModel = this.getModelByName(preferences.selectedProviderName, preferences.selectedModelName);
           }
           this.selectedCIDAFMCommands = preferences.selectedCIDAFMCommands || [];
           this.customModifiers = preferences.customModifiers || [];
@@ -277,8 +277,8 @@ export const useLLMStore = defineStore('llm', {
     saveToLocalStorage() {
       try {
         const preferences = {
-          selectedProviderId: this.selectedProvider?.id,
-          selectedModelId: this.selectedModel?.id,
+          selectedProviderName: this.selectedProvider?.name,
+          selectedModelName: this.selectedModel?.modelName,
           selectedCIDAFMCommands: this.selectedCIDAFMCommands,
           customModifiers: this.customModifiers,
           temperature: this.temperature,

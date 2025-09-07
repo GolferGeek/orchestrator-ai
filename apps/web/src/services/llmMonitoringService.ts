@@ -27,8 +27,8 @@ class LLMMonitoringService {
       const params = new URLSearchParams();
       if (request.startDate) params.append('start_date', request.startDate);
       if (request.endDate) params.append('end_date', request.endDate);
-      if (request.providerId) params.append('provider_id', request.providerId);
-      if (request.modelId) params.append('model_id', request.modelId);
+      if (request.providerName) params.append('provider_name', request.providerName);
+      if (request.modelName) params.append('model_name', request.modelName);
       if (request.includeDetails !== undefined) params.append('include_details', request.includeDetails.toString());
       if (request.granularity) params.append('granularity', request.granularity);
 

@@ -25,8 +25,8 @@ interface Task {
   updatedAt: string;
 }
 interface LLMSelection {
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   cidafmOptions?: {
     activeStateModifiers?: string[];
     responseModifiers?: string[];

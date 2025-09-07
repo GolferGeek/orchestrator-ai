@@ -154,8 +154,8 @@ class AnalyticsService {
       const params = new URLSearchParams();
       if (filters.timeRange?.startDate) params.append('start_date', filters.timeRange.startDate);
       if (filters.timeRange?.endDate) params.append('end_date', filters.timeRange.endDate);
-      if (filters.providerId) params.append('provider_id', filters.providerId);
-      if (filters.modelId) params.append('model_id', filters.modelId);
+      if (filters.providerName) params.append('provider_name', filters.providerName);
+      if (filters.modelName) params.append('model_name', filters.modelName);
       if (filters.includeDetails !== undefined) params.append('include_details', filters.includeDetails.toString());
       if (filters.granularity) params.append('granularity', filters.granularity);
 

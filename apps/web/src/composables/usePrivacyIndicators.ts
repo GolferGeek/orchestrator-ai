@@ -125,7 +125,7 @@ export function usePrivacyIndicators(options: PrivacyIndicatorOptions = {}) {
     }
     
     const llmMeta = currentMessage.value.metadata.llmMetadata;
-    const provider = llmMeta.providerId || llmMeta.providerName;
+    const provider = llmMeta.providerName || llmMeta.providerId;
     
     // Determine routing mode based on provider
     let mode: 'local' | 'external' | 'hybrid' = 'external';

@@ -77,8 +77,8 @@ export interface EvaluationWithMessage {
     userEmail?: string;
   };
   // Optional fields
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   responseTimeMs?: number;
   cost?: number;
   provider?: {
@@ -90,7 +90,7 @@ export interface EvaluationWithMessage {
     id: string;
     name: string;
     description?: string;
-    providerId: string;
+    providerName: string;
   };
 }
 export interface AllEvaluationsResponse {

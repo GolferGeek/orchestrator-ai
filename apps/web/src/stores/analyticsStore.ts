@@ -269,8 +269,8 @@ export const useAnalyticsStore = defineStore('analytics', () => {
     try {
       const filterParams = {
         timeRange: currentTimeRange.value,
-        providerId: filters.value.provider !== 'all' ? filters.value.provider : undefined,
-        modelId: filters.value.model !== 'all' ? filters.value.model : undefined,
+        providerName: filters.value.provider !== 'all' ? filters.value.provider : undefined,
+        modelName: filters.value.model !== 'all' ? filters.value.model : undefined,
         granularity: filters.value.granularity,
         includeDetails: filters.value.includeDetails,
         ...customFilters
@@ -630,8 +630,8 @@ export const useAnalyticsStore = defineStore('analytics', () => {
         filters: {
           timeRange: currentTimeRange.value,
           userRole: filters.value.userRole !== 'all' ? filters.value.userRole : undefined,
-          providerId: filters.value.provider !== 'all' ? filters.value.provider : undefined,
-          modelId: filters.value.model !== 'all' ? filters.value.model : undefined
+          providerName: filters.value.provider !== 'all' ? filters.value.provider : undefined,
+          modelName: filters.value.model !== 'all' ? filters.value.model : undefined
         },
         sections: ['dashboard', 'evaluation', 'usage', 'projects', 'tasks']
       });

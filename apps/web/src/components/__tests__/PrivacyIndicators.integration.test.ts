@@ -47,7 +47,7 @@ const createWrapper = (messageProps = {}, componentProps = {}) => {
     timestamp: new Date(),
     metadata: {
       llmMetadata: {
-        providerId: 'openai',
+        providerName: 'openai',
         responseTimeMs: 250
       }
     },
@@ -198,7 +198,7 @@ describe('Privacy Indicators Integration', () => {
         timestamp: new Date(),
         metadata: {
           llmMetadata: {
-            providerId: 'local',
+            providerName: 'local',
             responseTimeMs: 150
           }
         }
@@ -261,7 +261,7 @@ describe('Privacy Indicators Integration', () => {
         timestamp: new Date(),
         metadata: {
           llmMetadata: {
-            providerId: 'local'
+            providerName: 'local'
           }
         }
       };
@@ -299,7 +299,7 @@ describe('Privacy Indicators Integration', () => {
         id: 'test-message-1',
         metadata: {
           llmMetadata: {
-            providerId: 'local'
+            providerName: 'local'
           }
         }
       });

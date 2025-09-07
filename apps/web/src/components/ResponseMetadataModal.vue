@@ -116,13 +116,13 @@
         <div class="metadata-section" v-if="hasUserPreferences">
           <h3>User LLM Preferences</h3>
           <div class="metadata-grid">
-            <div class="metadata-item" v-if="metadata.userLLMPreferences?.providerId">
+            <div class="metadata-item" v-if="metadata.userLLMPreferences?.providerName">
               <span class="label">Requested Provider:</span>
-              <span class="value">{{ metadata.userLLMPreferences.providerId }}</span>
+              <span class="value">{{ metadata.userLLMPreferences.providerName }}</span>
             </div>
-            <div class="metadata-item" v-if="metadata.userLLMPreferences?.modelId">
+            <div class="metadata-item" v-if="metadata.userLLMPreferences?.modelName">
               <span class="label">Requested Model:</span>
-              <span class="value">{{ metadata.userLLMPreferences.modelId }}</span>
+              <span class="value">{{ metadata.userLLMPreferences.modelName }}</span>
             </div>
             <div class="metadata-item" v-if="metadata.userLLMPreferences?.temperature !== undefined">
               <span class="label">Requested Temperature:</span>
