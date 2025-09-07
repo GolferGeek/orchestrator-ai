@@ -169,8 +169,8 @@ export class LLMService {
       maxTokens?: number;
       provider?: 'openai' | 'anthropic' | 'ollama' | 'google';
       // Support full LLM preferences from UI
-      providerId?: string;
-      modelId?: string;
+      providerName?: string;
+      modelName?: string;
       cidafmOptions?: CIDAFMOptions;
       authToken?: string;
       sessionId?: string;
@@ -187,8 +187,8 @@ export class LLMService {
     try {
       // Debug LLM options being received
 
-      // If providerId/modelId are provided, delegate to enhanced response for proper DB lookup
-      if (options?.providerId || options?.modelId || options?.cidafmOptions) {
+      // If providerName/modelName are provided, delegate to enhanced response for proper DB lookup
+      if (options?.providerName || options?.modelName || options?.cidafmOptions) {
 
         // Extract user ID from currentUser object or use undefined as fallback
         const userId = options.currentUser?.id;
@@ -198,8 +198,8 @@ export class LLMService {
           systemPrompt,
           userMessage,
           {
-            providerId: options.providerId,
-            modelId: options.modelId,
+            provider: options.providerName,
+            model: options.modelName,
             cidafmOptions: options.cidafmOptions,
             sessionId: options.sessionId,
             temperature: options.temperature,
@@ -217,7 +217,7 @@ export class LLMService {
       }
 
       // Use centralized routing for intelligent provider/model selection
-      if (options?.complexity || options?.callerType || (!options?.provider && !options?.modelId)) {
+      if (options?.complexity || options?.callerType || (!options?.provider && !options?.modelName)) {
         const centralizedResult = await this.generateCentralizedResponse(
           systemPrompt,
           userMessage,
@@ -225,7 +225,7 @@ export class LLMService {
             temperature: options?.temperature,
             maxTokens: options?.maxTokens,
             provider: options?.provider,
-            model: options?.modelId,
+            model: options?.modelName,
             preferLocal: true, // Default to preferring local models
             maxComplexity: options?.complexity, // Pass complexity hint to routing
             authToken: options?.authToken,
@@ -311,7 +311,7 @@ export class LLMService {
         options?.temperature || options?.maxTokens || options?.provider
           ? this.createCustomLangGraphLLM({
               provider: provider as any,
-              model: options?.modelId,
+              model: options?.modelName,
               temperature: options?.temperature,
               maxTokens: options?.maxTokens,
             })
@@ -370,8 +370,8 @@ export class LLMService {
     systemPrompt: string,
     userMessage: string,
     options?: {
-      providerId?: string;
-      modelId?: string;
+      provider?: string;
+      model?: string;
       cidafmOptions?: CIDAFMOptions;
       sessionId?: string;
       temperature?: number;
@@ -390,9 +390,7 @@ export class LLMService {
     processedPrompt: string;
     cidafmState?: any;
     llmMetadata?: {
-      providerId: string;
       providerName: string;
-      modelId: string;
       modelName: string;
       temperature?: number;
       maxTokens?: number;
@@ -406,8 +404,8 @@ export class LLMService {
 
       // Get provider and model information from database
       const { provider, model } = await this.getProviderAndModel(
-        options?.providerId,
-        options?.modelId,
+        options?.provider,
+        options?.model,
       );
 
       // Start usage tracking
@@ -653,9 +651,7 @@ export class LLMService {
         cidafmState,
         // Include LLM metadata for transparency
         llmMetadata: {
-          providerId: provider.id,
           providerName: provider.name,
-          modelId: model.id,
           modelName: model.name,
           temperature: options?.temperature,
           maxTokens: options?.maxTokens,
@@ -1227,9 +1223,7 @@ export class LLMService {
     processedPrompt: string;
     cidafmState?: any;
     llmMetadata?: {
-      providerId: string;
       providerName: string;
-      modelId: string;
       modelName: string;
       temperature?: number;
       maxTokens?: number;
@@ -1244,8 +1238,8 @@ export class LLMService {
         systemPrompt,
         userMessage,
         {
-          providerId: userPreferences.providerId,
-          modelId: userPreferences.modelId,
+          provider: userPreferences.providerName,
+          model: userPreferences.modelName,
           cidafmOptions: userPreferences.cidafmOptions,
           sessionId: sessionId,
           temperature: userPreferences.temperature,
@@ -1446,19 +1440,22 @@ export class LLMService {
 
 
   /**
-   * Get provider and model from database by IDs, with fallback to defaults
+   * Get provider and model from database by names, with fallback to defaults
    */
   private async getProviderAndModel(
-    providerId?: string,
-    modelId?: string,
+    providerName?: string,
+    modelName?: string,
   ): Promise<{ provider: Provider; model: Model }> {
     const client = this.supabaseService.getServiceClient();
 
     // If both are provided, fetch them
-    if (providerId && modelId) {
+    if (providerName && modelName) {
       const [providerResult, modelResult] = await Promise.all([
-        client.from(getTableName('llm_providers')).select('*').eq('id', providerId).single(),
-        client.from(getTableName('llm_models')).select('*').eq('id', modelId).single(),
+        client.from(getTableName('llm_providers')).select('*').eq('name', providerName).single(),
+        client.from(getTableName('llm_models')).select('*')
+          .eq('model_name', modelName)
+          .eq('provider_name', providerName)
+          .single(),
       ]);
 
       if (providerResult.data && modelResult.data) {
@@ -1469,43 +1466,25 @@ export class LLMService {
       }
     }
 
-    // Fallback to default OpenAI GPT-4o mini
+    // Fallback to default OpenAI o1-mini (from our 2025 models)
     const { data: defaultProvider } = await client
       .from(getTableName('llm_providers'))
       .select('*')
-      .eq('name', 'OpenAI')
+      .eq('name', 'openai')
       .single();
 
     const { data: defaultModel } = await client
       .from(getTableName('llm_models'))
       .select('*')
-      .eq('model_id', 'gpt-4o-mini')
+      .eq('model_name', 'o1-mini')
+      .eq('provider_name', 'openai')
       .single();
 
     if (!defaultProvider || !defaultModel) {
-      // If even the default fallback fails, return minimal working defaults
-      this.logger.warn('Default provider/model not found in database, using hardcoded fallbacks');
-      return {
-        provider: {
-          id: 'fallback-ollama',
-          name: 'Ollama',
-          apiBaseUrl: 'http://localhost:11434',
-          authType: 'none',
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        model: {
-          id: 'fallback-model',
-          name: 'unknown',
-          providerId: 'ollama',
-          modelId: 'unknown',
-          supportsThinking: false,
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      };
+      // If no default provider/model found, this is a configuration error
+      throw new Error(
+        'No default provider/model found in database. Please ensure the database is properly populated with LLM providers and models.'
+      );
     }
 
     return {
@@ -1530,7 +1509,7 @@ export class LLMService {
     const { data: provider } = await client
       .from(getTableName('llm_providers'))
       .select('*')
-      .eq('id', model.providerId)
+      .eq('name', model.providerName)
       .single();
 
     if (!provider) {
@@ -1556,7 +1535,7 @@ export class LLMService {
 
     return this.createCustomLangGraphLLM({
       provider: providerType as any,
-      model: model.modelId,
+      model: model.name,
       temperature: overrides?.temperature,
       maxTokens: overrides?.maxTokens || model.maxTokens,
       baseUrl: mappedProvider.apiBaseUrl,

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
 export interface LLMCallOptions {
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   temperature?: number;
   maxTokens?: number;
   cidafmOptions?: any;
@@ -100,9 +100,9 @@ class LLMServiceClient:
         options = {}
         
         if provider_id:
-            options["providerId"] = provider_id
+            options["providerName"] = provider_id
         if model_id:
-            options["modelId"] = model_id
+            options["modelName"] = model_id
         if temperature is not None:
             options["temperature"] = temperature
         if max_tokens:
@@ -198,7 +198,7 @@ def merge_llm_preferences(
     
     # User preferences take priority
     preference_keys = [
-        'providerId', 'modelId', 'temperature', 'maxTokens', 
+        'providerName', 'modelName', 'temperature', 'maxTokens', 
         'cidafmOptions', 'authToken', 'sessionId'
     ]
     
@@ -212,8 +212,8 @@ def extract_user_preferences(metadata: Dict[str, Any]) -> Dict[str, Any]:
     """Extract LLM preferences from agent metadata"""
     llm_prefs = metadata.get('llmPreferences', {})
     return {
-        'providerId': llm_prefs.get('providerId'),
-        'modelId': llm_prefs.get('modelId'),
+        'providerName': llm_prefs.get('providerName'),
+        'modelName': llm_prefs.get('modelName'),
         'temperature': llm_prefs.get('temperature'),
         'maxTokens': llm_prefs.get('maxTokens'),
         'cidafmOptions': llm_prefs.get('cidafmOptions'),

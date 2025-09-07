@@ -81,10 +81,10 @@ export interface SystemLLMConfigs {
  * User-configurable settings for their actual work
  */
 export interface UserLLMPreferences {
-  /** User's preferred provider ID from database */
-  providerId?: string;
-  /** User's preferred model ID from database */
-  modelId?: string;
+  /** User's preferred provider name from database */
+  providerName?: string;
+  /** User's preferred model name from database */
+  modelName?: string;
   /** User's preferred temperature setting */
   temperature?: number;
   /** User's preferred max tokens */
@@ -106,10 +106,8 @@ export interface Provider {
 }
 
 export interface Model {
-  id: string;
-  providerId: string;
   name: string;
-  modelId: string;
+  providerName: string;
   pricingInputPer1k?: number;
   pricingOutputPer1k?: number;
   supportsThinking: boolean;
@@ -150,8 +148,8 @@ export interface UserUsageStats {
   id: string;
   userId: string;
   date: string; // Date string in YYYY-MM-DD format
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   totalRequests: number;
   totalTokens: number;
   totalCost: number;
@@ -241,8 +239,8 @@ export interface EnhancedMessage {
   metadata?: Record<string, any>;
 
   // LLM Selection
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
 
   // Usage Metrics
   inputTokens?: number;
@@ -408,8 +406,8 @@ export interface EvaluationUIState {
 // ==================== API Request/Response Types ====================
 
 export interface LLMSelectionRequest {
-  providerId: string;
-  modelId: string;
+  providerName: string;
+  modelName: string;
   cidafmOptions?: CIDAFMOptions;
 }
 
@@ -424,8 +422,8 @@ export interface MessageEvaluationRequest {
 export interface UsageStatsRequest {
   startDate?: string;
   endDate?: string;
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   includeDetails?: boolean;
 }
 

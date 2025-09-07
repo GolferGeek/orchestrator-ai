@@ -139,13 +139,13 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           conversationId: params.sessionId,
           dataClassification: 'internal', // Default for context agents
           // Pass through the frontend model selection
-          providerId: params.llmSelection?.providerId,
-          modelId: params.llmSelection?.modelId,
+          providerName: params.llmSelection?.providerName,
+          modelName: params.llmSelection?.modelName,
           cidafmOptions: params.llmSelection?.cidafmOptions,
           temperature: params.llmSelection?.temperature,
         };
         
-        this.contextLogger.debug(`🌐 [${agentName}] [HISTORY] Using frontend model selection: providerId=${llmOptions.providerId}, modelId=${llmOptions.modelId}`);
+        this.contextLogger.debug(`🌐 [${agentName}] [HISTORY] Using frontend model selection: providerName=${llmOptions.providerName}, modelName=${llmOptions.modelName}`);
         
         llmResult = await this.services.llmService.generateResponse(
           systemPrompt,

@@ -8,6 +8,7 @@ import {
   EnhancedMessage,
   UserUsageStats,
 } from '../types/llm-evaluation';
+import { ModelResponseDto } from '../dto/llm-evaluation.dto';
 
 // Generic function to convert snake_case to camelCase
 export function snakeToCamel(obj: any): any {
@@ -82,10 +83,8 @@ export function mapProviderToDb(provider: Partial<Provider>): any {
 
 export function mapModelFromDb(dbModel: any): Model {
   return {
-    id: dbModel.id,
-    providerId: dbModel.provider_id,
-    name: dbModel.name,
-    modelId: dbModel.model_id,
+    name: dbModel.model_name,
+    providerName: dbModel.provider_name,
     pricingInputPer1k: dbModel.pricing_input_per_1k,
     pricingOutputPer1k: dbModel.pricing_output_per_1k,
     supportsThinking: dbModel.supports_thinking,
@@ -105,10 +104,8 @@ export function mapModelFromDb(dbModel: any): Model {
 
 export function mapModelToDb(model: Partial<Model>): any {
   return {
-    id: model.id,
-    provider_id: model.providerId,
-    name: model.name,
-    model_id: model.modelId,
+    provider_name: model.providerName,
+    model_name: model.name,
     pricing_input_per_1k: model.pricingInputPer1k,
     pricing_output_per_1k: model.pricingOutputPer1k,
     supports_thinking: model.supportsThinking,
@@ -123,18 +120,17 @@ export function mapModelToDb(model: Partial<Model>): any {
   };
 }
 
-// New mapping function specifically for llm_models table structure
-export function mapLLMModelFromDb(dbModel: any): Model {
+// New mapping function specifically for llm_models table structure  
+export function mapLLMModelFromDb(dbModel: any): ModelResponseDto {
   // Extract pricing info from JSON
   const pricingInfo = dbModel.pricing_info_json || {};
   const inputCostPer1k = (pricingInfo.input_cost_per_token || 0) * 1000;
   const outputCostPer1k = (pricingInfo.output_cost_per_token || 0) * 1000;
 
   return {
-    id: dbModel.id,
-    providerId: dbModel.provider_id,
+    providerName: dbModel.provider_name,
     name: dbModel.display_name || dbModel.model_name, // Use display_name as the friendly name
-    modelId: dbModel.model_name, // Use model_name as the technical ID
+    modelName: dbModel.model_name, // Use model_name as the technical ID
     pricingInputPer1k: inputCostPer1k,
     pricingOutputPer1k: outputCostPer1k,
     supportsThinking: dbModel.capabilities?.includes('reasoning') || false,
@@ -202,8 +198,8 @@ export function mapEnhancedMessageFromDb(dbMessage: any): EnhancedMessage {
     timestamp: dbMessage.timestamp,
     order: dbMessage.order,
     metadata: dbMessage.metadata,
-    providerId: dbMessage.provider_id,
-    modelId: dbMessage.model_id,
+    providerName: dbMessage.provider_name,
+    modelName: dbMessage.model_name,
     inputTokens: dbMessage.input_tokens,
     outputTokens: dbMessage.output_tokens,
     totalCost: dbMessage.total_cost,
@@ -233,8 +229,8 @@ export function mapEnhancedMessageToDb(message: Partial<EnhancedMessage>): any {
     timestamp: message.timestamp,
     order: message.order,
     metadata: message.metadata,
-    provider_id: message.providerId,
-    model_id: message.modelId,
+    provider_name: message.providerName,
+    model_name: message.modelName,
     inputTokens: message.inputTokens,
     outputTokens: message.outputTokens,
     totalCost: message.totalCost,
@@ -255,8 +251,8 @@ export function mapUserUsageStatsFromDb(dbStats: any): UserUsageStats {
     id: dbStats.id,
     userId: dbStats.user_id,
     date: dbStats.date,
-    providerId: dbStats.provider_id,
-    modelId: dbStats.model_id,
+    providerName: dbStats.provider_name,
+    modelName: dbStats.model_name,
     totalRequests: dbStats.total_requests,
     totalTokens: dbStats.total_tokens,
     totalCost: dbStats.total_cost,
@@ -276,8 +272,8 @@ export function mapUserUsageStatsToDb(stats: Partial<UserUsageStats>): any {
     id: stats.id,
     user_id: stats.userId,
     date: stats.date,
-    provider_id: stats.providerId,
-    model_id: stats.modelId,
+    provider_name: stats.providerName,
+    model_name: stats.modelName,
     totalRequests: stats.totalRequests,
     totalTokens: stats.totalTokens,
     totalCost: stats.totalCost,

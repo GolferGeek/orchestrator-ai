@@ -12,7 +12,7 @@ import { mapModelFromDb, mapLLMModelFromDb } from '../utils/case-converter';
 import { getTableName } from '../supabase/supabase.config';
 
 interface ModelFilters {
-  providerId?: string;
+  providerName?: string;
   status?: ModelStatus;
   supportsThinking?: boolean;
   includeProvider?: boolean;
@@ -60,8 +60,8 @@ export class ModelsService {
       .select(selectClause)
       .order('display_name');
 
-    if (filters.providerId) {
-      query = query.eq('provider_id', filters.providerId);
+    if (filters.providerName) {
+      query = query.eq('provider_name', filters.providerName);
     }
 
     if (filters.status) {
@@ -140,7 +140,7 @@ export class ModelsService {
 
   async findByModelId(
     modelId: string,
-    providerId?: string,
+    providerName?: string,
   ): Promise<ModelResponseDto | null> {
     const client = this.supabaseService.getServiceClient();
 
@@ -149,8 +149,8 @@ export class ModelsService {
       .select(`*, provider:llm_providers(*)`)
       .eq('model_name', modelId);
 
-    if (providerId) {
-      query = query.eq('provider_id', providerId);
+    if (providerName) {
+      query = query.eq('provider_name', providerName);
     }
 
     const { data, error } = await query.single();
@@ -174,20 +174,20 @@ export class ModelsService {
     // Check if provider exists
     const { data: provider } = await client
       .from(getTableName('llm_providers'))
-      .select('id')
-      .eq('id', createModelDto.providerId)
+      .select('name')
+      .eq('name', createModelDto.providerName)
       .single();
 
     if (!provider) {
       throw new HttpException('Provider not found', HttpStatus.NOT_FOUND);
     }
 
-    // Check if model_id already exists for this provider
+    // Check if model_name already exists for this provider
     const { data: existingModel } = await client
       .from(getTableName('llm_models'))
-      .select('id')
-      .eq('provider_id', createModelDto.providerId)
-      .eq('model_name', createModelDto.modelId)
+      .select('model_name')
+      .eq('provider_name', createModelDto.providerName)
+      .eq('model_name', createModelDto.modelName)
       .single();
 
     if (existingModel) {
@@ -200,9 +200,9 @@ export class ModelsService {
     const { data, error } = await client
       .from(getTableName('llm_models'))
       .insert({
-        provider_id: createModelDto.providerId,
+        provider_name: createModelDto.providerName,
         display_name: createModelDto.name,
-        model_name: createModelDto.modelId,
+        model_name: createModelDto.modelName,
         pricing_info_json: {
           input_cost_per_token: (createModelDto.pricingInputPer1k || 0) / 1000,
           output_cost_per_token:
@@ -238,14 +238,14 @@ export class ModelsService {
       return null;
     }
 
-    // If updating model_id, check for conflicts
-    if (updateModelDto.modelId && updateModelDto.modelId !== existing.modelId) {
+    // If updating model_name, check for conflicts
+    if (updateModelDto.modelName && updateModelDto.modelName !== existing.modelName) {
       const { data: existingModel } = await client
         .from(getTableName('llm_models'))
-        .select('id')
-        .eq('provider_id', existing.providerId)
-        .eq('model_name', updateModelDto.modelId)
-        .neq('id', id)
+        .select('model_name')
+        .eq('provider_name', existing.providerName)
+        .eq('model_name', updateModelDto.modelName)
+        .neq('model_name', existing.modelName)
         .single();
 
       if (existingModel) {
@@ -314,7 +314,7 @@ export class ModelsService {
   async estimateCost(
     costEstimateDto: CostEstimateDto,
   ): Promise<CostEstimateResponseDto> {
-    const model = await this.findOne(costEstimateDto.modelId, true);
+    const model = await this.findOne(costEstimateDto.modelName, true);
     if (!model) {
       throw new HttpException('Model not found', HttpStatus.NOT_FOUND);
     }

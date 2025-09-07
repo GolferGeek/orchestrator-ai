@@ -106,19 +106,20 @@ export class ProviderResponseDto {
 // ==================== Model DTOs ====================
 
 export class CreateModelDto {
-  @ApiProperty({ description: 'Provider UUID' })
-  @IsUUID()
-  providerId!: string;
+  @ApiProperty({ description: 'Provider name' })
+  @IsString()
+  @IsNotEmpty()
+  providerName!: string;
 
   @ApiProperty({ description: 'Human-readable model name', example: 'GPT-4o' })
   @IsString()
   @IsNotEmpty()
   name!: string;
 
-  @ApiProperty({ description: 'Model ID for API calls', example: 'gpt-4o' })
+  @ApiProperty({ description: 'Model name for API calls', example: 'gpt-4o' })
   @IsString()
   @IsNotEmpty()
-  modelId!: string;
+  modelName!: string;
 
   @ApiPropertyOptional({
     description: 'Input pricing per 1K tokens (USD)',
@@ -191,10 +192,10 @@ export class UpdateModelDto {
   @IsOptional()
   name?: string;
 
-  @ApiPropertyOptional({ description: 'Model ID for API calls' })
+  @ApiPropertyOptional({ description: 'Model name for API calls' })
   @IsString()
   @IsOptional()
-  modelId?: string;
+  modelName?: string;
 
   @ApiPropertyOptional({ description: 'Input pricing per 1K tokens (USD)' })
   @IsNumber({ maxDecimalPlaces: 6 })
@@ -250,17 +251,14 @@ export class UpdateModelDto {
 }
 
 export class ModelResponseDto {
-  @ApiProperty({ description: 'Model UUID' })
-  id!: string;
-
-  @ApiProperty({ description: 'Provider UUID' })
-  providerId!: string;
+  @ApiProperty({ description: 'Provider name' })
+  providerName!: string;
 
   @ApiProperty({ description: 'Human-readable model name' })
   name!: string;
 
-  @ApiProperty({ description: 'Model ID for API calls' })
-  modelId!: string;
+  @ApiProperty({ description: 'Model name for API calls' })
+  modelName!: string;
 
   @ApiPropertyOptional({ description: 'Input pricing per 1K tokens (USD)' })
   pricingInputPer1k?: number;
@@ -352,13 +350,15 @@ export class CIDAFMCommandResponseDto {
 // ==================== Message Enhancement DTOs ====================
 
 export class LLMSelectionDto {
-  @ApiProperty({ description: 'Provider UUID' })
-  @IsUUID()
-  providerId!: string;
+  @ApiProperty({ description: 'Provider name' })
+  @IsString()
+  @IsNotEmpty()
+  providerName!: string;
 
-  @ApiProperty({ description: 'Model UUID' })
-  @IsUUID()
-  modelId!: string;
+  @ApiProperty({ description: 'Model name' })
+  @IsString()
+  @IsNotEmpty()
+  modelName!: string;
 
   @ApiPropertyOptional({ description: 'CIDAFM options', type: Object })
   @IsObject()
@@ -464,11 +464,11 @@ export class EnhancedMessageResponseDto {
   metadata?: Record<string, any>;
 
   // LLM fields
-  @ApiPropertyOptional({ description: 'Provider UUID' })
-  providerId?: string;
+  @ApiPropertyOptional({ description: 'Provider name' })
+  providerName?: string;
 
-  @ApiPropertyOptional({ description: 'Model UUID' })
-  modelId?: string;
+  @ApiPropertyOptional({ description: 'Model name' })
+  modelName?: string;
 
   @ApiPropertyOptional({ description: 'Input tokens consumed' })
   inputTokens?: number;
@@ -528,15 +528,15 @@ export class UsageStatsQueryDto {
   @IsOptional()
   endDate?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by provider UUID' })
-  @IsUUID()
+  @ApiPropertyOptional({ description: 'Filter by provider name' })
+  @IsString()
   @IsOptional()
-  providerId?: string;
+  providerName?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by model UUID' })
-  @IsUUID()
+  @ApiPropertyOptional({ description: 'Filter by model name' })
+  @IsString()
   @IsOptional()
-  modelId?: string;
+  modelName?: string;
 
   @ApiPropertyOptional({
     description: 'Include detailed breakdown',
@@ -608,9 +608,10 @@ export class CostEstimateDto {
   @IsNotEmpty()
   content!: string;
 
-  @ApiProperty({ description: 'Model UUID for pricing' })
-  @IsUUID()
-  modelId!: string;
+  @ApiProperty({ description: 'Model name for pricing' })
+  @IsString()
+  @IsNotEmpty()
+  modelName!: string;
 
   @ApiPropertyOptional({
     description: 'Estimated response length factor',

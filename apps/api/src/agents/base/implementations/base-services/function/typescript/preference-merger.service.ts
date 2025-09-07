@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
 export interface UserPreferences {
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   temperature?: number;
   maxTokens?: number;
   cidafmOptions?: any;
@@ -12,8 +12,8 @@ export interface UserPreferences {
 }
 
 export interface LLMOptions {
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   temperature?: number;
   maxTokens?: number;
   cidafmOptions?: any;
@@ -28,8 +28,8 @@ export interface AgentParams {
   conversationHistory?: any[];
   currentUser?: any;
   authToken?: string;
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   temperature?: number;
   maxTokens?: number;
   cidafmOptions?: any;
@@ -53,8 +53,8 @@ export class PreferenceMergerService {
 
     // User preferences take priority over base options
     const preferenceKeys: (keyof UserPreferences)[] = [
-      'providerId',
-      'modelId',
+      'providerName',
+      'modelName',
       'temperature',
       'maxTokens',
       'cidafmOptions',
@@ -76,8 +76,8 @@ export class PreferenceMergerService {
    */
   extractUserPreferences(params: AgentParams): UserPreferences {
     return {
-      providerId: params.providerId,
-      modelId: params.modelId,
+      providerName: params.providerName,
+      modelName: params.modelName,
       temperature: params.temperature,
       maxTokens: params.maxTokens,
       cidafmOptions: params.cidafmOptions,
@@ -143,23 +143,23 @@ export class PreferenceMergerService {
       }
     }
 
-    // Validate providerId
-    if (validatedOptions.providerId !== undefined) {
+    // Validate providerName
+    if (validatedOptions.providerName !== undefined) {
       if (
-        typeof validatedOptions.providerId !== 'string' ||
-        validatedOptions.providerId.trim().length === 0
+        typeof validatedOptions.providerName !== 'string' ||
+        validatedOptions.providerName.trim().length === 0
       ) {
-        errors.push('ProviderId must be a non-empty string');
+        errors.push('ProviderName must be a non-empty string');
       }
     }
 
-    // Validate modelId
-    if (validatedOptions.modelId !== undefined) {
+    // Validate modelName
+    if (validatedOptions.modelName !== undefined) {
       if (
-        typeof validatedOptions.modelId !== 'string' ||
-        validatedOptions.modelId.trim().length === 0
+        typeof validatedOptions.modelName !== 'string' ||
+        validatedOptions.modelName.trim().length === 0
       ) {
-        errors.push('ModelId must be a non-empty string');
+        errors.push('ModelName must be a non-empty string');
       }
     }
 

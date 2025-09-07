@@ -673,7 +673,7 @@ Format your response as a structured JSON object with these sections.`;
         analysisPrompt,
         {
           provider: provider as 'anthropic' | 'openai' | 'google' | 'ollama',
-          modelId: model,
+          modelName: model,
           temperature: 0.3,
           maxTokens: 1500,
           callerType: 'service',

@@ -104,8 +104,8 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           taskId: params.taskId, // Pass task ID for progress tracking
           // Pass LLM preferences to Python script via metadata
           llmPreferences: {
-            providerId: params.providerId,
-            modelId: params.modelId,
+            providerName: params.providerName,
+            modelName: params.modelName,
             temperature: params.temperature,
             maxTokens: params.maxTokens,
             cidafmOptions: params.cidafmOptions,

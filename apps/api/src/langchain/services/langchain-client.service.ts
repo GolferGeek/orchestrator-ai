@@ -41,7 +41,7 @@ export class LangChainClientService {
         {
           temperature: options?.temperature || 0.7,
           provider: options?.provider as 'openai' | 'anthropic' | 'google' | 'ollama', // Only specify if explicitly requested
-          modelId: options?.model, // Only specify if explicitly requested
+          modelName: options?.model, // Only specify if explicitly requested
           complexity: 'simple', // LangChain tool operations are typically simple
           callerType: 'service',
           callerName: 'langchain-client-service',
