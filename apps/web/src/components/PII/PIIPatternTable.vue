@@ -357,8 +357,9 @@ const showBulkActions = ref(false);
 // Computed
 const filters = computed(() => piiStore.filters);
 const sortOptions = computed(() => piiStore.sortOptions);
-const filteredPatterns = computed(() => piiStore.filteredPatterns);
+const filteredPatterns = computed(() => piiStore.filteredAndSortedPatterns);
 const selectedPatterns = computed(() => piiStore.selectedPatterns);
+const isLoading = computed(() => piiStore.isLoading);
 
 // Selection state
 const selectAll = computed({

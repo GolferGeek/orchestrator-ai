@@ -309,19 +309,57 @@ export class RunMetadataService {
   /**
    * Get service statistics
    */
-  getStats(): {
+  async getStats(): Promise<{
     activeRuns: number;
     totalRunsToday: number;
     avgDuration: number;
     avgCost: number;
-  } {
-    // TODO: Implement persistent statistics tracking
-    return {
-      activeRuns: this.activeRuns.size,
-      totalRunsToday: 0,
-      avgDuration: 0,
-      avgCost: 0,
-    };
+  }> {
+    try {
+      const client = this.supabaseService.getServiceClient();
+      
+      // Get last 24 hours of completed runs (more flexible than "today")
+      const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      
+      const { data: recentRuns, error: recentError } = await client
+        .from(getTableName('llm_usage'))
+        .select('duration_ms, input_cost, output_cost')
+        .eq('status', 'completed')
+        .gte('started_at', last24Hours);
+
+      if (recentError) {
+        this.logger.error('Error fetching recent runs:', recentError);
+        return {
+          activeRuns: this.activeRuns.size,
+          totalRunsToday: 0,
+          avgDuration: 0,
+          avgCost: 0,
+        };
+      }
+
+      const totalRunsToday = recentRuns?.length || 0;
+      const avgDuration = totalRunsToday > 0
+        ? recentRuns.reduce((sum, run) => sum + (run.duration_ms || 0), 0) / totalRunsToday
+        : 0;
+      const avgCost = totalRunsToday > 0
+        ? recentRuns.reduce((sum, run) => sum + ((run.input_cost || 0) + (run.output_cost || 0)), 0) / totalRunsToday
+        : 0;
+
+      return {
+        activeRuns: this.activeRuns.size,
+        totalRunsToday,
+        avgDuration,
+        avgCost,
+      };
+    } catch (error) {
+      this.logger.error('Error calculating stats:', error);
+      return {
+        activeRuns: this.activeRuns.size,
+        totalRunsToday: 0,
+        avgDuration: 0,
+        avgCost: 0,
+      };
+    }
   }
 
   /**
@@ -538,10 +576,10 @@ export class RunMetadataService {
     let query = client
       .from('llm_usage_analytics')
       .select('*')
-      .order('date_day', { ascending: false });
+      .order('date', { ascending: false });
 
-    if (filters?.startDate) query = query.gte('date_day', filters.startDate);
-    if (filters?.endDate) query = query.lte('date_day', filters.endDate);
+    if (filters?.startDate) query = query.gte('date', filters.startDate);
+    if (filters?.endDate) query = query.lte('date', filters.endDate);
     if (filters?.callerType) query = query.eq('caller_type', filters.callerType);
 
     const { data, error } = await query;

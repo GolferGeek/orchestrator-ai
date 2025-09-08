@@ -303,6 +303,7 @@ import {
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { llmUsageService } from '@/services/llmUsageService';
 import { useMonitoringAnalytics } from '@/composables/useEnhancedStores';
+import { storeToRefs } from 'pinia';
 
 const store = useLlmUsageStore();
 const { llmMonitoringStore, analyticsStore, dashboardData, systemHealthStatus } = useMonitoringAnalytics();
@@ -314,8 +315,8 @@ const localFilters = ref({
   callerType: ''
 });
 
-// Computed
-const { analytics, loading, callerTypes } = store;
+// Computed - Use storeToRefs to maintain reactivity
+const { analytics, loading, callerTypes } = storeToRefs(store);
 
 const totalRequests = computed(() => {
   return analytics.value?.reduce((sum, item) => sum + item.total_requests, 0) || 0;
@@ -338,7 +339,11 @@ const avgDuration = computed(() => {
 });
 
 const chartData = computed(() => {
-  return analytics.value?.slice().sort((a, b) => a.date.localeCompare(b.date)) || [];
+  return analytics.value?.filter(item => item.date).sort((a, b) => {
+    const dateA = a.date || '';
+    const dateB = b.date || '';
+    return dateA.localeCompare(dateB);
+  }) || [];
 });
 
 const maxRequests = computed(() => {

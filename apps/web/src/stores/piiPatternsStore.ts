@@ -135,6 +135,12 @@ export const usePIIPatternsStore = defineStore('piiPatterns', () => {
   );
   
   const selectedPatternsCount = computed(() => selectedPatternIds.value.length);
+  
+  const selectedPatterns = computed(() => 
+    patterns.value.filter(pattern => 
+      selectedPatternIds.value.includes(pattern.id || pattern.name)
+    )
+  );
 
   // =====================================
   // ACTIONS
@@ -374,6 +380,7 @@ export const usePIIPatternsStore = defineStore('piiPatterns', () => {
     availableCategories,
     isPatternSelected,
     selectedPatternsCount,
+    selectedPatterns,
     
     // Actions
     loadPatterns,
