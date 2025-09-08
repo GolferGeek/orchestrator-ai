@@ -22,6 +22,9 @@ interface UserPreferences {
   preferredTechnology: ApiTechnology;
   autoSwitchToHealthyEndpoint: boolean;
   rememberApiSelection: boolean;
+  // LLM Preferences
+  preferredProviderName?: string;
+  preferredModelName?: string;
   // UI Preferences
   theme: 'light' | 'dark' | 'auto';
   language: string;
@@ -72,6 +75,9 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   preferredTechnology: 'typescript-nestjs',
   autoSwitchToHealthyEndpoint: true,
   rememberApiSelection: true,
+  // LLM Preferences
+  preferredProviderName: 'Ollama',
+  preferredModelName: 'gpt-oss:20b', // Default to OSS 20G, fallback to llama3.2 if not available
   // UI Preferences
   theme: 'auto',
   language: 'en',
@@ -132,6 +138,9 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
            currentUser.value?.role === 'admin' ||
            preferences.value.showAdvancedOptions;
   });
+
+  const preferredProvider = computed(() => preferences.value.preferredProviderName);
+  const preferredModel = computed(() => preferences.value.preferredModelName);
   // Watchers for automatic preference application
   // API version switching removed - only NestJS v1 is supported
   watch(
@@ -248,13 +257,19 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     applyPerformancePreferences();
   };
   const applyTheme = (theme: 'light' | 'dark' | 'auto') => {
-    const body = document.body;
-    body.classList.remove('theme-light', 'theme-dark');
     let effectiveTheme = theme;
     if (theme === 'auto') {
       effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
+    
+    // Apply theme using data-theme attribute (matches existing CSS selectors)
+    document.documentElement.setAttribute('data-theme', effectiveTheme);
+    
+    // Also apply body classes for compatibility
+    const body = document.body;
+    body.classList.remove('theme-light', 'theme-dark');
     body.classList.add(`theme-${effectiveTheme}`);
+    
     // Update meta theme-color for mobile browsers
     let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
     if (!themeColorMeta) {
@@ -365,6 +380,21 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
   const setImmediateTimeout = (seconds: number) => {
     updatePreference('immediateTimeoutDuration', Math.max(5, Math.min(300, seconds)));
   };
+
+  // LLM preference helpers
+  const setPreferredProvider = (providerName: string) => {
+    updatePreference('preferredProviderName', providerName);
+  };
+  const setPreferredModel = (modelName: string) => {
+    updatePreference('preferredModelName', modelName);
+  };
+  const setLLMPreferences = (providerName: string, modelName: string) => {
+    updateMultiplePreferences({
+      preferredProviderName: providerName,
+      preferredModelName: modelName,
+    });
+  };
+
   // Listen for system theme changes
   if (typeof window !== 'undefined') {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
@@ -383,6 +413,8 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     effectiveTheme,
     preferredEndpoint,
     isAdvancedUser,
+    preferredProvider,
+    preferredModel,
     // Actions
     initializePreferences,
     loadUserProfile,
@@ -406,5 +438,9 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     toggleQuickModeToggle,
     setPollingInterval,
     setImmediateTimeout,
+    // LLM preference quick access
+    setPreferredProvider,
+    setPreferredModel,
+    setLLMPreferences,
   };
 }); 

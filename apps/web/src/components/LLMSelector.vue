@@ -183,11 +183,13 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useLLMStore } from '../stores/llmStore';
 import { useSovereignPolicyStore } from '../stores/sovereignPolicyStore';
+import { useUserPreferencesStore } from '../stores/userPreferencesStore';
 import { useSovereignPolicy } from '../composables/useSovereignPolicy';
 import type { Provider, Model } from '../types/llm';
 
 const llmStore = useLLMStore();
 const sovereignPolicyStore = useSovereignPolicyStore();
+const userPreferencesStore = useUserPreferencesStore();
 const { 
   initialize: initializeSovereignPolicy,
   refresh: refreshSovereignPolicy,
@@ -207,11 +209,25 @@ const userSovereignMode = ref(false);
 const loadingSovereignUpdate = ref(false);
 // Initialize store and sync local state
 onMounted(async () => {
-  // Initialize both stores
-  await Promise.all([
-    llmStore.initialize(),
-    initializeSovereignPolicy()
-  ]);
+  // Initialize user preferences first
+  await userPreferencesStore.initializePreferences();
+  
+  // Initialize LLM store with user preferences
+  await llmStore.initialize({
+    preferredProvider: userPreferencesStore.preferredProvider,
+    preferredModel: userPreferencesStore.preferredModel
+  });
+  
+  // Initialize sovereign policy
+  await initializeSovereignPolicy();
+  
+  // Sync LLM store selection back to user preferences to ensure consistency
+  if (llmStore.selectedProvider && llmStore.selectedModel) {
+    userPreferencesStore.setLLMPreferences(
+      llmStore.selectedProvider.name,
+      llmStore.selectedModel.modelName
+    );
+  }
   
   // Sync with store state
   selectedProvider.value = llmStore.selectedProvider || '';
@@ -221,9 +237,6 @@ onMounted(async () => {
   
   // Sync sovereign mode state
   userSovereignMode.value = sovereignPolicyStore.userSovereignMode;
-  
-  // Load saved preferences
-  llmStore.loadFromLocalStorage();
 });
 // Watch store changes and sync to local state
 watch(() => llmStore.selectedProvider, (newProvider) => {
@@ -232,26 +245,50 @@ watch(() => llmStore.selectedProvider, (newProvider) => {
 watch(() => llmStore.selectedModel, (newModel) => {
   selectedModel.value = newModel || '';
 });
+
+// Watch user preferences changes and sync to LLM store
+watch(() => userPreferencesStore.preferredProvider, (newProviderName) => {
+  if (newProviderName && newProviderName !== llmStore.selectedProvider?.name) {
+    const provider = llmStore.getProviderByName(newProviderName);
+    if (provider) {
+      llmStore.setProvider(provider);
+    }
+  }
+});
+watch(() => userPreferencesStore.preferredModel, (newModelName) => {
+  if (newModelName && newModelName !== llmStore.selectedModel?.modelName) {
+    const providerName = userPreferencesStore.preferredProvider;
+    if (providerName) {
+      const model = llmStore.getModelByName(providerName, newModelName);
+      if (model) {
+        llmStore.setModel(model);
+      }
+    }
+  }
+});
 // Event handlers
 const onProviderChange = () => {
   if (selectedProvider.value && typeof selectedProvider.value === 'object') {
     llmStore.setProvider(selectedProvider.value);
-    llmStore.saveToLocalStorage();
+    // Sync to user preferences store
+    userPreferencesStore.setPreferredProvider(selectedProvider.value.name);
   }
 };
 const onModelChange = () => {
   if (selectedModel.value && typeof selectedModel.value === 'object') {
     llmStore.setModel(selectedModel.value);
-    llmStore.saveToLocalStorage();
+    // Sync to user preferences store
+    userPreferencesStore.setLLMPreferences(
+      selectedModel.value.providerName,
+      selectedModel.value.modelName
+    );
   }
 };
 const onTemperatureChange = () => {
   llmStore.setTemperature(temperature.value);
-  llmStore.saveToLocalStorage();
 };
 const onMaxTokensChange = () => {
   llmStore.setMaxTokens(maxTokens.value);
-  llmStore.saveToLocalStorage();
 };
 
 // Sovereign mode event handler

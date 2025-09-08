@@ -270,29 +270,28 @@ import {
   sunnyOutline,
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
+import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import { projectsService, type Project } from '@/services/projectsService';
 const router = useRouter();
-// Dark mode state and functionality
-const isDarkMode = ref(false);
-// Initialize theme on component mount
-const initializeTheme = () => {
-  const savedTheme = localStorage.getItem('theme');
-  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  if (savedTheme) {
-    isDarkMode.value = savedTheme === 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-  } else {
-    isDarkMode.value = systemPrefersDark;
-    if (systemPrefersDark) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
-  }
-};
+const userPreferencesStore = useUserPreferencesStore();
+
+// Reactive theme functionality
+const isDarkMode = computed(() => userPreferencesStore.effectiveTheme === 'dark');
+
 const toggleDarkMode = () => {
-  const newTheme = isDarkMode.value ? 'light' : 'dark';
-  isDarkMode.value = !isDarkMode.value;
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('theme', newTheme);
+  const currentTheme = userPreferencesStore.preferences.theme;
+  let newTheme: 'light' | 'dark' | 'auto';
+  
+  if (currentTheme === 'auto') {
+    // If auto, switch to the opposite of current effective theme
+    newTheme = isDarkMode.value ? 'light' : 'dark';
+  } else {
+    // If manual, toggle between light and dark
+    newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  }
+  
+  // Just update the preference - let the store's reactivity handle theme application
+  userPreferencesStore.setTheme(newTheme);
 };
 // Display interface for projects with converted dates
 interface DisplayProject extends Omit<Project, 'createdAt' | 'updatedAt'> {
@@ -513,8 +512,8 @@ const formatRelativeTime = (date: Date) => {
   return 'Just now';
 };
 // Lifecycle
-onMounted(() => {
-  initializeTheme();
+onMounted(async () => {
+  await userPreferencesStore.initializePreferences();
   fetchProjects();
 });
 </script>

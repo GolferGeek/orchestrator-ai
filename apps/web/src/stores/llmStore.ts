@@ -157,21 +157,50 @@ export const useLLMStore = defineStore('llm', {
       }
     },
     // Initialize all data
-    async initialize() {
+    async initialize(userPreferences?: { preferredProvider?: string; preferredModel?: string }) {
       await Promise.all([
         this.fetchProviders(),
         this.fetchModels(),
         this.fetchCIDAFMCommands(),
       ]);
+      
       // Set default selections if available
       if (this.providers.length > 0 && !this.selectedProvider) {
-        // Default to Ollama if available (for local thinking models), otherwise OpenAI
+        let targetProvider: string | undefined;
+        
+        // Use user preferences if provided
+        if (userPreferences?.preferredProvider) {
+          targetProvider = userPreferences.preferredProvider;
+        }
+        
+        // Find the preferred provider or fall back to defaults
+        const preferredProvider = targetProvider ? 
+          this.providers.find(p => p.name === targetProvider) : null;
         const ollama = this.providers.find(p => p.name.toLowerCase().includes('ollama'));
         const openai = this.providers.find(p => p.name.toLowerCase().includes('openai'));
-        this.selectedProvider = ollama || openai || this.providers[0];
+        
+        this.selectedProvider = preferredProvider || ollama || openai || this.providers[0];
       }
+      
       if (this.selectedProvider && this.availableModels.length > 0 && !this.selectedModel) {
-        // Default to thinking models for content creation
+        let targetModel: string | undefined;
+        
+        // Use user preferences if provided
+        if (userPreferences?.preferredModel) {
+          targetModel = userPreferences.preferredModel;
+        }
+        
+        // Find the preferred model or fall back to defaults
+        const preferredModel = targetModel ? 
+          this.availableModels.find(m => m.modelName === targetModel) : null;
+          
+        // Default model priority: user preference > OSS 20G > llama3.2 > thinking models > fallback
+        const ossModel = this.availableModels.find(m => 
+          m.modelName.includes('gpt-oss:20b') || m.modelName.includes('gpt-oss')
+        );
+        const llama32Model = this.availableModels.find(m => 
+          m.modelName.includes('llama3.2') || m.modelName.includes('llama-3.2')
+        );
         const thinkingModel = this.availableModels.find(m => 
           m.modelName.includes('deepseek-r1') ||
           m.modelName.includes('qwq') ||
@@ -179,12 +208,13 @@ export const useLLMStore = defineStore('llm', {
           m.name.toLowerCase().includes('reasoning') ||
           m.name.toLowerCase().includes('thinking')
         );
-        // Fallback to GPT models if no thinking models available
+        // Fallback to GPT models if no preferred models available
         const fallbackModel = this.availableModels.find(m => 
           m.modelName.includes('gpt-4o-mini') || 
           m.modelName.includes('gpt-3.5-turbo')
         );
-        this.selectedModel = thinkingModel || fallbackModel || this.availableModels[0];
+        
+        this.selectedModel = preferredModel || ossModel || llama32Model || thinkingModel || fallbackModel || this.availableModels[0];
       }
     },
     // Set selected provider and clear model if incompatible

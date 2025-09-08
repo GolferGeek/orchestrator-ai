@@ -80,11 +80,13 @@ import {
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import ConversationTabs from '@/components/ConversationTabs.vue';
 const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
 const agentChatStore = useAgentChatStore();
+const userPreferencesStore = useUserPreferencesStore();
 // Computed properties
 const pageTitle = computed(() => {
   const activeConversation = agentChatStore.getActiveConversation();
@@ -94,7 +96,6 @@ const pageTitle = computed(() => {
   return 'Orchestrator AI';
 });
 // Dark mode state and functionality
-const isDarkMode = ref(false);
 // Handle conversation opening from query parameters
 const handleConversationFromQuery = async () => {
   const conversationId = route.query.conversationId as string;
@@ -122,27 +123,31 @@ const handleConversationFromQuery = async () => {
 };
 // Watch for query parameter changes
 watch(() => route.query.conversationId, handleConversationFromQuery, { immediate: true });
-// Initialize theme on component mount
+
+// Initialize user preferences store
 onMounted(async () => {
-  const savedTheme = localStorage.getItem('theme');
-  const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  if (savedTheme) {
-    isDarkMode.value = savedTheme === 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-  } else {
-    isDarkMode.value = systemPrefersDark;
-    if (systemPrefersDark) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
-  }
+  await userPreferencesStore.initializePreferences();
 });
+
+// Reactive theme functionality
+const isDarkMode = computed(() => userPreferencesStore.effectiveTheme === 'dark');
+
 const toggleDarkMode = () => {
-  const newTheme = isDarkMode.value ? 'light' : 'dark';
-  isDarkMode.value = !isDarkMode.value;
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('theme', newTheme);
-  // Debug: check if attribute was set
+  const currentTheme = userPreferencesStore.preferences.theme;
+  let newTheme: 'light' | 'dark' | 'auto';
+  
+  if (currentTheme === 'auto') {
+    // If auto, switch to the opposite of current effective theme
+    newTheme = isDarkMode.value ? 'light' : 'dark';
+  } else {
+    // If manual, toggle between light and dark
+    newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  }
+  
+  // Just update the preference - let the store's reactivity handle theme application
+  userPreferencesStore.setTheme(newTheme);
 };
+
 // Methods
 const navigateToProjects = () => {
   router.push('/projects');
