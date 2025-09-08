@@ -20,53 +20,59 @@
               <ion-label>Logout</ion-label>
             </ion-item>
             <hr/>
-            <!-- Navigation -->
-            <ion-list>
-              <ion-list-header>Navigation</ion-list-header>
-              <!-- Direct Navigation Items - Projects and Evaluations at top -->
-              <ion-menu-toggle>
-                <ion-item 
-                  router-direction="root" 
-                  router-link="/app/projects" 
-                  lines="none" 
-                  :detail="false"
-                  :class="{ 'selected': $route.path.startsWith('/app/projects') }"
-                >
-                  <ion-icon aria-hidden="true" :icon="folderOutline" slot="start"></ion-icon>
-                  <ion-label>Projects</ion-label>
-                </ion-item>
-              </ion-menu-toggle>
-              <ion-menu-toggle>
-                <ion-item 
-                  router-direction="root" 
-                  router-link="/app/deliverables" 
-                  lines="none" 
-                  :detail="false"
-                  :class="{ 'selected': $route.path.startsWith('/app/deliverables') }"
-                >
+
+            <!-- Deliverables, Projects & Evaluations Accordion -->
+            <ion-accordion-group>
+              <ion-accordion value="main-nav">
+                <ion-item slot="header" color="none" class="accordion-header-custom" style="background-color: rgba(204, 119, 34, 0.6) !important;">
                   <ion-icon aria-hidden="true" :icon="documentTextOutline" slot="start"></ion-icon>
-                  <ion-label>Deliverables</ion-label>
+                  <ion-label>Deliverables, Projects & Evaluations</ion-label>
                 </ion-item>
-              </ion-menu-toggle>
-              <ion-menu-toggle>
-                <ion-item router-direction="root" router-link="/app/evaluations" lines="none" :detail="false">
-                  <ion-icon aria-hidden="true" :icon="starOutline" slot="start"></ion-icon>
-                  <ion-label>Evaluations</ion-label>
-                </ion-item>
-              </ion-menu-toggle>
+                <div slot="content" class="main-nav-content">
+                  <ion-list>
+                    <ion-item
+                      :button="true"
+                      lines="none"
+                      :detail="false"
+                      @click="$router.push('/app/deliverables')"
+                      :class="{ 'selected': $route.path.startsWith('/app/deliverables') }"
+                    >
+                      <ion-icon aria-hidden="true" :icon="documentTextOutline" slot="start"></ion-icon>
+                      <ion-label>Deliverables</ion-label>
+                    </ion-item>
+                    <ion-item
+                      :button="true"
+                      lines="none"
+                      :detail="false"
+                      @click="$router.push('/app/evaluations')"
+                      :class="{ 'selected': $route.path.startsWith('/app/evaluations') }"
+                    >
+                      <ion-icon aria-hidden="true" :icon="starOutline" slot="start"></ion-icon>
+                      <ion-label>Evaluations</ion-label>
+                    </ion-item>
+                    <ion-item
+                      :button="true"
+                      lines="none"
+                      :detail="false"
+                      @click="$router.push('/app/projects')"
+                      :class="{ 'selected': $route.path.startsWith('/app/projects') }"
+                    >
+                      <ion-icon aria-hidden="true" :icon="folderOutline" slot="start"></ion-icon>
+                      <ion-label>Projects</ion-label>
+                    </ion-item>
+                  </ion-list>
+                </div>
+              </ion-accordion>
+            </ion-accordion-group>
               
               <!-- Admin Accordion -->
               <ion-accordion-group v-if="auth.hasAdminAccess || auth.hasEvaluationAccess" :value="adminExpanded ? 'admin' : undefined">
                 <ion-accordion value="admin">
-                  <ion-item slot="header" color="none">
+                  <ion-item slot="header" color="none" class="accordion-header-custom" style="background-color: rgba(204, 119, 34, 0.6) !important;">
                     <ion-icon aria-hidden="true" :icon="settingsOutline" slot="start"></ion-icon>
                     <ion-label>Admin</ion-label>
                   </ion-item>
                   <div slot="content" class="admin-content">
-                    <!-- Test content to see if accordion content renders -->
-                    <div style="padding: 16px; background: #f0f0f0; margin: 8px; border-radius: 4px;">
-                      🔧 Test: Admin content is rendering
-                    </div>
                     <ion-list>
                       <ion-item 
                         v-if="auth.hasAdminAccess"
@@ -175,7 +181,7 @@
               <!-- Agents & Conversations Accordion - Takes remaining space -->
               <ion-accordion-group :value="agentsExpanded ? 'agents' : undefined">
                 <ion-accordion value="agents">
-                  <ion-item slot="header" color="none">
+                  <ion-item slot="header" color="none" class="accordion-header-custom" style="background-color: rgba(204, 119, 34, 0.6) !important;">
                     <ion-icon aria-hidden="true" :icon="chatbubblesOutline" slot="start"></ion-icon>
                     <ion-label>Agents & Conversations</ion-label>
                   </ion-item>
@@ -209,7 +215,6 @@
                   </div>
                 </ion-accordion>
               </ion-accordion-group>
-            </ion-list>
           </div>
         </ion-content>
       </ion-menu>
@@ -231,6 +236,7 @@ const auth = useAuthStore();
 const agentChatStore = useAgentChatStore();
 const router = useRouter();
 // State for accordion and search
+const mainNavExpanded = ref(true); // Main navigation accordion starts expanded
 const agentsExpanded = ref(true);
 const adminExpanded = ref(false); // Admin accordion starts collapsed
 const searchQuery = ref('');
@@ -303,6 +309,54 @@ hr {
   border-top: 1px solid var(--ion-color-step-150, #e0e0e0);
   margin: 8px 0;
 }
+/* Accordion header styling - burnt orange theme with opacity */
+.accordion-header-custom {
+  background-color: rgba(204, 119, 34, 0.6) !important;
+  background: rgba(204, 119, 34, 0.6) !important;
+  --background: rgba(204, 119, 34, 0.6) !important;
+  --ion-background-color: rgba(204, 119, 34, 0.6) !important;
+  border-radius: 6px !important;
+  margin: 2px 0 !important;
+  font-weight: 500 !important;
+  --color: #333 !important;
+  color: #333 !important;
+}
+
+/* Try targeting the actual Ionic CSS variables */
+ion-accordion {
+  --background: #cc7722;
+  --color: white;
+}
+
+ion-accordion ion-item {
+  --background: #cc7722 !important;
+  --color: white !important;
+}
+
+/* Main navigation accordion content */
+.main-nav-content {
+  padding: 0;
+  background: white !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.main-nav-content ion-list {
+  padding: 0;
+  background: white !important;
+}
+
+.main-nav-content ion-item {
+  --padding-start: 32px;
+  --padding-end: 16px;
+  font-size: 0.9rem;
+  display: block !important;
+  --background: white !important;
+  background: white !important;
+  --color: #333 !important;
+  color: #333 !important;
+}
+
 /* Navigation item selected state */
 ion-item.selected {
   --background: var(--ion-color-primary-tint, #e3f2fd);
@@ -322,18 +376,22 @@ ion-menu {
 /* Admin accordion content */
 .admin-content {
   padding: 0;
-  background: transparent;
+  background: white !important;
 }
 
 .admin-content ion-list {
   padding: 0;
-  background: transparent;
+  background: white !important;
 }
 
 .admin-content ion-item {
-  --padding-start: 16px;
+  --padding-start: 32px;
   --padding-end: 16px;
   font-size: 0.9rem;
+  --background: white !important;
+  background: white !important;
+  --color: #333 !important;
+  color: #333 !important;
 }
 
 /* Agents & Conversations accordion content */
@@ -363,21 +421,42 @@ ion-menu {
   --padding-end: 8px;
   min-width: 40px;
 }
-/* Compact styles for tree view in menu */
-.agents-content :deep(.agent-tree-container) {
-  padding: 0;
-  background: transparent;
+/* Compact styles for tree view in menu - Updated selectors */
+.agents-content :deep(.agent-tree-view) {
+  padding-left: 32px; /* Indent entire agent tree */
 }
+
+.agents-content :deep(.organization-header) {
+  margin-left: 16px; /* Indent organization headers */
+}
+
+.agents-content :deep(.agent-section) {
+  margin-left: 32px; /* Indent agent sections */
+}
+
+.agents-content :deep(.agent-header-button) {
+  margin-left: 16px; /* Indent agent headers */
+}
+
+.agents-content :deep(.agent-type-content) {
+  padding-left: 24px; /* Indent agent type content */
+}
+
+/* Legacy selectors for backward compatibility */
 .agents-content :deep(.department-section) {
-  margin-bottom: 0.5rem;
+  margin-left: 48px;
 }
+
 .agents-content :deep(.department-header) {
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
+  margin-left: 32px;
 }
+
 .agents-content :deep(.agent-item) {
   padding: 0.5rem 1.5rem;
   font-size: 0.85rem;
+  margin-left: 64px;
 }
 /* Dark theme support for navigation */
 @media (prefers-color-scheme: dark) {
@@ -385,6 +464,21 @@ ion-menu {
     --background: #1e3a8a;
     --color: #3b82f6;
     border-left-color: #3b82f6;
+  }
+
+  /* Dark theme accordion headers */
+  ion-accordion-group ion-accordion ion-item[slot="header"] {
+    --background: #994411 !important; /* Darker burnt orange for dark theme */
+    --color: #fff !important;
+  }
+  
+  .accordion-header-custom {
+    background-color: #994411 !important;
+    background: #994411 !important;
+  }
+
+  .main-nav-content {
+    background: var(--ion-color-step-50);
   }
   .agents-content {
     background: var(--ion-color-step-50);
