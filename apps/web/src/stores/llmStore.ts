@@ -32,6 +32,18 @@ export const useLLMStore = defineStore('llm', {
     sovereignPolicy: null,
     sovereignLoading: false,
     sovereignError: null,
+    // Sanitization stats state
+    sanitizationStats: {
+      activePatterns: 0,
+      pseudonyms: 0,
+      protectedToday: 0,
+      totalSanitizations: 0,
+      cacheHitRate: 0,
+      averageProcessingTime: 0
+    },
+    sanitizationStatsLoading: false,
+    sanitizationStatsError: null,
+    sanitizationStatsLastUpdated: null,
   }),
   getters: {
     // Effective sovereign mode (policy enforced OR user enabled)
@@ -192,6 +204,23 @@ export const useLLMStore = defineStore('llm', {
       
       // Default for other providers
       return 60;
+    },
+
+    // Formatted sanitization stats for display
+    formattedSanitizationStats: (state) => ({
+      activePatterns: state.sanitizationStats.activePatterns.toLocaleString(),
+      pseudonyms: state.sanitizationStats.pseudonyms.toLocaleString(),
+      protectedToday: state.sanitizationStats.protectedToday.toLocaleString(),
+      totalSanitizations: state.sanitizationStats.totalSanitizations.toLocaleString(),
+      cacheHitRate: `${(state.sanitizationStats.cacheHitRate * 100).toFixed(1)}%`,
+      averageProcessingTime: `${state.sanitizationStats.averageProcessingTime.toFixed(1)}ms`
+    }),
+
+    // Check if sanitization stats are stale (older than 5 minutes)
+    sanitizationStatsStale: (state) => {
+      if (!state.sanitizationStatsLastUpdated) return true;
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      return new Date(state.sanitizationStatsLastUpdated) < fiveMinutesAgo;
     },
   },
   actions: {
@@ -524,6 +553,73 @@ export const useLLMStore = defineStore('llm', {
       } catch (error) {
         // Failed to save LLM preferences to localStorage
       }
+    },
+
+    // Fetch sanitization stats from API
+    async fetchSanitizationStats(force = false) {
+      if (this.sanitizationStatsLoading || (!force && !this.sanitizationStatsStale)) {
+        return;
+      }
+
+      try {
+        this.sanitizationStatsLoading = true;
+        this.sanitizationStatsError = null;
+
+        const response = await apiService.get('/llm/sanitization/stats');
+        const data = response.data;
+
+        // Handle different response structures
+        let statsData = data;
+        if (data && typeof data === 'object') {
+          // If data has nested structure, use it directly
+          // If data is the stats object itself, use it
+          statsData = data;
+        }
+
+        // Transform the comprehensive stats into our simplified format with safe fallbacks
+        this.sanitizationStats = {
+          activePatterns: statsData?.databaseStats?.activePatterns || 
+                         statsData?.activePatterns || 
+                         0,
+          pseudonyms: statsData?.databaseStats?.activeMappings || 
+                     statsData?.activeMappings || 
+                     0,
+          protectedToday: statsData?.databaseStats?.todaysSanitizations || 
+                         statsData?.todaysSanitizations || 
+                         0,
+          totalSanitizations: statsData?.sanitizationStats?.totalSanitizations || 
+                             statsData?.totalSanitizations || 
+                             0,
+          cacheHitRate: statsData?.cacheStats?.hitRate || 
+                       statsData?.hitRate || 
+                       0,
+          averageProcessingTime: statsData?.sanitizationStats?.averageProcessingTimeMs || 
+                                statsData?.averageProcessingTimeMs || 
+                                0
+        };
+
+        this.sanitizationStatsLastUpdated = new Date().toISOString();
+      } catch (error) {
+        this.sanitizationStatsError = error instanceof Error ? error.message : 'Failed to fetch sanitization stats';
+        console.error('Error fetching sanitization stats:', error);
+        
+        // Fallback to reasonable defaults on error
+        this.sanitizationStats = {
+          activePatterns: 0,
+          pseudonyms: 0,
+          protectedToday: 0,
+          totalSanitizations: 0,
+          cacheHitRate: 0,
+          averageProcessingTime: 0
+        };
+      } finally {
+        this.sanitizationStatsLoading = false;
+      }
+    },
+
+    // Refresh sanitization stats (force fetch)
+    async refreshSanitizationStats() {
+      return this.fetchSanitizationStats(true);
     },
   },
 });

@@ -239,8 +239,8 @@ export class WebSocketHandlerService {
     if (!this.storeInstance) {
       return;
     }
-    
-        const conv = this.storeInstance.getConversationById(conversationId);
+
+    const conv = this.storeInstance.getConversationById(conversationId);
     if (!conv) {
       return;
     }
@@ -251,7 +251,7 @@ export class WebSocketHandlerService {
 
     if (messageIndex >= 0) {
       const message = conv.messages[messageIndex];
-      
+
       // Initialize metadata and workflow_steps_realtime if needed
       if (!message.metadata) {
         message.metadata = {};

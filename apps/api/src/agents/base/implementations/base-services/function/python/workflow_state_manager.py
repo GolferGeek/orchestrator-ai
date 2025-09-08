@@ -157,16 +157,29 @@ def create_final_response(state: WorkflowState, content_key: str = 'response') -
     """Create the final response structure for any workflow"""
     content = getattr(state, 'document_content', '') or state.step_results.get('final_result', '')
     
+    # Extract sanitization metadata from step results if available
+    sanitization_metadata = {}
+    for step_name, step_result in state.step_results.items():
+        if isinstance(step_result, dict) and 'sanitizationMetadata' in step_result:
+            sanitization_metadata = step_result['sanitizationMetadata']
+            break
+    
+    response_metadata = {
+        "workflow_step": state.workflow_step,
+        "generated_at": datetime.now().isoformat(),
+        "processing_type": "langgraph-real-llm-workflow",
+        "tools_used": ["langgraph", "real-llm-calls", "state-management"],
+        "workflow_steps_completed": list(state.step_results.keys()),
+        "step_results": state.step_results,
+        **state.metadata
+    }
+    
+    # Include sanitization metadata if available
+    if sanitization_metadata:
+        response_metadata["sanitizationMetadata"] = sanitization_metadata
+    
     return {
         "response": content or "No content generated",
         "analysis": getattr(state, 'analysis', {}),
-        "metadata": {
-            "workflow_step": state.workflow_step,
-            "generated_at": datetime.now().isoformat(),
-            "processing_type": "langgraph-real-llm-workflow",
-            "tools_used": ["langgraph", "real-llm-calls", "state-management"],
-            "workflow_steps_completed": list(state.step_results.keys()),
-            "step_results": state.step_results,
-            **state.metadata
-        }
+        "metadata": response_metadata
     }

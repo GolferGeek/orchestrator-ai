@@ -10,6 +10,7 @@ export interface LLMCall {
   duration?: number;
   prompt?: string;
   response?: string;
+  sanitizationMetadata?: any;
 }
 
 export interface LLMMetadata {
@@ -118,6 +119,8 @@ export class MetadataTrackerService {
           typeof response.response === 'string'
             ? response.response.substring(0, 500)
             : undefined,
+        // Include sanitization metadata if available
+        sanitizationMetadata: response.sanitizationMetadata,
       };
 
       tracker.addCall(call);

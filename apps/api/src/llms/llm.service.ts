@@ -12,6 +12,7 @@ import { CentralizedRoutingService } from './centralized-routing.service';
 import { RunMetadataService, RunMetadata } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';
 import { DataSanitizationService, DetailedSanitizationMetrics } from './data-sanitization.service';
+import { PIIService } from '../services/pii.service';
 import { LocalModelStatusService } from './local-model-status.service';
 import { LocalLLMService } from './local-llm.service';
 import { BlindedLLMService } from './blinded-llm.service';
@@ -61,6 +62,7 @@ export class LLMService {
     private readonly runMetadataService: RunMetadataService,
     private readonly providerConfigService: ProviderConfigService,
     private readonly dataSanitizationService: DataSanitizationService,
+    private readonly piiService: PIIService,
     private readonly localModelStatusService: LocalModelStatusService,
     private readonly localLLMService: LocalLLMService,
     private readonly blindedLLMService: BlindedLLMService,
@@ -184,6 +186,8 @@ export class LLMService {
       callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
       conversationId?: string; // Optional conversation/session context
       dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
+      // Return format control
+      includeMetadata?: boolean; // If true, return object with metadata instead of just string
     },
   ): Promise<string | any> {
     this.logger.debug(`🔍 [LLM-USAGE-DEBUG] generateResponse called with callerType: ${options?.callerType}, callerName: ${options?.callerName}, providerName: ${options?.providerName}, modelName: ${options?.modelName}`);
@@ -255,65 +259,26 @@ export class LLMService {
       const provider = options?.provider || options?.providerName || 'openai';
       const isLocalProvider = provider === 'ollama';
       
+      this.logger.log(`🔍 [SIMPLE-LLM-DEBUG] Simple response path - provider: ${provider}, isLocal: ${isLocalProvider}`);
+      this.logger.log(`🔍 [SIMPLE-LLM-DEBUG] User message preview: "${userMessage.substring(0, 100)}..."`);
 
-      // Apply conditional sanitization for external providers only
-      let sanitizedSystemPrompt = systemPrompt;
-      let sanitizedUserMessage = userMessage;
-      let sanitizationContext: any = null;
-
-      if (!isLocalProvider) {
-        await this.dataSanitizationService.debug(
-          'Simple response: Using external provider - applying sanitization',
-          undefined,
-          'SimpleLLM',
-          { provider }
-        );
-
-        try {
-          // Use the sanitizeForLLM method which handles both system and user messages
-          const sanitizationResult = await this.dataSanitizationService.sanitizeForLLM(
-            systemPrompt,
-            userMessage,
-            options?.sessionId || 'simple-request',
-            {
-              enableRedaction: process.env.ENABLE_REDACTION === 'true',
-              enablePseudonymization: true,
-              preserveFormatting: true
-            }
-          );
-
-          sanitizedSystemPrompt = sanitizationResult.sanitizedSystemPrompt;
-          sanitizedUserMessage = sanitizationResult.sanitizedUserMessage;
-          sanitizationContext = sanitizationResult.reversalContext;
-
-          await this.dataSanitizationService.debug(
-            'Simple response content sanitized for external provider',
-            undefined,
-            'SimpleLLM',
-            {
-              sanitized: true,
-              hasReversalContext: !!sanitizationContext
-            }
-          );
-
-        } catch (sanitizationError) {
-          await this.dataSanitizationService.error(
-            `Simple response sanitization failed: ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}`,
-            undefined,
-            'SimpleLLM'
-          );
-          
-          // NO FALLBACKS! Fail loudly as per CLAUDE.md principles
-          throw new Error(`Data sanitization failed for simple LLM call (${provider}): ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}.`);
+      // Apply conditional sanitization using unified PII service
+      const sanitizationResult = await this.piiService.sanitizeForLLM(
+        systemPrompt,
+        userMessage,
+        isLocalProvider,
+        {
+          conversationId: options?.conversationId,
+          sessionId: options?.sessionId || 'simple-request'
         }
-      } else {
-        await this.dataSanitizationService.debug(
-          'Simple response: Using local provider - skipping sanitization',
-          undefined,
-          'SimpleLLM',
-          { provider }
-        );
-      }
+      );
+
+      const sanitizedSystemPrompt = sanitizationResult.sanitizedSystemPrompt;
+      const sanitizedUserMessage = sanitizationResult.sanitizedUserMessage;
+      const sanitizationContext = sanitizationResult.reversalContext;
+
+      this.logger.log(`🔍 [SIMPLE-LLM-DEBUG] Sanitization completed - shouldApply: ${sanitizationResult.shouldApplySanitization}`);
+      this.logger.log(`🔍 [SIMPLE-LLM-DEBUG] Sanitization metrics:`, JSON.stringify(sanitizationResult.sanitizationMetrics, null, 2));
 
       // Start usage tracking for simple path
       const routingDecision = {
@@ -360,31 +325,16 @@ export class LLMService {
         const response = await llm.invoke(messages);
       let content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
 
-      // Restore pseudonyms in the response if sanitization was applied
-      if (!isLocalProvider && sanitizationContext) {
-        try {
-          const restoredContent = await this.dataSanitizationService.reverseLLMResponse(
-            content,
-            sanitizationContext
+      // Restore pseudonyms in the response using unified PII service
+      if (sanitizationContext) {
+        const restorationResult = await this.piiService.restoreResponse(content, sanitizationContext);
+        content = restorationResult.restoredContent;
+        
+        if (!restorationResult.success) {
+          await this.piiService.warn(
+            `Simple response restoration failed: ${restorationResult.error}`,
+            { method: 'SimpleLLM' }
           );
-
-          if (restoredContent !== content) {
-            content = restoredContent;
-            await this.dataSanitizationService.debug(
-              'Simple response content restored from pseudonyms',
-              undefined,
-              'SimpleLLM',
-              { restored: true }
-            );
-          }
-
-        } catch (restorationError) {
-          await this.dataSanitizationService.warn(
-            `Simple response restoration failed: ${restorationError instanceof Error ? restorationError.message : 'Unknown error'}`,
-            undefined,
-            'SimpleLLM'
-          );
-          // Continue with sanitized response if restoration fails
         }
       }
 
@@ -394,6 +344,19 @@ export class LLMService {
         inputTokens: 0, // LangChain doesn't provide token counts easily
         outputTokens: 0,
       });
+
+      // Return metadata if requested (for HTTP API calls)
+      if (options?.includeMetadata) {
+        const sanitizationMetadata = await this.extractSanitizationMetadataForFrontend(
+          sanitizationResult.sanitizationMetrics
+        );
+        
+        return {
+          content: content,
+          response: content, // For backward compatibility
+          sanitizationMetadata: sanitizationMetadata
+        };
+      }
 
       return content;
     } catch (error) {
@@ -455,6 +418,7 @@ export class LLMService {
       maxTokens?: number;
       responseTimeMs?: number;
     };
+    sanitizationMetadata?: any;
   }> {
     this.logger.debug(`🔍 [LLM-USAGE-DEBUG] generateEnhancedResponse called with userId: ${userId}, callerType: ${options?.callerType}, callerName: ${options?.callerName}`);
     const startTime = Date.now();
@@ -467,6 +431,7 @@ export class LLMService {
         options?.provider,
         options?.model,
       );
+
 
       // Start usage tracking
       const routingDecision = {
@@ -524,60 +489,24 @@ export class LLMService {
       let finalProcessedPrompt = processedPrompt;
       let sanitizationContext: any = null;
 
-      // Apply conditional sanitization for external providers only
-      if (!isLocalProvider) {
-        await this.dataSanitizationService.debug(
-          'Enhanced response: Using external provider - applying sanitization',
-          undefined,
-          'EnhancedLLM',
-          { provider: provider.name, model: model.name }
-        );
-
-        try {
-          // Use the sanitizeForLLM method which handles both system and user messages
-          const sanitizationResult = await this.dataSanitizationService.sanitizeForLLM(
-            enhancedSystemPrompt,
-            finalProcessedPrompt,
-            options?.sessionId || 'enhanced-request',
-            {
-              enableRedaction: process.env.ENABLE_REDACTION === 'true',
-              enablePseudonymization: true,
-              preserveFormatting: true
-            }
-          );
-
-          enhancedSystemPrompt = sanitizationResult.sanitizedSystemPrompt;
-          finalProcessedPrompt = sanitizationResult.sanitizedUserMessage;
-          sanitizationContext = sanitizationResult.reversalContext;
-
-          await this.dataSanitizationService.debug(
-            'Enhanced response content sanitized for external provider',
-            undefined,
-            'EnhancedLLM',
-            {
-              sanitized: true,
-              hasReversalContext: !!sanitizationContext
-            }
-          );
-
-        } catch (sanitizationError) {
-          await this.dataSanitizationService.error(
-            `Enhanced response sanitization failed: ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}`,
-            undefined,
-            'EnhancedLLM'
-          );
-          
-          // NO FALLBACKS! Fail loudly as per CLAUDE.md principles
-          throw new Error(`Data sanitization failed for enhanced LLM call (${provider.name}/${model.name}): ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}.`);
+      // Apply conditional sanitization using unified PII service
+      const sanitizationResult = await this.piiService.sanitizeForLLM(
+        enhancedSystemPrompt,
+        finalProcessedPrompt,
+        isLocalProvider,
+        {
+          conversationId: options?.conversationId,
+          sessionId: options?.sessionId || 'enhanced-request'
         }
-      } else {
-        await this.dataSanitizationService.debug(
-          'Enhanced response: Using local provider - skipping sanitization',
-          undefined,
-          'EnhancedLLM',
-          { provider: provider.name, model: model.name }
-        );
-      }
+      );
+
+      enhancedSystemPrompt = sanitizationResult.sanitizedSystemPrompt;
+      finalProcessedPrompt = sanitizationResult.sanitizedUserMessage;
+      sanitizationContext = sanitizationResult.reversalContext;
+      const sanitizationMetrics = sanitizationResult.sanitizationMetrics;
+
+      this.logger.log(`🔍 [LLM-DEBUG] Sanitization result - shouldApplySanitization: ${sanitizationResult.shouldApplySanitization}`);
+      this.logger.log(`🔍 [LLM-DEBUG] Sanitization metrics:`, JSON.stringify(sanitizationMetrics, null, 2));
 
       // Create LLM instance with dynamic configuration
       const llm = await this.createLLMFromModel(model, {
@@ -598,29 +527,16 @@ export class LLMService {
       let content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
 
       // Restore pseudonyms in the response if sanitization was applied
-      if (!isLocalProvider && sanitizationContext) {
-        try {
-          const restoredContent = await this.dataSanitizationService.reverseLLMResponse(
-            content,
-            sanitizationContext
-          );
+      if (sanitizationContext) {
+        const restorationResult = await this.piiService.restoreResponse(
+          content,
+          sanitizationContext
+        );
 
-          if (restoredContent !== content) {
-            content = restoredContent;
-            await this.dataSanitizationService.debug(
-              'Enhanced response content restored from pseudonyms',
-              undefined,
-              'EnhancedLLM',
-              { restored: true }
-            );
-          }
-
-        } catch (restorationError) {
-          await this.dataSanitizationService.warn(
-            `Enhanced response restoration failed: ${restorationError instanceof Error ? restorationError.message : 'Unknown error'}`,
-            undefined,
-            'EnhancedLLM'
-          );
+        if (restorationResult.success) {
+          content = restorationResult.restoredContent;
+        } else if (restorationResult.error) {
+          this.logger.warn(`Enhanced response restoration failed: ${restorationResult.error}`);
           // Continue with sanitized response if restoration fails
         }
       }
@@ -642,17 +558,7 @@ export class LLMService {
         model.pricingOutputPer1k || 0,
       );
 
-      // Extract detailed sanitization metrics
-      const sanitizationMetrics = this.dataSanitizationService.extractSanitizationMetrics(
-        sanitizationContext ? { 
-          sanitizedText: '', 
-          originalLength: 0, 
-          sanitizedLength: 0,
-          processingTimeMs: 0,
-          reversalContext: sanitizationContext 
-        } as any : undefined,
-        isLocalProvider
-      );
+      // Use sanitization metrics from PIIService (already extracted above)
 
       const usage: LLMUsageMetrics = {
         inputTokens: inputTokens,
@@ -724,7 +630,11 @@ export class LLMService {
           maxTokens: options?.maxTokens,
           responseTimeMs: responseTimeMs,
         },
+        // Include sanitization metadata for frontend privacy indicators
+        sanitizationMetadata: await this.extractSanitizationMetadataForFrontend(sanitizationMetrics),
       };
+
+      this.logger.log(`🔍 [LLM-DEBUG] Final sanitization metadata for frontend:`, JSON.stringify(await this.extractSanitizationMetadataForFrontend(sanitizationMetrics), null, 2));
     } catch (error) {
       // Note: Usage tracking for failed requests would need to be implemented
       // if we want to track failed enhanced LLM calls
@@ -923,6 +833,7 @@ export class LLMService {
     inputTokens?: number;
     outputTokens?: number;
     enhancedMetrics?: LLMUsageMetrics;
+    sanitizationMetadata?: any;
   }> {
     // Use LocalLLMService for local Ollama models - NO SANITIZATION needed
     if (routingDecision.isLocal && routingDecision.provider === 'ollama') {
@@ -990,6 +901,8 @@ export class LLMService {
         inputTokens: response.prompt_eval_count,
         outputTokens: response.eval_count,
         enhancedMetrics,
+        // No sanitization metadata for local providers
+        sanitizationMetadata: null,
       };
     }
 
@@ -1009,15 +922,16 @@ export class LLMService {
     let actualSanitizationResult: any = null;
 
     try {
-      // Use the sanitizeForLLM method which handles both system and user messages
-      const sanitizationResult = await this.dataSanitizationService.sanitizeForLLM(
+      this.logger.log(`🔍 [LLM-DEBUG] CallProvider path - applying sanitization for external provider`);
+      
+      // Use the unified PIIService for sanitization
+      const sanitizationResult = await this.piiService.sanitizeForLLM(
         systemPrompt,
         userMessage,
-        options.sessionId || 'external-request',
+        false, // isLocalProvider = false (external)
         {
-          enableRedaction: process.env.ENABLE_REDACTION === 'true',
-          enablePseudonymization: true,
-          preserveFormatting: true
+          conversationId: options.conversationId,
+          sessionId: options.sessionId || 'external-request'
         }
       );
 
@@ -1028,24 +942,13 @@ export class LLMService {
       userMessageContext = sanitizationResult.reversalContext;
       
       // Store the actual sanitization results for metrics extraction
-      actualSanitizationResult = sanitizationResult.userSanitizationResult; // Use user message result as primary
+      actualSanitizationResult = sanitizationResult.sanitizationMetrics;
 
-      await this.dataSanitizationService.debug(
-        'Content sanitized for external provider',
-        undefined,
-        'CallProvider',
-        {
-          sanitized: true,
-          hasReversalContext: !!sanitizationResult.reversalContext
-        }
-      );
+      this.logger.log(`🔍 [LLM-DEBUG] CallProvider sanitization complete - shouldApplySanitization: ${sanitizationResult.shouldApplySanitization}`);
+      this.logger.log(`🔍 [LLM-DEBUG] CallProvider sanitization metrics:`, JSON.stringify(sanitizationResult.sanitizationMetrics, null, 2));
 
     } catch (sanitizationError) {
-      await this.dataSanitizationService.error(
-        `Sanitization failed for external provider: ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}`,
-        undefined,
-        'CallProvider'
-      );
+      this.logger.error(`🔍 [LLM-DEBUG] CallProvider sanitization failed: ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}`);
       
       // NO FALLBACKS! Fail loudly as per CLAUDE.md principles
       throw new Error(`Data sanitization failed for external provider (${routingDecision.provider}): ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}. Cannot proceed with unsanitized data to external provider.`);
@@ -1078,27 +981,18 @@ export class LLMService {
     // Restore pseudonyms in the response if any were applied
     if (systemPromptContext) {
       try {
-        const restoredContent = await this.dataSanitizationService.reverseLLMResponse(
+        const restorationResult = await this.piiService.restoreResponse(
           responseContent,
           systemPromptContext
         );
 
-        if (restoredContent !== responseContent) {
-          responseContent = restoredContent;
-          await this.dataSanitizationService.debug(
-            'Response content restored from pseudonyms',
-            undefined,
-            'CallProvider',
-            { restored: true }
-          );
+        if (restorationResult.success && restorationResult.restoredContent !== responseContent) {
+          responseContent = restorationResult.restoredContent;
+          this.logger.log(`🔍 [LLM-DEBUG] CallProvider response content restored from pseudonyms`);
         }
 
       } catch (restorationError) {
-        await this.dataSanitizationService.warn(
-          `Response restoration failed: ${restorationError instanceof Error ? restorationError.message : 'Unknown error'}`,
-          undefined,
-          'CallProvider'
-        );
+        this.logger.warn(`🔍 [LLM-DEBUG] CallProvider response restoration failed: ${restorationError instanceof Error ? restorationError.message : 'Unknown error'}`);
         // Continue with sanitized response if restoration fails
       }
     }
@@ -1107,11 +1001,18 @@ export class LLMService {
     const inputTokens = this.estimateTokens(sanitizedSystemPrompt + sanitizedUserMessage);
     const outputTokens = this.estimateTokens(responseContent);
 
-    // Extract enhanced metrics from sanitization process
-    const sanitizationMetrics = this.dataSanitizationService.extractSanitizationMetrics(
-      actualSanitizationResult,
-      false // isLocalProvider = false for external providers
-    );
+    // Use sanitization metrics from PIIService (already extracted above)
+    const sanitizationMetrics = actualSanitizationResult || {
+      sanitizationLevel: 'none',
+      piiDetected: false,
+      piiTypes: [],
+      pseudonymsUsed: 0,
+      pseudonymTypes: [],
+      redactionsApplied: 0,
+      redactionTypes: [],
+      sanitizationTimeMs: 0,
+      reversalContextSize: 0
+    };
 
     const enhancedMetrics: LLMUsageMetrics = {
       inputTokens,
@@ -1159,6 +1060,8 @@ export class LLMService {
       inputTokens,
       outputTokens,
       enhancedMetrics,
+      // Include sanitization metadata for frontend privacy indicators
+      sanitizationMetadata: await this.extractSanitizationMetadataForFrontend(sanitizationMetrics),
     };
   }
 
@@ -1808,5 +1711,85 @@ export class LLMService {
       totalCost: inputCost + outputCost,
       currency: 'USD',
     };
+  }
+
+  /**
+   * Extract sanitization metadata in the format expected by the frontend
+   */
+  private async extractSanitizationMetadataForFrontend(sanitizationMetrics: any): Promise<any> {
+    if (!sanitizationMetrics || sanitizationMetrics.sanitizationLevel === 'none') {
+      return {
+        status: 'none',
+        piiDetectionCount: 0,
+        piiTypes: [],
+        piiSeverityLevels: []
+      };
+    }
+
+    // Get PII severity levels from database based on detected types
+    const piiSeverityLevels = await this.getPiiSeverityLevels(sanitizationMetrics.piiTypes);
+
+    return {
+      status: sanitizationMetrics.piiDetected ? 'completed' : 'none',
+      piiDetectionCount: sanitizationMetrics.pseudonymsUsed + sanitizationMetrics.redactionsApplied,
+      piiTypes: sanitizationMetrics.piiTypes || [],
+      piiSeverityLevels: piiSeverityLevels,
+      sanitizationLevel: sanitizationMetrics.sanitizationLevel,
+      pseudonymsUsed: sanitizationMetrics.pseudonymsUsed,
+      redactionsApplied: sanitizationMetrics.redactionsApplied
+    };
+  }
+
+  /**
+   * Get PII severity levels from database based on detected PII types
+   */
+  private async getPiiSeverityLevels(piiTypes: string[]): Promise<string[]> {
+    if (!piiTypes || piiTypes.length === 0) {
+      return [];
+    }
+
+    try {
+      // Query the redaction_patterns table to get severity levels for detected PII types
+      const { data: patterns, error } = await this.supabaseService
+        .getServiceClient()
+        .from('redaction_patterns')
+        .select('severity, data_type')
+        .in('data_type', piiTypes);
+
+      if (error) {
+        this.logger.warn(`Failed to fetch PII severity levels: ${error.message}`);
+        // Fallback to default mapping
+        return this.getDefaultSeverityMapping(piiTypes);
+      }
+
+      // Extract unique severity levels
+      const severityLevels = [...new Set(patterns?.map(p => p.severity) || [])];
+      return severityLevels.filter(Boolean);
+    } catch (error) {
+      this.logger.warn(`Error fetching PII severity levels: ${error instanceof Error ? error.message : String(error)}`);
+      // Fallback to default mapping
+      return this.getDefaultSeverityMapping(piiTypes);
+    }
+  }
+
+  /**
+   * Fallback mapping for PII types to severity levels when database query fails
+   */
+  private getDefaultSeverityMapping(piiTypes: string[]): string[] {
+    const severityMap: Record<string, string> = {
+      'ssn': 'showstopper',
+      'credit_card': 'showstopper',
+      'creditCard': 'showstopper',
+      'email': 'pseudonymizer',
+      'phone': 'pseudonymizer',
+      'ipAddress': 'flagger',
+      'ip_address': 'flagger',
+      'name': 'pseudonymizer',
+      'api_key': 'showstopper',
+      'other': 'flagger'
+    };
+
+    const severities = piiTypes.map(type => severityMap[type] || 'flagger');
+    return [...new Set(severities)]; // Remove duplicates
   }
 }

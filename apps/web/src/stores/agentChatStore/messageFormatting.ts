@@ -51,6 +51,7 @@ export class MessageFormattingService {
             // Format: { success: true, response: "content", metadata: {...}, deliverableId: "uuid" }
             responseContent = String(parsedResult.response);
             responseMetadata = parsedResult.metadata || {};
+
             // Extract deliverable ID if present - THIS IS THE KEY FIX
             if (parsedResult.deliverableId) {
               responseMetadata.deliverableId = parsedResult.deliverableId;
@@ -116,6 +117,7 @@ export class MessageFormattingService {
             responseContent = docSectionMatch[1].trim();
           }
         }
+
       } catch {
         // If parsing fails, use the raw response
         responseContent = String(responseData);

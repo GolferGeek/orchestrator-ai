@@ -12,6 +12,7 @@ import { LoggingService } from '@agents/base/sub-services/logging/logging.servic
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
 import { MCPClientService } from '@/mcp/clients/mcp-client.service';
+import { PIIService } from '@/services/pii.service';
 
 /**
  * Service container specifically for function agents.
@@ -23,6 +24,7 @@ export class FunctionAgentServicesContext {
     // Core services that every function agent needs
     public readonly httpService: HttpService,
     public readonly llmService: LLMService,
+    public readonly piiService: PIIService,
 
     // Task-related services (required for function agents)
     public readonly taskProgressGateway: TaskProgressGateway,
