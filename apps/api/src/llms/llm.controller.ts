@@ -40,10 +40,10 @@ export class LLMController {
         dataClassification?: string;
       };
     },
-  ): Promise<{ response: string }> {
+  ): Promise<{ response: string; sanitizationMetadata?: any }> {
 
     try {
-      const response = await this.llmService.generateResponse(
+      const result = await this.llmService.generateResponse(
         request.systemPrompt,
         request.userPrompt,
         {
@@ -58,10 +58,20 @@ export class LLMController {
           callerName: request.options?.callerName || 'llm-controller',
           conversationId: request.options?.conversationId,
           dataClassification: request.options?.dataClassification || 'public',
+          // Request metadata for Python agents
+          includeMetadata: true,
         },
       );
 
-      return { response };
+      // Handle both string and object responses
+      if (typeof result === 'string') {
+        return { response: result };
+      } else {
+        return { 
+          response: result.content || result.response || result,
+          sanitizationMetadata: result.sanitizationMetadata
+        };
+      }
     } catch (error) {
 
       throw error;

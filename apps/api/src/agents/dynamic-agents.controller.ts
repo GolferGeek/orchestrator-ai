@@ -25,6 +25,7 @@ import {
   AgentType,
 } from '../common/types/agent-conversations.types';
 import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
+import { CentralizedRoutingService } from '../llms/centralized-routing.service';
 
 @Controller('agents')
 export class DynamicAgentsController {
@@ -37,6 +38,7 @@ export class DynamicAgentsController {
     private readonly agentConversationsService: AgentConversationsService,
     private readonly taskStatusService: TaskStatusService,
     private readonly contextOptimizationService: ContextOptimizationService,
+    private readonly centralizedRoutingService: CentralizedRoutingService,
   ) {}
 
   /**
@@ -137,6 +139,63 @@ export class DynamicAgentsController {
     if (!normalizedTaskRequest.method || !normalizedTaskRequest.prompt) {
       throw new Error('Method and prompt are required');
     }
+
+    // 🔒 PII POLICY CHECK - Block sensitive data before it reaches any agent
+    this.logger.debug(`🔒 [DynamicAgentsController] Performing PII policy check for ${agentType}/${agentName}`);
+    const routingDecision = await this.centralizedRoutingService.determineRoute(
+      normalizedTaskRequest.prompt,
+      {
+        conversationId: normalizedTaskRequest.conversationId,
+        userId: currentUser?.id,
+        requestId: `agent-${agentType}-${agentName}-${Date.now()}`,
+      }
+    );
+
+    // Check if request was blocked by PII policy
+    if (routingDecision.provider === 'policy-blocked') {
+      this.logger.warn(`🚫 [DynamicAgentsController] Request blocked by PII policy: ${routingDecision.reasoningPath?.join(', ')}`);
+
+      // Create a blocked task response immediately
+      const task = await this.tasksService.createTask(
+        currentUser.id,
+        agentName,
+        agentType as AgentType,
+        {
+          ...normalizedTaskRequest,
+          conversationHistory: normalizedTaskRequest.conversationHistory || [],
+        },
+      );
+
+      // Mark task as failed with PII violation
+      await this.taskStatusService.failTask(
+        task.id,
+        currentUser.id,
+        'Request blocked due to PII policy violation. Please rephrase your request without including sensitive personal information.',
+      );
+
+      // Return blocked response
+      return {
+        taskId: task.id,
+        conversationId: task.agentConversationId,
+        status: 'blocked',
+        result: {
+          success: false,
+          message: 'Request blocked due to PII policy violation',
+          error: 'PII_POLICY_VIOLATION',
+          blockedReason: 'Sensitive personal information detected',
+          metadata: {
+            sanitizationMetadata: {
+              status: 'blocked',
+              reason: 'PII policy violation',
+              piiDetected: true,
+              blocked: true,
+            },
+          },
+        },
+      };
+    }
+
+    this.logger.debug(`✅ [DynamicAgentsController] PII policy check passed for ${agentType}/${agentName}`);
 
     // Extract auth token from request
     const authHeader = req.headers.authorization;

@@ -113,6 +113,8 @@
           :showSanitizationStatus="privacySettings.showSanitizationStatus"
           :sanitizationStatus="currentSanitizationStatus"
           :piiDetectionCount="currentPiiDetectionCount"
+          :piiSeverityTypes="currentPiiSeverityTypes"
+          :piiSeverityLevels="currentPiiSeverityLevels"
           :showRoutingDisplay="privacySettings.showRoutingDisplay"
           :routingMode="currentRoutingMode"
           :showTrustSignal="privacySettings.showTrustSignal"
@@ -477,30 +479,79 @@ const currentTrustScore = computed(() => {
 
 // Sanitization status - read from message metadata (better architecture)
 const currentSanitizationStatus = computed(() => {
+  // 🔍 DEBUG: Log what sanitization metadata we're receiving
+  console.log('🔍 [FRONTEND-DEBUG] AgentTaskItem message metadata:', props.message.metadata);
+  console.log('🔍 [FRONTEND-DEBUG] AgentTaskItem sanitization metadata:', props.message.metadata?.sanitizationMetadata);
+  
   // First, check message metadata for sanitization data (preferred)
   const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
   if (sanitizationMetadata?.status) {
+    console.log('🔍 [FRONTEND-DEBUG] Found sanitization status in metadata:', sanitizationMetadata.status);
     return sanitizationMetadata.status;
   }
   
   // Fallback to privacy state if available (but skip 'processing')
   if (privacyState.value?.sanitizationStatus && privacyState.value.sanitizationStatus !== 'processing') {
+    console.log('🔍 [FRONTEND-DEBUG] Using privacy state sanitization status:', privacyState.value.sanitizationStatus);
     return privacyState.value.sanitizationStatus;
   }
   
   // Default to 'none' if no sanitization data (no more processing badge)
+  console.log('🔍 [FRONTEND-DEBUG] No sanitization metadata found, defaulting to none');
   return 'none';
 });
 
 const currentPiiDetectionCount = computed(() => {
-  // First, check message metadata for PII count (preferred)
+  // 🔍 DEBUG: Log PII detection count data
   const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
+  console.log('🔍 [FRONTEND-DEBUG] PII detection count from sanitization metadata:', sanitizationMetadata?.piiDetectionCount);
+  
+  // First, check message metadata for PII count (preferred)
   if (sanitizationMetadata?.piiDetectionCount !== undefined) {
+    console.log('🔍 [FRONTEND-DEBUG] Using PII count from metadata:', sanitizationMetadata.piiDetectionCount);
     return sanitizationMetadata.piiDetectionCount;
   }
   
   // Fallback to privacy state
-  return privacyState.value?.piiDetectionCount || 0;
+  const fallbackCount = privacyState.value?.piiDetectionCount || 0;
+  console.log('🔍 [FRONTEND-DEBUG] Using fallback PII count:', fallbackCount);
+  return fallbackCount;
+});
+
+const currentPiiSeverityTypes = computed(() => {
+  // Extract PII types from message metadata
+  const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
+  if (sanitizationMetadata?.piiTypes) {
+    return sanitizationMetadata.piiTypes;
+  }
+  
+  // Fallback to privacy state or empty array
+  return privacyState.value?.piiTypes || [];
+});
+
+const currentPiiSeverityLevels = computed(() => {
+  // Extract PII severity levels from message metadata
+  const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
+  if (sanitizationMetadata?.piiSeverityLevels) {
+    return sanitizationMetadata.piiSeverityLevels;
+  }
+  
+  // If we don't have explicit severity levels, infer from types
+  const types = currentPiiSeverityTypes.value;
+  if (types.length === 0) return [];
+  
+  // Map types to severity levels based on our classification
+  const severityMap: Record<string, string> = {
+    'ssn': 'showstopper',
+    'creditCard': 'showstopper',
+    'email': 'pseudonymizer',
+    'phone': 'pseudonymizer',
+    'ipAddress': 'flagger',
+    'name': 'pseudonymizer'
+  };
+  
+  const severities = types.map(type => severityMap[type] || 'flagger');
+  return [...new Set(severities)]; // Remove duplicates
 });
 
 // Methods

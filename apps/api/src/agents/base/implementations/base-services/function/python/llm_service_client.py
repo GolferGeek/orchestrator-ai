@@ -66,6 +66,40 @@ class LLMServiceClient:
             # Fallback for development/testing
             return f"Generated response for: {user_prompt[:100]}..."
     
+    async def call_llm_service_with_metadata(
+        self, 
+        system_prompt: str, 
+        user_prompt: str, 
+        options: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Make HTTP call to LLM service and return full response with metadata"""
+        try:
+            payload = {
+                "systemPrompt": system_prompt,
+                "userPrompt": user_prompt,
+                "options": options or {}
+            }
+            
+            response = requests.post(f"{self.api_url}/generate", json=payload)
+            response.raise_for_status()
+            
+            result = response.json()
+            return {
+                "response": result.get("response", ""),
+                "sanitizationMetadata": result.get("sanitizationMetadata", {}),
+                "success": True
+            }
+            
+        except Exception as e:
+            print(f"LLM service call failed: {e}", file=sys.stderr)
+            # Fallback for development/testing
+            return {
+                "response": f"Generated response for: {user_prompt[:100]}...",
+                "sanitizationMetadata": {},
+                "success": False,
+                "error": str(e)
+            }
+    
     def create_options(
         self,
         provider_id: Optional[str] = None,

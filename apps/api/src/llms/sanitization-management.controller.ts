@@ -140,7 +140,7 @@ class UpdatePseudonymDictionaryDto {
 }
 
 @ApiTags('Sanitization Management')
-@Controller('sanitization')
+@Controller('llm/sanitization')
 export class SanitizationManagementController {
   constructor(
     private readonly secretRedactionService: SecretRedactionService,

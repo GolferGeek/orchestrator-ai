@@ -533,7 +533,9 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     async handleTaskCompletion(conversationId: string, taskId: string) {
 
-      
+      console.log('🔍 [FRONTEND-DEBUG] handleTaskCompletion called for taskId:', taskId);
+
+
       // Prevent duplicate completion handling
       if ((this as any)._completingTasks?.has(taskId)) {
         return;
@@ -580,12 +582,15 @@ export const useAgentChatStore = defineStore('agentChat', {
         let deliverableId = null;
         let newVersionId = null;
         let versionNumber = null;
-        
+        let parsedResponse = null;
+
         if (completedTask.response) {
           try {
-            const parsedResponse = typeof completedTask.response === 'string' 
-              ? JSON.parse(completedTask.response) 
+            parsedResponse = typeof completedTask.response === 'string'
+              ? JSON.parse(completedTask.response)
               : completedTask.response;
+
+            console.log('🔍 [FRONTEND-DEBUG] parsedResponse:', parsedResponse);
             
             
             // Backend puts deliverable info directly in the result object
@@ -599,6 +604,9 @@ export const useAgentChatStore = defineStore('agentChat', {
 
         // Update message content with the final response
         existingMessage.content = finalContent;
+        console.log('🔍 [FRONTEND-DEBUG] Agent result metadata:', parsedResponse?.metadata);
+        console.log('🔍 [FRONTEND-DEBUG] Has sanitizationMetadata:', !!parsedResponse?.metadata?.sanitizationMetadata);
+
         existingMessage.metadata = {
           ...existingMessage.metadata,
           isPlaceholder: false,

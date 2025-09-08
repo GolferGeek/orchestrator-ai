@@ -41,13 +41,14 @@
       <div class="trust-score" v-if="trustScore !== null">{{ trustScore }}%</div>
     </div>
 
-    <!-- PII Detection Count -->
+    <!-- PII Detection Count with Severity -->
     <div 
       v-if="showPiiCount && piiDetectionCount > 0" 
       class="privacy-badge pii-detection"
+      :class="piiSeverityClass"
     >
-      <ion-icon :icon="eyeOffOutline" />
-      <span class="badge-text">{{ piiDetectionCount }} PII items</span>
+      <ion-icon :icon="piiSeverityIcon" />
+      <span class="badge-text">{{ piiDetectionText }}</span>
     </div>
 
     <!-- Processing Time -->
@@ -75,7 +76,10 @@ import {
   eyeOffOutline,
   timeOutline,
   lockClosedOutline,
-  globeOutline
+  globeOutline,
+  stopCircleOutline,
+  swapHorizontalOutline,
+  flagOutline
 } from 'ionicons/icons';
 
 // Props interface
@@ -88,6 +92,8 @@ export interface PrivacyIndicatorProps {
   showSanitizationStatus?: boolean;
   sanitizationStatus?: 'none' | 'processing' | 'completed' | 'failed';
   piiDetectionCount?: number;
+  piiSeverityTypes?: string[]; // Array of PII types detected (e.g., ['email', 'phone'])
+  piiSeverityLevels?: string[]; // Array of severity levels (e.g., ['pseudonymizer', 'flagger'])
   
   // Routing information
   showRoutingDisplay?: boolean;
@@ -113,6 +119,8 @@ const props = withDefaults(defineProps<PrivacyIndicatorProps>(), {
   showSanitizationStatus: true,
   sanitizationStatus: 'none',
   piiDetectionCount: 0,
+  piiSeverityTypes: () => [],
+  piiSeverityLevels: () => [],
   showRoutingDisplay: true,
   routingMode: 'local',
   showTrustSignal: true,
@@ -207,6 +215,75 @@ const formattedProcessingTime = computed(() => {
   } else {
     return `${(props.processingTimeMs / 1000).toFixed(1)}s`;
   }
+});
+
+// PII Severity computed properties
+const highestPiiSeverity = computed(() => {
+  if (!props.piiSeverityLevels || props.piiSeverityLevels.length === 0) {
+    return 'none';
+  }
+  
+  // Priority order: showstopper > pseudonymizer > flagger
+  if (props.piiSeverityLevels.includes('showstopper')) return 'showstopper';
+  if (props.piiSeverityLevels.includes('pseudonymizer')) return 'pseudonymizer';
+  if (props.piiSeverityLevels.includes('flagger')) return 'flagger';
+  return 'unknown';
+});
+
+const piiSeverityClass = computed(() => ({
+  'pii-showstopper': highestPiiSeverity.value === 'showstopper',
+  'pii-pseudonymizer': highestPiiSeverity.value === 'pseudonymizer',
+  'pii-flagger': highestPiiSeverity.value === 'flagger',
+  'pii-unknown': highestPiiSeverity.value === 'unknown'
+}));
+
+const piiSeverityIcon = computed(() => {
+  switch (highestPiiSeverity.value) {
+    case 'showstopper': return stopCircleOutline;
+    case 'pseudonymizer': return swapHorizontalOutline;
+    case 'flagger': return flagOutline;
+    default: return eyeOffOutline;
+  }
+});
+
+const piiDetectionText = computed(() => {
+  const count = props.piiDetectionCount || 0;
+  const types = props.piiSeverityTypes || [];
+  const severity = highestPiiSeverity.value;
+  
+  if (count === 0) return 'No PII';
+  
+  let text = `${count} PII item${count > 1 ? 's' : ''}`;
+  
+  // Add severity indicator
+  switch (severity) {
+    case 'showstopper':
+      text += ' (Blocked)';
+      break;
+    case 'pseudonymizer':
+      text += ' (Sanitized)';
+      break;
+    case 'flagger':
+      text += ' (Flagged)';
+      break;
+  }
+  
+  // Add types if available and not too many
+  if (types.length > 0 && types.length <= 2) {
+    const typeNames = types.map(type => {
+      switch (type) {
+        case 'ssn': return 'SSN';
+        case 'creditCard': return 'Card';
+        case 'email': return 'Email';
+        case 'phone': return 'Phone';
+        case 'ipAddress': return 'IP';
+        default: return type;
+      }
+    });
+    text += ` (${typeNames.join(', ')})`;
+  }
+  
+  return text;
 });
 </script>
 
@@ -385,6 +462,46 @@ const formattedProcessingTime = computed(() => {
 
 .pii-detection ion-icon {
   color: var(--ion-color-warning);
+}
+
+/* PII Severity-specific styles */
+.pii-detection.pii-showstopper {
+  background: var(--ion-color-danger-tint);
+  color: white;
+  border-color: var(--ion-color-danger);
+  font-weight: 600;
+}
+
+.pii-detection.pii-showstopper ion-icon {
+  color: white;
+}
+
+.pii-detection.pii-pseudonymizer {
+  background: var(--ion-color-primary-tint);
+  color: white;
+  border-color: var(--ion-color-primary);
+  font-weight: 600;
+}
+
+.pii-detection.pii-pseudonymizer ion-icon {
+  color: white;
+}
+
+.pii-detection.pii-flagger {
+  background: var(--ion-color-warning-tint);
+  color: var(--ion-color-warning-shade);
+  border-color: var(--ion-color-warning);
+  font-weight: 600;
+}
+
+.pii-detection.pii-flagger ion-icon {
+  color: var(--ion-color-warning);
+}
+
+.pii-detection.pii-unknown {
+  background: var(--ion-color-medium-tint);
+  color: var(--ion-color-medium-shade);
+  border-color: var(--ion-color-medium);
 }
 
 /* Processing Time Badge */

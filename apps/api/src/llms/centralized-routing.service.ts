@@ -3,6 +3,7 @@ import { LocalModelStatusService } from './local-model-status.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import { SovereignPolicyService } from '../config/sovereign-policy.service';
 import { FeatureFlagService, FeatureFlagContext } from '../config/feature-flag.service';
+import { PIIService } from '../services/pii.service';
 import { createHash } from 'crypto';
 
 interface RoutingAuditLog {
@@ -54,6 +55,8 @@ export interface RoutingDecision {
   reasoningPath: string[];
   sovereignModeEnforced?: boolean;
   sovereignModeViolation?: boolean;
+  sanitizationResult?: any; // Result from DataSanitizationService
+  sanitizedPrompt?: string; // Sanitized version of the prompt
 }
 
 export interface LLMRequest {
@@ -81,6 +84,7 @@ export class CentralizedRoutingService {
     private readonly supabaseService: SupabaseService,
     private readonly sovereignPolicyService: SovereignPolicyService,
     private readonly featureFlagService: FeatureFlagService,
+    private readonly piiService: PIIService,
   ) {
     this.logger.log('CentralizedRoutingService initialized');
   }
@@ -94,6 +98,7 @@ export class CentralizedRoutingService {
     const reasoningPath: string[] = [];
     const violations: string[] = [];
     const warnings: string[] = [];
+    let currentPrompt = prompt; // Mutable prompt for PII processing
 
     try {
       // Step 1: Check feature flag for sovereign routing
@@ -122,6 +127,38 @@ export class CentralizedRoutingService {
         reasoningPath.push('Sovereign routing feature flag: DISABLED - using legacy routing');
         // Legacy behavior: no sovereign mode restrictions
       }
+
+      // Step 1.5: PII Policy Check using dedicated service
+      const piiPolicyResult = await this.piiService.checkPolicy(currentPrompt, {
+        conversationId: options.conversationId,
+        userId: options.userId,
+        requestId: options.requestId
+      });
+
+      // Add PII policy reasoning to our path
+      reasoningPath.push(...piiPolicyResult.reasoningPath);
+      violations.push(...piiPolicyResult.violations);
+
+      if (!piiPolicyResult.allowed) {
+        // Request blocked due to PII policy violation
+        this.logger.warn(`Request blocked by PII policy: ${piiPolicyResult.violations.join(', ')}`);
+        
+        // Return a routing decision that indicates policy block
+        return {
+          provider: 'policy-blocked',
+          model: 'pii-policy',
+          isLocal: true,
+          fallbackUsed: false,
+          complexityScore: 0,
+          reasoningPath,
+          sanitizationResult: piiPolicyResult.sanitizationResult,
+          sanitizedPrompt: currentPrompt // Keep original for audit
+        };
+      }
+
+      // Use sanitized prompt for routing
+      currentPrompt = piiPolicyResult.sanitizedPrompt;
+      const sanitizationResult = piiPolicyResult.sanitizationResult;
 
       // Step 2: Honor explicit provider/model requests (with sovereign mode validation)
       if (options.provider && options.model) {

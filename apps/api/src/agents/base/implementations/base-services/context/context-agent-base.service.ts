@@ -141,7 +141,6 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           dataClassification: 'internal', // Default for context agents
         };
         
-        
         llmResult = await this.services.llmService.generateResponse(
           systemPrompt,
           userMessage,
@@ -150,11 +149,18 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         
       }
 
+      // 🔍 DEBUG: Log LLM result structure
+      this.contextLogger.log(`🔍 [AGENT-DEBUG] LLM result type: ${typeof llmResult}`);
+      this.contextLogger.log(`🔍 [AGENT-DEBUG] LLM result keys:`, typeof llmResult === 'object' ? Object.keys(llmResult) : 'N/A');
+      this.contextLogger.log(`🔍 [AGENT-DEBUG] LLM result sanitizationMetadata:`, typeof llmResult === 'object' ? llmResult.sanitizationMetadata : 'N/A');
+
       // Extract response content and metadata
       const responseContent =
         typeof llmResult === 'string' ? llmResult : llmResult.content;
       const llmMetadata =
         typeof llmResult === 'object' ? llmResult.llmMetadata : undefined;
+      const sanitizationMetadata =
+        typeof llmResult === 'object' ? llmResult.sanitizationMetadata : undefined;
 
       const result = {
         success: true,
@@ -173,6 +179,10 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
               typeof llmResult === 'object'
                 ? llmResult.costCalculation
                 : undefined,
+          }),
+          // Include sanitization metadata for frontend privacy indicators
+          ...(sanitizationMetadata && {
+            sanitizationMetadata: sanitizationMetadata,
           }),
         },
       };

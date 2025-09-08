@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
-import { useSanitizationStore } from './sanitizationStore';
+import { useLLMStore } from './llmStore';
 import { useLlmUsageStore } from './llmUsageStore';
 import { useAgentChatStore } from './agentChatStore';
 
@@ -349,7 +349,7 @@ export const usePrivacyIndicatorsStore = defineStore('privacyIndicators', () => 
    */
   async function refreshConversationPrivacyStates(conversationId: string): Promise<void> {
     const agentChatStore = useAgentChatStore();
-    const sanitizationStore = useSanitizationStore();
+    const llmStore = useLLMStore();
     
     // Get conversation messages
     const conversation = agentChatStore.conversations.find(c => c.id === conversationId);
@@ -370,16 +370,16 @@ export const usePrivacyIndicatorsStore = defineStore('privacyIndicators', () => 
     messageId: string,
     message: any
   ): Promise<MessagePrivacyState> {
-    const sanitizationStore = useSanitizationStore();
+    const llmStore = useLLMStore();
     
     // Extract routing info from message metadata
     const routingInfo = extractRoutingInfo(message);
     
     // Calculate trust score
-    const trustInfo = calculateTrustScore(message, sanitizationStore);
+    const trustInfo = calculateTrustScore(message, llmStore);
     
     // Determine data protection status
-    const protectionInfo = calculateDataProtection(message, sanitizationStore, routingInfo);
+    const protectionInfo = calculateDataProtection(message, llmStore, routingInfo);
     
     // Update the message state
     return updateMessagePrivacyState(messageId, {
@@ -387,10 +387,10 @@ export const usePrivacyIndicatorsStore = defineStore('privacyIndicators', () => 
       taskId: message.taskId,
       
       // Sanitization data
-      sanitizationStatus: sanitizationStore.isProcessing ? 'processing' : 
-        sanitizationStore.currentResult?.success ? 'completed' : 'none',
-      piiDetectionCount: sanitizationStore.currentResult?.totalDetections || 0,
-      sanitizationProcessingTime: sanitizationStore.currentResult?.totalProcessingTime || 0,
+      sanitizationStatus: llmStore.sanitizationStatsLoading ? 'processing' : 
+        llmStore.sanitizationStats.totalSanitizations > 0 ? 'completed' : 'none',
+      piiDetectionCount: llmStore.sanitizationStats.protectedToday || 0,
+      sanitizationProcessingTime: llmStore.sanitizationStats.averageProcessingTime || 0,
       
       // Routing data
       routingMode: routingInfo.mode,
@@ -406,11 +406,11 @@ export const usePrivacyIndicatorsStore = defineStore('privacyIndicators', () => 
       
       // Processing data
       processingTimeMs: message.metadata?.llmMetadata?.responseTimeMs || 0,
-      isProcessing: sanitizationStore.isProcessing,
+      isProcessing: llmStore.sanitizationStatsLoading,
       
       // Error data
-      hasErrors: sanitizationStore.error !== null,
-      errorMessage: sanitizationStore.error
+      hasErrors: llmStore.sanitizationStatsError !== null,
+      errorMessage: llmStore.sanitizationStatsError
     });
   }
   
@@ -498,11 +498,11 @@ export const usePrivacyIndicatorsStore = defineStore('privacyIndicators', () => 
     return { mode, provider };
   }
   
-  function calculateTrustScore(message: any, sanitizationStore: any): { level: 'high' | 'medium' | 'low', score: number } {
+  function calculateTrustScore(message: any, llmStore: any): { level: 'high' | 'medium' | 'low', score: number } {
     let score = 70; // Base score
     
     // Check sanitization
-    if (sanitizationStore.currentResult?.success) {
+    if (llmStore.sanitizationStats.totalSanitizations > 0) {
       score += 15;
     }
     
@@ -513,7 +513,7 @@ export const usePrivacyIndicatorsStore = defineStore('privacyIndicators', () => 
     }
     
     // Check errors
-    if (sanitizationStore.error) {
+    if (llmStore.sanitizationStatsError) {
       score -= 20;
     }
     
@@ -525,10 +525,10 @@ export const usePrivacyIndicatorsStore = defineStore('privacyIndicators', () => 
     return { level, score: Math.max(0, Math.min(100, score)) };
   }
   
-  function calculateDataProtection(message: any, sanitizationStore: any, routingInfo: any): { isProtected: boolean, level: 'none' | 'partial' | 'full' } {
-    const hasSanitization = sanitizationStore.currentResult?.success;
+  function calculateDataProtection(message: any, llmStore: any, routingInfo: any): { isProtected: boolean, level: 'none' | 'partial' | 'full' } {
+    const hasSanitization = llmStore.sanitizationStats.totalSanitizations > 0;
     const isLocal = routingInfo.mode === 'local';
-    const hasNoErrors = !sanitizationStore.error;
+    const hasNoErrors = !llmStore.sanitizationStatsError;
     
     if (hasSanitization && hasNoErrors) {
       return {

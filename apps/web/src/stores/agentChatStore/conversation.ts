@@ -138,26 +138,26 @@ export class ConversationService {
             responseContent = task.response;
           }
           
-          // Completed task - create assistant message with parsed response
-          const assistantMessageId = `assistant-${task.id}`;
-          const assistantMessage: AgentChatMessage = {
-            id: assistantMessageId,
-            role: 'assistant',
-            content: responseContent,
-            timestamp: new Date(task.completedAt || task.updatedAt),
-            taskId: task.id,
-            metadata: {
-              isCompleted: true,
-              completedAt: task.completedAt,
-              responseMetadata: task.responseMetadata,
-              llmMetadata: task.llmMetadata,
-              originalTaskData: {
-                method: task.method,
-                status: task.status,
-                progress: task.progress
-              }
+        // Completed task - create assistant message with parsed response
+        const assistantMessageId = `assistant-${task.id}`;
+        const assistantMessage: AgentChatMessage = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: responseContent,
+          timestamp: new Date(task.completedAt || task.updatedAt),
+          taskId: task.id,
+          metadata: {
+            isCompleted: true,
+            completedAt: task.completedAt,
+            responseMetadata: task.responseMetadata,
+            llmMetadata: task.llmMetadata,
+            originalTaskData: {
+              method: task.method,
+              status: task.status,
+              progress: task.progress
             }
-          };
+          }
+        };
           
           // Check if this message has an associated deliverable
           // Try both message ID and task ID mapping

@@ -96,58 +96,18 @@
                         <ion-icon aria-hidden="true" :icon="shieldCheckmarkOutline" slot="start"></ion-icon>
                         <ion-label>Audit Dashboard</ion-label>
                       </ion-item>
-                      <ion-menu-toggle v-if="auth.hasAdminAccess">
-                        <ion-item 
-                          :button="true"
-                          router-direction="root" 
-                          router-link="/app/admin/pii-patterns" 
-                          lines="none" 
-                          :detail="false"
-                          :class="{ 'selected': $route.path === '/app/admin/pii-patterns' }"
-                        >
-                          <ion-icon aria-hidden="true" :icon="shieldCheckmarkOutline" slot="start"></ion-icon>
-                          <ion-label>PII Patterns</ion-label>
-                        </ion-item>
-                      </ion-menu-toggle>
-                      <ion-menu-toggle v-if="auth.hasAdminAccess">
-                        <ion-item 
-                          :button="true"
-                          router-direction="root" 
-                          router-link="/app/admin/pii-testing" 
-                          lines="none" 
-                          :detail="false"
-                          :class="{ 'selected': $route.path === '/app/admin/pii-testing' }"
-                        >
-                          <ion-icon aria-hidden="true" :icon="flaskOutline" slot="start"></ion-icon>
-                          <ion-label>PII Testing</ion-label>
-                        </ion-item>
-                      </ion-menu-toggle>
-                      <ion-menu-toggle v-if="auth.hasAdminAccess">
-                        <ion-item 
-                          :button="true"
-                          router-direction="root" 
-                          router-link="/app/admin/pseudonym-dictionary" 
-                          lines="none" 
-                          :detail="false"
-                          :class="{ 'selected': $route.path === '/app/admin/pseudonym-dictionary' }"
-                        >
-                          <ion-icon aria-hidden="true" :icon="libraryOutline" slot="start"></ion-icon>
-                          <ion-label>Pseudonym Dictionary</ion-label>
-                        </ion-item>
-                      </ion-menu-toggle>
-                      <ion-menu-toggle v-if="auth.hasAdminAccess">
-                        <ion-item 
-                          :button="true"
-                          router-direction="root" 
-                          router-link="/app/admin/pseudonym-mappings" 
-                          lines="none" 
-                          :detail="false"
-                          :class="{ 'selected': $route.path === '/app/admin/pseudonym-mappings' }"
-                        >
-                          <ion-icon aria-hidden="true" :icon="swapHorizontalOutline" slot="start"></ion-icon>
-                          <ion-label>Pseudonym Mappings</ion-label>
-                        </ion-item>
-                      </ion-menu-toggle>
+                      
+                      <ion-item 
+                        v-if="auth.hasAdminAccess"
+                        :button="true"
+                        lines="none" 
+                        :detail="false"
+                        @click="$router.push('/app/admin/data-sanitization')"
+                        :class="{ 'selected': $route.path.includes('/app/admin/data-sanitization') || $route.path.includes('/app/admin/pii-') || $route.path.includes('/app/admin/pseudonym-') }"
+                      >
+                        <ion-icon aria-hidden="true" :icon="shieldCheckmarkOutline" slot="start"></ion-icon>
+                        <ion-label>Data Sanitization</ion-label>
+                      </ion-item>
                       <ion-menu-toggle v-if="auth.hasEvaluationAccess">
                         <ion-item 
                           :button="true"
@@ -393,6 +353,7 @@ ion-menu {
   --color: #333 !important;
   color: #333 !important;
 }
+
 
 /* Agents & Conversations accordion content */
 .agents-content {

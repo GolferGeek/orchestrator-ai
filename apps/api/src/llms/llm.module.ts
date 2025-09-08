@@ -23,6 +23,7 @@ import { LlmUsageController } from './llm-usage.controller';
 import { SourceBlindingService } from './source-blinding.service';
 import { BlindedLLMService } from './blinded-llm.service';
 import { BlindedHttpService } from './blinded-http.service';
+import { PIIService } from '../services/pii.service';
 
 @Module({
   imports: [SupabaseModule, CIDAFMModule, SovereignPolicyModule, FeatureFlagModule, HttpModule],
@@ -43,6 +44,7 @@ import { BlindedHttpService } from './blinded-http.service';
     SourceBlindingService,
     BlindedLLMService,
     BlindedHttpService,
+    PIIService,
   ],
   exports: [
     LLMService,
@@ -60,6 +62,7 @@ import { BlindedHttpService } from './blinded-http.service';
     SourceBlindingService,
     BlindedLLMService,
     BlindedHttpService,
+    PIIService,
   ],
 })
 export class LLMModule {}
