@@ -95,6 +95,12 @@ export class ProvidersController {
     enum: ['active', 'inactive', 'deprecated'],
     description: 'Filter by provider status',
   })
+  @ApiQuery({
+    name: 'sovereign_mode',
+    required: false,
+    type: Boolean,
+    description: 'Filter providers based on sovereign mode compliance (true = only local/ollama providers)',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of LLM providers',
@@ -102,8 +108,9 @@ export class ProvidersController {
   })
   async getProviders(
     @Query('status') status?: 'active' | 'inactive' | 'deprecated',
+    @Query('sovereign_mode') sovereignMode?: boolean,
   ): Promise<ProviderResponseDto[]> {
-    return this.providersService.findAll(status);
+    return this.providersService.findAll(status, sovereignMode);
   }
 
   @Get(':id')

@@ -105,22 +105,22 @@
           </div>
         </div>
         
-        <!-- Privacy Indicators for assistant messages -->
+        <!-- Privacy Indicators for assistant messages only -->
         <UserPrivacyIndicators
           v-if="message.role === 'assistant' && showPrivacyIndicators"
-          :showDataProtection="privacySettings.showDataProtection"
-          :isDataProtected="privacyState?.isDataProtected || false"
+          :showDataProtection="false"
+          :isDataProtected="false"
           :showSanitizationStatus="privacySettings.showSanitizationStatus"
-          :sanitizationStatus="privacyState?.sanitizationStatus || 'none'"
-          :piiDetectionCount="privacyState?.piiDetectionCount || 0"
+          :sanitizationStatus="currentSanitizationStatus"
+          :piiDetectionCount="currentPiiDetectionCount"
           :showRoutingDisplay="privacySettings.showRoutingDisplay"
-          :routingMode="privacyState?.routingMode || 'local'"
+          :routingMode="currentRoutingMode"
           :showTrustSignal="privacySettings.showTrustSignal"
-          :trustLevel="privacyState?.trustLevel || 'medium'"
-          :trustScore="privacyState?.trustScore"
+          :trustLevel="currentTrustLevel"
+          :trustScore="currentTrustScore"
           :showPiiCount="privacySettings.showPiiCount"
-          :showProcessingTime="privacySettings.showProcessingTime"
-          :processingTimeMs="privacyState?.processingTimeMs || 0"
+          :showProcessingTime="false"
+          :processingTimeMs="0"
           :compact="privacySettings.compactMode"
         />
         
@@ -183,6 +183,7 @@ import LLMInfo from './LLMInfo.vue';
 import UserPrivacyIndicators from './UserPrivacyIndicators.vue';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
+import { useLLMStore } from '@/stores/llmStore';
 
 export interface AgentTaskMessage {
   id: string;
@@ -211,6 +212,7 @@ const emit = defineEmits<{
 // Stores
 const deliverablesStore = useDeliverablesStore();
 const privacyIndicatorsStore = usePrivacyIndicatorsStore();
+const llmStore = useLLMStore();
 
 // Reactive state
 const showMetadataModal = ref(false);
@@ -458,6 +460,47 @@ const showPrivacyIndicators = computed(() => {
   // Only show for assistant messages with metadata
   return props.message.role === 'assistant' && 
          (props.message.metadata || privacyState.value);
+});
+
+// Reactive LLM-based privacy indicators
+const currentRoutingMode = computed(() => {
+  return llmStore.currentRoutingMode;
+});
+
+const currentTrustLevel = computed(() => {
+  return llmStore.currentTrustLevel;
+});
+
+const currentTrustScore = computed(() => {
+  return llmStore.currentTrustScore;
+});
+
+// Sanitization status - read from message metadata (better architecture)
+const currentSanitizationStatus = computed(() => {
+  // First, check message metadata for sanitization data (preferred)
+  const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
+  if (sanitizationMetadata?.status) {
+    return sanitizationMetadata.status;
+  }
+  
+  // Fallback to privacy state if available (but skip 'processing')
+  if (privacyState.value?.sanitizationStatus && privacyState.value.sanitizationStatus !== 'processing') {
+    return privacyState.value.sanitizationStatus;
+  }
+  
+  // Default to 'none' if no sanitization data (no more processing badge)
+  return 'none';
+});
+
+const currentPiiDetectionCount = computed(() => {
+  // First, check message metadata for PII count (preferred)
+  const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
+  if (sanitizationMetadata?.piiDetectionCount !== undefined) {
+    return sanitizationMetadata.piiDetectionCount;
+  }
+  
+  // Fallback to privacy state
+  return privacyState.value?.piiDetectionCount || 0;
 });
 
 // Methods

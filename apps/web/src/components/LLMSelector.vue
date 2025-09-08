@@ -1,13 +1,13 @@
 <template>
   <div class="llm-selector">
     <!-- Sovereign Mode Toggle -->
-    <div v-if="sovereignPolicyStore.canUserControlSovereignMode" class="sovereign-mode-section">
+    <div v-if="!llmStore.sovereignPolicy?.enforced" class="sovereign-mode-section">
       <div class="sovereign-toggle-group">
         <label class="sovereign-label">
           <input 
             type="checkbox" 
             v-model="userSovereignMode"
-            :disabled="sovereignPolicyStore.policy?.enforced || loadingSovereignUpdate"
+            :disabled="llmStore.sovereignPolicy?.enforced || loadingSovereignUpdate"
             class="sovereign-checkbox"
             @change="onSovereignModeChange"
           />
@@ -39,7 +39,7 @@
       >
         <option value="">Select Provider...</option>
         <option 
-          v-for="provider in llmStore.providers" 
+          v-for="provider in llmStore.filteredProviders" 
           :key="provider.id" 
           :value="provider"
         >
@@ -182,19 +182,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useLLMStore } from '../stores/llmStore';
-import { useSovereignPolicyStore } from '../stores/sovereignPolicyStore';
 import { useUserPreferencesStore } from '../stores/userPreferencesStore';
-import { useSovereignPolicy } from '../composables/useSovereignPolicy';
 import type { Provider, Model } from '../types/llm';
 
 const llmStore = useLLMStore();
-const sovereignPolicyStore = useSovereignPolicyStore();
 const userPreferencesStore = useUserPreferencesStore();
-const { 
-  initialize: initializeSovereignPolicy,
-  refresh: refreshSovereignPolicy,
-  updateUserPreference: updateSovereignUserPreference
-} = useSovereignPolicy();
 
 const showAdvanced = ref(false);
 
@@ -212,14 +204,14 @@ onMounted(async () => {
   // Initialize user preferences first
   await userPreferencesStore.initializePreferences();
   
+  // Initialize sovereign mode
+  await llmStore.initializeSovereignMode();
+  
   // Initialize LLM store with user preferences
   await llmStore.initialize({
     preferredProvider: userPreferencesStore.preferredProvider,
     preferredModel: userPreferencesStore.preferredModel
   });
-  
-  // Initialize sovereign policy
-  await initializeSovereignPolicy();
   
   // Sync LLM store selection back to user preferences to ensure consistency
   if (llmStore.selectedProvider && llmStore.selectedModel) {
@@ -236,7 +228,7 @@ onMounted(async () => {
   maxTokens.value = llmStore.maxTokens;
   
   // Sync sovereign mode state
-  userSovereignMode.value = sovereignPolicyStore.userSovereignMode;
+  userSovereignMode.value = llmStore.sovereignMode;
 });
 // Watch store changes and sync to local state
 watch(() => llmStore.selectedProvider, (newProvider) => {
@@ -244,6 +236,11 @@ watch(() => llmStore.selectedProvider, (newProvider) => {
 });
 watch(() => llmStore.selectedModel, (newModel) => {
   selectedModel.value = newModel || '';
+});
+
+// Watch sovereign mode changes and sync local state
+watch(() => llmStore.sovereignMode, (newMode) => {
+  userSovereignMode.value = newMode;
 });
 
 // Watch user preferences changes and sync to LLM store
@@ -297,9 +294,8 @@ const onSovereignModeChange = async () => {
   
   loadingSovereignUpdate.value = true;
   try {
-    await updateSovereignUserPreference(userSovereignMode.value);
-    // Re-fetch models with new sovereign mode setting
-    await llmStore.fetchModels();
+    llmStore.setSovereignMode(userSovereignMode.value);
+    // No need to re-fetch - filtering is handled reactively by getters
   } catch (error) {
     console.error('Failed to update sovereign mode:', error);
     // Revert the toggle on error
@@ -318,7 +314,7 @@ const hasErrors = computed(() =>
 
 // Sovereign mode computed properties
 const effectiveSovereignModeClass = computed(() => {
-  const isActive = sovereignPolicyStore.effectiveSovereignMode;
+  const isActive = llmStore.effectiveSovereignMode;
   return {
     'sovereign-active': isActive,
     'sovereign-inactive': !isActive
@@ -326,11 +322,11 @@ const effectiveSovereignModeClass = computed(() => {
 });
 
 const effectiveSovereignModeText = computed(() => {
-  return sovereignPolicyStore.effectiveSovereignMode ? 'ON' : 'OFF';
+  return llmStore.effectiveSovereignMode ? 'ON' : 'OFF';
 });
 
 const sovereignModeDescription = computed(() => {
-  if (sovereignPolicyStore.policy?.enforced) {
+  if (llmStore.sovereignPolicy?.enforced) {
     return 'Organization policy enforces sovereign mode for all users';
   }
   if (userSovereignMode.value) {
@@ -340,31 +336,22 @@ const sovereignModeDescription = computed(() => {
 });
 
 const policyMessage = computed(() => {
-  if (sovereignPolicyStore.policy?.enforced && !userSovereignMode.value) {
+  if (llmStore.sovereignPolicy?.enforced && !userSovereignMode.value) {
     return 'Organization policy requires sovereign mode to be enabled';
-  }
-  if (sovereignPolicyStore.policyWarnings.length > 0) {
-    return sovereignPolicyStore.policyWarnings[0];
   }
   return null;
 });
 
 const policyMessageClass = computed(() => {
-  if (sovereignPolicyStore.policy?.enforced) {
+  if (llmStore.sovereignPolicy?.enforced) {
     return 'policy-enforced';
-  }
-  if (sovereignPolicyStore.policyWarnings.length > 0) {
-    return 'policy-warning';
   }
   return 'policy-info';
 });
 
 const policyMessageIcon = computed(() => {
-  if (sovereignPolicyStore.policy?.enforced) {
+  if (llmStore.sovereignPolicy?.enforced) {
     return '🔒';
-  }
-  if (sovereignPolicyStore.policyWarnings.length > 0) {
-    return '⚠️';
   }
   return 'ℹ️';
 });
@@ -379,22 +366,22 @@ const showNoModelsError = computed(() => {
 });
 
 const noModelsErrorTitle = computed(() => {
-  if (sovereignPolicyStore.effectiveSovereignMode) {
+  if (llmStore.effectiveSovereignMode) {
     return 'No Sovereign-Compliant Models Available';
   }
   return 'No Models Available';
 });
 
 const noModelsErrorDescription = computed(() => {
-  if (sovereignPolicyStore.effectiveSovereignMode) {
+  if (llmStore.effectiveSovereignMode) {
     return 'No local models are currently available for the selected provider in sovereign mode.';
   }
   return 'No models are currently available for the selected provider.';
 });
 
 const noModelsErrorSuggestion = computed(() => {
-  if (sovereignPolicyStore.effectiveSovereignMode) {
-    if (sovereignPolicyStore.canUserControlSovereignMode) {
+  if (llmStore.effectiveSovereignMode) {
+    if (!llmStore.sovereignPolicy?.enforced) {
       return 'Try disabling sovereign mode to access external models, or ensure local models are running.';
     }
     return 'Please ensure local models (Ollama) are running and available.';

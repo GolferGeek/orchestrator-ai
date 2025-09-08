@@ -107,8 +107,8 @@ export class ProvidersService {
         .order('display_name');
 
       if (sovereignMode) {
-        // In sovereign mode, only show local models (ollama)
-        modelQuery = modelQuery.eq('provider_name', 'ollama');
+        // In sovereign mode, only show local models (ollama - case insensitive)
+        modelQuery = modelQuery.ilike('provider_name', 'ollama');
       }
 
       const { data: models, error: modelError } = await modelQuery;
@@ -139,7 +139,7 @@ export class ProvidersService {
     return result;
   }
 
-  async findAll(status?: ProviderStatus): Promise<ProviderResponseDto[]> {
+  async findAll(status?: ProviderStatus, sovereignMode?: boolean): Promise<ProviderResponseDto[]> {
     // Try service client first to bypass RLS
     const client = this.supabaseService.getServiceClient();
 
@@ -147,6 +147,11 @@ export class ProvidersService {
 
     if (status) {
       query = query.eq('status', status);
+    }
+
+    if (sovereignMode) {
+      // In sovereign mode, only show local providers (Ollama - case insensitive)
+      query = query.ilike('name', 'ollama');
     }
 
     const { data, error } = await query;
