@@ -155,6 +155,7 @@ import {
   IonToolbar, 
   IonTitle, 
   IonContent,
+  IonButton,
   toastController 
 } from '@ionic/vue';
 import PIIPatternTable from '@/components/PII/PIIPatternTable.vue';

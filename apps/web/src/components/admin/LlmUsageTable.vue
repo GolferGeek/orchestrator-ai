@@ -393,6 +393,7 @@ import {
 
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { llmUsageService, type LlmUsageRecord } from '@/services/llmUsageService';
+import { storeToRefs } from 'pinia';
 
 const store = useLlmUsageStore();
 
@@ -408,7 +409,7 @@ const localFilters = ref({
 const showDetailsModal = ref(false);
 const selectedRecord = ref<LlmUsageRecord | null>(null);
 
-// Computed
+// Computed - Use storeToRefs to maintain reactivity
 const { 
   usageRecords, 
   loading, 
@@ -418,7 +419,7 @@ const {
   avgDuration,
   callerTypes,
   callerNames 
-} = store;
+} = storeToRefs(store);
 
 // Methods
 const applyFilters = () => {

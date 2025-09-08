@@ -304,6 +304,7 @@ import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { llmUsageService } from '@/services/llmUsageService';
 import LlmUsageTable from '@/components/Admin/LlmUsageTable.vue';
 import LlmAnalytics from '@/components/Admin/LlmAnalytics.vue';
+import { storeToRefs } from 'pinia';
 
 const store = useLlmUsageStore();
 
@@ -311,8 +312,8 @@ const store = useLlmUsageStore();
 const selectedTab = ref('overview');
 const autoRefreshEnabled = ref(false);
 
-// Computed
-const { usageRecords, stats, activeRuns, loading } = store;
+// Computed - Use storeToRefs to maintain reactivity
+const { usageRecords, stats, activeRuns, loading } = storeToRefs(store);
 
 const recentRecords = computed(() => {
   return (usageRecords.value || [])

@@ -42,36 +42,33 @@
                 </ion-item>
               </div>
 
-              <!-- Text Input Area with Highlighting -->
+              <!-- Simplified Text Input Area -->
               <div class="input-container">
-                <div 
-                  class="highlighted-textarea-container"
-                  :class="{ 'has-matches': detectionResult?.matches.length > 0 }"
-                >
-                  <!-- Background layer for highlighting -->
-                  <div 
-                    class="highlight-layer"
-                    v-html="highlightedText"
-                  ></div>
-                  
-                  <!-- Actual textarea -->
-                  <ion-textarea
-                    ref="textareaRef"
-                    v-model="inputText"
-                    placeholder="Enter text to test PII detection...
+                <!-- Simple textarea without highlighting overlay -->
+                <ion-textarea
+                  ref="textareaRef"
+                  v-model="inputText"
+                  placeholder="Enter text to test PII detection...
 
 Examples to try:
 • Email: john.doe@example.com
 • Phone: (555) 123-4567
 • SSN: 123-45-6789
 • Credit Card: 4532-1234-5678-9012"
-                    :rows="12"
-                    class="transparent-textarea"
-                    @ionInput="handleInput"
-                    @ionFocus="isInputFocused = true"
-                    @ionBlur="isInputFocused = false"
-                    :disabled="isDetecting"
-                  />
+                  :rows="12"
+                  @ionFocus="isInputFocused = true"
+                  @ionBlur="isInputFocused = false"
+                  :disabled="isDetecting"
+                />
+                
+                <!-- Show highlighting results below instead of overlay -->
+                <div v-if="detectionResult?.matches.length > 0" class="detection-results">
+                  <h4>Detected PII:</h4>
+                  <div v-for="match in detectionResult.matches" :key="match.startIndex" class="pii-match">
+                    <ion-chip :color="getDataTypeColor(match.dataType)">
+                      <ion-label>{{ match.dataType }}: {{ inputText.slice(match.startIndex, match.endIndex) }}</ion-label>
+                    </ion-chip>
+                  </div>
                 </div>
                 
                 <!-- Performance Indicator -->
@@ -351,10 +348,12 @@ const highlightedText = computed(() => {
   return highlighted.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
 });
 
-// Methods
-const handleInput = () => {
+// Watch for input changes with proper debouncing
+watch(inputText, () => {
   scheduleDetection();
-};
+}, { flush: 'post' });
+
+// Methods
 
 const scheduleDetection = () => {
   if (detectionTimeout) {
@@ -369,10 +368,10 @@ const scheduleDetection = () => {
     return;
   }
   
-  // Debounce detection by 500ms for better UX
+  // Debounce detection by 2000ms to allow smooth typing
   detectionTimeout = setTimeout(() => {
     performDetection();
-  }, 500);
+  }, 2000);
 };
 
 const performDetection = async () => {
@@ -391,21 +390,39 @@ const performDetection = async () => {
       context: 'testing-interface'
     };
     
-    const response: PIITestResponse = await piiService.testPIIDetection(request);
+    // Always call detection first
+    const detectionResponse: PIITestResponse = await piiService.testPIIDetection(request);
+    
+    let sanitizationResponse: PIITestResponse | null = null;
+    
+    // If sanitization options are enabled, also call sanitization endpoint
+    if (testOptions.value.enableRedaction || testOptions.value.enablePseudonymization) {
+      sanitizationResponse = await piiService.sanitizeText(request);
+    }
     
     const endTime = performance.now();
     const detectionTime = Math.round(endTime - startTime);
     lastDetectionTime.value = detectionTime;
     
-    if (response.success && response.detectionResult) {
-      detectionResult.value = response.detectionResult;
+    if (detectionResponse.success && detectionResponse.detectionResult) {
+      // Use detection results for PII matches
+      detectionResult.value = detectionResponse.detectionResult;
+      
+      // If we have sanitization results, add them to the detection result
+      if (sanitizationResponse?.success && sanitizationResponse.sanitizedText) {
+        detectionResult.value.sanitizedText = sanitizationResponse.sanitizedText;
+        detectionResult.value.sanitizationApplied = true;
+      } else {
+        detectionResult.value.sanitizedText = inputText.value; // No changes
+        detectionResult.value.sanitizationApplied = false;
+      }
       
       // Show performance warning if > 2 seconds
       if (detectionTime > 2000) {
         showPerformanceWarning(detectionTime);
       }
     } else {
-      detectionError.value = response.message || 'Unknown detection error';
+      detectionError.value = detectionResponse.message || 'Unknown detection error';
     }
   } catch (error) {
     const endTime = performance.now();

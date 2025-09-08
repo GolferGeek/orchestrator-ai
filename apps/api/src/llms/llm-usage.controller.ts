@@ -77,8 +77,8 @@ export class LlmUsageController {
    * Get current service statistics
    */
   @Get('stats')
-  getStats() {
-    const stats = this.runMetadataService.getStats();
+  async getStats() {
+    const stats = await this.runMetadataService.getStats();
     
     return {
       success: true,

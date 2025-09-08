@@ -597,7 +597,7 @@ const importErrors = ref<string[]>([]);
 
 // Computed
 const filteredDictionaries = computed(() => {
-  let result = [...store.filteredDictionaries];
+  let result = [...store.filteredAndSortedDictionaries];
   
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
@@ -650,7 +650,7 @@ const handleSearch = () => {
 };
 
 const applyFilters = () => {
-  store.setFilters(filters.value);
+  store.updateFilters(filters.value);
   currentPage.value = 1;
 };
 
@@ -888,7 +888,7 @@ const performImport = async () => {
   isLoading.value = true;
   
   try {
-    const result = await store.importDictionaries(importPreview.value);
+    const result = await store.importFromJSON(importPreview.value);
     
     if (result.success) {
       showToast(`Successfully imported ${result.imported} dictionaries!`, 'success');
@@ -906,7 +906,7 @@ const performImport = async () => {
 
 const exportDictionaries = async () => {
   try {
-    const data = await store.exportDictionaries();
+    const data = await store.exportToJSON();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     
