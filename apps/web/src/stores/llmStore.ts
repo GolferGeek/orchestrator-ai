@@ -27,8 +27,42 @@ export const useLLMStore = defineStore('llm', {
     providerError: undefined,
     modelError: undefined,
     commandError: undefined,
+    // Sovereign mode state
+    sovereignMode: false,
+    sovereignPolicy: null,
+    sovereignLoading: false,
+    sovereignError: null,
   }),
   getters: {
+    // Effective sovereign mode (policy enforced OR user enabled)
+    effectiveSovereignMode: (state) => {
+      return state.sovereignPolicy?.enforced || state.sovereignMode;
+    },
+    
+    // Get filtered providers based on sovereign mode
+    filteredProviders: (state) => {
+      const effectiveMode = state.sovereignPolicy?.enforced || state.sovereignMode;
+      if (effectiveMode) {
+        // In sovereign mode, only show Ollama providers
+        return state.providers.filter(provider => 
+          provider.name.toLowerCase() === 'ollama'
+        );
+      }
+      return state.providers;
+    },
+    
+    // Get filtered models based on sovereign mode
+    filteredModels: (state) => {
+      const effectiveMode = state.sovereignPolicy?.enforced || state.sovereignMode;
+      if (effectiveMode) {
+        // In sovereign mode, only show Ollama models
+        return state.models.filter(model => 
+          model.providerName.toLowerCase() === 'ollama'
+        );
+      }
+      return state.models;
+    },
+    
     // Get current LLM selection for API calls
     currentLLMSelection(): LLMSelection {
       const cidafmOptions: CIDAFMOptions = {
@@ -49,10 +83,11 @@ export const useLLMStore = defineStore('llm', {
         maxTokens: this.maxTokens,
       };
     },
-    // Get models for the currently selected provider
+    
+    // Get models for the currently selected provider (using filtered models)
     availableModels(): Model[] {
-      if (!this.selectedProvider) return this.models;
-      return this.models.filter(model => model.providerName === this.selectedProvider?.name);
+      if (!this.selectedProvider) return this.filteredModels;
+      return this.filteredModels.filter(model => model.providerName === this.selectedProvider?.name);
     },
     // Get built-in CIDAFM commands grouped by type
     builtinCommandsByType(): Record<string, CIDAFMCommand[]> {
@@ -76,17 +111,173 @@ export const useLLMStore = defineStore('llm', {
     isValidSelection(): boolean {
       return !!(this.selectedProvider && this.selectedModel);
     },
-    // Get provider by ID
-    getProviderByName: (state) => (name: string): Provider | undefined => {
-      return state.providers.find(p => p.name === name);
+    // Get provider by name (from filtered providers)
+    getProviderByName(): (name: string) => Provider | undefined {
+      return (name: string) => {
+        return this.filteredProviders.find(p => p.name === name);
+      };
     },
-    // Get model by name
-    getModelByName: (state) => (providerName: string, modelName: string): Model | undefined => {
-      return state.models.find(m => m.providerName === providerName && m.modelName === modelName);
+    // Get model by name (from filtered models)
+    getModelByName(): (providerName: string, modelName: string) => Model | undefined {
+      return (providerName: string, modelName: string) => {
+        return this.filteredModels.find(m => m.providerName === providerName && m.modelName === modelName);
+      };
+    },
+    
+    // Compute routing mode based on selected provider
+    currentRoutingMode: (state) => {
+      if (!state.selectedProvider) return 'external';
+      
+      // Check if provider is Ollama (local)
+      if (state.selectedProvider.name.toLowerCase().includes('ollama')) {
+        return 'local';
+      }
+      
+      // All other providers are external
+      return 'external';
+    },
+    
+    // Compute trust level based on selected provider and model
+    currentTrustLevel: (state) => {
+      if (!state.selectedProvider || !state.selectedModel) return 'medium';
+      
+      const providerName = state.selectedProvider.name.toLowerCase();
+      const modelName = state.selectedModel.modelName.toLowerCase();
+      
+      // Local models (Ollama) get high trust
+      if (providerName.includes('ollama')) {
+        return 'high';
+      }
+      
+      // Well-established providers get medium trust
+      if (providerName.includes('openai') || 
+          providerName.includes('anthropic') || 
+          providerName.includes('google')) {
+        return 'medium';
+      }
+      
+      // Other providers get low trust by default
+      return 'low';
+    },
+    
+    // Compute trust score based on provider and model
+    currentTrustScore: (state) => {
+      if (!state.selectedProvider || !state.selectedModel) return null;
+      
+      const providerName = state.selectedProvider.name.toLowerCase();
+      const modelName = state.selectedModel.modelName.toLowerCase();
+      
+      // Local models get highest trust score
+      if (providerName.includes('ollama')) {
+        return 95;
+      }
+      
+      // OpenAI models
+      if (providerName.includes('openai')) {
+        if (modelName.includes('gpt-4')) return 85;
+        if (modelName.includes('gpt-3.5')) return 80;
+        return 75;
+      }
+      
+      // Anthropic models
+      if (providerName.includes('anthropic')) {
+        if (modelName.includes('claude-3')) return 85;
+        return 80;
+      }
+      
+      // Google models
+      if (providerName.includes('google')) {
+        return 75;
+      }
+      
+      // Default for other providers
+      return 60;
     },
   },
   actions: {
-    // Fetch all providers from API
+    // Initialize sovereign mode from localStorage and fetch policy
+    async initializeSovereignMode() {
+      this.sovereignLoading = true;
+      this.sovereignError = null;
+      
+      try {
+        // Load user preference from localStorage
+        const savedPreference = localStorage.getItem('sovereignMode');
+        if (savedPreference !== null) {
+          this.sovereignMode = JSON.parse(savedPreference);
+        }
+        
+        // Fetch corporate policy from backend
+        try {
+          this.sovereignPolicy = await sovereignPolicyService.getPolicy();
+        } catch (error) {
+          console.warn('Failed to fetch sovereign policy, using defaults:', error);
+          this.sovereignPolicy = { enforced: false };
+        }
+        
+      } catch (error) {
+        this.sovereignError = error instanceof Error ? error.message : 'Failed to initialize sovereign mode';
+        console.error('Failed to initialize sovereign mode:', error);
+      } finally {
+        this.sovereignLoading = false;
+      }
+    },
+    
+    // Update sovereign mode user preference
+    setSovereignMode(enabled: boolean) {
+      // If corporate enforces sovereign mode, user can't disable it
+      if (this.sovereignPolicy?.enforced && !enabled) {
+        throw new Error('Cannot disable sovereign mode - required by organization policy');
+      }
+      
+      const wasEnabled = this.sovereignMode;
+      this.sovereignMode = enabled;
+      
+      // Persist to localStorage
+      localStorage.setItem('sovereignMode', JSON.stringify(enabled));
+      
+      // Handle provider/model selection changes SYNCHRONOUSLY when sovereign mode changes
+      if (enabled && !wasEnabled) {
+        // Switching TO sovereign mode - immediately set Ollama provider
+        console.log('Switching to sovereign mode, setting Ollama provider...');
+        
+        // Find Ollama provider from the newly filtered providers
+        const ollamaProvider = this.filteredProviders.find(p => 
+          p.name.toLowerCase().includes('ollama')
+        );
+        
+        if (ollamaProvider) {
+          // Set provider immediately
+          this.selectedProvider = ollamaProvider;
+          
+          // Find best Ollama model from the newly filtered models
+          const ollamaModels = this.filteredModels.filter(m => 
+            m.providerName === ollamaProvider.name
+          );
+          
+          if (ollamaModels.length > 0) {
+            // Priority: gpt-oss:20b > gpt-oss > llama3.2 > any available
+            const preferredModel = 
+              ollamaModels.find(m => m.modelName.includes('gpt-oss:20b')) ||
+              ollamaModels.find(m => m.modelName.includes('gpt-oss')) ||
+              ollamaModels.find(m => m.modelName.includes('llama3.2')) ||
+              ollamaModels[0];
+            
+            this.selectedModel = preferredModel;
+            
+            console.log('Switched to sovereign mode:', {
+              provider: this.selectedProvider.name,
+              model: this.selectedModel.modelName,
+              availableModels: ollamaModels.length
+            });
+          }
+        }
+      } else if (!enabled && wasEnabled) {
+        // Switching FROM sovereign mode - current selection should remain valid
+        console.log('Switched from sovereign mode, current selection remains valid');
+      }
+    },
+    // Fetch all providers from API (filtering handled reactively by getters)
     async fetchProviders() {
       this.loadingProviders = true;
       this.providerError = undefined;
@@ -94,6 +285,7 @@ export const useLLMStore = defineStore('llm', {
         // Use unified API service
         const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:7100';
         const authToken = localStorage.getItem('authToken');
+        
         const response = await fetch(`${baseUrl}/providers`, {
           method: 'GET',
           headers: {
@@ -105,25 +297,23 @@ export const useLLMStore = defineStore('llm', {
           throw new Error(`Failed to fetch providers: ${response.statusText}`);
         }
         this.providers = await response.json();
+        
+        console.log(`Fetched ${this.providers.length} providers (filtering handled reactively)`);
       } catch (error) {
         this.providerError = error instanceof Error ? error.message : 'Failed to fetch providers';
       } finally {
         this.loadingProviders = false;
       }
     },
-    // Fetch all models from API with sovereign mode filtering
+    // Fetch all models from API (filtering handled reactively by getters)
     async fetchModels() {
       this.loadingModels = true;
       this.modelError = undefined;
       try {
-        // Get sovereign policy store to check if we should filter models
-        const sovereignPolicyStore = useSovereignPolicyStore();
-        const shouldFilterForSovereign = sovereignPolicyStore.effectiveSovereignMode;
+        // Fetch all models - filtering will be handled reactively by getters
+        this.models = await sovereignPolicyService.getModels(false); // Always fetch all models
         
-        // Use sovereign policy service to fetch models with appropriate filtering
-        this.models = await sovereignPolicyService.getModels(shouldFilterForSovereign);
-        
-        console.log(`Fetched ${this.models.length} models (sovereign mode: ${shouldFilterForSovereign})`);
+        console.log(`Fetched ${this.models.length} models (filtering handled reactively)`);
       } catch (error) {
         this.modelError = error instanceof Error ? error.message : 'Failed to fetch models';
         console.error('Error fetching models:', error);
@@ -165,7 +355,7 @@ export const useLLMStore = defineStore('llm', {
       ]);
       
       // Set default selections if available
-      if (this.providers.length > 0 && !this.selectedProvider) {
+      if (this.filteredProviders.length > 0 && !this.selectedProvider) {
         let targetProvider: string | undefined;
         
         // Use user preferences if provided
@@ -173,16 +363,18 @@ export const useLLMStore = defineStore('llm', {
           targetProvider = userPreferences.preferredProvider;
         }
         
-        // Find the preferred provider or fall back to defaults
+        // Find the preferred provider from filtered providers
         const preferredProvider = targetProvider ? 
-          this.providers.find(p => p.name === targetProvider) : null;
-        const ollama = this.providers.find(p => p.name.toLowerCase().includes('ollama'));
-        const openai = this.providers.find(p => p.name.toLowerCase().includes('openai'));
+          this.filteredProviders.find(p => p.name === targetProvider) : null;
         
-        this.selectedProvider = preferredProvider || ollama || openai || this.providers[0];
+        // If user preference is not available in filtered providers, use fallbacks
+        const ollama = this.filteredProviders.find(p => p.name.toLowerCase().includes('ollama'));
+        const openai = this.filteredProviders.find(p => p.name.toLowerCase().includes('openai'));
+        
+        this.selectedProvider = preferredProvider || ollama || openai || this.filteredProviders[0];
       }
       
-      if (this.selectedProvider && this.availableModels.length > 0 && !this.selectedModel) {
+      if (this.selectedProvider && this.filteredModels.length > 0 && !this.selectedModel) {
         let targetModel: string | undefined;
         
         // Use user preferences if provided
@@ -190,18 +382,23 @@ export const useLLMStore = defineStore('llm', {
           targetModel = userPreferences.preferredModel;
         }
         
-        // Find the preferred model or fall back to defaults
+        // Get models for the selected provider from filtered models
+        const providerModels = this.filteredModels.filter(m => 
+          m.providerName === this.selectedProvider?.name
+        );
+        
+        // Find the preferred model from provider's models
         const preferredModel = targetModel ? 
-          this.availableModels.find(m => m.modelName === targetModel) : null;
+          providerModels.find(m => m.modelName === targetModel) : null;
           
-        // Default model priority: user preference > OSS 20G > llama3.2 > thinking models > fallback
-        const ossModel = this.availableModels.find(m => 
+        // Default model priority: user preference > OSS 20B > llama3.2 > thinking models > fallback
+        const ossModel = providerModels.find(m => 
           m.modelName.includes('gpt-oss:20b') || m.modelName.includes('gpt-oss')
         );
-        const llama32Model = this.availableModels.find(m => 
+        const llama32Model = providerModels.find(m => 
           m.modelName.includes('llama3.2') || m.modelName.includes('llama-3.2')
         );
-        const thinkingModel = this.availableModels.find(m => 
+        const thinkingModel = providerModels.find(m => 
           m.modelName.includes('deepseek-r1') ||
           m.modelName.includes('qwq') ||
           m.modelName.includes('qwen') ||
@@ -209,12 +406,21 @@ export const useLLMStore = defineStore('llm', {
           m.name.toLowerCase().includes('thinking')
         );
         // Fallback to GPT models if no preferred models available
-        const fallbackModel = this.availableModels.find(m => 
+        const fallbackModel = providerModels.find(m => 
           m.modelName.includes('gpt-4o-mini') || 
           m.modelName.includes('gpt-3.5-turbo')
         );
         
-        this.selectedModel = preferredModel || ossModel || llama32Model || thinkingModel || fallbackModel || this.availableModels[0];
+        this.selectedModel = preferredModel || ossModel || llama32Model || thinkingModel || fallbackModel || providerModels[0];
+        
+        console.log('LLM Store Initialization:', {
+          userPreferences,
+          selectedProvider: this.selectedProvider?.name,
+          selectedModel: this.selectedModel?.modelName,
+          availableProviders: this.filteredProviders.length,
+          availableModels: providerModels.length,
+          sovereignMode: this.effectiveSovereignMode
+        });
       }
     },
     // Set selected provider and clear model if incompatible

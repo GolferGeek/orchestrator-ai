@@ -91,10 +91,11 @@ export class ModelsService {
     let ollamaProviderId: string | null = null;
     const isSovereignMode = filters.sovereignMode === true || filters.sovereignMode === 'true';
     if (isSovereignMode) {
+      // Try to find Ollama provider (case-insensitive)
       const { data: providerData, error: providerError } = await client
         .from(getTableName('llm_providers'))
-        .select('id')
-        .eq('name', 'Ollama')
+        .select('id, name')
+        .ilike('name', 'ollama')
         .single();
 
       if (providerError) {
@@ -103,6 +104,7 @@ export class ModelsService {
         return [];
       }
       ollamaProviderId = providerData?.id;
+      this.logger.debug(`Found Ollama provider with ID: ${ollamaProviderId} and name: ${providerData?.name}`);
     }
 
     // Determine if we need provider data for user request

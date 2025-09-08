@@ -147,4 +147,9 @@ export interface LLMPreferencesState {
   providerError?: string;
   modelError?: string;
   commandError?: string;
+  // Sovereign mode state
+  sovereignMode: boolean;
+  sovereignPolicy: any; // TODO: Define proper type
+  sovereignLoading: boolean;
+  sovereignError: string | null;
 }

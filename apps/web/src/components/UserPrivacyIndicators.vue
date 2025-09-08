@@ -312,22 +312,24 @@ const formattedProcessingTime = computed(() => {
 
 .routing-display.routing-external {
   background: var(--ion-color-primary-tint);
-  color: var(--ion-color-primary-shade);
+  color: white; /* White text for better contrast on blue background */
   border-color: var(--ion-color-primary);
+  font-weight: 600; /* Make text bolder */
 }
 
 .routing-display.routing-external ion-icon {
-  color: var(--ion-color-primary);
+  color: white; /* White icon for better contrast */
 }
 
 .routing-display.routing-hybrid {
   background: var(--ion-color-secondary-tint);
-  color: var(--ion-color-secondary-shade);
+  color: white; /* White text for better contrast on secondary background */
   border-color: var(--ion-color-secondary);
+  font-weight: 600; /* Make text bolder */
 }
 
 .routing-display.routing-hybrid ion-icon {
-  color: var(--ion-color-secondary);
+  color: white; /* White icon for better contrast */
 }
 
 /* Trust Signal Badge */
@@ -337,12 +339,13 @@ const formattedProcessingTime = computed(() => {
 
 .trust-signal.trust-high {
   background: var(--ion-color-success-tint);
-  color: var(--ion-color-success-shade);
+  color: #0f5132; /* Dark green for excellent contrast on light green background */
   border-color: var(--ion-color-success);
+  font-weight: 600; /* Make text bolder */
 }
 
 .trust-signal.trust-high ion-icon {
-  color: var(--ion-color-success);
+  color: #0f5132; /* Dark green for excellent contrast */
 }
 
 .trust-signal.trust-medium {
@@ -358,12 +361,13 @@ const formattedProcessingTime = computed(() => {
 
 .trust-signal.trust-low {
   background: var(--ion-color-danger-tint);
-  color: var(--ion-color-danger-shade);
+  color: white; /* White text for excellent contrast on red background */
   border-color: var(--ion-color-danger);
+  font-weight: 600; /* Make text bolder */
 }
 
 .trust-signal.trust-low ion-icon {
-  color: var(--ion-color-danger);
+  color: white; /* White icon for excellent contrast */
 }
 
 .trust-score {
