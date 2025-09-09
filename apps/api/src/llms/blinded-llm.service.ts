@@ -13,6 +13,7 @@ export interface BlindedLLMConfig {
   provider: 'openai' | 'anthropic' | 'google';
   model?: string;
   apiKey?: string;
+  baseUrl?: string;
   temperature?: number;
   maxTokens?: number;
   sourceBlindingOptions?: {
@@ -76,7 +77,7 @@ export class BlindedLLMService {
           maxTokens: config.maxTokens,
           // Override the HTTP client to use our blinded one
           configuration: {
-            baseURL: providerConfig.baseUrl,
+            baseURL: config.baseUrl || providerConfig.baseUrl,
             // Custom fetch implementation that uses our source blinding
             fetch: this.createBlindedFetch(blindedClient, config.provider),
           },
@@ -91,7 +92,7 @@ export class BlindedLLMService {
           maxTokens: config.maxTokens,
           // Override the HTTP client
           clientOptions: {
-            baseURL: providerConfig.baseUrl,
+            baseURL: config.baseUrl || providerConfig.baseUrl,
             // Custom fetch that applies source blinding
             fetch: this.createBlindedFetch(blindedClient, config.provider),
           },
