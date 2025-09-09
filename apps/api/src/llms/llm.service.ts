@@ -1537,6 +1537,7 @@ export class LLMService {
             temperature: temperature,
             maxTokens: config.maxTokens ?? parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
             apiKey: config.apiKey || process.env.OPENAI_API_KEY,
+            baseUrl: config.baseUrl, // Pass the database baseUrl for correct provider routing
             sourceBlindingOptions: {
               policyProfile: 'standard',
               dataClass: 'public',
@@ -1555,6 +1556,7 @@ export class LLMService {
             temperature: config.temperature ?? parseFloat(process.env.ANTHROPIC_TEMPERATURE || '0.7'),
             maxTokens: config.maxTokens ?? parseInt(process.env.ANTHROPIC_MAX_TOKENS || '2000'),
             apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
+            baseUrl: config.baseUrl, // Pass the database baseUrl for correct provider routing
             sourceBlindingOptions: {
               policyProfile: 'standard',
               dataClass: 'public',
