@@ -75,6 +75,12 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
 
+    // NEW ARCHITECTURE: Check for PII blocking first
+    if (this.shouldBlockForPII(params)) {
+      this.pythonLogger.warn(`🛑 [${agentName}] Request blocked due to PII policy violation`);
+      return this.generatePIIBlockedResponse(params);
+    }
+
     // Store current user ID for task completion handling
     if (params.currentUser?.id) {
       this.currentUserId = params.currentUser.id;
@@ -96,6 +102,10 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
         currentUser: params.currentUser,
         authToken: params.authToken,
         llmService: null, // Python script will handle LLM calls via API
+        // NEW ARCHITECTURE: Include PII metadata for Python function agents
+        piiMetadata: this.extractPIIMetadata(params),
+        routingDecision: this.extractRoutingDecision(params),
+        originalPrompt: this.extractOriginalPrompt(params),
         metadata: {
           method,
           originalParams: params,
@@ -117,7 +127,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       const result = await this.executePythonScript(functionParams);
 
       // Return structured response format to match FunctionAgentBaseService
-      return {
+      const successResponse = {
         success: true,
         response: result.response || result,
         metadata: {
@@ -128,6 +138,9 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           ...functionParams.metadata,
         },
       };
+
+      // NEW ARCHITECTURE: Enrich response with PII metadata
+      return this.enrichResponseWithPIIMetadata(successResponse, params);
     } catch (error) {
       this.pythonLogger.error(
         `Python script execution error for ${agentName}:`,
@@ -135,7 +148,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       );
 
       // Return structured error response
-      return {
+      const errorResponse = {
         success: false,
         error: error instanceof Error ? error.message : String(error),
         response: `I apologize, but I encountered an error while processing your request. Falling back to basic processing.`,
@@ -148,6 +161,9 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
           processedAt: new Date().toISOString(),
         },
       };
+
+      // NEW ARCHITECTURE: Enrich error response with PII metadata
+      return this.enrichResponseWithPIIMetadata(errorResponse, params);
     }
   }
 

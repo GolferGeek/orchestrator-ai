@@ -11,6 +11,7 @@ export interface PIIPattern {
   description: string;
   priority?: number; // Lower number = higher priority
   enabled?: boolean;
+  severity?: 'showstopper' | 'pseudonymizer' | 'flagger'; // Severity level for policy decisions
 }
 
 export interface PIIMatch {
@@ -20,6 +21,7 @@ export interface PIIMatch {
   startIndex: number;
   endIndex: number;
   confidence: number; // 0-1 score based on validator
+  severity?: 'showstopper' | 'pseudonymizer' | 'flagger'; // Severity level from pattern
 }
 
 export interface PIIDetectionResult {
@@ -33,147 +35,15 @@ export class PIIPatternService {
   private readonly logger = new Logger(PIIPatternService.name);
   private readonly isProduction = process.env.NODE_ENV === 'production';
 
-  // Core PII detection patterns for pseudonymization
-  private readonly builtInPatterns: PIIPattern[] = [
-    {
-      name: 'email_standard',
-      dataType: 'email',
-      pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
-      validator: (email) => email.includes('@') && email.includes('.') && email.length <= 254,
-      description: 'Standard email addresses',
-      priority: 10,
-      enabled: true,
-    },
-    {
-      name: 'email_obfuscated',
-      dataType: 'email',
-      pattern: /\b[A-Za-z0-9._%+-]+\s+(?:at|AT)\s+[A-Za-z0-9.-]+\s+(?:dot|DOT)\s+[A-Za-z]{2,}\b/g,
-      validator: (email) => email.includes(' at ') || email.includes(' AT '),
-      description: 'Obfuscated email addresses (john at company dot com)',
-      priority: 20,
-      enabled: true,
-    },
-    {
-      name: 'phone_us_standard',
-      dataType: 'phone',
-      pattern: /\b(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})\b/g,
-      validator: (phone) => {
-        const digits = phone.replace(/\D/g, '');
-        return digits.length >= 10 && digits.length <= 11;
-      },
-      description: 'US phone numbers (various formats)',
-      priority: 10,
-      enabled: true,
-    },
-    {
-      name: 'phone_international',
-      dataType: 'phone',
-      pattern: /\+(?:[0-9] ?){6,14}[0-9]/g,
-      validator: (phone) => {
-        const digits = phone.replace(/\D/g, '');
-        return digits.length >= 7 && digits.length <= 15;
-      },
-      description: 'International phone numbers',
-      priority: 15,
-      enabled: true,
-    },
-    {
-      name: 'name_first_last',
-      dataType: 'name',
-      pattern: /\b[A-Z][a-z]{1,}(?: [A-Z][a-z]{1,}){1,3}\b/g,
-      validator: (name) => {
-        const parts = name.split(' ');
-        return parts.length >= 2 && parts.length <= 4 && 
-               parts.every(part => part.length > 1 && /^[A-Z][a-z]+$/.test(part));
-      },
-      description: 'First and last names (Title case)',
-      priority: 30,
-      enabled: true,
-    },
-    {
-      name: 'ip_address_v4',
-      dataType: 'ip_address',
-      pattern: /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g,
-      validator: (ip) => {
-        const parts = ip.split('.');
-        return parts.length === 4 && 
-               parts.every(part => {
-                 const num = parseInt(part);
-                 return num >= 0 && num <= 255 && part === num.toString();
-               });
-      },
-      description: 'IPv4 addresses',
-      priority: 10,
-      enabled: true,
-    },
-    {
-      name: 'ip_address_v6',
-      dataType: 'ip_address',
-      pattern: /\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b/g,
-      validator: (ip) => ip.includes(':') && ip.split(':').length === 8,
-      description: 'IPv6 addresses (full format)',
-      priority: 15,
-      enabled: true,
-    },
-    {
-      name: 'ssn_standard',
-      dataType: 'ssn',
-      pattern: /\b\d{3}-\d{2}-\d{4}\b/g,
-      validator: (ssn) => {
-        const parts = ssn.split('-');
-        return parts.length === 3 && parts[0] !== '000' && parts[1] !== '00' && parts[2] !== '0000';
-      },
-      description: 'Social Security Numbers (XXX-XX-XXXX)',
-      priority: 5,
-      enabled: true,
-    },
-    {
-      name: 'credit_card_visa',
-      dataType: 'credit_card',
-      pattern: /\b4[0-9]{12}(?:[0-9]{3})?\b/g,
-      validator: (cc) => cc.length === 13 || cc.length === 16,
-      description: 'Visa credit card numbers',
-      priority: 5,
-      enabled: true,
-    },
-    {
-      name: 'credit_card_mastercard',
-      dataType: 'credit_card',
-      pattern: /\b5[1-5][0-9]{14}\b/g,
-      validator: (cc) => cc.length === 16,
-      description: 'Mastercard credit card numbers',
-      priority: 5,
-      enabled: true,
-    },
-    {
-      name: 'username_handle',
-      dataType: 'username',
-      pattern: /\b@[a-zA-Z0-9_]{3,15}\b/g,
-      validator: (username) => username.length >= 4 && username.length <= 16,
-      description: 'Social media usernames/handles',
-      priority: 40,
-      enabled: true,
-    },
-    {
-      name: 'address_us_street',
-      dataType: 'address',
-      pattern: /\b\d{1,5}\s+[A-Za-z0-9\s]{3,}\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court)\b/gi,
-      validator: (addr) => /\d/.test(addr) && addr.length >= 10,
-      description: 'US street addresses',
-      priority: 25,
-      enabled: true,
-    },
-  ];
-
-  // Dynamic patterns loaded from database
-  private customPatterns: PIIPattern[] = [];
-  private lastPatternRefresh = 0;
-  private readonly patternCacheMs = 5 * 60 * 1000; // 5 minutes
+  // All patterns loaded from database - no hardcoded patterns
+  private databasePatterns: PIIPattern[] = [];
+  private patternsLoaded = false;
 
   constructor(private readonly supabaseService: SupabaseService) {
-    this.logger.log(`PIIPatternService initialized with ${this.builtInPatterns.length} built-in patterns`);
+    this.logger.log(`PIIPatternService initialized - all patterns loaded from database`);
     this.logger.log(`✅ SupabaseService injected: ${!!this.supabaseService}`);
   }
+
 
   /**
    * Detect PII in text using all enabled patterns
@@ -194,11 +64,11 @@ export class PIIPatternService {
     } = options;
 
 
-    // Refresh custom patterns if needed
-    await this.refreshCustomPatternsIfNeeded();
+    // Load patterns from database on first use
+    await this.ensurePatternsLoaded();
 
-    // Get all enabled patterns
-    const allPatterns = [...this.builtInPatterns, ...this.customPatterns]
+    // Get all enabled patterns from database
+    const allPatterns = this.databasePatterns
       .filter(pattern => pattern.enabled !== false)
       .filter(pattern => !dataTypes || dataTypes.includes(pattern.dataType))
       .sort((a, b) => (a.priority || 50) - (b.priority || 50));
@@ -249,6 +119,7 @@ export class PIIPatternService {
             startIndex: match.index,
             endIndex: match.index + value.length,
             confidence,
+            severity: pattern.severity, // Use severity from the pattern itself
           });
         }
       }
@@ -272,8 +143,8 @@ export class PIIPatternService {
   async addCustomPattern(pattern: Omit<PIIPattern, 'enabled'>): Promise<void> {
     try {
       // Validate pattern
-      if (!pattern.name || !pattern.pattern || !pattern.dataType) {
-        throw new Error('Invalid pattern: name, pattern, and dataType are required');
+      if (!pattern.name || !pattern.pattern || !pattern.dataType || !pattern.severity) {
+        throw new Error('Invalid pattern: name, pattern, dataType, and severity are required');
       }
 
       // Test pattern compilation
@@ -288,10 +159,12 @@ export class PIIPatternService {
         description: pattern.description,
         category: 'pii_custom',
         priority: pattern.priority || 50,
+        severity: pattern.severity,
+        data_type: pattern.dataType,
       });
 
-      // Add to local cache
-      this.customPatterns.push({ ...pattern, enabled: true });
+      // Reload patterns from database to include the new one
+      await this.loadPatternsFromDatabase();
       
       this.logger.log(`Added custom PII pattern: ${pattern.name}`);
     } catch (error) {
@@ -304,7 +177,7 @@ export class PIIPatternService {
    * Get all available patterns
    */
   getAllPatterns(): PIIPattern[] {
-    return [...this.builtInPatterns, ...this.customPatterns];
+    return [...this.databasePatterns];
   }
 
   /**
@@ -344,74 +217,89 @@ export class PIIPatternService {
   }
 
   /**
-   * Refresh custom patterns from database
+   * Ensure patterns are loaded from database (only loads once)
    */
-  private async refreshCustomPatternsIfNeeded(): Promise<void> {
-    const now = Date.now();
-    if (now - this.lastPatternRefresh < this.patternCacheMs) {
+  private async ensurePatternsLoaded(): Promise<void> {
+    if (this.patternsLoaded) {
       return;
     }
 
-    try {
-      const client = this.supabaseService.getServiceClient();
-      const { data } = await client
-        .from('redaction_patterns')
-        .select('*')
-        .eq('category', 'pii_custom')
-        .eq('is_active', true);
-
-      if (data) {
-        this.customPatterns = data.map(row => ({
-          name: row.name,
-          dataType: this.mapDatabaseDataType(row.description || 'custom'),
-          pattern: new RegExp(row.pattern_regex, 'g'),
-          description: row.description,
-          priority: row.priority,
-          enabled: true,
-        }));
-      }
-
-      this.lastPatternRefresh = now;
-      this.logger.debug(`Refreshed ${this.customPatterns.length} custom PII patterns`);
-    } catch (error) {
-      this.logger.warn(`Failed to refresh custom patterns: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    await this.loadPatternsFromDatabase();
   }
 
   /**
-   * Map database description to PIIDataType
+   * Load all patterns from database (called when patterns are modified)
    */
-  private mapDatabaseDataType(description: string): PIIDataType {
-    const desc = description.toLowerCase();
-    if (desc.includes('email')) return 'email';
-    if (desc.includes('phone')) return 'phone';
-    if (desc.includes('name')) return 'name';
-    if (desc.includes('address')) return 'address';
-    if (desc.includes('ip')) return 'ip_address';
-    if (desc.includes('username')) return 'username';
-    if (desc.includes('credit') || desc.includes('card')) return 'credit_card';
-    if (desc.includes('ssn') || desc.includes('social')) return 'ssn';
-    return 'custom';
+  private async loadPatternsFromDatabase(): Promise<void> {
+    try {
+      const client = this.supabaseService.getServiceClient();
+      const { data, error } = await client
+        .from('redaction_patterns')
+        .select('*')
+        .eq('is_active', true);
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Load ALL patterns from database (built-in and custom)
+        this.databasePatterns = data.map(row => ({
+          name: row.name,
+          dataType: row.data_type as PIIDataType,
+          pattern: new RegExp(row.pattern_regex, 'g'),
+          description: row.description || '',
+          priority: row.priority || 50,
+          enabled: true,
+          severity: row.severity as 'showstopper' | 'pseudonymizer' | 'flagger',
+          validator: undefined, // No hardcoded validators - rely on regex patterns only
+        }));
+
+        this.patternsLoaded = true;
+        this.logger.debug(`Loaded ${this.databasePatterns.length} PII patterns from database`);
+        
+        // Log pattern breakdown by severity
+        const bySeverity = this.databasePatterns.reduce((acc, p) => {
+          acc[p.severity || 'unknown'] = (acc[p.severity || 'unknown'] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        this.logger.debug(`Pattern breakdown: ${JSON.stringify(bySeverity)}`);
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to load patterns from database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+
+
+  /**
+   * Force reload of patterns from database (used when patterns are modified externally)
+   */
+  async forceReload(): Promise<void> {
+    await this.loadPatternsFromDatabase();
   }
 
   /**
    * Get service statistics
    */
   getStats(): {
-    builtInPatterns: number;
-    customPatterns: number;
     totalPatterns: number;
     enabledPatterns: number;
-    lastRefresh: Date | null;
+    showstopperPatterns: number;
+    pseudonymizerPatterns: number;
+    flaggerPatterns: number;
+    patternsLoaded: boolean;
   } {
     const allPatterns = this.getAllPatterns();
     
     return {
-      builtInPatterns: this.builtInPatterns.length,
-      customPatterns: this.customPatterns.length,
       totalPatterns: allPatterns.length,
       enabledPatterns: allPatterns.filter(p => p.enabled !== false).length,
-      lastRefresh: this.lastPatternRefresh ? new Date(this.lastPatternRefresh) : null,
+      showstopperPatterns: allPatterns.filter(p => p.severity === 'showstopper').length,
+      pseudonymizerPatterns: allPatterns.filter(p => p.severity === 'pseudonymizer').length,
+      flaggerPatterns: allPatterns.filter(p => p.severity === 'flagger').length,
+      patternsLoaded: this.patternsLoaded,
     };
   }
 }

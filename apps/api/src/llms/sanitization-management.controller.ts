@@ -334,9 +334,6 @@ export class SanitizationManagementController {
         throw new Error(`Database query failed: ${error.message}`);
       }
 
-      // Get built-in patterns from service for fallback/combination
-      const builtinPatterns = this.piiPatternService.getAllPatterns();
-      
       // Format database patterns to match expected structure
       const formattedDbPatterns = (dbPatterns || []).map(pattern => ({
         id: pattern.id,
@@ -354,27 +351,19 @@ export class SanitizationManagementController {
         usageCount: pattern.usage_count || 0,
       }));
 
-      // Combine database patterns with built-in patterns
-      const allPatterns = [
-        ...formattedDbPatterns,
-        ...builtinPatterns.map(p => ({
-          ...p,
-          isCustom: false,
-          category: 'pii_builtin',
-          enabled: p.enabled ?? true,
-        }))
-      ];
+      // Use only database patterns (service now loads from database too, so no need to combine)
+      const allPatterns = formattedDbPatterns;
 
       // Apply dataType filter if specified
       const filteredPatterns = dataType 
         ? allPatterns.filter(p => p.dataType === dataType)
         : allPatterns;
       
-      // Get stats from service (combines built-in + database patterns)
+      // Get stats from service (now database-only)
       const serviceStats = this.piiPatternService.getStats();
       const dbStats = {
-        customPatterns: formattedDbPatterns.length,
-        activeCustomPatterns: formattedDbPatterns.filter(p => p.enabled).length,
+        customPatterns: formattedDbPatterns.filter(p => p.category === 'pii_custom').length,
+        activeCustomPatterns: formattedDbPatterns.filter(p => p.enabled && p.category === 'pii_custom').length,
         totalDatabasePatterns: formattedDbPatterns.length,
       };
       
@@ -499,8 +488,8 @@ export class SanitizationManagementController {
         throw new Error(error.message);
       }
 
-      // Force refresh of local cache
-      this.piiPatternService['lastPatternRefresh'] = 0;
+      // Force reload patterns from database
+      await this.piiPatternService.forceReload();
 
       return {
         success: true,
@@ -534,8 +523,8 @@ export class SanitizationManagementController {
         throw new Error(error.message);
       }
 
-      // Force refresh of local cache
-      this.piiPatternService['lastPatternRefresh'] = 0;
+      // Force reload patterns from database
+      await this.piiPatternService.forceReload();
 
       return {
         success: true,

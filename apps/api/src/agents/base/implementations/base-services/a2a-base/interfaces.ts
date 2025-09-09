@@ -350,6 +350,12 @@ export interface AgentFunctionParams {
     isAvailable: () => boolean;
     callTool: (server: string, toolName: string, params: any) => Promise<any>;
   } | null;
+  /** PII processing metadata from routing service */
+  piiMetadata?: import('../../../../../common/types/pii-metadata.types').PIIProcessingMetadata;
+  /** Routing decision from centralized routing service */
+  routingDecision?: import('../../../../../common/types/pii-metadata.types').RoutingDecisionWithPII;
+  /** Original prompt before any processing */
+  originalPrompt?: string;
   /** Additional context or metadata */
   metadata?: Record<string, any>;
 }
@@ -372,6 +378,8 @@ export interface AgentFunctionResponse {
     toolsUsed?: string[];
     /** Type of response or processing performed */
     responseType?: string;
+    /** PII processing metadata (updated after LLM processing) */
+    piiMetadata?: import('../../../../../common/types/pii-metadata.types').PIIProcessingMetadata;
     /** Any additional metadata */
     [key: string]: any;
   };

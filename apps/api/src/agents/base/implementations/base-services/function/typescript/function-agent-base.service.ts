@@ -74,6 +74,12 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
 
+    // NEW ARCHITECTURE: Check for PII blocking first
+    if (this.shouldBlockForPII(params)) {
+      this.functionLogger.warn(`🛑 [${agentName}] Request blocked due to PII policy violation`);
+      return this.generatePIIBlockedResponse(params);
+    }
+
     // Store current user ID and task ID for progress tracking and completion handling
     if (params.currentUser?.id) {
       this.currentUserId = params.currentUser.id;
@@ -173,6 +179,10 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
         llmService: wrappedLLMService,
         progressCallback,
         mcpService, // MCP service from A2A base service
+        // NEW ARCHITECTURE: Include PII metadata for function agents
+        piiMetadata: this.extractPIIMetadata(params),
+        routingDecision: this.extractRoutingDecision(params),
+        originalPrompt: this.extractOriginalPrompt(params),
         metadata: {
           method,
           originalParams: params,
@@ -220,7 +230,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       }
 
       // Return structured response format to match ContextAgentBaseService
-      return {
+      const successResponse = {
         success: true,
         response: result.response || result,
         metadata: {
@@ -247,6 +257,9 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           }),
         },
       };
+
+      // NEW ARCHITECTURE: Enrich response with PII metadata
+      return this.enrichResponseWithPIIMetadata(successResponse, params);
     } catch (error) {
       this.functionLogger.error(
         `Function execution error for ${agentName}:`,
@@ -263,7 +276,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       }
 
       // Return structured error response
-      return {
+      const errorResponse = {
         success: false,
         error: error instanceof Error ? error.message : String(error),
         response: `I apologize, but I encountered an error while processing your request. Falling back to basic processing.`,
@@ -275,6 +288,9 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           processedAt: new Date().toISOString(),
         },
       };
+
+      // NEW ARCHITECTURE: Enrich error response with PII metadata
+      return this.enrichResponseWithPIIMetadata(errorResponse, params);
     }
   }
 

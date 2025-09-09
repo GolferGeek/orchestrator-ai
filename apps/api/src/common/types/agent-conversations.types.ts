@@ -44,6 +44,8 @@ export interface Task {
   // Evaluation fields
   evaluation?: Record<string, any>;
   llmMetadata?: Record<string, any>;
+  // PII Processing metadata
+  piiMetadata?: import('./pii-metadata.types').PIIProcessingMetadata;
   // Error tracking
   errorCode?: string;
   errorMessage?: string;
@@ -73,8 +75,8 @@ export interface CreateAgentConversationDto {
 }
 
 export interface LLMSelection {
-  providerId?: string;
-  modelId?: string;
+  providerName?: string;
+  modelName?: string;
   cidafmOptions?: {
     activeStateModifiers?: string[];
     responseModifiers?: string[];
@@ -122,6 +124,7 @@ export interface UpdateTaskDto {
   responseMetadata?: Record<string, any>;
   evaluation?: Record<string, any>;
   llmMetadata?: Record<string, any>;
+  piiMetadata?: import('./pii-metadata.types').PIIProcessingMetadata;
   errorCode?: string;
   errorMessage?: string;
   errorData?: Record<string, any>;
