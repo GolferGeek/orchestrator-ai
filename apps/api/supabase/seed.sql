@@ -639,29 +639,17 @@ BEGIN
     RAISE NOTICE '   - Social Security Numbers are correctly marked as SHOWSTOPPERS ✅';
 END $$;
 
--- Add custom pseudonyms for specific entities
--- These will be detected and replaced with pseudonyms during PII processing
-INSERT INTO public.pseudonym_dictionaries (data_type, category, value, frequency_weight, is_active) VALUES
--- Personal names (entities to be pseudonymized)
-('name', 'full_names', 'Matt Weber', 10, true),
-
--- Usernames/handles (entities to be pseudonymized)
-('username', 'handles', 'GolferGeek', 10, true),
-
--- Company/product names (entities to be pseudonymized) - using 'custom' type
-('custom', 'companies', 'Orchestrator-AI', 10, true),
-
--- Pseudonym replacements for full names
-('name', 'full_names', 'Alex Johnson', 10, true),
-('name', 'full_names', 'Sam Mitchell', 9, true),
-('name', 'full_names', 'Jordan Taylor', 8, true),
-
--- Pseudonym replacements for handles/usernames
-('username', 'handles', 'TechExplorer', 10, true),
-('username', 'handles', 'CodeMaster', 9, true),
-('username', 'handles', 'DataWizard', 8, true),
-
--- Pseudonym replacements for companies - using 'custom' type
-('custom', 'companies', 'TechFlow Systems', 10, true),
-('custom', 'companies', 'DataBridge Solutions', 9, true),
-('custom', 'companies', 'CloudSync Technologies', 8, true);
+-- Add custom pseudonyms for specific entities (dictionary-based pseudonymization)
+-- These are the only entities that will be pseudonymized during LLM processing
+INSERT INTO public.pseudonym_dictionaries (
+    original_value, 
+    pseudonym, 
+    data_type, 
+    category, 
+    frequency_weight, 
+    is_active
+) VALUES 
+-- Our 3 specific entities with descriptive pseudonyms
+('Matt Weber', '@person_matt', 'name', 'person', 1, true),
+('GolferGeek', '@user_golfer', 'username', 'person', 1, true),
+('Orchestrator AI', '@company_orchestrator', 'custom', 'business', 1, true);
