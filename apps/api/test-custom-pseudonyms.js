@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
 
 async function testCustomPseudonyms() {
   try {
@@ -29,7 +30,7 @@ async function testCustomPseudonyms() {
         const response = await axios.post('http://localhost:7100/agents/marketing/blog_post/tasks', {
           method: 'process',
           prompt: message,
-          conversationId: `test-conv-${Date.now()}-${i}`,
+          conversationId: uuidv4(),
           conversationHistory: [],
           llmSelection: {
             providerName: 'ollama',
@@ -37,7 +38,7 @@ async function testCustomPseudonyms() {
             temperature: 0.7
           },
           executionMode: 'immediate',
-          taskId: `test-task-${Date.now()}-${i}`
+          taskId: uuidv4()
         }, {
           headers: {
             'Authorization': `Bearer ${token}`,
