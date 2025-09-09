@@ -58,7 +58,7 @@ export class DictionaryPseudonymizerService {
     }
 
     try {
-      const { data, error } = await this.supabaseService.client
+      const { data, error } = await this.supabaseService.getServiceClient()
         .from('pseudonym_dictionaries')
         .select('original_value, pseudonym, data_type, category')
         .eq('is_active', true)
@@ -70,7 +70,7 @@ export class DictionaryPseudonymizerService {
         throw new Error(`Database error: ${error.message}`);
       }
 
-      const dictionary: DictionaryPseudonymMapping[] = (data || []).map(row => ({
+      const dictionary: DictionaryPseudonymMapping[] = (data || []).map((row: any) => ({
         originalValue: row.original_value,
         pseudonym: row.pseudonym,
         dataType: row.data_type,
