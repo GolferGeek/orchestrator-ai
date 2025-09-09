@@ -9,6 +9,8 @@ import {
   IPlanExecutionService,
   IDelegationService,
 } from '../../../../../orchestration/orchestration.types';
+import { LLMService } from '@/llms/llm.service';
+import { LLMServiceFactory } from '@/llms/services/llm-service-factory';
 
 /**
  * Service Container for Orchestrator Agents
@@ -22,6 +24,8 @@ export class OrchestratorAgentServicesContext {
   constructor(
     // Core services that every orchestrator agent needs
     public readonly httpService: HttpService,
+    public readonly llmService: LLMService,
+    public readonly llmServiceFactory: LLMServiceFactory,
     @Inject('IOrchestratorFacadeService')
     public readonly orchestratorFacadeService: IOrchestratorFacadeService,
 

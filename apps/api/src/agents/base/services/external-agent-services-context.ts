@@ -5,6 +5,8 @@ import { ConfigurationService } from '@agents/base/sub-services/configuration/co
 import { AgentRegistrationService } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { EvaluationWrapperService } from '@agents/base/sub-services/evaluation-wrapper/evaluation-wrapper.service';
+import { LLMService } from '@/llms/llm.service';
+import { LLMServiceFactory } from '@/llms/services/llm-service-factory';
 
 /**
  * Pure Service Container for External Agents
@@ -23,6 +25,10 @@ export class ExternalAgentServicesContext {
     public readonly httpService: HttpService,
     public readonly configurationService: ConfigurationService,
     public readonly agentRegistrationService: AgentRegistrationService,
+
+    // Optional LLM services - external agents may or may not need these
+    @Optional() public readonly llmService?: LLMService,
+    @Optional() public readonly llmServiceFactory?: LLMServiceFactory,
 
     // Optional services - using @Optional() for all optional dependencies
     @Optional() public readonly loggingService?: LoggingService,

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { BaseLLMService } from '../base-llm.service';
+import { BaseLLMService } from './base-llm.service';
 import { 
   GenerateResponseParams, 
   LLMResponse, 
