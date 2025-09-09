@@ -302,7 +302,7 @@ export class LLMService {
         
         this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] Simple path pseudonymization completed: ${pseudonymResult.mappings.length} replacements in ${pseudonymResult.processingTimeMs}ms`);
         if (pseudonymResult.mappings.length > 0) {
-          pseudonymResult.mappings.forEach(mapping => {
+          pseudonymResult.mappings.forEach((mapping: any) => {
             this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] "${mapping.originalValue}" → "${mapping.pseudonym}"`);
           });
         }
@@ -553,7 +553,7 @@ export class LLMService {
 
         this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] Enhanced pseudonymization applied: ${pseudonymResult.mappings.length} replacements in ${pseudonymResult.processingTimeMs}ms`);
         if (pseudonymResult.mappings.length > 0) {
-          pseudonymResult.mappings.forEach(mapping => {
+          pseudonymResult.mappings.forEach((mapping: any) => {
             this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] "${mapping.originalValue}" → "${mapping.pseudonym}"`);
           });
         }

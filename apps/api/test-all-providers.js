@@ -12,11 +12,11 @@ async function testAllProviders() {
     console.log('✅ Login successful\n');
     
     const providers = [
-      { name: 'OpenAI', provider: 'openai', model: 'gpt-3.5-turbo' },
-      { name: 'Anthropic', provider: 'anthropic', model: 'claude-3-haiku-20240307' },
-      { name: 'Google', provider: 'google', model: 'gemini-pro' },
-      { name: 'Grok', provider: 'grok', model: 'grok-beta' },
-      { name: 'Ollama (Local)', provider: 'ollama', model: 'llama3.2:1b' }
+      { name: 'OpenAI', provider: 'openai', model: 'gpt-5' },
+      { name: 'Anthropic', provider: 'anthropic', model: 'claude-3-5-haiku-20241022' },
+      { name: 'Google', provider: 'google', model: 'gemini-2.0-flash' },
+      { name: 'Grok', provider: 'grok', model: 'grok-3-mini' },
+      { name: 'Ollama (Local)', provider: 'ollama', model: 'llama3.2:latest' }
     ];
     
     for (const { name, provider, model } of providers) {
