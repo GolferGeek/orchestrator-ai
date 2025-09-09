@@ -317,9 +317,6 @@ export class AgentDiscoveryService {
       
       // Check if this agent has a team (is a manager/orchestrator)
       if (agent.hierarchy?.team && Array.isArray(agent.hierarchy.team)) {
-        if (agent.name === 'ceo_orchestrator') {
-          console.log(`🔍 CEO processing team:`, agent.hierarchy.team);
-        }
         for (const teamMemberName of agent.hierarchy.team) {
           // Find the team member node by name
           const teamMemberNode = Array.from(nodeMap.values()).find(
@@ -343,6 +340,7 @@ export class AgentDiscoveryService {
       if (!assignedNodes.has(agent.path)) {
         rootNodes.push(node);
       }
+      
     }
 
     // Sort children by type and name
@@ -362,6 +360,15 @@ export class AgentDiscoveryService {
       nodes.forEach((node) => sortHierarchy(node.children));
     };
 
+    // Ensure CEO appears first in root nodes
+    const ceoIndex = rootNodes.findIndex(node => node.name === 'ceo_orchestrator');
+    if (ceoIndex > 0) {
+      const [ceoNode] = rootNodes.splice(ceoIndex, 1);
+      if (ceoNode) {
+        rootNodes.unshift(ceoNode);
+      }
+    }
+    
     sortHierarchy(rootNodes);
     this.agentHierarchy = rootNodes;
 

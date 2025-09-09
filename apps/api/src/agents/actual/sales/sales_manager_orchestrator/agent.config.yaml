@@ -7,11 +7,10 @@ description: "Strategic sales orchestrator for coordinating sales operations, le
 hierarchy:
   level: manager
   reportsTo: ceo_orchestrator
-  manages:
-    - leads_agent
-    - chat_support_agent
-    - voice_receptionist_agent
-    - sales_specialists
+  team:
+    - leads
+    - chat_support
+    - voice_receptionist
 
 # Orchestrator-specific configuration
 orchestrator:

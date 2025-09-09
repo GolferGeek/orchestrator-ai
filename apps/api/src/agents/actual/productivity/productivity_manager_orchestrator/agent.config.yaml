@@ -5,10 +5,8 @@ description: "Strategic productivity orchestrator for coordinating productivity 
 
 hierarchy:
   level: manager
-  reportsTo: ceo_orchestrator
-  manages:
-    - productivity_specialists
-    - workflow_optimization_specialists
+  team:
+    - notion
 
 orchestrator:
   scope: productivity

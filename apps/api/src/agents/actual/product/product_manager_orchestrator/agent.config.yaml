@@ -6,10 +6,8 @@ description: "Strategic product orchestrator for coordinating product developmen
 # Hierarchy Configuration
 hierarchy:
   level: manager
-  reportsTo: ceo_orchestrator
-  manages:
+  team:
     - product_launch_coordinator
-    - product_specialists
 
 # Orchestrator-specific configuration
 orchestrator:
