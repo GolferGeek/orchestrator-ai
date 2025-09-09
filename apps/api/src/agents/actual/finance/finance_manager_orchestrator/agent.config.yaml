@@ -7,10 +7,9 @@ description: "Strategic finance orchestrator for coordinating financial analysis
 hierarchy:
   level: manager
   reportsTo: ceo_orchestrator
-  manages:
-    - financial_analysis_specialists
-    - budgeting_specialists
-    - accounting_specialists
+  team:
+    - invoice
+    - metrics
 
 # Orchestrator-specific configuration
 orchestrator:

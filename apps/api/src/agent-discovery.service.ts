@@ -14,6 +14,10 @@ export interface DiscoveredAgent {
   // Hierarchy fields
   reportsTo?: string;
   directReports?: DiscoveredAgent[];
+  hierarchy?: {
+    team?: string[];
+    level?: string;
+  };
   configPath?: string;
   metadata?: {
     displayName?: string;
@@ -243,6 +247,12 @@ export class AgentDiscoveryService {
             if (hierarchy.reportsTo) {
               agent.reportsTo = hierarchy.reportsTo;
             }
+            
+            // Extract team information for team-based hierarchy
+            if (hierarchy.team) {
+              agent.hierarchy = agent.hierarchy || {};
+              agent.hierarchy.team = hierarchy.team;
+            }
 
             agent.metadata = {
               displayName: metadata.name || agent.name,
@@ -297,44 +307,40 @@ export class AgentDiscoveryService {
       this.hierarchyCache.set(agent.path, node);
     }
 
-    // Build parent-child relationships
+    // Build parent-child relationships using team-based approach
     const rootNodes: AgentHierarchy[] = [];
+    const assignedNodes = new Set<string>(); // Track which nodes have been assigned as children
 
-    // Build parent-child relationships
-
+    // First pass: Build parent-child relationships from team definitions
     for (const agent of this.discoveredAgents) {
       const node = nodeMap.get(agent.path)!;
-
-      if (agent.reportsTo) {
-        // Find parent node - try multiple strategies
-        let parentNode = nodeMap.get(agent.reportsTo); // Try direct path match first
-        
-        if (!parentNode) {
-          // Try by name/displayName
-          parentNode = Array.from(nodeMap.values()).find(
-            (n) =>
-              n.name === agent.reportsTo ||
-              n.name.toLowerCase() === agent.reportsTo!.toLowerCase() ||
-              n.displayName === agent.reportsTo ||
-              n.displayName.toLowerCase() === agent.reportsTo!.toLowerCase()
+      
+      // Check if this agent has a team (is a manager/orchestrator)
+      if (agent.hierarchy?.team && Array.isArray(agent.hierarchy.team)) {
+        if (agent.name === 'ceo_orchestrator') {
+          console.log(`🔍 CEO processing team:`, agent.hierarchy.team);
+        }
+        for (const teamMemberName of agent.hierarchy.team) {
+          // Find the team member node by name
+          const teamMemberNode = Array.from(nodeMap.values()).find(
+            (n) => n.name === teamMemberName || n.name.toLowerCase() === teamMemberName.toLowerCase()
           );
+          
+          if (teamMemberNode) {
+            node.children.push(teamMemberNode);
+            assignedNodes.add(teamMemberNode.path);
+          } else {
+            this.logger.warn(`Team member not found: ${teamMemberName} for ${agent.name}`);
+          }
         }
-        
-        if (!parentNode) {
-          // Try by path contains
-          parentNode = Array.from(nodeMap.values()).find(
-            (n) => n.path.includes(agent.reportsTo!)
-          );
-        }
+      }
+    }
 
-        if (parentNode) {
-          parentNode.children.push(node);
-        } else {
-          this.logger.warn(`Parent not found for ${agent.name} (reportsTo: ${agent.reportsTo})`);
-          rootNodes.push(node);
-        }
-      } else {
-        // Root level agent
+    // Second pass: Add unassigned nodes as root nodes
+    for (const agent of this.discoveredAgents) {
+      const node = nodeMap.get(agent.path)!;
+      
+      if (!assignedNodes.has(agent.path)) {
         rootNodes.push(node);
       }
     }
