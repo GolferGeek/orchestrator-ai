@@ -7,9 +7,9 @@ description: "Strategic HR orchestrator for coordinating human resources operati
 hierarchy:
   level: manager
   reportsTo: ceo_orchestrator
-  manages:
-    - hr_specialists
-    - talent_management_specialists
+  team:
+    - hr_assistant
+    - onboarding
 
 # Orchestrator-specific configuration
 orchestrator:

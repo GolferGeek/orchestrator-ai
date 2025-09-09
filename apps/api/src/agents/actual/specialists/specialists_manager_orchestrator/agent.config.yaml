@@ -6,11 +6,9 @@ description: "Strategic orchestrator for special projects, external integrations
 # Hierarchy Configuration
 hierarchy:
   level: manager
-  reportsTo: ceo_orchestrator
-  manages:
+  team:
     - golf_rules_agent
-    - external_integrations
-    - special_projects
+    - agent_creator
 
 # Orchestrator-specific configuration
 orchestrator:

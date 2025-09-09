@@ -29,42 +29,32 @@
 
     <!-- Hierarchy Display -->
     <div v-else class="hierarchy-container">
-      <!-- CEO as standalone agent (not accordion) -->
-      <div v-for="group in hierarchyGroups.filter(g => g.isCEOAgent)" :key="group.type" class="agent-item">
-        <ion-item button @click="createNewConversation(group.agents[0])">
-          <ion-icon :icon="briefcaseOutline" color="primary" slot="start" />
-          <ion-label>
-            <h3>{{ formatAgentName(group.agents[0].name) }}</h3>
-          </ion-label>
-          <ion-badge slot="end" :color="group.totalConversations > 0 ? 'primary' : 'medium'">
-            {{ group.totalConversations }}
-          </ion-badge>
-        </ion-item>
-      </div>
-
-      <!-- Managers as accordions -->
-      <div v-for="group in hierarchyGroups.filter(g => g.isManager && !g.isCEOAgent)" :key="group.type" class="agent-group">
+      <div v-for="group in hierarchyGroups" :key="group.type" class="agent-group">
         <ion-accordion-group>
           <ion-accordion>
-            <!-- Manager as accordion header (no conversation creation) -->
             <ion-item slot="header" color="light">
-              <ion-icon :icon="briefcaseOutline" color="primary" slot="start" />
+              <ion-icon 
+                :icon="group.isManager ? folderOutline : personOutline" 
+                :color="group.isManager ? 'primary' : 'medium'"
+                slot="start" 
+              />
               <ion-label>
-                <h3>{{ formatAgentName(group.agents[0].name).replace(' Orchestrator', '') }}</h3>
+                <h3>{{ formatAgentName(group.type) }}</h3>
+                <p>{{ group.agents.length }} {{ group.agents.length === 1 ? 'agent' : 'agents' }}</p>
               </ion-label>
               <ion-badge slot="end" :color="group.totalConversations > 0 ? 'primary' : 'medium'">
                 {{ group.totalConversations }}
               </ion-badge>
             </ion-item>
             
-            <!-- Team members in accordion content -->
             <div slot="content" class="accordion-content">
-              <!-- Skip the first agent (manager) and show the rest (team members) -->
-              <div v-for="agent in group.agents.slice(1)" :key="agent.name" class="agent-item nested-agent">
+              <!-- Individual Agents -->
+              <div v-for="agent in group.agents" :key="agent.name" class="agent-item">
                 <ion-item button @click="createNewConversation(agent)">
                   <ion-icon :icon="personOutline" slot="start" color="medium" />
                   <ion-label>
                     <h4>{{ formatAgentName(agent.name) }}</h4>
+                    <p v-if="agent.description">{{ agent.description }}</p>
                   </ion-label>
                   <ion-badge slot="end" :color="agent.totalConversations > 0 ? 'secondary' : 'light'">
                     {{ agent.totalConversations }}
@@ -82,7 +72,8 @@
                     @click.stop="createNewConversation(group.agents[0])"
                     class="hierarchy-action-btn"
                   >
-                    New Conversation
+                    <ion-icon :icon="addOutline" slot="start" />
+                    💬 Create a conversation
                   </ion-button>
                   <ion-button 
                     fill="clear" 
@@ -91,28 +82,14 @@
                     @click.stop="createNewProject(group.agents[0])"
                     class="hierarchy-action-btn"
                   >
-                    New Project
+                    <ion-icon :icon="addOutline" slot="start" />
+                    📋 Create a project
                   </ion-button>
                 </div>
               </div>
             </div>
           </ion-accordion>
         </ion-accordion-group>
-      </div>
-
-      <!-- Specialists as individual agents (no grouping) -->
-      <div v-for="group in hierarchyGroups.filter(g => g.isSpecialists)" :key="group.type">
-        <div v-for="agent in group.agents" :key="agent.name" class="agent-item">
-          <ion-item button @click="createNewConversation(agent)">
-            <ion-icon :icon="personOutline" color="medium" slot="start" />
-            <ion-label>
-              <h3>{{ formatAgentName(agent.name) }}</h3>
-            </ion-label>
-            <ion-badge slot="end" :color="agent.totalConversations > 0 ? 'primary' : 'medium'">
-              {{ agent.totalConversations }}
-            </ion-badge>
-          </ion-item>
-        </div>
       </div>
     </div>
   </div>
@@ -137,7 +114,6 @@ import {
   alertCircleOutline,
   addOutline,
   folderOutline,
-  briefcaseOutline,
 } from 'ionicons/icons';
 import { formatAgentName } from '@/utils/caseConverter';
 import { useAgentsStore } from '@/stores/agentsStore';
@@ -170,32 +146,59 @@ const hierarchyGroups = computed(() => {
   const groups: any[] = [];
   
   const processNode = (node: any) => {
+    // Skip CEO node itself, process its children as top-level groups
+    if (node.name === 'ceo_orchestrator' && node.children) {
+      node.children.forEach((child: any) => {
+        processNode(child);
+      });
+      return;
+    }
+    
     // Apply search filter
     const matchesSearch = !searchQuery.value || 
       node.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       node.displayName?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       node.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
     
-    if (!matchesSearch && (!node.children || node.children.length === 0)) return;
+    if (!matchesSearch) return;
     
-    // Get conversations for this node
-    const nodeConversations = conversationsStore.conversations.filter(conv => 
+    // Get conversations for this node and its children
+    const getAllConversations = (n: any): any[] => {
+      const nodeConversations = conversationsStore.conversations.filter(conv => 
+        conv.agentName === n.name && conv.agentType === n.type
+      );
+      
+      let childConversations: any[] = [];
+      if (n.children) {
+        n.children.forEach((child: any) => {
+          childConversations.push(...getAllConversations(child));
+        });
+      }
+      
+      return [...nodeConversations, ...childConversations];
+    };
+    
+    const allConversations = getAllConversations(node);
+    
+    // Create agents array (main agent + children)
+    const agents = [];
+    
+    // Add main agent
+    const mainAgentConversations = conversationsStore.conversations.filter(conv => 
       conv.agentName === node.name && conv.agentType === node.type
     );
     
-    // Create main agent
-    const mainAgent = {
+    agents.push({
       name: node.name,
       type: node.type || 'specialist',
       description: node.metadata?.description || node.description || '',
       execution_modes: [],
-      conversations: nodeConversations,
-      activeConversations: nodeConversations.filter(c => !c.endedAt).length,
-      totalConversations: nodeConversations.length,
-    };
+      conversations: mainAgentConversations,
+      activeConversations: mainAgentConversations.filter(c => !c.endedAt).length,
+      totalConversations: mainAgentConversations.length,
+    });
     
-    // Add child agents if they exist
-    const agents = [mainAgent];
+    // Add child agents
     if (node.children) {
       node.children.forEach((child: any) => {
         const childConversations = conversationsStore.conversations.filter(conv => 
@@ -218,11 +221,6 @@ const hierarchyGroups = computed(() => {
             totalConversations: childConversations.length,
           });
         }
-        
-        // Recursively process child nodes that have their own children
-        if (child.children && child.children.length > 0) {
-          processNode(child);
-        }
       });
     }
     
@@ -235,108 +233,17 @@ const hierarchyGroups = computed(() => {
     groups.push({
       type: node.name,
       agents: agents,
-      totalConversations: agents.reduce((sum, a) => sum + a.totalConversations, 0),
-      isManager: isManager,
-      isCEO: node.name === 'ceo_orchestrator'
+      totalConversations: allConversations.length,
+      isManager: isManager
     });
   };
   
-  // First, add CEO as a standalone agent (not as a group with children)
-  const ceoNode = hierarchy.data.find((agent: any) => agent.name === 'ceo_orchestrator');
-  
-  if (ceoNode) {
-    const ceoConversations = conversationsStore.conversations.filter(conv => 
-      conv.agentName === ceoNode.name && conv.agentType === ceoNode.type
-    );
-    
-    const ceoMatchesSearch = !searchQuery.value || 
-      ceoNode.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      ceoNode.displayName?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      ceoNode.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
-    
-    if (ceoMatchesSearch) {
-      groups.push({
-        type: 'ceo_agent',
-        agents: [{
-          name: ceoNode.name,
-          type: ceoNode.type || 'orchestrator',
-          description: ceoNode.metadata?.description || ceoNode.description || '',
-          execution_modes: [],
-          conversations: ceoConversations,
-          activeConversations: ceoConversations.filter(c => !c.endedAt).length,
-          totalConversations: ceoConversations.length,
-        }],
-        totalConversations: ceoConversations.length,
-        isManager: false,
-        isCEO: true,
-        isCEOAgent: true
-      });
-    }
-    
-    // Then process CEO's children (managers) as separate groups
-    if (ceoNode.children) {
-      ceoNode.children.forEach((child: any) => {
-        processNode(child);
-      });
-    }
-  }
-  
-  // Process any remaining root nodes that aren't under CEO (shouldn't be many if hierarchy is correct)
-  const otherRootNodes = hierarchy.data.filter((agent: any) => agent.name !== 'ceo_orchestrator');
-  const specialistAgents: any[] = [];
-  
-  otherRootNodes.forEach((agent: any) => {
-    const nodeConversations = conversationsStore.conversations.filter(conv => 
-      conv.agentName === agent.name && conv.agentType === agent.type
-    );
-    
-    const matchesSearch = !searchQuery.value || 
-      agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      agent.displayName?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      agent.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
-    
-    if (matchesSearch) {
-      specialistAgents.push({
-        name: agent.name,
-        type: agent.type || 'specialist',
-        description: agent.metadata?.description || agent.description || '',
-        execution_modes: [],
-        conversations: nodeConversations,
-        activeConversations: nodeConversations.filter(c => !c.endedAt).length,
-        totalConversations: nodeConversations.length,
-      });
-    }
+  // Process the hierarchy
+  hierarchy.data.forEach((agent: any) => {
+    processNode(agent);
   });
-  
-  // Add "Specialists" group only if there are agents not properly under CEO
-  if (specialistAgents.length > 0) {
-    groups.push({
-      type: 'specialists',
-      agents: specialistAgents,
-      totalConversations: specialistAgents.reduce((sum, a) => sum + a.totalConversations, 0),
-      isManager: false,
-      isSpecialists: true
-    });
-  }
   
   return groups;
-});
-
-// Flat list of all agents for display
-const flatAgentList = computed(() => {
-  const allAgents: any[] = [];
-  
-  hierarchyGroups.value.forEach(group => {
-    group.agents.forEach((agent: any) => {
-      allAgents.push({
-        ...agent,
-        isManager: group.isManager || group.isCEOAgent,
-        isCEO: group.isCEOAgent
-      });
-    });
-  });
-  
-  return allAgents;
 });
 
 // Methods
@@ -427,10 +334,6 @@ onMounted(async () => {
 
 .agent-item:last-of-type {
   border-bottom: none;
-}
-
-.nested-agent ion-item {
-  --padding-start: 8px; /* Reduce indentation by half */
 }
 
 /* Hierarchy Actions */

@@ -7,11 +7,12 @@ description: "Strategic operations orchestrator for coordinating business proces
 hierarchy:
   level: manager
   reportsTo: ceo_orchestrator
-  manages:
-    - calendar_agent
-    - sop_agent
-    - voice_summary_agent
-    - process_optimization_specialists
+  team:
+    - calendar
+    - sop
+    - voice_summary
+    - meetings
+    - email_triage
 
 # Orchestrator-specific configuration
 orchestrator:

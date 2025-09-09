@@ -6,12 +6,10 @@ description: "Strategic research orchestrator for coordinating research initiati
 # Hierarchy Configuration
 hierarchy:
   level: manager
-  reportsTo: ceo_orchestrator
-  manages:
-    - internal_rag_agent
-    - policy_rag_agent
-    - external_rag_agent
-    - research_specialists
+  team:
+    - internal_rag
+    - policy_rag
+    - external_rag
 
 # Orchestrator-specific configuration
 orchestrator:
