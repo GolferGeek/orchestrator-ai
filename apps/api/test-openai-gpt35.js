@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-async function testGrokFix() {
+async function testOpenAIGPT35() {
   try {
     console.log('🔐 Logging in...');
     const loginResponse = await axios.post('http://localhost:7100/auth/login', {
@@ -11,15 +11,15 @@ async function testGrokFix() {
     const token = loginResponse.data.accessToken;
     console.log('✅ Login successful\n');
     
-    console.log('🧪 Testing Grok after URL fix...');
+    console.log('🧪 Testing OpenAI with GPT-3.5-turbo...');
     
     try {
       const response = await axios.post('http://localhost:7100/llm/generate', {
         systemPrompt: 'You are a helpful assistant.',
         userPrompt: 'Say hello in exactly 3 words.',
         options: {
-          providerName: 'grok',
-          modelName: 'grok-3-mini',
+          providerName: 'openai',
+          modelName: 'gpt-3.5-turbo',  // Older model that supports max_tokens
           temperature: 0.1,
           maxTokens: 10
         }
@@ -31,11 +31,11 @@ async function testGrokFix() {
         timeout: 15000
       });
       
-      console.log('✅ GROK SUCCESS:');
+      console.log('✅ OPENAI SUCCESS:');
       console.log(`Response: "${response.data.response}"`);
       
     } catch (error) {
-      console.log('❌ GROK FAILED:');
+      console.log('❌ OPENAI FAILED:');
       console.log('Status:', error.response?.status);
       console.log('Data:', JSON.stringify(error.response?.data, null, 2));
       
@@ -51,4 +51,4 @@ async function testGrokFix() {
   }
 }
 
-testGrokFix();
+testOpenAIGPT35();

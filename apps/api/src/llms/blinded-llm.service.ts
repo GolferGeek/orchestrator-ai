@@ -70,9 +70,14 @@ export class BlindedLLMService {
 
     switch (config.provider) {
       case 'openai':
+        // Require explicit model - no fallbacks allowed
+        if (!config.model) {
+          throw new Error('OpenAI model must be explicitly specified - no fallback model configured');
+        }
+        
         llm = new ChatOpenAI({
           openAIApiKey: config.apiKey || providerConfig.apiKey,
-          modelName: config.model || 'gpt-4o-mini',
+          modelName: config.model,
           temperature: config.temperature ?? 0.7,
           maxTokens: config.maxTokens,
           // Override the HTTP client to use our blinded one
@@ -85,9 +90,14 @@ export class BlindedLLMService {
         break;
 
       case 'anthropic':
+        // Require explicit model - no fallbacks allowed
+        if (!config.model) {
+          throw new Error('Anthropic model must be explicitly specified - no fallback model configured');
+        }
+        
         llm = new ChatAnthropic({
           anthropicApiKey: config.apiKey || providerConfig.apiKey,
-          modelName: config.model || 'claude-3-haiku-20240307',
+          modelName: config.model,
           temperature: config.temperature ?? 0.7,
           maxTokens: config.maxTokens,
           // Override the HTTP client
@@ -100,9 +110,14 @@ export class BlindedLLMService {
         break;
 
       case 'google':
+        // Require explicit model - no fallbacks allowed
+        if (!config.model) {
+          throw new Error('Google model must be explicitly specified - no fallback model configured');
+        }
+        
         llm = new ChatGoogleGenerativeAI({
           apiKey: config.apiKey || providerConfig.apiKey,
-          model: config.model || 'gemini-pro',
+          model: config.model,
           temperature: config.temperature ?? 0.7,
           maxOutputTokens: config.maxTokens,
           // Note: Google client may need custom implementation for full blinding
