@@ -288,22 +288,29 @@ export class LLMService {
       // Generate request ID for pseudonymization context
       const requestId = options?.conversationId || options?.sessionId || `simple-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Step 1: Pseudonymize user message before LLM call
-      const pseudonymResult = await this.pseudonymizerService.pseudonymizeText(
-        userMessage,
-        requestId,
-        { context: 'llm-call' }
-      );
+      // Step 1: Dictionary-based pseudonymization for external providers
+      let sanitizedUserMessage = userMessage;
+      let sanitizationContext: any = null;
+      
+      if (!isLocalProvider) {
+        const pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(userMessage);
+        sanitizedUserMessage = pseudonymResult.pseudonymizedText;
+        sanitizationContext = {
+          mappings: pseudonymResult.mappings,
+          processingTimeMs: pseudonymResult.processingTimeMs
+        };
+        
+        this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] Simple path pseudonymization completed: ${pseudonymResult.mappings.length} replacements in ${pseudonymResult.processingTimeMs}ms`);
+        if (pseudonymResult.mappings.length > 0) {
+          pseudonymResult.mappings.forEach(mapping => {
+            this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] "${mapping.originalValue}" → "${mapping.pseudonym}"`);
+          });
+        }
+      } else {
+        this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] Skipping pseudonymization for local provider: ${provider}`);
+      }
 
       const sanitizedSystemPrompt = systemPrompt; // System prompts typically don't contain user PII
-      const sanitizedUserMessage = pseudonymResult.pseudonymizedText;
-
-      this.logger.log(`🎭 [PSEUDONYMIZER-DEBUG] Pseudonymization completed: ${pseudonymResult.mappings.length} replacements in ${pseudonymResult.processingTimeMs}ms`);
-      if (pseudonymResult.mappings.length > 0) {
-        pseudonymResult.mappings.forEach(mapping => {
-          this.logger.log(`🎭 [PSEUDONYMIZER-DEBUG] "${mapping.originalValue}" → "${mapping.pseudonym}"`);
-        });
-      }
 
       // Start usage tracking for simple path
       const routingDecision = {
@@ -351,17 +358,17 @@ export class LLMService {
       let content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
 
       // Step 2: Reverse pseudonyms in the response
-      if (pseudonymResult.mappings.length > 0) {
-        const reversalResult = await this.pseudonymizerService.reversePseudonyms(
+      if (sanitizationContext && sanitizationContext.mappings && sanitizationContext.mappings.length > 0) {
+        const reversalResult = await this.dictionaryPseudonymizerService.reversePseudonyms(
           content,
-          requestId
+          sanitizationContext.mappings
         );
         content = reversalResult.originalText;
         
-        this.logger.log(`🔄 [PSEUDONYMIZER-DEBUG] Reversal completed: ${reversalResult.reversalCount} reversals in ${reversalResult.processingTimeMs}ms`);
+        this.logger.log(`🔄 [DICTIONARY-PSEUDONYMIZER] Simple path reversal completed: ${reversalResult.reversalCount} reversals in ${reversalResult.processingTimeMs}ms`);
         
-        if (reversalResult.reversalCount === 0 && pseudonymResult.mappings.length > 0) {
-          this.logger.warn(`🔄 [PSEUDONYMIZER-DEBUG] Expected reversals but none found - LLM may not have used the pseudonyms`);
+        if (reversalResult.reversalCount === 0 && sanitizationContext.mappings.length > 0) {
+          this.logger.warn(`🔄 [DICTIONARY-PSEUDONYMIZER] Expected reversals but none found - LLM may not have used the pseudonyms`);
         }
       }
 
@@ -374,16 +381,21 @@ export class LLMService {
 
       // Return metadata if requested (for HTTP API calls)
       if (options?.includeMetadata) {
-        // Create metadata from pseudonymization results
-        const pseudonymizationMetadata = {
-          pseudonymizationApplied: pseudonymResult.mappings.length > 0,
-          pseudonymCount: pseudonymResult.mappings.length,
-          processingTimeMs: pseudonymResult.processingTimeMs,
-          mappings: pseudonymResult.mappings.map(m => ({
+        // Create metadata from dictionary-based pseudonymization results
+        const pseudonymizationMetadata = sanitizationContext ? {
+          pseudonymizationApplied: sanitizationContext.mappings.length > 0,
+          pseudonymCount: sanitizationContext.mappings.length,
+          processingTimeMs: sanitizationContext.processingTimeMs,
+          mappings: sanitizationContext.mappings.map((m: any) => ({
             type: m.dataType,
             originalLength: m.originalValue.length,
             pseudonymLength: m.pseudonym.length
           }))
+        } : {
+          pseudonymizationApplied: false,
+          pseudonymCount: 0,
+          processingTimeMs: 0,
+          mappings: []
         };
         
         return {
