@@ -7,12 +7,13 @@ description: "Strategic marketing orchestrator for coordinating campaigns, conte
 hierarchy:
   level: manager
   reportsTo: ceo_orchestrator
-  manages:
+  team:
     - marketing_swarm
     - blog_post
     - content
     - market_research
     - competitors
+    - hiverarchy
 
 # Orchestrator-specific configuration
 orchestrator:

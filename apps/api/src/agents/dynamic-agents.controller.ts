@@ -43,6 +43,26 @@ export class DynamicAgentsController {
   ) {}
 
   /**
+   * Debug endpoint to see raw discovered agents
+   * Route: GET /agents/.well-known/debug-agents
+   */
+  @Get('.well-known/debug-agents')
+  @Public()
+  async getDebugAgents() {
+    const agents = this.agentDiscovery.getDiscoveredAgents();
+    return {
+      success: true,
+      data: agents.map(a => ({
+        name: a.name,
+        path: a.path,
+        reportsTo: a.reportsTo,
+        hasConfig: !!a.configPath
+      })),
+      total: agents.length
+    };
+  }
+
+  /**
    * Get agent hierarchy
    * Route: GET /agents/.well-known/hierarchy
    */

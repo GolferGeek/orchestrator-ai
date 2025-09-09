@@ -7,12 +7,18 @@ description: "Strategic orchestrator for executive-level planning and delegation
 hierarchy:
   level: executive
   # No reportsTo - CEO is top level
-  manages:
+  team:
     - marketing_manager_orchestrator
-    - engineering
-    - hr
-    - finance
-    - productivity
+    - finance_manager_orchestrator
+    - engineering_manager_orchestrator
+    - hr_manager_orchestrator
+    - operations_manager_orchestrator
+    - sales_manager_orchestrator
+    - research_manager_orchestrator
+    - product_manager_orchestrator
+    - productivity_manager_orchestrator
+    - legal_manager_orchestrator
+    - specialists_manager_orchestrator
 
 # Orchestrator-specific configuration
 orchestrator:
