@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-async function testAllProviders() {
+async function testFinalStatus() {
   try {
     console.log('🔐 Logging in...');
     const loginResponse = await axios.post('http://localhost:7100/auth/login', {
@@ -11,49 +11,47 @@ async function testAllProviders() {
     const token = loginResponse.data.accessToken;
     console.log('✅ Login successful\n');
     
-    const providers = [
+    const tests = [
       { name: 'OpenAI', provider: 'openai', model: 'gpt-3.5-turbo' },
       { name: 'Anthropic', provider: 'anthropic', model: 'claude-3-5-haiku-20241022' },
       { name: 'Google', provider: 'google', model: 'gemini-2.0-flash' },
       { name: 'Grok', provider: 'grok', model: 'grok-3-mini' },
-      { name: 'Ollama (Local)', provider: 'ollama', model: 'llama3.2:latest' }
+      { name: 'Ollama', provider: 'ollama', model: 'llama3.2:latest' }
     ];
     
-    for (const { name, provider, model } of providers) {
-      console.log(`\n🧪 Testing ${name} (${provider}/${model})...`);
-      console.log('-'.repeat(50));
+    for (const test of tests) {
+      console.log(`🧪 Testing ${test.name} (${test.provider}/${test.model})...`);
+      console.log('--------------------------------------------------');
       
       try {
         const response = await axios.post('http://localhost:7100/llm/generate', {
           systemPrompt: 'You are a helpful assistant.',
-          userPrompt: 'Say hello in exactly 5 words.',
+          userPrompt: 'Say hello in exactly 3 words.',
           options: {
-            providerName: provider,
-            modelName: model,
+            providerName: test.provider,
+            modelName: test.model,
             temperature: 0.1,
-            maxTokens: 20
+            maxTokens: 10
           }
         }, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          timeout: 30000 // 30 second timeout
+          timeout: 15000
         });
         
-        console.log(`✅ ${name} SUCCESS:`);
+        console.log(`✅ ${test.name} SUCCESS:`);
         console.log(`   Response: "${response.data.response}"`);
-        console.log(`   Tokens: ${response.data.metadata?.usage?.totalTokens || 'N/A'}`);
+        console.log(`   Tokens: N/A\n`);
         
       } catch (error) {
-        console.log(`❌ ${name} FAILED:`);
-        if (error.response) {
-          console.log(`   Status: ${error.response.status}`);
-          console.log(`   Error: ${JSON.stringify(error.response.data, null, 2)}`);
-        } else if (error.code === 'ECONNABORTED') {
-          console.log(`   Error: Request timeout (30s)`);
+        console.log(`❌ ${test.name} FAILED:`);
+        if (error.code === 'ECONNABORTED') {
+          console.log('   Error: Request timeout (30s)\n');
         } else {
-          console.log(`   Error: ${error.message}`);
+          console.log(`   Status: ${error.response?.status}`);
+          console.log(`   Error: ${error.response?.data ? JSON.stringify(error.response.data) : error.message}\n`);
         }
       }
     }
@@ -63,4 +61,4 @@ async function testAllProviders() {
   }
 }
 
-testAllProviders();
+testFinalStatus();

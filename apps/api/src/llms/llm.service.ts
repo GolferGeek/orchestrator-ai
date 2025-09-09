@@ -1530,10 +1530,15 @@ export class LLMService {
           const isO1Model = config.model?.includes('o1') || false;
           const temperature = isO1Model ? undefined : (config.temperature ?? parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'));
           
+          // Require explicit model - no fallbacks allowed
+          if (!config.model) {
+            throw new Error('OpenAI model must be explicitly specified - no fallback model configured');
+          }
+          
           // Use source-blinded LLM for external providers
           llm = this.blindedLLMService.createBlindedLLM({
             provider: 'openai',
-            model: config.model || process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+            model: config.model,
             temperature: temperature,
             maxTokens: config.maxTokens ?? parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
             apiKey: config.apiKey || process.env.OPENAI_API_KEY,
@@ -1701,13 +1706,37 @@ export class LLMService {
 
     const providerType = providerMap[mappedProvider.name] || 'openai';
 
+    // Get the correct API key for this provider
+    const providerApiKey = this.getApiKeyForProvider(mappedProvider.name);
+
     return this.createCustomLangGraphLLM({
       provider: providerType as any,
       model: model.name,
       temperature: overrides?.temperature,
       maxTokens: overrides?.maxTokens || model.maxTokens,
+      apiKey: providerApiKey,
       baseUrl: mappedProvider.apiBaseUrl,
     });
+  }
+
+  /**
+   * Get the correct API key for a provider
+   */
+  private getApiKeyForProvider(providerName: string): string | undefined {
+    const envPrefix = providerName.toUpperCase();
+    
+    // Map provider names to their environment variable names
+    const apiKeyMap: Record<string, string> = {
+      'openai': 'OPENAI_API_KEY',
+      'anthropic': 'ANTHROPIC_API_KEY',
+      'google': 'GOOGLE_API_KEY',
+      'grok': 'GROK_API_KEY',
+      'ollama': 'OLLAMA_API_KEY',
+      // Add other providers as needed
+    };
+    
+    const envVarName = apiKeyMap[providerName.toLowerCase()] || `${envPrefix}_API_KEY`;
+    return process.env[envVarName];
   }
 
   /**
