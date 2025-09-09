@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { reactive } from 'vue';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
 import { useLLMStore } from '@/stores/llmStore';
@@ -360,6 +361,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       } catch (error) {
         const conversation = this.getActiveConversation();
         if (conversation) {
+          // Generic error handling for actual errors
           conversation.error = error instanceof Error ? error.message : 'Failed to send message';
         }
         console.error('Error sending message:', error);
@@ -591,6 +593,7 @@ export const useAgentChatStore = defineStore('agentChat', {
               : completedTask.response;
 
             console.log('🔍 [FRONTEND-DEBUG] parsedResponse:', parsedResponse);
+            console.log('🔍 [FRONTEND-DEBUG] completedTask.response type:', typeof completedTask.response);
             
             
             // Backend puts deliverable info directly in the result object
@@ -606,6 +609,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         existingMessage.content = finalContent;
         console.log('🔍 [FRONTEND-DEBUG] Agent result metadata:', parsedResponse?.metadata);
         console.log('🔍 [FRONTEND-DEBUG] Has sanitizationMetadata:', !!parsedResponse?.metadata?.sanitizationMetadata);
+        console.log('🔍 [FRONTEND-DEBUG] Full sanitizationMetadata:', parsedResponse?.metadata?.sanitizationMetadata);
 
         existingMessage.metadata = {
           ...existingMessage.metadata,
@@ -712,6 +716,49 @@ export const useAgentChatStore = defineStore('agentChat', {
       const conv = this.getConversationById(conversationId);
       if (!conv) return;
       
+      // Handle PII policy violations specifically
+      if (statusUpdate.metadata?.type === 'pii_violation') {
+        // Remove any existing placeholder message for this task
+        const placeholderIndex = conv.messages.findIndex(msg => 
+          msg.taskId === taskId && msg.role === 'assistant'
+        );
+        if (placeholderIndex >= 0) {
+          conv.messages.splice(placeholderIndex, 1);
+        }
+        
+        // Add PII violation system message with reactive metadata
+        const piiMessageId = `pii-${taskId}-${Date.now()}`;
+        const piiMessage = reactive({
+          id: piiMessageId,
+          role: 'system',
+          content: statusUpdate.error || 'I cannot process your request because it contains sensitive personal information. Please rephrase your request without including any personal identifiable information.',
+          timestamp: new Date(),
+          metadata: {
+            type: 'pii_violation',
+            error: false, // Not an error, just a policy decision
+            blocked: true,
+            detectedTypes: statusUpdate.metadata.detectedTypes || [],
+            suggestion: statusUpdate.metadata.suggestion || 'Please remove any SSNs, credit card numbers, API keys, or other sensitive data and try again.',
+            // Add sanitization metadata for the banner
+            sanitizationMetadata: {
+              status: 'blocked',
+              piiDetected: true,
+              piiTypes: statusUpdate.metadata.detectedTypes || [],
+              dataSanitizationApplied: true,
+              sanitizationLevel: 'strict',
+              blockReason: 'PII policy violation'
+            }
+          }
+        });
+        
+        conv.messages.push(piiMessage);
+        
+        // Clear loading state
+        conv.isSendingMessage = false;
+        return;
+      }
+      
+      // Handle regular status updates
       const messageIndex = conv.messages.findIndex(msg => 
         msg.taskId === taskId && msg.role === 'assistant'
       );

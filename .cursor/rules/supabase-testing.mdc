@@ -1,0 +1,207 @@
+---
+description: Guidelines for testing with Supabase authentication and database
+globs: ["**/*.js", "**/*.ts", "test/**/*", "**/*test*"]
+alwaysApply: true
+---
+
+# Supabase Testing Guidelines
+
+## Test User Credentials
+
+**Always use these credentials when testing Supabase authentication:**
+
+```bash
+# Test user credentials (from .env)
+SUPABASE_TEST_USER=demo.user@playground.com
+SUPABASE_TEST_PASSWORD=demouser
+SUPABASE_TEST_USERID=b29a590e-b07f-49df-a25b-574c956b5035
+```
+
+## Authentication Testing Patterns
+
+### **JWT Token Authentication**
+```javascript
+// Get JWT token for testing
+async function getTestAuthToken() {
+  const response = await axios.post(`${API_BASE}/auth/login`, {
+    email: 'demo.user@playground.com',
+    password: 'demouser'
+  });
+  return response.data.access_token;
+}
+
+// Use in requests
+const authToken = await getTestAuthToken();
+const response = await axios.post('/protected-endpoint', data, {
+  headers: {
+    'Authorization': `Bearer ${authToken}`
+  }
+});
+```
+
+### **API Key Authentication (Alternative)**
+```javascript
+// For testing without JWT complexity
+const response = await axios.post('/protected-endpoint', data, {
+  headers: {
+    'X-Test-Api-Key': process.env.TEST_API_SECRET_KEY
+  }
+});
+```
+
+## Agent Endpoint Testing
+
+**Always test agent endpoints with proper authentication:**
+
+```javascript
+// ✅ CORRECT: Test agent with authentication
+const testRequest = {
+  taskId: uuidv4(),
+  conversationId: uuidv4(),
+  content: 'Your test content here',
+  context: { userPreferences: { tone: 'professional' } }
+};
+
+const authToken = await getTestAuthToken();
+const response = await axios.post(
+  `${API_BASE}/agents/marketing/blog_post/tasks`,
+  testRequest,
+  {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    }
+  }
+);
+```
+
+## Database Testing
+
+### **Direct Database Queries**
+```javascript
+// Use service role key for direct DB access in tests
+const { createClient } = require('@supabase/supabase-js');
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// Query test data
+const { data, error } = await supabase
+  .from('your_table')
+  .select('*')
+  .eq('user_id', 'b29a590e-b07f-49df-a25b-574c956b5035');
+```
+
+### **Test Data Cleanup**
+```javascript
+// Always clean up test data after tests
+afterEach(async () => {
+  await supabase
+    .from('test_table')
+    .delete()
+    .eq('created_by', 'b29a590e-b07f-49df-a25b-574c956b5035');
+});
+```
+
+## PII/Pseudonymization Testing
+
+**When testing PII functionality, always use the agent endpoints:**
+
+```javascript
+// ✅ CORRECT: Test pseudonymization through agent flow
+const testContent = `
+  Write about my friend GolferGeek (Matt Weber) who works on Orchestrator-AI.
+`;
+
+const response = await axios.post(
+  `${API_BASE}/agents/marketing/blog_post/tasks`,
+  {
+    taskId: uuidv4(),
+    conversationId: uuidv4(),
+    content: testContent
+  },
+  {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  }
+);
+
+// Check for proper pseudonym reversal
+const hasOriginals = response.data.includes('GolferGeek');
+const hasPseudonyms = response.data.includes('@christophercbfb');
+```
+
+## Environment Setup
+
+**Required environment variables for testing:**
+
+```bash
+# Supabase Configuration
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Test Credentials
+SUPABASE_TEST_USER=demo.user@playground.com
+SUPABASE_TEST_PASSWORD=demouser
+SUPABASE_TEST_USERID=b29a590e-b07f-49df-a25b-574c956b5035
+
+# Optional: API Key for simpler testing
+TEST_API_SECRET_KEY=your-test-api-key
+```
+
+## Common Testing Mistakes to Avoid
+
+### **❌ DON'T: Test without authentication**
+```javascript
+// This will always fail with 401
+const response = await axios.post('/agents/marketing/blog_post/tasks', data);
+```
+
+### **❌ DON'T: Use hardcoded test credentials**
+```javascript
+// Don't hardcode - use environment variables
+const email = 'test@example.com'; // BAD
+```
+
+### **❌ DON'T: Test PII with direct LLM endpoints**
+```javascript
+// This bypasses the agent flow and won't test the full pipeline
+const response = await axios.post('/llm/generate', data); // INCOMPLETE
+```
+
+### **✅ DO: Use proper test patterns**
+```javascript
+// Use environment variables
+const email = process.env.SUPABASE_TEST_USER;
+
+// Test through proper endpoints
+const response = await axios.post('/agents/.../tasks', data, { 
+  headers: { 'Authorization': `Bearer ${token}` } 
+});
+
+// Verify complete functionality
+expect(response.data).toContain('original names, not pseudonyms');
+```
+
+## Test File Naming
+
+- Use descriptive names: `test-agent-pseudonym-reversal.js`
+- Include the feature being tested: `test-supabase-auth-flow.js`
+- Clean up test files after debugging: Delete temporary test files
+
+## Debugging Tips
+
+1. **Check authentication first** - Most 401/403 errors are auth issues
+2. **Verify environment variables** - Use `echo $SUPABASE_TEST_USER` to confirm
+3. **Test incrementally** - Start with simple auth, then add complexity
+4. **Use proper timeouts** - Agent requests can take 30-60 seconds
+5. **Check server logs** - Look for detailed error messages in the API logs
+
+## Integration with Existing Tests
+
+When adding new tests, follow the existing patterns in:
+- `apps/api/test/` directory for unit tests
+- `apps/web/tests/` directory for E2E tests
+- Use the same test user across all test suites for consistency
