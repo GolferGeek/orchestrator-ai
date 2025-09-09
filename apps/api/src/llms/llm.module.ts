@@ -25,6 +25,7 @@ import { BlindedLLMService } from './blinded-llm.service';
 import { BlindedHttpService } from './blinded-http.service';
 import { PIIService } from '../services/pii.service';
 import { PseudonymizerService } from '../services/pseudonymizer.service';
+import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
 
 @Module({
   imports: [SupabaseModule, CIDAFMModule, SovereignPolicyModule, FeatureFlagModule, HttpModule],
@@ -47,6 +48,7 @@ import { PseudonymizerService } from '../services/pseudonymizer.service';
     BlindedHttpService,
     PIIService,
     PseudonymizerService,
+    DictionaryPseudonymizerService,
   ],
   exports: [
     LLMService,
@@ -66,6 +68,7 @@ import { PseudonymizerService } from '../services/pseudonymizer.service';
     BlindedHttpService,
     PIIService,
     PseudonymizerService,
+    DictionaryPseudonymizerService,
   ],
 })
 export class LLMModule {}
