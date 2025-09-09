@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BaseLLMService } from '../base-llm.service';
+import { BaseLLMService } from './base-llm.service';
 import { 
   GenerateResponseParams, 
   LLMResponse, 

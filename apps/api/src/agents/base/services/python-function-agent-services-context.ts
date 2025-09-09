@@ -11,6 +11,7 @@ import { JsonRpcProtocolService } from '@agents/base/sub-services/json-rpc-proto
 import { LoggingService } from '@agents/base/sub-services/logging/logging.service';
 import { AuthService } from '@agents/base/sub-services/auth/auth.service';
 import { ConfigurationService } from '@agents/base/sub-services/configuration/configuration.service';
+import { LLMServiceFactory } from '@/llms/services/llm-service-factory';
 
 /**
  * Service container specifically for Python function agents.
@@ -22,6 +23,7 @@ export class PythonFunctionAgentServicesContext {
     // Core services that every Python function agent needs
     public readonly httpService: HttpService,
     public readonly llmService: LLMService,
+    public readonly llmServiceFactory: LLMServiceFactory,
 
     // Task-related services (required for Python function agents)
     public readonly taskProgressGateway: TaskProgressGateway,

@@ -26,6 +26,12 @@ import { BlindedHttpService } from './blinded-http.service';
 import { PIIService } from '../services/pii.service';
 import { PseudonymizerService } from '../services/pseudonymizer.service';
 import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
+import { LLMServiceFactory } from './services/llm-service-factory';
+import { OpenAILLMService } from './services/openai-llm.service';
+import { AnthropicLLMService } from './services/anthropic-llm.service';
+import { GoogleLLMService } from './services/google-llm.service';
+import { OllamaLLMService } from './services/ollama-llm.service';
+import { GrokLLMService } from './services/grok-llm.service';
 
 @Module({
   imports: [SupabaseModule, CIDAFMModule, SovereignPolicyModule, FeatureFlagModule, HttpModule],
@@ -49,6 +55,13 @@ import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonym
     PIIService,
     PseudonymizerService,
     DictionaryPseudonymizerService,
+    LLMServiceFactory,
+    // LLM Provider Services
+    OpenAILLMService,
+    AnthropicLLMService,
+    GoogleLLMService,
+    OllamaLLMService,
+    GrokLLMService,
   ],
   exports: [
     LLMService,
@@ -69,6 +82,13 @@ import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonym
     PIIService,
     PseudonymizerService,
     DictionaryPseudonymizerService,
+    LLMServiceFactory,
+    // LLM Provider Services
+    OpenAILLMService,
+    AnthropicLLMService,
+    GoogleLLMService,
+    OllamaLLMService,
+    GrokLLMService,
   ],
 })
 export class LLMModule {}

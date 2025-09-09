@@ -15,6 +15,7 @@ import { SourceBlindingService } from '@/llms/source-blinding.service';
 import { BlindedLLMService } from '@/llms/blinded-llm.service';
 import { BlindedHttpService } from '@/llms/blinded-http.service';
 import { PIIService } from '@/services/pii.service';
+import { LLMServiceFactory } from '@/llms/services/llm-service-factory';
 
 /**
  * Service container that aggregates all commonly needed agent services.
@@ -26,6 +27,7 @@ export class AgentServicesContext {
     // Core services that every agent needs
     public readonly httpService: HttpService,
     public readonly llmService: LLMService,
+    public readonly llmServiceFactory: LLMServiceFactory,
     public readonly piiService: PIIService,
 
     // Task and deliverable services
@@ -58,6 +60,7 @@ export class AgentServicesContext {
     const baseServices = {
       httpService: this.httpService,
       llmService: this.llmService,
+      llmServiceFactory: this.llmServiceFactory,
       piiService: this.piiService,
       taskStatusService: this.taskStatusService,
       tasksService: this.tasksService,

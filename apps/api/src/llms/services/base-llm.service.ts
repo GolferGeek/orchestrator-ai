@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PIIService } from '../services/pii.service';
-import { PseudonymizerService } from '../services/pseudonymizer.service';
-import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
-import { RunMetadataService } from './run-metadata.service';
-import { ProviderConfigService } from './provider-config.service';
-import { PIIProcessingMetadata } from '../common/types/pii-metadata.types';
+import { PIIService } from '../../services/pii.service';
+import { PseudonymizerService } from '../../services/pseudonymizer.service';
+import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
+import { RunMetadataService } from '../run-metadata.service';
+import { ProviderConfigService } from '../provider-config.service';
+import { PIIProcessingMetadata } from '../../common/types/pii-metadata.types';
 import {
   LLMServiceConfig,
   GenerateResponseParams,
