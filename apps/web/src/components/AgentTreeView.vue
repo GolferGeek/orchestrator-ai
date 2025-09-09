@@ -42,16 +42,16 @@
         >
           <ion-item slot="header" class="organization-header" :data-hierarchy-level="agentType.level || 0">
             <ion-icon
-              :icon="getAgentTypeIcon(agentType.type)"
+              :icon="getAgentTypeIcon(agentType)"
               slot="start"
-              :color="getAgentTypeColor(agentType.type)"
+              :color="getAgentTypeColor(agentType)"
               class="organization-icon"
             />
             <ion-label>
               <h3 class="organization-title">{{ formatAgentTypeName(agentType) }}</h3>
-              <p class="organization-subtitle">{{ agentType.agents.length }} specialist{{ agentType.agents.length !== 1 ? 's' : '' }}</p>
+              <p class="organization-subtitle">{{ getAgentSubtitle(agentType) }}</p>
             </ion-label>
-            <ion-badge slot="end" :color="getAgentTypeColor(agentType.type)" class="conversation-count">
+            <ion-badge slot="end" :color="getAgentTypeColor(agentType)" class="conversation-count">
               {{ agentType.totalConversations }}
             </ion-badge>
           </ion-item>
@@ -177,6 +177,32 @@
                 </div>
               </div>
             </div>
+            
+            <!-- Hierarchy Level Actions -->
+            <div class="hierarchy-actions">
+              <div class="action-separator"></div>
+              <div class="action-buttons">
+                <ion-button 
+                  fill="clear" 
+                  size="small"
+                  @click.stop="createNewConversation(agentType.agents[0])"
+                  class="hierarchy-action-btn"
+                >
+                  <ion-icon :icon="addOutline" slot="start" />
+                  💬 Create a conversation
+                </ion-button>
+                <ion-button 
+                  fill="clear" 
+                  size="small"
+                  color="secondary"
+                  @click.stop="createNewProject(agentType.agents[0])"
+                  class="hierarchy-action-btn"
+                >
+                  <ion-icon :icon="folderOutline" slot="start" />
+                  📋 Create a project
+                </ion-button>
+              </div>
+            </div>
           </div>
         </ion-accordion>
       </ion-accordion-group>
@@ -270,6 +296,7 @@ interface AgentType {
   isHierarchyNode?: boolean;
   level?: number;
   hierarchyData?: any;
+  isManager?: boolean;
 }
 // Props
 const props = defineProps<{
@@ -415,63 +442,100 @@ const filteredAgentTypes = computed(() => {
     }
     return groups;
   };
-  // Start from top-level agents (those with no parent)
+  // Use the proper hierarchical structure
   const hierarchyGroups: AgentType[] = [];
   const topLevelAgents = hierarchy.data || hierarchy.topLevel || [];
+  
   if (topLevelAgents && topLevelAgents.length > 0) {
-    // Since the hierarchy is coming as a flat list, let's group by department type
-    const departmentGroups = new Map<string, any[]>();
+    // Process each top-level agent and its children
     topLevelAgents.forEach((agent: any) => {
-      const department = agent.type || 'specialist';
-      if (!departmentGroups.has(department)) {
-        departmentGroups.set(department, []);
+      const agentGroup = buildAgentGroup(agent, 0);
+      if (agentGroup) {
+        hierarchyGroups.push(agentGroup);
       }
-      departmentGroups.get(department)!.push(agent);
     });
-    // Convert each department group to AgentType format
-    departmentGroups.forEach((agents, department) => {
-      // Apply search filter
-      const filteredAgents = agents.filter((agent: any) => {
-        const matchesSearch = !searchQuery.value || 
-          agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-          agent.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
-        return matchesSearch;
-      });
-      if (filteredAgents.length > 0) {
-        const agentItems = filteredAgents
-          .map((agent: any) => {
-            const agentConversations = conversationsStore.conversations.filter(conv => 
-              conv.agentName === agent.name && conv.agentType === agent.type
-            );
-            return {
-              name: agent.name,
-              type: agent.type || 'specialist',
-              description: agent.metadata?.description || agent.description || '',
-              execution_modes: [],
-              conversations: agentConversations,
-              activeConversations: agentConversations.filter(c => !c.endedAt).length,
-              totalConversations: agentConversations.length,
-            };
-          })
-          .sort((a, b) => {
-            // Put managers first (agents with "manager" or "orchestrator" in name)
-            const aIsManager = a.name.toLowerCase().includes('manager') || a.name.toLowerCase().includes('orchestrator');
-            const bIsManager = b.name.toLowerCase().includes('manager') || b.name.toLowerCase().includes('orchestrator');
-            if (aIsManager && !bIsManager) return -1;
-            if (!aIsManager && bIsManager) return 1;
-            // If both are managers or both are not managers, sort alphabetically
-            return a.name.localeCompare(b.name);
+  }
+  
+  // Helper function to build agent group with children
+  function buildAgentGroup(agent: any, level: number): AgentType | null {
+    // Check if agent matches search
+    const matchesSearch = !searchQuery.value || 
+      agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      agent.displayName?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      agent.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
+    
+    if (!matchesSearch && (!agent.children || agent.children.length === 0)) {
+      return null; // Skip if no match and no children
+    }
+    
+    // Get conversations for this agent
+    const agentConversations = conversationsStore.conversations.filter(conv => 
+      conv.agentName === agent.name && conv.agentType === agent.type
+    );
+    
+    // Build the main agent item
+    const agentItem = {
+      name: agent.name,
+      type: agent.type || 'specialist',
+      description: agent.metadata?.description || agent.description || '',
+      execution_modes: [],
+      conversations: agentConversations,
+      activeConversations: agentConversations.filter(c => !c.endedAt).length,
+      totalConversations: agentConversations.length,
+    };
+    
+    // Process children
+    const childAgents: any[] = [];
+    if (agent.children && agent.children.length > 0) {
+      agent.children.forEach((child: any) => {
+        const childConversations = conversationsStore.conversations.filter(conv => 
+          conv.agentName === child.name && conv.agentType === child.type
+        );
+        
+        const childMatchesSearch = !searchQuery.value || 
+          child.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+          child.displayName?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+          child.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
+        
+        if (childMatchesSearch) {
+          childAgents.push({
+            name: child.name,
+            type: child.type || 'specialist',
+            description: child.metadata?.description || child.description || '',
+            execution_modes: [],
+            conversations: childConversations,
+            activeConversations: childConversations.filter(c => !c.endedAt).length,
+            totalConversations: childConversations.length,
           });
-        const departmentGroup: AgentType = {
-          type: department,
-          agents: agentItems,
-          totalConversations: agentItems.reduce((sum, agent) => sum + agent.totalConversations, 0),
-          isHierarchyNode: false,
-          level: 0,
-        };
-        hierarchyGroups.push(departmentGroup);
-      }
-    });
+        }
+      });
+    }
+    
+    // Include main agent if it matches search or has matching children
+    const allAgents = [];
+    if (matchesSearch) {
+      allAgents.push(agentItem);
+    }
+    allAgents.push(...childAgents);
+    
+    if (allAgents.length === 0) {
+      return null;
+    }
+    
+    // Determine if this is a manager (has children or name contains manager/orchestrator)
+    const isManager = (agent.children && agent.children.length > 0) || 
+                     agent.name.toLowerCase().includes('manager') || 
+                     agent.name.toLowerCase().includes('orchestrator');
+    
+    return {
+      type: agent.name, // Use agent name as unique identifier
+      agents: allAgents,
+      totalConversations: allAgents.reduce((sum, a) => sum + a.totalConversations, 0),
+      isHierarchyNode: true,
+      level: level,
+      hierarchyData: agent,
+      isManager: isManager
+    };
   }
   return hierarchyGroups;
 });
@@ -683,7 +747,18 @@ const formatTime = (date: Date) => {
   if (days < 7) return `${days}d ago`;
   return date.toLocaleDateString();
 };
-const getAgentTypeIcon = (type: string) => {
+const getAgentTypeIcon = (agentType: AgentType | string) => {
+  // If it's the new hierarchy structure, determine icon based on manager status
+  if (typeof agentType === 'object' && agentType.isHierarchyNode) {
+    if (agentType.isManager) {
+      return folderOutline; // Manager icon
+    } else {
+      return personOutline; // Individual agent icon
+    }
+  }
+  
+  // Fallback to original type-based icons
+  const type = typeof agentType === 'string' ? agentType : agentType.type;
   const icons = {
     orchestrator: serverOutline,
     specialist: peopleOutline,
@@ -699,7 +774,26 @@ const getAgentTypeIcon = (type: string) => {
   };
   return icons[type as keyof typeof icons] || personOutline;
 };
-const getAgentTypeColor = (type: string) => {
+
+const getAgentSubtitle = (agentType: AgentType) => {
+  if (agentType.isHierarchyNode && agentType.isManager) {
+    const childCount = agentType.agents.length - 1; // Subtract 1 for the manager itself
+    return `${childCount} report${childCount !== 1 ? 's' : ''}`;
+  }
+  return `${agentType.agents.length} specialist${agentType.agents.length !== 1 ? 's' : ''}`;
+};
+const getAgentTypeColor = (agentType: AgentType | string) => {
+  // If it's the new hierarchy structure, use manager-based colors
+  if (typeof agentType === 'object' && agentType.isHierarchyNode) {
+    if (agentType.isManager) {
+      return 'primary'; // Manager color
+    } else {
+      return 'medium'; // Individual agent color
+    }
+  }
+  
+  // Fallback to original type-based colors
+  const type = typeof agentType === 'string' ? agentType : agentType.type;
   const colors = {
     orchestrator: 'success',
     specialist: 'primary',
@@ -1019,6 +1113,30 @@ watch(() => props.searchQuery, (newSearchQuery) => {
   margin-left: auto;
   font-weight: 500;
 }
+/* Hierarchy Actions */
+.hierarchy-actions {
+  margin-top: 16px;
+  padding: 0 16px 16px 16px;
+}
+
+.action-separator {
+  height: 1px;
+  background: var(--ion-color-step-150);
+  margin-bottom: 12px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.hierarchy-action-btn {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  font-size: 0.9em;
+}
+
 /* Compact Mode Styles */
 .agent-tree-view.compact-mode {
   padding: 0;

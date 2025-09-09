@@ -2,6 +2,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { join } from 'path';
 import * as fs from 'fs';
+import * as yaml from 'yaml';
 
 export interface DiscoveredAgent {
   name: string;
@@ -213,15 +214,18 @@ export class AgentDiscoveryService {
           '',
         );
 
-        // Look for agent.yaml or agent.yml
+        // Look for agent.yaml, agent.yml, or agent.config.yaml
         const yamlPath = join(agentDirectory, 'agent.yaml');
         const ymlPath = join(agentDirectory, 'agent.yml');
+        const configYamlPath = join(agentDirectory, 'agent.config.yaml');
 
         let configPath: string | undefined;
         if (fs.existsSync(yamlPath)) {
           configPath = yamlPath;
         } else if (fs.existsSync(ymlPath)) {
           configPath = ymlPath;
+        } else if (fs.existsSync(configYamlPath)) {
+          configPath = configYamlPath;
         }
 
         if (configPath) {
@@ -229,40 +233,15 @@ export class AgentDiscoveryService {
 
           try {
             const configContent = fs.readFileSync(configPath, 'utf8');
-            // Parse YAML-like content (basic parsing for metadata)
-            const lines = configContent.split('\n');
+            const parsed = yaml.parse(configContent);
 
-            let inMetadata = false;
-            const metadata: any = {};
-
-            for (const line of lines) {
-              const trimmed = line.trim();
-
-              if (trimmed === 'metadata:') {
-                inMetadata = true;
-                continue;
-              }
-
-              if (inMetadata && trimmed && !trimmed.startsWith('#')) {
-                if (trimmed.startsWith('  ')) {
-                  // Metadata field
-                  const match = trimmed.match(/^\s*(\w+):\s*"?([^"]+)"?$/);
-                  if (match && match[1] && match[2]) {
-                    metadata[match[1]] = match[2].replace(/"/g, '');
-                  }
-                } else {
-                  // End of metadata section
-                  break;
-                }
-              }
-
-              // Look for reportsTo field anywhere in config
-              const reportsToMatch = trimmed.match(
-                /^\s*reportsTo:\s*"?([^"]+)"?$/,
-              );
-              if (reportsToMatch && reportsToMatch[1]) {
-                agent.reportsTo = reportsToMatch[1].replace(/"/g, '');
-              }
+            // Extract metadata
+            const metadata = parsed.metadata || {};
+            
+            // Extract hierarchy information
+            const hierarchy = parsed.hierarchy || {};
+            if (hierarchy.reportsTo) {
+              agent.reportsTo = hierarchy.reportsTo;
             }
 
             agent.metadata = {
@@ -321,23 +300,37 @@ export class AgentDiscoveryService {
     // Build parent-child relationships
     const rootNodes: AgentHierarchy[] = [];
 
+    // Build parent-child relationships
+
     for (const agent of this.discoveredAgents) {
       const node = nodeMap.get(agent.path)!;
 
       if (agent.reportsTo) {
-        // Find parent node
-        const parentNode = Array.from(nodeMap.values()).find(
-          (n) =>
-            n.name.toLowerCase() === agent.reportsTo!.toLowerCase() ||
-            n.displayName.toLowerCase() === agent.reportsTo!.toLowerCase() ||
-            n.path.includes(agent.reportsTo!.toLowerCase()),
-        );
+        // Find parent node - try multiple strategies
+        let parentNode = nodeMap.get(agent.reportsTo); // Try direct path match first
+        
+        if (!parentNode) {
+          // Try by name/displayName
+          parentNode = Array.from(nodeMap.values()).find(
+            (n) =>
+              n.name === agent.reportsTo ||
+              n.name.toLowerCase() === agent.reportsTo!.toLowerCase() ||
+              n.displayName === agent.reportsTo ||
+              n.displayName.toLowerCase() === agent.reportsTo!.toLowerCase()
+          );
+        }
+        
+        if (!parentNode) {
+          // Try by path contains
+          parentNode = Array.from(nodeMap.values()).find(
+            (n) => n.path.includes(agent.reportsTo!)
+          );
+        }
 
         if (parentNode) {
           parentNode.children.push(node);
-
         } else {
-
+          this.logger.warn(`Parent not found for ${agent.name} (reportsTo: ${agent.reportsTo})`);
           rootNodes.push(node);
         }
       } else {
