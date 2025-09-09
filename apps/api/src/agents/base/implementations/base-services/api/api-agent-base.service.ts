@@ -277,6 +277,12 @@ export class ApiAgentBaseService
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
 
+    // NEW ARCHITECTURE: Check for PII blocking first
+    if (this.shouldBlockForPII(params)) {
+      this.apiLogger.warn(`🛑 [${agentName}] Request blocked due to PII policy violation`);
+      return this.generatePIIBlockedResponse(params);
+    }
+
     // Store current user ID and task ID for task completion
     if (params.currentUser?.id) {
       this.currentUserId = params.currentUser.id;
@@ -331,11 +337,12 @@ export class ApiAgentBaseService
       // Save the task result to the database for async tasks
       await this.saveApiTaskResult(result);
 
-      return response;
+      // NEW ARCHITECTURE: Enrich response with PII metadata
+      return this.enrichResponseWithPIIMetadata(response, params);
     } catch (error) {
       this.apiLogger.error(`API execution error for ${agentName}:`, error);
 
-      return {
+      const errorResponse = {
         success: false,
         error: error instanceof Error ? error.message : String(error),
         response: `I apologize, but I encountered an error while calling the external API. Please try again later.`,
@@ -347,6 +354,9 @@ export class ApiAgentBaseService
           processedAt: new Date().toISOString(),
         },
       };
+
+      // NEW ARCHITECTURE: Enrich error response with PII metadata
+      return this.enrichResponseWithPIIMetadata(errorResponse, params);
     }
   }
 

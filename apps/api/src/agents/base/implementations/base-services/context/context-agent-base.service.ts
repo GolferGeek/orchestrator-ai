@@ -56,6 +56,11 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
     const agentType = this.getAgentType();
 
     try {
+      // NEW ARCHITECTURE: Check for PII blocking first
+      if (this.shouldBlockForPII(params)) {
+        this.contextLogger.warn(`🛑 [${agentName}] Request blocked due to PII policy violation`);
+        return this.generatePIIBlockedResponse(params);
+      }
 
       // Extract user message from params
       const userMessage = this.extractUserMessage(params);
@@ -69,7 +74,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       // Check if this is a simple greeting request
       if (this.isGreeting(userMessage)) {
         const greeting = this.generatePersonalizedGreeting(agentName);
-        return {
+        const greetingResult = {
           success: true,
           response: greeting,
           metadata: {
@@ -79,6 +84,8 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
             processedAt: new Date().toISOString(),
           },
         };
+        // NEW ARCHITECTURE: Enrich greeting with PII metadata
+        return this.enrichResponseWithPIIMetadata(greetingResult, params);
       }
 
       // If no context data available, use fallback
@@ -139,6 +146,10 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           callerName: agentName,
           conversationId: params.conversationId || params.taskId, // Use proper conversation ID
           dataClassification: 'internal', // Default for context agents
+          // Extract provider info from llmSelection for both PII policy and routing decisions
+          providerName: params.llmSelection?.providerName,
+          provider: params.llmSelection?.providerName, // For routing service
+          model: params.llmSelection?.modelName, // For routing service
         };
         
         llmResult = await this.services.llmService.generateResponse(
@@ -161,6 +172,9 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         typeof llmResult === 'object' ? llmResult.llmMetadata : undefined;
       const sanitizationMetadata =
         typeof llmResult === 'object' ? llmResult.sanitizationMetadata : undefined;
+      // NEW ARCHITECTURE: Extract PII metadata from LLM response
+      const llmPiiMetadata =
+        typeof llmResult === 'object' ? llmResult.piiMetadata : undefined;
 
       const result = {
         success: true,
@@ -183,6 +197,10 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           // Include sanitization metadata for frontend privacy indicators
           ...(sanitizationMetadata && {
             sanitizationMetadata: sanitizationMetadata,
+          }),
+          // NEW ARCHITECTURE: Include PII metadata from LLM processing
+          ...(llmPiiMetadata && {
+            llmPiiMetadata: llmPiiMetadata,
           }),
         },
       };
@@ -208,7 +226,8 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         }
       }
 
-      return result;
+      // NEW ARCHITECTURE: Enrich response with PII metadata
+      return this.enrichResponseWithPIIMetadata(result, params);
     } catch (error) {
       this.contextLogger.error(`Error in executeTask for ${agentName}:`, error);
 
@@ -242,7 +261,8 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         }
       }
 
-      return errorResult;
+      // NEW ARCHITECTURE: Enrich error response with PII metadata
+      return this.enrichResponseWithPIIMetadata(errorResult, params);
     }
   }
 

@@ -52,10 +52,15 @@ export function getLLM(options?: {
   // Ensure LangChain is initialized
   initializeLangChain();
 
-  const provider = options?.provider || 'openai';
-  const model = options?.model || 'gpt-4';
+  const provider = options?.provider;
+  const model = options?.model;
   const temperature = options?.temperature ?? 0;
   const timeout = options?.timeout ?? 60000; // Default to 60 seconds
+
+  // Require explicit provider - no defaults or fallbacks
+  if (!provider || !model) {
+    throw new Error('Provider and model must be explicitly specified - no defaults allowed');
+  }
 
   if (provider === 'openai') {
     return new ChatOpenAI({
@@ -71,19 +76,8 @@ export function getLLM(options?: {
     });
   }
 
-  // Fallback to OpenAI
-
-  return new ChatOpenAI({
-    modelName: 'gpt-4',
-    temperature,
-    timeout,
-    maxRetries: 3, // Enable retries for rate limits
-    openAIApiKey: getOpenAIApiKey(),
-    configuration: {
-      timeout: timeout, // Axios timeout configuration
-      maxRetries: 3, // Enable retries for rate limits
-    },
-  });
+  // No fallback - throw error for unsupported providers
+  throw new Error(`Unsupported provider: ${provider}. Please use a supported provider.`);
 }
 
 /**

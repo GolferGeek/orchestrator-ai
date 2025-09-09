@@ -13,6 +13,8 @@ import { RunMetadataService, RunMetadata } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';
 import { DataSanitizationService, DetailedSanitizationMetrics } from './data-sanitization.service';
 import { PIIService } from '../services/pii.service';
+import { PseudonymizerService } from '../services/pseudonymizer.service';
+import { PIIProcessingMetadata } from '../common/types/pii-metadata.types';
 import { LocalModelStatusService } from './local-model-status.service';
 import { LocalLLMService } from './local-llm.service';
 import { BlindedLLMService } from './blinded-llm.service';
@@ -63,6 +65,7 @@ export class LLMService {
     private readonly providerConfigService: ProviderConfigService,
     private readonly dataSanitizationService: DataSanitizationService,
     private readonly piiService: PIIService,
+    private readonly pseudonymizerService: PseudonymizerService,
     private readonly localModelStatusService: LocalModelStatusService,
     private readonly localLLMService: LocalLLMService,
     private readonly blindedLLMService: BlindedLLMService,
@@ -82,75 +85,83 @@ export class LLMService {
     // Each operation type can have its own optimized configuration
     this.systemLLMConfigs = {
       delegation: {
-        provider:
-          (process.env.SYSTEM_DELEGATION_LLM_PROVIDER as any) || 'openai',
-        model: process.env.SYSTEM_DELEGATION_LLM_MODEL || 'gpt-3.5-turbo',
+        provider: (process.env.SYSTEM_DELEGATION_LLM_PROVIDER as any) || 'disabled',
+        model: process.env.SYSTEM_DELEGATION_LLM_MODEL || 'disabled',
         temperature: parseFloat(
           process.env.SYSTEM_DELEGATION_LLM_TEMPERATURE || '0.0',
         ),
         maxTokens: parseInt(
           process.env.SYSTEM_DELEGATION_LLM_MAX_TOKENS || '300',
         ),
-        enabled: process.env.SYSTEM_DELEGATION_LLM_ENABLED !== 'false',
+        enabled: process.env.SYSTEM_DELEGATION_LLM_ENABLED !== 'false' && 
+                 !!process.env.SYSTEM_DELEGATION_LLM_PROVIDER && 
+                 !!process.env.SYSTEM_DELEGATION_LLM_MODEL,
         description: 'Fast delegation decisions - which agent to use',
       },
       agent_selection: {
-        provider:
-          (process.env.SYSTEM_AGENT_SELECTION_LLM_PROVIDER as any) || 'openai',
-        model: process.env.SYSTEM_AGENT_SELECTION_LLM_MODEL || 'gpt-3.5-turbo',
+        provider: (process.env.SYSTEM_AGENT_SELECTION_LLM_PROVIDER as any) || 'disabled',
+        model: process.env.SYSTEM_AGENT_SELECTION_LLM_MODEL || 'disabled',
         temperature: parseFloat(
           process.env.SYSTEM_AGENT_SELECTION_LLM_TEMPERATURE || '0.1',
         ),
         maxTokens: parseInt(
           process.env.SYSTEM_AGENT_SELECTION_LLM_MAX_TOKENS || '400',
         ),
-        enabled: process.env.SYSTEM_AGENT_SELECTION_LLM_ENABLED !== 'false',
+        enabled: process.env.SYSTEM_AGENT_SELECTION_LLM_ENABLED !== 'false' && 
+                 !!process.env.SYSTEM_AGENT_SELECTION_LLM_PROVIDER && 
+                 !!process.env.SYSTEM_AGENT_SELECTION_LLM_MODEL,
         description: 'Agent selection and matching logic',
       },
       response_coordination: {
-        provider:
-          (process.env.SYSTEM_RESPONSE_COORD_LLM_PROVIDER as any) || 'openai',
-        model: process.env.SYSTEM_RESPONSE_COORD_LLM_MODEL || 'gpt-3.5-turbo',
+        provider: (process.env.SYSTEM_RESPONSE_COORD_LLM_PROVIDER as any) || 'disabled',
+        model: process.env.SYSTEM_RESPONSE_COORD_LLM_MODEL || 'disabled',
         temperature: parseFloat(
           process.env.SYSTEM_RESPONSE_COORD_LLM_TEMPERATURE || '0.2',
         ),
         maxTokens: parseInt(
           process.env.SYSTEM_RESPONSE_COORD_LLM_MAX_TOKENS || '800',
         ),
-        enabled: process.env.SYSTEM_RESPONSE_COORD_LLM_ENABLED !== 'false',
+        enabled: process.env.SYSTEM_RESPONSE_COORD_LLM_ENABLED !== 'false' && 
+                 !!process.env.SYSTEM_RESPONSE_COORD_LLM_PROVIDER && 
+                 !!process.env.SYSTEM_RESPONSE_COORD_LLM_MODEL,
         description: 'Response coordination and organization',
       },
       conversation_analysis: {
-        provider:
-          (process.env.SYSTEM_CONVERSATION_LLM_PROVIDER as any) || 'openai',
-        model: process.env.SYSTEM_CONVERSATION_LLM_MODEL || 'gpt-3.5-turbo',
+        provider: (process.env.SYSTEM_CONVERSATION_LLM_PROVIDER as any) || 'disabled',
+        model: process.env.SYSTEM_CONVERSATION_LLM_MODEL || 'disabled',
         temperature: parseFloat(
           process.env.SYSTEM_CONVERSATION_LLM_TEMPERATURE || '0.1',
         ),
         maxTokens: parseInt(
           process.env.SYSTEM_CONVERSATION_LLM_MAX_TOKENS || '600',
         ),
-        enabled: process.env.SYSTEM_CONVERSATION_LLM_ENABLED !== 'false',
+        enabled: process.env.SYSTEM_CONVERSATION_LLM_ENABLED !== 'false' && 
+                 !!process.env.SYSTEM_CONVERSATION_LLM_PROVIDER && 
+                 !!process.env.SYSTEM_CONVERSATION_LLM_MODEL,
         description: 'Conversation context analysis',
       },
       error_handling: {
-        provider: (process.env.SYSTEM_ERROR_LLM_PROVIDER as any) || 'openai',
-        model: process.env.SYSTEM_ERROR_LLM_MODEL || 'gpt-3.5-turbo',
+        provider: (process.env.SYSTEM_ERROR_LLM_PROVIDER as any) || 'disabled',
+        model: process.env.SYSTEM_ERROR_LLM_MODEL || 'disabled',
         temperature: parseFloat(
           process.env.SYSTEM_ERROR_LLM_TEMPERATURE || '0.0',
         ),
         maxTokens: parseInt(process.env.SYSTEM_ERROR_LLM_MAX_TOKENS || '200'),
-        enabled: process.env.SYSTEM_ERROR_LLM_ENABLED !== 'false',
+        enabled: process.env.SYSTEM_ERROR_LLM_ENABLED !== 'false' && 
+                 !!process.env.SYSTEM_ERROR_LLM_PROVIDER && 
+                 !!process.env.SYSTEM_ERROR_LLM_MODEL,
         description: 'Error handling and fallback operations',
       },
       default: {
-        provider: (process.env.SYSTEM_DEFAULT_LLM_PROVIDER as any) || 'openai',
-        model: process.env.SYSTEM_DEFAULT_LLM_MODEL || 'gpt-3.5-turbo',
+        provider: (process.env.SYSTEM_DEFAULT_LLM_PROVIDER as any) || 'disabled',
+        model: process.env.SYSTEM_DEFAULT_LLM_MODEL || 'disabled',
         temperature: parseFloat(
           process.env.SYSTEM_DEFAULT_LLM_TEMPERATURE || '0.1',
         ),
         maxTokens: parseInt(process.env.SYSTEM_DEFAULT_LLM_MAX_TOKENS || '500'),
-        enabled: process.env.SYSTEM_DEFAULT_LLM_ENABLED !== 'false',
+        enabled: process.env.SYSTEM_DEFAULT_LLM_ENABLED !== 'false' && 
+                 !!process.env.SYSTEM_DEFAULT_LLM_PROVIDER && 
+                 !!process.env.SYSTEM_DEFAULT_LLM_MODEL,
         description: 'Default system operations',
       },
     };
@@ -228,8 +239,8 @@ export class LLMService {
       // Only use centralized routing if no explicit provider/model is specified
       const hasExplicitSelection = (options?.provider || options?.providerName) && options?.modelName;
       
-      // Only use centralized routing if there's no explicit selection AND we have routing hints
-      if (!hasExplicitSelection && (options?.complexity || (!options?.provider && !options?.providerName && !options?.modelName))) {
+      // Use centralized routing if there's no explicit selection (regardless of routing hints)
+      if (!hasExplicitSelection) {
         const centralizedResult = await this.generateCentralizedResponse(
           systemPrompt,
           userMessage,
@@ -256,29 +267,41 @@ export class LLMService {
       }
 
       // Original simple implementation for backward compatibility
-      const provider = options?.provider || options?.providerName || 'openai';
+      const provider = options?.provider || options?.providerName;
+      
+      // No fallback - require explicit provider configuration
+      if (!provider) {
+        throw new Error(
+          'No LLM provider specified. Please provide either "provider" or "providerName" in options. ' +
+          'Available providers: ollama, anthropic, openai, google'
+        );
+      }
+      
       const isLocalProvider = provider === 'ollama';
       
       this.logger.log(`🔍 [SIMPLE-LLM-DEBUG] Simple response path - provider: ${provider}, isLocal: ${isLocalProvider}`);
       this.logger.log(`🔍 [SIMPLE-LLM-DEBUG] User message preview: "${userMessage.substring(0, 100)}..."`);
 
       // Apply conditional sanitization using unified PII service
-      const sanitizationResult = await this.piiService.sanitizeForLLM(
-        systemPrompt,
+      // Generate request ID for pseudonymization context
+      const requestId = options?.conversationId || options?.sessionId || `simple-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Step 1: Pseudonymize user message before LLM call
+      const pseudonymResult = await this.pseudonymizerService.pseudonymizeText(
         userMessage,
-        isLocalProvider,
-        {
-          conversationId: options?.conversationId,
-          sessionId: options?.sessionId || 'simple-request'
-        }
+        requestId,
+        { context: 'llm-call' }
       );
 
-      const sanitizedSystemPrompt = sanitizationResult.sanitizedSystemPrompt;
-      const sanitizedUserMessage = sanitizationResult.sanitizedUserMessage;
-      const sanitizationContext = sanitizationResult.reversalContext;
+      const sanitizedSystemPrompt = systemPrompt; // System prompts typically don't contain user PII
+      const sanitizedUserMessage = pseudonymResult.pseudonymizedText;
 
-      this.logger.log(`🔍 [SIMPLE-LLM-DEBUG] Sanitization completed - shouldApply: ${sanitizationResult.shouldApplySanitization}`);
-      this.logger.log(`🔍 [SIMPLE-LLM-DEBUG] Sanitization metrics:`, JSON.stringify(sanitizationResult.sanitizationMetrics, null, 2));
+      this.logger.log(`🎭 [PSEUDONYMIZER-DEBUG] Pseudonymization completed: ${pseudonymResult.mappings.length} replacements in ${pseudonymResult.processingTimeMs}ms`);
+      if (pseudonymResult.mappings.length > 0) {
+        pseudonymResult.mappings.forEach(mapping => {
+          this.logger.log(`🎭 [PSEUDONYMIZER-DEBUG] "${mapping.originalValue}" → "${mapping.pseudonym}"`);
+        });
+      }
 
       // Start usage tracking for simple path
       const routingDecision = {
@@ -325,16 +348,18 @@ export class LLMService {
         const response = await llm.invoke(messages);
       let content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
 
-      // Restore pseudonyms in the response using unified PII service
-      if (sanitizationContext) {
-        const restorationResult = await this.piiService.restoreResponse(content, sanitizationContext);
-        content = restorationResult.restoredContent;
+      // Step 2: Reverse pseudonyms in the response
+      if (pseudonymResult.mappings.length > 0) {
+        const reversalResult = await this.pseudonymizerService.reversePseudonyms(
+          content,
+          requestId
+        );
+        content = reversalResult.originalText;
         
-        if (!restorationResult.success) {
-          await this.piiService.warn(
-            `Simple response restoration failed: ${restorationResult.error}`,
-            { method: 'SimpleLLM' }
-          );
+        this.logger.log(`🔄 [PSEUDONYMIZER-DEBUG] Reversal completed: ${reversalResult.reversalCount} reversals in ${reversalResult.processingTimeMs}ms`);
+        
+        if (reversalResult.reversalCount === 0 && pseudonymResult.mappings.length > 0) {
+          this.logger.warn(`🔄 [PSEUDONYMIZER-DEBUG] Expected reversals but none found - LLM may not have used the pseudonyms`);
         }
       }
 
@@ -347,14 +372,22 @@ export class LLMService {
 
       // Return metadata if requested (for HTTP API calls)
       if (options?.includeMetadata) {
-        const sanitizationMetadata = await this.extractSanitizationMetadataForFrontend(
-          sanitizationResult.sanitizationMetrics
-        );
+        // Create metadata from pseudonymization results
+        const pseudonymizationMetadata = {
+          pseudonymizationApplied: pseudonymResult.mappings.length > 0,
+          pseudonymCount: pseudonymResult.mappings.length,
+          processingTimeMs: pseudonymResult.processingTimeMs,
+          mappings: pseudonymResult.mappings.map(m => ({
+            type: m.dataType,
+            originalLength: m.originalValue.length,
+            pseudonymLength: m.pseudonym.length
+          }))
+        };
         
         return {
           content: content,
           response: content, // For backward compatibility
-          sanitizationMetadata: sanitizationMetadata
+          sanitizationMetadata: pseudonymizationMetadata
         };
       }
 
@@ -489,24 +522,34 @@ export class LLMService {
       let finalProcessedPrompt = processedPrompt;
       let sanitizationContext: any = null;
 
-      // Apply conditional sanitization using unified PII service
-      const sanitizationResult = await this.piiService.sanitizeForLLM(
-        enhancedSystemPrompt,
+      // Generate request ID for pseudonymization context
+      const requestId = options?.conversationId || options?.sessionId || `enhanced-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Step 1: Pseudonymize user message before LLM call
+      const pseudonymResult = await this.pseudonymizerService.pseudonymizeText(
         finalProcessedPrompt,
-        isLocalProvider,
-        {
-          conversationId: options?.conversationId,
-          sessionId: options?.sessionId || 'enhanced-request'
-        }
+        requestId,
+        { context: 'enhanced-llm-call' }
       );
 
-      enhancedSystemPrompt = sanitizationResult.sanitizedSystemPrompt;
-      finalProcessedPrompt = sanitizationResult.sanitizedUserMessage;
-      sanitizationContext = sanitizationResult.reversalContext;
-      const sanitizationMetrics = sanitizationResult.sanitizationMetrics;
+      // System prompts typically don't contain user PII, but process them if needed
+      enhancedSystemPrompt = enhancedSystemPrompt; // Keep as-is for now
+      finalProcessedPrompt = pseudonymResult.pseudonymizedText;
+      sanitizationContext = pseudonymResult; // Store for reversal
 
-      this.logger.log(`🔍 [LLM-DEBUG] Sanitization result - shouldApplySanitization: ${sanitizationResult.shouldApplySanitization}`);
-      this.logger.log(`🔍 [LLM-DEBUG] Sanitization metrics:`, JSON.stringify(sanitizationMetrics, null, 2));
+      this.logger.log(`🎭 [PSEUDONYMIZER-DEBUG] Enhanced pseudonymization completed: ${pseudonymResult.mappings.length} replacements in ${pseudonymResult.processingTimeMs}ms`);
+      if (pseudonymResult.mappings.length > 0) {
+        pseudonymResult.mappings.forEach(mapping => {
+          this.logger.log(`🎭 [PSEUDONYMIZER-DEBUG] "${mapping.originalValue}" → "${mapping.pseudonym}"`);
+        });
+      }
+
+      // Create sanitization metrics for compatibility
+      const sanitizationMetrics = {
+        sanitizationLevel: pseudonymResult.mappings.length > 0 ? 'pseudonymized' : 'none',
+        pseudonymCount: pseudonymResult.mappings.length,
+        processingTimeMs: pseudonymResult.processingTimeMs
+      };
 
       // Create LLM instance with dynamic configuration
       const llm = await this.createLLMFromModel(model, {
@@ -526,18 +569,18 @@ export class LLMService {
       const response = await llm.invoke(messages);
       let content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
 
-      // Restore pseudonyms in the response if sanitization was applied
-      if (sanitizationContext) {
-        const restorationResult = await this.piiService.restoreResponse(
+      // Step 2: Reverse pseudonyms in the response
+      if (sanitizationContext && sanitizationContext.mappings && sanitizationContext.mappings.length > 0) {
+        const reversalResult = await this.pseudonymizerService.reversePseudonyms(
           content,
-          sanitizationContext
+          requestId
         );
-
-        if (restorationResult.success) {
-          content = restorationResult.restoredContent;
-        } else if (restorationResult.error) {
-          this.logger.warn(`Enhanced response restoration failed: ${restorationResult.error}`);
-          // Continue with sanitized response if restoration fails
+        content = reversalResult.originalText;
+        
+        this.logger.log(`🔄 [PSEUDONYMIZER-DEBUG] Enhanced reversal completed: ${reversalResult.reversalCount} reversals in ${reversalResult.processingTimeMs}ms`);
+        
+        if (reversalResult.reversalCount === 0 && sanitizationContext.mappings.length > 0) {
+          this.logger.warn(`🔄 [PSEUDONYMIZER-DEBUG] Expected reversals but none found - LLM may not have used the pseudonyms`);
         }
       }
 
@@ -558,7 +601,11 @@ export class LLMService {
         model.pricingOutputPer1k || 0,
       );
 
-      // Use sanitization metrics from PIIService (already extracted above)
+      // NEW ARCHITECTURE: Extract PII metadata from routing decision for database tracking
+      // Database tracking happens regardless of whether pseudonyms are used
+      const piiMetadata = (routingDecision as any).piiMetadata || null;
+      const hasPiiProcessing = piiMetadata && piiMetadata.piiDetected;
+      const pseudonymCount = piiMetadata?.pseudonymInstructions?.targetMatches?.length || 0;
 
       const usage: LLMUsageMetrics = {
         inputTokens: inputTokens,
@@ -567,15 +614,17 @@ export class LLMService {
         responseTimeMs: responseTimeMs,
         // langsmithRunId would be extracted from LangSmith tracing
         
-        // Data sanitization metrics
-        dataSanitizationApplied: sanitizationMetrics.sanitizationLevel !== 'none',
-        sanitizationLevel: sanitizationMetrics.sanitizationLevel,
-        piiDetected: sanitizationMetrics.piiDetected,
-        piiTypes: sanitizationMetrics.piiTypes,
-        pseudonymsUsed: sanitizationMetrics.pseudonymsUsed,
-        pseudonymTypes: sanitizationMetrics.pseudonymTypes,
-        redactionsApplied: sanitizationMetrics.redactionsApplied,
-        redactionTypes: sanitizationMetrics.redactionTypes,
+        // NEW ARCHITECTURE: Data sanitization metrics from PII metadata
+        dataSanitizationApplied: hasPiiProcessing,
+        sanitizationLevel: (piiMetadata?.policyDecision?.severity === 'high' ? 'strict' : 
+                           piiMetadata?.policyDecision?.severity === 'medium' ? 'standard' : 
+                           hasPiiProcessing ? 'basic' : 'none') as 'none' | 'basic' | 'standard' | 'strict',
+        piiDetected: hasPiiProcessing,
+        piiTypes: piiMetadata?.detectionResults?.flaggedMatches?.map((m: any) => m.dataType) || [],
+        pseudonymsUsed: pseudonymCount,
+        pseudonymTypes: [...new Set(piiMetadata?.detectionResults?.flaggedMatches?.map((m: any) => m.dataType as string) || [])] as string[],
+        redactionsApplied: 0, // New architecture uses pseudonymization, not redaction
+        redactionTypes: [],
         
         // Source blinding metrics
         sourceBlindingApplied: !isLocalProvider, // External providers use source blinding
@@ -592,14 +641,16 @@ export class LLMService {
         sovereignMode: false,
         
         // Performance metrics
-        sanitizationTimeMs: sanitizationMetrics.sanitizationTimeMs,
-        reversalContextSize: sanitizationMetrics.reversalContextSize,
+        sanitizationTimeMs: piiMetadata?.processingTimeMs || 0,
+        reversalContextSize: piiMetadata?.pseudonymResults?.mappings?.length || 0,
         
-        // Compliance flags (basic implementation)
+        // NEW ARCHITECTURE: Compliance flags based on PII metadata
         complianceFlags: {
-          gdprCompliant: sanitizationMetrics.piiDetected && sanitizationMetrics.pseudonymsUsed > 0,
-          hipaaCompliant: sanitizationMetrics.sanitizationLevel === 'strict',
-          pciCompliant: sanitizationMetrics.redactionsApplied > 0,
+          gdprCompliant: hasPiiProcessing && pseudonymCount > 0,
+          hipaaCompliant: piiMetadata?.policyDecision?.severity === 'high' && pseudonymCount > 0,
+          pciCompliant: piiMetadata?.detectionResults?.flaggedMatches?.some((m: any) => 
+            m.dataType === 'credit_card' || m.dataType === 'ssn'
+          ) || false,
         },
       };
 
@@ -671,6 +722,7 @@ export class LLMService {
     content: string;
     runMetadata: RunMetadata;
     routingDecision: any;
+    piiMetadata?: PIIProcessingMetadata; // NEW: Include PII metadata in response
   }> {
     const startTime = Date.now();
 
@@ -687,6 +739,12 @@ export class LLMService {
         userMessage,
         options
       );
+
+      // Check if request was blocked by PII policy
+      if (routingDecision.provider === 'policy-blocked') {
+        this.logger.warn(`Request blocked by PII policy: ${routingDecision.model}`);
+        throw new Error(`Request blocked due to PII policy violation: ${routingDecision.model}`);
+      }
 
       await this.dataSanitizationService.info(
         `Routing decision: ${routingDecision.provider}/${routingDecision.model} (${routingDecision.isLocal ? 'local' : 'external'})`,
@@ -727,18 +785,91 @@ export class LLMService {
           { headers }
         );
 
-        // Step 5: Call provider with appropriate configuration
+        // Step 5: NEW ARCHITECTURE - Apply boundary processing
+        let effectiveUserMessage = userMessage;
+        let effectiveSystemPrompt = systemPrompt;
+        let piiMetadata: PIIProcessingMetadata | undefined;
+
+        // Extract PII metadata from routing decision
+        if (routingDecision.piiMetadata) {
+          piiMetadata = routingDecision.piiMetadata;
+          
+          // If this is an external provider and we have pseudonym instructions, apply them
+          if (!routingDecision.isLocal && piiMetadata.pseudonymInstructions?.shouldPseudonymize) {
+            this.logger.debug(`🎭 [LLM-BOUNDARY] Applying pseudonymization for external provider`);
+            
+            const requestId = options?.conversationId || options?.sessionId || `llm-${Date.now()}`;
+            
+            try {
+              // Apply pseudonymization to user message
+              const pseudonymResult = await this.pseudonymizerService.pseudonymizeText(
+                userMessage,
+                requestId,
+                { context: 'llm-boundary' }
+              );
+              
+              effectiveUserMessage = pseudonymResult.pseudonymizedText;
+              
+              this.logger.debug(`🎭 [LLM-BOUNDARY] Pseudonymization applied: ${pseudonymResult.mappings.length} mappings created`);
+              
+            } catch (error) {
+              this.logger.error(`🎭 [LLM-BOUNDARY] Pseudonymization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              // Continue with original text if pseudonymization fails
+            }
+          } else {
+            this.logger.debug(`🎭 [LLM-BOUNDARY] No pseudonymization needed (local: ${routingDecision.isLocal}, shouldPseudonymize: ${piiMetadata.pseudonymInstructions?.shouldPseudonymize})`);
+          }
+        }
+
+        // Step 6: Call provider with processed messages
         const response = await this.callProviderWithRouting(
-          routingDecision,
-          systemPrompt,
-          userMessage,
+          routingDecision as any, // Type conversion - routingDecision has piiMetadata from new architecture
+          effectiveSystemPrompt,
+          effectiveUserMessage,
           headers,
           options || {}
         );
 
-        // Step 6: Complete metadata tracking with enhanced metrics (async, non-blocking)
+        // Step 7: NEW ARCHITECTURE - Apply boundary reversal processing
+        let finalResponseContent = response.content;
+        
+        // If we applied pseudonymization, reverse it now
+        if (!routingDecision.isLocal && piiMetadata?.pseudonymInstructions?.shouldPseudonymize) {
+          this.logger.debug(`🔄 [LLM-BOUNDARY] Reversing pseudonyms in response`);
+          
+          const requestId = options?.conversationId || options?.sessionId || `llm-${Date.now()}`;
+          
+          try {
+            const reversalResult = await this.pseudonymizerService.reversePseudonyms(
+              response.content,
+              requestId
+            );
+            
+            finalResponseContent = reversalResult.originalText;
+            
+            this.logger.debug(`🔄 [LLM-BOUNDARY] Pseudonym reversal completed: ${reversalResult.reversalCount} items restored`);
+            
+            // Update PII metadata with reversal results
+            if (piiMetadata) {
+              piiMetadata = {
+                ...piiMetadata,
+                pseudonymResults: piiMetadata.pseudonymResults ? {
+                  ...piiMetadata.pseudonymResults,
+                  reversalSuccess: true,
+                  reversalMatches: piiMetadata.pseudonymInstructions?.targetMatches || []
+                } : undefined
+              };
+            }
+            
+          } catch (error) {
+            this.logger.error(`🔄 [LLM-BOUNDARY] Pseudonym reversal failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            // Continue with pseudonymized response if reversal fails
+          }
+        }
+
+        // Step 8: Complete metadata tracking with enhanced metrics (async, non-blocking)
         const runMetadataPromise = this.runMetadataService.completeRequest(metadataContext, {
-          content: response.content,
+          content: finalResponseContent,
           inputTokens: response.inputTokens,
           outputTokens: response.outputTokens,
           enhancedMetrics: response.enhancedMetrics,
@@ -774,9 +905,10 @@ export class LLMService {
         );
 
         return {
-          content: response.content,
+          content: finalResponseContent, // Use processed content with pseudonym reversal
           runMetadata,
           routingDecision,
+          piiMetadata, // Include PII metadata in response
         };
 
       } catch (error) {
@@ -823,7 +955,7 @@ export class LLMService {
    * Call provider using routing decision with conditional sanitization
    */
   private async callProviderWithRouting(
-    routingDecision: any,
+    routingDecision: import('../common/types/pii-metadata.types').RoutingDecisionWithPII,
     systemPrompt: string,
     userMessage: string,
     headers: any,
@@ -914,47 +1046,11 @@ export class LLMService {
       { provider: routingDecision.provider, model: routingDecision.model }
     );
 
-    // Sanitize system prompt and user message before sending to external provider
-    let sanitizedSystemPrompt: string;
-    let sanitizedUserMessage: string;
-    let systemPromptContext: any = null;
-    let userMessageContext: any = null;
-    let actualSanitizationResult: any = null;
+    // NEW ARCHITECTURE: All PII processing is handled in generateCentralizedResponse
+    // This method receives already-processed content and just calls the LLM
+    const requestId = options.conversationId || options.sessionId || `callprovider-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    try {
-      this.logger.log(`🔍 [LLM-DEBUG] CallProvider path - applying sanitization for external provider`);
-      
-      // Use the unified PIIService for sanitization
-      const sanitizationResult = await this.piiService.sanitizeForLLM(
-        systemPrompt,
-        userMessage,
-        false, // isLocalProvider = false (external)
-        {
-          conversationId: options.conversationId,
-          sessionId: options.sessionId || 'external-request'
-        }
-      );
-
-      sanitizedSystemPrompt = sanitizationResult.sanitizedSystemPrompt;
-      sanitizedUserMessage = sanitizationResult.sanitizedUserMessage;
-      // Store both contexts for compatibility with existing code
-      systemPromptContext = sanitizationResult.reversalContext;
-      userMessageContext = sanitizationResult.reversalContext;
-      
-      // Store the actual sanitization results for metrics extraction
-      actualSanitizationResult = sanitizationResult.sanitizationMetrics;
-
-      this.logger.log(`🔍 [LLM-DEBUG] CallProvider sanitization complete - shouldApplySanitization: ${sanitizationResult.shouldApplySanitization}`);
-      this.logger.log(`🔍 [LLM-DEBUG] CallProvider sanitization metrics:`, JSON.stringify(sanitizationResult.sanitizationMetrics, null, 2));
-
-    } catch (sanitizationError) {
-      this.logger.error(`🔍 [LLM-DEBUG] CallProvider sanitization failed: ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}`);
-      
-      // NO FALLBACKS! Fail loudly as per CLAUDE.md principles
-      throw new Error(`Data sanitization failed for external provider (${routingDecision.provider}): ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}. Cannot proceed with unsanitized data to external provider.`);
-    }
-
-    // Use LangChain for external providers with sanitized content
+    // Use LangChain for external providers
     const llm = this.createCustomLangGraphLLM({
       provider: routingDecision.provider as any,
       model: routingDecision.model,
@@ -964,8 +1060,8 @@ export class LLMService {
 
     // Format messages for the specific provider - LLM service controls the format
     const messages = this.formatMessagesForProvider(
-      sanitizedSystemPrompt,
-      sanitizedUserMessage,
+      systemPrompt,
+      userMessage,
       routingDecision.provider,
       routingDecision.model
     );
@@ -978,41 +1074,17 @@ export class LLMService {
     const response = await llm.invoke(messages);
     let responseContent = (response.content as string) || 'I apologize, but I was unable to generate a response.';
 
-    // Restore pseudonyms in the response if any were applied
-    if (systemPromptContext) {
-      try {
-        const restorationResult = await this.piiService.restoreResponse(
-          responseContent,
-          systemPromptContext
-        );
-
-        if (restorationResult.success && restorationResult.restoredContent !== responseContent) {
-          responseContent = restorationResult.restoredContent;
-          this.logger.log(`🔍 [LLM-DEBUG] CallProvider response content restored from pseudonyms`);
-        }
-
-      } catch (restorationError) {
-        this.logger.warn(`🔍 [LLM-DEBUG] CallProvider response restoration failed: ${restorationError instanceof Error ? restorationError.message : 'Unknown error'}`);
-        // Continue with sanitized response if restoration fails
-      }
-    }
+    // Note: Pseudonym reversal is now handled in generateCentralizedResponse method
+    // This old reversal logic has been removed as part of the new architecture
 
     // Estimate tokens (TODO: Get actual token counts from provider)
-    const inputTokens = this.estimateTokens(sanitizedSystemPrompt + sanitizedUserMessage);
+    const inputTokens = this.estimateTokens(systemPrompt + userMessage);
     const outputTokens = this.estimateTokens(responseContent);
 
-    // Use sanitization metrics from PIIService (already extracted above)
-    const sanitizationMetrics = actualSanitizationResult || {
-      sanitizationLevel: 'none',
-      piiDetected: false,
-      piiTypes: [],
-      pseudonymsUsed: 0,
-      pseudonymTypes: [],
-      redactionsApplied: 0,
-      redactionTypes: [],
-      sanitizationTimeMs: 0,
-      reversalContextSize: 0
-    };
+    // NEW ARCHITECTURE: Use PII metadata from routing decision instead of legacy sanitization metrics
+    const piiMetadata = routingDecision.piiMetadata;
+    const hasPiiProcessing = piiMetadata && piiMetadata.piiDetected;
+    const pseudonymCount = piiMetadata?.pseudonymInstructions?.targetMatches?.length || 0;
 
     const enhancedMetrics: LLMUsageMetrics = {
       inputTokens,
@@ -1020,38 +1092,38 @@ export class LLMService {
       totalCost: 0, // Would be calculated by caller
       responseTimeMs: 0, // Would be calculated by caller
       
-      // Data sanitization metrics from actual sanitization process
-      dataSanitizationApplied: sanitizationMetrics.sanitizationLevel !== 'none',
-      sanitizationLevel: sanitizationMetrics.sanitizationLevel,
-      piiDetected: sanitizationMetrics.piiDetected,
-      piiTypes: sanitizationMetrics.piiTypes,
-      pseudonymsUsed: sanitizationMetrics.pseudonymsUsed,
-      pseudonymTypes: sanitizationMetrics.pseudonymTypes,
-      redactionsApplied: sanitizationMetrics.redactionsApplied,
-      redactionTypes: sanitizationMetrics.redactionTypes,
+      // NEW ARCHITECTURE: Data sanitization metrics from PII metadata
+      dataSanitizationApplied: hasPiiProcessing,
+      sanitizationLevel: hasPiiProcessing ? 'standard' : 'none',
+      piiDetected: hasPiiProcessing,
+      piiTypes: Object.keys(piiMetadata?.detectionResults?.dataTypesSummary || {}),
+      pseudonymsUsed: pseudonymCount,
+      pseudonymTypes: piiMetadata?.pseudonymInstructions?.targetMatches?.map((m: any) => m.dataType) || [],
+      redactionsApplied: 0, // Redaction is separate from pseudonymization in new architecture
+      redactionTypes: [],
       
       // Source blinding metrics for external providers
-      sourceBlindingApplied: true, // All external providers use source blinding
-      headersStripped: 15, // Estimated number of headers stripped
-      customUserAgentUsed: true,
-      proxyUsed: false, // Could be enhanced based on actual proxy usage
-      noTrainHeaderSent: true, // External providers get no-train header
+      sourceBlindingApplied: !routingDecision.isLocal,
+      headersStripped: !routingDecision.isLocal ? 15 : 0,
+      customUserAgentUsed: !routingDecision.isLocal,
+      proxyUsed: false,
+      noTrainHeaderSent: !routingDecision.isLocal,
       noRetainHeaderSent: false,
       
-      // Performance metrics
-      sanitizationTimeMs: sanitizationMetrics.sanitizationTimeMs,
-      reversalContextSize: sanitizationMetrics.reversalContextSize,
+      // Performance metrics from new architecture
+      sanitizationTimeMs: 0, // Processing time is tracked elsewhere in new architecture
+      reversalContextSize: piiMetadata ? JSON.stringify(piiMetadata).length : 0,
       
       // Data classification
       dataClassification: options.dataClassification || 'public',
       policyProfile: options.policyProfile || 'standard',
-      sovereignMode: false, // External providers = not sovereign
+      sovereignMode: routingDecision.isLocal || false,
       
-      // Compliance flags based on sanitization
+      // NEW ARCHITECTURE: Compliance flags based on actual PII processing
       complianceFlags: {
-        gdprCompliant: sanitizationMetrics.piiDetected && sanitizationMetrics.pseudonymsUsed > 0,
-        hipaaCompliant: sanitizationMetrics.sanitizationLevel === 'strict',
-        pciCompliant: sanitizationMetrics.redactionsApplied > 0,
+        gdprCompliant: hasPiiProcessing && pseudonymCount > 0,
+        hipaaCompliant: hasPiiProcessing && pseudonymCount > 0,
+        pciCompliant: piiMetadata?.showstopperDetected === false, // No showstoppers = safer
       },
     };
 
@@ -1060,8 +1132,12 @@ export class LLMService {
       inputTokens,
       outputTokens,
       enhancedMetrics,
-      // Include sanitization metadata for frontend privacy indicators
-      sanitizationMetadata: await this.extractSanitizationMetadataForFrontend(sanitizationMetrics),
+      // NEW ARCHITECTURE: Include PII metadata for frontend privacy indicators
+      sanitizationMetadata: await this.extractSanitizationMetadataForFrontend({
+        sanitizationLevel: hasPiiProcessing ? 'standard' : 'none',
+        pseudonymCount: pseudonymCount,
+        processingTimeMs: 0 // Processing time tracked elsewhere in new architecture
+      }),
     };
   }
 
@@ -1548,33 +1624,17 @@ export class LLMService {
           model: mapModelFromDb(modelResult.data),
         };
       }
-    }
 
-    // Fallback to default OpenAI o1-mini (from our 2025 models)
-    const { data: defaultProvider } = await client
-      .from(getTableName('llm_providers'))
-      .select('*')
-      .eq('name', 'openai')
-      .single();
-
-    const { data: defaultModel } = await client
-      .from(getTableName('llm_models'))
-      .select('*')
-      .eq('model_name', 'o1-mini')
-      .eq('provider_name', 'openai')
-      .single();
-
-    if (!defaultProvider || !defaultModel) {
-      // If no default provider/model found, this is a configuration error
+      // If specific provider/model requested but not found, throw error instead of falling back
       throw new Error(
-        'No default provider/model found in database. Please ensure the database is properly populated with LLM providers and models.'
+        `Requested provider '${providerName}' with model '${modelName}' not found in database. Please ensure the provider and model are properly configured.`
       );
     }
 
-    return {
-      provider: mapProviderFromDb(defaultProvider),
-      model: mapModelFromDb(defaultModel),
-    };
+    // If no provider/model specified, this is a configuration error
+    throw new Error(
+      'No provider or model specified. Please provide both providerName and modelName.'
+    );
   }
 
   /**

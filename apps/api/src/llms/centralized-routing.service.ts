@@ -4,6 +4,8 @@ import { SupabaseService } from '../supabase/supabase.service';
 import { SovereignPolicyService } from '../config/sovereign-policy.service';
 import { FeatureFlagService, FeatureFlagContext } from '../config/feature-flag.service';
 import { PIIService } from '../services/pii.service';
+import { PseudonymizerService } from '../services/pseudonymizer.service';
+import { PIIProcessingMetadata, RoutingDecisionWithPII } from '../common/types/pii-metadata.types';
 import { createHash } from 'crypto';
 
 interface RoutingAuditLog {
@@ -45,6 +47,7 @@ interface RoutingAuditLog {
   };
 }
 
+// Legacy interface for backward compatibility
 export interface RoutingDecision {
   provider: string;
   model: string;
@@ -55,8 +58,11 @@ export interface RoutingDecision {
   reasoningPath: string[];
   sovereignModeEnforced?: boolean;
   sovereignModeViolation?: boolean;
-  sanitizationResult?: any; // Result from DataSanitizationService
-  sanitizedPrompt?: string; // Sanitized version of the prompt
+  // New fields for metadata-based architecture
+  piiMetadata?: PIIProcessingMetadata;
+  originalPrompt?: string;
+  routeToAgent?: boolean;
+  blockingReason?: string;
 }
 
 export interface LLMRequest {
@@ -85,20 +91,109 @@ export class CentralizedRoutingService {
     private readonly sovereignPolicyService: SovereignPolicyService,
     private readonly featureFlagService: FeatureFlagService,
     private readonly piiService: PIIService,
+    private readonly pseudonymizerService: PseudonymizerService,
   ) {
     this.logger.log('CentralizedRoutingService initialized');
   }
 
+
   /**
-   * Main routing method that determines the best provider/model for a request
+   * NEW ARCHITECTURE: Process agent response with PII metadata
+   * 
+   * This method is called by agents after they receive LLM responses.
+   * It handles pseudonym reversal and updates metadata for the response.
+   */
+  async processAgentResponse(
+    agentResponse: string,
+    piiMetadata: PIIProcessingMetadata,
+    options: any = {}
+  ): Promise<{
+    processedResponse: string;
+    updatedMetadata: PIIProcessingMetadata;
+    success: boolean;
+    error?: string;
+  }> {
+    this.logger.debug(`🔄 [CENTRALIZED-ROUTING] Processing agent response with PII metadata`);
+    
+    try {
+      let processedResponse = agentResponse;
+      let reversalCount = 0;
+      let processingTimeMs = 0;
+
+      // If we have pseudonym instructions, reverse them
+      if (piiMetadata.pseudonymInstructions && piiMetadata.pseudonymInstructions.targetMatches.length > 0) {
+        const startTime = Date.now();
+        const requestId = options.conversationId || options.requestId || `agent-response-${Date.now()}`;
+        
+        try {
+          const reversalResult = await this.pseudonymizerService.reversePseudonyms(
+            agentResponse,
+            requestId
+          );
+          
+          processedResponse = reversalResult.originalText;
+          reversalCount = reversalResult.reversalCount || 0;
+          processingTimeMs = Date.now() - startTime;
+          
+          this.logger.debug(`🔄 [CENTRALIZED-ROUTING] Successfully reversed ${reversalCount} pseudonyms`);
+        } catch (error) {
+          this.logger.warn(`🔄 [CENTRALIZED-ROUTING] Pseudonym reversal failed - returning original response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      // Update metadata with processing results
+      const updatedMetadata: PIIProcessingMetadata = {
+        ...piiMetadata,
+        processingFlow: piiMetadata.processingFlow, // Keep original flow status
+        pseudonymResults: piiMetadata.pseudonymResults ? {
+          ...piiMetadata.pseudonymResults,
+          reversalSuccess: reversalCount > 0,
+          reversalMatches: piiMetadata.pseudonymInstructions?.targetMatches || []
+        } : undefined,
+        userMessage: {
+          ...piiMetadata.userMessage,
+          summary: piiMetadata.userMessage.summary + (reversalCount > 0 ? ` (${reversalCount} items restored)` : ''),
+          actionsTaken: [
+            ...piiMetadata.userMessage.actionsTaken,
+            ...(reversalCount > 0 ? [`Restored ${reversalCount} original values in response`] : [])
+          ]
+        }
+      };
+
+      return {
+        processedResponse,
+        updatedMetadata,
+        success: true
+      };
+
+    } catch (error) {
+      this.logger.error(`🔄 [CENTRALIZED-ROUTING] Agent response processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      return {
+        processedResponse: agentResponse, // Return original on error
+        updatedMetadata: piiMetadata,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * NEW ARCHITECTURE: Main routing method with PII metadata orchestration
+   * 
+   * This is the primary orchestrator that:
+   * 1. Calls PIIService for detection and metadata creation
+   * 2. Makes routing decisions based on PII metadata
+   * 3. Returns immediately for showstoppers or routes to agents
    */
   async determineRoute(prompt: string, options: any = {}): Promise<RoutingDecision> {
+    this.logger.debug(`🚀 [CENTRALIZED-ROUTING] determineRoute called with prompt: "${prompt.substring(0, 100)}..."`);
+    
     const startTime = Date.now();
     const request: LLMRequest = { prompt, options };
     const reasoningPath: string[] = [];
     const violations: string[] = [];
     const warnings: string[] = [];
-    let currentPrompt = prompt; // Mutable prompt for PII processing
 
     try {
       // Step 1: Check feature flag for sovereign routing
@@ -128,39 +223,52 @@ export class CentralizedRoutingService {
         // Legacy behavior: no sovereign mode restrictions
       }
 
-      // Step 1.5: PII Policy Check using dedicated service
-      const piiPolicyResult = await this.piiService.checkPolicy(currentPrompt, {
+      // Step 1.5: NEW ARCHITECTURE - PII Policy Check with Metadata
+      this.logger.debug(`🔍 [CENTRALIZED-ROUTING] Starting PII policy check with metadata creation`);
+      const piiResult = await this.piiService.checkPolicy(prompt, {
         conversationId: options.conversationId,
         userId: options.userId,
-        requestId: options.requestId
+        requestId: options.requestId,
+        providerName: options.providerName || options.provider
       });
 
-      // Add PII policy reasoning to our path
-      reasoningPath.push(...piiPolicyResult.reasoningPath);
-      violations.push(...piiPolicyResult.violations);
+      this.logger.debug(`🔍 [CENTRALIZED-ROUTING] PII metadata created:`, {
+        piiDetected: piiResult.metadata.piiDetected,
+        showstopperDetected: piiResult.metadata.showstopperDetected,
+        processingFlow: piiResult.metadata.processingFlow,
+        totalMatches: piiResult.metadata.detectionResults?.totalMatches
+      });
 
-      if (!piiPolicyResult.allowed) {
-        // Request blocked due to PII policy violation
-        this.logger.warn(`Request blocked by PII policy: ${piiPolicyResult.violations.join(', ')}`);
+      // Add PII policy reasoning to our routing path
+      reasoningPath.push(...piiResult.metadata.policyDecision.reasoningPath);
+      violations.push(...piiResult.metadata.policyDecision.violations);
+
+      // Step 2: CRITICAL DECISION POINT - Check for showstoppers
+      if (piiResult.metadata.showstopperDetected) {
+        this.logger.warn(`🛑 [CENTRALIZED-ROUTING] SHOWSTOPPER DETECTED - Blocking request`);
         
-        // Return a routing decision that indicates policy block
+        // IMMEDIATE RETURN - Never route to agents
         return {
           provider: 'policy-blocked',
-          model: 'pii-policy',
+          model: 'showstopper-pii',
           isLocal: true,
           fallbackUsed: false,
           complexityScore: 0,
           reasoningPath,
-          sanitizationResult: piiPolicyResult.sanitizationResult,
-          sanitizedPrompt: currentPrompt // Keep original for audit
+          piiMetadata: piiResult.metadata,
+          originalPrompt: prompt,
+          routeToAgent: false,  // 🔥 KEY: Don't route to agents
+          blockingReason: 'showstopper-pii',
         };
       }
 
-      // Use sanitized prompt for routing
-      currentPrompt = piiPolicyResult.sanitizedPrompt;
-      const sanitizationResult = piiPolicyResult.sanitizationResult;
+      // Step 3: No showstoppers - continue with routing logic
+      this.logger.debug(`✅ [CENTRALIZED-ROUTING] No showstoppers detected, continuing with routing`);
+      
+      // Use original prompt for complexity analysis (PII metadata will be passed to agents)
+      const routingPrompt = prompt;
 
-      // Step 2: Honor explicit provider/model requests (with sovereign mode validation)
+      // Step 4: Honor explicit provider/model requests (with sovereign mode validation)
       if (options.provider && options.model) {
         reasoningPath.push(`Explicit provider/model requested: ${options.provider}/${options.model}`);
         
@@ -172,7 +280,7 @@ export class CentralizedRoutingService {
           
           // Fall through to sovereign-compliant routing
         } else {
-          const explicitDecision = {
+          const explicitDecision: RoutingDecision = {
             provider: options.provider,
             model: options.model,
             isLocal: options.provider === 'ollama',
@@ -181,6 +289,10 @@ export class CentralizedRoutingService {
             reasoningPath,
             sovereignModeEnforced: sovereignModeActive,
             sovereignModeViolation: false,
+            // NEW ARCHITECTURE: Include PII metadata
+            piiMetadata: piiResult.metadata,
+            originalPrompt: prompt,
+            routeToAgent: true,  // 🔥 KEY: Route to agents
           };
 
           // Log the explicit override decision
@@ -199,8 +311,9 @@ export class CentralizedRoutingService {
         }
       }
 
-      // Step 3: Analyze request complexity
-      const complexity = this.analyzeComplexity(request);
+      // Step 5: Analyze request complexity using original prompt
+      const routingRequest: LLMRequest = { prompt: routingPrompt, options };
+      const complexity = this.analyzeComplexity(routingRequest);
       const complexityScore = this.getComplexityScore(complexity);
       reasoningPath.push(`Complexity analysis: ${complexity} (score: ${complexityScore})`);
 
@@ -226,7 +339,7 @@ export class CentralizedRoutingService {
           const localModel = await this.selectBestLocalModel(tier, sovereignPolicy);
           reasoningPath.push(`Selected local model: ${localModel}`);
           
-          const localDecision = {
+          const localDecision: RoutingDecision = {
             provider: 'ollama',
             model: localModel,
             isLocal: true,
@@ -236,6 +349,10 @@ export class CentralizedRoutingService {
             reasoningPath,
             sovereignModeEnforced: sovereignModeActive,
             sovereignModeViolation: false,
+            // NEW ARCHITECTURE: Include PII metadata
+            piiMetadata: piiResult.metadata,
+            originalPrompt: prompt,
+            routeToAgent: true,  // 🔥 KEY: Route to agents
           };
 
           // Log the local model selection decision
@@ -265,7 +382,7 @@ export class CentralizedRoutingService {
         // Return error - this indicates a configuration issue that needs to be fixed
         violations.push('No local models available in sovereign mode - configuration issue');
         
-        const sovereignErrorDecision = {
+        const sovereignErrorDecision: RoutingDecision = {
           provider: 'error',
           model: 'no_local_models_available',
           isLocal: false,
@@ -275,6 +392,12 @@ export class CentralizedRoutingService {
           reasoningPath,
           sovereignModeEnforced: true,
           sovereignModeViolation: false, // This is a setup issue, not a policy violation
+          // NEW ARCHITECTURE: Include PII metadata even for errors
+          piiMetadata: piiResult.metadata,
+          originalPrompt: prompt,
+          routeToAgent: false,  // Don't route to agents for errors
+          blockingReason: 'no-local-models-available',
+          // Legacy fields for backward compatibility
         };
 
         // Log the sovereign mode error decision
@@ -292,68 +415,23 @@ export class CentralizedRoutingService {
         return sovereignErrorDecision;
       }
       
-      const externalDecision = this.getExternalFallback(tier, request);
-      reasoningPath.push(`External fallback: ${externalDecision.provider}/${externalDecision.model}`);
-
-      // External provider selected (sovereign mode already handled above)
-      const finalDecision = {
-        ...externalDecision,
-        complexityScore,
-        reasoningPath,
-        fallbackUsed: true,
-        sovereignModeEnforced: sovereignModeActive,
-        sovereignModeViolation: false,
-      };
-
-      // Log the routing decision for audit purposes
-      this.logRoutingDecision(
-        request,
-        finalDecision,
-        sovereignPolicy,
-        sovereignModeActive,
-        sovereignRoutingEnabled,
-        violations,
-        warnings,
-        startTime
+      // No external fallback - throw error if no local models available
+      reasoningPath.push('No local models available and no external fallback configured');
+      violations.push('No suitable LLM providers available - local models unavailable and external providers disabled');
+      
+      throw new Error(
+        `No suitable LLM providers available for tier '${tier}'. ` +
+        `Local models are unavailable and external providers are disabled. ` +
+        `Please ensure Ollama is running with appropriate models.`
       );
-
-      return finalDecision;
 
     } catch (error) {
       this.logger.error('Error in routing decision', error);
-      reasoningPath.push(`Error occurred: ${error instanceof Error ? error.message : 'Unknown error'}, using default fallback`);
-      violations.push('Routing error occurred, using emergency fallback');
+      reasoningPath.push(`Error occurred: ${error instanceof Error ? error.message : 'Unknown error'}, no fallback available`);
+      violations.push('Routing error occurred, no emergency fallback configured');
       
-      // Emergency fallback to OpenAI GPT-3.5
-      const emergencyDecision = {
-        provider: 'openai',
-        model: 'gpt-3.5-turbo',
-        isLocal: false,
-        fallbackUsed: true,
-        complexityScore: 5,
-        reasoningPath,
-        sovereignModeEnforced: false,
-        sovereignModeViolation: false,
-      };
-
-      // Log the emergency fallback decision
-      try {
-        this.logRoutingDecision(
-          request,
-          emergencyDecision,
-          null, // No sovereign policy in error case
-          false,
-          false,
-          violations,
-          warnings,
-          startTime
-        );
-      } catch (logError) {
-        // Don't let logging errors break the emergency fallback
-        this.logger.error('Failed to log emergency routing decision', logError);
-      }
-
-      return emergencyDecision;
+      // No emergency fallback - let the error propagate
+      throw new Error(`Routing failed: ${error instanceof Error ? error.message : 'Unknown error'}. No fallback provider configured.`);
     }
   }
 
@@ -628,13 +706,8 @@ export class CentralizedRoutingService {
       };
     }
     
-    // Fallback if no candidates available
-    return {
-      provider: 'openai',
-      model: 'gpt-3.5-turbo',
-      isLocal: false,
-      modelTier: 'external-standard',
-    };
+    // No fallback - throw error if no candidates available
+    throw new Error('No suitable LLM providers available for the requested tier. Please configure at least one provider.');
   }
 
   /**

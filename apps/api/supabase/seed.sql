@@ -344,3 +344,324 @@ BEGIN
     RAISE NOTICE '   - Data spans the last 10 days for testing analytics';
     RAISE NOTICE '   - All data properly linked to demo user: %', demo_user_id;
 END $$;
+
+-- =====================================
+-- PII PATTERNS SEEDING
+-- =====================================
+-- Clean up and seed built-in PII patterns with proper severity levels
+-- This ensures the database is the single source of truth for PII policy enforcement
+-- Note: severity and data_type columns are added by migration 20250115000001_add_pii_pattern_severity_columns.sql
+
+-- Clean up existing inconsistent data
+-- Remove sample data patterns (they don't have proper severity levels)
+DELETE FROM public.redaction_patterns WHERE description LIKE '%sample data%';
+
+-- Remove any existing built-in patterns to avoid duplicates
+DELETE FROM public.redaction_patterns WHERE category = 'pii_builtin';
+
+-- Remove old sample patterns from migrations that don't have proper severity/data_type
+DELETE FROM public.redaction_patterns WHERE category IN ('corporate', 'financial', 'network', 'support');
+
+-- Remove patterns with invalid categories that should be built-in
+DELETE FROM public.redaction_patterns WHERE name IN (
+    'github_token', 'aws_access_key', 'jwt_token', 'bearer_token', 
+    'api_key_generic', 'slack_webhook', 'database_connection',
+    'docker_registry_token', 'stripe_key', 'openai_api_key'
+);
+
+-- Insert all built-in PII patterns with proper severity levels
+INSERT INTO public.redaction_patterns (
+    name, 
+    pattern_regex, 
+    replacement, 
+    description, 
+    category, 
+    priority, 
+    severity, 
+    data_type, 
+    is_active
+) VALUES 
+-- EMAIL PATTERNS (pseudonymizer)
+('email_standard', 
+ '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', 
+ '[EMAIL_REDACTED]', 
+ 'Standard email addresses', 
+ 'pii_builtin', 
+ 10, 
+ 'pseudonymizer', 
+ 'email', 
+ true),
+
+('email_obfuscated', 
+ '\b[A-Za-z0-9._%+-]+\s+(?:at|AT)\s+[A-Za-z0-9.-]+\s+(?:dot|DOT)\s+[A-Za-z]{2,}\b', 
+ '[EMAIL_REDACTED]', 
+ 'Obfuscated email addresses (john at company dot com)', 
+ 'pii_builtin', 
+ 20, 
+ 'pseudonymizer', 
+ 'email', 
+ true),
+
+-- PHONE PATTERNS (pseudonymizer)
+('phone_us_standard', 
+ '\b(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})\b', 
+ '[PHONE_REDACTED]', 
+ 'US phone numbers (various formats)', 
+ 'pii_builtin', 
+ 10, 
+ 'pseudonymizer', 
+ 'phone', 
+ true),
+
+('phone_international', 
+ '\+(?:[0-9] ?){6,14}[0-9]', 
+ '[PHONE_REDACTED]', 
+ 'International phone numbers', 
+ 'pii_builtin', 
+ 15, 
+ 'pseudonymizer', 
+ 'phone', 
+ true),
+
+-- NAME PATTERNS (flagger) - Allow names for content creation, just flag for monitoring
+('name_first_last', 
+ '\b[A-Z][a-z]{1,}(?: [A-Z][a-z]{1,}){1,3}\b', 
+ '[NAME_REDACTED]', 
+ 'First and last names (Title case)', 
+ 'pii_builtin', 
+ 30, 
+ 'flagger', 
+ 'name', 
+ true),
+
+-- IP ADDRESS PATTERNS (flagger)
+('ip_address_v4', 
+ '\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', 
+ '[IP_REDACTED]', 
+ 'IPv4 addresses', 
+ 'pii_builtin', 
+ 10, 
+ 'flagger', 
+ 'ip_address', 
+ true),
+
+('ip_address_v6', 
+ '\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b', 
+ '[IP_REDACTED]', 
+ 'IPv6 addresses (full format)', 
+ 'pii_builtin', 
+ 15, 
+ 'flagger', 
+ 'ip_address', 
+ true),
+
+-- SSN PATTERNS (showstopper) - CRITICAL: These should block requests
+('ssn_standard', 
+ '\b\d{3}-\d{2}-\d{4}\b', 
+ '[SSN_REDACTED]', 
+ 'Social Security Numbers (XXX-XX-XXXX)', 
+ 'pii_builtin', 
+ 5, 
+ 'showstopper', 
+ 'ssn', 
+ true),
+
+('ssn_no_dashes', 
+ '\b\d{9}\b', 
+ '[SSN_REDACTED]', 
+ 'Social Security Numbers (no dashes)', 
+ 'pii_builtin', 
+ 5, 
+ 'showstopper', 
+ 'ssn', 
+ true),
+
+-- CREDIT CARD PATTERNS (showstopper) - CRITICAL: These should block requests
+('credit_card_visa', 
+ '\b4[0-9]{12}(?:[0-9]{3})?\b', 
+ '[CREDIT_CARD_REDACTED]', 
+ 'Visa credit card numbers', 
+ 'pii_builtin', 
+ 5, 
+ 'showstopper', 
+ 'credit_card', 
+ true),
+
+('credit_card_mastercard', 
+ '\b5[1-5][0-9]{14}\b', 
+ '[CREDIT_CARD_REDACTED]', 
+ 'Mastercard credit card numbers', 
+ 'pii_builtin', 
+ 5, 
+ 'showstopper', 
+ 'credit_card', 
+ true),
+
+('credit_card_amex', 
+ '\b3[47][0-9]{13}\b', 
+ '[CREDIT_CARD_REDACTED]', 
+ 'American Express credit card numbers', 
+ 'pii_builtin', 
+ 5, 
+ 'showstopper', 
+ 'credit_card', 
+ true),
+
+('credit_card_discover', 
+ '\b6(?:011|5[0-9]{2})[0-9]{12}\b', 
+ '[CREDIT_CARD_REDACTED]', 
+ 'Discover credit card numbers', 
+ 'pii_builtin', 
+ 5, 
+ 'showstopper', 
+ 'credit_card', 
+ true),
+
+-- USERNAME PATTERNS (flagger)
+('username_handle', 
+ '\b@[a-zA-Z0-9_]{3,15}\b', 
+ '[USERNAME_REDACTED]', 
+ 'Social media usernames/handles', 
+ 'pii_builtin', 
+ 40, 
+ 'flagger', 
+ 'username', 
+ true),
+
+-- ADDRESS PATTERNS (pseudonymizer)
+('address_us_street', 
+ '\b\d{1,5}\s+[A-Za-z0-9\s]{3,}\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Ct|Court)\b', 
+ '[ADDRESS_REDACTED]', 
+ 'US street addresses', 
+ 'pii_builtin', 
+ 25, 
+ 'pseudonymizer', 
+ 'address', 
+ true),
+
+-- API KEYS AND TOKENS (showstopper) - CRITICAL: These should block requests
+('github_token', 
+ '\bgh[pousr]_[A-Za-z0-9]{36}\b', 
+ '[GITHUB_TOKEN_REDACTED]', 
+ 'GitHub personal access tokens', 
+ 'pii_builtin', 
+ 1, 
+ 'showstopper', 
+ 'custom', 
+ true),
+
+('aws_access_key', 
+ '\bAKIA[0-9A-Z]{16}\b', 
+ '[AWS_ACCESS_KEY_REDACTED]', 
+ 'AWS access key IDs', 
+ 'pii_builtin', 
+ 1, 
+ 'showstopper', 
+ 'custom', 
+ true),
+
+('jwt_token', 
+ '\beyJ[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+\b', 
+ '[JWT_TOKEN_REDACTED]', 
+ 'JSON Web Tokens', 
+ 'pii_builtin', 
+ 1, 
+ 'showstopper', 
+ 'custom', 
+ true),
+
+('bearer_token', 
+ '\b[Bb]earer\s+[A-Za-z0-9+/]{20,}', 
+ '[BEARER_TOKEN_REDACTED]', 
+ 'Bearer tokens', 
+ 'pii_builtin', 
+ 1, 
+ 'showstopper', 
+ 'custom', 
+ true),
+
+('openai_api_key', 
+ '\bsk-[A-Za-z0-9]{48,}\b', 
+ '[OPENAI_API_KEY_REDACTED]', 
+ 'OpenAI API keys', 
+ 'pii_builtin', 
+ 1, 
+ 'showstopper', 
+ 'custom', 
+ true),
+
+('stripe_key', 
+ '\bsk_(?:test|live)_[A-Za-z0-9]{24,}\b', 
+ '[STRIPE_KEY_REDACTED]', 
+ 'Stripe API keys', 
+ 'pii_builtin', 
+ 1, 
+ 'showstopper', 
+ 'custom', 
+ true);
+
+-- Update statistics
+UPDATE public.redaction_patterns 
+SET updated_at = CURRENT_TIMESTAMP 
+WHERE category = 'pii_builtin';
+
+-- Log the PII patterns seeding operation
+DO $$
+DECLARE
+    pattern_count INTEGER;
+    showstopper_count INTEGER;
+    pseudonymizer_count INTEGER;
+    flagger_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO pattern_count 
+    FROM public.redaction_patterns 
+    WHERE category = 'pii_builtin';
+    
+    SELECT COUNT(*) INTO showstopper_count 
+    FROM public.redaction_patterns 
+    WHERE category = 'pii_builtin' AND severity = 'showstopper';
+    
+    SELECT COUNT(*) INTO pseudonymizer_count 
+    FROM public.redaction_patterns 
+    WHERE category = 'pii_builtin' AND severity = 'pseudonymizer';
+    
+    SELECT COUNT(*) INTO flagger_count 
+    FROM public.redaction_patterns 
+    WHERE category = 'pii_builtin' AND severity = 'flagger';
+    
+    RAISE NOTICE '';
+    RAISE NOTICE '🔒 PII PATTERNS SEEDING COMPLETE';
+    RAISE NOTICE '   - Successfully seeded % built-in PII patterns with severity levels', pattern_count;
+    RAISE NOTICE '   - % Showstopper patterns (BLOCK requests): SSN, Credit Cards, API Keys, Tokens', showstopper_count;
+    RAISE NOTICE '   - % Pseudonymizer patterns (SANITIZE): Email, Phone, Address', pseudonymizer_count;
+    RAISE NOTICE '   - % Flagger patterns (MONITOR): Names, IP Address, Username', flagger_count;
+    RAISE NOTICE '   - Database is now the single source of truth for PII policy enforcement';
+    RAISE NOTICE '   - Social Security Numbers are correctly marked as SHOWSTOPPERS ✅';
+END $$;
+
+-- Add custom pseudonyms for specific entities
+-- These will be detected and replaced with pseudonyms during PII processing
+INSERT INTO public.pseudonym_dictionaries (data_type, category, value, frequency_weight, is_active) VALUES
+-- Personal names (entities to be pseudonymized)
+('name', 'full_names', 'Matt Weber', 10, true),
+
+-- Usernames/handles (entities to be pseudonymized)
+('username', 'handles', 'GolferGeek', 10, true),
+
+-- Company/product names (entities to be pseudonymized) - using 'custom' type
+('custom', 'companies', 'Orchestrator-AI', 10, true),
+
+-- Pseudonym replacements for full names
+('name', 'full_names', 'Alex Johnson', 10, true),
+('name', 'full_names', 'Sam Mitchell', 9, true),
+('name', 'full_names', 'Jordan Taylor', 8, true),
+
+-- Pseudonym replacements for handles/usernames
+('username', 'handles', 'TechExplorer', 10, true),
+('username', 'handles', 'CodeMaster', 9, true),
+('username', 'handles', 'DataWizard', 8, true),
+
+-- Pseudonym replacements for companies - using 'custom' type
+('custom', 'companies', 'TechFlow Systems', 10, true),
+('custom', 'companies', 'DataBridge Solutions', 9, true),
+('custom', 'companies', 'CloudSync Technologies', 8, true);

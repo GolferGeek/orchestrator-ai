@@ -10,6 +10,7 @@ import {
   HttpStatus,
   UseGuards,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
 import { AgentDiscoveryService } from '../agent-discovery.service';
 import { AppService } from '../app.service';
@@ -148,6 +149,8 @@ export class DynamicAgentsController {
         conversationId: normalizedTaskRequest.conversationId,
         userId: currentUser?.id,
         requestId: `agent-${agentType}-${agentName}-${Date.now()}`,
+        // Pass provider information for PII policy decisions
+        providerName: normalizedTaskRequest.llmSelection?.providerName,
       }
     );
 
@@ -173,25 +176,27 @@ export class DynamicAgentsController {
         'Request blocked due to PII policy violation. Please rephrase your request without including sensitive personal information.',
       );
 
-      // Return blocked response
+      // Extract specific PII types detected for more targeted messaging
+      const detectedTypes = routingDecision.reasoningPath || [];
+      const piiTypeMessage = detectedTypes.length > 0 
+        ? `specifically ${detectedTypes.join(', ')}`
+        : 'sensitive personal information';
+
+      // Return a successful response with PII policy block information
       return {
+        success: false,
+        blocked: true,
+        reason: 'PII_POLICY_VIOLATION',
+        message: `I cannot process your request because it contains ${piiTypeMessage}. Please rephrase your request without including any personal identifiable information.`,
         taskId: task.id,
         conversationId: task.agentConversationId,
-        status: 'blocked',
-        result: {
-          success: false,
-          message: 'Request blocked due to PII policy violation',
-          error: 'PII_POLICY_VIOLATION',
-          blockedReason: 'Sensitive personal information detected',
-          metadata: {
-            sanitizationMetadata: {
-              status: 'blocked',
-              reason: 'PII policy violation',
-              piiDetected: true,
-              blocked: true,
-            },
-          },
+        details: {
+          reason: `Sensitive personal information detected: ${piiTypeMessage}`,
+          suggestion: 'Please remove any SSNs, credit card numbers, API keys, or other sensitive data and try again.',
+          detectedTypes: detectedTypes,
         },
+        // NEW ARCHITECTURE: Include PII metadata in blocked response
+        piiMetadata: routingDecision.piiMetadata,
       };
     }
 
@@ -292,6 +297,10 @@ export class DynamicAgentsController {
         llmSelection: normalizedTaskRequest.llmSelection,
         conversationHistory: normalizedTaskRequest.conversationHistory || [],
         metadata: normalizedTaskRequest.metadata, // Pass metadata for deliverable operations
+        // NEW ARCHITECTURE: Pass PII metadata and routing decision to agents
+        piiMetadata: routingDecision.piiMetadata,
+        routingDecision: routingDecision,
+        originalPrompt: routingDecision.originalPrompt,
       };
 
       // In A2A architecture, all execution modes should await completion
@@ -336,6 +345,12 @@ export class DynamicAgentsController {
         conversationId: task.agentConversationId,
         status: 'completed',
         result,
+        // NEW ARCHITECTURE: Include PII metadata in response
+        piiMetadata: routingDecision.piiMetadata,
+        // Include any PII metadata from the agent result if available
+        ...(result?.metadata?.piiMetadata && {
+          agentPiiMetadata: result.metadata.piiMetadata
+        })
       };
     } catch (error) {
       // Mark task as failed via TaskStatusService (single source of truth)

@@ -189,7 +189,9 @@ export class PseudonymizationService {
   async getStats(): Promise<{
     totalPIIPatterns: number;
     productionMode: boolean;
-    customPatterns: number;
+    showstopperPatterns: number;
+    pseudonymizerPatterns: number;
+    flaggerPatterns: number;
     patternServiceStats: any;
   }> {
     const patternServiceStats = this.piiPatternService.getStats();
@@ -197,7 +199,9 @@ export class PseudonymizationService {
     return {
       totalPIIPatterns: patternServiceStats.totalPatterns,
       productionMode: this.isProduction,
-      customPatterns: patternServiceStats.customPatterns,
+      showstopperPatterns: patternServiceStats.showstopperPatterns,
+      pseudonymizerPatterns: patternServiceStats.pseudonymizerPatterns,
+      flaggerPatterns: patternServiceStats.flaggerPatterns,
       patternServiceStats,
     };
   }

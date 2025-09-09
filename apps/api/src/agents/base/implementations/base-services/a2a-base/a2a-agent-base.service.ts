@@ -16,6 +16,7 @@ import {
   AgentInfo,
 } from '@agents/base/sub-services/agent-registration/agent-registration.service';
 import { AgentType } from '../../../../../common/types/agent-conversations.types';
+import { PIIProcessingMetadata, RoutingDecisionWithPII } from '../../../../../common/types/pii-metadata.types';
 import {
   JsonRpcProtocolService,
   JsonRpcRequest,
@@ -1241,5 +1242,92 @@ export abstract class A2AAgentBaseService
       );
       return null;
     }
+  }
+
+  // ============================================================================
+  // PII METADATA HANDLING (NEW ARCHITECTURE)
+  // ============================================================================
+
+  /**
+   * Extract PII metadata from request parameters
+   * This metadata flows from CentralizedRoutingService through agents
+   */
+  protected extractPIIMetadata(params: any): PIIProcessingMetadata | undefined {
+    // Check multiple possible locations for PII metadata
+    return params.piiMetadata || 
+           params.metadata?.piiMetadata || 
+           params.routingDecision?.piiMetadata;
+  }
+
+  /**
+   * Extract routing decision with PII information
+   */
+  protected extractRoutingDecision(params: any): RoutingDecisionWithPII | undefined {
+    return params.routingDecision || params.metadata?.routingDecision;
+  }
+
+  /**
+   * Extract original prompt before any PII processing
+   */
+  protected extractOriginalPrompt(params: any): string | undefined {
+    return params.originalPrompt || 
+           params.metadata?.originalPrompt ||
+           params.routingDecision?.originalPrompt;
+  }
+
+  /**
+   * Check if the current request should be blocked due to PII policy
+   */
+  protected shouldBlockForPII(params: any): boolean {
+    const piiMetadata = this.extractPIIMetadata(params);
+    return piiMetadata?.showstopperDetected === true;
+  }
+
+  /**
+   * Generate PII-aware error response for blocked requests
+   */
+  protected generatePIIBlockedResponse(params: any): any {
+    const piiMetadata = this.extractPIIMetadata(params);
+    
+    return {
+      success: false,
+      response: 'Request blocked due to sensitive information policy.',
+      metadata: {
+        agentName: this.getAgentName(),
+        agentType: this.getAgentType(),
+        blocked: true,
+        blockingReason: 'pii-policy-violation',
+        piiMetadata,
+        userMessage: piiMetadata?.userMessage || {
+          summary: 'Request contains sensitive information that cannot be processed.',
+          details: ['Sensitive information detected in your request'],
+          actionsTaken: ['Request blocked for security'],
+          isBlocked: true
+        },
+        processedAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  /**
+   * Helper method to include PII metadata in agent responses
+   */
+  protected enrichResponseWithPIIMetadata(response: any, params: any): any {
+    const piiMetadata = this.extractPIIMetadata(params);
+    const routingDecision = this.extractRoutingDecision(params);
+    
+    if (!piiMetadata && !routingDecision) {
+      return response;
+    }
+
+    return {
+      ...response,
+      metadata: {
+        ...response.metadata,
+        piiMetadata,
+        routingDecision,
+        piiProcessingApplied: !!piiMetadata,
+      }
+    };
   }
 }

@@ -1,6 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSanitizationService } from '../llms/data-sanitization.service';
+import { SupabaseService } from '../supabase/supabase.service';
+import { PIIPatternService, PIIMatch as PatternServicePIIMatch } from '../llms/pii-pattern.service';
+import { 
+  PIIProcessingMetadata, 
+  PIIMatch, 
+  DataTypeSummary, 
+  SeverityBreakdown,
+  PolicyDecision,
+  PseudonymInstructions,
+  UserMessage,
+  ProcessingFlow,
+  PIISeverity
+} from '../common/types/pii-metadata.types';
 
+// Legacy interfaces for backward compatibility
 export interface PIIPolicyResult {
   allowed: boolean;
   sanitizedPrompt: string;
@@ -24,281 +37,460 @@ export interface PIIRestorationResult {
 }
 
 /**
- * Unified PII service that handles both policy checking and LLM sanitization workflows
+ * Refactored PII Service - Focus on Detection and Metadata Creation
+ * 
+ * This service is responsible for:
+ * 1. Detecting PII in text using PIIPatternService
+ * 2. Creating comprehensive metadata structures
+ * 3. Making policy decisions (allow/block)
+ * 4. Generating user-friendly messages
+ * 
+ * This service does NOT:
+ * - Apply actual pseudonymization (that's done by PseudonymizerService at LLM boundary)
+ * - Handle sanitization workflows (that's orchestrated by CentralizedRoutingService)
  */
 @Injectable()
 export class PIIService {
   private readonly logger = new Logger(PIIService.name);
 
   constructor(
-    private readonly dataSanitizationService: DataSanitizationService,
+    private readonly supabaseService: SupabaseService,
+    private readonly piiPatternService: PIIPatternService,
   ) {}
 
   /**
-   * Check if a prompt violates PII policy (used by routing service)
+   * NEW ARCHITECTURE: Check PII policy and create comprehensive metadata
+   * 
+   * This is the main entry point called by CentralizedRoutingService.
+   * It detects PII, makes policy decisions, and creates metadata structure.
+   * 
+   * CRITICAL: Implements showstopper early-exit pattern
+   * CRITICAL: Skips ALL processing for local providers (Ollama) - returns "no issues"
    */
-  async checkPolicy(prompt: string, options: any = {}): Promise<PIIPolicyResult> {
-    const violations: string[] = [];
-    const reasoningPath: string[] = [];
-    let sanitizedPrompt = prompt;
-    let sanitizationResult: any = null;
-
+  async checkPolicy(prompt: string, options: any = {}): Promise<{
+    metadata: PIIProcessingMetadata;
+    originalPrompt: string;
+  }> {
+    const startTime = Date.now();
+    
     try {
-      // Use existing DataSanitizationService for comprehensive PII handling
-      sanitizationResult = await this.dataSanitizationService.sanitizeText(prompt, {
-        enableRedaction: true,
-        enablePseudonymization: true,
-        pseudonymizationContext: options.conversationId || 'pii-policy-check'
+      // STEP 0: Check if this is a local provider (Ollama) - skip ALL PII processing
+      const isLocalProvider = options.providerName?.toLowerCase() === 'ollama' || 
+                             options.provider?.toLowerCase() === 'ollama';
+      
+      if (isLocalProvider) {
+        this.logger.debug(`🏠 [PII-SERVICE] Local provider (Ollama) detected - SKIPPING ALL PII PROCESSING`);
+        
+        // Return minimal "no issues" metadata for local providers
+        const localMetadata: PIIProcessingMetadata = {
+          piiDetected: false,
+          showstopperDetected: false,
+          detectionResults: {
+            totalMatches: 0,
+            flaggedMatches: [],
+            dataTypesSummary: {},
+            severityBreakdown: { showstopper: 0, warning: 0, info: 0 }
+          },
+          policyDecision: {
+            allowed: true,
+            blocked: false,
+            violations: [],
+            reasoningPath: ['Local provider (Ollama) - no PII processing needed'],
+            appliedFor: 'local'
+          },
+          userMessage: {
+            summary: 'Local processing - no privacy concerns',
+            details: ['Data processed locally with Ollama'],
+            actionsTaken: ['No PII processing required'],
+            isBlocked: false
+          },
+          processingFlow: 'allowed-local',
+          processingSteps: ['local-provider-check', 'no-processing-needed'],
+          timestamps: {
+            detectionStart: startTime,
+            policyCheck: Date.now()
+          }
+        };
+
+        return {
+          metadata: localMetadata,
+          originalPrompt: prompt
+        };
+      }
+      
+      this.logger.debug(`🔍 [PII-SERVICE] External provider - Starting PII policy check for prompt: "${prompt.substring(0, 100)}..."`);
+      
+      // Step 1: Detect ALL PII first (External providers only)
+      const detectionResult = await this.piiPatternService.detectPII(prompt, {
+        minConfidence: 0.8,
+        maxMatches: 100,
       });
 
-      const hasRedactions = sanitizationResult.redactionResult?.redactionCount > 0;
-      const hasPseudonyms = sanitizationResult.pseudonymizationResult?.pseudonyms?.length > 0;
-      const isSignificantlyChanged = sanitizationResult.sanitizedText !== prompt;
+      this.logger.debug(`🔍 [PII-SERVICE] Detection found ${detectionResult.matches.length} PII matches`);
 
-      if (hasRedactions) {
-        // Redactions indicate secrets/credentials - this should block the request
-        reasoningPath.push(`PII Policy: BLOCKED - Sensitive credentials detected`);
-        reasoningPath.push(`Redacted patterns: ${sanitizationResult.redactionResult.patternsMatched?.join(', ') || 'classified'}`);
-        violations.push('Sensitive credentials detected in prompt');
-        
-        this.logger.warn(`Credentials detected in prompt - request blocked`);
-        
-        return {
-          allowed: false,
-          sanitizedPrompt: prompt, // Don't return sanitized version for blocked requests
-          sanitizationResult,
-          violations,
-          reasoningPath
-        };
-      } else if (hasPseudonyms) {
-        reasoningPath.push(`PII Policy: SANITIZED - ${sanitizationResult.pseudonymizationResult.pseudonyms.length} PII items replaced`);
-        const piiTypes = sanitizationResult.pseudonymizationResult.pseudonyms.map((p: any) => p.dataType);
-        reasoningPath.push(`Pseudonymized types: ${[...new Set(piiTypes)].join(', ')}`);
-        sanitizedPrompt = sanitizationResult.sanitizedText;
-        
-        this.logger.log(`PII pseudonymized: ${piiTypes.join(', ')}`);
-      } else if (isSignificantlyChanged) {
-        reasoningPath.push(`PII Policy: SANITIZED - Content cleaned`);
-        sanitizedPrompt = sanitizationResult.sanitizedText;
-        
-        this.logger.log(`Content sanitized during PII check`);
-      } else {
-        reasoningPath.push(`PII Policy: CLEAN - No sensitive content detected`);
-      }
+      // Step 2: Convert matches to our metadata format
+      const convertedMatches = this.convertPIIMatches(detectionResult.matches);
 
-      return {
-        allowed: true,
-        sanitizedPrompt,
-        sanitizationResult,
-        violations,
-        reasoningPath
-      };
-
-    } catch (sanitizationError) {
-      this.logger.error(`PII policy check failed: ${sanitizationError instanceof Error ? sanitizationError.message : String(sanitizationError)}`);
-      reasoningPath.push(`PII Policy: ERROR - Sanitization check failed`);
-      violations.push('PII policy check failed');
+      // Step 3: CRITICAL SHOWSTOPPER CHECK - Early Exit Point
+      const showstopperMatches = convertedMatches.filter(match => match.severity === 'showstopper');
       
-      // On error, allow but log the issue
-      return {
-        allowed: true,
-        sanitizedPrompt: prompt,
-        sanitizationResult: null,
-        violations,
-        reasoningPath
-      };
-    }
-  }
+      if (showstopperMatches.length > 0) {
+        this.logger.warn(`🛑 [PII-SERVICE] SHOWSTOPPER DETECTED - Immediate blocking`);
+        
+        // 🔥 EARLY EXIT: Build showstopper metadata and return immediately
+        const showstopperTypes = [...new Set(showstopperMatches.map(m => m.dataType))];
+        
+        const metadata: PIIProcessingMetadata = {
+          piiDetected: true,
+          showstopperDetected: true,  // 🔥 Critical flag
+          detectionResults: {
+            totalMatches: convertedMatches.length,
+            flaggedMatches: convertedMatches,  // All matches for transparency
+            showstopperMatches,  // Specific showstoppers
+            dataTypesSummary: this.buildDataTypeSummary(convertedMatches),
+            severityBreakdown: this.buildSeverityBreakdown(convertedMatches)
+          },
+          policyDecision: {
+            allowed: false,
+            blocked: true,
+            blockingReason: 'showstopper-pii',
+            violations: [`Showstopper PII detected: ${showstopperTypes.join(', ')}`],
+            reasoningPath: [
+              'PII Detection: COMPLETED',
+              `Showstopper PII found: ${showstopperTypes.join(', ')}`,
+              'BLOCKING REQUEST - No further processing'
+            ],
+            appliedFor: 'policy-blocked',
+            showstopperTypes
+          },
+          // 🔥 NO pseudonymInstructions - not needed for blocked requests
+          // 🔥 NO pseudonymResults - never populated for showstoppers
+          userMessage: this.generateShowstopperMessage(showstopperMatches),
+          processingFlow: 'showstopper-blocked',
+          processingSteps: ['pii-detection', 'showstopper-check', 'request-blocked'],
+          timestamps: {
+            detectionStart: startTime,
+            showstopperCheck: Date.now()
+          }
+        };
 
-  /**
-   * Sanitize system prompt and user message for LLM calls (used by LLM service)
-   */
-  async sanitizeForLLM(
-    systemPrompt: string,
-    userMessage: string,
-    isLocalProvider: boolean,
-    options: any = {}
-  ): Promise<PIILLMSanitizationResult> {
-    this.logger.log(`🔍 [PII-DEBUG] sanitizeForLLM called - isLocalProvider: ${isLocalProvider}, userMessage length: ${userMessage.length}`);
-    
-    // Skip sanitization for local providers
-    if (isLocalProvider) {
-      this.logger.log(`🔍 [PII-DEBUG] Local provider detected - skipping sanitization`);
-      await this.dataSanitizationService.debug(
-        'Using local provider - skipping sanitization',
-        undefined,
-        'PIIService',
-        { provider: 'local', sanitized: false }
-      );
-
-      return {
-        sanitizedSystemPrompt: systemPrompt,
-        sanitizedUserMessage: userMessage,
-        reversalContext: null,
-        sanitizationMetrics: this.getEmptySanitizationMetrics(),
-        shouldApplySanitization: false
-      };
-    }
-
-    // Apply sanitization for external providers
-    this.logger.log(`🔍 [PII-DEBUG] External provider detected - applying sanitization`);
-    this.logger.log(`🔍 [PII-DEBUG] User message preview: "${userMessage.substring(0, 100)}..."`);
-    
-    await this.dataSanitizationService.debug(
-      'Using external provider - applying sanitization',
-      undefined,
-      'PIIService',
-      { provider: 'external', sanitized: true }
-    );
-
-    try {
-      const sanitizationResult = await this.dataSanitizationService.sanitizeForLLM(
-        systemPrompt,
-        userMessage,
-        options.sessionId || options.conversationId || 'llm-call',
-        {
-          enableRedaction: process.env.ENABLE_REDACTION === 'true',
-          enablePseudonymization: true,
-          pseudonymizationContext: options.conversationId || 'llm-call'
-        }
-      );
-
-      this.logger.log(`🔍 [PII-DEBUG] Sanitization completed - sanitized user message preview: "${sanitizationResult.sanitizedUserMessage.substring(0, 100)}..."`);
-      this.logger.log(`🔍 [PII-DEBUG] Has reversal context: ${!!sanitizationResult.reversalContext}`);
-
-      const sanitizationMetrics = this.dataSanitizationService.extractSanitizationMetrics(
-        sanitizationResult.userSanitizationResult
-      );
-
-      await this.dataSanitizationService.debug(
-        'Content sanitized for external provider',
-        undefined,
-        'PIIService',
-        {
-          systemPromptLength: sanitizationResult.sanitizedSystemPrompt.length,
-          userMessageLength: sanitizationResult.sanitizedUserMessage.length,
-          sanitized: true,
-          hasReversalContext: !!sanitizationResult.reversalContext
-        }
-      );
-
-      return {
-        sanitizedSystemPrompt: sanitizationResult.sanitizedSystemPrompt,
-        sanitizedUserMessage: sanitizationResult.sanitizedUserMessage,
-        reversalContext: sanitizationResult.reversalContext,
-        sanitizationMetrics,
-        shouldApplySanitization: true
-      };
-
-    } catch (sanitizationError) {
-      await this.dataSanitizationService.error(
-        `Sanitization failed for external provider: ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}`,
-        undefined,
-        'PIIService',
-        {
-          systemPromptLength: systemPrompt.length,
-          userMessageLength: userMessage.length,
-          error: sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'
-        }
-      );
-
-      throw new Error(`Data sanitization failed for external provider: ${sanitizationError instanceof Error ? sanitizationError.message : 'Unknown error'}. Cannot proceed with unsanitized data to external provider.`);
-    }
-  }
-
-
-  /**
-   * Get policy violation details for logging/audit
-   */
-  getPolicyViolationDetails(result: PIIPolicyResult): any {
-    if (result.allowed) return null;
-
-    return {
-      blocked: true,
-      violations: result.violations,
-      sanitizationMetadata: result.sanitizationResult,
-      timestamp: new Date().toISOString()
-    };
-  }
-
-  /**
-   * Get empty sanitization metrics for local providers
-   */
-  private getEmptySanitizationMetrics(): any {
-    return {
-      sanitizationLevel: 'none',
-      piiDetected: false,
-      piiTypes: [],
-      pseudonymsUsed: 0,
-      pseudonymTypes: [],
-      redactionsApplied: 0,
-      redactionTypes: [],
-      sanitizationTimeMs: 0,
-      reversalContextSize: 0
-    };
-  }
-
-  /**
-   * Restore response content from pseudonyms (used by LLM service)
-   */
-  async restoreResponse(
-    responseContent: string,
-    reversalContext: any
-  ): Promise<PIIRestorationResult> {
-    try {
-      if (!reversalContext) {
+        this.logger.warn(`🛑 [PII-SERVICE] Request blocked due to ${showstopperTypes.join(', ')}`);
+        
+        // 🔥 IMMEDIATE RETURN - No further processing
         return {
-          restoredContent: responseContent,
-          success: true
+          metadata,
+          originalPrompt: prompt
         };
       }
 
-      // Use DataSanitizationService to restore the content
-      const restoredContent = await this.dataSanitizationService.reverseLLMResponse(
-        responseContent,
-        reversalContext
-      );
-
-      return {
-        restoredContent,
-        success: true
-      };
+      // Step 3: Only continue if NO showstoppers detected
+      this.logger.debug(`✅ [PII-SERVICE] No showstoppers detected, continuing with policy evaluation`);
+      
+      return this.continueNormalProcessing(convertedMatches, prompt, options, startTime);
 
     } catch (error) {
-      this.logger.error(`Failed to restore response content: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`🔥 [PII-SERVICE] Policy check failed: ${error instanceof Error ? error.message : String(error)}`);
+      
+      // On error, return metadata indicating failure but allow request
+      const errorMetadata: PIIProcessingMetadata = {
+        piiDetected: false,
+        showstopperDetected: false,
+        detectionResults: {
+          totalMatches: 0,
+          flaggedMatches: [],
+          dataTypesSummary: {},
+          severityBreakdown: { showstopper: 0, warning: 0, info: 0 }
+        },
+        policyDecision: {
+          allowed: true,
+          blocked: false,
+          violations: ['PII policy check failed'],
+          reasoningPath: ['PII Detection: FAILED', 'Allowing request due to error'],
+          appliedFor: 'external'
+        },
+        userMessage: {
+          summary: 'PII check temporarily unavailable',
+          details: ['PII detection service encountered an error'],
+          actionsTaken: ['Request processed without PII protection'],
+          isBlocked: false
+        },
+        processingFlow: 'allowed-local',
+        processingSteps: ['pii-detection-error', 'fallback-allow'],
+        timestamps: {
+          detectionStart: startTime
+        }
+      };
+
       return {
-        restoredContent: responseContent, // Return original on error
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
+        metadata: errorMetadata,
+        originalPrompt: prompt
       };
     }
   }
 
   /**
-   * Debug method to access underlying DataSanitizationService
+   * Continue normal processing for non-showstopper cases
    */
-  async debug(message: string, metadata?: any): Promise<void> {
-    return this.dataSanitizationService.debug(message, metadata);
+  private async continueNormalProcessing(
+    convertedMatches: PIIMatch[], 
+    prompt: string, 
+    options: any, 
+    startTime: number
+  ): Promise<{metadata: PIIProcessingMetadata; originalPrompt: string}> {
+    
+    // Check if this is a local provider (Ollama) - skip PII blocking for local providers
+    const isLocalProvider = options.providerName?.toLowerCase() === 'ollama' || 
+                           options.provider?.toLowerCase() === 'ollama';
+    
+    if (isLocalProvider) {
+      this.logger.debug(`🏠 [PII-SERVICE] Local provider detected - allowing without pseudonymization`);
+      
+      const localMetadata: PIIProcessingMetadata = {
+        piiDetected: convertedMatches.length > 0,
+        showstopperDetected: false,
+        detectionResults: {
+          totalMatches: convertedMatches.length,
+          flaggedMatches: convertedMatches,
+          dataTypesSummary: this.buildDataTypeSummary(convertedMatches),
+          severityBreakdown: this.buildSeverityBreakdown(convertedMatches)
+        },
+        policyDecision: {
+          allowed: true,
+          blocked: false,
+          violations: [],
+          reasoningPath: ['PII Policy: ALLOWED - Local provider (Ollama), data stays local'],
+          appliedFor: 'local'
+        },
+        userMessage: this.generateLocalProviderMessage(convertedMatches),
+        processingFlow: 'allowed-local',
+        processingSteps: ['pii-detection', 'local-provider-check', 'request-allowed'],
+        timestamps: {
+          detectionStart: startTime,
+          policyCheck: Date.now()
+        }
+      };
+
+      return {
+        metadata: localMetadata,
+        originalPrompt: prompt
+      };
+    }
+
+    // External provider - create pseudonym instructions
+    this.logger.debug(`🌐 [PII-SERVICE] External provider - creating pseudonym instructions`);
+    
+    const pseudonymizerMatches = convertedMatches.filter(match => 
+      match.severity === 'warning' || match.severity === 'info'
+    );
+    
+    const requestId = options.conversationId || options.requestId || `pii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const externalMetadata: PIIProcessingMetadata = {
+      piiDetected: convertedMatches.length > 0,
+      showstopperDetected: false,
+      detectionResults: {
+        totalMatches: convertedMatches.length,
+        flaggedMatches: convertedMatches,
+        dataTypesSummary: this.buildDataTypeSummary(convertedMatches),
+        severityBreakdown: this.buildSeverityBreakdown(convertedMatches)
+      },
+      policyDecision: {
+        allowed: true,
+        blocked: false,
+        violations: [],
+        reasoningPath: [
+          'PII Detection: COMPLETED',
+          `Found ${convertedMatches.length} PII matches`,
+          'External provider - creating pseudonym instructions'
+        ],
+        appliedFor: 'external'
+      },
+      pseudonymInstructions: {
+        shouldPseudonymize: pseudonymizerMatches.length > 0,
+        targetMatches: pseudonymizerMatches,
+        requestId,
+        context: 'llm-boundary'
+      },
+      userMessage: this.generateExternalProviderMessage(convertedMatches, pseudonymizerMatches),
+      processingFlow: 'pseudonymized',
+      processingSteps: ['pii-detection', 'external-provider-check', 'pseudonym-instructions-created'],
+      timestamps: {
+        detectionStart: startTime,
+        policyCheck: Date.now()
+      }
+    };
+
+    return {
+      metadata: externalMetadata,
+      originalPrompt: prompt
+    };
   }
 
   /**
-   * Info method to access underlying DataSanitizationService
+   * Helper Methods for Metadata Creation
    */
-  async info(message: string, metadata?: any): Promise<void> {
-    return this.dataSanitizationService.info(message, metadata);
+
+  /**
+   * Convert PIIPatternService PIIMatch to our metadata PIIMatch
+   */
+  private convertPIIMatches(patternMatches: PatternServicePIIMatch[]): PIIMatch[] {
+    return patternMatches.map(match => ({
+      value: match.value,
+      dataType: match.dataType,
+      severity: this.convertSeverity(match.severity),
+      confidence: match.confidence,
+      startIndex: match.startIndex,
+      endIndex: match.endIndex,
+      pattern: match.patternName,
+      // pseudonym will be populated later during processing
+    }));
   }
 
   /**
-   * Error method to access underlying DataSanitizationService
+   * Convert PIIPatternService severity to our metadata severity
    */
-  async error(message: string, metadata?: any): Promise<void> {
-    return this.dataSanitizationService.error(message, metadata);
+  private convertSeverity(severity?: string): PIISeverity {
+    switch (severity) {
+      case 'showstopper':
+        return 'showstopper';
+      case 'pseudonymizer':
+        return 'warning';
+      case 'flagger':
+        return 'info';
+      default:
+        return 'info';
+    }
   }
 
-  /**
-   * Warn method to access underlying DataSanitizationService
-   */
-  async warn(message: string, metadata?: any): Promise<void> {
-    return this.dataSanitizationService.warn(message, metadata);
+  private buildDataTypeSummary(matches: PIIMatch[]): Record<string, DataTypeSummary> {
+    const summary: Record<string, DataTypeSummary> = {};
+    
+    matches.forEach(match => {
+      if (!summary[match.dataType]) {
+        summary[match.dataType] = {
+          count: 0,
+          severity: match.severity,
+          examples: []
+        };
+      }
+      
+      const dataTypeSummary = summary[match.dataType];
+      if (dataTypeSummary) {
+        dataTypeSummary.count++;
+        
+        // Add truncated example for UI display (first 3 chars + "...")
+        if (dataTypeSummary.examples.length < 3) {
+          const example = match.value.length > 6 
+            ? match.value.substring(0, 3) + '...' 
+            : '***';
+          dataTypeSummary.examples.push(example);
+        }
+      }
+    });
+    
+    return summary;
   }
+
+  private buildSeverityBreakdown(matches: PIIMatch[]): SeverityBreakdown {
+    return {
+      showstopper: matches.filter(m => m.severity === 'showstopper').length,
+      warning: matches.filter(m => m.severity === 'warning').length,
+      info: matches.filter(m => m.severity === 'info').length
+    };
+  }
+
+  private generateShowstopperMessage(showstopperMatches: PIIMatch[]): UserMessage {
+    const showstopperTypes = [...new Set(showstopperMatches.map(m => m.dataType))];
+    const count = showstopperMatches.length;
+    
+    return {
+      summary: `Request blocked: ${count} highly sensitive information type${count > 1 ? 's' : ''} detected`,
+      details: [
+        `Detected: ${showstopperTypes.join(', ')}`,
+        'This type of information cannot be processed by external AI services',
+        'Your request was not sent to any AI model'
+      ],
+      actionsTaken: [
+        'Request immediately blocked',
+        'No data sent to external services',
+        'Information kept completely private'
+      ],
+      isBlocked: true,
+      blockingDetails: {
+        showstopperTypes,
+        affectedCount: count,
+        recommendation: 'Please remove or rephrase sensitive information and try again'
+      }
+    };
+  }
+
+  private generateLocalProviderMessage(matches: PIIMatch[]): UserMessage {
+    if (matches.length === 0) {
+      return {
+        summary: "No personal information detected",
+        details: [],
+        actionsTaken: ['Request processed with local AI model'],
+        isBlocked: false
+      };
+    }
+
+    const dataTypes = [...new Set(matches.map(m => m.dataType))];
+    return {
+      summary: `${matches.length} piece${matches.length > 1 ? 's' : ''} of personal information detected`,
+      details: [
+        `Detected: ${dataTypes.join(', ')}`,
+        'Using local AI model - your data stays completely private'
+      ],
+      actionsTaken: [
+        'Processed with local AI model (Ollama)',
+        'No data sent to external services'
+      ],
+      isBlocked: false
+    };
+  }
+
+  private generateExternalProviderMessage(allMatches: PIIMatch[], pseudonymizerMatches: PIIMatch[]): UserMessage {
+    if (allMatches.length === 0) {
+      return {
+        summary: "No personal information detected",
+        details: [],
+        actionsTaken: ['Request sent to AI model without modifications'],
+        isBlocked: false
+      };
+    }
+
+    const dataTypes = [...new Set(allMatches.map(m => m.dataType))];
+    const pseudonymizedTypes = [...new Set(pseudonymizerMatches.map(m => m.dataType))];
+    
+    if (pseudonymizerMatches.length === 0) {
+      return {
+        summary: `${allMatches.length} piece${allMatches.length > 1 ? 's' : ''} of personal information detected`,
+        details: [
+          `Detected: ${dataTypes.join(', ')}`,
+          'Information flagged for monitoring but not modified'
+        ],
+        actionsTaken: [
+          'Request sent to AI model with monitoring',
+          'No modifications made to your content'
+        ],
+        isBlocked: false
+      };
+    }
+
+    return {
+      summary: `Privacy protected: ${pseudonymizerMatches.length} piece${pseudonymizerMatches.length > 1 ? 's' : ''} of personal information will be anonymized`,
+      details: [
+        `Will be anonymized: ${pseudonymizedTypes.join(', ')}`,
+        'Temporary identifiers will be used when sending to AI',
+        'Original values will be restored in the response'
+      ],
+      actionsTaken: [
+        'Personal information will be temporarily replaced',
+        'AI will receive anonymized version',
+        'Response will contain your original information'
+      ],
+      isBlocked: false
+    };
+  }
+
 }

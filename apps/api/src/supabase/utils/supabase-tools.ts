@@ -379,7 +379,7 @@ export async function generateAndExecuteCompanySQL(
       metadata: {
         executionTime,
         rowCount: result?.length,
-        provider: options.provider || 'openai',
+        provider: options.provider || 'unknown',
         model: options.model || 'gpt-4',
       },
     };
@@ -390,7 +390,7 @@ export async function generateAndExecuteCompanySQL(
       error: generationError instanceof Error ? generationError.message : 'SQL generation failed',
       metadata: {
         executionTime,
-        provider: options.provider || 'openai',
+        provider: options.provider || 'unknown',
         model: options.model || 'gpt-4',
       },
     };
@@ -450,7 +450,7 @@ export async function generateAndExecuteOrchestratorSQL(
       metadata: {
         executionTime,
         rowCount: result?.length,
-        provider: options.provider || 'openai',
+        provider: options.provider || 'unknown',
         model: options.model || 'gpt-4',
       },
     };
@@ -461,7 +461,7 @@ export async function generateAndExecuteOrchestratorSQL(
       error: generationError instanceof Error ? generationError.message : 'SQL generation failed',
       metadata: {
         executionTime,
-        provider: options.provider || 'openai',
+        provider: options.provider || 'unknown',
         model: options.model || 'gpt-4',
       },
     };
