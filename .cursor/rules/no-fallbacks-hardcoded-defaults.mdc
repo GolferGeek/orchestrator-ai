@@ -1,0 +1,185 @@
+---
+description: "Strict prohibition against fallbacks, hardcoded defaults, and silent failure patterns"
+globs: ["**/*.ts", "**/*.js", "**/*.tsx", "**/*.jsx"]
+alwaysApply: true
+---
+
+# NO FALLBACKS & HARDCODED DEFAULTS
+
+## 🚫 ABSOLUTELY FORBIDDEN PATTERNS
+
+### **Never Use Fallback Operators (`||`) for Critical Configuration**
+```typescript
+// ❌ NEVER DO THIS - Silent fallbacks hide configuration problems
+const provider = config.provider || 'openai';
+const model = config.model || 'gpt-4';
+const apiKey = process.env.API_KEY || 'default-key';
+
+// ✅ DO THIS - Explicit validation with clear errors
+if (!config.provider) {
+  throw new Error('Provider must be explicitly configured');
+}
+if (!config.model) {
+  throw new Error('Model must be explicitly configured');
+}
+```
+
+### **Never Use Hardcoded Provider/Model Defaults**
+```typescript
+// ❌ NEVER DO THIS - Hardcoded assumptions
+function createLLM(options?: { provider?: string }) {
+  const provider = options?.provider || 'openai'; // FORBIDDEN
+  return new LLMClient(provider);
+}
+
+// ✅ DO THIS - Require explicit configuration
+function createLLM(options: { provider: string; model: string }) {
+  if (!options.provider || !options.model) {
+    throw new Error('Provider and model are required - no defaults provided');
+  }
+  return new LLMClient(options);
+}
+```
+
+### **Never Use Emergency/Fallback Providers**
+```typescript
+// ❌ NEVER DO THIS - Emergency fallbacks hide real problems
+try {
+  return await primaryProvider.call(prompt);
+} catch (error) {
+  // Silent fallback to different provider
+  return await openaiProvider.call(prompt); // FORBIDDEN
+}
+
+// ✅ DO THIS - Fail fast with clear error
+try {
+  return await configuredProvider.call(prompt);
+} catch (error) {
+  throw new Error(`Provider '${providerName}' failed: ${error.message}. No fallback configured.`);
+}
+```
+
+### **Never Use Default Service Configurations**
+```typescript
+// ❌ NEVER DO THIS - Hidden service defaults
+const config = {
+  llmProvider: process.env.LLM_PROVIDER || 'openai', // FORBIDDEN
+  database: process.env.DB_URL || 'sqlite://default.db', // FORBIDDEN
+};
+
+// ✅ DO THIS - Explicit validation
+const requiredEnvVars = ['LLM_PROVIDER', 'LLM_MODEL', 'DB_URL'];
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    throw new Error(`Required environment variable ${envVar} is not set`);
+  }
+}
+```
+
+## ✅ REQUIRED PATTERNS
+
+### **Explicit Configuration Validation**
+- **Always validate** that required configuration is present
+- **Throw clear errors** when configuration is missing
+- **Document exactly** what needs to be configured
+- **Provide examples** of correct configuration
+
+### **Fail Fast Philosophy**
+- **Fail at startup** if configuration is invalid
+- **Fail immediately** when required services are unavailable  
+- **Never continue** with degraded functionality
+- **Always surface** the root cause of failures
+
+### **Clear Error Messages**
+```typescript
+// ✅ GOOD - Actionable error messages
+throw new Error(
+  `LLM provider '${provider}' not found in database. ` +
+  `Available providers: ${availableProviders.join(', ')}. ` +
+  `Please configure the provider in the admin panel.`
+);
+
+// ❌ BAD - Vague error messages  
+throw new Error('Provider not found');
+```
+
+### **Configuration Documentation**
+- **Document all** required environment variables
+- **Provide examples** of valid configurations
+- **Explain the impact** of each configuration option
+- **No magic values** or undocumented defaults
+
+## 🎯 SPECIFIC ANTI-PATTERNS TO AVOID
+
+### **LLM Service Patterns**
+```typescript
+// ❌ FORBIDDEN
+const llm = new LLMService({
+  provider: options?.provider || 'openai' // NO!
+});
+
+// ✅ REQUIRED
+if (!options?.provider || !options?.model) {
+  throw new Error('LLM provider and model must be explicitly specified');
+}
+```
+
+### **Database Connection Patterns**
+```typescript
+// ❌ FORBIDDEN  
+const db = new Database(url || 'sqlite://fallback.db'); // NO!
+
+// ✅ REQUIRED
+if (!url) {
+  throw new Error('Database URL is required - no fallback database configured');
+}
+```
+
+### **API Client Patterns**
+```typescript
+// ❌ FORBIDDEN
+const client = new APIClient({
+  baseUrl: config.baseUrl || 'https://api.default.com' // NO!
+});
+
+// ✅ REQUIRED
+if (!config.baseUrl) {
+  throw new Error('API base URL must be configured');
+}
+```
+
+## 🔍 WHY THESE RULES EXIST
+
+### **Problems with Fallbacks:**
+1. **Silent Failures** - System appears to work but uses wrong configuration
+2. **Debugging Nightmares** - Impossible to tell what's actually being used
+3. **Hidden Dependencies** - System relies on fallbacks that might not work
+4. **Configuration Drift** - Real config gets ignored because fallbacks "work"
+5. **Unpredictable Behavior** - Users expect Provider A but get Provider B
+
+### **Benefits of Explicit Configuration:**
+1. **Predictable Behavior** - You get exactly what you configure
+2. **Easy Debugging** - Clear errors show exactly what's missing
+3. **Reliable Systems** - No surprise dependencies or hidden assumptions
+4. **Clear Documentation** - Configuration requirements are obvious
+5. **Fast Failure** - Problems are caught immediately, not in production
+
+## 📋 CHECKLIST FOR CODE REVIEW
+
+Before submitting any code, verify:
+
+- [ ] **No `||` operators** used for critical configuration
+- [ ] **No hardcoded** provider, model, or service defaults
+- [ ] **All required config** is validated at startup
+- [ ] **Clear error messages** explain what's missing and how to fix it
+- [ ] **No emergency fallbacks** or silent degradation
+- [ ] **Configuration is documented** with examples
+- [ ] **Tests verify** that missing config throws appropriate errors
+
+## 🚨 ENFORCEMENT
+
+**Any code that violates these rules will be rejected.**
+
+These patterns have caused significant debugging issues and production problems. The codebase must be explicit, predictable, and fail-fast.
+
+**When in doubt: Throw an error with a clear message rather than guess what the user wanted.**

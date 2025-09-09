@@ -47,7 +47,23 @@ export class TaskExecutionService {
       }
     );
 
-
+    // Check if the response indicates a PII policy block (successful response but blocked)
+    if (task?.blocked && task?.reason === 'PII_POLICY_VIOLATION') {
+      // Handle PII policy violation by calling the status update handler
+      const piiViolationUpdate = {
+        status: 'failed',
+        error: task.message || 'Request blocked due to sensitive information detected',
+        metadata: {
+          type: 'pii_violation',
+          blocked: true,
+          detectedTypes: task.details?.detectedTypes || [],
+          suggestion: task.details?.suggestion || 'Please remove any SSNs, credit card numbers, API keys, or other sensitive data and try again.'
+        }
+      };
+      
+      handlers.onStatusUpdate(conversationId, task.taskId || options.taskId, piiViolationUpdate);
+      return; // Exit early, no need to continue processing
+    }
 
     // Handle response based on execution mode and task status
     await this.handleTaskExecution(task, executionMode, conversationId, handlers);
