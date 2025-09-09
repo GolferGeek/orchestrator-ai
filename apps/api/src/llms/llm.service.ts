@@ -540,25 +540,32 @@ export class LLMService {
       const requestId = options?.conversationId || options?.sessionId || `enhanced-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       // Step 1: Dictionary-based pseudonymization before LLM call
-      const pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(finalProcessedPrompt);
+      // Only pseudonymize for external providers
+      let pseudonymResult: any = null;
+      if (!isLocalProvider) {
+        pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(finalProcessedPrompt);
+      }
 
-      // System prompts typically don't contain user PII, but process them if needed
-      enhancedSystemPrompt = enhancedSystemPrompt; // Keep as-is for now
-      finalProcessedPrompt = pseudonymResult.pseudonymizedText;
-      sanitizationContext = pseudonymResult; // Store for reversal
+      // Apply pseudonymization results if external provider
+      if (pseudonymResult) {
+        finalProcessedPrompt = pseudonymResult.pseudonymizedText;
+        sanitizationContext = pseudonymResult; // Store for reversal
 
-      this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] Pseudonymization completed: ${pseudonymResult.mappings.length} replacements in ${pseudonymResult.processingTimeMs}ms`);
-      if (pseudonymResult.mappings.length > 0) {
-        pseudonymResult.mappings.forEach(mapping => {
-          this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] "${mapping.originalValue}" → "${mapping.pseudonym}"`);
-        });
+        this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] Enhanced pseudonymization applied: ${pseudonymResult.mappings.length} replacements in ${pseudonymResult.processingTimeMs}ms`);
+        if (pseudonymResult.mappings.length > 0) {
+          pseudonymResult.mappings.forEach(mapping => {
+            this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] "${mapping.originalValue}" → "${mapping.pseudonym}"`);
+          });
+        }
+      } else {
+        this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] Skipping pseudonymization for local provider: ${provider.name}`);
       }
 
       // Create sanitization metrics for compatibility
       const sanitizationMetrics = {
-        sanitizationLevel: pseudonymResult.mappings.length > 0 ? 'pseudonymized' : 'none',
-        pseudonymCount: pseudonymResult.mappings.length,
-        processingTimeMs: pseudonymResult.processingTimeMs
+        sanitizationLevel: pseudonymResult && pseudonymResult.mappings.length > 0 ? 'pseudonymized' : 'none',
+        pseudonymCount: pseudonymResult ? pseudonymResult.mappings.length : 0,
+        processingTimeMs: pseudonymResult ? pseudonymResult.processingTimeMs : 0
       };
 
       // Create LLM instance with dynamic configuration
