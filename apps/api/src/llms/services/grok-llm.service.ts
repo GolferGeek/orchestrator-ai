@@ -1,0 +1,361 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { BaseLLMService } from '../base-llm.service';
+import { 
+  GenerateResponseParams, 
+  LLMResponse, 
+  LLMServiceConfig,
+  ResponseMetadata 
+} from './llm-interfaces';
+import { PIIService } from '../../services/pii.service';
+import { PseudonymizerService } from '../../services/pseudonymizer.service';
+import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
+import { RunMetadataService } from '../run-metadata.service';
+import { ProviderConfigService } from '../provider-config.service';
+
+/**
+ * Grok-specific response metadata extension
+ */
+interface GrokResponseMetadata extends ResponseMetadata {
+  providerSpecific: {
+    finish_reason: 'stop' | 'length' | 'content_filter' | 'tool_calls';
+    system_fingerprint?: string;
+    model_version?: string;
+    // Grok-specific fields
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    // xAI specific features
+    reasoning_tokens?: number;
+    cached_tokens?: number;
+  };
+}
+
+/**
+ * Grok (xAI) LLM Service Implementation
+ * 
+ * This example shows how to extend BaseLLMService for xAI's Grok models
+ * with provider-specific functionality and metadata handling.
+ */
+@Injectable()
+export class GrokLLMService extends BaseLLMService {
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+
+  constructor(
+    config: LLMServiceConfig,
+    piiService: PIIService,
+    pseudonymizerService: PseudonymizerService,
+    dictionaryPseudonymizerService: DictionaryPseudonymizerService,
+    runMetadataService: RunMetadataService,
+    providerConfigService: ProviderConfigService,
+  ) {
+    super(
+      config,
+      piiService,
+      pseudonymizerService,
+      dictionaryPseudonymizerService,
+      runMetadataService,
+      providerConfigService,
+    );
+
+    const apiKey = config.apiKey || process.env.XAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('Grok API key is required');
+    }
+    
+    this.apiKey = apiKey;
+    this.baseUrl = config.baseUrl || 'https://api.x.ai/v1';
+  }
+
+  /**
+   * Implementation of the abstract generateResponse method for Grok
+   */
+  async generateResponse(params: GenerateResponseParams): Promise<LLMResponse> {
+    const startTime = Date.now();
+    const requestId = this.generateRequestId('grok');
+    
+    try {
+      // Validate configuration
+      this.validateConfig(params.config);
+      
+      // Handle PII in input
+      const piiResult = await this.handlePiiInput(params.userMessage, {
+        enablePseudonymization: true,
+        useDictionaryPseudonymizer: false,
+      });
+      
+      // Prepare Grok request (OpenAI-compatible API)
+      const messages = [
+        { role: 'system', content: params.systemPrompt },
+        { role: 'user', content: piiResult.processedText },
+      ];
+
+      const requestBody = {
+        model: params.config.model,
+        messages,
+        temperature: params.options?.temperature ?? params.config.temperature ?? 0.7,
+        max_tokens: params.options?.maxTokens ?? params.config.maxTokens,
+        stream: false,
+      };
+
+      // Make Grok API call
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Grok API error (${response.status}): ${errorText}`);
+      }
+
+      const completion = await response.json();
+      const choice = completion.choices?.[0];
+      
+      if (!choice?.message?.content) {
+        throw new Error('No content in Grok response');
+      }
+
+      // Handle PII in output (pseudonym reversal)
+      const finalContent = await this.handlePiiOutput(choice.message.content, requestId);
+      
+      const endTime = Date.now();
+      
+      // Create Grok-specific metadata
+      const metadata = this.createGrokMetadata(
+        completion,
+        params,
+        startTime,
+        endTime,
+        requestId
+      );
+      
+      // Track usage
+      this.trackUsage(
+        params.config.provider,
+        params.config.model,
+        metadata.usage.inputTokens,
+        metadata.usage.outputTokens,
+        metadata.usage.cost,
+      );
+      
+      const llmResponse: LLMResponse = {
+        content: finalContent,
+        metadata,
+        piiMetadata: piiResult.piiMetadata,
+      };
+      
+      // Optional LangSmith integration
+      const langsmithRunId = await this.integrateLangSmith(params, llmResponse);
+      if (langsmithRunId) {
+        llmResponse.metadata.langsmithRunId = langsmithRunId;
+      }
+      
+      // Log request/response
+      this.logRequestResponse(params, llmResponse, metadata.timing.duration);
+      
+      return llmResponse;
+    } catch (error) {
+      this.handleError(error, 'GrokLLMService.generateResponse');
+    }
+  }
+
+  /**
+   * Create Grok-specific metadata with provider-specific fields
+   */
+  private createGrokMetadata(
+    completion: any,
+    params: GenerateResponseParams,
+    startTime: number,
+    endTime: number,
+    requestId: string
+  ): GrokResponseMetadata {
+    const choice = completion.choices?.[0];
+    const usage = completion.usage;
+    
+    return {
+      provider: 'grok',
+      model: completion.model,
+      requestId,
+      timestamp: new Date().toISOString(),
+      usage: {
+        inputTokens: usage?.prompt_tokens || 0,
+        outputTokens: usage?.completion_tokens || 0,
+        totalTokens: usage?.total_tokens || 0,
+        cost: this.calculateCost('grok', completion.model, usage?.prompt_tokens || 0, usage?.completion_tokens || 0),
+      },
+      timing: {
+        startTime,
+        endTime,
+        duration: endTime - startTime,
+      },
+      tier: params.options?.preferLocal ? 'local' : 'external',
+      status: 'completed',
+      // Grok-specific fields
+      providerSpecific: {
+        finish_reason: choice?.finish_reason,
+        system_fingerprint: completion.system_fingerprint,
+        model_version: completion.model,
+        // Include actual token counts from Grok
+        prompt_tokens: usage?.prompt_tokens,
+        completion_tokens: usage?.completion_tokens,
+        total_tokens: usage?.total_tokens,
+        // Grok may have additional fields
+        reasoning_tokens: usage?.reasoning_tokens,
+        cached_tokens: usage?.cached_tokens,
+      },
+    };
+  }
+
+  /**
+   * Override LangSmith integration for Grok-specific tracing
+   */
+  protected async integrateLangSmith(
+    params: GenerateResponseParams,
+    response: LLMResponse
+  ): Promise<string | undefined> {
+    // Example Grok-specific LangSmith integration
+    if (process.env.LANGSMITH_API_KEY && process.env.LANGSMITH_TRACING === 'true') {
+      try {
+        // This would integrate with LangSmith for Grok-specific tracing
+        const runId = `grok-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        this.logger.debug(`LangSmith integration for Grok: ${runId}`);
+        return runId;
+      } catch (error) {
+        this.logger.warn('LangSmith integration failed:', error);
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Grok-specific configuration validation
+   */
+  protected validateConfig(config: LLMServiceConfig): void {
+    super.validateConfig(config);
+    
+    if (config.provider !== 'grok') {
+      throw new Error('GrokLLMService requires provider to be "grok"');
+    }
+    
+    if (!config.apiKey && !process.env.XAI_API_KEY) {
+      throw new Error('Grok (xAI) API key is required');
+    }
+    
+    // Validate Grok-specific model names
+    const validModels = [
+      'grok-beta',
+      'grok-vision-beta',
+    ];
+    
+    if (!validModels.some(model => config.model.includes(model))) {
+      this.logger.warn(`Unknown Grok model: ${config.model}. Proceeding anyway.`);
+    }
+  }
+
+  /**
+   * Grok-specific error handling
+   */
+  protected handleError(error: any, context: string): never {
+    // Handle Grok-specific errors
+    if (error.message?.includes('401')) {
+      throw new Error(`${context}: Invalid Grok API key`);
+    } else if (error.message?.includes('429')) {
+      throw new Error(`${context}: Rate limit exceeded for Grok API`);
+    } else if (error.message?.includes('400')) {
+      throw new Error(`${context}: Invalid request to Grok API`);
+    }
+    
+    // Fall back to base error handling
+    super.handleError(error, context);
+  }
+
+  /**
+   * Override cost calculation for Grok-specific pricing
+   */
+  protected calculateCost(provider: string, model: string, inputTokens: number, outputTokens: number): number {
+    // Grok pricing (as of late 2024)
+    // Note: These are example rates - check xAI documentation for current pricing
+    const grokRates = {
+      'grok-beta': {
+        input: 0.000005,  // $5 per 1M input tokens
+        output: 0.000015, // $15 per 1M output tokens
+      },
+      'grok-vision-beta': {
+        input: 0.000005,  // $5 per 1M input tokens
+        output: 0.000015, // $15 per 1M output tokens
+      },
+    };
+
+    const rates = grokRates[model as keyof typeof grokRates] || grokRates['grok-beta'];
+    return (inputTokens * rates.input) + (outputTokens * rates.output);
+  }
+}
+
+/**
+ * Factory function to create Grok service instances
+ */
+export function createGrokService(
+  config: LLMServiceConfig,
+  dependencies: {
+    piiService: PIIService;
+    pseudonymizerService: PseudonymizerService;
+    dictionaryPseudonymizerService: DictionaryPseudonymizerService;
+    runMetadataService: RunMetadataService;
+    providerConfigService: ProviderConfigService;
+  }
+): GrokLLMService {
+  return new GrokLLMService(
+    { ...config, provider: 'grok' },
+    dependencies.piiService,
+    dependencies.pseudonymizerService,
+    dependencies.dictionaryPseudonymizerService,
+    dependencies.runMetadataService,
+    dependencies.providerConfigService,
+  );
+}
+
+/**
+ * Example usage and testing
+ */
+export async function testGrokService() {
+  // This would be used in your tests to verify the Grok implementation
+  const config: LLMServiceConfig = {
+    provider: 'grok',
+    model: 'grok-beta',
+    temperature: 0.7,
+    maxTokens: 1000,
+  };
+
+  // Mock dependencies for testing
+  const mockDependencies = {
+    piiService: {} as PIIService,
+    pseudonymizerService: {} as PseudonymizerService,
+    dictionaryPseudonymizerService: {} as DictionaryPseudonymizerService,
+    runMetadataService: {} as RunMetadataService,
+    providerConfigService: {} as ProviderConfigService,
+  };
+
+  const service = createGrokService(config, mockDependencies);
+  
+  const params: GenerateResponseParams = {
+    systemPrompt: 'You are Grok, a witty and helpful AI assistant.',
+    userMessage: 'Tell me something interesting about space exploration.',
+    config,
+    conversationId: 'test-conversation',
+  };
+
+  try {
+    const response = await service.generateResponse(params);
+    console.log('Grok Response:', response.content);
+    console.log('Metadata:', response.metadata);
+    return response;
+  } catch (error) {
+    console.error('Grok Service Error:', error);
+    throw error;
+  }
+}

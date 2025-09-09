@@ -46,3 +46,7 @@ apps/web/dist/
 
 # TaskMaster files - exclude from Git
 .taskmaster/ 
+
+# Task files
+# tasks.json
+# tasks/ 
