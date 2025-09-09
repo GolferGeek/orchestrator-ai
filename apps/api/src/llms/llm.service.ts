@@ -14,6 +14,7 @@ import { ProviderConfigService } from './provider-config.service';
 import { DataSanitizationService, DetailedSanitizationMetrics } from './data-sanitization.service';
 import { PIIService } from '../services/pii.service';
 import { PseudonymizerService } from '../services/pseudonymizer.service';
+import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
 import { PIIProcessingMetadata } from '../common/types/pii-metadata.types';
 import { LocalModelStatusService } from './local-model-status.service';
 import { LocalLLMService } from './local-llm.service';
@@ -66,6 +67,7 @@ export class LLMService {
     private readonly dataSanitizationService: DataSanitizationService,
     private readonly piiService: PIIService,
     private readonly pseudonymizerService: PseudonymizerService,
+    private readonly dictionaryPseudonymizerService: DictionaryPseudonymizerService,
     private readonly localModelStatusService: LocalModelStatusService,
     private readonly localLLMService: LocalLLMService,
     private readonly blindedLLMService: BlindedLLMService,
@@ -525,22 +527,18 @@ export class LLMService {
       // Generate request ID for pseudonymization context
       const requestId = options?.conversationId || options?.sessionId || `enhanced-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Step 1: Pseudonymize user message before LLM call
-      const pseudonymResult = await this.pseudonymizerService.pseudonymizeText(
-        finalProcessedPrompt,
-        requestId,
-        { context: 'enhanced-llm-call' }
-      );
+      // Step 1: Dictionary-based pseudonymization before LLM call
+      const pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(finalProcessedPrompt);
 
       // System prompts typically don't contain user PII, but process them if needed
       enhancedSystemPrompt = enhancedSystemPrompt; // Keep as-is for now
       finalProcessedPrompt = pseudonymResult.pseudonymizedText;
       sanitizationContext = pseudonymResult; // Store for reversal
 
-      this.logger.log(`🎭 [PSEUDONYMIZER-DEBUG] Enhanced pseudonymization completed: ${pseudonymResult.mappings.length} replacements in ${pseudonymResult.processingTimeMs}ms`);
+      this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] Pseudonymization completed: ${pseudonymResult.mappings.length} replacements in ${pseudonymResult.processingTimeMs}ms`);
       if (pseudonymResult.mappings.length > 0) {
         pseudonymResult.mappings.forEach(mapping => {
-          this.logger.log(`🎭 [PSEUDONYMIZER-DEBUG] "${mapping.originalValue}" → "${mapping.pseudonym}"`);
+          this.logger.log(`🎯 [DICTIONARY-PSEUDONYMIZER] "${mapping.originalValue}" → "${mapping.pseudonym}"`);
         });
       }
 
@@ -571,16 +569,16 @@ export class LLMService {
 
       // Step 2: Reverse pseudonyms in the response
       if (sanitizationContext && sanitizationContext.mappings && sanitizationContext.mappings.length > 0) {
-        const reversalResult = await this.pseudonymizerService.reversePseudonyms(
+        const reversalResult = await this.dictionaryPseudonymizerService.reversePseudonyms(
           content,
-          requestId
+          sanitizationContext.mappings
         );
         content = reversalResult.originalText;
         
-        this.logger.log(`🔄 [PSEUDONYMIZER-DEBUG] Enhanced reversal completed: ${reversalResult.reversalCount} reversals in ${reversalResult.processingTimeMs}ms`);
+        this.logger.log(`🔄 [DICTIONARY-PSEUDONYMIZER] Reversal completed: ${reversalResult.reversalCount} reversals in ${reversalResult.processingTimeMs}ms`);
         
         if (reversalResult.reversalCount === 0 && sanitizationContext.mappings.length > 0) {
-          this.logger.warn(`🔄 [PSEUDONYMIZER-DEBUG] Expected reversals but none found - LLM may not have used the pseudonyms`);
+          this.logger.warn(`🔄 [DICTIONARY-PSEUDONYMIZER] Expected reversals but none found - LLM may not have used the pseudonyms`);
         }
       }
 
@@ -601,11 +599,9 @@ export class LLMService {
         model.pricingOutputPer1k || 0,
       );
 
-      // NEW ARCHITECTURE: Extract PII metadata from routing decision for database tracking
-      // Database tracking happens regardless of whether pseudonyms are used
-      const piiMetadata = (routingDecision as any).piiMetadata || null;
-      const hasPiiProcessing = piiMetadata && piiMetadata.piiDetected;
-      const pseudonymCount = piiMetadata?.pseudonymInstructions?.targetMatches?.length || 0;
+      // Dictionary-based pseudonymization metadata for database tracking
+      const hasPiiProcessing = sanitizationContext && sanitizationContext.mappings && sanitizationContext.mappings.length > 0;
+      const pseudonymCount = sanitizationContext?.mappings?.length || 0;
 
       const usage: LLMUsageMetrics = {
         inputTokens: inputTokens,
@@ -614,15 +610,13 @@ export class LLMService {
         responseTimeMs: responseTimeMs,
         // langsmithRunId would be extracted from LangSmith tracing
         
-        // NEW ARCHITECTURE: Data sanitization metrics from PII metadata
+        // Dictionary-based pseudonymization metrics
         dataSanitizationApplied: hasPiiProcessing,
-        sanitizationLevel: (piiMetadata?.policyDecision?.severity === 'high' ? 'strict' : 
-                           piiMetadata?.policyDecision?.severity === 'medium' ? 'standard' : 
-                           hasPiiProcessing ? 'basic' : 'none') as 'none' | 'basic' | 'standard' | 'strict',
+        sanitizationLevel: hasPiiProcessing ? 'standard' : 'none' as 'none' | 'basic' | 'standard' | 'strict',
         piiDetected: hasPiiProcessing,
-        piiTypes: piiMetadata?.detectionResults?.flaggedMatches?.map((m: any) => m.dataType) || [],
+        piiTypes: sanitizationContext?.mappings?.map((m: any) => m.dataType) || [],
         pseudonymsUsed: pseudonymCount,
-        pseudonymTypes: [...new Set(piiMetadata?.detectionResults?.flaggedMatches?.map((m: any) => m.dataType as string) || [])] as string[],
+        pseudonymTypes: [...new Set(sanitizationContext?.mappings?.map((m: any) => m.dataType as string) || [])] as string[],
         redactionsApplied: 0, // New architecture uses pseudonymization, not redaction
         redactionTypes: [],
         
@@ -641,16 +635,14 @@ export class LLMService {
         sovereignMode: false,
         
         // Performance metrics
-        sanitizationTimeMs: piiMetadata?.processingTimeMs || 0,
-        reversalContextSize: piiMetadata?.pseudonymResults?.mappings?.length || 0,
+        sanitizationTimeMs: sanitizationContext?.processingTimeMs || 0,
+        reversalContextSize: sanitizationContext?.mappings?.length || 0,
         
-        // NEW ARCHITECTURE: Compliance flags based on PII metadata
+        // Dictionary-based compliance flags
         complianceFlags: {
           gdprCompliant: hasPiiProcessing && pseudonymCount > 0,
-          hipaaCompliant: piiMetadata?.policyDecision?.severity === 'high' && pseudonymCount > 0,
-          pciCompliant: piiMetadata?.detectionResults?.flaggedMatches?.some((m: any) => 
-            m.dataType === 'credit_card' || m.dataType === 'ssn'
-          ) || false,
+          hipaaCompliant: false, // Dictionary-based approach doesn't have severity levels
+          pciCompliant: false, // Our dictionary doesn't contain credit card or SSN patterns
         },
       };
 
@@ -801,19 +793,18 @@ export class LLMService {
             const requestId = options?.conversationId || options?.sessionId || `llm-${Date.now()}`;
             
             try {
-              // Apply pseudonymization to user message
-              const pseudonymResult = await this.pseudonymizerService.pseudonymizeText(
-                userMessage,
-                requestId,
-                { context: 'llm-boundary' }
-              );
+              // Apply dictionary-based pseudonymization to user message
+              const pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(userMessage);
               
               effectiveUserMessage = pseudonymResult.pseudonymizedText;
               
-              this.logger.debug(`🎭 [LLM-BOUNDARY] Pseudonymization applied: ${pseudonymResult.mappings.length} mappings created`);
+              // Store pseudonym mappings in routing decision for reversal
+              (routingDecision as any).pseudonymMappings = pseudonymResult.mappings;
+              
+              this.logger.debug(`🎯 [DICTIONARY-PSEUDONYMIZER] Centralized pseudonymization applied: ${pseudonymResult.mappings.length} mappings created`);
               
             } catch (error) {
-              this.logger.error(`🎭 [LLM-BOUNDARY] Pseudonymization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              this.logger.error(`🎯 [DICTIONARY-PSEUDONYMIZER] Centralized pseudonymization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
               // Continue with original text if pseudonymization fails
             }
           } else {
@@ -840,14 +831,16 @@ export class LLMService {
           const requestId = options?.conversationId || options?.sessionId || `llm-${Date.now()}`;
           
           try {
-            const reversalResult = await this.pseudonymizerService.reversePseudonyms(
+            // Use the stored mappings from pseudonymization step
+            const pseudonymMappings = (routingDecision as any).pseudonymMappings || [];
+            const reversalResult = await this.dictionaryPseudonymizerService.reversePseudonyms(
               response.content,
-              requestId
+              pseudonymMappings
             );
             
             finalResponseContent = reversalResult.originalText;
             
-            this.logger.debug(`🔄 [LLM-BOUNDARY] Pseudonym reversal completed: ${reversalResult.reversalCount} items restored`);
+            this.logger.debug(`🔄 [DICTIONARY-PSEUDONYMIZER] Centralized reversal completed: ${reversalResult.reversalCount} items restored`);
             
             // Update PII metadata with reversal results
             if (piiMetadata) {
