@@ -70,65 +70,27 @@ export class PseudonymizerService {
     }
   ): Promise<PseudonymizationResult> {
     const startTime = Date.now();
-    let processedText = text;
-    const mappings: PseudonymMapping[] = [];
     
     try {
       this.logger.log(`🎭 Pseudonymizing text for request ${requestId}`);
       
-      // Step 1: Detect PII in the text
-      const detectionResult = await this.piiPatternService.detectPII(text, {
-        dataTypes: options?.dataTypes,
-        minConfidence: 0.8,
-        maxMatches: 100,
-      });
-
-      this.logger.log(`🔍 Detected ${detectionResult.matches.length} PII matches`);
-
-      // Step 2: Generate pseudonyms for each detected PII
-      for (const match of detectionResult.matches) {
-        try {
-          const mapping = await this.generateOrRetrievePseudonym(
-            match.value,
-            match.dataType,
-            options?.context
-          );
-
-          mappings.push(mapping);
-
-          // Replace in text (use exact match to avoid partial replacements)
-          processedText = processedText.replace(match.value, mapping.pseudonym);
-          
-          this.logger.log(`🎭 Replaced "${match.value}" → "${mapping.pseudonym}"`);
-        } catch (error) {
-          this.logger.warn(`Failed to pseudonymize ${match.dataType}: ${match.value}`, error);
-        }
-      }
+      // This service should no longer detect PII. It should only generate pseudonyms when asked.
+      // The detection logic is now centralized in PIIService.
 
       const processingTimeMs = Date.now() - startTime;
 
-      // Step 3: Store reversal context in cache for fast lookup
-      if (mappings.length > 0) {
-        this.storeReversalContext(requestId, mappings);
-        
-        // Async audit logging
-        this.logPseudonymizationOperation(requestId, mappings, processingTimeMs)
-          .catch(error => this.logger.warn(`Audit logging failed: ${error.message}`));
-      }
-
       const result: PseudonymizationResult = {
         originalText: text,
-        pseudonymizedText: processedText,
-        mappings,
+        processedText: text, // Return original text as no processing is done here
+        mappings: [], // No mappings generated here
         processingTimeMs,
         requestId,
       };
 
-      this.logger.log(`🎭 Pseudonymization complete: ${mappings.length} replacements in ${processingTimeMs}ms`);
       return result;
 
     } catch (error) {
-      this.logger.error(`Failed to pseudonymize text: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(`Pseudonymization failed for request ${requestId}`, error);
       throw error;
     }
   }
