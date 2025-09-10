@@ -32,7 +32,6 @@ export abstract class BaseLLMService {
   constructor(
     protected readonly config: LLMServiceConfig,
     protected readonly piiService: PIIService,
-    protected readonly pseudonymizerService: PseudonymizerService,
     protected readonly dictionaryPseudonymizerService: DictionaryPseudonymizerService,
     protected readonly runMetadataService: RunMetadataService,
     protected readonly providerConfigService: ProviderConfigService,

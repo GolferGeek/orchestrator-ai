@@ -369,7 +369,6 @@ export function createGoogleService(
   config: LLMServiceConfig,
   dependencies: {
     piiService: PIIService;
-    pseudonymizerService: PseudonymizerService;
     dictionaryPseudonymizerService: DictionaryPseudonymizerService;
     runMetadataService: RunMetadataService;
     providerConfigService: ProviderConfigService;
@@ -378,7 +377,6 @@ export function createGoogleService(
   return new GoogleLLMService(
     { ...config, provider: 'google' },
     dependencies.piiService,
-    dependencies.pseudonymizerService,
     dependencies.dictionaryPseudonymizerService,
     dependencies.runMetadataService,
     dependencies.providerConfigService,

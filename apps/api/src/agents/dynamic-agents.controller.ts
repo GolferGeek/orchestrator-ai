@@ -176,7 +176,7 @@ export class DynamicAgentsController {
 
     // Check if request was blocked by PII policy
     if (routingDecision.provider === 'policy-blocked') {
-      this.logger.warn(`🚫 [DynamicAgentsController] Request blocked by PII policy: ${routingDecision.reasoningPath?.join(', ')}`);
+      this.logger.warn(`🚫 [DynamicAgentsController] Request blocked by PII policy: ${routingDecision.piiMetadata?.policyDecision?.violations?.join(', ')}`);
 
       // Create a blocked task response immediately
       const task = await this.tasksService.createTask(
@@ -189,33 +189,30 @@ export class DynamicAgentsController {
         },
       );
 
+      const userMessage = routingDecision.piiMetadata?.userMessage;
+      const defaultMessage = 'Request blocked due to PII policy violation. Please rephrase your request without including sensitive personal information.';
+      const messageSummary = userMessage?.summary || defaultMessage;
+
       // Mark task as failed with PII violation
       await this.taskStatusService.failTask(
         task.id,
         currentUser.id,
-        'Request blocked due to PII policy violation. Please rephrase your request without including sensitive personal information.',
+        messageSummary,
       );
-
-      // Extract specific PII types detected for more targeted messaging
-      const detectedTypes = routingDecision.reasoningPath || [];
-      const piiTypeMessage = detectedTypes.length > 0 
-        ? `specifically ${detectedTypes.join(', ')}`
-        : 'sensitive personal information';
 
       // Return a successful response with PII policy block information
       return {
         success: false,
         blocked: true,
         reason: 'PII_POLICY_VIOLATION',
-        message: `I cannot process your request because it contains ${piiTypeMessage}. Please rephrase your request without including any personal identifiable information.`,
+        message: messageSummary,
         taskId: task.id,
         conversationId: task.agentConversationId,
         details: {
-          reason: `Sensitive personal information detected: ${piiTypeMessage}`,
-          suggestion: 'Please remove any SSNs, credit card numbers, API keys, or other sensitive data and try again.',
-          detectedTypes: detectedTypes,
+          reason: userMessage?.details?.join(' ') || 'Sensitive personal information detected.',
+          suggestion: userMessage?.blockingDetails?.recommendation || 'Please remove any SSNs, credit card numbers, API keys, or other sensitive data and try again.',
+          detectedTypes: userMessage?.blockingDetails?.showstopperTypes || [],
         },
-        // NEW ARCHITECTURE: Include PII metadata in blocked response
         piiMetadata: routingDecision.piiMetadata,
       };
     }

@@ -386,13 +386,14 @@ export class DeliverablesService {
     response: any,
     taskData: any,
   ): Promise<string | null> {
+    this.logger.debug(`[DeliverablesService] Handling task completion for taskId: ${taskId}`);
+    
+    // Debugging logs to inspect the incoming taskData object
+    this.logger.debug(`🔍 DeliverablesService - taskData.metadata?.llmUsed:`, taskData.metadata?.llmUsed);
+    this.logger.debug(`🔍 DeliverablesService - taskData.llm_metadata:`, taskData.llm_metadata);
+
     try {
-      // Debug: Log the task data structure to see what LLM metadata we have
-      console.log('🔍 DeliverablesService - Full taskData:', JSON.stringify(taskData, null, 2));
-      console.log('🔍 DeliverablesService - taskData.llm_metadata:', taskData.llm_metadata);
-      console.log('🔍 DeliverablesService - taskData.metadata?.llmUsed:', taskData.metadata?.llmUsed);
-      
-      // Parse response and extract content
+      // Use helper to safely extract content
       const content = this.extractContentFromResponse(response);
       if (!content || !this.shouldCreateDeliverable(content)) {
         return null;

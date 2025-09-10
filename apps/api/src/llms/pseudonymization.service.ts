@@ -190,7 +190,6 @@ export class PseudonymizationService {
     totalPIIPatterns: number;
     productionMode: boolean;
     showstopperPatterns: number;
-    pseudonymizerPatterns: number;
     flaggerPatterns: number;
     patternServiceStats: any;
   }> {
@@ -200,7 +199,6 @@ export class PseudonymizationService {
       totalPIIPatterns: patternServiceStats.totalPatterns,
       productionMode: this.isProduction,
       showstopperPatterns: patternServiceStats.showstopperPatterns,
-      pseudonymizerPatterns: patternServiceStats.pseudonymizerPatterns,
       flaggerPatterns: patternServiceStats.flaggerPatterns,
       patternServiceStats,
     };
