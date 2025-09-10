@@ -33,7 +33,11 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
         let baseConfig: SystemModelConfiguration | undefined;
         let globalConfig: ModelConfiguration | undefined;
         if (globalJson) {
-          globalConfig = JSON.parse(globalJson);
+          try {
+            globalConfig = JSON.parse(globalJson);
+          } catch (parseError) {
+            throw new Error(`Invalid MODEL_CONFIG_GLOBAL_JSON: ${parseError.message}. Value: ${globalJson}`);
+          }
         }
         if (json) {
           baseConfig = JSON.parse(json);
