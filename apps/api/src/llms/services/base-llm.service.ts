@@ -109,7 +109,7 @@ export abstract class BaseLLMService {
             totalMatches: result.mappings.length,
             flaggedMatches: result.mappings.map(mapping => ({
               value: mapping.originalValue,
-              dataType: mapping.dataType,
+              dataType: mapping.dataType as any,
               severity: 'info' as any,
               confidence: 1.0,
               startIndex: 0, // Dictionary doesn't track positions
