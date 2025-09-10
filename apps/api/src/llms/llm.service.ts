@@ -20,7 +20,6 @@ import { LocalModelStatusService } from './local-model-status.service';
 import { LocalLLMService } from './local-llm.service';
 import { BlindedLLMService } from './blinded-llm.service';
 import { LLMServiceFactory } from './services/llm-service-factory';
-import { LLMModelCapabilities } from './services/llm-model-capabilities.service';
 import {
   GenerateResponseParams,
   UnifiedGenerateResponseParams,
