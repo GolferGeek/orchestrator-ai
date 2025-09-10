@@ -214,7 +214,7 @@ export function useGlobalErrorHandler() {
       ...stats,
       hasUnresolvedCritical: errorStore.hasUnresolvedCriticalErrors,
       recentErrors: errorStore.recentErrors.slice(0, 5), // Last 5 recent errors
-      loggerStatus: errorLoggerService.getRetryQueueStatus()
+      loggerStatus: errorLoggerService.value ? errorLoggerService.value.getRetryQueueStatus() : null
     };
   };
 
@@ -250,12 +250,16 @@ export function useGlobalErrorHandler() {
     setupGlobalListeners();
     
     // Process any queued error operations
-    errorLoggerService.processRetryQueue();
+    if (errorLoggerService.value) {
+      errorLoggerService.value.processRetryQueue();
+    }
     
     // Set up periodic cleanup
     const cleanupInterval = setInterval(() => {
       clearOldErrors(24); // Clear errors older than 24 hours
-      errorLoggerService.processRetryQueue();
+      if (errorLoggerService.value) {
+        errorLoggerService.value.processRetryQueue();
+      }
     }, 60 * 60 * 1000); // Every hour
     
     // Store interval for cleanup
