@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, getCurrentInstance, ref } from 'vue';
+import { onMounted, onUnmounted, getCurrentInstance, ref, computed, watchEffect } from 'vue';
 import { useErrorStore } from '@/stores/errorStore';
 import type { ErrorLogger } from '@/stores/errorStore';
 
@@ -12,6 +12,9 @@ export function useGlobalErrorHandler() {
 
   const errorLoggerService = ref<ErrorLogger | null>(null);
 
+  // Computed property to check if the error logger service is available
+  const isErrorLoggerReady = computed(() => errorLoggerService.value !== null);
+
   // Set up error logger in the store (lazy import to avoid circular references)
   onMounted(async () => {
     console.log('🔍 [DEBUG] Global Error Handler: Setting up error logger');
@@ -19,6 +22,13 @@ export function useGlobalErrorHandler() {
     errorLoggerService.value = service;
     errorStore.setErrorLogger(service);
     console.log('🔍 [DEBUG] Global Error Handler: Error logger setup complete');
+  });
+
+  // Reactively process retry queue when service becomes available
+  watchEffect(() => {
+    if (errorLoggerService.value) {
+      errorLoggerService.value.processRetryQueue();
+    }
   });
 
   /**
@@ -249,12 +259,7 @@ export function useGlobalErrorHandler() {
   onMounted(() => {
     setupGlobalListeners();
     
-    // Process any queued error operations
-    if (errorLoggerService.value) {
-      errorLoggerService.value.processRetryQueue();
-    }
-    
-    // Set up periodic cleanup
+    // Set up periodic cleanup (watchEffect handles initial retry queue processing)
     const cleanupInterval = setInterval(() => {
       clearOldErrors(24); // Clear errors older than 24 hours
       if (errorLoggerService.value) {
@@ -295,6 +300,7 @@ export function useGlobalErrorHandler() {
     errorStore,
     
     // Service access
-    errorLoggerService
+    errorLoggerService,
+    isErrorLoggerReady
   };
 }
