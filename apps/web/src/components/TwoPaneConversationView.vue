@@ -523,11 +523,14 @@ const executeRerun = async () => {
     return;
   }
 
+  // Capture the rerun data before closing modal (to avoid race condition)
+  const capturedRerunData = { ...rerunDeliverableData.value };
+
   // Close modal immediately to start conversation flow
   closeLLMRerunModal();
 
   // Create a user message for the rerun request
-  const rerunMessage = `🔄 Regenerating deliverable "${rerunDeliverableData.value.deliverable.title}" with ${llmStore.selectedProvider.name}/${llmStore.selectedModel.name}`;
+  const rerunMessage = `🔄 Regenerating deliverable "${capturedRerunData.deliverable.title}" with ${llmStore.selectedProvider.name}/${llmStore.selectedModel.name}`;
   
   try {
     // Add user message to conversation
@@ -538,7 +541,7 @@ const executeRerun = async () => {
       timestamp: new Date(),
       metadata: {
         isRerunRequest: true,
-        originalVersionId: rerunDeliverableData.value.version.id,
+        originalVersionId: capturedRerunData.version.id,
         rerunLLMConfig: {
           provider: llmStore.selectedProvider.name.toLowerCase(),
           model: llmStore.selectedModel.modelName,
@@ -579,7 +582,7 @@ const executeRerun = async () => {
     
     // Call the store method to rerun with different LLM
     const newVersion = await deliverablesStore.rerunWithDifferentLLM(
-      rerunDeliverableData.value.version.id,
+      capturedRerunData.version.id,
       llmConfig
     );
 
@@ -594,7 +597,7 @@ const executeRerun = async () => {
         isRerunResponse: true,
         newVersionId: newVersion.id,
         llmUsed: llmConfig,
-        sourceVersionId: rerunDeliverableData.value.version.id
+        sourceVersionId: capturedRerunData.version.id
       }
     };
 
@@ -604,7 +607,7 @@ const executeRerun = async () => {
     }
 
     // Reload deliverable versions to get the new version
-    await deliverablesStore.loadDeliverableVersions(rerunDeliverableData.value.deliverable.id);
+    await deliverablesStore.loadDeliverableVersions(capturedRerunData.deliverable.id);
 
     // Trigger deliverable selection to show the new version
     await handleVersionCreated(newVersion);
