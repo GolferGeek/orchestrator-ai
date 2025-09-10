@@ -20,6 +20,7 @@ import { LocalModelStatusService } from './local-model-status.service';
 import { LocalLLMService } from './local-llm.service';
 import { BlindedLLMService } from './blinded-llm.service';
 import { LLMServiceFactory } from './services/llm-service-factory';
+import { LLMModelCapabilities } from './services/llm-model-capabilities.service';
 import {
   GenerateResponseParams,
   UnifiedGenerateResponseParams,
@@ -402,6 +403,14 @@ export class LLMService {
         throw new Error(`Unsupported provider: ${params.provider}. Supported providers: ${supportedProviders.join(', ')}`);
       }
 
+      // Transform messages for models that don't support system messages (e.g., o1 models)
+      const transformedMessages = LLMModelCapabilities.transformMessagesForModel(
+        params.provider,
+        params.model,
+        params.systemPrompt,
+        params.userMessage
+      );
+
       // Create LLM service configuration
       const config: LLMServiceConfig = {
         provider: params.provider,
@@ -412,8 +421,8 @@ export class LLMService {
 
       // Create GenerateResponseParams for the factory
       const factoryParams: GenerateResponseParams = {
-        systemPrompt: params.systemPrompt,
-        userMessage: params.userMessage,
+        systemPrompt: transformedMessages.systemPrompt || '',
+        userMessage: transformedMessages.userMessage,
         config,
         conversationId: params.options?.conversationId,
         sessionId: params.options?.sessionId,

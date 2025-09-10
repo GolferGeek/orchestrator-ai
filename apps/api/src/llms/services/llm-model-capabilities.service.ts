@@ -12,6 +12,7 @@ interface ModelCapabilities {
   maxTokensLimit?: number;
   supportsStreaming: boolean;
   supportsFunctionCalling: boolean;
+  supportsSystemMessages: boolean; // New capability for o1 models
   // Add more capabilities as needed
 }
 
@@ -28,6 +29,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       maxTokensLimit: 32768,
       supportsStreaming: false,
       supportsFunctionCalling: false,
+      supportsSystemMessages: false, // o1 models don't support system messages
     },
     'o1-mini': {
       supportsTemperature: false,
@@ -36,6 +38,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       maxTokensLimit: 65536,
       supportsStreaming: false,
       supportsFunctionCalling: false,
+      supportsSystemMessages: false, // o1 models don't support system messages
     },
     'o4-mini': {
       supportsTemperature: false,
@@ -44,6 +47,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       maxTokensLimit: 65536,
       supportsStreaming: false,
       supportsFunctionCalling: false,
+      supportsSystemMessages: false, // Assuming similar restrictions to o1
     },
     // GPT-4 series - full capabilities
     'gpt-4': {
@@ -54,6 +58,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       maxTokensLimit: 8192,
       supportsStreaming: true,
       supportsFunctionCalling: true,
+      supportsSystemMessages: true,
     },
     'gpt-4-turbo': {
       supportsTemperature: true,
@@ -63,6 +68,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       maxTokensLimit: 4096,
       supportsStreaming: true,
       supportsFunctionCalling: true,
+      supportsSystemMessages: true,
     },
     'gpt-4o': {
       supportsTemperature: true,
@@ -72,6 +78,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       maxTokensLimit: 4096,
       supportsStreaming: true,
       supportsFunctionCalling: true,
+      supportsSystemMessages: true,
     },
     'gpt-4o-mini': {
       supportsTemperature: true,
@@ -81,6 +88,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       maxTokensLimit: 16384,
       supportsStreaming: true,
       supportsFunctionCalling: true,
+      supportsSystemMessages: true,
     },
     // GPT-3.5 series
     'gpt-3.5-turbo': {
@@ -91,6 +99,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       maxTokensLimit: 4096,
       supportsStreaming: true,
       supportsFunctionCalling: true,
+      supportsSystemMessages: true,
     },
   },
   anthropic: {
@@ -103,6 +112,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       maxTokensLimit: 8192,
       supportsStreaming: true,
       supportsFunctionCalling: true,
+      supportsSystemMessages: true,
     },
     'claude-3-5-haiku-20241022': {
       supportsTemperature: true,
@@ -112,6 +122,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       maxTokensLimit: 8192,
       supportsStreaming: true,
       supportsFunctionCalling: true,
+      supportsSystemMessages: true,
     },
   },
   ollama: {
@@ -123,6 +134,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       supportsMaxTokens: true,
       supportsStreaming: true,
       supportsFunctionCalling: false,
+      supportsSystemMessages: true,
     },
   },
   google: {
@@ -135,6 +147,7 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       maxTokensLimit: 2048,
       supportsStreaming: true,
       supportsFunctionCalling: true,
+      supportsSystemMessages: true,
     },
   },
 };
@@ -228,6 +241,37 @@ export class LLMModelCapabilities {
   }
 
   /**
+   * Transform system and user messages for models that don't support system messages
+   * For o1 models: combine system prompt with user message
+   */
+  static transformMessagesForModel(
+    provider: string, 
+    model: string, 
+    systemPrompt: string, 
+    userMessage: string
+  ): { systemPrompt?: string; userMessage: string } {
+    const capabilities = this.getModelCapabilities(provider, model);
+    
+    if (!capabilities.supportsSystemMessages) {
+      // For models that don't support system messages, prepend system prompt to user message
+      this.logger.debug(
+        `Model ${model} doesn't support system messages, combining system prompt with user message`
+      );
+      
+      return {
+        systemPrompt: undefined, // Remove system prompt
+        userMessage: `${systemPrompt}\n\n${userMessage}` // Combine into user message
+      };
+    }
+    
+    // For models that support system messages, return as-is
+    return {
+      systemPrompt,
+      userMessage
+    };
+  }
+
+  /**
    * Get the default temperature for a model (if temperature is supported)
    */
   static getDefaultTemperature(provider: string, model: string): number | undefined {
@@ -239,6 +283,20 @@ export class LLMModelCapabilities {
    * Find matching model pattern in provider capabilities
    */
   private static findModelPattern(providerCapabilities: Record<string, ModelCapabilities>, model: string): string | null {
+    // Check for exact matches first
+    if (providerCapabilities[model]) {
+      return model;
+    }
+
+    // Special handling for o-series models (o1-*, o4-*, etc.) - assume temperature restrictions
+    if (model.match(/^o\d+(-\w+)?$/)) {
+      // If we have o1-mini config and this is another o-series model, use o1-mini as template
+      if (providerCapabilities['o1-mini']) {
+        this.logger.debug(`Using o1-mini capabilities as template for o-series model: ${model}`);
+        return 'o1-mini';
+      }
+    }
+    
     // Check for pattern matches (e.g., o1-* models)
     for (const pattern of Object.keys(providerCapabilities)) {
       if (pattern.includes('*')) {
@@ -268,6 +326,7 @@ export class LLMModelCapabilities {
       supportsMaxTokens: true,
       supportsStreaming: true,
       supportsFunctionCalling: false,
+      supportsSystemMessages: true, // Most models support system messages
     };
   }
 }
