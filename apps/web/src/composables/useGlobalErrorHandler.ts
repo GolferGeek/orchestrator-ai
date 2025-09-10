@@ -18,9 +18,13 @@ export function useGlobalErrorHandler() {
   // Set up error logger in the store (lazy import to avoid circular references)
   onMounted(async () => {
     console.log('🔍 [DEBUG] Global Error Handler: Setting up error logger');
-    const { errorLoggerService: service } = await import('@/services/errorLoggerService');
-    errorLoggerService.value = service;
-    errorStore.setErrorLogger(service);
+    const imported = await import('@/services/errorLoggerService');
+    console.log('🔍 [DEBUG] Imported service:', imported);
+    console.log('🔍 [DEBUG] Service methods:', Object.getOwnPropertyNames(imported.errorLoggerService));
+    console.log('🔍 [DEBUG] Service prototype methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(imported.errorLoggerService)));
+    
+    errorLoggerService.value = imported.errorLoggerService;
+    errorStore.setErrorLogger(imported.errorLoggerService);
     console.log('🔍 [DEBUG] Global Error Handler: Error logger setup complete');
   });
 
