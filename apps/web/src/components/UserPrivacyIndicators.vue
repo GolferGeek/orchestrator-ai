@@ -12,12 +12,30 @@
 
     <!-- Sanitization Status -->
     <div 
-      v-if="showSanitizationStatus" 
+      v-if="showSanitizationStatus && (sanitizationStatus === 'completed' || sanitizationStatus === 'blocked')" 
       class="privacy-badge sanitization-status"
       :class="sanitizationStatusClass"
     >
       <ion-icon :icon="sanitizationIcon" />
       <span class="badge-text">{{ sanitizationStatusText }}</span>
+    </div>
+
+    <!-- Flagged Items Badge -->
+    <div 
+      v-if="flaggedCount > 0" 
+      class="privacy-badge pii-flagger"
+    >
+      <ion-icon :icon="flagOutline" />
+      <span class="badge-text">{{ flaggedCount }} Flagged Item{{ flaggedCount > 1 ? 's' : '' }}</span>
+    </div>
+
+    <!-- Pseudonymized Items Badge -->
+    <div 
+      v-if="pseudonymizedCount > 0" 
+      class="privacy-badge pii-pseudonymizer"
+    >
+      <ion-icon :icon="swapHorizontalOutline" />
+      <span class="badge-text">{{ pseudonymizedCount }} Pseudonym{{ pseudonymizedCount > 1 ? 's' : '' }}</span>
     </div>
 
     <!-- Routing Display -->
@@ -39,16 +57,6 @@
       <ion-icon :icon="trustIcon" />
       <span class="badge-text">{{ trustSignalText }}</span>
       <div class="trust-score" v-if="trustScore !== null">{{ trustScore }}%</div>
-    </div>
-
-    <!-- PII Detection Count with Severity -->
-    <div 
-      v-if="showPiiCount && piiDetectionCount > 0" 
-      class="privacy-badge pii-detection"
-      :class="piiSeverityClass"
-    >
-      <ion-icon :icon="piiSeverityIcon" />
-      <span class="badge-text">{{ piiDetectionText }}</span>
     </div>
 
     <!-- Processing Time -->
@@ -90,7 +98,9 @@ export interface PrivacyIndicatorProps {
   
   // Sanitization status
   showSanitizationStatus?: boolean;
-  sanitizationStatus?: 'none' | 'processing' | 'completed' | 'failed';
+  sanitizationStatus?: 'none' | 'processing' | 'completed' | 'failed' | 'blocked' | 'flagged';
+  flaggedCount?: number;
+  pseudonymizedCount?: number;
   piiDetectionCount?: number;
   piiSeverityTypes?: string[]; // Array of PII types detected (e.g., ['email', 'phone'])
   piiSeverityLevels?: string[]; // Array of severity levels (e.g., ['pseudonymizer', 'flagger'])
@@ -118,6 +128,8 @@ const props = withDefaults(defineProps<PrivacyIndicatorProps>(), {
   isDataProtected: false,
   showSanitizationStatus: true,
   sanitizationStatus: 'none',
+  flaggedCount: 0,
+  pseudonymizedCount: 0,
   piiDetectionCount: 0,
   piiSeverityTypes: () => [],
   piiSeverityLevels: () => [],
@@ -137,7 +149,9 @@ const sanitizationStatusClass = computed(() => ({
   'status-none': props.sanitizationStatus === 'none',
   'status-processing': props.sanitizationStatus === 'processing',
   'status-completed': props.sanitizationStatus === 'completed',
-  'status-failed': props.sanitizationStatus === 'failed'
+  'status-failed': props.sanitizationStatus === 'failed',
+  'status-blocked': props.sanitizationStatus === 'blocked',
+  'status-flagged': props.sanitizationStatus === 'flagged',
 }));
 
 const sanitizationIcon = computed(() => {
@@ -145,16 +159,21 @@ const sanitizationIcon = computed(() => {
     case 'completed': return checkmarkCircleOutline;
     case 'processing': return alertCircleOutline;
     case 'failed': return warningOutline;
+    case 'blocked': return stopCircleOutline;
+    case 'flagged': return flagOutline;
     default: return shieldOutline;
   }
 });
 
 const sanitizationStatusText = computed(() => {
+  const count = props.piiDetectionCount;
   switch (props.sanitizationStatus) {
     case 'completed': return 'Sanitized';
     case 'processing': return 'Sanitizing...';
     case 'failed': return 'Sanitization Failed';
-    default: return 'No Sanitization';
+    case 'blocked': return 'Blocked';
+    case 'flagged': return `${count} Flagged Item${count > 1 ? 's' : ''}`;
+    default: return ''; // Return empty for 'none' to hide the badge
   }
 });
 

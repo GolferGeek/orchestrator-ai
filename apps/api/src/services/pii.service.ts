@@ -13,6 +13,19 @@ import {
   PIISeverity
 } from '../common/types/pii-metadata.types';
 
+const dataTypeToHumanReadable: Record<string, string> = {
+  'email': 'Email Address',
+  'phone': 'Phone Number',
+  'ssn': 'Social Security Number',
+  'credit_card': 'Credit Card Number',
+  'name': 'Name',
+  'address': 'Address',
+  'ip_address': 'IP Address',
+  'url': 'URL',
+  'username': 'Username',
+  'custom': 'Custom PII'
+};
+
 // Legacy interfaces for backward compatibility
 export interface PIIPolicyResult {
   allowed: boolean;
@@ -279,9 +292,7 @@ export class PIIService {
     // External provider - create pseudonym instructions
     this.logger.debug(`🌐 [PII-SERVICE] External provider - creating pseudonym instructions`);
     
-    const pseudonymizerMatches = convertedMatches.filter(match => 
-      match.severity === 'warning' || match.severity === 'info'
-    );
+    const pseudonymizerMatches: PIIMatch[] = []; // Never create pseudonym instructions from pattern matches
     
     const requestId = options.conversationId || options.requestId || `pii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
@@ -353,8 +364,6 @@ export class PIIService {
     switch (severity) {
       case 'showstopper':
         return 'showstopper';
-      case 'pseudonymizer':
-        return 'warning';
       case 'flagger':
         return 'info';
       default:
@@ -394,7 +403,7 @@ export class PIIService {
   private buildSeverityBreakdown(matches: PIIMatch[]): SeverityBreakdown {
     return {
       showstopper: matches.filter(m => m.severity === 'showstopper').length,
-      warning: matches.filter(m => m.severity === 'warning').length,
+      warning: 0,
       info: matches.filter(m => m.severity === 'info').length
     };
   }
@@ -402,13 +411,14 @@ export class PIIService {
   private generateShowstopperMessage(showstopperMatches: PIIMatch[]): UserMessage {
     const showstopperTypes = [...new Set(showstopperMatches.map(m => m.dataType))];
     const count = showstopperMatches.length;
+    const humanReadableTypes = showstopperTypes.map(t => dataTypeToHumanReadable[t] || t);
     
     return {
-      summary: `Request blocked: ${count} highly sensitive information type${count > 1 ? 's' : ''} detected`,
+      summary: `Request blocked: ${count} item${count > 1 ? 's' : ''} of highly sensitive information detected`,
       details: [
-        `Detected: ${showstopperTypes.join(', ')}`,
-        'This type of information cannot be processed by external AI services',
-        'Your request was not sent to any AI model'
+        `Detected: ${humanReadableTypes.join(', ')}`,
+        'This type of information cannot be processed for security and privacy reasons.',
+        'Your request was not sent to any AI model.'
       ],
       actionsTaken: [
         'Request immediately blocked',
@@ -419,7 +429,7 @@ export class PIIService {
       blockingDetails: {
         showstopperTypes,
         affectedCount: count,
-        recommendation: 'Please remove or rephrase sensitive information and try again'
+        recommendation: 'Please remove or rephrase sensitive information and try again.'
       }
     };
   }
@@ -435,10 +445,11 @@ export class PIIService {
     }
 
     const dataTypes = [...new Set(matches.map(m => m.dataType))];
+    const humanReadableTypes = dataTypes.map(t => dataTypeToHumanReadable[t] || t);
     return {
       summary: `${matches.length} piece${matches.length > 1 ? 's' : ''} of personal information detected`,
       details: [
-        `Detected: ${dataTypes.join(', ')}`,
+        `Detected: ${humanReadableTypes.join(', ')}`,
         'Using local AI model - your data stays completely private'
       ],
       actionsTaken: [
@@ -460,13 +471,15 @@ export class PIIService {
     }
 
     const dataTypes = [...new Set(allMatches.map(m => m.dataType))];
+    const humanReadableTypes = dataTypes.map(t => dataTypeToHumanReadable[t] || t);
     const pseudonymizedTypes = [...new Set(pseudonymizerMatches.map(m => m.dataType))];
+    const humanReadablePseudonymizedTypes = pseudonymizedTypes.map(t => dataTypeToHumanReadable[t] || t);
     
     if (pseudonymizerMatches.length === 0) {
       return {
         summary: `${allMatches.length} piece${allMatches.length > 1 ? 's' : ''} of personal information detected`,
         details: [
-          `Detected: ${dataTypes.join(', ')}`,
+          `Detected: ${humanReadableTypes.join(', ')}`,
           'Information flagged for monitoring but not modified'
         ],
         actionsTaken: [
@@ -480,7 +493,7 @@ export class PIIService {
     return {
       summary: `Privacy protected: ${pseudonymizerMatches.length} piece${pseudonymizerMatches.length > 1 ? 's' : ''} of personal information will be anonymized`,
       details: [
-        `Will be anonymized: ${pseudonymizedTypes.join(', ')}`,
+        `Will be anonymized: ${humanReadablePseudonymizedTypes.join(', ')}`,
         'Temporary identifiers will be used when sending to AI',
         'Original values will be restored in the response'
       ],

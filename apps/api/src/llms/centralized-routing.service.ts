@@ -4,7 +4,6 @@ import { SupabaseService } from '../supabase/supabase.service';
 import { SovereignPolicyService } from '../config/sovereign-policy.service';
 import { FeatureFlagService, FeatureFlagContext } from '../config/feature-flag.service';
 import { PIIService } from '../services/pii.service';
-import { PseudonymizerService } from '../services/pseudonymizer.service';
 import { PIIProcessingMetadata, RoutingDecisionWithPII } from '../common/types/pii-metadata.types';
 import { createHash } from 'crypto';
 
@@ -91,7 +90,6 @@ export class CentralizedRoutingService {
     private readonly sovereignPolicyService: SovereignPolicyService,
     private readonly featureFlagService: FeatureFlagService,
     private readonly piiService: PIIService,
-    private readonly pseudonymizerService: PseudonymizerService,
   ) {
     this.logger.log('CentralizedRoutingService initialized');
   }

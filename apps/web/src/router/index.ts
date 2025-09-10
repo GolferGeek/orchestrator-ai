@@ -101,6 +101,12 @@ const routes: Array<RouteRecordRaw> = [
         }
       },
       {
+        path: 'admin/llm-usage/:runId',
+        name: 'LLMUsageDetails',
+        component: () => import('../views/admin/LLMUsageDetailsPage.vue'),
+        meta: { requiresAuth: true, requiresRole: ['admin'] }
+      },
+      {
         path: 'admin/pii-testing',
         name: 'PIITesting',
         component: () => import('../views/PIITestingPage.vue'),
