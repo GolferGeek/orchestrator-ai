@@ -799,9 +799,10 @@ ALTER TABLE "public"."projects" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS "public"."pseudonym_dictionaries" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "original_value" character varying(500) NOT NULL,
+    "pseudonym" character varying(500) NOT NULL,
     "data_type" "public"."pii_data_type" NOT NULL,
     "category" character varying(100),
-    "value" character varying(500) NOT NULL,
     "locale" character varying(10) DEFAULT 'en-US'::character varying,
     "frequency_weight" integer DEFAULT 1,
     "is_active" boolean DEFAULT true,
@@ -885,7 +886,9 @@ CREATE TABLE IF NOT EXISTS "public"."redaction_patterns" (
     "created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     "updated_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     "usage_count" integer DEFAULT 0,
-    "last_used_at" timestamp with time zone
+    "last_used_at" timestamp with time zone,
+    "severity" character varying(50),
+    "data_type" character varying(50)
 );
 
 
