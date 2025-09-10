@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ModelConfigurationService, SystemModelConfiguration } from './model-configuration.service';
+import { ModelConfigurationService, SystemModelConfiguration, ModelConfiguration } from './model-configuration.service';
 import * as fs from 'fs';
 
 function deepMerge<T>(base: T, patch: Partial<T>): T {
@@ -24,12 +24,17 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
         const json = configService.get<string>('MODEL_CONFIG_JSON');
         const path = configService.get<string>('MODEL_CONFIG_PATH');
         const patchJson = configService.get<string>('MODEL_CONFIG_PATCH_JSON');
+        const globalJson = configService.get<string>('MODEL_CONFIG_GLOBAL_JSON');
 
-        if (json && path) {
-          throw new Error('MODEL_CONFIG_JSON and MODEL_CONFIG_PATH are mutually exclusive');
+        if ((json || path) && globalJson) {
+          throw new Error('MODEL_CONFIG_GLOBAL_JSON is mutually exclusive with MODEL_CONFIG_JSON/MODEL_CONFIG_PATH');
         }
 
         let baseConfig: SystemModelConfiguration | undefined;
+        let globalConfig: ModelConfiguration | undefined;
+        if (globalJson) {
+          globalConfig = JSON.parse(globalJson);
+        }
         if (json) {
           baseConfig = JSON.parse(json);
         } else if (path) {
@@ -37,17 +42,17 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
           baseConfig = JSON.parse(raw);
         }
 
-        if (!baseConfig) {
+        if (!baseConfig && !globalConfig) {
           // Allow service construction; validation can be invoked by consumer
           return new ModelConfigurationService();
         }
 
-        if (patchJson) {
+        if (patchJson && baseConfig) {
           const patch = JSON.parse(patchJson);
           baseConfig = deepMerge(baseConfig, patch);
         }
 
-        const service = new ModelConfigurationService(baseConfig);
+        const service = new ModelConfigurationService(baseConfig ?? globalConfig);
         service.validateConfig();
         return service;
       },
