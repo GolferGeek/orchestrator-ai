@@ -152,4 +152,64 @@ export interface LLMPreferencesState {
   sovereignPolicy: any; // TODO: Define proper type
   sovereignLoading: boolean;
   sovereignError: string | null;
+  // Sanitization stats state
+  sanitizationStats: {
+    activePatterns: number;
+    pseudonyms: number;
+    protectedToday: number;
+    totalSanitizations: number;
+    cacheHitRate: number;
+    averageProcessingTime: number;
+  };
+  sanitizationStatsLoading: boolean;
+  sanitizationStatsError: string | null;
+  sanitizationStatsLastUpdated: string | null;
+  // Unified response handling
+  lastUnifiedResponse: UnifiedLLMResponse | null;
+  lastStandardizedError: StandardizedLLMError | null;
+  responseProcessing: boolean;
+}
+
+// Unified LLM response types (inline to avoid circular imports)
+export interface UnifiedLLMResponse {
+  content: string;
+  metadata: {
+    provider: string;
+    model: string;
+    requestId: string;
+    timestamp: string;
+    usage: {
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      cost?: number;
+    };
+    timing: {
+      startTime: number;
+      endTime: number;
+      duration: number;
+    };
+    status: 'started' | 'completed' | 'error';
+    [key: string]: any;
+  };
+  piiMetadata?: any;
+}
+
+export interface StandardizedLLMError {
+  error: true;
+  message: string;
+  userMessage: string;
+  technical: {
+    type: string;
+    code: string;
+    provider: string;
+    model?: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    category: 'client' | 'server' | 'network' | 'configuration' | 'validation' | 'security' | 'resource';
+    retryable: boolean;
+    retryAfterMs?: number;
+    timestamp: string;
+    requestId?: string;
+    [key: string]: any;
+  };
 }
