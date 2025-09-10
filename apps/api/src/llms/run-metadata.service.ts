@@ -418,105 +418,39 @@ export class RunMetadataService {
   }): Promise<void> {
     const client = this.supabaseService.getServiceClient();
     
-    // Prepare update data with enhanced metrics
-    const updateData: any = {
+    const updateData = {
       status: updates.status,
       input_tokens: updates.inputTokens,
       output_tokens: updates.outputTokens,
       input_cost: updates.inputCost,
       output_cost: updates.outputCost,
-      // Note: total_cost is a generated column, so we don't update it manually
       duration_ms: updates.durationMs,
       completed_at: updates.completedAt,
       error_message: updates.errorMessage,
-      updated_at: new Date().toISOString(),
+      ...(updates.enhancedMetrics && {
+        data_sanitization_applied: updates.enhancedMetrics.dataSanitizationApplied,
+        sanitization_level: updates.enhancedMetrics.sanitizationLevel,
+        pii_detected: updates.enhancedMetrics.piiDetected,
+        pii_types: updates.enhancedMetrics.piiTypes,
+        pseudonyms_used: updates.enhancedMetrics.pseudonymsUsed,
+        pseudonym_types: updates.enhancedMetrics.pseudonymTypes,
+        redactions_applied: updates.enhancedMetrics.redactionsApplied,
+        redaction_types: updates.enhancedMetrics.redactionTypes,
+        source_blinding_applied: updates.enhancedMetrics.sourceBlindingApplied,
+        headers_stripped: updates.enhancedMetrics.headersStripped,
+        custom_user_agent_used: updates.enhancedMetrics.customUserAgentUsed,
+        proxy_used: updates.enhancedMetrics.proxyUsed,
+        no_train_header_sent: updates.enhancedMetrics.noTrainHeaderSent,
+        no_retain_header_sent: updates.enhancedMetrics.noRetainHeaderSent,
+        sanitization_time_ms: updates.enhancedMetrics.sanitizationTimeMs,
+        reversal_context_size: updates.enhancedMetrics.reversalContextSize,
+        policy_profile: updates.enhancedMetrics.policyProfile,
+        sovereign_mode: updates.enhancedMetrics.sovereignMode,
+        compliance_flags: updates.enhancedMetrics.complianceFlags,
+      })
     };
 
-    // Add enhanced metrics if provided
-    if (updates.enhancedMetrics) {
-      const metrics = updates.enhancedMetrics;
-      
-      // Data sanitization fields
-      if (metrics.dataSanitizationApplied !== undefined) {
-        updateData.data_sanitization_applied = metrics.dataSanitizationApplied;
-      }
-      if (metrics.sanitizationLevel !== undefined) {
-        updateData.sanitization_level = metrics.sanitizationLevel;
-      }
-      
-      // PII detection fields
-      if (metrics.piiDetected !== undefined) {
-        updateData.pii_detected = metrics.piiDetected;
-      }
-      if (metrics.piiTypes !== undefined) {
-        updateData.pii_types = JSON.stringify(metrics.piiTypes);
-      }
-      if (metrics.pseudonymsUsed !== undefined) {
-        updateData.pseudonyms_used = metrics.pseudonymsUsed;
-      }
-      if (metrics.pseudonymTypes !== undefined) {
-        updateData.pseudonym_types = JSON.stringify(metrics.pseudonymTypes);
-      }
-      
-      // Redaction fields
-      if (metrics.redactionsApplied !== undefined) {
-        updateData.redactions_applied = metrics.redactionsApplied;
-      }
-      if (metrics.redactionTypes !== undefined) {
-        updateData.redaction_types = JSON.stringify(metrics.redactionTypes);
-      }
-      
-      // Source blinding fields
-      if (metrics.sourceBlindingApplied !== undefined) {
-        updateData.source_blinding_applied = metrics.sourceBlindingApplied;
-      }
-      if (metrics.headersStripped !== undefined) {
-        updateData.headers_stripped = metrics.headersStripped;
-      }
-      if (metrics.customUserAgentUsed !== undefined) {
-        updateData.custom_user_agent_used = metrics.customUserAgentUsed;
-      }
-      if (metrics.proxyUsed !== undefined) {
-        updateData.proxy_used = metrics.proxyUsed;
-      }
-      if (metrics.noTrainHeaderSent !== undefined) {
-        updateData.no_train_header_sent = metrics.noTrainHeaderSent;
-      }
-      if (metrics.noRetainHeaderSent !== undefined) {
-        updateData.no_retain_header_sent = metrics.noRetainHeaderSent;
-      }
-      
-      // Performance fields
-      if (metrics.sanitizationTimeMs !== undefined) {
-        updateData.sanitization_time_ms = metrics.sanitizationTimeMs;
-      }
-      if (metrics.reversalContextSize !== undefined) {
-        updateData.reversal_context_size = metrics.reversalContextSize;
-      }
-      
-      // Policy and classification fields
-      if (metrics.policyProfile !== undefined) {
-        updateData.policy_profile = metrics.policyProfile;
-      }
-      if (metrics.sovereignMode !== undefined) {
-        updateData.sovereign_mode = metrics.sovereignMode;
-      }
-      if (metrics.dataClassification !== undefined) {
-        updateData.data_classification = metrics.dataClassification;
-      }
-      
-      // Compliance fields
-      if (metrics.complianceFlags !== undefined) {
-        updateData.compliance_flags = JSON.stringify(metrics.complianceFlags);
-      }
-      
-      // Additional metadata
-      if (metrics.langsmithRunId !== undefined) {
-        updateData.langsmith_run_id = metrics.langsmithRunId;
-      }
-    }
-
-    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Updating ${getTableName('llm_usage')} table for runId: ${runId}`, updateData);
+    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Updating runId ${runId} in ${getTableName('llm_usage')} with:`, updateData);
     
     const { error } = await client
       .from(getTableName('llm_usage'))
