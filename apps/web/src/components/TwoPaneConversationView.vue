@@ -268,6 +268,7 @@ import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useSovereignPolicyStore } from '@/stores/sovereignPolicyStore';
 import { useLLMStore } from '@/stores/llmStore';
+import type { AgentChatMessage } from '@/stores/agentChatStore/types';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
@@ -522,7 +523,42 @@ const executeRerun = async () => {
     return;
   }
 
+  // Close modal immediately to start conversation flow
+  closeLLMRerunModal();
+
+  // Create a user message for the rerun request
+  const rerunMessage = `🔄 Regenerating deliverable "${rerunDeliverableData.value.deliverable.title}" with ${llmStore.selectedProvider.name}/${llmStore.selectedModel.name}`;
+  
   try {
+    // Add user message to conversation
+    const userMessage: AgentChatMessage = {
+      id: `rerun-${Date.now()}`,
+      role: 'user',
+      content: rerunMessage,
+      timestamp: new Date(),
+      metadata: {
+        isRerunRequest: true,
+        originalVersionId: rerunDeliverableData.value.version.id,
+        rerunLLMConfig: {
+          provider: llmStore.selectedProvider.name.toLowerCase(),
+          model: llmStore.selectedModel.modelName,
+          temperature: llmStore.selectedProvider.temperature,
+          maxTokens: llmStore.selectedProvider.maxTokens,
+        }
+      }
+    };
+
+    // Add message to conversation
+    if (props.conversation) {
+      props.conversation.messages.push(userMessage);
+    }
+
+    // Set conversation loading state (like normal sendMessage)
+    if (props.conversation) {
+      props.conversation.isSendingMessage = true;
+      props.conversation.error = undefined;
+    }
+
     // Normalize provider name to lowercase for backend compatibility
     const providerName = llmStore.selectedProvider.name.toLowerCase();
     
@@ -540,7 +576,6 @@ const executeRerun = async () => {
     }
     
     console.log('🔄 LLM Rerun Config:', llmConfig);
-    console.log('🔄 Original provider name:', llmStore.selectedProvider.name);
     
     // Call the store method to rerun with different LLM
     const newVersion = await deliverablesStore.rerunWithDifferentLLM(
@@ -548,33 +583,56 @@ const executeRerun = async () => {
       llmConfig
     );
 
+    // Create assistant response message with the new deliverable
+    const assistantMessage: AgentChatMessage = {
+      id: `rerun-response-${Date.now()}`,
+      role: 'assistant', 
+      content: `✅ Created new version with ${llmStore.selectedProvider.name}/${llmStore.selectedModel.name}`,
+      timestamp: new Date(),
+      deliverableId: newVersion.deliverableId,
+      metadata: {
+        isRerunResponse: true,
+        newVersionId: newVersion.id,
+        llmUsed: llmConfig,
+        sourceVersionId: rerunDeliverableData.value.version.id
+      }
+    };
+
+    // Add response message to conversation
+    if (props.conversation) {
+      props.conversation.messages.push(assistantMessage);
+    }
+
     // Reload deliverable versions to get the new version
     await deliverablesStore.loadDeliverableVersions(rerunDeliverableData.value.deliverable.id);
 
-    // Show success message
-    const { toastController } = await import('@ionic/vue');
-    const toast = await toastController.create({
-      message: `✅ New version created with ${llmStore.selectedProvider.name}/${llmStore.selectedModel.name}`,
-      duration: 3000,
-      position: 'top',
-      color: 'success'
-    });
-    await toast.present();
+    // Trigger deliverable selection to show the new version
+    await handleVersionCreated(newVersion);
 
-    // Close modal
-    closeLLMRerunModal();
   } catch (error) {
     console.error('Failed to rerun with different LLM:', error);
     
-    // Show error message
-    const { toastController } = await import('@ionic/vue');
-    const toast = await toastController.create({
-      message: `❌ Failed to rerun: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      duration: 5000,
-      position: 'top',
-      color: 'danger'
-    });
-    await toast.present();
+    // Create error message in conversation
+    const errorMessage: AgentChatMessage = {
+      id: `rerun-error-${Date.now()}`,
+      role: 'assistant',
+      content: `❌ Failed to regenerate: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      timestamp: new Date(),
+      metadata: {
+        isRerunError: true,
+        errorDetails: error instanceof Error ? error.message : 'Unknown error'
+      }
+    };
+
+    // Add error message to conversation
+    if (props.conversation) {
+      props.conversation.messages.push(errorMessage);
+    }
+  } finally {
+    // Clear loading state
+    if (props.conversation) {
+      props.conversation.isSendingMessage = false;
+    }
   }
 };
 // Responsive handling
