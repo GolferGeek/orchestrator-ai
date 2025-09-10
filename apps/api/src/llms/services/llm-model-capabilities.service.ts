@@ -37,6 +37,14 @@ const MODEL_CAPABILITIES: Record<string, Record<string, ModelCapabilities>> = {
       supportsStreaming: false,
       supportsFunctionCalling: false,
     },
+    'o4-mini': {
+      supportsTemperature: false,
+      defaultTemperature: 1.0,
+      supportsMaxTokens: true,
+      maxTokensLimit: 65536,
+      supportsStreaming: false,
+      supportsFunctionCalling: false,
+    },
     // GPT-4 series - full capabilities
     'gpt-4': {
       supportsTemperature: true,
