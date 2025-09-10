@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseLLMService } from './base-llm.service';
+import { LLMModelCapabilities } from './llm-model-capabilities.service';
 import { 
   GenerateResponseParams, 
   LLMResponse, 
@@ -80,11 +81,20 @@ export class OpenAILLMService extends BaseLLMService {
         useDictionaryPseudonymizer: false,
       });
       
-      // Prepare OpenAI request
-      const messages = [
-        { role: 'system' as const, content: params.systemPrompt },
-        { role: 'user' as const, content: piiResult.processedText },
-      ];
+      // Transform messages for models that don't support system messages (e.g., o1 models)
+      const transformedMessages = LLMModelCapabilities.transformMessagesForModel(
+        params.config.provider,
+        params.config.model,
+        params.systemPrompt,
+        piiResult.processedText
+      );
+
+      // Prepare OpenAI request based on model capabilities
+      const messages = [];
+      if (transformedMessages.systemPrompt) {
+        messages.push({ role: 'system' as const, content: transformedMessages.systemPrompt });
+      }
+      messages.push({ role: 'user' as const, content: transformedMessages.userMessage });
 
       // Make OpenAI API call
       const completion = await this.openai.chat.completions.create({
