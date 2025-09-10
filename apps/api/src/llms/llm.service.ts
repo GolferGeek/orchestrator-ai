@@ -21,6 +21,7 @@ import { LocalLLMService } from './local-llm.service';
 import { BlindedLLMService } from './blinded-llm.service';
 import { LLMServiceFactory } from './services/llm-service-factory';
 import {
+  GenerateResponseParams,
   UnifiedGenerateResponseParams,
   LLMResponse,
   LLMServiceConfig,
@@ -150,6 +151,7 @@ export class LLMService {
         const factoryParams: GenerateResponseParams = {
           systemPrompt,
           userMessage,
+          config,
           options: {
             callerType: options.callerType,
             callerName: options.callerName,
