@@ -924,8 +924,18 @@ const getVersionLLMInfo = (version: any): string | null => {
   // Check for general LLM metadata
   if (version.metadata.llmMetadata) {
     const info = version.metadata.llmMetadata;
+    
+    // Handle direct provider/model format (from reruns)
     if (info.provider && info.model) {
       return `${info.provider}/${info.model}`;
+    }
+    
+    // Handle originalLLMSelection format (from initial creation)
+    if (info.originalLLMSelection) {
+      const selection = info.originalLLMSelection;
+      if (selection.providerName && selection.modelName) {
+        return `${selection.providerName}/${selection.modelName}`;
+      }
     }
   }
   
@@ -948,6 +958,7 @@ const getVersionCost = (version: any): string | null => {
   
   // Check various possible locations for cost data
   const cost = version.metadata.llmMetadata?.cost || 
+               version.metadata.llmMetadata?.originalLLMSelection?.cost ||
                version.metadata.llmRerunInfo?.cost ||
                version.metadata.usage?.cost ||
                version.metadata.costCalculation?.cost;
