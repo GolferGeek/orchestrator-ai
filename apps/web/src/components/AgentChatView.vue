@@ -36,6 +36,13 @@
             :disabled="!currentAgent"
             @keydown.enter.prevent="sendMessage"
           />
+          <!-- Speech Button -->
+          <SpeechButton 
+            slot="end"
+            :disabled="!currentAgent"
+            @transcription="handleTranscription"
+            @error="handleSpeechError"
+          />
           <ion-button
             slot="end"
             type="submit"
@@ -76,6 +83,7 @@ import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
+import SpeechButton from './SpeechButton.vue';
 // Define emits
 interface Props {
   conversation?: any; // The conversation object from the store
@@ -142,6 +150,18 @@ const scrollToBottom = async () => {
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
   }
+};
+
+// Speech handling functions
+const handleTranscription = (transcribedText: string) => {
+  // Optionally populate the text area with the transcribed text
+  // messageText.value = transcribedText;
+  console.log('Speech transcribed:', transcribedText);
+};
+
+const handleSpeechError = (error: string) => {
+  console.error('Speech error:', error);
+  // You could show a toast or other error handling here
 };
 // Watch for new messages to auto-scroll
 watch(() => messages.value.length, () => {

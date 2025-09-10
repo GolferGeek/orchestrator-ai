@@ -58,6 +58,7 @@ import { UniversalAgentServicesContextModule } from './agents/base/services/univ
 import { MCPModule } from './mcp/mcp.module';
 import { SovereignPolicyModule } from './config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
+import { SpeechModule } from './speech/speech.module';
 
 @Module({
   imports: [
@@ -119,6 +120,7 @@ import { SystemModule } from './system/system.module';
     MCPModule, // MCP (Model Context Protocol) server and client functionality
     SovereignPolicyModule, // Sovereign mode policy management
     SystemModule, // System analytics and monitoring
+    SpeechModule, // Speech-to-text and text-to-speech functionality
   ],
   controllers: [
     AppController,
