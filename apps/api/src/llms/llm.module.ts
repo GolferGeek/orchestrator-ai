@@ -6,6 +6,7 @@ import { SanitizationManagementController } from './sanitization-management.cont
 import { SupabaseModule } from '../supabase/supabase.module';
 import { CIDAFMModule } from '../cidafm/cidafm.module';
 import { SovereignPolicyModule } from '../config/sovereign-policy.module';
+import { ModelConfigurationModule } from '../config/model-configuration.module';
 import { FeatureFlagModule } from '../config/feature-flag.module';
 import { CentralizedRoutingService } from './centralized-routing.service';
 import { RunMetadataService } from './run-metadata.service';
@@ -34,7 +35,7 @@ import { OllamaLLMService } from './services/ollama-llm.service';
 import { GrokLLMService } from './services/grok-llm.service';
 
 @Module({
-  imports: [SupabaseModule, CIDAFMModule, SovereignPolicyModule, FeatureFlagModule, HttpModule],
+  imports: [SupabaseModule, CIDAFMModule, SovereignPolicyModule, FeatureFlagModule, ModelConfigurationModule, HttpModule],
   controllers: [LLMController, SanitizationManagementController, LlmUsageController, ProductionOptimizationController],
   providers: [
     LLMService,
