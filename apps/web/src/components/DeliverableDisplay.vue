@@ -913,43 +913,44 @@ const getMimeType = () => {
  * Extract LLM information from version metadata
  */
 const getVersionLLMInfo = (version: any): string | null => {
-  if (!version?.metadata) {
-    console.log('🔍 [LLM-DEBUG] No metadata found for version:', version?.id);
-    return null;
+  if (!version?.metadata) return null;
+  
+  // Temporary debug to see what we're actually getting
+  if (version.id && version.metadata.llmMetadata) {
+    console.log('🔍 [QUICK-DEBUG] Direct access test:', {
+      hasProvider: !!version.metadata.llmMetadata.provider,
+      hasModel: !!version.metadata.llmMetadata.model,
+      provider: version.metadata.llmMetadata.provider,
+      model: version.metadata.llmMetadata.model,
+      hasOriginalLLM: !!version.metadata.llmMetadata.originalLLMSelection,
+      originalProvider: version.metadata.llmMetadata.originalLLMSelection?.providerName,
+      originalModel: version.metadata.llmMetadata.originalLLMSelection?.modelName
+    });
   }
-
-  console.log('🔍 [LLM-DEBUG] Version metadata:', {
-    versionId: version.id,
-    metadataKeys: Object.keys(version.metadata),
-    llmMetadata: version.metadata.llmMetadata,
-    llmRerunInfo: version.metadata.llmRerunInfo,
-    llmUsed: version.metadata.llmUsed
-  });
   
   // Check for rerun LLM info first (most specific)
   if (version.metadata.llmRerunInfo) {
     const info = version.metadata.llmRerunInfo;
-    console.log('🔍 [LLM-DEBUG] Found llmRerunInfo:', info);
     return `${info.provider}/${info.model}`;
   }
   
   // Check for general LLM metadata
   if (version.metadata.llmMetadata) {
-    const info = version.metadata.llmMetadata;
-    console.log('🔍 [LLM-DEBUG] Found llmMetadata:', info);
+    // Convert Vue proxy to plain object for easier access
+    const info = JSON.parse(JSON.stringify(version.metadata.llmMetadata));
+    console.log('🔍 [TEMP-DEBUG] Parsed llmMetadata:', info);
     
-    // Handle direct provider/model format (from reruns)
+    // Handle direct provider/model format (from reruns and new initial creation)
     if (info.provider && info.model) {
-      console.log('🔍 [LLM-DEBUG] Using direct provider/model format');
+      console.log('🔍 [TEMP-DEBUG] Using direct provider/model format');
       return `${info.provider}/${info.model}`;
     }
     
-    // Handle originalLLMSelection format (from initial creation)
+    // Handle originalLLMSelection format (from old initial creation)
     if (info.originalLLMSelection) {
       const selection = info.originalLLMSelection;
-      console.log('🔍 [LLM-DEBUG] Found originalLLMSelection:', selection);
+      console.log('🔍 [TEMP-DEBUG] Using originalLLMSelection format:', selection);
       if (selection.providerName && selection.modelName) {
-        console.log('🔍 [LLM-DEBUG] Using originalLLMSelection format');
         return `${selection.providerName}/${selection.modelName}`;
       }
     }
@@ -958,14 +959,11 @@ const getVersionLLMInfo = (version: any): string | null => {
   // Check for legacy LLM metadata formats
   if (version.metadata.llmUsed) {
     const info = version.metadata.llmUsed;
-    console.log('🔍 [LLM-DEBUG] Found llmUsed:', info);
     if (info.provider && info.model) {
-      console.log('🔍 [LLM-DEBUG] Using llmUsed format');
       return `${info.provider}/${info.model}`;
     }
   }
   
-  console.log('🔍 [LLM-DEBUG] No LLM info found for version:', version.id);
   return null;
 };
 

@@ -324,14 +324,9 @@ ion-item.selected {
   font-weight: 500;
   border-left: 3px solid var(--ion-color-primary, #1976d2);
 }
-/* Increase sidebar width for better space utilization */
+/* Consistent compact sidebar width for all screen sizes */
 ion-menu {
-  --width: 356px; /* Increased by ~36px (half inch) */
-}
-@media (max-width: 768px) {
-  ion-menu {
-    --width: 300px; /* Also increased mobile width proportionally */
-  }
+  --width: 300px; /* Same clean width as mobile hamburger mode */
 }
 /* Admin accordion content */
 .admin-content {

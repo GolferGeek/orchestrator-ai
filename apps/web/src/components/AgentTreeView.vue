@@ -34,7 +34,7 @@
         <ion-item button @click="createNewConversation(group.agents[0])">
           <ion-icon :icon="icons.briefcaseOutline" color="primary" slot="start" />
             <ion-label>
-            <h3>{{ formatAgentName(group.agents[0].name) }}</h3>
+            <h3>{{ formatAgentName(group.agents[0].name).replace(' Orchestrator', '') }}</h3>
             </ion-label>
           <ion-badge slot="end" :color="group.totalConversations > 0 ? 'primary' : 'medium'">
             {{ group.totalConversations }}
@@ -65,7 +65,7 @@
                 <ion-item color="light">
                   <ion-icon :icon="icons.personOutline" slot="start" color="medium" />
                   <ion-label>
-                    <h4>{{ formatAgentName(agent.name) }}</h4>
+                    <h4>{{ formatAgentName(agent.name).replace(' Orchestrator', '') }}</h4>
                   </ion-label>
                   <ion-badge slot="end" :color="agent.totalConversations > 0 ? 'secondary' : 'light'">
                     {{ agent.totalConversations }}
@@ -84,7 +84,6 @@
                     <ion-icon :icon="icons.chatbubbleOutline" slot="start" color="tertiary" />
                     <ion-label>
                       <p>{{ formatConversationTitle(conversation) }}</p>
-                      <p class="conversation-meta">{{ formatLastActive(conversation.lastActiveAt) }}</p>
                     </ion-label>
                     <ion-badge 
                       v-if="conversation.activeTasks > 0" 
@@ -153,7 +152,7 @@
           <ion-item color="light">
             <ion-icon :icon="icons.personOutline" color="medium" slot="start" />
             <ion-label>
-              <h3>{{ formatAgentName(agent.name) }}</h3>
+              <h3>{{ formatAgentName(agent.name).replace(' Orchestrator', '') }}</h3>
             </ion-label>
             <ion-badge slot="end" :color="agent.totalConversations > 0 ? 'primary' : 'medium'">
               {{ agent.totalConversations }}
@@ -172,7 +171,6 @@
               <ion-icon :icon="icons.chatbubbleOutline" slot="start" color="tertiary" />
               <ion-label>
                 <p>{{ formatConversationTitle(conversation) }}</p>
-                <p class="conversation-meta">{{ formatLastActive(conversation.lastActiveAt) }}</p>
               </ion-label>
                         <ion-badge
                           v-if="conversation.activeTasks > 0"
@@ -287,11 +285,13 @@ const deliverablesStore = useDeliverablesStore();
 
 // Helper functions (defined before computed properties)
 const formatConversationTitle = (conversation: any) => {
-  // Use metadata title if available, otherwise create a default title
+  // Use metadata title if available, otherwise just show the relative time
   if (conversation.metadata?.title) {
     return conversation.metadata.title;
   }
-  return `Conversation ${conversation.id.slice(-6)}`;
+  
+  // Just use the same relative time format as the meta line
+  return formatLastActive(conversation.lastActiveAt || conversation.createdAt);
 };
 
 const formatLastActive = (date: Date) => {
