@@ -197,49 +197,15 @@
       />
     </ion-modal>
     
-    <!-- LLM Rerun Modal -->
-    <ion-modal :is-open="showLLMRerunModal" @did-dismiss="closeLLMRerunModal">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>Run with Different LLM</ion-title>
-          <ion-buttons slot="end">
-            <ion-button @click="closeLLMRerunModal">
-              <ion-icon :icon="closeOutline" />
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="modal-content">
-        <div class="llm-rerun-container">
-          <div class="rerun-info">
-            <h3>Re-run Deliverable</h3>
-            <p>This will create a new version of the deliverable using a different LLM model with the same original prompt.</p>
-          </div>
-          <div class="llm-selector-wrapper">
-            <LLMSelector>
-              <template #actions>
-                <ion-button 
-                  fill="clear" 
-                  @click="closeLLMRerunModal"
-                  size="default"
-                >
-                  Cancel
-                </ion-button>
-                <ion-button 
-                  @click="executeRerun"
-                  :disabled="!canExecuteRerun"
-                  color="primary"
-                  size="default"
-                >
-                  <ion-icon :icon="playOutline" slot="start" />
-                  Run with Selected LLM
-                </ion-button>
-              </template>
-            </LLMSelector>
-          </div>
-        </div>
-      </ion-content>
-    </ion-modal>
+    <!-- LLM Selector Modal (Unified) -->
+    <LLMSelectorModal
+      :is-open="showLLMRerunModal"
+      mode="execute"
+      title="Run with Different LLM"
+      description="This will create a new version of the deliverable using a different LLM model with the same original prompt."
+      @dismiss="closeLLMRerunModal"
+      @execute="handleLLMExecute"
+    />
   </div>
 </template>
 <script setup lang="ts">
@@ -284,6 +250,7 @@ import DeliverableDisplay from './DeliverableDisplay.vue';
 import ProjectDisplay from './ProjectDisplay.vue';
 import DeliverableMergeView from './DeliverableMergeView.vue';
 import LLMSelector from './LLMSelector.vue';
+import LLMSelectorModal from './LLMSelectorModal.vue';
 import SovereignModeBadge from './SovereignMode/SovereignModeBadge.vue';
 import SovereignModeTooltip from './SovereignMode/SovereignModeTooltip.vue';
 import SovereignModeBanner from './SovereignMode/SovereignModeBanner.vue';
@@ -518,6 +485,22 @@ const closeLLMRerunModal = () => {
   rerunDeliverableData.value = null;
 };
 
+const handleLLMExecute = async (llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number }) => {
+  if (!rerunDeliverableData.value) {
+    console.error('No rerun data available');
+    return;
+  }
+
+  // Capture the rerun data before closing modal
+  const capturedRerunData = { ...rerunDeliverableData.value };
+
+  // Close modal immediately to start conversation flow
+  closeLLMRerunModal();
+
+  // Execute the rerun with the provided config
+  await executeRerunWithConfig(capturedRerunData, llmConfig);
+};
+
 const canExecuteRerun = computed(() => {
   return llmStore.selectedProvider && 
          llmStore.selectedModel && 
@@ -525,20 +508,12 @@ const canExecuteRerun = computed(() => {
          rerunDeliverableData.value.version?.id;
 });
 
-const executeRerun = async () => {
-  if (!canExecuteRerun.value || !rerunDeliverableData.value || !rerunDeliverableData.value.version?.id) {
-    console.error('Invalid rerun data:', rerunDeliverableData.value);
-    return;
-  }
-
-  // Capture the rerun data before closing modal (to avoid race condition)
-  const capturedRerunData = { ...rerunDeliverableData.value };
-
-  // Close modal immediately to start conversation flow
-  closeLLMRerunModal();
-
+const executeRerunWithConfig = async (
+  capturedRerunData: { deliverable: any; version: any }, 
+  llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number }
+) => {
   // Create a user message for the rerun request
-  const rerunMessage = `🔄 Regenerating deliverable "${capturedRerunData.deliverable.title}" with ${llmStore.selectedProvider.name}/${llmStore.selectedModel.name}`;
+  const rerunMessage = `🔄 Regenerating deliverable "${capturedRerunData.deliverable.title}" with ${llmConfig.provider}/${llmConfig.model}`;
   
   try {
     // Add user message to conversation
@@ -550,12 +525,7 @@ const executeRerun = async () => {
       metadata: {
         isRerunRequest: true,
         originalVersionId: capturedRerunData.version.id,
-        rerunLLMConfig: {
-          provider: llmStore.selectedProvider.name.toLowerCase(),
-          model: llmStore.selectedModel.modelName,
-          temperature: llmStore.selectedProvider.temperature,
-          maxTokens: llmStore.selectedProvider.maxTokens,
-        }
+        rerunLLMConfig: llmConfig
       }
     };
 
@@ -570,22 +540,6 @@ const executeRerun = async () => {
       props.conversation.error = undefined;
     }
 
-    // Normalize provider name to lowercase for backend compatibility
-    const providerName = llmStore.selectedProvider.name.toLowerCase();
-    
-    const llmConfig: any = {
-      provider: providerName,
-      model: llmStore.selectedModel.modelName,
-    };
-    
-    // Only include temperature and maxTokens if they have valid values
-    if (llmStore.selectedProvider.temperature !== undefined && llmStore.selectedProvider.temperature !== null) {
-      llmConfig.temperature = llmStore.selectedProvider.temperature;
-    }
-    if (llmStore.selectedProvider.maxTokens !== undefined && llmStore.selectedProvider.maxTokens !== null) {
-      llmConfig.maxTokens = llmStore.selectedProvider.maxTokens;
-    }
-    
     console.log('🔄 LLM Rerun Config:', llmConfig);
     
     // Call the store method to rerun with different LLM
@@ -598,7 +552,7 @@ const executeRerun = async () => {
     const assistantMessage: AgentChatMessage = {
       id: `rerun-response-${Date.now()}`,
       role: 'assistant', 
-      content: `✅ Created new version with ${llmStore.selectedProvider.name}/${llmStore.selectedModel.name}`,
+      content: `✅ Created new version with ${llmConfig.provider}/${llmConfig.model}`,
       timestamp: new Date(),
       deliverableId: newVersion.deliverableId,
       metadata: {
