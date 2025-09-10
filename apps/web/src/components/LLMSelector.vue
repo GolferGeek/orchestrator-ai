@@ -177,6 +177,11 @@
     >
       {{ showAdvanced ? 'Hide' : 'Show' }} Advanced Settings
     </button>
+    
+    <!-- Action Slot for context-specific buttons -->
+    <div v-if="$slots.actions" class="llm-selector-actions">
+      <slot name="actions"></slot>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -549,6 +554,15 @@ const noModelsErrorSuggestion = computed(() => {
 }
 .toggle-advanced:hover {
   background: #2980b9;
+}
+
+.llm-selector-actions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ion-color-light);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 /* Sovereign Mode Styles */

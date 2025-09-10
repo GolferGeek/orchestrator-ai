@@ -216,30 +216,29 @@
             <p>This will create a new version of the deliverable using a different LLM model with the same original prompt.</p>
           </div>
           <div class="llm-selector-wrapper">
-            <LLMSelector />
+            <LLMSelector>
+              <template #actions>
+                <ion-button 
+                  fill="clear" 
+                  @click="closeLLMRerunModal"
+                  size="default"
+                >
+                  Cancel
+                </ion-button>
+                <ion-button 
+                  @click="executeRerun"
+                  :disabled="!canExecuteRerun"
+                  color="primary"
+                  size="default"
+                >
+                  <ion-icon :icon="playOutline" slot="start" />
+                  Run with Selected LLM
+                </ion-button>
+              </template>
+            </LLMSelector>
           </div>
         </div>
       </ion-content>
-      
-      <!-- Sticky Footer with Actions -->
-      <div class="modal-footer">
-        <ion-button 
-          fill="clear" 
-          @click="closeLLMRerunModal"
-          size="default"
-        >
-          Cancel
-        </ion-button>
-        <ion-button 
-          @click="executeRerun"
-          :disabled="!canExecuteRerun"
-          color="primary"
-          size="default"
-        >
-          <ion-icon :icon="playOutline" slot="start" />
-          Run with Selected LLM
-        </ion-button>
-      </div>
     </ion-modal>
   </div>
 </template>
