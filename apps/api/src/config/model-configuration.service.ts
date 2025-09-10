@@ -69,9 +69,12 @@ export class ModelConfigurationService {
    * Assert that a given agent + variant is configured; throw with actionable error if not.
    */
   public assertConfigured(agentType: string, variant: ModelVariant = 'default'): void {
-    const agent = this.config.agents[agentType];
+    if (this.mode !== 'system' || !this.config) {
+      throw new Error("ModelConfigurationService: agent variants are not available in global mode");
+    }
+    const agent = this.config!.agents[agentType];
     if (!agent) {
-      const availableAgents = Object.keys(this.config.agents).join(', ') || '(none)';
+      const availableAgents = Object.keys(this.config!.agents || {}).join(', ') || '(none)';
       throw new Error(
         `ModelConfigurationService: agent '${agentType}' not configured. Available agents: ${availableAgents}`,
       );
@@ -97,7 +100,7 @@ export class ModelConfigurationService {
     variant: ModelVariant = 'default',
   ): ModelConfiguration {
     this.assertConfigured(agentType, variant);
-    return (this.config.agents[agentType] as AgentModelConfiguration)[variant] as ModelConfiguration;
+    return (this.config!.agents[agentType] as AgentModelConfiguration)[variant] as ModelConfiguration;
   }
 
   /**
@@ -109,7 +112,7 @@ export class ModelConfigurationService {
     }
     const mc = this.config!.environmentDefaults[env];
     if (!mc) {
-      const available = Object.keys(this.config.environmentDefaults || {}).join(', ') || '(none)';
+      const available = Object.keys(this.config!.environmentDefaults || {}).join(', ') || '(none)';
       throw new Error(
         `ModelConfigurationService: environment default for '${env}' not configured. Available: ${available}`,
       );

@@ -108,40 +108,43 @@ export abstract class BaseLLMService {
           detectionResults: {
             totalMatches: result.mappings.length,
             flaggedMatches: result.mappings.map(mapping => ({
-              pattern: mapping.originalValue,
-              replacement: mapping.pseudonym,
+              value: mapping.originalValue,
               dataType: mapping.dataType,
-              severity: 'pseudonymizer' as any,
+              severity: 'info' as any,
+              confidence: 1.0,
               startIndex: 0, // Dictionary doesn't track positions
               endIndex: 0,
-              matchedText: mapping.originalValue,
+              pattern: mapping.originalValue,
+              pseudonym: mapping.pseudonym,
             })),
             showstopperMatches: [],
             dataTypesSummary: {},
             severityBreakdown: {
               showstopper: 0,
-              pseudonymizer: result.mappings.length,
-              flagger: 0,
+              warning: 0,
+              info: result.mappings.length,
             },
           },
           policyDecision: {
-            action: result.mappings.length > 0 ? 'pseudonymize' : 'allow',
-            reason: result.mappings.length > 0 ? 'Dictionary matches found' : 'No dictionary matches',
-            confidence: 1.0,
+            allowed: result.mappings.length === 0,
+            blocked: false,
+            violations: [],
+            reasoningPath: [result.mappings.length > 0 ? 'Dictionary matches found' : 'No dictionary matches'],
+            appliedFor: 'external',
           },
           userMessage: {
-            type: 'info',
-            title: 'Dictionary Pseudonymization',
-            message: result.mappings.length > 0 
+            summary: result.mappings.length > 0 
               ? `Applied ${result.mappings.length} dictionary pseudonym(s)`
               : 'No dictionary matches found',
+            details: [`Dictionary pseudonymization: ${result.mappings.length} matches`],
+            actionsTaken: result.mappings.length > 0 ? ['pseudonymization'] : [],
+            isBlocked: false,
           },
-          processingFlow: 'dictionary_pseudonymization' as any,
+          processingFlow: 'pseudonymized',
           processingSteps: [`Dictionary pseudonymization: ${result.mappings.length} matches`],
           timestamps: {
-            startTime: Date.now() - result.processingTimeMs,
-            endTime: Date.now(),
-            totalDurationMs: result.processingTimeMs,
+            detectionStart: Date.now() - result.processingTimeMs,
+            pseudonymApplied: Date.now(),
           },
         };
         
