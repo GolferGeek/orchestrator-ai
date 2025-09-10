@@ -20,7 +20,18 @@
         <button @click="showLLMPanel = false" class="close-panel">×</button>
       </div>
       <div class="panel-content">
-        <LLMSelector v-if="activeTab === 'model'" />
+        <LLMSelector v-if="activeTab === 'model'">
+          <template #actions>
+            <ion-button 
+              color="primary"
+              size="small"
+              @click="applyLLMSelection"
+            >
+              <ion-icon :icon="checkmarkOutline" slot="start" />
+              Apply Selection
+            </ion-button>
+          </template>
+        </LLMSelector>
         <CIDAFMControls v-if="activeTab === 'behavior'" />
       </div>
     </div>
@@ -81,7 +92,7 @@
 <script setup lang="ts">
 import { ref, computed, defineEmits, onUnmounted, watch, onMounted } from 'vue';
 import { IonTextarea, IonButtons, IonButton, IonIcon, IonToolbar, toastController } from '@ionic/vue';
-import { sendOutline, micOutline, micOffOutline, chevronUpOutline } from 'ionicons/icons';
+import { sendOutline, micOutline, micOffOutline, chevronUpOutline, checkmarkOutline } from 'ionicons/icons';
 import { useUiStore } from '../stores/uiStore';
 import { useLLMStore } from '../stores/llmStore';
 import { Capacitor } from '@capacitor/core';
@@ -205,6 +216,24 @@ const sendMessage = async () => {
   emit('sendMessage', messageToSend, llmSelection);
   inputText.value = '';
 };
+
+const applyLLMSelection = async () => {
+  // Show confirmation that selection was applied
+  const provider = llmStore.selectedProvider?.name || 'Unknown';
+  const model = llmStore.selectedModel?.name || 'Unknown';
+  
+  const toast = await toastController.create({
+    message: `✅ LLM selection applied: ${provider}/${model}`,
+    duration: 2000,
+    position: 'top',
+    color: 'success'
+  });
+  await toast.present();
+  
+  // Optionally close the LLM panel after applying
+  showLLMPanel.value = false;
+};
+
 const handleEnterKey = (event: KeyboardEvent) => {
   if (!event.shiftKey && !isRecording.value) {
     event.preventDefault();
