@@ -605,6 +605,22 @@ export const useAgentChatStore = defineStore('agentChat', {
           }
         }
 
+        // Process unified response format if available
+        const llmStore = useLLMStore();
+        if (parsedResponse) {
+          const processedResponse = llmStore.processUnifiedResponse(parsedResponse);
+          
+          // Store unified response data in message metadata for UI access
+          existingMessage.metadata = {
+            ...existingMessage.metadata,
+            llmResponse: llmStore.lastUnifiedResponse,
+            llmError: llmStore.lastStandardizedError,
+            processedContent: processedResponse.content,
+            isLLMError: processedResponse.isError,
+            isRetryable: processedResponse.isRetryable,
+          };
+        }
+
         // Update message content with the final response
         existingMessage.content = finalContent;
         console.log('🔍 [FRONTEND-DEBUG] Agent result metadata:', parsedResponse?.metadata);
