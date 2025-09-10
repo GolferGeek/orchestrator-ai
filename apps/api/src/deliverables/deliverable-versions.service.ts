@@ -503,20 +503,21 @@ export class DeliverableVersionsService {
       const systemPrompt = this.buildSystemPromptForRerun(agentName, agentType, sourceVersion);
 
       // Call LLM service with new model
-      const llmResponse = await this.llmService.generateCentralizedResponse(
-        systemPrompt,
-        originalTask.prompt,
-        {
-          provider: rerunDto.provider,
-          model: rerunDto.model,
+      const llmResponse = await this.llmService.generateUnifiedResponse({
+        provider: rerunDto.provider,
+        model: rerunDto.model,
+        systemPrompt: systemPrompt,
+        userMessage: originalTask.prompt,
+        options: {
           temperature: rerunDto.temperature,
           maxTokens: rerunDto.maxTokens,
           userId: userId,
           callerType: 'deliverable_rerun',
           callerName: `${agentName}_rerun`,
           conversationId: sourceVersion.metadata?.conversationId,
+          includeMetadata: true, // We need the full response object
         }
-      );
+      });
 
       // Create new version with LLM response
       const createVersionDto: CreateVersionDto = {
