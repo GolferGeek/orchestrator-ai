@@ -5,6 +5,7 @@ import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudo
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { PIIProcessingMetadata } from '../../common/types/pii-metadata.types';
+import { LLMError, LLMErrorMapper, LLMErrorMonitor, LLMErrorType } from './llm-error-handling';
 import {
   LLMServiceConfig,
   GenerateResponseParams,
@@ -265,12 +266,22 @@ export abstract class BaseLLMService {
    * Handle errors consistently across all providers
    */
   protected handleError(error: any, context: string): never {
-    const errorMessage = error.message || 'Unknown error occurred';
-    const errorCode = error.code || 'UNKNOWN_ERROR';
-    
-    this.logger.error(`${context}: ${errorMessage}`, error.stack);
-    
-    throw new Error(`${context}: ${errorMessage}`);
+    try {
+      const provider = this.config?.provider || 'unknown';
+      const model = this.config?.model;
+      const mappedError = LLMErrorMapper.fromGenericError(error, provider, model);
+      LLMErrorMonitor.recordError(mappedError);
+      throw mappedError;
+    } catch (mappingFailure) {
+      const fallback = new LLMError(
+        `${context}: ${error?.message || 'Unknown error occurred'}`,
+        LLMErrorType.UNKNOWN,
+        this.config?.provider || 'unknown',
+        { model: this.config?.model, originalError: error }
+      );
+      LLMErrorMonitor.recordError(fallback);
+      throw fallback;
+    }
   }
 
   /**

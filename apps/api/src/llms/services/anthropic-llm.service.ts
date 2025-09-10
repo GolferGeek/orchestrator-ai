@@ -12,6 +12,7 @@ import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudo
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import Anthropic from '@anthropic-ai/sdk';
+import { LLMErrorMapper } from './llm-error-handling';
 
 /**
  * Anthropic-specific response metadata extension
@@ -252,17 +253,13 @@ export class AnthropicLLMService extends BaseLLMService {
    * Anthropic-specific error handling
    */
   protected handleError(error: any, context: string): never {
-    // Handle Anthropic-specific errors
-    if (error.status === 429) {
-      throw new Error(`${context}: Rate limit exceeded for Anthropic API`);
-    } else if (error.status === 401) {
-      throw new Error(`${context}: Invalid Anthropic API key`);
-    } else if (error.status === 400 && error.error?.type === 'invalid_request_error') {
-      throw new Error(`${context}: Invalid request to Anthropic API: ${error.error.message}`);
+    // Map to standardized error and delegate to base handler
+    try {
+      const mapped = LLMErrorMapper.fromAnthropicError(error, 'anthropic', this.config?.model);
+      super.handleError(mapped, context);
+    } catch {
+      super.handleError(error, context);
     }
-    
-    // Fall back to base error handling
-    super.handleError(error, context);
   }
 }
 

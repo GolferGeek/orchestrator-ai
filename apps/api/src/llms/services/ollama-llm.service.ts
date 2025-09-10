@@ -15,6 +15,7 @@ import { PseudonymizerService } from '../../services/pseudonymizer.service';
 import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
+import { LLMErrorMapper } from './llm-error-handling';
 
 /**
  * Ollama-specific response metadata extension
@@ -289,17 +290,12 @@ export class OllamaLLMService extends BaseLLMService {
    * Ollama-specific error handling
    */
   protected handleError(error: any, context: string): never {
-    // Handle Ollama-specific errors
-    if (error.code === 'ECONNREFUSED') {
-      throw new Error(`${context}: Cannot connect to Ollama server at ${this.ollamaBaseUrl}. Is Ollama running?`);
-    } else if (error.response?.status === 404) {
-      throw new Error(`${context}: Ollama endpoint not found. Check Ollama server configuration.`);
-    } else if (error.code === 'ETIMEDOUT') {
-      throw new Error(`${context}: Ollama request timed out. Model may be loading or server is overloaded.`);
+    try {
+      const mapped = LLMErrorMapper.fromOllamaError(error, 'ollama', this.config?.model);
+      super.handleError(mapped, context);
+    } catch {
+      super.handleError(error, context);
     }
-    
-    // Fall back to base error handling
-    super.handleError(error, context);
   }
 
   /**
