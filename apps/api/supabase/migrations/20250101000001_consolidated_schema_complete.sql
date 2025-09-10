@@ -36,38 +36,90 @@ CREATE TABLE public.users (
     roles JSONB DEFAULT '["user"]'::jsonb
 );
 
--- LLM Providers table - AI service provider configurations
-CREATE TABLE public.llm_providers (
+-- Seed the demo user
+INSERT INTO public.users (id, email, display_name, role, roles)
+VALUES ('b29a590e-b07f-49df-a25b-574c956b5035', 'demo.user@playground.com', 'Demo User', 'admin', '["admin", "user"]'::jsonb);
+
+-- Redaction and Pseudonym Tables
+CREATE TABLE public.redaction_patterns (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) UNIQUE NOT NULL,
-    display_name VARCHAR(255),
-    api_base_url VARCHAR(500),
-    api_key_encrypted TEXT,
-    configuration_json JSONB,
-    is_active BOOLEAN DEFAULT true,
-    rate_limit_rpm INTEGER,
-    rate_limit_tpm INTEGER,
+    pattern_regex TEXT NOT NULL,
+    replacement TEXT NOT NULL,
+    description TEXT,
+    category VARCHAR(100),
+    priority INTEGER DEFAULT 50,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    severity VARCHAR(50),
+    data_type VARCHAR(50)
+);
+
+CREATE TABLE public.pseudonym_dictionaries (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    original_value TEXT UNIQUE NOT NULL,
+    pseudonym TEXT NOT NULL,
+    data_type VARCHAR(100) NOT NULL,
+    category VARCHAR(100),
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- LLM Models table - AI model specifications and pricing
+-- Seed the pseudonym dictionary
+INSERT INTO public.pseudonym_dictionaries
+  (original_value, pseudonym, data_type, category, is_active)
+VALUES
+  ('Matt Weber', '[PERSON_NAME_001]', 'name', 'core_entities', TRUE),
+  ('GolferGeek', '[USERNAME_001]', 'username', 'core_entities', TRUE),
+  ('Orchestrator AI', '[ORGANIZATION_001]', 'organization', 'core_entities', TRUE)
+ON CONFLICT (original_value) DO UPDATE SET
+  pseudonym = EXCLUDED.pseudonym,
+  data_type = EXCLUDED.data_type,
+  category = EXCLUDED.category,
+  is_active = EXCLUDED.is_active;
+
+-- LLM Providers and Models Tables
+CREATE TABLE public.llm_providers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) UNIQUE NOT NULL,
+    display_name VARCHAR(255),
+    api_base_url TEXT,
+    configuration_json JSONB,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
 CREATE TABLE public.llm_models (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    provider_id UUID REFERENCES public.llm_providers(id),
-    model_name VARCHAR(255) NOT NULL,
+    provider_name TEXT NOT NULL,
+    model_name TEXT NOT NULL,
     display_name VARCHAR(255),
-    model_type VARCHAR(100),
-    context_window INTEGER,
-    max_output_tokens INTEGER,
-    model_parameters_json JSONB DEFAULT '{}'::jsonb,
-    pricing_info_json JSONB,
-    capabilities JSONB,
-    is_active BOOLEAN DEFAULT true,
-    model_version VARCHAR(100),
-    training_data_cutoff DATE,
+    is_local BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    UNIQUE(provider_name, model_name)
+);
+
+-- LLM Usage Table
+CREATE TABLE public.llm_usage (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    run_id TEXT UNIQUE,
+    user_id UUID,
+    conversation_id UUID,
+    provider_name TEXT,
+    model_name TEXT,
+    is_local BOOLEAN,
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+    total_cost NUMERIC,
+    duration_ms INTEGER,
+    status TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    pii_detected BOOLEAN,
+    pii_types JSONB,
+    pseudonyms_used INTEGER,
+    pseudonym_types JSONB,
+    sanitization_level TEXT
 );
 
 -- CIDAFM Commands table - Command definitions for Context-Import-Delegate-AFM system
@@ -296,7 +348,7 @@ CREATE INDEX idx_orchestrator_users_email ON public.users(email);
 CREATE INDEX idx_orchestrator_users_status ON public.users(status);
 CREATE INDEX idx_orchestrator_llm_providers_name ON public.llm_providers(name);
 CREATE INDEX idx_orchestrator_llm_providers_active ON public.llm_providers(is_active);
-CREATE INDEX idx_orchestrator_llm_models_provider ON public.llm_models(provider_id);
+CREATE INDEX idx_orchestrator_llm_models_provider ON public.llm_models(provider_name);
 CREATE INDEX idx_orchestrator_llm_models_active ON public.llm_models(is_active);
 CREATE INDEX idx_orchestrator_cidafm_commands_name ON public.cidafm_commands(name);
 CREATE INDEX idx_orchestrator_cidafm_commands_type ON public.cidafm_commands(type);
