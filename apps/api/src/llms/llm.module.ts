@@ -25,7 +25,6 @@ import { SourceBlindingService } from './source-blinding.service';
 import { BlindedLLMService } from './blinded-llm.service';
 import { BlindedHttpService } from './blinded-http.service';
 import { PIIService } from '../services/pii.service';
-import { PseudonymizerService } from '../services/pseudonymizer.service';
 import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
 import { LLMServiceFactory } from './services/llm-service-factory';
 import { OpenAILLMService } from './services/openai-llm.service';
@@ -54,7 +53,6 @@ import { GrokLLMService } from './services/grok-llm.service';
     BlindedLLMService,
     BlindedHttpService,
     PIIService,
-    PseudonymizerService,
     DictionaryPseudonymizerService,
     LLMServiceFactory,
     // Note: LLM Provider Services (OpenAI, Anthropic, etc.) are NOT registered as providers
@@ -77,7 +75,6 @@ import { GrokLLMService } from './services/grok-llm.service';
     BlindedLLMService,
     BlindedHttpService,
     PIIService,
-    PseudonymizerService,
     DictionaryPseudonymizerService,
     LLMServiceFactory,
     // Note: LLM Provider Services are not exported as they're factory-created
