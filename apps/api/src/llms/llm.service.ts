@@ -492,6 +492,30 @@ export class LLMService {
     
     this.logger.debug(`[LLMService] Dictionary pseudonymization applied. ${pseudonymResult.mappings.length} replacements made.`);
 
+    // Merge dictionary pseudonymization results into the main PII metadata
+    if (pseudonymResult.mappings.length > 0 && routingDecision.piiMetadata) {
+      const piiMetadata = routingDecision.piiMetadata;
+      piiMetadata.piiDetected = true;
+
+      if (!piiMetadata.pseudonymInstructions) {
+        piiMetadata.pseudonymInstructions = { shouldPseudonymize: false, targetMatches: [] };
+      }
+      piiMetadata.pseudonymInstructions.shouldPseudonymize = true;
+      
+      const dictionaryMatches = pseudonymResult.mappings.map(m => ({
+        value: m.originalValue,
+        dataType: m.dataType,
+        severity: 'warning', // Use 'warning' to represent pseudonymization
+        confidence: 1.0,
+        startIndex: -1,
+        endIndex: -1,
+        pattern: 'dictionary_match',
+        pseudonym: m.pseudonym,
+      }));
+      
+      piiMetadata.pseudonymInstructions.targetMatches.push(...dictionaryMatches as any[]);
+    }
+
     // Use LocalLLMService for local Ollama models - NO SANITIZATION needed
     if (routingDecision.isLocal && routingDecision.provider === 'ollama') {
       await this.dataSanitizationService.debug(
