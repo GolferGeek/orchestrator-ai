@@ -879,7 +879,7 @@ export class LLMRetryHandler {
         const llmError = error instanceof LLMError 
           ? error 
           : new LLMError(
-              error.message || 'Unknown error',
+              (error as any)?.message || 'Unknown error',
               LLMErrorType.UNKNOWN,
               'unknown',
               { originalError: error }
