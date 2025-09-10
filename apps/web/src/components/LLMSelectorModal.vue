@@ -237,12 +237,26 @@ onMounted(async () => {
 const onProviderChange = () => {
   if (selectedProvider.value && typeof selectedProvider.value === 'object') {
     llmStore.setProvider(selectedProvider.value);
+    // Immediately sync with user preferences for reactive display
+    if (selectedModel.value && typeof selectedModel.value === 'object') {
+      userPreferencesStore.setLLMPreferences(
+        selectedProvider.value.name, 
+        selectedModel.value.name
+      );
+    }
   }
 };
 
 const onModelChange = () => {
   if (selectedModel.value && typeof selectedModel.value === 'object') {
     llmStore.setModel(selectedModel.value);
+    // Immediately sync with user preferences for reactive display
+    if (selectedProvider.value && typeof selectedProvider.value === 'object') {
+      userPreferencesStore.setLLMPreferences(
+        selectedProvider.value.name, 
+        selectedModel.value.name
+      );
+    }
   }
 };
 
@@ -287,9 +301,16 @@ const handlePrimaryAction = async () => {
   };
 
   if (props.mode === 'select') {
+    // Update user preferences to ensure reactivity
+    const providerName = (selectedProvider.value as Provider).name;
+    const modelName = (selectedModel.value as Model).name;
+    
+    // Update user preferences store for reactive display
+    userPreferencesStore.setLLMPreferences(providerName, modelName);
+    
     // Just apply the selection and show confirmation
     const toast = await toastController.create({
-      message: `✅ LLM selection applied: ${(selectedProvider.value as Provider).name}/${(selectedModel.value as Model).name}`,
+      message: `✅ LLM selection applied: ${providerName}/${modelName}`,
       duration: 2000,
       position: 'top',
       color: 'success'
