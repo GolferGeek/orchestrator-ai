@@ -36,6 +36,8 @@ import {
   UserLLMPreferences,
 } from '../types/llm-evaluation';
 import { mapProviderFromDb, mapModelFromDb } from '../utils/case-converter';
+import { ModelConfigurationService } from '../config/model-configuration.service';
+import type { EnvironmentName } from '../config/model-configuration.service';
 import { getTableName } from '../supabase/supabase.config';
 import { LLMError, LLMErrorMapper, LLMErrorMonitor } from './services/llm-error-handling';
 
@@ -80,6 +82,7 @@ export class LLMService {
     private readonly localLLMService: LocalLLMService,
     private readonly blindedLLMService: BlindedLLMService,
     private readonly llmServiceFactoryInstance: LLMServiceFactory,
+    private readonly modelConfigurationService: ModelConfigurationService,
   ) {
 
     // Initialize OpenAI client only if API key is available
@@ -92,94 +95,8 @@ export class LLMService {
 
     }
 
-    // Initialize system LLM configurations for different orchestrator operations
-    // Each operation type can have its own optimized configuration
-    this.systemLLMConfigs = {
-      delegation: {
-        provider: (process.env.SYSTEM_DELEGATION_LLM_PROVIDER as any) || 'disabled',
-        model: process.env.SYSTEM_DELEGATION_LLM_MODEL || 'disabled',
-        temperature: parseFloat(
-          process.env.SYSTEM_DELEGATION_LLM_TEMPERATURE || '0.0',
-        ),
-        maxTokens: parseInt(
-          process.env.SYSTEM_DELEGATION_LLM_MAX_TOKENS || '300',
-        ),
-        enabled: process.env.SYSTEM_DELEGATION_LLM_ENABLED !== 'false' && 
-                 !!process.env.SYSTEM_DELEGATION_LLM_PROVIDER && 
-                 !!process.env.SYSTEM_DELEGATION_LLM_MODEL,
-        description: 'Fast delegation decisions - which agent to use',
-      },
-      agent_selection: {
-        provider: (process.env.SYSTEM_AGENT_SELECTION_LLM_PROVIDER as any) || 'disabled',
-        model: process.env.SYSTEM_AGENT_SELECTION_LLM_MODEL || 'disabled',
-        temperature: parseFloat(
-          process.env.SYSTEM_AGENT_SELECTION_LLM_TEMPERATURE || '0.1',
-        ),
-        maxTokens: parseInt(
-          process.env.SYSTEM_AGENT_SELECTION_LLM_MAX_TOKENS || '400',
-        ),
-        enabled: process.env.SYSTEM_AGENT_SELECTION_LLM_ENABLED !== 'false' && 
-                 !!process.env.SYSTEM_AGENT_SELECTION_LLM_PROVIDER && 
-                 !!process.env.SYSTEM_AGENT_SELECTION_LLM_MODEL,
-        description: 'Agent selection and matching logic',
-      },
-      response_coordination: {
-        provider: (process.env.SYSTEM_RESPONSE_COORD_LLM_PROVIDER as any) || 'disabled',
-        model: process.env.SYSTEM_RESPONSE_COORD_LLM_MODEL || 'disabled',
-        temperature: parseFloat(
-          process.env.SYSTEM_RESPONSE_COORD_LLM_TEMPERATURE || '0.2',
-        ),
-        maxTokens: parseInt(
-          process.env.SYSTEM_RESPONSE_COORD_LLM_MAX_TOKENS || '800',
-        ),
-        enabled: process.env.SYSTEM_RESPONSE_COORD_LLM_ENABLED !== 'false' && 
-                 !!process.env.SYSTEM_RESPONSE_COORD_LLM_PROVIDER && 
-                 !!process.env.SYSTEM_RESPONSE_COORD_LLM_MODEL,
-        description: 'Response coordination and organization',
-      },
-      conversation_analysis: {
-        provider: (process.env.SYSTEM_CONVERSATION_LLM_PROVIDER as any) || 'disabled',
-        model: process.env.SYSTEM_CONVERSATION_LLM_MODEL || 'disabled',
-        temperature: parseFloat(
-          process.env.SYSTEM_CONVERSATION_LLM_TEMPERATURE || '0.1',
-        ),
-        maxTokens: parseInt(
-          process.env.SYSTEM_CONVERSATION_LLM_MAX_TOKENS || '600',
-        ),
-        enabled: process.env.SYSTEM_CONVERSATION_LLM_ENABLED !== 'false' && 
-                 !!process.env.SYSTEM_CONVERSATION_LLM_PROVIDER && 
-                 !!process.env.SYSTEM_CONVERSATION_LLM_MODEL,
-        description: 'Conversation context analysis',
-      },
-      error_handling: {
-        provider: (process.env.SYSTEM_ERROR_LLM_PROVIDER as any) || 'disabled',
-        model: process.env.SYSTEM_ERROR_LLM_MODEL || 'disabled',
-        temperature: parseFloat(
-          process.env.SYSTEM_ERROR_LLM_TEMPERATURE || '0.0',
-        ),
-        maxTokens: parseInt(process.env.SYSTEM_ERROR_LLM_MAX_TOKENS || '200'),
-        enabled: process.env.SYSTEM_ERROR_LLM_ENABLED !== 'false' && 
-                 !!process.env.SYSTEM_ERROR_LLM_PROVIDER && 
-                 !!process.env.SYSTEM_ERROR_LLM_MODEL,
-        description: 'Error handling and fallback operations',
-      },
-      default: {
-        provider: (process.env.SYSTEM_DEFAULT_LLM_PROVIDER as any) || 'disabled',
-        model: process.env.SYSTEM_DEFAULT_LLM_MODEL || 'disabled',
-        temperature: parseFloat(
-          process.env.SYSTEM_DEFAULT_LLM_TEMPERATURE || '0.1',
-        ),
-        maxTokens: parseInt(process.env.SYSTEM_DEFAULT_LLM_MAX_TOKENS || '500'),
-        enabled: process.env.SYSTEM_DEFAULT_LLM_ENABLED !== 'false' && 
-                 !!process.env.SYSTEM_DEFAULT_LLM_PROVIDER && 
-                 !!process.env.SYSTEM_DEFAULT_LLM_MODEL,
-        description: 'Default system operations',
-      },
-    };
-
-    Object.entries(this.systemLLMConfigs).forEach(([operation, config]) => {
-
-    });
+    // Deprecated: SYSTEM_* .env model defaults replaced by ModelConfigurationService
+    this.systemLLMConfigs = {} as any;
 
     // Initialize the LLM service factory
     this.llmServiceFactory = this.llmServiceFactoryInstance;
@@ -844,40 +761,30 @@ export class LLMService {
     userMessage: string,
   ): Promise<string> {
     try {
-      const config = this.systemLLMConfigs[operationType];
+      // Resolve environment explicitly and fetch validated default
+      const env = this.resolveEnvironment();
+      const envDefault = this.modelConfigurationService.getEnvironmentDefault(env);
 
-      if (!config.enabled) {
-
-        const defaultConfig = this.systemLLMConfigs.default;
-        if (!defaultConfig.enabled) {
-          throw new Error('All system LLM configurations are disabled');
-        }
-      }
-
-      const activeConfig = config.enabled
-        ? config
-        : this.systemLLMConfigs.default;
-
-      // Create LLM instance with system configuration
+      // Create LLM instance with environment default configuration
       const llm = this.createCustomLangGraphLLM({
-        provider: activeConfig.provider as any,
-        model: activeConfig.model,
-        temperature: activeConfig.temperature,
-        maxTokens: activeConfig.maxTokens,
+        provider: envDefault.provider as any,
+        model: envDefault.model,
+        temperature: envDefault.parameters?.temperature,
+        maxTokens: envDefault.parameters?.maxTokens,
       });
 
-      // Format messages for the specific provider - LLM service controls the format
+      // Format messages using selected provider/model
       const messages = this.formatMessagesForProvider(
         systemPrompt,
         userMessage,
-        activeConfig.provider,
-        activeConfig.model
+        envDefault.provider,
+        envDefault.model,
       );
-      
-      // Add debug logging to see what's being sent
+
+      // Debug
       this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
-      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Provider:', activeConfig.provider);
-      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Model:', activeConfig.model);
+      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Provider:', envDefault.provider);
+      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Model:', envDefault.model);
 
       const response = await llm.invoke(messages);
       const content =
@@ -891,6 +798,22 @@ export class LLMService {
         error instanceof Error ? error.message : String(error);
       throw new Error(`System LLM operation error: ${errorMessage}`);
     }
+  }
+
+  /**
+   * Resolve environment name explicitly for configuration defaults
+   */
+  private resolveEnvironment(): EnvironmentName {
+    const env = (process.env.NODE_ENV || '').toLowerCase();
+    if (env === 'production' || env === 'staging' || env === 'development') {
+      return env as EnvironmentName;
+    }
+    // Default to development only if explicitly configured via MODEL_CONFIG_*; otherwise require explicit
+    // For safety, enforce explicit environment selection to avoid hidden fallbacks
+    throw new Error(
+      `Invalid NODE_ENV '${process.env.NODE_ENV}'. Expected one of 'development', 'staging', 'production'. ` +
+      `Set NODE_ENV accordingly, or provide MODEL_CONFIG_JSON/PATH with the intended environment defaults.`,
+    );
   }
 
   /**
