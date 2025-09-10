@@ -81,7 +81,7 @@ export class PseudonymizerService {
 
       const result: PseudonymizationResult = {
         originalText: text,
-        processedText: text, // Return original text as no processing is done here
+        pseudonymizedText: text, // Return original text as no processing is done here
         mappings: [], // No mappings generated here
         processingTimeMs,
         requestId,
