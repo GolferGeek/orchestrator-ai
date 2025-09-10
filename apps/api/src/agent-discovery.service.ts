@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { join } from 'path';
 import * as fs from 'fs';
 import * as yaml from 'yaml';
+import { AgentConfigurationService, AgentConfigurationData } from './agents/actual/specialists/agent_creator/services/agent-configuration.service';
 
 export interface DiscoveredAgent {
   name: string;
@@ -25,6 +26,10 @@ export interface DiscoveredAgent {
     category?: string;
     version?: string;
   };
+  // Database agent fields
+  isDatabaseAgent?: boolean;
+  databaseId?: string;
+  agentConfiguration?: AgentConfigurationData;
 }
 
 export interface AgentHierarchy {
@@ -48,31 +53,93 @@ export class AgentDiscoveryService {
   private agentHierarchy: AgentHierarchy[] = [];
   private hierarchyCache: Map<string, AgentHierarchy> = new Map();
 
-  constructor() {
-
+  constructor(
+    private agentConfigService?: AgentConfigurationService
+  ) {
+    this.logger.log('🔍 AgentDiscoveryService initialized');
   }
 
   /**
-   * Discover all agent services in the file system
+   * Discover all agent services from both filesystem and database
    */
   async discoverAgents(): Promise<DiscoveredAgent[]> {
+    this.logger.log('🔍 Starting hybrid agent discovery...');
 
-    // Handle both monorepo (apps/api/src) and standalone (src) structures
-    const agentsBasePath = process.cwd().includes('/apps/api')
-      ? join(process.cwd(), 'src', 'agents', 'actual')
-      : join(process.cwd(), 'apps', 'api', 'src', 'agents', 'actual');
     this.discoveredAgents = [];
 
-    await this.traverseDirectory(agentsBasePath);
+    // First, discover filesystem agents
+    await this.discoverFilesystemAgents();
 
-    // Discover agent functions after service discovery
-    this.discoverAgentFunctions();
+    // Then, discover database agents
+    await this.discoverDatabaseAgents();
 
     // Load agent configurations and build hierarchy
     await this.loadAgentConfigurations();
     this.buildAgentHierarchy();
 
+    const filesystemCount = this.discoveredAgents.filter(a => !a.isDatabaseAgent).length;
+    const databaseCount = this.discoveredAgents.filter(a => a.isDatabaseAgent).length;
+    
+    this.logger.log(`✅ Discovered ${this.discoveredAgents.length} agents (${filesystemCount} filesystem, ${databaseCount} database)`);
     return this.discoveredAgents;
+  }
+
+  /**
+   * Discover filesystem-based agents
+   */
+  private async discoverFilesystemAgents(): Promise<void> {
+    this.logger.log('🗂️ Discovering filesystem agents...');
+
+    // Handle both monorepo (apps/api/src) and standalone (src) structures
+    const agentsBasePath = process.cwd().includes('/apps/api')
+      ? join(process.cwd(), 'src', 'agents', 'actual')
+      : join(process.cwd(), 'apps', 'api', 'src', 'agents', 'actual');
+
+    await this.traverseDirectory(agentsBasePath);
+
+    // Discover agent functions after service discovery
+    this.discoverAgentFunctions();
+  }
+
+  /**
+   * Discover database-based agents
+   */
+  private async discoverDatabaseAgents(): Promise<void> {
+    if (!this.agentConfigService) {
+      this.logger.debug('⏭️ AgentConfigurationService not available, skipping database agents');
+      return;
+    }
+
+    try {
+      this.logger.log('🗄️ Discovering database agents...');
+      
+      const databaseAgents = await this.agentConfigService.listAgentConfigurations();
+      
+      for (const agentConfig of databaseAgents) {
+        const agent: DiscoveredAgent = {
+          name: agentConfig.agentId,
+          type: agentConfig.department,
+          path: `${agentConfig.department}/${agentConfig.agentId}`,
+          servicePath: `virtual://database/${agentConfig.agentId}`, // Virtual path for database agents
+          isDatabaseAgent: true,
+          databaseId: agentConfig.agentId,
+          agentConfiguration: agentConfig,
+          metadata: {
+            displayName: agentConfig.displayName,
+            description: agentConfig.primaryPurpose,
+            category: agentConfig.department,
+            version: '1.0.0'
+          }
+        };
+
+        this.discoveredAgents.push(agent);
+        this.logger.debug(`🗄️ Found database agent: ${agent.path}`);
+      }
+      
+      this.logger.log(`🗄️ Discovered ${databaseAgents.length} database agents`);
+    } catch (error) {
+      this.logger.warn('⚠️ Failed to discover database agents:', error);
+    }
   }
 
   /**
@@ -204,6 +271,29 @@ export class AgentDiscoveryService {
    */
   getDiscoveredAgents(): DiscoveredAgent[] {
     return this.discoveredAgents;
+  }
+
+  /**
+   * Get agent by path (supports both filesystem and database agents)
+   */
+  getAgentByPath(agentPath: string): DiscoveredAgent | undefined {
+    return this.discoveredAgents.find(agent => agent.path === agentPath);
+  }
+
+  /**
+   * Check if an agent is stored in the database
+   */
+  isDatabaseAgent(agentPath: string): boolean {
+    const agent = this.getAgentByPath(agentPath);
+    return agent?.isDatabaseAgent || false;
+  }
+
+  /**
+   * Get database configuration for an agent
+   */
+  getDatabaseConfiguration(agentPath: string): AgentConfigurationData | undefined {
+    const agent = this.getAgentByPath(agentPath);
+    return agent?.agentConfiguration;
   }
 
   /**
