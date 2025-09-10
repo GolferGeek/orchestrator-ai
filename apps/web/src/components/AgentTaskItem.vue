@@ -313,9 +313,36 @@ const formattedTimestamp = computed(() => {
   });
 });
 
-// LLM Information computed properties
+// LLM Information computed properties - supports both legacy and unified formats
 const llmUsed = computed(() => {
   const metadata = props.message.metadata;
+  
+  // Check for unified response format first
+  if (metadata?.llmResponse?.metadata?.provider) {
+    const unified = metadata.llmResponse.metadata;
+    return {
+      providerName: unified.provider,
+      modelName: unified.model,
+      temperature: unified.config?.temperature,
+      maxTokens: unified.config?.maxTokens,
+      responseTimeMs: unified.timing?.duration
+    };
+  }
+  
+  // Check for standardized error format
+  if (metadata?.llmError?.technical?.provider) {
+    const error = metadata.llmError.technical;
+    return {
+      providerName: error.provider,
+      modelName: error.model,
+      isError: true,
+      errorCode: error.code,
+      severity: error.severity,
+      retryable: error.retryable
+    };
+  }
+  
+  // Legacy format fallback
   if (!metadata?.llmMetadata) return null;
   
   return {
@@ -329,6 +356,20 @@ const llmUsed = computed(() => {
 
 const usage = computed(() => {
   const metadata = props.message.metadata;
+  
+  // Check for unified response format first
+  if (metadata?.llmResponse?.metadata?.usage) {
+    const unified = metadata.llmResponse.metadata;
+    return {
+      inputTokens: unified.usage.inputTokens || 0,
+      outputTokens: unified.usage.outputTokens || 0,
+      totalTokens: unified.usage.totalTokens || 0,
+      totalCost: unified.usage.cost || 0,
+      responseTimeMs: unified.timing?.duration || 0
+    };
+  }
+  
+  // Legacy format fallback
   if (!metadata?.usage) return null;
   
   return {
