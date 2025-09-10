@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { BaseSubServicesModule } from '../../../sub-services/base-sub-services.module';
 import { OrchestratorModule } from './orchestrator.module';
+import { LLMModule } from '../../../../../llms/llm.module';
 import { OrchestratorAgentServicesContext } from './orchestrator-agent-services.context';
 
 /**
@@ -14,6 +15,7 @@ import { OrchestratorAgentServicesContext } from './orchestrator-agent-services.
     HttpModule,
     BaseSubServicesModule,
     OrchestratorModule, // Provides all orchestrator-specific services
+    LLMModule, // Provides LLMService and LLMServiceFactory directly
   ],
   providers: [OrchestratorAgentServicesContext],
   exports: [OrchestratorAgentServicesContext],

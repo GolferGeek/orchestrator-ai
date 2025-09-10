@@ -10,6 +10,7 @@ import { HealthService } from './health/health.service';
 import { LoggingService } from './logging/logging.service';
 import { AuthService } from './auth/auth.service';
 import { DeliverablesModule } from '../../../deliverables/deliverables.module';
+import { LLMModule } from '../../../llms/llm.module';
 // MCPModule removed - replaced with LangChain module
 
 /**
@@ -18,7 +19,7 @@ import { DeliverablesModule } from '../../../deliverables/deliverables.module';
  * agent registration, and other utility operations.
  */
 @Module({
-  imports: [HttpModule, DeliverablesModule],
+  imports: [HttpModule, DeliverablesModule, LLMModule],
   providers: [
     ConfigurationService,
     AgentRegistrationService,

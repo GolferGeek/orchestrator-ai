@@ -6,6 +6,7 @@ import { SanitizationManagementController } from './sanitization-management.cont
 import { SupabaseModule } from '../supabase/supabase.module';
 import { CIDAFMModule } from '../cidafm/cidafm.module';
 import { SovereignPolicyModule } from '../config/sovereign-policy.module';
+import { ModelConfigurationModule } from '../config/model-configuration.module';
 import { FeatureFlagModule } from '../config/feature-flag.module';
 import { CentralizedRoutingService } from './centralized-routing.service';
 import { RunMetadataService } from './run-metadata.service';
@@ -25,9 +26,16 @@ import { BlindedLLMService } from './blinded-llm.service';
 import { BlindedHttpService } from './blinded-http.service';
 import { PIIService } from '../services/pii.service';
 import { PseudonymizerService } from '../services/pseudonymizer.service';
+import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
+import { LLMServiceFactory } from './services/llm-service-factory';
+import { OpenAILLMService } from './services/openai-llm.service';
+import { AnthropicLLMService } from './services/anthropic-llm.service';
+import { GoogleLLMService } from './services/google-llm.service';
+import { OllamaLLMService } from './services/ollama-llm.service';
+import { GrokLLMService } from './services/grok-llm.service';
 
 @Module({
-  imports: [SupabaseModule, CIDAFMModule, SovereignPolicyModule, FeatureFlagModule, HttpModule],
+  imports: [SupabaseModule, CIDAFMModule, SovereignPolicyModule, FeatureFlagModule, ModelConfigurationModule, HttpModule],
   controllers: [LLMController, SanitizationManagementController, LlmUsageController, ProductionOptimizationController],
   providers: [
     LLMService,
@@ -47,6 +55,10 @@ import { PseudonymizerService } from '../services/pseudonymizer.service';
     BlindedHttpService,
     PIIService,
     PseudonymizerService,
+    DictionaryPseudonymizerService,
+    LLMServiceFactory,
+    // Note: LLM Provider Services (OpenAI, Anthropic, etc.) are NOT registered as providers
+    // They are manually instantiated by LLMServiceFactory with specific configurations
   ],
   exports: [
     LLMService,
@@ -66,6 +78,9 @@ import { PseudonymizerService } from '../services/pseudonymizer.service';
     BlindedHttpService,
     PIIService,
     PseudonymizerService,
+    DictionaryPseudonymizerService,
+    LLMServiceFactory,
+    // Note: LLM Provider Services are not exported as they're factory-created
   ],
 })
 export class LLMModule {}

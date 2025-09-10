@@ -5,7 +5,9 @@ import {
   CIDAFMCommand, 
   LLMSelection, 
   LLMPreferencesState,
-  CIDAFMOptions 
+  CIDAFMOptions,
+  UnifiedLLMResponse,
+  StandardizedLLMError
 } from '../types/llm';
 import { apiService } from '../services/apiService';
 import { sovereignPolicyService } from '../services/sovereignPolicyService';
@@ -44,6 +46,10 @@ export const useLLMStore = defineStore('llm', {
     sanitizationStatsLoading: false,
     sanitizationStatsError: null,
     sanitizationStatsLastUpdated: null,
+    // Unified response handling
+    lastUnifiedResponse: null as UnifiedLLMResponse | null,
+    lastStandardizedError: null as StandardizedLLMError | null,
+    responseProcessing: false,
   }),
   getters: {
     // Effective sovereign mode (policy enforced OR user enabled)
@@ -221,6 +227,52 @@ export const useLLMStore = defineStore('llm', {
       if (!state.sanitizationStatsLastUpdated) return true;
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
       return new Date(state.sanitizationStatsLastUpdated) < fiveMinutesAgo;
+    },
+
+    // Unified response getters
+    lastResponseContent: (state) => {
+      if (state.lastStandardizedError) {
+        return state.lastStandardizedError.userMessage;
+      }
+      return state.lastUnifiedResponse?.content || null;
+    },
+
+    lastResponseMetadata: (state) => {
+      if (state.lastStandardizedError) {
+        return {
+          provider: state.lastStandardizedError.technical.provider,
+          model: state.lastStandardizedError.technical.model,
+          isError: true,
+          errorCode: state.lastStandardizedError.technical.code,
+          severity: state.lastStandardizedError.technical.severity,
+          retryable: state.lastStandardizedError.technical.retryable,
+        };
+      }
+      
+      if (state.lastUnifiedResponse) {
+        return {
+          provider: state.lastUnifiedResponse.metadata.provider,
+          model: state.lastUnifiedResponse.metadata.model,
+          usage: state.lastUnifiedResponse.metadata.usage,
+          timing: state.lastUnifiedResponse.metadata.timing,
+          cost: state.lastUnifiedResponse.metadata.usage.cost,
+          isError: false,
+        };
+      }
+      
+      return null;
+    },
+
+    hasUnifiedResponse: (state) => {
+      return !!(state.lastUnifiedResponse || state.lastStandardizedError);
+    },
+
+    isLastResponseError: (state) => {
+      return !!state.lastStandardizedError;
+    },
+
+    isLastResponseRetryable: (state) => {
+      return state.lastStandardizedError?.technical.retryable || false;
     },
   },
   actions: {
@@ -620,6 +672,98 @@ export const useLLMStore = defineStore('llm', {
     // Refresh sanitization stats (force fetch)
     async refreshSanitizationStats() {
       return this.fetchSanitizationStats(true);
+    },
+
+    // Unified response handling actions
+    processUnifiedResponse(response: any): {
+      content: string;
+      metadata: any;
+      isError: boolean;
+      isRetryable: boolean;
+    } {
+      this.responseProcessing = true;
+      
+      try {
+        // Reset previous state
+        this.lastUnifiedResponse = null;
+        this.lastStandardizedError = null;
+
+        // Check if it's a standardized error
+        if (response?.error === true && response?.technical && response?.userMessage) {
+          this.lastStandardizedError = response as StandardizedLLMError;
+          return {
+            content: response.userMessage,
+            metadata: response.technical,
+            isError: true,
+            isRetryable: response.technical.retryable || false,
+          };
+        }
+
+        // Check if it's a unified LLM response
+        if (response?.content && response?.metadata?.provider) {
+          this.lastUnifiedResponse = response as UnifiedLLMResponse;
+          return {
+            content: response.content,
+            metadata: response.metadata,
+            isError: false,
+            isRetryable: false,
+          };
+        }
+
+        // Handle legacy format
+        const content = response?.content || response?.response || 'No content available';
+        const metadata = {
+          provider: response?.runMetadata?.provider || 'unknown',
+          model: response?.runMetadata?.model || 'unknown',
+          usage: response?.runMetadata,
+          cost: response?.runMetadata?.cost,
+        };
+
+        return {
+          content,
+          metadata,
+          isError: false,
+          isRetryable: false,
+        };
+      } finally {
+        this.responseProcessing = false;
+      }
+    },
+
+    // Handle standardized errors with user feedback
+    handleStandardizedError(error: StandardizedLLMError, options: {
+      showToUser?: boolean;
+      logTechnical?: boolean;
+    } = {}) {
+      const { showToUser = true, logTechnical = true } = options;
+      
+      this.lastStandardizedError = error;
+      
+      if (logTechnical) {
+        console.error('Standardized LLM Error:', {
+          code: error.technical.code,
+          type: error.technical.type,
+          provider: error.technical.provider,
+          model: error.technical.model,
+          severity: error.technical.severity,
+          retryable: error.technical.retryable,
+          message: error.message,
+          userMessage: error.userMessage,
+        });
+      }
+
+      // Could emit events here for toast notifications or other UI feedback
+      if (showToUser) {
+        // Emit to global error handler or set reactive state for UI
+        console.log('User-friendly error message:', error.userMessage);
+      }
+    },
+
+    // Clear response state
+    clearResponseState() {
+      this.lastUnifiedResponse = null;
+      this.lastStandardizedError = null;
+      this.responseProcessing = false;
     },
   },
 });

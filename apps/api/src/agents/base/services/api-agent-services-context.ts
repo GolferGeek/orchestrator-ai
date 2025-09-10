@@ -7,6 +7,8 @@ import { JsonRpcProtocolService } from '../sub-services/json-rpc-protocol/json-r
 import { LoggingService } from '../sub-services/logging/logging.service';
 import { AuthService } from '../sub-services/auth/auth.service';
 import { ConfigurationService } from '../sub-services/configuration/configuration.service';
+import { LLMService } from '@/llms/llm.service';
+import { LLMServiceFactory } from '@/llms/services/llm-service-factory';
 
 /**
  * Service container for API agents using the pure service container pattern.
@@ -21,6 +23,8 @@ export class ApiAgentServicesContext {
   constructor(
     // Required services for API agents
     public readonly httpService: HttpService,
+    public readonly llmService: LLMService,
+    public readonly llmServiceFactory: LLMServiceFactory,
     public readonly taskStatusService: TaskStatusService,
     public readonly tasksService: TasksService,
 

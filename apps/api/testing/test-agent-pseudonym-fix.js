@@ -41,7 +41,7 @@ async function testAgentPseudonymFix() {
     
     const testRequest = {
       method: 'process',
-      prompt: 'Please write a blog post about my friend GolferGeek who works on Orchestrator-AI. He\'s a great guy and I had a wonderful dinner with him.',
+      prompt: 'Please write a blog post about my friend GolferGeek who works on Orchestrator AI. He\'s a great guy and I had a wonderful dinner with him.',
       conversationId: uuidv4(),
       conversationHistory: [],
       llmSelection: {
@@ -71,17 +71,17 @@ async function testAgentPseudonymFix() {
       console.log('✅ Agent call successful');
       console.log('📝 Response preview:', response.data.response.substring(0, 300) + '...');
       
-      // Check for pseudonym reversal
+      // Check for pseudonym reversal (dictionary-based)
       const responseText = response.data.response;
-      const hasOriginals = responseText.includes('GolferGeek') || responseText.includes('Orchestrator-AI');
-      const hasPseudonyms = responseText.includes('@christophercbfb') || responseText.includes('[PSEUDONYM_CUSTOM_');
+      const hasOriginals = responseText.includes('GolferGeek') || responseText.includes('Orchestrator AI');
+      const hasPseudonyms = responseText.includes('@person_matt') || responseText.includes('@user_golfer') || responseText.includes('@company_orchestrator');
 
       console.log('\n🔍 Pseudonym Reversal Analysis:');
       if (hasOriginals && !hasPseudonyms) {
         console.log('🎉 SUCCESS: Agent response contains original names, no pseudonyms!');
         console.log('   ✅ "GolferGeek" found in response');
-        console.log('   ✅ No pseudonyms (@christophercbfb, [PSEUDONYM_CUSTOM_]) found');
-        console.log('   🔧 The centralized routing + LLM service fix is working!');
+        console.log('   ✅ No pseudonyms (@person_matt, @user_golfer, @company_orchestrator) found');
+        console.log('   🔧 The dictionary-based pseudonymization is working!');
       } else if (hasPseudonyms && !hasOriginals) {
         console.log('❌ ISSUE PERSISTS: Agent response contains pseudonyms instead of originals');
         console.log('   ❌ Found pseudonyms in response');
@@ -97,9 +97,9 @@ async function testAgentPseudonymFix() {
 
       // Check for specific debug logs that should appear
       console.log('\n📊 Expected Debug Logs:');
-      console.log('   Look for: "🎭 [PSEUDONYMIZER-DEBUG] CallProvider using existing pseudonymization"');
-      console.log('   Look for: "🔄 [PSEUDONYMIZER-DEBUG] CallProvider using PIIService reversal"');
-      console.log('   These logs confirm the fix is working correctly.');
+      console.log('   Look for: "🎯 [DICTIONARY-PSEUDONYMIZER] Enhanced pseudonymization applied"');
+      console.log('   Look for: "🔄 [DICTIONARY-PSEUDONYMIZER] Reversal completed"');
+      console.log('   These logs confirm the dictionary-based pseudonymization is working correctly.');
 
     } else {
       console.log('❌ Agent call failed or returned unexpected format');
@@ -111,7 +111,7 @@ async function testAgentPseudonymFix() {
     
     const showstopperRequest = {
       method: 'process',
-      prompt: 'Please write a blog post about my friend GolferGeek who works on Orchestrator-AI. His SSN is 123-45-6789 and he\'s a great developer.',
+      prompt: 'Please write a blog post about my friend GolferGeek who works on Orchestrator AI. His SSN is 123-45-6789 and he\'s a great developer.',
       conversationId: uuidv4(),
       conversationHistory: [],
       llmSelection: {
@@ -178,7 +178,7 @@ async function testAgentPseudonymFix() {
     // Test 3a: Normal PII with local model - should NOT pseudonymize
     const localNormalRequest = {
       method: 'process',
-      prompt: 'Please write a short paragraph about my friend GolferGeek who works on Orchestrator-AI.',
+      prompt: 'Please write a short paragraph about my friend GolferGeek who works on Orchestrator AI.',
       conversationId: uuidv4(),
       conversationHistory: [],
       llmSelection: {
@@ -207,7 +207,7 @@ async function testAgentPseudonymFix() {
 
       if (localNormalResponse.data.result?.response) {
         const localResponseText = localNormalResponse.data.result.response;
-        const hasOriginals = localResponseText.includes('GolferGeek') || localResponseText.includes('Orchestrator-AI');
+        const hasOriginals = localResponseText.includes('GolferGeek') || localResponseText.includes('Orchestrator AI');
         
         console.log('✅ Local model call successful');
         console.log('📝 Response preview:', localResponseText.substring(0, 200) + '...');
@@ -294,7 +294,7 @@ async function testAgentPseudonymFix() {
     
     const directResponse = await axios.post(`${API_BASE}/llm/generate`, {
       systemPrompt: 'You are a helpful assistant.',
-      userPrompt: 'Write about my friend GolferGeek who works on Orchestrator-AI.',
+      userPrompt: 'Write about my friend GolferGeek who works on Orchestrator AI.',
       options: {
         provider: 'ollama',
         model: 'llama3.2:latest',
@@ -307,8 +307,8 @@ async function testAgentPseudonymFix() {
       console.log('✅ Direct LLM call successful');
       console.log('📝 Response preview:', directResponse.data.response.substring(0, 200) + '...');
       
-      const directHasOriginals = directResponse.data.response.includes('GolferGeek') || directResponse.data.response.includes('Orchestrator-AI');
-      const directHasPseudonyms = directResponse.data.response.includes('@christophercbfb') || directResponse.data.response.includes('[PSEUDONYM_CUSTOM_');
+      const directHasOriginals = directResponse.data.response.includes('GolferGeek') || directResponse.data.response.includes('Orchestrator AI');
+      const directHasPseudonyms = directResponse.data.response.includes('@person_matt') || directResponse.data.response.includes('@user_golfer') || directResponse.data.response.includes('@company_orchestrator');
 
       if (directHasOriginals && !directHasPseudonyms) {
         console.log('✅ Direct LLM call also working correctly');
