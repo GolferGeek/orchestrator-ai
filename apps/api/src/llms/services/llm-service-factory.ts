@@ -13,6 +13,7 @@ import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { LLMServiceConfig, GenerateResponseParams, LLMResponse } from './llm-interfaces';
 import { LLMRetryHandler, DEFAULT_RETRY_CONFIG } from './llm-error-handling';
+import { LLMModelCapabilities } from './llm-model-capabilities.service';
 
 /**
  * Supported LLM provider types
@@ -74,14 +75,17 @@ export class LLMServiceFactory {
     // Validate configuration
     this.validateConfig(config);
 
+    // Normalize configuration based on model capabilities
+    const normalizedConfig = LLMModelCapabilities.normalizeConfig(config);
+
     // Normalize provider name
-    const normalizedProvider = this.normalizeProviderName(config.provider);
+    const normalizedProvider = this.normalizeProviderName(normalizedConfig.provider);
 
     // Validate provider is supported
     this.validateProvider(normalizedProvider);
 
-    // Generate cache key
-    const cacheKey = this.generateCacheKey(config);
+    // Generate cache key (use normalized config)
+    const cacheKey = this.generateCacheKey(normalizedConfig);
 
     // Return cached instance if available and caching is enabled
     if (useCache && this.serviceCache.has(cacheKey)) {
@@ -91,7 +95,7 @@ export class LLMServiceFactory {
 
     // Create new service instance
     this.logger.log(`Creating new service instance for provider: ${normalizedProvider}`);
-    const service = await this.instantiateService(normalizedProvider, config);
+    const service = await this.instantiateService(normalizedProvider, normalizedConfig);
 
     // Cache the instance if caching is enabled
     if (useCache) {
