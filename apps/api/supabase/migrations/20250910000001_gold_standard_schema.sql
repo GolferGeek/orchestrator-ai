@@ -128,6 +128,22 @@ CREATE TABLE public.deliverables (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Deliverable Versions Table (for versioning system)
+CREATE TABLE public.deliverable_versions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    deliverable_id UUID NOT NULL,
+    version_number INTEGER NOT NULL,
+    content TEXT,
+    format VARCHAR(100),
+    is_current_version BOOLEAN DEFAULT FALSE,
+    created_by_type VARCHAR(50) DEFAULT 'ai_response',
+    task_id UUID,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT deliverable_versions_created_by_type_check CHECK (created_by_type IN ('ai_response', 'manual_edit', 'ai_enhancement', 'user_request', 'conversation_task', 'conversation_merge'))
+);
+
 -- Companies Table (moved from company schema to public)
 CREATE TABLE public.companies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -195,6 +211,13 @@ ALTER TABLE public.tasks ADD CONSTRAINT tasks_agent_conversation_id_fkey
     
 ALTER TABLE public.deliverables ADD CONSTRAINT deliverables_user_id_fkey 
     FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+-- Add foreign key for deliverable versions
+ALTER TABLE public.deliverable_versions ADD CONSTRAINT deliverable_versions_deliverable_id_fkey 
+    FOREIGN KEY (deliverable_id) REFERENCES public.deliverables(id) ON DELETE CASCADE;
+    
+ALTER TABLE public.deliverable_versions ADD CONSTRAINT deliverable_versions_task_id_fkey 
+    FOREIGN KEY (task_id) REFERENCES public.tasks(id) ON DELETE SET NULL;
 
 -- Add foreign keys for business tables
 ALTER TABLE public.departments ADD CONSTRAINT departments_company_id_fkey 
