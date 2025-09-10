@@ -498,7 +498,12 @@ export class LLMService {
       piiMetadata.piiDetected = true;
 
       if (!piiMetadata.pseudonymInstructions) {
-        piiMetadata.pseudonymInstructions = { shouldPseudonymize: false, targetMatches: [] };
+        piiMetadata.pseudonymInstructions = {
+          shouldPseudonymize: false,
+          targetMatches: [],
+          requestId: `dict-${Date.now()}`,
+          context: 'dictionary-only'
+        };
       }
       piiMetadata.pseudonymInstructions.shouldPseudonymize = true;
       
