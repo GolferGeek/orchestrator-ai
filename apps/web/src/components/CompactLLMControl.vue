@@ -21,25 +21,15 @@
       <ion-icon :icon="settingsOutline" class="settings-icon" />
     </div>
 
-    <!-- Modal -->
-    <ion-modal :is-open="isModalOpen" @didDismiss="closeModal">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>LLM & CIDAFM Settings</ion-title>
-          <ion-buttons slot="end">
-            <ion-button @click="closeModal">
-              <ion-icon :icon="closeOutline" />
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="modal-content">
-        <div class="settings-container">
-          <LLMSelector />
-          <CIDAFMControls />
-        </div>
-      </ion-content>
-    </ion-modal>
+    <!-- Unified LLM Selector Modal -->
+    <LLMSelectorModal
+      :is-open="isModalOpen"
+      mode="select"
+      title="Change Language Model"
+      description="Select your preferred AI provider and model for this conversation."
+      @dismiss="closeModal"
+      @select="handleLLMSelect"
+    />
   </div>
 </template>
 
@@ -58,8 +48,7 @@ import {
 import { settingsOutline, closeOutline } from 'ionicons/icons';
 import { useLLMStore } from '@/stores/llmStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
-import LLMSelector from './LLMSelector.vue';
-import CIDAFMControls from './CIDAFMControls.vue';
+import LLMSelectorModal from './LLMSelectorModal.vue';
 
 const llmStore = useLLMStore();
 const userPreferencesStore = useUserPreferencesStore();
@@ -116,6 +105,13 @@ const openModal = () => {
 
 const closeModal = () => {
   isModalOpen.value = false;
+};
+
+const handleLLMSelect = (config: { provider: string; model: string; temperature?: number; maxTokens?: number }) => {
+  console.log('🎯 LLM selection applied:', config);
+  // The LLMSelectorModal already handles the store updates and shows confirmation
+  // Just close the modal
+  closeModal();
 };
 </script>
 
