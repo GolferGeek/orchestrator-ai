@@ -139,14 +139,18 @@ export class LLMService {
       if (options?.providerName && options?.modelName) {
         this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Using generateUnifiedResponse with explicit provider/model`);
 
-        const unifiedResult = await this.generateUnifiedResponse({
-            provider: options.providerName,
-            model: options.modelName,
+        // Use the new unified LLM service factory approach
+        const config: LLMServiceConfig = {
+          provider: options.providerName as any,
+          model: options.modelName,
+          temperature: options.temperature,
+          maxTokens: options.maxTokens,
+        };
+
+        const factoryParams: GenerateResponseParams = {
           systemPrompt,
           userMessage,
           options: {
-            temperature: options.temperature,
-            maxTokens: options.maxTokens,
             callerType: options.callerType,
             callerName: options.callerName,
             conversationId: options.conversationId,
@@ -155,9 +159,10 @@ export class LLMService {
             authToken: options.authToken,
             currentUser: options.currentUser,
             dataClassification: options.dataClassification,
-            includeMetadata: options.includeMetadata,
-          },
-        });
+          }
+        };
+
+        const unifiedResult = await this.llmServiceFactory.generateResponse(config, factoryParams);
 
         // Return the result (string or object based on includeMetadata)
         return unifiedResult;
@@ -404,7 +409,7 @@ export class LLMService {
       };
 
       // Create GenerateResponseParams for the factory
-      const factoryParams = {
+      const factoryParams: GenerateResponseParams = {
         systemPrompt: params.systemPrompt,
         userMessage: params.userMessage,
         config,
