@@ -6,6 +6,16 @@
     <div class="deliverable-header compact">
       <div class="title-section">
         <h3 class="deliverable-title">{{ displayTitle }}</h3>
+        <!-- LLM Information in Main Header -->
+        <div v-if="getVersionLLMInfo(displayVersion)" class="llm-info-header">
+          <ion-chip color="primary" size="small">
+            <ion-icon :icon="hardwareChipOutline" />
+            {{ getVersionLLMInfo(displayVersion) }}
+          </ion-chip>
+          <span v-if="getVersionCost(displayVersion)" class="cost-info">
+            ${{ getVersionCost(displayVersion) }}
+          </span>
+        </div>
       </div>
       <div class="header-actions">
         <!-- Edit Mode Controls (when editing) -->
@@ -326,6 +336,16 @@
       <div class="version-info">
         <span class="version-badge">v{{ displayVersion?.versionNumber || currentVersion?.versionNumber || 1 }} of {{ totalVersions }}</span>
         <span v-if="displayVersion?.createdByType" class="created-by">by {{ formatCreationType(displayVersion.createdByType) }}</span>
+        <!-- LLM Information in Footer -->
+        <div v-if="getVersionLLMInfo(displayVersion)" class="llm-info-footer">
+          <ion-chip color="primary" size="small">
+            <ion-icon :icon="hardwareChipOutline" />
+            {{ getVersionLLMInfo(displayVersion) }}
+          </ion-chip>
+          <span v-if="getVersionCost(displayVersion)" class="cost-info">
+            ${{ getVersionCost(displayVersion) }}
+          </span>
+        </div>
       </div>
       <div class="footer-actions">
         <!-- Run with different LLM Button -->
