@@ -714,21 +714,22 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   overflow: hidden;
 }
 .conversation-pane {
-  flex: 1;
-  min-width: 300px;
+  width: 360px; /* Compact width for desktop - much smaller for 4K screens */
+  min-width: 320px; /* Minimum for mobile */
   display: flex;
   flex-direction: column;
   background: white;
   transition: all 0.3s ease;
+  flex-shrink: 0; /* Don't shrink the conversation pane */
 }
 .conversation-pane.full-width {
-  flex: 1;
+  width: 100%; /* Take full width when work product pane is hidden */
 }
 .conversation-pane.hidden {
   display: none;
 }
 .work-product-pane {
-  width: 67%;
+  flex: 1; /* Take remaining space */
   min-width: 400px;
   max-width: none;
   border-left: 1px solid var(--ion-color-light);
@@ -976,10 +977,13 @@ html[data-theme="dark"] .dot {
 }
 /* Tablet breakpoint */
 @media (max-width: 1024px) {
+  .conversation-pane {
+    width: 340px; /* Smaller for tablets */
+    min-width: 300px;
+  }
   .work-product-pane {
-    width: 60%;
+    flex: 1; /* Take remaining space */
     min-width: 350px;
-    max-width: none;
   }
 }
 /* Mobile breakpoint */

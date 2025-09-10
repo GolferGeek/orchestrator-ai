@@ -39,6 +39,7 @@ export class DeliverableVersionsService {
     createVersionDto: CreateVersionDto,
     userId: string,
   ): Promise<DeliverableVersion> {
+    
 
     try {
       // Verify deliverable exists and belongs to user
@@ -581,6 +582,7 @@ export class DeliverableVersionsService {
       throw new BadRequestException(`Failed to rerun deliverable with different LLM: ${errorMessage}`);
     }
   }
+
 
   // Private helper methods
 

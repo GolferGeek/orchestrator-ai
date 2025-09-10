@@ -421,15 +421,13 @@ export class DeliverablesService {
           version.taskId === taskId && version.createdByType === 'ai_response'
         );
         
-        console.log(`🔍 DeliverablesService - Existing versions for deliverable ${existingDeliverable.id}:`, existingVersions.length);
-        console.log(`🔍 DeliverablesService - Task version exists check for task ${taskId}:`, taskVersionExists);
         
         if (taskVersionExists) {
           this.logger.log(`📄 Deliverable version for task ${taskId} already exists, skipping duplicate creation`);
           return existingDeliverable.id;
         }
         
-        console.log(`🔍 DeliverablesService - Creating NEW VERSION for existing deliverable ${existingDeliverable.id}, task ${taskId}`);
+        
         
         await this.versionsService.createVersion(
           existingDeliverable.id,
@@ -441,10 +439,17 @@ export class DeliverablesService {
             metadata: {
               createdAt: new Date().toISOString(),
               source: 'task_completion',
-              // Include LLM metadata from task (check multiple possible locations)
-              ...(taskData.llm_metadata && {
-                llmMetadata: taskData.llm_metadata,
-              }),
+              // Include LLM metadata from task in consistent format (matching rerun format)
+              ...(taskData.llm_metadata?.originalLLMSelection ? {
+                llmMetadata: {
+                  provider: taskData.llm_metadata.originalLLMSelection.providerName,
+                  model: taskData.llm_metadata.originalLLMSelection.modelName,
+                  temperature: taskData.llm_metadata.originalLLMSelection.temperature,
+                  maxTokens: taskData.llm_metadata.originalLLMSelection.maxTokens,
+                  originalLLMSelection: taskData.llm_metadata.originalLLMSelection,
+                  createdAt: taskData.llm_metadata.createdAt,
+                }
+              } : {}),
               ...(taskData.metadata?.llmUsed && {
                 llmMetadata: taskData.metadata.llmUsed,
               }),
@@ -480,6 +485,7 @@ export class DeliverablesService {
         
         console.log(`🔍 DeliverablesService - Creating NEW DELIVERABLE for task ${taskId} in conversation ${conversationId}`);
         
+        
         const newDeliverable = await this.create({
           title: this.extractTitleFromContent(content),
           type: 'document' as any,
@@ -492,10 +498,17 @@ export class DeliverablesService {
             taskId,
             createdAt: new Date().toISOString(),
             source: 'task_completion',
-            // Include LLM metadata from task (check multiple possible locations)
-            ...(taskData.llm_metadata && {
-              llmMetadata: taskData.llm_metadata,
-            }),
+            // Include LLM metadata from task in consistent format (matching rerun format)
+            ...(taskData.llm_metadata?.originalLLMSelection ? {
+              llmMetadata: {
+                provider: taskData.llm_metadata.originalLLMSelection.providerName,
+                model: taskData.llm_metadata.originalLLMSelection.modelName,
+                temperature: taskData.llm_metadata.originalLLMSelection.temperature,
+                maxTokens: taskData.llm_metadata.originalLLMSelection.maxTokens,
+                originalLLMSelection: taskData.llm_metadata.originalLLMSelection,
+                createdAt: taskData.llm_metadata.createdAt,
+              }
+            } : {}),
             ...(taskData.metadata?.llmUsed && {
               llmMetadata: taskData.metadata.llmUsed,
             }),
@@ -505,14 +518,6 @@ export class DeliverablesService {
             ...(taskData.metadata?.costCalculation && {
               costCalculation: taskData.metadata.costCalculation,
             }),
-            // Debug: Log what LLM metadata we're capturing
-            ...(this.logger.debug('🔍 [DELIVERABLE-DEBUG] LLM metadata being saved:', {
-              hasLlmMetadata: !!taskData.llm_metadata,
-              llmMetadataKeys: taskData.llm_metadata ? Object.keys(taskData.llm_metadata) : [],
-              hasMetadataLlmUsed: !!taskData.metadata?.llmUsed,
-              taskDataKeys: Object.keys(taskData),
-              metadataKeys: taskData.metadata ? Object.keys(taskData.metadata) : []
-            }) || {}),
           },
         }, userId);
 
@@ -551,6 +556,7 @@ export class DeliverablesService {
     // Check for document-like structure
     return content.includes('#') || content.includes('\n\n') || content.length > 500;
   }
+
 
   /**
    * Extract title from content
