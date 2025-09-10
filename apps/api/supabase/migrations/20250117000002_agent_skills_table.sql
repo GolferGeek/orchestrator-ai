@@ -53,12 +53,8 @@ ALTER TABLE agent_skills ADD CONSTRAINT check_skill_description_length
 ALTER TABLE agent_skills ADD CONSTRAINT check_examples_not_empty
     CHECK (jsonb_array_length(examples) > 0);
 
--- Ensure examples are strings
-ALTER TABLE agent_skills ADD CONSTRAINT check_examples_are_strings
-    CHECK (
-        (SELECT bool_and(jsonb_typeof(value) = 'string') 
-         FROM jsonb_array_elements(examples) AS value)
-    );
+-- Note: PostgreSQL doesn't allow subqueries in CHECK constraints
+-- Examples validation will be handled by the validate_skill_examples function
 
 -- Unique constraint: skill_id must be unique per agent
 ALTER TABLE agent_skills ADD CONSTRAINT unique_skill_id_per_agent
