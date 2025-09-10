@@ -601,8 +601,9 @@ export class LLMService {
 
     // Revert pseudonyms in the response
     if (pseudonymResult.mappings.length > 0) {
-      responseContent = await this.dictionaryPseudonymizerService.reversePseudonymsWithMappings(responseContent, pseudonymResult.mappings);
-      this.logger.debug(`[LLMService] Dictionary pseudonymization reversed.`);
+      const reversalResult = await this.dictionaryPseudonymizerService.reversePseudonyms(responseContent, pseudonymResult.mappings);
+      responseContent = reversalResult.originalText;
+      this.logger.debug(`[LLMService] Dictionary pseudonymization reversed. ${reversalResult.reversalCount} items restored.`);
     }
 
     // Estimate tokens (TODO: Get actual token counts from provider)
