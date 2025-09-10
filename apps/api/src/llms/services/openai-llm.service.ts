@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseLLMService } from './base-llm.service';
-import { LLMModelCapabilities } from './llm-model-capabilities.service';
 import { 
   GenerateResponseParams, 
   LLMResponse, 
@@ -81,29 +80,35 @@ export class OpenAILLMService extends BaseLLMService {
         useDictionaryPseudonymizer: false,
       });
       
-      // Transform messages for models that don't support system messages (e.g., o1 models)
-      const transformedMessages = LLMModelCapabilities.transformMessagesForModel(
-        params.config.provider,
-        params.config.model,
+      // Normalize config for model-specific restrictions
+      const normalizedConfig = this.normalizeConfigForModel(params.config);
+
+      // Prepare OpenAI request with model-specific handling
+      const messages = this.prepareMessagesForModel(
+        normalizedConfig.model,
         params.systemPrompt,
         piiResult.processedText
       );
 
-      // Prepare OpenAI request based on model capabilities
-      const messages = [];
-      if (transformedMessages.systemPrompt) {
-        messages.push({ role: 'system' as const, content: transformedMessages.systemPrompt });
+      // Build API request parameters, respecting model restrictions
+      const apiParams: any = {
+        model: normalizedConfig.model,
+        messages,
+        stream: false,
+      };
+
+      // Only add temperature if the normalized config includes it
+      if (normalizedConfig.temperature !== undefined) {
+        apiParams.temperature = normalizedConfig.temperature;
       }
-      messages.push({ role: 'user' as const, content: transformedMessages.userMessage });
+
+      // Add max_tokens if specified
+      if (params.options?.maxTokens ?? normalizedConfig.maxTokens) {
+        apiParams.max_tokens = params.options?.maxTokens ?? normalizedConfig.maxTokens;
+      }
 
       // Make OpenAI API call
-      const completion = await this.openai.chat.completions.create({
-        model: params.config.model,
-        messages,
-        temperature: params.options?.temperature ?? params.config.temperature ?? 0.7,
-        max_tokens: params.options?.maxTokens ?? params.config.maxTokens,
-        stream: false,
-      });
+      const completion = await this.openai.chat.completions.create(apiParams);
 
       const choice = completion.choices[0];
       if (!choice?.message?.content) {
@@ -152,6 +157,62 @@ export class OpenAILLMService extends BaseLLMService {
     } catch (error) {
       this.handleError(error, 'OpenAILLMService.generateResponse');
     }
+  }
+
+  /**
+   * Check if a model is part of the o1 series (with special restrictions)
+   */
+  private isO1SeriesModel(model: string): boolean {
+    return model.startsWith('o1-') || model === 'o4-mini';
+  }
+
+  /**
+   * Normalize configuration for OpenAI model-specific restrictions
+   */
+  private normalizeConfigForModel(config: LLMServiceConfig): LLMServiceConfig {
+    const normalizedConfig = { ...config };
+
+    if (this.isO1SeriesModel(config.model)) {
+      // o1 models don't support temperature
+      if (normalizedConfig.temperature !== undefined) {
+        this.logger.debug(
+          `OpenAI o1 model ${config.model} doesn't support temperature, removing: ${normalizedConfig.temperature}`
+        );
+        delete normalizedConfig.temperature;
+      }
+    }
+
+    return normalizedConfig;
+  }
+
+  /**
+   * Prepare messages for OpenAI API based on model capabilities
+   * o1 models don't support system messages, so we combine them into user messages
+   */
+  private prepareMessagesForModel(
+    model: string,
+    systemPrompt: string,
+    userMessage: string
+  ): Array<{ role: 'system' | 'user'; content: string }> {
+    if (this.isO1SeriesModel(model)) {
+      // o1 models don't support system messages - combine into user message
+      this.logger.debug(
+        `OpenAI o1 model ${model} doesn't support system messages, combining with user message`
+      );
+      
+      return [
+        { 
+          role: 'user' as const, 
+          content: `${systemPrompt}\n\n${userMessage}` 
+        }
+      ];
+    }
+
+    // Standard models support system messages
+    return [
+      { role: 'system' as const, content: systemPrompt },
+      { role: 'user' as const, content: userMessage }
+    ];
   }
 
   /**
