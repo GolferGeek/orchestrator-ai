@@ -127,6 +127,16 @@
               <div class="version-meta">
                 <span v-if="version.createdByType" class="creation-type">{{ formatCreationType(version.createdByType) }}</span>
                 <ion-chip v-if="version.isCurrentVersion" color="success" size="small">Current</ion-chip>
+                <!-- LLM Information -->
+                <div v-if="getVersionLLMInfo(version)" class="llm-info">
+                  <ion-chip color="primary" size="small">
+                    <ion-icon :icon="hardwareChipOutline" />
+                    {{ getVersionLLMInfo(version) }}
+                  </ion-chip>
+                  <span v-if="getVersionCost(version)" class="cost-info">
+                    ${{ getVersionCost(version) }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -407,6 +417,7 @@ import {
   settingsOutline,
   sendOutline,
   ellipsisVerticalOutline,
+  hardwareChipOutline,
 } from 'ionicons/icons';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { marked } from 'marked';
@@ -876,6 +887,56 @@ const getMimeType = () => {
     text: 'text/plain',
   };
   return mimeTypes[format as keyof typeof mimeTypes] || 'text/plain';
+};
+
+/**
+ * Extract LLM information from version metadata
+ */
+const getVersionLLMInfo = (version: any): string | null => {
+  if (!version?.metadata) return null;
+  
+  // Check for rerun LLM info first (most specific)
+  if (version.metadata.llmRerunInfo) {
+    const info = version.metadata.llmRerunInfo;
+    return `${info.provider}/${info.model}`;
+  }
+  
+  // Check for general LLM metadata
+  if (version.metadata.llmMetadata) {
+    const info = version.metadata.llmMetadata;
+    if (info.provider && info.model) {
+      return `${info.provider}/${info.model}`;
+    }
+  }
+  
+  // Check for legacy LLM metadata formats
+  if (version.metadata.llmUsed) {
+    const info = version.metadata.llmUsed;
+    if (info.provider && info.model) {
+      return `${info.provider}/${info.model}`;
+    }
+  }
+  
+  return null;
+};
+
+/**
+ * Extract cost information from version metadata
+ */
+const getVersionCost = (version: any): string | null => {
+  if (!version?.metadata) return null;
+  
+  // Check various possible locations for cost data
+  const cost = version.metadata.llmMetadata?.cost || 
+               version.metadata.llmRerunInfo?.cost ||
+               version.metadata.usage?.cost ||
+               version.metadata.costCalculation?.cost;
+               
+  if (typeof cost === 'number' && cost > 0) {
+    return cost.toFixed(4);
+  }
+  
+  return null;
 };
 // Watch for deliverable changes and reload versions
 watch(() => props.deliverable?.id, async () => {
