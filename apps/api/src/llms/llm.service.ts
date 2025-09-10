@@ -484,6 +484,14 @@ export class LLMService {
     enhancedMetrics?: LLMUsageMetrics;
     sanitizationMetadata?: any;
   }> {
+    const startTime = Date.now();
+
+    // ALWAYS apply dictionary-based pseudonymization first
+    const pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(userMessage);
+    let processedUserMessage = pseudonymResult.pseudonymizedText;
+    
+    this.logger.debug(`[LLMService] Dictionary pseudonymization applied. ${pseudonymResult.mappings.length} replacements made.`);
+
     // Use LocalLLMService for local Ollama models - NO SANITIZATION needed
     if (routingDecision.isLocal && routingDecision.provider === 'ollama') {
       await this.dataSanitizationService.debug(
@@ -578,7 +586,7 @@ export class LLMService {
     // Format messages for the specific provider - LLM service controls the format
     const messages = this.formatMessagesForProvider(
       systemPrompt,
-      userMessage,
+      processedUserMessage,
       routingDecision.provider,
       routingDecision.model
     );
@@ -591,11 +599,14 @@ export class LLMService {
     const response = await llm.invoke(messages);
     let responseContent = (response.content as string) || 'I apologize, but I was unable to generate a response.';
 
-    // Note: Pseudonym reversal is now handled in the unified response method
-    // This old reversal logic has been removed as part of the new architecture
+    // Revert pseudonyms in the response
+    if (pseudonymResult.mappings.length > 0) {
+      responseContent = await this.dictionaryPseudonymizerService.reversePseudonymsWithMappings(responseContent, pseudonymResult.mappings);
+      this.logger.debug(`[LLMService] Dictionary pseudonymization reversed.`);
+    }
 
     // Estimate tokens (TODO: Get actual token counts from provider)
-    const inputTokens = this.estimateTokens(systemPrompt + userMessage);
+    const inputTokens = this.estimateTokens(systemPrompt + processedUserMessage);
     const outputTokens = this.estimateTokens(responseContent);
 
     // NEW ARCHITECTURE: Use PII metadata from routing decision instead of legacy sanitization metrics
