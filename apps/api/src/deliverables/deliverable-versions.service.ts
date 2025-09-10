@@ -570,7 +570,15 @@ export class DeliverableVersionsService {
       }
 
       this.logger.error('Failed to rerun deliverable with different LLM:', error);
-      throw new BadRequestException('Failed to rerun deliverable with different LLM');
+      this.logger.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown'
+      });
+      
+      // Include the actual error message in the BadRequestException
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new BadRequestException(`Failed to rerun deliverable with different LLM: ${errorMessage}`);
     }
   }
 
