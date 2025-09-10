@@ -56,12 +56,8 @@ import { GrokLLMService } from './services/grok-llm.service';
     PseudonymizerService,
     DictionaryPseudonymizerService,
     LLMServiceFactory,
-    // LLM Provider Services
-    OpenAILLMService,
-    AnthropicLLMService,
-    GoogleLLMService,
-    OllamaLLMService,
-    GrokLLMService,
+    // Note: LLM Provider Services (OpenAI, Anthropic, etc.) are NOT registered as providers
+    // They are manually instantiated by LLMServiceFactory with specific configurations
   ],
   exports: [
     LLMService,
@@ -83,12 +79,7 @@ import { GrokLLMService } from './services/grok-llm.service';
     PseudonymizerService,
     DictionaryPseudonymizerService,
     LLMServiceFactory,
-    // LLM Provider Services
-    OpenAILLMService,
-    AnthropicLLMService,
-    GoogleLLMService,
-    OllamaLLMService,
-    GrokLLMService,
+    // Note: LLM Provider Services are not exported as they're factory-created
   ],
 })
 export class LLMModule {}

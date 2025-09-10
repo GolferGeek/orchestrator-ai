@@ -80,9 +80,10 @@ export class OllamaLLMService extends BaseLLMService {
       // Validate configuration
       this.validateConfig(params.config);
       
-      // Handle PII in input (local models are safer for PII)
+      // Handle PII in input using dictionary pseudonymization
       const piiResult = await this.handlePiiInput(params.userMessage, {
-        enablePseudonymization: false, // Local models don't need pseudonymization
+        enablePseudonymization: true,
+        useDictionaryPseudonymizer: true, // Use dictionary-based pseudonymization
       });
       
       // Ensure model is loaded
