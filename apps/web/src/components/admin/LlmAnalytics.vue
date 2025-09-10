@@ -292,7 +292,7 @@ import {
   checkmarkCircleOutline,
   timeOutline,
   analyticsOutline,
-  robotOutline,
+  hardwareChipOutline,
   codeOutline,
   personOutline,
   settingsOutline,
@@ -312,7 +312,16 @@ const analyticsStore = useAnalyticsStore();
 
 // Computed properties
 const dashboardData = computed(() => analyticsStore.dashboardData);
-const systemHealthStatus = computed(() => llmMonitoringStore.systemHealth?.status || 'unknown');
+const systemHealthStatus = computed(() => {
+  const health = llmMonitoringStore.systemHealth;
+  if (!health) return 'unknown';
+  
+  // Determine status based on health metrics
+  if (!health.ollamaConnected) return 'error';
+  if (health.unhealthyModels > 0) return 'warning';
+  if (health.healthyModels > 0) return 'healthy';
+  return 'unknown';
+});
 
 // Reactive data
 const localFilters = ref({
@@ -426,8 +435,8 @@ const applyFilters = () => {
   const filters = { ...localFilters.value };
   // Remove empty strings
   Object.keys(filters).forEach(key => {
-    if (filters[key] === '') {
-      delete filters[key];
+    if (filters[key as keyof typeof filters] === '') {
+      delete filters[key as keyof typeof filters];
     }
   });
   
