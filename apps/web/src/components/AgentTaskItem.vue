@@ -189,7 +189,7 @@ import { useLLMStore } from '@/stores/llmStore';
 
 export interface AgentTaskMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
   taskId?: string;
