@@ -1,6 +1,5 @@
 import { onMounted, onUnmounted, getCurrentInstance } from 'vue';
 import { useErrorStore } from '@/stores/errorStore';
-import { errorLoggerService } from '@/services/errorLoggerService';
 
 /**
  * Global Error Handler Composable
@@ -10,9 +9,12 @@ export function useGlobalErrorHandler() {
   const errorStore = useErrorStore();
   const instance = getCurrentInstance();
 
-  // Set up error logger in the store
-  onMounted(() => {
+  // Set up error logger in the store (lazy import to avoid circular references)
+  onMounted(async () => {
+    console.log('🔍 [DEBUG] Global Error Handler: Setting up error logger');
+    const { errorLoggerService } = await import('@/services/errorLoggerService');
     errorStore.setErrorLogger(errorLoggerService);
+    console.log('🔍 [DEBUG] Global Error Handler: Error logger setup complete');
   });
 
   /**

@@ -447,23 +447,37 @@ import {
   settingsOutline,
   warningOutline
 } from 'ionicons/icons';
-import { useMonitoringAnalytics } from '@/composables/useEnhancedStores';
+import { useAnalyticsStore } from '@/stores/analyticsStore';
+import { useLLMMonitoringStore } from '@/stores/llmMonitoringStore';
 
 // Store integration
-const {
-  analyticsStore,
-  llmMonitoringStore,
-  dashboardData,
-  systemHealthStatus,
-  costAnalysis,
-  isLoading,
-  hasError,
-  firstError,
-  isAutoRefreshEnabled,
-  toggleAutoRefresh,
-  refreshNow,
-  refreshAll
-} = useMonitoringAnalytics();
+const analyticsStore = useAnalyticsStore();
+const llmMonitoringStore = useLLMMonitoringStore();
+
+// Computed properties
+const dashboardData = computed(() => analyticsStore.dashboardData);
+const systemHealthStatus = computed(() => llmMonitoringStore.systemHealth?.status || 'unknown');
+const costAnalysis = computed(() => analyticsStore.costAnalysis);
+const isLoading = computed(() => analyticsStore.isLoading || llmMonitoringStore.isLoading);
+const hasError = computed(() => !!analyticsStore.error || !!llmMonitoringStore.error);
+const firstError = computed(() => analyticsStore.error || llmMonitoringStore.error);
+
+// Auto-refresh functionality
+const isAutoRefreshEnabled = ref(false);
+const toggleAutoRefresh = () => {
+  isAutoRefreshEnabled.value = !isAutoRefreshEnabled.value;
+};
+
+const refreshNow = async () => {
+  await refreshAll();
+};
+
+const refreshAll = async () => {
+  await Promise.all([
+    analyticsStore.loadDashboardData(),
+    llmMonitoringStore.fetchSystemHealth()
+  ]);
+};
 
 // Reactive data
 const selectedTimeRange = ref('last7days');

@@ -1,6 +1,10 @@
+console.log('🔍 [DEBUG] PII Patterns Store: Starting imports');
 import { defineStore } from 'pinia';
+console.log('🔍 [DEBUG] PII Patterns Store: Pinia imported');
 import { ref, computed } from 'vue';
+console.log('🔍 [DEBUG] PII Patterns Store: Vue imports completed');
 import { piiService } from '@/services/piiService';
+console.log('🔍 [DEBUG] PII Patterns Store: piiService imported');
 import {
   PIIPattern,
   PIIDataType,
@@ -13,6 +17,8 @@ import {
 } from '@/types/pii';
 
 export const usePIIPatternsStore = defineStore('piiPatterns', () => {
+  console.log('🔍 [DEBUG] PII Patterns Store: Starting initialization');
+  
   // =====================================
   // STATE
   // =====================================

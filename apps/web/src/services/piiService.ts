@@ -1,4 +1,6 @@
+console.log('🔍 [DEBUG] PIIService: Starting imports');
 import { apiService } from './apiService';
+console.log('🔍 [DEBUG] PIIService: apiService imported');
 import {
   PIIPattern,
   PIITestRequest,
@@ -7,11 +9,23 @@ import {
   PIIPatternBulkOperation,
   PIIPatternBulkResult
 } from '@/types/pii';
+console.log('🔍 [DEBUG] PIIService: PII types imported');
 import { useApiSanitization } from '@/composables/useApiSanitization';
+console.log('🔍 [DEBUG] PIIService: useApiSanitization imported');
 
 class PIIService {
   private readonly basePath = '/sanitization';
-  private apiSanitization = useApiSanitization();
+  private _apiSanitization: any = null;
+  
+  private get apiSanitization() {
+    console.log('🔍 [DEBUG] PIIService: Accessing apiSanitization getter');
+    if (!this._apiSanitization) {
+      console.log('🔍 [DEBUG] PIIService: Creating useApiSanitization instance');
+      this._apiSanitization = useApiSanitization();
+      console.log('🔍 [DEBUG] PIIService: useApiSanitization instance created');
+    }
+    return this._apiSanitization;
+  }
 
   // =====================================
   // PII PATTERN ENDPOINTS

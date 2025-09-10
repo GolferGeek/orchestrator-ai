@@ -302,11 +302,21 @@ import {
 
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { llmUsageService } from '@/services/llmUsageService';
+<<<<<<< Updated upstream
 import { useMonitoringAnalytics } from '@/composables/useEnhancedStores';
 import { storeToRefs } from 'pinia';
+=======
+import { useAnalyticsStore } from '@/stores/analyticsStore';
+import { useLLMMonitoringStore } from '@/stores/llmMonitoringStore';
+>>>>>>> Stashed changes
 
 const store = useLlmUsageStore();
-const { llmMonitoringStore, analyticsStore, dashboardData, systemHealthStatus } = useMonitoringAnalytics();
+const llmMonitoringStore = useLLMMonitoringStore();
+const analyticsStore = useAnalyticsStore();
+
+// Computed properties
+const dashboardData = computed(() => analyticsStore.dashboardData);
+const systemHealthStatus = computed(() => llmMonitoringStore.systemHealth?.status || 'unknown');
 
 // Reactive data
 const localFilters = ref({

@@ -128,4 +128,8 @@ export const authService = {
     }
   }
 };
-authService.initializeAuthHeader(); 
+
+// Initialize auth header after the object is fully defined
+setTimeout(() => {
+  authService.initializeAuthHeader();
+}, 0); 
