@@ -41,16 +41,6 @@
       <div class="trust-score" v-if="trustScore !== null">{{ trustScore }}%</div>
     </div>
 
-    <!-- PII Detection Count with Severity -->
-    <div 
-      v-if="showPiiCount && piiDetectionCount > 0" 
-      class="privacy-badge pii-detection"
-      :class="piiSeverityClass"
-    >
-      <ion-icon :icon="piiSeverityIcon" />
-      <span class="badge-text">{{ piiDetectionText }}</span>
-    </div>
-
     <!-- Processing Time -->
     <div 
       v-if="showProcessingTime && processingTimeMs > 0" 
