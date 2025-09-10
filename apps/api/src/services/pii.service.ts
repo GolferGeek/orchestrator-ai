@@ -292,9 +292,7 @@ export class PIIService {
     // External provider - create pseudonym instructions
     this.logger.debug(`🌐 [PII-SERVICE] External provider - creating pseudonym instructions`);
     
-    const pseudonymizerMatches = convertedMatches.filter(match => 
-      match.severity === 'warning' || match.severity === 'info'
-    );
+    const pseudonymizerMatches = []; // Never create pseudonym instructions from pattern matches
     
     const requestId = options.conversationId || options.requestId || `pii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
@@ -366,8 +364,6 @@ export class PIIService {
     switch (severity) {
       case 'showstopper':
         return 'showstopper';
-      case 'pseudonymizer':
-        return 'warning';
       case 'flagger':
         return 'info';
       default:
@@ -407,7 +403,7 @@ export class PIIService {
   private buildSeverityBreakdown(matches: PIIMatch[]): SeverityBreakdown {
     return {
       showstopper: matches.filter(m => m.severity === 'showstopper').length,
-      warning: matches.filter(m => m.severity === 'warning').length,
+      warning: 0,
       info: matches.filter(m => m.severity === 'info').length
     };
   }

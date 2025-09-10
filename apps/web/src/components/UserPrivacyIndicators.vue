@@ -90,7 +90,7 @@ export interface PrivacyIndicatorProps {
   
   // Sanitization status
   showSanitizationStatus?: boolean;
-  sanitizationStatus?: 'none' | 'processing' | 'completed' | 'failed';
+  sanitizationStatus?: 'none' | 'processing' | 'completed' | 'failed' | 'blocked' | 'flagged';
   piiDetectionCount?: number;
   piiSeverityTypes?: string[]; // Array of PII types detected (e.g., ['email', 'phone'])
   piiSeverityLevels?: string[]; // Array of severity levels (e.g., ['pseudonymizer', 'flagger'])
@@ -137,7 +137,9 @@ const sanitizationStatusClass = computed(() => ({
   'status-none': props.sanitizationStatus === 'none',
   'status-processing': props.sanitizationStatus === 'processing',
   'status-completed': props.sanitizationStatus === 'completed',
-  'status-failed': props.sanitizationStatus === 'failed'
+  'status-failed': props.sanitizationStatus === 'failed',
+  'status-blocked': props.sanitizationStatus === 'blocked',
+  'status-flagged': props.sanitizationStatus === 'flagged',
 }));
 
 const sanitizationIcon = computed(() => {
@@ -145,15 +147,20 @@ const sanitizationIcon = computed(() => {
     case 'completed': return checkmarkCircleOutline;
     case 'processing': return alertCircleOutline;
     case 'failed': return warningOutline;
+    case 'blocked': return stopCircleOutline;
+    case 'flagged': return flagOutline;
     default: return shieldOutline;
   }
 });
 
 const sanitizationStatusText = computed(() => {
+  const count = props.piiDetectionCount;
   switch (props.sanitizationStatus) {
     case 'completed': return 'Sanitized';
     case 'processing': return 'Sanitizing...';
     case 'failed': return 'Sanitization Failed';
+    case 'blocked': return 'Blocked';
+    case 'flagged': return `${count} Flagged Item${count > 1 ? 's' : ''}`;
     default: return 'No Sanitization';
   }
 });

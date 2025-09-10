@@ -11,7 +11,7 @@ export interface PIIPattern {
   description: string;
   priority?: number; // Lower number = higher priority
   enabled?: boolean;
-  severity?: 'showstopper' | 'pseudonymizer' | 'flagger'; // Severity level for policy decisions
+  severity?: 'showstopper' | 'flagger'; // Severity level for policy decisions
 }
 
 export interface PIIMatch {
@@ -21,7 +21,7 @@ export interface PIIMatch {
   startIndex: number;
   endIndex: number;
   confidence: number; // 0-1 score based on validator
-  severity?: 'showstopper' | 'pseudonymizer' | 'flagger'; // Severity level from pattern
+  severity?: 'showstopper' | 'flagger'; // Severity level from pattern
 }
 
 export interface PIIDetectionResult {
@@ -251,7 +251,7 @@ export class PIIPatternService {
           description: row.description || '',
           priority: row.priority || 50,
           enabled: true,
-          severity: row.severity as 'showstopper' | 'pseudonymizer' | 'flagger',
+          severity: row.severity as 'showstopper' | 'flagger',
           validator: undefined, // No hardcoded validators - rely on regex patterns only
         }));
 
@@ -287,7 +287,6 @@ export class PIIPatternService {
     totalPatterns: number;
     enabledPatterns: number;
     showstopperPatterns: number;
-    pseudonymizerPatterns: number;
     flaggerPatterns: number;
     patternsLoaded: boolean;
   } {
@@ -297,7 +296,6 @@ export class PIIPatternService {
       totalPatterns: allPatterns.length,
       enabledPatterns: allPatterns.filter(p => p.enabled !== false).length,
       showstopperPatterns: allPatterns.filter(p => p.severity === 'showstopper').length,
-      pseudonymizerPatterns: allPatterns.filter(p => p.severity === 'pseudonymizer').length,
       flaggerPatterns: allPatterns.filter(p => p.severity === 'flagger').length,
       patternsLoaded: this.patternsLoaded,
     };
