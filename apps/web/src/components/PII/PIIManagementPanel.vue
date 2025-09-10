@@ -319,6 +319,7 @@ import {
 import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
 import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
 import { useStoreAutoRefresh } from '@/composables/useStoreIntegration';
+import RecentLLMCalls from '@/components/PII/RecentLLMCalls.vue';
 
 // Store integration
 const piiPatternsStore = usePIIPatternsStore();

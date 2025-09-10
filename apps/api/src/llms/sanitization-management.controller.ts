@@ -801,7 +801,7 @@ export class SanitizationManagementController {
       const dictionary = {
         id: createDto.category,
         category: createDto.category,
-        name: createDto.category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        name: createDto.category.replace(/_/g, l => l.toUpperCase()),
         description: createDto.description || `${createDto.category.replace(/_/g, ' ')} for ${createDto.dataType} pseudonymization`,
         dataType: createDto.dataType,
         words: createDto.words,
@@ -1140,6 +1140,79 @@ export class SanitizationManagementController {
       return {
         success: false,
         message: `Sanitization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  @Get('llm-usage/recent')
+  @ApiOperation({ summary: 'Get recent LLM usage records with PII sanitization data' })
+  @ApiResponse({ status: 200, description: 'Successfully retrieved recent LLM calls' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of records to return (default: 20)' })
+  async getRecentLLMCalls(@Query('limit') limit?: number) {
+    const recordLimit = limit || 20;
+    
+    try {
+      const client = this.supabaseService.getServiceClient();
+      const { data, error } = await client
+        .from('llm_usage')
+        .select(`
+          run_id,
+          created_at,
+          provider_name,
+          model_name,
+          status,
+          total_cost,
+          duration_ms,
+          pii_detected,
+          pii_types,
+          pseudonyms_used,
+          pseudonym_types,
+          sanitization_level
+        `)
+        .order('created_at', { ascending: false })
+        .limit(recordLimit);
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to retrieve recent LLM calls: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  @Get('llm-usage/:runId')
+  @ApiOperation({ summary: 'Get detailed information for a single LLM call' })
+  @ApiResponse({ status: 200, description: 'Successfully retrieved LLM call details' })
+  @ApiParam({ name: 'runId', type: String, description: 'The run_id of the LLM call' })
+  async getLLMCallDetails(@Param('runId') runId: string) {
+    try {
+      const client = this.supabaseService.getServiceClient();
+      const { data, error } = await client
+        .from('llm_usage')
+        .select('*')
+        .eq('run_id', runId)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to retrieve LLM call details: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
   }
