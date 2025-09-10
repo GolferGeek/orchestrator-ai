@@ -23,6 +23,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DeliverableVersionsService } from './deliverable-versions.service';
 import {
   CreateVersionDto,
+  RerunWithLLMDto,
 } from './dto';
 import {
   DeliverableVersion,
@@ -177,5 +178,31 @@ export class DeliverableVersionsController {
       throw new Error('User not authenticated');
     }
     return this.versionsService.deleteVersion(versionId, userId);
+  }
+
+  @Post('version/:versionId/rerun')
+  @ApiOperation({
+    summary: 'Rerun version with different LLM',
+    description: 'Creates a new version by re-running the original prompt with a different LLM model',
+  })
+  @ApiParam({ name: 'versionId', description: 'Source version UUID to rerun' })
+  @ApiResponse({
+    status: 201,
+    description: 'New version created successfully with different LLM',
+    type: DeliverableVersion,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed or cannot rerun' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Source version not found' })
+  async rerunWithDifferentLLM(
+    @Param('versionId', ParseUUIDPipe) versionId: string,
+    @Body() rerunDto: RerunWithLLMDto,
+    @Req() req: any,
+  ): Promise<DeliverableVersion> {
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+    return this.versionsService.rerunWithDifferentLLM(versionId, rerunDto, userId);
   }
 }

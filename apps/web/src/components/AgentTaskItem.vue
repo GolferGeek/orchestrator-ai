@@ -314,17 +314,50 @@ const formattedTimestamp = computed(() => {
 });
 
 // LLM Information computed properties
-const llmUsed = computed(() => {
-  const metadata = props.message.metadata;
-  if (!metadata?.llmMetadata) return null;
+        const llmUsed = computed(() => {
+          const metadata = props.message.metadata;
+          
+          // Debug: Log the full message structure to see what we're getting
+          console.log('🔍 AgentTaskItem - Full message object:', props.message);
+          console.log('🔍 AgentTaskItem - Message metadata:', metadata);
+          
+          // Check both possible locations for LLM metadata
+          const llmMeta = metadata?.llmMetadata || metadata?.llmUsed;
+          console.log('🔍 AgentTaskItem - Extracted llmMeta:', llmMeta);
+          
+          if (!llmMeta) {
+            console.log('❌ AgentTaskItem - No LLM metadata found in message');
+            return null;
+          }
+          
+          // Debug: Log the actual LLM metadata structure
+          console.log('✅ AgentTaskItem - LLM Metadata received:', llmMeta);
+          console.log('✅ AgentTaskItem - Full message metadata:', metadata);
   
-  return {
-    providerName: metadata.llmMetadata.provider || metadata.llmMetadata.providerName,
-    modelName: metadata.llmMetadata.model || metadata.llmMetadata.modelName,
-    temperature: metadata.llmMetadata.temperature,
-    maxTokens: metadata.llmMetadata.maxTokens,
-    responseTimeMs: metadata.llmMetadata.responseTimeMs
-  };
+          // Handle different possible field structures from backend
+          // Check if data is in originalLLMSelection structure (new format)
+          const llmSelection = llmMeta.originalLLMSelection || llmMeta;
+          
+          const providerName = llmSelection.providerName || 
+                              llmSelection.provider || 
+                              llmMeta.provider_name ||
+                              'Unknown Provider';
+                              
+          const modelName = llmSelection.modelName || 
+                           llmSelection.model || 
+                           llmMeta.model_name ||
+                           'Unknown Model';
+          
+          const result = {
+            providerName,
+            modelName,
+            temperature: llmSelection.temperature || llmMeta.temperature,
+            maxTokens: llmSelection.maxTokens || llmSelection.max_tokens || llmMeta.maxTokens || llmMeta.max_tokens,
+            responseTimeMs: llmMeta.responseTimeMs || llmMeta.response_time_ms || llmMeta.duration
+          };
+  
+  console.log('Processed LLM info:', result);
+  return result;
 });
 
 const usage = computed(() => {

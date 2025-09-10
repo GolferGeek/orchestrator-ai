@@ -170,6 +170,22 @@ export class TaskStatusService {
             typeof newStatus.result === 'string'
               ? newStatus.result
               : JSON.stringify(newStatus.result);
+          
+          // Extract and store LLM metadata if present in the result
+          if (typeof newStatus.result === 'object' && newStatus.result.metadata) {
+            const resultMetadata = newStatus.result.metadata;
+            
+            // Store general metadata
+            updateData.metadata = resultMetadata;
+            
+            // Extract and store LLM-specific metadata
+            if (resultMetadata.llmUsed) {
+              updateData.llm_metadata = resultMetadata.llmUsed;
+            }
+            
+            // Store response metadata (for compatibility)
+            updateData.response_metadata = resultMetadata;
+          }
         }
 
         if (newStatus.error) {

@@ -101,8 +101,8 @@
             />
           </div>
         </div>
-        <!-- Input Area (hidden when work product pane is showing) -->
-        <div class="input-area" v-if="!showWorkProductPane || !hasActiveWorkProduct">
+        <!-- Input Area (always visible) -->
+        <div class="input-area">
           <form @submit.prevent="sendMessage">
             <ion-item>
               <ion-textarea
@@ -152,6 +152,7 @@
             @version-created="handleVersionCreated"
             @merge-requested="handleMergeRequested"
             @edit-requested="handleEditRequested"
+            @run-with-different-llm="handleRunWithDifferentLLM"
           />
         </template>
         <!-- Project Display -->
@@ -195,6 +196,43 @@
         @merge-cancelled="closeMergeModal"
       />
     </ion-modal>
+    
+    <!-- LLM Rerun Modal -->
+    <ion-modal :is-open="showLLMRerunModal" @did-dismiss="closeLLMRerunModal">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Run with Different LLM</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="closeLLMRerunModal">
+              <ion-icon :icon="closeOutline" />
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="modal-content">
+        <div class="llm-rerun-container">
+          <div class="rerun-info">
+            <h3>Re-run Deliverable</h3>
+            <p>This will create a new version of the deliverable using a different LLM model with the same original prompt.</p>
+          </div>
+          <LLMSelector />
+          <div class="modal-actions">
+            <ion-button 
+              fill="clear" 
+              @click="closeLLMRerunModal"
+            >
+              Cancel
+            </ion-button>
+            <ion-button 
+              @click="executeRerun"
+              :disabled="!canExecuteRerun"
+            >
+              Run with Selected LLM
+            </ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ion-modal>
   </div>
 </template>
 <script setup lang="ts">
@@ -208,6 +246,11 @@ import {
   IonActionSheet,
   IonModal,
   IonChip,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonContent,
 } from '@ionic/vue';
 import {
   alertCircleOutline,
@@ -218,17 +261,20 @@ import {
   eyeOffOutline,
   linkOutline,
   arrowForwardOutline,
+  closeOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useSovereignPolicyStore } from '@/stores/sovereignPolicyStore';
+import { useLLMStore } from '@/stores/llmStore';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 import DeliverableDisplay from './DeliverableDisplay.vue';
 import ProjectDisplay from './ProjectDisplay.vue';
 import DeliverableMergeView from './DeliverableMergeView.vue';
+import LLMSelector from './LLMSelector.vue';
 import SovereignModeBadge from './SovereignMode/SovereignModeBadge.vue';
 import SovereignModeTooltip from './SovereignMode/SovereignModeTooltip.vue';
 import SovereignModeBanner from './SovereignMode/SovereignModeBanner.vue';
@@ -241,6 +287,7 @@ const agentChatStore = useAgentChatStore();
 const deliverablesStore = useDeliverablesStore();
 const authStore = useAuthStore();
 const sovereignPolicyStore = useSovereignPolicyStore();
+const llmStore = useLLMStore();
 // Reactive state
 const messageText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
@@ -248,6 +295,8 @@ const showWorkProductPane = ref(false);
 const showDeliverableSelector = ref(false);
 const showMergeModal = ref(false);
 const mergeDeliverable = ref<any>(null);
+const showLLMRerunModal = ref(false);
+const rerunDeliverableData = ref<{ deliverable: any; version: any } | null>(null);
 const activeWorkProduct = ref<{ type: 'deliverable' | 'project'; data: any } | null>(null);
 const isMobile = ref(false);
 // Computed properties
@@ -349,7 +398,7 @@ const selectDeliverable = async (deliverable: any) => {
     return;
   }
   // Versions are already loaded by openExistingConversation, but load them if missing
-  const versions = deliverablesStore.getVersionsByDeliverableId(deliverable.id);
+  const versions = deliverablesStore.getDeliverableVersionsSync(deliverable.id);
   if (!versions || versions.length === 0) {
     try {
       await deliverablesStore.loadDeliverableVersions(deliverable.id);
@@ -447,6 +496,83 @@ const closeMergeModal = () => {
 const handleMergeCompleted = (mergedDeliverable: any) => {
   activeWorkProduct.value = { type: 'deliverable', data: mergedDeliverable };
   closeMergeModal();
+};
+
+// LLM Rerun handlers
+const handleRunWithDifferentLLM = (data: { deliverable: any; version: any }) => {
+  rerunDeliverableData.value = data;
+  showLLMRerunModal.value = true;
+};
+
+const closeLLMRerunModal = () => {
+  showLLMRerunModal.value = false;
+  rerunDeliverableData.value = null;
+};
+
+const canExecuteRerun = computed(() => {
+  return llmStore.selectedProvider && 
+         llmStore.selectedModel && 
+         rerunDeliverableData.value && 
+         rerunDeliverableData.value.version?.id;
+});
+
+const executeRerun = async () => {
+  if (!canExecuteRerun.value || !rerunDeliverableData.value || !rerunDeliverableData.value.version?.id) {
+    console.error('Invalid rerun data:', rerunDeliverableData.value);
+    return;
+  }
+
+  try {
+    // Call the API to rerun with different LLM
+    const response = await fetch(`/api/deliverable-versions/version/${rerunDeliverableData.value.version.id}/rerun`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`,
+      },
+      body: JSON.stringify({
+        provider: llmStore.selectedProvider.name,
+        model: llmStore.selectedModel.modelName,
+        temperature: llmStore.selectedProvider.temperature,
+        maxTokens: llmStore.selectedProvider.maxTokens,
+        sourceVersionId: rerunDeliverableData.value.version.id,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to rerun: ${response.statusText}`);
+    }
+
+    const newVersion = await response.json();
+
+    // Reload deliverable versions to get the new version
+    await deliverablesStore.loadDeliverableVersions(rerunDeliverableData.value.deliverable.id);
+
+    // Show success message
+    const { toastController } = await import('@ionic/vue');
+    const toast = await toastController.create({
+      message: `✅ New version created with ${llmStore.selectedProvider.name}/${llmStore.selectedModel.name}`,
+      duration: 3000,
+      position: 'top',
+      color: 'success'
+    });
+    await toast.present();
+
+    // Close modal
+    closeLLMRerunModal();
+  } catch (error) {
+    console.error('Failed to rerun with different LLM:', error);
+    
+    // Show error message
+    const { toastController } = await import('@ionic/vue');
+    const toast = await toastController.create({
+      message: `❌ Failed to rerun: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      duration: 5000,
+      position: 'top',
+      color: 'danger'
+    });
+    await toast.present();
+  }
 };
 // Responsive handling
 const checkMobile = () => {
@@ -878,5 +1004,46 @@ html[data-theme="dark"] .dot {
   .conversation-info {
     gap: 0.5rem;
   }
+}
+
+/* LLM Rerun Modal Styles */
+.llm-rerun-container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rerun-info h3 {
+  margin: 0 0 8px 0;
+  color: var(--ion-color-dark);
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.rerun-info p {
+  margin: 0;
+  color: var(--ion-color-medium);
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ion-color-light);
+}
+
+html[data-theme="dark"] .rerun-info h3 {
+  color: #f7fafc;
+}
+
+html[data-theme="dark"] .rerun-info p {
+  color: #a0aec0;
+}
+
+html[data-theme="dark"] .modal-actions {
+  border-color: #4a5568;
 }
 </style>

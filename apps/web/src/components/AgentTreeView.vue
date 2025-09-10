@@ -3,16 +3,16 @@
   <div class="agent-tree-container">
     <!-- Search -->
     <div class="search-container">
-      <ion-searchbar
-        v-model="searchQuery"
-        placeholder="Search agents..."
+        <ion-searchbar
+          v-model="searchQuery"
+          placeholder="Search agents..."
         show-clear-button="focus"
         @ionInput="filterAgents"
       />
       <ion-button fill="clear" @click="refreshData" :disabled="agentsStore.isLoadingAgents">
-        <ion-icon :icon="refreshOutline" />
-      </ion-button>
-    </div>
+          <ion-icon :icon="icons.refreshOutline" />
+        </ion-button>
+      </div>
 
     <!-- Loading State -->
     <div v-if="agentsStore.isLoadingAgents" class="loading-container">
@@ -22,7 +22,7 @@
 
     <!-- Error State -->
     <div v-else-if="agentsStore.getAgentError" class="error-container">
-      <ion-icon :icon="alertCircleOutline" color="danger" />
+      <ion-icon :icon="icons.alertCircleOutline" color="danger" />
       <p>{{ agentsStore.getAgentError }}</p>
       <ion-button fill="outline" @click="refreshData">Retry</ion-button>
     </div>
@@ -32,15 +32,15 @@
       <!-- CEO as standalone agent (not accordion) -->
       <div v-for="group in hierarchyGroups.filter(g => g.isCEOAgent)" :key="group.type" class="agent-item">
         <ion-item button @click="createNewConversation(group.agents[0])">
-          <ion-icon :icon="briefcaseOutline" color="primary" slot="start" />
-          <ion-label>
+          <ion-icon :icon="icons.briefcaseOutline" color="primary" slot="start" />
+            <ion-label>
             <h3>{{ formatAgentName(group.agents[0].name) }}</h3>
-          </ion-label>
+            </ion-label>
           <ion-badge slot="end" :color="group.totalConversations > 0 ? 'primary' : 'medium'">
             {{ group.totalConversations }}
-          </ion-badge>
-        </ion-item>
-      </div>
+            </ion-badge>
+          </ion-item>
+                </div>
 
       <!-- Managers as accordions -->
       <div v-for="group in hierarchyGroups.filter(g => g.isManager && !g.isCEOAgent)" :key="group.type" class="agent-group">
@@ -48,21 +48,22 @@
           <ion-accordion>
             <!-- Manager as accordion header (no conversation creation) -->
             <ion-item slot="header" color="light">
-              <ion-icon :icon="briefcaseOutline" color="primary" slot="start" />
+              <ion-icon :icon="icons.briefcaseOutline" color="primary" slot="start" />
               <ion-label>
                 <h3>{{ formatAgentName(group.agents[0].name).replace(' Orchestrator', '') }}</h3>
               </ion-label>
               <ion-badge slot="end" :color="group.totalConversations > 0 ? 'primary' : 'medium'">
                 {{ group.totalConversations }}
-              </ion-badge>
+                  </ion-badge>
             </ion-item>
             
             <!-- Team members in accordion content -->
             <div slot="content" class="accordion-content">
               <!-- Skip the first agent (manager) and show the rest (team members) -->
-              <div v-for="agent in group.agents.slice(1)" :key="agent.name" class="agent-item nested-agent">
-                <ion-item button @click="createNewConversation(agent)">
-                  <ion-icon :icon="personOutline" slot="start" color="medium" />
+              <div v-for="agent in group.agents.slice(1)" :key="agent.name" class="agent-section nested-agent">
+                <!-- Agent Header -->
+                <ion-item color="light">
+                  <ion-icon :icon="icons.personOutline" slot="start" color="medium" />
                   <ion-label>
                     <h4>{{ formatAgentName(agent.name) }}</h4>
                   </ion-label>
@@ -70,6 +71,51 @@
                     {{ agent.totalConversations }}
                   </ion-badge>
                 </ion-item>
+                
+                <!-- Agent's Conversations -->
+                <div v-if="agent.conversations && agent.conversations.length > 0" class="conversations-list">
+                  <ion-item 
+                    v-for="conversation in agent.conversations" 
+                    :key="conversation.id"
+                    button 
+                    @click="selectConversation(conversation)"
+                    class="conversation-item"
+                  >
+                    <ion-icon :icon="icons.chatbubbleOutline" slot="start" color="tertiary" />
+                    <ion-label>
+                      <p>{{ formatConversationTitle(conversation) }}</p>
+                      <p class="conversation-meta">{{ formatLastActive(conversation.lastActiveAt) }}</p>
+                    </ion-label>
+                    <ion-badge 
+                      v-if="conversation.activeTasks > 0" 
+                      slot="end" 
+                      color="warning"
+                    >
+                      {{ conversation.activeTasks }}
+                    </ion-badge>
+                    <ion-button 
+                      fill="clear" 
+                      size="small" 
+                      color="danger"
+                      slot="end"
+                      @click="deleteConversation(conversation, $event)"
+                    >
+                      <ion-icon :icon="icons.trashOutline" />
+                    </ion-button>
+                  </ion-item>
+                </div>
+                
+                <!-- New Conversation Button for this agent -->
+                <div class="agent-actions">
+                  <ion-button 
+                    fill="clear" 
+                    size="small"
+                    @click="createNewConversation(agent)"
+                    class="agent-action-btn"
+                  >
+                    New Conversation
+                  </ion-button>
+                </div>
               </div>
               
               <!-- Action Buttons -->
@@ -84,7 +130,7 @@
                   >
                     New Conversation
                   </ion-button>
-                  <ion-button 
+                      <ion-button
                     fill="clear" 
                     size="small"
                     color="secondary"
@@ -94,17 +140,18 @@
                     New Project
                   </ion-button>
                 </div>
-              </div>
-            </div>
-          </ion-accordion>
-        </ion-accordion-group>
-      </div>
+                </div>
+          </div>
+        </ion-accordion>
+      </ion-accordion-group>
+    </div>
 
       <!-- Specialists as individual agents (no grouping) -->
       <div v-for="group in hierarchyGroups.filter(g => g.isSpecialists)" :key="group.type">
-        <div v-for="agent in group.agents" :key="agent.name" class="agent-item">
-          <ion-item button @click="createNewConversation(agent)">
-            <ion-icon :icon="personOutline" color="medium" slot="start" />
+        <div v-for="agent in group.agents" :key="agent.name" class="agent-section">
+          <!-- Agent Header -->
+          <ion-item color="light">
+            <ion-icon :icon="icons.personOutline" color="medium" slot="start" />
             <ion-label>
               <h3>{{ formatAgentName(agent.name) }}</h3>
             </ion-label>
@@ -112,10 +159,65 @@
               {{ agent.totalConversations }}
             </ion-badge>
           </ion-item>
-        </div>
-      </div>
-    </div>
+          
+          <!-- Agent's Conversations -->
+          <div v-if="agent.conversations && agent.conversations.length > 0" class="conversations-list">
+            <ion-item 
+                  v-for="conversation in agent.conversations"
+                  :key="conversation.id"
+              button 
+              @click="selectConversation(conversation)"
+                  class="conversation-item"
+            >
+              <ion-icon :icon="icons.chatbubbleOutline" slot="start" color="tertiary" />
+              <ion-label>
+                <p>{{ formatConversationTitle(conversation) }}</p>
+                <p class="conversation-meta">{{ formatLastActive(conversation.lastActiveAt) }}</p>
+              </ion-label>
+                        <ion-badge
+                          v-if="conversation.activeTasks > 0"
+                slot="end" 
+                color="warning"
+                        >
+                {{ conversation.activeTasks }}
+                        </ion-badge>
+              <ion-button 
+                fill="clear" 
+                size="small" 
+                color="danger"
+                slot="end"
+                @click="deleteConversation(conversation, $event)"
+              >
+                <ion-icon :icon="icons.trashOutline" />
+              </ion-button>
+            </ion-item>
+                      </div>
+          
+          <!-- New Conversation Button for this agent -->
+          <div class="agent-actions">
+                      <ion-button
+                        fill="clear"
+                        size="small"
+              @click="createNewConversation(agent)"
+              class="agent-action-btn"
+                      >
+              New Conversation
+                      </ion-button>
+                    </div>
+                  </div>
+                  </div>
+                </div>
   </div>
+
+  <!-- Conversation Delete Modal -->
+  <ConversationDeleteModal
+    :is-open="showDeleteModal"
+    :agent-display-name="conversationToDelete?.agentName || 'Unknown Agent'"
+    :active-tasks="conversationToDelete?.activeTasks || 0"
+    :has-deliverables="conversationToDelete?.hasDeliverables || false"
+    @cancel="handleDeleteCancel"
+    @confirm="handleDeleteConfirm"
+  />
 </template>
 
 <script setup lang="ts">
@@ -138,10 +240,14 @@ import {
   addOutline,
   folderOutline,
   briefcaseOutline,
+  chatbubbleOutline,
+  trashOutline,
 } from 'ionicons/icons';
 import { formatAgentName } from '@/utils/caseConverter';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
+import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import ConversationDeleteModal from './ConversationDeleteModal.vue';
 
 // Props
 const props = defineProps<{
@@ -158,9 +264,118 @@ const emit = defineEmits<{
 // Reactive state
 const searchQuery = ref(props.searchQuery || '');
 
+// Delete modal state
+const showDeleteModal = ref(false);
+const conversationToDelete = ref<any>(null);
+
+// Icons (make them reactive for template access)
+const icons = {
+  personOutline,
+  refreshOutline,
+  alertCircleOutline,
+  addOutline,
+  folderOutline,
+  briefcaseOutline,
+  chatbubbleOutline,
+  trashOutline,
+};
+
 // Stores
 const agentsStore = useAgentsStore();
 const conversationsStore = useAgentConversationsStore();
+const deliverablesStore = useDeliverablesStore();
+
+// Helper functions (defined before computed properties)
+const formatConversationTitle = (conversation: any) => {
+  // Use metadata title if available, otherwise create a default title
+  if (conversation.metadata?.title) {
+    return conversation.metadata.title;
+  }
+  return `Conversation ${conversation.id.slice(-6)}`;
+};
+
+const formatLastActive = (date: Date) => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+};
+
+const selectConversation = (conversation: any) => {
+  emit('conversation-selected', conversation);
+};
+
+const deleteConversation = async (conversation: any, event: Event) => {
+  // Prevent the conversation selection when clicking delete
+  event.stopPropagation();
+  
+  // Check if conversation has deliverables before showing modal
+  let hasDeliverables = false;
+  try {
+    const deliverables = await deliverablesStore.loadDeliverablesByConversation(conversation.id);
+    hasDeliverables = deliverables && deliverables.length > 0;
+  } catch (error) {
+    console.warn('Failed to check deliverables for conversation:', error);
+    // Default to false if we can't check
+    hasDeliverables = false;
+  }
+  
+  // Show the delete modal with deliverable information
+  conversationToDelete.value = {
+    ...conversation,
+    hasDeliverables
+  };
+  showDeleteModal.value = true;
+};
+
+const handleDeleteCancel = () => {
+  showDeleteModal.value = false;
+  conversationToDelete.value = null;
+};
+
+const handleDeleteConfirm = async (deleteDeliverables: boolean) => {
+  try {
+    if (!conversationToDelete.value) {
+      console.warn('No conversation to delete');
+      return;
+    }
+    
+    const conversation = conversationToDelete.value;
+    
+    // Close modal first
+    showDeleteModal.value = false;
+    
+    // Delete deliverables if requested
+    if (deleteDeliverables && conversationToDelete.value.hasDeliverables) {
+      try {
+        const { deliverablesService } = await import('@/services/deliverablesService');
+        const deliverables = await deliverablesService.getConversationDeliverables(conversation.id);
+        for (const deliverable of deliverables) {
+          await deliverablesService.deleteDeliverable(deliverable.id);
+        }
+      } catch (error) {
+        console.warn('Failed to delete deliverables:', error);
+        // Continue with conversation deletion even if deliverable deletion fails
+      }
+    }
+    
+    // Use store method - this will update the UI reactively and handle tab closure
+    await conversationsStore.deleteConversation(conversation.id);
+    
+  } catch (err) {
+    console.error('Failed to delete conversation:', err);
+    // Error is already handled in the store
+  } finally {
+    conversationToDelete.value = null;
+  }
+};
 
 // Simple hierarchy processing - just build the tree as it comes from the backend
 const hierarchyGroups = computed(() => {
@@ -170,8 +385,8 @@ const hierarchyGroups = computed(() => {
   const groups: any[] = [];
   
   const processNode = (node: any) => {
-    // Apply search filter
-    const matchesSearch = !searchQuery.value || 
+        // Apply search filter
+        const matchesSearch = !searchQuery.value || 
       node.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       node.displayName?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       node.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
@@ -257,7 +472,7 @@ const hierarchyGroups = computed(() => {
     if (ceoMatchesSearch) {
       groups.push({
         type: 'ceo_agent',
-        agents: [{
+          agents: [{
           name: ceoNode.name,
           type: ceoNode.type || 'orchestrator',
           description: ceoNode.metadata?.description || ceoNode.description || '',
@@ -290,17 +505,17 @@ const hierarchyGroups = computed(() => {
       conv.agentName === agent.name && conv.agentType === agent.type
     );
     
-    const matchesSearch = !searchQuery.value || 
-      agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        const matchesSearch = !searchQuery.value || 
+          agent.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       agent.displayName?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      agent.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
+          agent.metadata?.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
     
     if (matchesSearch) {
       specialistAgents.push({
-        name: agent.name,
-        type: agent.type || 'specialist',
-        description: agent.metadata?.description || agent.description || '',
-        execution_modes: [],
+              name: agent.name,
+              type: agent.type || 'specialist',
+              description: agent.metadata?.description || agent.description || '',
+              execution_modes: [],
         conversations: nodeConversations,
         activeConversations: nodeConversations.filter(c => !c.endedAt).length,
         totalConversations: nodeConversations.length,
@@ -455,5 +670,42 @@ onMounted(async () => {
   --padding-start: 12px;
   --padding-end: 12px;
   font-size: 0.9em;
+}
+
+/* Agent section styling */
+.agent-section {
+  margin-bottom: 8px;
+}
+
+/* Conversations list styling */
+.conversations-list {
+  background: var(--ion-color-light-tint);
+  border-radius: 8px;
+  margin: 4px 8px;
+}
+
+.conversation-item {
+  --padding-start: 24px;
+  --min-height: 40px;
+}
+
+.conversation-item ion-label p {
+  margin: 2px 0;
+  font-size: 0.9em;
+}
+
+.conversation-meta {
+  color: var(--ion-color-medium);
+  font-size: 0.8em !important;
+}
+
+/* Agent actions styling */
+  .agent-actions {
+  padding: 4px 16px 8px 16px;
+}
+
+.agent-action-btn {
+    --color: var(--ion-color-primary);
+    font-size: 0.9em;
 }
 </style>

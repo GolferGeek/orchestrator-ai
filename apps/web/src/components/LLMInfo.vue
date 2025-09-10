@@ -7,7 +7,7 @@
         </div>
         <div class="llm-details">
           <span class="llm-model">{{ llmUsed?.modelName || 'Default Model' }}</span>
-          <span class="llm-provider">{{ llmUsed?.providerName || 'OpenAI' }}</span>
+          <span class="llm-provider">{{ llmUsed?.providerName || 'Unknown Provider' }}</span>
         </div>
       </div>
       <div class="llm-actions">

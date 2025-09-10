@@ -3,23 +3,33 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import {
   CreateVersionDto,
   DeliverableVersionCreationType,
   DeliverableFormat,
+  RerunWithLLMDto,
 } from './dto';
 import {
   DeliverableVersion,
 } from './entities/deliverable.entity';
 import { getTableName } from '../supabase/supabase.config';
+import { LLMService } from '../llms/llm.service';
+import { Task } from '../common/types/agent-conversations.types';
+import { snakeToCamel } from '../utils/case-converter';
 
 @Injectable()
 export class DeliverableVersionsService {
   private readonly logger = new Logger(DeliverableVersionsService.name);
 
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    @Inject(forwardRef(() => LLMService))
+    private readonly llmService: LLMService,
+  ) {}
 
   /**
    * Create a new version of an existing deliverable
@@ -423,6 +433,141 @@ export class DeliverableVersionsService {
     }
   }
 
+  /**
+   * Get task by ID (internal method to avoid circular dependency)
+   */
+  private async getTaskById(taskId: string, userId: string): Promise<Task | null> {
+    try {
+      const { data, error } = await this.supabaseService
+        .getAnonClient()
+        .from('tasks')
+        .select('*')
+        .eq('id', taskId)
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        this.logger.error(`Error fetching task ${taskId}:`, error);
+        return null;
+      }
+
+      if (!data) {
+        return null;
+      }
+
+      // Convert snake_case to camelCase
+      return snakeToCamel(data) as Task;
+    } catch (error) {
+      this.logger.error(`Failed to fetch task ${taskId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Re-run a deliverable version with a different LLM
+   */
+  async rerunWithDifferentLLM(
+    versionId: string,
+    rerunDto: RerunWithLLMDto,
+    userId: string,
+  ): Promise<DeliverableVersion> {
+    try {
+      // Get the source version
+      const sourceVersion = await this.getVersion(versionId, userId);
+      if (!sourceVersion) {
+        throw new NotFoundException('Source version not found');
+      }
+
+      // Verify deliverable ownership
+      await this.verifyDeliverableOwnership(sourceVersion.deliverableId, userId);
+
+      // Get the original task to retrieve the prompt
+      if (!sourceVersion.taskId) {
+        throw new BadRequestException('Cannot rerun: source version has no associated task');
+      }
+
+      const originalTask = await this.getTaskById(sourceVersion.taskId, userId);
+      if (!originalTask) {
+        throw new BadRequestException('Cannot rerun: original task not found');
+      }
+
+      if (!originalTask.prompt) {
+        throw new BadRequestException('Cannot rerun: original task has no prompt');
+      }
+
+      // Extract agent information from source version metadata
+      const agentName = sourceVersion.metadata?.agentName || 'unknown';
+      const agentType = sourceVersion.metadata?.agentType || 'context';
+
+      // Create system prompt based on agent type and original context
+      const systemPrompt = this.buildSystemPromptForRerun(agentName, agentType, sourceVersion);
+
+      // Call LLM service with new model
+      const llmResponse = await this.llmService.generateCentralizedResponse(
+        systemPrompt,
+        originalTask.prompt,
+        {
+          provider: rerunDto.provider,
+          model: rerunDto.model,
+          temperature: rerunDto.temperature,
+          maxTokens: rerunDto.maxTokens,
+          userId: userId,
+          callerType: 'deliverable_rerun',
+          callerName: `${agentName}_rerun`,
+          conversationId: sourceVersion.metadata?.conversationId,
+        }
+      );
+
+      // Create new version with LLM response
+      const createVersionDto: CreateVersionDto = {
+        content: llmResponse.content,
+        format: sourceVersion.format || DeliverableFormat.MARKDOWN,
+        createdByType: DeliverableVersionCreationType.LLM_RERUN,
+        taskId: sourceVersion.taskId,
+        metadata: {
+          ...sourceVersion.metadata,
+          sourceVersionId: versionId,
+          rerunAt: new Date().toISOString(),
+          llmRerunInfo: {
+            provider: rerunDto.provider,
+            model: rerunDto.model,
+            temperature: rerunDto.temperature,
+            maxTokens: rerunDto.maxTokens,
+          },
+          llmMetadata: {
+            runId: llmResponse.runMetadata.runId,
+            provider: llmResponse.runMetadata.provider,
+            model: llmResponse.runMetadata.model,
+            inputTokens: llmResponse.runMetadata.inputTokens,
+            outputTokens: llmResponse.runMetadata.outputTokens,
+            cost: llmResponse.runMetadata.cost,
+            duration: llmResponse.runMetadata.duration,
+          },
+          routingDecision: llmResponse.routingDecision,
+          piiMetadata: llmResponse.piiMetadata,
+        },
+      };
+
+      const newVersion = await this.createVersion(sourceVersion.deliverableId, createVersionDto, userId);
+
+      this.logger.log(
+        `🔄 Deliverable rerun completed: Version ${newVersion.versionNumber} created with ${rerunDto.provider}/${rerunDto.model} for deliverable ${sourceVersion.deliverableId}`
+      );
+
+      return newVersion;
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      this.logger.error('Failed to rerun deliverable with different LLM:', error);
+      throw new BadRequestException('Failed to rerun deliverable with different LLM');
+    }
+  }
+
   // Private helper methods
 
   private async verifyDeliverableOwnership(deliverableId: string, userId: string): Promise<void> {
@@ -598,5 +743,39 @@ export class DeliverableVersionsService {
       .sort(([,a], [,b]) => b - a)[0]?.[0];
       
     return (mostCommon as DeliverableFormat) || DeliverableFormat.TEXT;
+  }
+
+  /**
+   * Build system prompt for LLM rerun based on agent type and context
+   */
+  private buildSystemPromptForRerun(
+    agentName: string,
+    agentType: string,
+    sourceVersion: DeliverableVersion,
+  ): string {
+    const basePrompt = `You are ${agentName}, a ${agentType} agent. You are re-running a previous task with a different LLM model.`;
+    
+    // Add context from the original version if available
+    let contextPrompt = '';
+    if (sourceVersion.metadata?.conversationId) {
+      contextPrompt += ' This is part of an ongoing conversation.';
+    }
+    
+    if (sourceVersion.metadata?.projectStepId) {
+      contextPrompt += ' This is part of a project workflow.';
+    }
+
+    // Add format guidance
+    const formatGuidance = sourceVersion.format === DeliverableFormat.MARKDOWN 
+      ? ' Please format your response in Markdown.'
+      : sourceVersion.format === DeliverableFormat.JSON
+      ? ' Please format your response as valid JSON.'
+      : sourceVersion.format === DeliverableFormat.HTML
+      ? ' Please format your response as HTML.'
+      : ' Please format your response as plain text.';
+
+    return `${basePrompt}${contextPrompt}${formatGuidance}
+
+Please provide a fresh response to the user's request. Do not reference this being a "rerun" or mention previous versions.`;
   }
 }

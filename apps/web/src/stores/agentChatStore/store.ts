@@ -608,11 +608,24 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Update message content with the final response
         existingMessage.content = finalContent;
         console.log('🔍 [FRONTEND-DEBUG] Agent result metadata:', parsedResponse?.metadata);
+        console.log('🔍 [FRONTEND-DEBUG] Task LLM metadata:', completedTask.llmMetadata);
         console.log('🔍 [FRONTEND-DEBUG] Has sanitizationMetadata:', !!parsedResponse?.metadata?.sanitizationMetadata);
         console.log('🔍 [FRONTEND-DEBUG] Full sanitizationMetadata:', parsedResponse?.metadata?.sanitizationMetadata);
 
+        // Merge agent result metadata with task LLM metadata
+        const mergedMetadata = {
+          ...parsedResponse?.metadata,
+          // Include LLM metadata from the task record
+          ...(completedTask.llmMetadata && {
+            llmMetadata: completedTask.llmMetadata,
+          }),
+        };
+
+        console.log('🔍 [FRONTEND-DEBUG] Merged metadata for message:', mergedMetadata);
+
         existingMessage.metadata = {
           ...existingMessage.metadata,
+          ...mergedMetadata,
           isPlaceholder: false,
           isCompleted: true,
           completedAt: new Date().toISOString()
