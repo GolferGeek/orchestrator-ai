@@ -215,23 +215,31 @@
             <h3>Re-run Deliverable</h3>
             <p>This will create a new version of the deliverable using a different LLM model with the same original prompt.</p>
           </div>
-          <LLMSelector />
-          <div class="modal-actions">
-            <ion-button 
-              fill="clear" 
-              @click="closeLLMRerunModal"
-            >
-              Cancel
-            </ion-button>
-            <ion-button 
-              @click="executeRerun"
-              :disabled="!canExecuteRerun"
-            >
-              Run with Selected LLM
-            </ion-button>
+          <div class="llm-selector-wrapper">
+            <LLMSelector />
           </div>
         </div>
       </ion-content>
+      
+      <!-- Sticky Footer with Actions -->
+      <div class="modal-footer">
+        <ion-button 
+          fill="clear" 
+          @click="closeLLMRerunModal"
+          size="default"
+        >
+          Cancel
+        </ion-button>
+        <ion-button 
+          @click="executeRerun"
+          :disabled="!canExecuteRerun"
+          color="primary"
+          size="default"
+        >
+          <ion-icon :icon="playOutline" slot="start" />
+          Run with Selected LLM
+        </ion-button>
+      </div>
     </ion-modal>
   </div>
 </template>
@@ -262,6 +270,7 @@ import {
   linkOutline,
   arrowForwardOutline,
   closeOutline,
+  playOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
@@ -1099,6 +1108,26 @@ html[data-theme="dark"] .dot {
   border-top: 1px solid var(--ion-color-light);
 }
 
+.modal-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--ion-color-step-50, #ffffff);
+  border-top: 1px solid var(--ion-color-light);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.llm-selector-wrapper {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-bottom: 20px;
+}
+
 html[data-theme="dark"] .rerun-info h3 {
   color: #f7fafc;
 }
@@ -1109,5 +1138,11 @@ html[data-theme="dark"] .rerun-info p {
 
 html[data-theme="dark"] .modal-actions {
   border-color: #4a5568;
+}
+
+html[data-theme="dark"] .modal-footer {
+  background: var(--ion-color-step-100, #1a1a1a);
+  border-color: #4a5568;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
 }
 </style>
