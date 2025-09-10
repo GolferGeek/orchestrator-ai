@@ -12,12 +12,30 @@
 
     <!-- Sanitization Status -->
     <div 
-      v-if="showSanitizationStatus" 
+      v-if="showSanitizationStatus && (sanitizationStatus === 'completed' || sanitizationStatus === 'blocked')" 
       class="privacy-badge sanitization-status"
       :class="sanitizationStatusClass"
     >
       <ion-icon :icon="sanitizationIcon" />
       <span class="badge-text">{{ sanitizationStatusText }}</span>
+    </div>
+
+    <!-- Flagged Items Badge -->
+    <div 
+      v-if="flaggedCount > 0" 
+      class="privacy-badge pii-flagger"
+    >
+      <ion-icon :icon="flagOutline" />
+      <span class="badge-text">{{ flaggedCount }} Flagged Item{{ flaggedCount > 1 ? 's' : '' }}</span>
+    </div>
+
+    <!-- Pseudonymized Items Badge -->
+    <div 
+      v-if="pseudonymizedCount > 0" 
+      class="privacy-badge pii-pseudonymizer"
+    >
+      <ion-icon :icon="swapHorizontalOutline" />
+      <span class="badge-text">{{ pseudonymizedCount }} Pseudonym{{ pseudonymizedCount > 1 ? 's' : '' }}</span>
     </div>
 
     <!-- Routing Display -->
@@ -81,6 +99,8 @@ export interface PrivacyIndicatorProps {
   // Sanitization status
   showSanitizationStatus?: boolean;
   sanitizationStatus?: 'none' | 'processing' | 'completed' | 'failed' | 'blocked' | 'flagged';
+  flaggedCount?: number;
+  pseudonymizedCount?: number;
   piiDetectionCount?: number;
   piiSeverityTypes?: string[]; // Array of PII types detected (e.g., ['email', 'phone'])
   piiSeverityLevels?: string[]; // Array of severity levels (e.g., ['pseudonymizer', 'flagger'])
@@ -108,6 +128,8 @@ const props = withDefaults(defineProps<PrivacyIndicatorProps>(), {
   isDataProtected: false,
   showSanitizationStatus: true,
   sanitizationStatus: 'none',
+  flaggedCount: 0,
+  pseudonymizedCount: 0,
   piiDetectionCount: 0,
   piiSeverityTypes: () => [],
   piiSeverityLevels: () => [],
@@ -151,7 +173,7 @@ const sanitizationStatusText = computed(() => {
     case 'failed': return 'Sanitization Failed';
     case 'blocked': return 'Blocked';
     case 'flagged': return `${count} Flagged Item${count > 1 ? 's' : ''}`;
-    default: return 'No Sanitization';
+    default: return ''; // Return empty for 'none' to hide the badge
   }
 });
 

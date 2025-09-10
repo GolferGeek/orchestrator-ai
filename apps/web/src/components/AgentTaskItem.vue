@@ -111,10 +111,9 @@
           :showDataProtection="false"
           :isDataProtected="false"
           :showSanitizationStatus="privacySettings.showSanitizationStatus"
-          :sanitizationStatus="currentSanitizationStatus"
-          :piiDetectionCount="currentPiiDetectionCount"
-          :piiSeverityTypes="currentPiiSeverityTypes"
-          :piiSeverityLevels="currentPiiSeverityLevels"
+          :sanitizationStatus="sanitizationStatus"
+          :flaggedCount="flaggedItemsCount"
+          :pseudonymizedCount="pseudonymizedItemsCount"
           :showRoutingDisplay="privacySettings.showRoutingDisplay"
           :routingMode="currentRoutingMode"
           :showTrustSignal="privacySettings.showTrustSignal"
@@ -511,26 +510,24 @@ const currentTrustScore = computed(() => {
 });
 
 // Sanitization status - read from message metadata (better architecture)
-const currentSanitizationStatus = computed(() => {
+const pseudonymizedItemsCount = computed(() => {
   const piiMetadata = props.message.metadata?.piiMetadata;
-  
+  return piiMetadata?.pseudonymInstructions?.targetMatches?.length || 0;
+});
+
+const flaggedItemsCount = computed(() => {
+  const piiMetadata = props.message.metadata?.piiMetadata;
+  return piiMetadata?.detectionResults?.flaggedMatches?.length || 0;
+});
+
+const sanitizationStatus = computed(() => {
+  const piiMetadata = props.message.metadata?.piiMetadata;
   if (piiMetadata?.showstopperDetected) {
     return 'blocked';
   }
-
-  if (piiMetadata?.pseudonymInstructions?.shouldPseudonymize) {
+  if (pseudonymizedItemsCount.value > 0) {
     return 'completed';
   }
-
-  if (piiMetadata?.detectionResults?.flaggedMatches?.some(m => m.severity === 'info')) {
-    return 'flagged';
-  }
-  
-  const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
-  if (sanitizationMetadata?.status) {
-    return sanitizationMetadata.status;
-  }
-  
   return 'none';
 });
 
