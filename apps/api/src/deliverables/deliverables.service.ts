@@ -487,6 +487,7 @@ export class DeliverablesService {
           initialContent: content,
           initialFormat: 'markdown' as any,
           initialCreationType: 'ai_response' as any,
+          initialTaskId: taskId, // ✅ Add the taskId as initialTaskId
           initialMetadata: {
             taskId,
             createdAt: new Date().toISOString(),

@@ -479,6 +479,32 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       setLoading(false);
     }
   };
+
+  const rerunWithDifferentLLM = async (versionId: string, llmConfig: {
+    provider: string;
+    model: string;
+    temperature?: number;
+    maxTokens?: number;
+  }): Promise<DeliverableVersion> => {
+    try {
+      setLoading(true);
+      clearError();
+      const { deliverablesService } = await import('@/services/deliverablesService');
+      const newVersion = await deliverablesService.rerunWithDifferentLLM(versionId, llmConfig);
+      
+      // Add the new version to the store state
+      addVersion(newVersion.deliverableId, newVersion);
+      
+      return newVersion;
+    } catch (error: any) {
+      console.error('Failed to rerun with different LLM:', error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadCurrentVersion = async (deliverableId: string) => {
     try {
       const { deliverablesService } = await import('@/services/deliverablesService');
@@ -611,6 +637,7 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     // Version management
     setCurrentVersion,
     deleteVersion,
+    rerunWithDifferentLLM,
     loadCurrentVersion,
     // Additional methods for compatibility
     processAgentDeliverable,

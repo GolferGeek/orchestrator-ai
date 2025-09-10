@@ -523,27 +523,30 @@ const executeRerun = async () => {
   }
 
   try {
-    // Call the API to rerun with different LLM
-    const response = await fetch(`/api/deliverable-versions/version/${rerunDeliverableData.value.version.id}/rerun`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`,
-      },
-      body: JSON.stringify({
-        provider: llmStore.selectedProvider.name,
-        model: llmStore.selectedModel.modelName,
-        temperature: llmStore.selectedProvider.temperature,
-        maxTokens: llmStore.selectedProvider.maxTokens,
-        sourceVersionId: rerunDeliverableData.value.version.id,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to rerun: ${response.statusText}`);
+    // Normalize provider name to lowercase for backend compatibility
+    const providerName = llmStore.selectedProvider.name.toLowerCase();
+    
+    const llmConfig: any = {
+      provider: providerName,
+      model: llmStore.selectedModel.modelName,
+    };
+    
+    // Only include temperature and maxTokens if they have valid values
+    if (llmStore.selectedProvider.temperature !== undefined && llmStore.selectedProvider.temperature !== null) {
+      llmConfig.temperature = llmStore.selectedProvider.temperature;
     }
-
-    const newVersion = await response.json();
+    if (llmStore.selectedProvider.maxTokens !== undefined && llmStore.selectedProvider.maxTokens !== null) {
+      llmConfig.maxTokens = llmStore.selectedProvider.maxTokens;
+    }
+    
+    console.log('🔄 LLM Rerun Config:', llmConfig);
+    console.log('🔄 Original provider name:', llmStore.selectedProvider.name);
+    
+    // Call the store method to rerun with different LLM
+    const newVersion = await deliverablesStore.rerunWithDifferentLLM(
+      rerunDeliverableData.value.version.id,
+      llmConfig
+    );
 
     // Reload deliverable versions to get the new version
     await deliverablesStore.loadDeliverableVersions(rerunDeliverableData.value.deliverable.id);
