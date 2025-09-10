@@ -12,6 +12,7 @@ import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudo
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { LLMServiceConfig, GenerateResponseParams, LLMResponse } from './llm-interfaces';
+import { LLMRetryHandler, DEFAULT_RETRY_CONFIG } from './llm-error-handling';
 
 /**
  * Supported LLM provider types
@@ -183,8 +184,12 @@ export class LLMServiceFactory {
     // Create or get cached service
     const service = await this.createService(config, useCache);
     
-    // Generate response with full metadata
-    const response = await service.generateResponse(params);
+    // Generate response with full metadata, with retry on transient errors only
+    const response = await LLMRetryHandler.withRetry(
+      () => service.generateResponse(params),
+      DEFAULT_RETRY_CONFIG,
+      `LLMFactory:${config.provider}:${config.model}`
+    );
     
     this.logger.debug(`Generated response via factory for provider: ${config.provider}`, {
       provider: response.metadata.provider,
