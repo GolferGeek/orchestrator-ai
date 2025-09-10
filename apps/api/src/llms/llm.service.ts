@@ -761,30 +761,31 @@ export class LLMService {
     userMessage: string,
   ): Promise<string> {
     try {
-      // Resolve environment explicitly and fetch validated default
-      const env = this.resolveEnvironment();
-      const envDefault = this.modelConfigurationService.getEnvironmentDefault(env);
+      // Resolve configuration (global single default or environment-specific)
+      const selectedDefault = this.modelConfigurationService.isGlobal()
+        ? this.modelConfigurationService.getGlobalDefault()
+        : this.modelConfigurationService.getEnvironmentDefault(this.resolveEnvironment());
 
       // Create LLM instance with environment default configuration
       const llm = this.createCustomLangGraphLLM({
-        provider: envDefault.provider as any,
-        model: envDefault.model,
-        temperature: envDefault.parameters?.temperature,
-        maxTokens: envDefault.parameters?.maxTokens,
+        provider: selectedDefault.provider as any,
+        model: selectedDefault.model,
+        temperature: selectedDefault.parameters?.temperature,
+        maxTokens: selectedDefault.parameters?.maxTokens,
       });
 
       // Format messages using selected provider/model
       const messages = this.formatMessagesForProvider(
         systemPrompt,
         userMessage,
-        envDefault.provider,
-        envDefault.model,
+        selectedDefault.provider,
+        selectedDefault.model,
       );
 
       // Debug
       this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
-      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Provider:', envDefault.provider);
-      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Model:', envDefault.model);
+      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Provider:', selectedDefault.provider);
+      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Model:', selectedDefault.model);
 
       const response = await llm.invoke(messages);
       const content =

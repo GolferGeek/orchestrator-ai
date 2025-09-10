@@ -27,25 +27,39 @@ export interface SystemModelConfiguration {
 
 @Injectable()
 export class ModelConfigurationService {
-  private readonly config: SystemModelConfiguration;
+  private readonly config?: SystemModelConfiguration;
+  private readonly globalDefault?: ModelConfiguration;
+  private readonly mode: 'system' | 'global';
 
-  constructor(config?: SystemModelConfiguration) {
-    // No silent defaults: require explicit configuration at construction or via module factory
-    this.config = config ?? { agents: {}, environmentDefaults: {} as any };
+  constructor(configOrGlobal?: SystemModelConfiguration | ModelConfiguration) {
+    // Support either a full system configuration or a single global default per deployment
+    if (configOrGlobal && 'provider' in (configOrGlobal as any)) {
+      this.mode = 'global';
+      this.globalDefault = configOrGlobal as ModelConfiguration;
+    } else {
+      this.mode = 'system';
+      this.config = (configOrGlobal as SystemModelConfiguration) ?? { agents: {}, environmentDefaults: {} as any };
+    }
   }
 
   /**
    * Validate the entire configuration upfront (can be called at startup)
    */
   public validateConfig(): void {
-    if (!this.config) {
-      throw new Error('ModelConfigurationService: configuration is required');
+    if (this.mode === 'global') {
+      if (!this.globalDefault) {
+        throw new Error('ModelConfigurationService: global default configuration is required');
+      }
+      this.assertModel(this.globalDefault, 'global default');
+      return;
     }
-
+    // system mode
+    if (!this.config) {
+      throw new Error('ModelConfigurationService: system configuration is required');
+    }
     if (!this.config.agents || typeof this.config.agents !== 'object') {
       throw new Error('ModelConfigurationService: agents map is required');
     }
-
     if (!this.config.environmentDefaults) {
       throw new Error('ModelConfigurationService: environmentDefaults are required');
     }
@@ -90,7 +104,10 @@ export class ModelConfigurationService {
    * Get environment default (throws if missing). Environment must be explicit to avoid silent fallbacks.
    */
   public getEnvironmentDefault(env: EnvironmentName): ModelConfiguration {
-    const mc = this.config.environmentDefaults[env];
+    if (this.mode !== 'system') {
+      throw new Error('ModelConfigurationService: environment defaults requested in global mode');
+    }
+    const mc = this.config!.environmentDefaults[env];
     if (!mc) {
       const available = Object.keys(this.config.environmentDefaults || {}).join(', ') || '(none)';
       throw new Error(
@@ -102,10 +119,27 @@ export class ModelConfigurationService {
   }
 
   /**
+   * Get the single global default when running in global mode (no NODE_ENV required)
+   */
+  public getGlobalDefault(): ModelConfiguration {
+    if (this.mode !== 'global' || !this.globalDefault) {
+      throw new Error('ModelConfigurationService: global default not configured');
+    }
+    this.assertModel(this.globalDefault, 'global default');
+    return this.globalDefault;
+  }
+
+  /** Indicate current configuration mode */
+  public isGlobal(): boolean {
+    return this.mode === 'global';
+  }
+
+  /**
    * Enumerate agents supported by configuration
    */
   public listAgents(): string[] {
-    return Object.keys(this.config.agents || {});
+    if (this.mode === 'global') return [];
+    return Object.keys(this.config!.agents || {});
   }
 
   /**
