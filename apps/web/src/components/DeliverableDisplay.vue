@@ -913,27 +913,43 @@ const getMimeType = () => {
  * Extract LLM information from version metadata
  */
 const getVersionLLMInfo = (version: any): string | null => {
-  if (!version?.metadata) return null;
+  if (!version?.metadata) {
+    console.log('🔍 [LLM-DEBUG] No metadata found for version:', version?.id);
+    return null;
+  }
+
+  console.log('🔍 [LLM-DEBUG] Version metadata:', {
+    versionId: version.id,
+    metadataKeys: Object.keys(version.metadata),
+    llmMetadata: version.metadata.llmMetadata,
+    llmRerunInfo: version.metadata.llmRerunInfo,
+    llmUsed: version.metadata.llmUsed
+  });
   
   // Check for rerun LLM info first (most specific)
   if (version.metadata.llmRerunInfo) {
     const info = version.metadata.llmRerunInfo;
+    console.log('🔍 [LLM-DEBUG] Found llmRerunInfo:', info);
     return `${info.provider}/${info.model}`;
   }
   
   // Check for general LLM metadata
   if (version.metadata.llmMetadata) {
     const info = version.metadata.llmMetadata;
+    console.log('🔍 [LLM-DEBUG] Found llmMetadata:', info);
     
     // Handle direct provider/model format (from reruns)
     if (info.provider && info.model) {
+      console.log('🔍 [LLM-DEBUG] Using direct provider/model format');
       return `${info.provider}/${info.model}`;
     }
     
     // Handle originalLLMSelection format (from initial creation)
     if (info.originalLLMSelection) {
       const selection = info.originalLLMSelection;
+      console.log('🔍 [LLM-DEBUG] Found originalLLMSelection:', selection);
       if (selection.providerName && selection.modelName) {
+        console.log('🔍 [LLM-DEBUG] Using originalLLMSelection format');
         return `${selection.providerName}/${selection.modelName}`;
       }
     }
@@ -942,11 +958,14 @@ const getVersionLLMInfo = (version: any): string | null => {
   // Check for legacy LLM metadata formats
   if (version.metadata.llmUsed) {
     const info = version.metadata.llmUsed;
+    console.log('🔍 [LLM-DEBUG] Found llmUsed:', info);
     if (info.provider && info.model) {
+      console.log('🔍 [LLM-DEBUG] Using llmUsed format');
       return `${info.provider}/${info.model}`;
     }
   }
   
+  console.log('🔍 [LLM-DEBUG] No LLM info found for version:', version.id);
   return null;
 };
 

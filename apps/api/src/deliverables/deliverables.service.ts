@@ -505,6 +505,14 @@ export class DeliverablesService {
             ...(taskData.metadata?.costCalculation && {
               costCalculation: taskData.metadata.costCalculation,
             }),
+            // Debug: Log what LLM metadata we're capturing
+            ...(this.logger.debug('🔍 [DELIVERABLE-DEBUG] LLM metadata being saved:', {
+              hasLlmMetadata: !!taskData.llm_metadata,
+              llmMetadataKeys: taskData.llm_metadata ? Object.keys(taskData.llm_metadata) : [],
+              hasMetadataLlmUsed: !!taskData.metadata?.llmUsed,
+              taskDataKeys: Object.keys(taskData),
+              metadataKeys: taskData.metadata ? Object.keys(taskData.metadata) : []
+            }) || {}),
           },
         }, userId);
 
