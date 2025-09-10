@@ -92,21 +92,53 @@ fi
 if command -v supabase &> /dev/null; then
     echo -e "${YELLOW}Checking Supabase status...${NC}"
     
-    # Check if Supabase is already running
-    if supabase status >/dev/null 2>&1; then
-        echo -e "${GREEN}✅ Supabase is already running${NC}"
-        # Show brief status
-        supabase status | grep -E "(API URL|DB URL|Studio URL)" || true
-    else
-        echo -e "${YELLOW}Starting Supabase local development...${NC}"
-        supabase start
+    # Check if Supabase ports are already in use (indicating it's running)
+    SUPABASE_RUNNING=false
+    
+    # Check for production Supabase ports (55321-55324)
+    if check_port 55321 && check_port 55322 && check_port 55323; then
+        echo -e "${GREEN}✅ Production Supabase appears to be running (ports 55321-55323 in use)${NC}"
+        SUPABASE_RUNNING=true
         
-        if [ $? -eq 0 ]; then
+        # Try to get status, but don't fail if it doesn't work
+        echo -e "${YELLOW}Attempting to get Supabase status...${NC}"
+        if supabase status 2>/dev/null | grep -E "(API URL|DB URL|Studio URL)"; then
+            echo -e "${GREEN}✅ Supabase status retrieved successfully${NC}"
+        else
+            echo -e "${YELLOW}⚠️  Production Supabase running but status command failed${NC}"
+            echo -e "${YELLOW}This can happen during startup - continuing...${NC}"
+        fi
+    fi
+    
+    # If Supabase doesn't appear to be running, try to start it
+    if [ "$SUPABASE_RUNNING" = false ]; then
+        echo -e "${YELLOW}Starting Supabase local development...${NC}"
+        
+        # Try to start Supabase, but handle port conflicts gracefully
+        if supabase start 2>&1 | tee /tmp/supabase_start.log; then
             echo -e "${GREEN}✅ Supabase started successfully${NC}"
         else
-            echo -e "${RED}❌ Failed to start Supabase${NC}"
-            echo "This may affect database functionality"
+            # Check if the error was due to port conflicts
+            if grep -q "port is already allocated" /tmp/supabase_start.log; then
+                echo -e "${YELLOW}⚠️  Port conflict detected - Supabase may already be running elsewhere${NC}"
+                echo -e "${YELLOW}This is normal if you have multiple instances running${NC}"
+                
+                # Check if ports are now available (production instance started)
+                if check_port 55321 && check_port 55322; then
+                    echo -e "${GREEN}✅ Production Supabase ports are active, continuing...${NC}"
+                else
+                    echo -e "${RED}❌ Failed to start Supabase and ports not available${NC}"
+                    echo "This may affect database functionality"
+                fi
+            else
+                echo -e "${RED}❌ Failed to start Supabase for unknown reason${NC}"
+                echo "This may affect database functionality"
+                echo "Check the log above for details"
+            fi
         fi
+        
+        # Clean up temp log
+        rm -f /tmp/supabase_start.log
     fi
 else
     echo -e "${YELLOW}⚠️  Supabase CLI not installed${NC}"
@@ -309,6 +341,6 @@ echo "  • API: https://api.orchestratorai.io"
 echo "  • Local Web: http://localhost:9001"
 echo "  • Local API: http://localhost:9000"
 if command -v supabase &> /dev/null && supabase status >/dev/null 2>&1; then
-    echo "  • Supabase Studio: http://localhost:9012"
-    echo "  • Supabase API: http://localhost:9010"
+    echo "  • Supabase Studio: http://localhost:55323"
+    echo "  • Supabase API: http://localhost:55321"
 fi

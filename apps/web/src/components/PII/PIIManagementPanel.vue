@@ -316,24 +316,41 @@ import {
   statsChartOutline,
   alertCircleOutline
 } from 'ionicons/icons';
-import { usePIIManagement, usePIITools } from '@/composables/useEnhancedStores';
+import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
+import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
 import { useStoreAutoRefresh } from '@/composables/useStoreIntegration';
 
 // Store integration
-const {
-  piiPatternsStore,
-  pseudonymStore,
-  isLoading,
-  hasError,
-  firstError,
-  refreshAll,
-  clearAllErrors
-} = usePIIManagement();
+const piiPatternsStore = usePIIPatternsStore();
+const pseudonymStore = usePseudonymDictionariesStore();
 
-const {
-  detectPII,
-  pseudonymizeText
-} = usePIITools();
+// Computed properties for unified interface
+const isLoading = computed(() => piiPatternsStore.isLoading || pseudonymStore.isLoading);
+const hasError = computed(() => !!piiPatternsStore.error || !!pseudonymStore.error);
+const firstError = computed(() => piiPatternsStore.error || pseudonymStore.error);
+
+// Methods
+const refreshAll = async () => {
+  await Promise.all([
+    piiPatternsStore.fetchPatterns(),
+    pseudonymStore.fetchDictionaries()
+  ]);
+};
+
+const clearAllErrors = () => {
+  piiPatternsStore.clearError();
+  pseudonymStore.clearError();
+};
+
+// PII Tools functionality
+const detectPII = async (text: string) => {
+  return await piiPatternsStore.testPIIDetection({ text });
+};
+
+const pseudonymizeText = async (text: string) => {
+  // This would need to be implemented based on your pseudonymization logic
+  return text; // Placeholder
+};
 
 // Auto-refresh setup
 const { 

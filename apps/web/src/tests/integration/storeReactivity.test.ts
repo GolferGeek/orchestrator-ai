@@ -7,7 +7,7 @@ import { ref, nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
-import { usePIIManagement, useMonitoringAnalytics } from '@/composables/useEnhancedStores';
+import { useLLMMonitoringStore } from '@/stores/llmMonitoringStore';
 
 // Mock component for testing reactivity
 const TestComponent = {

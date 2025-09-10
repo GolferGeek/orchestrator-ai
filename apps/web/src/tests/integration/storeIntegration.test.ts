@@ -6,7 +6,7 @@ import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
 import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
-import { usePIIManagement, useMonitoringAnalytics, useSystemOverview } from '@/composables/useEnhancedStores';
+import { useLLMMonitoringStore } from '@/stores/llmMonitoringStore';
 
 // Test timeout for API calls (10 seconds)
 const API_TIMEOUT = 10000;

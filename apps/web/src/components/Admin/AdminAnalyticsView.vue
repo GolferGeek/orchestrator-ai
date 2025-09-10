@@ -282,7 +282,8 @@
 </template>
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
-import { useAdminDashboard } from '@/composables/useEnhancedStores';
+import { useAnalyticsStore } from '@/stores/analyticsStore';
+import { useLLMMonitoringStore } from '@/stores/llmMonitoringStore';
 import {
   IonCard,
   IonCardContent,
@@ -320,16 +321,29 @@ const emit = defineEmits<{
   refresh: []
 }>();
 // Enhanced store integration
-const {
-  adminMetrics,
-  systemHealth,
-  isLoading: storeLoading,
-  hasError,
-  isAutoRefreshEnabled,
-  toggleAutoRefresh,
-  refreshSystem,
-  analyticsStore
-} = useAdminDashboard();
+// Direct store usage
+const analyticsStore = useAnalyticsStore();
+const llmMonitoringStore = useLLMMonitoringStore();
+
+// Computed properties
+const adminMetrics = computed(() => analyticsStore.dashboardData);
+const systemHealth = computed(() => llmMonitoringStore.systemHealth);
+const storeLoading = computed(() => analyticsStore.isLoading || llmMonitoringStore.isLoading);
+const hasError = computed(() => !!analyticsStore.error || !!llmMonitoringStore.error);
+
+// Methods
+const refreshSystem = async () => {
+  await Promise.all([
+    analyticsStore.loadDashboardData(),
+    llmMonitoringStore.fetchSystemHealth()
+  ]);
+};
+
+// Auto-refresh functionality (simplified)
+const isAutoRefreshEnabled = ref(false);
+const toggleAutoRefresh = () => {
+  isAutoRefreshEnabled.value = !isAutoRefreshEnabled.value;
+};
 
 const analyticsFilters = reactive({
   startDate: '',

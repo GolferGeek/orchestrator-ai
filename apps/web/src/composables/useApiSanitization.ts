@@ -35,6 +35,7 @@ export interface SanitizationResult {
 // =====================================
 
 export function useApiSanitization() {
+  console.log('🔍 [DEBUG] useApiSanitization: Function called');
   
   /**
    * Sanitize data before sending to API
@@ -302,20 +303,50 @@ export function useApiSanitization() {
 export function createApiSanitizationInterceptor(options: ApiSanitizationOptions = {}) {
   return (config: any) => {
     if (config.data && typeof config.data === 'object') {
-      const { sanitizeApiData } = useApiSanitization();
-      const result = sanitizeApiData(config.data, {
+      // Use direct sanitization to avoid circular reference
+      const sanitizationOptions = {
         profile: 'apiInput',
         logSanitization: true,
         ...options
-      });
+      };
       
-      config.data = result.sanitized;
+      const modifiedFields: string[] = [];
+      let modified = false;
+      
+      function sanitizeValue(value: any, key?: string): any {
+        if (typeof value === 'string') {
+          const sanitized = SanitizationHelpers.sanitizeString(value, { profile: sanitizationOptions.profile || 'apiInput' });
+          if (sanitized !== value) {
+            modified = true;
+            if (key) modifiedFields.push(key);
+          }
+          return sanitized;
+        }
+        
+        if (Array.isArray(value)) {
+          return value.map((item, index) => sanitizeValue(item, `${key}[${index}]`));
+        }
+        
+        if (value && typeof value === 'object') {
+          const sanitized: any = {};
+          for (const [objKey, objValue] of Object.entries(value)) {
+            sanitized[objKey] = sanitizeValue(objValue, objKey);
+          }
+          return sanitized;
+        }
+        
+        return value;
+      }
+      
+      const sanitizedData = sanitizeValue(config.data);
+      
+      config.data = sanitizedData;
       
       // Add sanitization metadata to headers
       config.headers = {
         ...config.headers,
-        'X-Sanitization-Applied': result.modified.toString(),
-        'X-Sanitization-Profile': result.profile
+        'X-Sanitization-Applied': modified.toString(),
+        'X-Sanitization-Profile': sanitizationOptions.profile
       };
     }
     
