@@ -210,6 +210,19 @@ class DeliverablesService {
   async deleteVersion(versionId: string): Promise<void> {
     await this.axiosInstance.delete(`/deliverable-versions/version/${versionId}`);
   }
+
+  /**
+   * Rerun a version with a different LLM to create a new version
+   */
+  async rerunWithDifferentLLM(versionId: string, llmConfig: {
+    provider: string;
+    model: string;
+    temperature?: number;
+    maxTokens?: number;
+  }): Promise<DeliverableVersion> {
+    const response = await this.axiosInstance.post(`/deliverable-versions/version/${versionId}/rerun`, llmConfig);
+    return response.data;
+  }
   /**
    * Search deliverables with advanced query options
    */

@@ -199,10 +199,30 @@ export class DeliverableVersionsController {
     @Body() rerunDto: RerunWithLLMDto,
     @Req() req: any,
   ): Promise<DeliverableVersion> {
+    console.log('🔄 Rerun request received:', { versionId, rerunDto });
+    console.log('🔄 Request body validation passed');
+    
     const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    console.log('🔄 User ID extracted:', userId);
+    
     if (!userId) {
+      console.error('🚨 No user ID found in request');
       throw new Error('User not authenticated');
     }
-    return this.versionsService.rerunWithDifferentLLM(versionId, rerunDto, userId);
+    
+    try {
+      console.log('🔄 Calling versionsService.rerunWithDifferentLLM...');
+      const result = await this.versionsService.rerunWithDifferentLLM(versionId, rerunDto, userId);
+      console.log('✅ Rerun completed successfully');
+      return result;
+    } catch (error) {
+      console.error('🚨 Rerun failed:', error);
+      console.error('🚨 Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown'
+      });
+      throw error;
+    }
   }
 }
