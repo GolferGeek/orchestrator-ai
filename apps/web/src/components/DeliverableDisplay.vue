@@ -318,6 +318,15 @@
         <span v-if="displayVersion?.createdByType" class="created-by">by {{ formatCreationType(displayVersion.createdByType) }}</span>
       </div>
       <div class="footer-actions">
+        <!-- Run with different LLM Button -->
+        <ion-button 
+          fill="clear" 
+          size="small" 
+          @click="runWithDifferentLLM"
+          color="primary"
+        >
+          Run with different LLM
+        </ion-button>
         <!-- Inline Rating (if available) -->
         <div v-if="displayVersion?.taskId" class="inline-rating">
           <TaskRating 
@@ -334,56 +343,6 @@
           <ion-icon :icon="settingsOutline" />
         </ion-button>
       </div>
-    </div>
-    <!-- Floating Action Button for Deliverable Prompt -->
-    <ion-fab 
-      v-if="!showDeliverableActions && !isEditing" 
-      vertical="bottom" 
-      horizontal="end" 
-      slot="fixed"
-      class="deliverable-fab"
-    >
-      <ion-fab-button 
-        @click="showDeliverableActions = true"
-        color="primary"
-        size="small"
-      >
-        <ion-icon :icon="chatbubbleEllipsesOutline" />
-      </ion-fab-button>
-    </ion-fab>
-
-    <!-- Deliverable Actions Input (expandable) -->
-    <div class="deliverable-actions" v-if="showDeliverableActions">
-      <div class="actions-header">
-        <span class="actions-title">Give instructions to improve this deliverable</span>
-        <ion-button 
-          fill="clear" 
-          size="small" 
-          @click="showDeliverableActions = false"
-        >
-          <ion-icon :icon="closeOutline" />
-        </ion-button>
-      </div>
-      <form @submit.prevent="submitDeliverablePrompt">
-        <ion-item>
-          <ion-textarea
-            v-model="deliverablePrompt"
-            placeholder='Enter instructions for this deliverable (e.g., "make the intro shorter", "fix the conclusion")...'
-            :rows="2"
-            class="deliverable-prompt-input"
-            ref="promptTextarea"
-          />
-          <ion-button
-            slot="end"
-            type="submit"
-            :disabled="!deliverablePrompt.trim()"
-            fill="clear"
-            color="primary"
-          >
-            <ion-icon :icon="sendOutline" />
-          </ion-button>
-        </ion-item>
-      </form>
     </div>
 
     <!-- Actions Dropdown Menu -->
@@ -448,7 +407,6 @@ import {
   settingsOutline,
   sendOutline,
   ellipsisVerticalOutline,
-  chatbubbleEllipsesOutline,
 } from 'ionicons/icons';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { marked } from 'marked';
@@ -494,16 +452,13 @@ const showVersionManagement = ref(false);
 const showVersionControls = ref(false);
 const showActionsMenu = ref(false);
 const showFooterMenu = ref(false);
-const showDeliverableActions = ref(false);
 const selectedVersion = ref<DeliverableVersion | null>(null);
 const selectedVersionIndex = ref(0);
 const isEditing = ref(false);
 const editedContent = ref('');
 const editedTitle = ref('');
 const isSaving = ref(false);
-const deliverablePrompt = ref('');
 const contentTextarea = ref<any>(null);
-const promptTextarea = ref<any>(null);
 // Computed versions that reactively watches the store state
 const versions = computed(() => {
   // This will trigger whenever the store state changes
@@ -575,13 +530,6 @@ const toggleVersionControls = () => {
   showActionsMenu.value = false; // Close the menu
 };
 
-// Watch for deliverable actions panel opening to focus textarea
-watch(showDeliverableActions, async (newValue) => {
-  if (newValue) {
-    await nextTick();
-    promptTextarea.value?.$el?.setFocus();
-  }
-});
 
 const getTypeColor = (type: string) => {
   if (!type || typeof type !== 'string') {
@@ -671,35 +619,20 @@ const cancelEditing = () => {
   editedContent.value = '';
   editedTitle.value = '';
 };
-const submitDeliverablePrompt = async () => {
-  if (!deliverablePrompt.value.trim()) return;
-  const content = deliverablePrompt.value.trim();
-  const originalPrompt = content;
-  deliverablePrompt.value = '';
-  try {
-    // Since we automatically have a conversation when viewing deliverables,
-    // we can send the message through the existing conversation
-    const { useAgentChatStore } = await import('@/stores/agentChatStore');
-    const { useContextStore } = await import('@/stores/contextStore');
-    const agentChatStore = useAgentChatStore();
-    const contextStore = useContextStore();
-    // Set deliverable context first
-    contextStore.setDeliverableContext(actualDeliverableId.value);
-    // Get the currently displayed version ID to base the new version on
-    const baseVersionId = displayVersion.value?.id;
-    if (!baseVersionId) {
 
-      return;
-    }
-    // Create metadata for new version creation with base version ID
-    const metadata = contextStore.createNewVersionMetadata(baseVersionId);
-    // Send message with version creation context to the active conversation
-    await agentChatStore.sendMessageWithContext(content, metadata);
-  } catch (error) {
-
-    // Restore the input text on error
-    deliverablePrompt.value = originalPrompt;
+const runWithDifferentLLM = () => {
+  // Ensure we have a valid version to rerun
+  const version = displayVersion.value;
+  if (!version) {
+    console.error('No version available to rerun');
+    return;
   }
+  
+  // Emit event to parent component to handle LLM chooser and re-run
+  emit('run-with-different-llm', {
+    deliverable: props.deliverable,
+    version: version
+  });
 };
 const saveEdits = async () => {
   if (!hasUnsavedChanges.value || isSaving.value) return;

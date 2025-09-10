@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { SupabaseService } from '../supabase/supabase.service';
 import {
   CreateDeliverableDto,
@@ -31,6 +32,56 @@ export class DeliverablesService {
     private readonly versionsService: DeliverableVersionsService,
     private readonly agentConversationsService: AgentConversationsService,
   ) {}
+
+  /**
+   * Handle task completion events to create deliverables
+   */
+  @OnEvent('task.completed')
+  async handleTaskCompletion(payload: { taskId: string; userId: string }) {
+    try {
+      // Get the completed task data
+      const { data: taskData, error } = await this.supabaseService
+        .getAnonClient()
+        .from('tasks')
+        .select('*')
+        .eq('id', payload.taskId)
+        .eq('user_id', payload.userId)
+        .single();
+
+      if (error || !taskData) {
+        this.logger.warn(`Could not fetch task data for deliverable creation: ${payload.taskId}`);
+        return;
+      }
+
+      // Create deliverable from task completion
+      const deliverableId = await this.createOrUpdateFromTaskCompletion(
+        payload.taskId,
+        payload.userId,
+        taskData.response,
+        taskData,
+      );
+
+      if (deliverableId) {
+        this.logger.log(`📄 Deliverable ${deliverableId} created from task completion: ${payload.taskId}`);
+        
+        // Update the task response to include deliverable ID
+        const enhancedResponse = this.addDeliverableIdToResponse(taskData.response, deliverableId);
+        
+        // Update the database with enhanced response
+        await this.supabaseService
+          .getAnonClient()
+          .from('tasks')
+          .update({
+            response: enhancedResponse,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', payload.taskId)
+          .eq('user_id', payload.userId);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to handle task completion for deliverable creation: ${payload.taskId}`, error);
+    }
+  }
 
   /**
    * Create a new deliverable with optional initial version
@@ -336,6 +387,11 @@ export class DeliverablesService {
     taskData: any,
   ): Promise<string | null> {
     try {
+      // Debug: Log the task data structure to see what LLM metadata we have
+      console.log('🔍 DeliverablesService - Full taskData:', JSON.stringify(taskData, null, 2));
+      console.log('🔍 DeliverablesService - taskData.llm_metadata:', taskData.llm_metadata);
+      console.log('🔍 DeliverablesService - taskData.metadata?.llmUsed:', taskData.metadata?.llmUsed);
+      
       // Parse response and extract content
       const content = this.extractContentFromResponse(response);
       if (!content || !this.shouldCreateDeliverable(content)) {
@@ -359,16 +415,45 @@ export class DeliverablesService {
           return null;
         }
         
+        // Check if a version for this task already exists to prevent duplicates
+        const existingVersions = await this.versionsService.getVersionHistory(existingDeliverable.id, userId);
+        const taskVersionExists = existingVersions.some(version => 
+          version.taskId === taskId && version.createdByType === 'ai_response'
+        );
+        
+        console.log(`🔍 DeliverablesService - Existing versions for deliverable ${existingDeliverable.id}:`, existingVersions.length);
+        console.log(`🔍 DeliverablesService - Task version exists check for task ${taskId}:`, taskVersionExists);
+        
+        if (taskVersionExists) {
+          this.logger.log(`📄 Deliverable version for task ${taskId} already exists, skipping duplicate creation`);
+          return existingDeliverable.id;
+        }
+        
+        console.log(`🔍 DeliverablesService - Creating NEW VERSION for existing deliverable ${existingDeliverable.id}, task ${taskId}`);
+        
         await this.versionsService.createVersion(
           existingDeliverable.id,
           {
             content: content,
             format: 'markdown' as any,
-            createdByType: 'task_completion' as any,
+            createdByType: 'ai_response' as any,
             taskId: taskId,
             metadata: {
               createdAt: new Date().toISOString(),
               source: 'task_completion',
+              // Include LLM metadata from task (check multiple possible locations)
+              ...(taskData.llm_metadata && {
+                llmMetadata: taskData.llm_metadata,
+              }),
+              ...(taskData.metadata?.llmUsed && {
+                llmMetadata: taskData.metadata.llmUsed,
+              }),
+              ...(taskData.metadata?.usage && {
+                usage: taskData.metadata.usage,
+              }),
+              ...(taskData.metadata?.costCalculation && {
+                costCalculation: taskData.metadata.costCalculation,
+              }),
             },
           },
           userId
@@ -377,17 +462,48 @@ export class DeliverablesService {
         return existingDeliverable.id;
       } else {
         // CREATE new deliverable (first time for this conversation)
+        // But first check if a deliverable for this task already exists in another conversation
+        // This can happen if the same task completion event fires multiple times
+        const { data: existingTaskDeliverables, error: taskDeliverableError } = await this.supabaseService
+          .getServiceClient()
+          .from(getTableName('deliverable_versions'))
+          .select('deliverable_id')
+          .eq('task_id', taskId)
+          .eq('created_by_type', 'ai_response');
+        
+        console.log(`🔍 DeliverablesService - Checking for existing task deliverables for task ${taskId}:`, existingTaskDeliverables?.length || 0);
+        
+        if (!taskDeliverableError && existingTaskDeliverables && existingTaskDeliverables.length > 0) {
+          this.logger.log(`📄 Deliverable for task ${taskId} already exists in another conversation, skipping duplicate creation`);
+          return existingTaskDeliverables[0]!.deliverable_id;
+        }
+        
+        console.log(`🔍 DeliverablesService - Creating NEW DELIVERABLE for task ${taskId} in conversation ${conversationId}`);
+        
         const newDeliverable = await this.create({
           title: this.extractTitleFromContent(content),
           type: 'document' as any,
           conversationId,
           initialContent: content,
           initialFormat: 'markdown' as any,
-          initialCreationType: 'task_completion' as any,
+          initialCreationType: 'ai_response' as any,
           initialMetadata: {
             taskId,
             createdAt: new Date().toISOString(),
             source: 'task_completion',
+            // Include LLM metadata from task (check multiple possible locations)
+            ...(taskData.llm_metadata && {
+              llmMetadata: taskData.llm_metadata,
+            }),
+            ...(taskData.metadata?.llmUsed && {
+              llmMetadata: taskData.metadata.llmUsed,
+            }),
+            ...(taskData.metadata?.usage && {
+              usage: taskData.metadata.usage,
+            }),
+            ...(taskData.metadata?.costCalculation && {
+              costCalculation: taskData.metadata.costCalculation,
+            }),
           },
         }, userId);
 
@@ -790,5 +906,31 @@ export class DeliverablesService {
       isCurrentVersion: data.is_current_version,
       versionId: data.version_id,
     };
+  }
+
+  /**
+   * Add deliverable ID to task response
+   */
+  private addDeliverableIdToResponse(response: any, deliverableId: string): string {
+    try {
+      let result = response;
+      if (typeof response === 'string') {
+        try {
+          result = JSON.parse(response);
+        } catch {
+          result = { response };
+        }
+      }
+
+      const enhancedResult = {
+        ...result,
+        deliverableId,
+      };
+
+      return JSON.stringify(enhancedResult);
+    } catch (error) {
+      this.logger.error('Failed to add deliverable ID to response:', error);
+      return response;
+    }
   }
 }

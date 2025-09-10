@@ -21,8 +21,6 @@ import {
   MessageEmitter,
   TaskMessageEmitter,
 } from './message-emitter.interface';
-import { DeliverablesService } from '../deliverables/deliverables.service';
-
 @Injectable()
 export class TasksService {
   private readonly logger = new Logger(TasksService.name);
@@ -35,8 +33,6 @@ export class TasksService {
     private readonly taskMessageService: TaskMessageService,
     @Inject(forwardRef(() => TaskStatusService))
     private readonly taskStatusService: TaskStatusService,
-    @Inject(forwardRef(() => DeliverablesService))
-    private readonly deliverablesService: DeliverablesService,
   ) {}
 
   /**
@@ -349,43 +345,10 @@ export class TasksService {
         this.eventEmitter.emit('task.progress', progressEvent);
       }
 
-      // Handle deliverable creation for completed tasks
-      if (updates.status === 'completed') {
-        const deliverableId = await this.deliverablesService.createOrUpdateFromTaskCompletion(
-          taskId,
-          userId,
-          updates.response,
-          data,
-        );
-        
-        if (deliverableId) {
-          // Update the task response to include deliverable ID
-          const enhancedResponse = this.addDeliverableIdToResponse(updates.response, deliverableId);
-          
-          // Update the database with enhanced response
-          await this.supabaseService
-            .getAnonClient()
-            .from('tasks')
-            .update({
-              response: enhancedResponse,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', taskId)
-            .eq('user_id', userId);
-        }
-      }
+      // Deliverable creation is now handled via event listeners in DeliverablesService
 
-      // Emit completion event
-      if (
-        updates.status === 'completed' ||
-        updates.status === 'failed' ||
-        updates.status === 'cancelled'
-      ) {
-        this.eventEmitter.emit(`task.${updates.status}`, {
-          taskId,
-          userId,
-        });
-      }
+      // Note: Completion events are now emitted by TaskStatusService.emitStatusChange()
+      // to avoid duplicate emissions that cause multiple deliverable versions
 
       return this.mapToTask(data);
     } catch (error) {
