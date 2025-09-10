@@ -6,6 +6,7 @@ import {
   LLMServiceConfig,
   ResponseMetadata 
 } from './llm-interfaces';
+import { LLMErrorMapper } from './llm-error-handling';
 import { PIIService } from '../../services/pii.service';
 import { PseudonymizerService } from '../../services/pseudonymizer.service';
 import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
@@ -296,19 +297,12 @@ export class GoogleLLMService extends BaseLLMService {
    * Google-specific error handling
    */
   protected handleError(error: any, context: string): never {
-    // Handle Google-specific errors
-    if (error.message?.includes('API_KEY_INVALID')) {
-      throw new Error(`${context}: Invalid Google API key`);
-    } else if (error.message?.includes('QUOTA_EXCEEDED')) {
-      throw new Error(`${context}: Quota exceeded for Google API`);
-    } else if (error.message?.includes('SAFETY')) {
-      throw new Error(`${context}: Content blocked by Google safety filters`);
-    } else if (error.message?.includes('RECITATION')) {
-      throw new Error(`${context}: Content blocked due to recitation concerns`);
+    try {
+      const mapped = LLMErrorMapper.fromGoogleError(error, 'google', this.config?.model);
+      super.handleError(mapped, context);
+    } catch {
+      super.handleError(error, context);
     }
-    
-    // Fall back to base error handling
-    super.handleError(error, context);
   }
 
   /**
