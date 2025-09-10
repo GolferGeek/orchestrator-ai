@@ -12,12 +12,12 @@
 
 -- Remove o1-preview (OpenAI) - Not available in most accounts
 DELETE FROM public.llm_models 
-WHERE provider_name = 'openai' 
+WHERE provider_id = (SELECT id FROM public.llm_providers WHERE name = 'openai')
 AND model_name = 'o1-preview';
 
 -- Remove gemini-2.0-pro (Google) - Quota issues for demo users  
 DELETE FROM public.llm_models 
-WHERE provider_name = 'google' 
+WHERE provider_id = (SELECT id FROM public.llm_providers WHERE name = 'google')
 AND model_name = 'gemini-2.0-pro';
 
 -- Add comment for tracking
