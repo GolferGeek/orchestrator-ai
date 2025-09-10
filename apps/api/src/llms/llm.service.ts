@@ -37,6 +37,7 @@ import {
 } from '../types/llm-evaluation';
 import { mapProviderFromDb, mapModelFromDb } from '../utils/case-converter';
 import { getTableName } from '../supabase/supabase.config';
+import { LLMError, LLMErrorMapper, LLMErrorMonitor } from './services/llm-error-handling';
 
 // Explicitly set LangSmith environment variables for automatic tracing
 // Support both the official LangSmith env vars and our custom ones for backward compatibility
@@ -515,14 +516,23 @@ export class LLMService {
             }
             
           } catch (error) {
-      this.logger.error(`🚨 [UNIFIED-LLM] Error in generateUnifiedResponse`, {
-        provider: params.provider,
-        model: params.model,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Unified LLM service error: ${errorMessage}`);
+      // Standardized error handling
+      try {
+        const mapped = LLMErrorMapper.fromGenericError(error, params.provider, params.model);
+        LLMErrorMonitor.recordError(mapped);
+        this.logger.error(`🚨 [UNIFIED-LLM] Standardized error`, mapped.getTechnicalDetails());
+        throw mapped;
+      } catch (mappingFailure) {
+        const fallback = new LLMError(
+          `Unified LLM service error: ${error instanceof Error ? error.message : String(error)}`,
+          'unknown' as any,
+          params.provider,
+          { model: params.model, originalError: error }
+        );
+        LLMErrorMonitor.recordError(fallback);
+        this.logger.error(`🚨 [UNIFIED-LLM] Fallback error`, fallback.getTechnicalDetails());
+        throw fallback;
+      }
     }
   }
 
