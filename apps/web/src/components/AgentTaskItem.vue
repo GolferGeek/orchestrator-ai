@@ -512,43 +512,40 @@ const currentTrustScore = computed(() => {
 
 // Sanitization status - read from message metadata (better architecture)
 const currentSanitizationStatus = computed(() => {
-  // 🔍 DEBUG: Log what sanitization metadata we're receiving
-  console.log('🔍 [FRONTEND-DEBUG] AgentTaskItem message metadata:', props.message.metadata);
-  console.log('🔍 [FRONTEND-DEBUG] AgentTaskItem sanitization metadata:', props.message.metadata?.sanitizationMetadata);
+  const piiMetadata = props.message.metadata?.piiMetadata;
   
-  // First, check message metadata for sanitization data (preferred)
+  if (piiMetadata?.showstopperDetected) {
+    return 'blocked';
+  }
+
+  if (piiMetadata?.pseudonymInstructions?.shouldPseudonymize) {
+    return 'completed';
+  }
+
+  if (piiMetadata?.detectionResults?.flaggedMatches?.some(m => m.severity === 'info')) {
+    return 'flagged';
+  }
+  
   const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
   if (sanitizationMetadata?.status) {
-    console.log('🔍 [FRONTEND-DEBUG] Found sanitization status in metadata:', sanitizationMetadata.status);
     return sanitizationMetadata.status;
   }
   
-  // Fallback to privacy state if available (but skip 'processing')
-  if (privacyState.value?.sanitizationStatus && privacyState.value.sanitizationStatus !== 'processing') {
-    console.log('🔍 [FRONTEND-DEBUG] Using privacy state sanitization status:', privacyState.value.sanitizationStatus);
-    return privacyState.value.sanitizationStatus;
-  }
-  
-  // Default to 'none' if no sanitization data (no more processing badge)
-  console.log('🔍 [FRONTEND-DEBUG] No sanitization metadata found, defaulting to none');
   return 'none';
 });
 
 const currentPiiDetectionCount = computed(() => {
-  // 🔍 DEBUG: Log PII detection count data
-  const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
-  console.log('🔍 [FRONTEND-DEBUG] PII detection count from sanitization metadata:', sanitizationMetadata?.piiDetectionCount);
+  const piiMetadata = props.message.metadata?.piiMetadata;
+  if (piiMetadata?.detectionResults?.totalMatches) {
+    return piiMetadata.detectionResults.totalMatches;
+  }
   
-  // First, check message metadata for PII count (preferred)
+  const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
   if (sanitizationMetadata?.piiDetectionCount !== undefined) {
-    console.log('🔍 [FRONTEND-DEBUG] Using PII count from metadata:', sanitizationMetadata.piiDetectionCount);
     return sanitizationMetadata.piiDetectionCount;
   }
   
-  // Fallback to privacy state
-  const fallbackCount = privacyState.value?.piiDetectionCount || 0;
-  console.log('🔍 [FRONTEND-DEBUG] Using fallback PII count:', fallbackCount);
-  return fallbackCount;
+  return 0;
 });
 
 const currentPiiSeverityTypes = computed(() => {
@@ -563,28 +560,22 @@ const currentPiiSeverityTypes = computed(() => {
 });
 
 const currentPiiSeverityLevels = computed(() => {
-  // Extract PII severity levels from message metadata
   const sanitizationMetadata = props.message.metadata?.sanitizationMetadata;
   if (sanitizationMetadata?.piiSeverityLevels) {
     return sanitizationMetadata.piiSeverityLevels;
   }
-  
-  // If we don't have explicit severity levels, infer from types
-  const types = currentPiiSeverityTypes.value;
-  if (types.length === 0) return [];
-  
-  // Map types to severity levels based on our classification
-  const severityMap: Record<string, string> = {
-    'ssn': 'showstopper',
-    'creditCard': 'showstopper',
-    'email': 'pseudonymizer',
-    'phone': 'pseudonymizer',
-    'ipAddress': 'flagger',
-    'name': 'pseudonymizer'
-  };
-  
-  const severities = types.map(type => severityMap[type] || 'flagger');
-  return [...new Set(severities)]; // Remove duplicates
+
+  const piiMetadata = props.message.metadata?.piiMetadata;
+  if (piiMetadata?.detectionResults?.flaggedMatches) {
+    const severities = piiMetadata.detectionResults.flaggedMatches.map(match => {
+      // Convert 'info' severity from backend to 'flagger' for UI
+      if (match.severity === 'info') return 'flagger';
+      return match.severity;
+    });
+    return [...new Set(severities)];
+  }
+
+  return [];
 });
 
 // Methods
