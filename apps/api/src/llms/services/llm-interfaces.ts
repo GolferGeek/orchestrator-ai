@@ -50,6 +50,33 @@ export interface GenerateResponseParams {
 }
 
 /**
+ * Parameters for the unified generateResponse method
+ */
+export interface UnifiedGenerateResponseParams {
+  provider: string;
+  model: string;
+  systemPrompt: string;
+  userMessage: string;
+  options?: {
+    temperature?: number;
+    maxTokens?: number;
+    stream?: boolean;
+    // Caller tracking for usage analytics
+    callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
+    callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
+    conversationId?: string; // Optional conversation/session context
+    sessionId?: string;
+    userId?: string;
+    authToken?: string;
+    currentUser?: any;
+    dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
+    // Return format control
+    includeMetadata?: boolean; // If true, return LLMResponse object, otherwise just string
+    [key: string]: any;
+  };
+}
+
+/**
  * Response metadata structure
  */
 export interface ResponseMetadata {

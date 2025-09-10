@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TasksModule } from '@/tasks/tasks.module';
 import { BaseSubServicesModule } from '../sub-services/base-sub-services.module';
+import { LLMModule } from '@/llms/llm.module';
 import { ApiAgentServicesContext } from './api-agent-services-context';
 
 /**
@@ -17,6 +18,7 @@ import { ApiAgentServicesContext } from './api-agent-services-context';
     HttpModule,
     TasksModule, // Provides TaskStatusService and TasksService
     BaseSubServicesModule, // Provides all other base agent services
+    LLMModule, // Provides LLMService and LLMServiceFactory
   ],
   providers: [ApiAgentServicesContext],
   exports: [ApiAgentServicesContext],

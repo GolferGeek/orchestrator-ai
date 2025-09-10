@@ -99,10 +99,54 @@ export abstract class BaseLLMService {
       // Use dictionary pseudonymizer if requested
       if (options.useDictionaryPseudonymizer) {
         const result = await this.dictionaryPseudonymizerService.pseudonymizeText(text);
+        
+        // Convert dictionary result to minimal PIIProcessingMetadata
+        const piiMetadata: PIIProcessingMetadata = {
+          piiDetected: result.mappings.length > 0,
+          showstopperDetected: false,
+          detectionResults: {
+            totalMatches: result.mappings.length,
+            flaggedMatches: result.mappings.map(mapping => ({
+              pattern: mapping.originalValue,
+              replacement: mapping.pseudonym,
+              dataType: mapping.dataType,
+              severity: 'pseudonymizer' as any,
+              startIndex: 0, // Dictionary doesn't track positions
+              endIndex: 0,
+              matchedText: mapping.originalValue,
+            })),
+            showstopperMatches: [],
+            dataTypesSummary: {},
+            severityBreakdown: {
+              showstopper: 0,
+              pseudonymizer: result.mappings.length,
+              flagger: 0,
+            },
+          },
+          policyDecision: {
+            action: result.mappings.length > 0 ? 'pseudonymize' : 'allow',
+            reason: result.mappings.length > 0 ? 'Dictionary matches found' : 'No dictionary matches',
+            confidence: 1.0,
+          },
+          userMessage: {
+            type: 'info',
+            title: 'Dictionary Pseudonymization',
+            message: result.mappings.length > 0 
+              ? `Applied ${result.mappings.length} dictionary pseudonym(s)`
+              : 'No dictionary matches found',
+          },
+          processingFlow: 'dictionary_pseudonymization' as any,
+          processingSteps: [`Dictionary pseudonymization: ${result.mappings.length} matches`],
+          timestamps: {
+            startTime: Date.now() - result.processingTimeMs,
+            endTime: Date.now(),
+            totalDurationMs: result.processingTimeMs,
+          },
+        };
+        
         return {
           processedText: result.pseudonymizedText,
-          // Note: Dictionary pseudonymizer doesn't provide PIIProcessingMetadata
-          // This would need to be adapted based on actual requirements
+          piiMetadata,
         };
       }
 
