@@ -519,9 +519,14 @@ export class DeliverableVersionsService {
         }
       });
 
+      // Handle string | LLMResponse union type
+      const responseContent = typeof llmResponse === 'string' ? llmResponse : llmResponse.content;
+      const responseMetadata = typeof llmResponse === 'object' ? llmResponse.metadata : undefined;
+      const responsePiiMetadata = typeof llmResponse === 'object' ? llmResponse.piiMetadata : undefined;
+
       // Create new version with LLM response
       const createVersionDto: CreateVersionDto = {
-        content: llmResponse.content,
+        content: responseContent,
         format: sourceVersion.format || DeliverableFormat.MARKDOWN,
         createdByType: DeliverableVersionCreationType.LLM_RERUN,
         taskId: sourceVersion.taskId,
@@ -535,17 +540,17 @@ export class DeliverableVersionsService {
             temperature: rerunDto.temperature,
             maxTokens: rerunDto.maxTokens,
           },
-          llmMetadata: {
-            runId: llmResponse.runMetadata.runId,
-            provider: llmResponse.runMetadata.provider,
-            model: llmResponse.runMetadata.model,
-            inputTokens: llmResponse.runMetadata.inputTokens,
-            outputTokens: llmResponse.runMetadata.outputTokens,
-            cost: llmResponse.runMetadata.cost,
-            duration: llmResponse.runMetadata.duration,
-          },
-          routingDecision: llmResponse.routingDecision,
-          piiMetadata: llmResponse.piiMetadata,
+          llmMetadata: responseMetadata ? {
+            runId: responseMetadata.requestId, // requestId is the correct property name
+            provider: responseMetadata.provider,
+            model: responseMetadata.model,
+            inputTokens: responseMetadata.usage?.inputTokens,
+            outputTokens: responseMetadata.usage?.outputTokens,
+            cost: responseMetadata.usage?.cost,
+            duration: responseMetadata.timing?.duration,
+          } : undefined,
+          // Note: routingDecision not available in new unified response interface
+          piiMetadata: responsePiiMetadata,
         },
       };
 
