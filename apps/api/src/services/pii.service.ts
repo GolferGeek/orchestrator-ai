@@ -292,7 +292,7 @@ export class PIIService {
     // External provider - create pseudonym instructions
     this.logger.debug(`🌐 [PII-SERVICE] External provider - creating pseudonym instructions`);
     
-    const pseudonymizerMatches = []; // Never create pseudonym instructions from pattern matches
+    const pseudonymizerMatches: PIIMatch[] = []; // Never create pseudonym instructions from pattern matches
     
     const requestId = options.conversationId || options.requestId || `pii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
