@@ -1,7 +1,13 @@
 import { defineStore } from 'pinia';
+
+export type SpeechMode = 'frontend' | 'backend' | 'hybrid';
+
 export interface UiState {
   isAppLoading: boolean;
   isPttRecording: boolean;
+  isConversationalMode: boolean;
+  showSpeechDevMode: boolean;
+  speechMode: SpeechMode;
   // Add other UI related states here, e.g., theme, modal visibility
   // isDarkMode: boolean;
   // activeModal: string | null;
@@ -10,6 +16,9 @@ export const useUiStore = defineStore('ui', {
   state: (): UiState => ({
     isAppLoading: false,
     isPttRecording: false,
+    isConversationalMode: false,
+    showSpeechDevMode: false,
+    speechMode: 'backend' as SpeechMode,
     // isDarkMode: window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
     // activeModal: null,
   }),
@@ -19,6 +28,15 @@ export const useUiStore = defineStore('ui', {
     },
     setPttRecording(isRecording: boolean) {
       this.isPttRecording = isRecording;
+    },
+    setConversationalMode(isConversational: boolean) {
+      this.isConversationalMode = isConversational;
+    },
+    toggleSpeechDevMode() {
+      this.showSpeechDevMode = !this.showSpeechDevMode;
+    },
+    setSpeechMode(mode: SpeechMode) {
+      this.speechMode = mode;
     },
     // toggleDarkMode() {
     //   this.isDarkMode = !this.isDarkMode;
@@ -33,6 +51,9 @@ export const useUiStore = defineStore('ui', {
   getters: {
     getIsAppLoading: (state): boolean => state.isAppLoading,
     getIsPttRecording: (state): boolean => state.isPttRecording,
+    getIsConversationalMode: (state): boolean => state.isConversationalMode,
+    getShowSpeechDevMode: (state): boolean => state.showSpeechDevMode,
+    getSpeechMode: (state): SpeechMode => state.speechMode,
     // getIsDarkMode: (state): boolean => state.isDarkMode,
     // getActiveModal: (state): string | null => state.activeModal,
   },

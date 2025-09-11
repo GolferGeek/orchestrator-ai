@@ -1,5 +1,7 @@
 <template>
   <div class="two-pane-conversation" :class="{ 'mobile-single-pane': isMobile && showWorkProductPane }">
+    <!-- Speech Dev Mode Panel -->
+    <SpeechDevModePanel />
     <!-- Header Controls -->
     <div class="conversation-header">
       <div class="conversation-info">
@@ -107,15 +109,35 @@
             <ion-item>
               <ion-textarea
                 v-model="messageText"
-                placeholder="Type your message..."
+                :placeholder="uiStore.isConversationalMode ? 'Speaking...' : 'Type your message...'"
                 :rows="2"
-                :disabled="!currentAgent"
+                :disabled="!currentAgent || uiStore.isConversationalMode"
                 @keydown.enter.prevent="sendMessage"
               />
+              <!-- Conversational Speech Button -->
+              <ConversationalSpeechButton
+                v-if="props.conversation?.id"
+                slot="end"
+                :conversation-id="props.conversation.id"
+                :disabled="!currentAgent"
+                @conversation-start="handleConversationStart"
+                @conversation-end="handleConversationEnd"
+                @error="handleSpeechError"
+              />
+              <!-- Speech Dev Toggle -->
+              <ion-button
+                slot="end"
+                fill="clear"
+                @click="uiStore.toggleSpeechDevMode()"
+                title="Toggle Speech Dev Mode"
+              >
+                <ion-icon :icon="settingsOutline" />
+              </ion-button>
+              <!-- Send Button -->
               <ion-button
                 slot="end"
                 type="submit"
-                :disabled="!canSend"
+                :disabled="!canSend || uiStore.isConversationalMode"
                 fill="clear"
               >
                 <ion-icon :icon="sendOutline" />
@@ -236,12 +258,14 @@ import {
   arrowForwardOutline,
   closeOutline,
   playOutline,
+  settingsOutline,
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useSovereignPolicyStore } from '@/stores/sovereignPolicyStore';
 import { useLLMStore } from '@/stores/llmStore';
+import { useUiStore } from '@/stores/uiStore';
 import type { AgentChatMessage } from '@/stores/agentChatStore/types';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
@@ -254,6 +278,8 @@ import LLMSelectorModal from './LLMSelectorModal.vue';
 import SovereignModeBadge from './SovereignMode/SovereignModeBadge.vue';
 import SovereignModeTooltip from './SovereignMode/SovereignModeTooltip.vue';
 import SovereignModeBanner from './SovereignMode/SovereignModeBanner.vue';
+import ConversationalSpeechButton from './ConversationalSpeechButton.vue';
+import SpeechDevModePanel from './SpeechDevModePanel.vue';
 interface Props {
   conversation?: any;
 }
@@ -264,6 +290,7 @@ const deliverablesStore = useDeliverablesStore();
 const authStore = useAuthStore();
 const sovereignPolicyStore = useSovereignPolicyStore();
 const llmStore = useLLMStore();
+const uiStore = useUiStore();
 // Reactive state
 const messageText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
@@ -284,7 +311,8 @@ const isSendingMessage = computed(() => agentChatStore.isSendingMessage);
 const canSend = computed(() => {
   return messageText.value.trim().length > 0 && 
          !isSendingMessage.value && 
-         currentAgent.value;
+         currentAgent.value &&
+         !uiStore.isConversationalMode;
 });
 const hasActiveWorkProduct = computed(() => {
   const result = activeWorkProduct.value !== null;
@@ -325,6 +353,21 @@ const deliverableActionButtons = computed(() => {
     }
   ]);
 });
+// Speech event handlers
+const handleConversationStart = () => {
+  uiStore.setConversationalMode(true);
+  messageText.value = ''; // Clear text input when starting conversation
+};
+
+const handleConversationEnd = () => {
+  uiStore.setConversationalMode(false);
+};
+
+const handleSpeechError = (error: any) => {
+  console.error('Speech error:', error);
+  uiStore.setConversationalMode(false);
+};
+
 // Methods
 const sendMessage = async () => {
   if (!canSend.value) return;

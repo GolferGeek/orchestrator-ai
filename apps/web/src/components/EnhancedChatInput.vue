@@ -1,5 +1,7 @@
 <template>
   <div class="enhanced-chat-input">
+    <!-- Speech Dev Mode Panel -->
+    <SpeechDevModePanel />
     <!-- LLM Preferences Panel (collapsible) -->
     <div v-if="showLLMPanel" class="llm-panel">
       <div class="panel-tabs">
@@ -54,10 +56,11 @@
       <!-- Message Input -->
       <ion-textarea
         v-model="inputText"
-        placeholder="Type a message..."
+        :placeholder="uiStore.isConversationalMode ? 'Speaking...' : 'Type a message...'"
         :auto-grow="true"
         class="chat-textarea"
         :rows="1"
+        :disabled="uiStore.isConversationalMode"
         @keydown.enter.prevent="handleEnterKey"
       ></ion-textarea>
       <!-- Input Buttons -->
@@ -66,21 +69,31 @@
         <div v-if="showCostEstimate && estimatedCost" class="cost-estimate">
           ~${{ estimatedCost }}
         </div>
-        <!-- PTT Button -->
-        <ion-button 
-          fill="clear" 
-          :color="isRecording ? 'danger' : 'medium'" 
-          @click="togglePtt" 
-          class="ptt-button custom-button-padding"
+        <!-- Conversational Speech Button -->
+        <ConversationalSpeechButton
+          v-if="currentConversationId"
+          :conversation-id="currentConversationId"
+          :disabled="!currentConversationId"
+          @conversation-start="handleConversationStart"
+          @conversation-end="handleConversationEnd"
+          @error="handleSpeechError"
+        />
+        <!-- Toggle Speech Dev Mode -->
+        <ion-button
+          fill="clear"
+          color="medium"
+          @click="uiStore.toggleSpeechDevMode()"
+          class="custom-button-padding"
+          title="Toggle Speech Dev Mode"
         >
-          <ion-icon slot="icon-only" :icon="isRecording ? micOffOutline : micOutline"></ion-icon>
+          <ion-icon slot="icon-only" :icon="settingsOutline"></ion-icon>
         </ion-button>
         <!-- Send Button -->
         <ion-button 
           fill="clear" 
           color="primary" 
           @click="sendMessage" 
-          :disabled="!inputText.trim() || isRecording" 
+          :disabled="!inputText.trim() || uiStore.isConversationalMode" 
           class="send-button custom-button-padding"
         >
           <ion-icon slot="icon-only" :icon="sendOutline"></ion-icon>
@@ -90,23 +103,35 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, defineEmits, onUnmounted, watch, onMounted } from 'vue';
+import { ref, computed, defineEmits, defineProps, onUnmounted, watch, onMounted } from 'vue';
 import { IonTextarea, IonButtons, IonButton, IonIcon, IonToolbar, toastController } from '@ionic/vue';
-import { sendOutline, micOutline, micOffOutline, chevronUpOutline, checkmarkOutline } from 'ionicons/icons';
+import { sendOutline, chevronUpOutline, checkmarkOutline, settingsOutline } from 'ionicons/icons';
 import { useUiStore } from '../stores/uiStore';
 import { useLLMStore } from '../stores/llmStore';
+import { useAgentChatStore } from '../stores/agentChatStore';
 import { Capacitor } from '@capacitor/core';
 import LLMSelector from './LLMSelector.vue';
 import CIDAFMControls from './CIDAFMControls.vue';
+import ConversationalSpeechButton from './ConversationalSpeechButton.vue';
+import SpeechDevModePanel from './SpeechDevModePanel.vue';
 import { useValidation, ValidationRules } from '@/composables/useValidation';
+const props = defineProps<{
+  conversationId?: string;
+}>();
+
 const inputText = ref('');
-const isRecording = ref(false);
 const showLLMPanel = ref(false);
 const activeTab = ref<'model' | 'behavior'>('model');
 const showCostEstimate = ref(true);
 const uiStore = useUiStore();
 const llmStore = useLLMStore();
+const agentChatStore = useAgentChatStore();
 const validation = useValidation();
+
+// Get current conversation ID from props or store
+const currentConversationId = computed(() => {
+  return props.conversationId || agentChatStore.activeConversationId;
+});
 
 // Setup validation rules
 onMounted(() => {
@@ -116,10 +141,21 @@ onMounted(() => {
   validation.addRule('message', ValidationRules.sanitizeApiInput());
 });
 
-// Speech Recognition setup (copied from original ChatInput)
-// @ts-ignore: next-line 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition: SpeechRecognition | null = null;
+// Speech event handlers
+const handleConversationStart = () => {
+  uiStore.setConversationalMode(true);
+  inputText.value = ''; // Clear text input when starting conversation
+};
+
+const handleConversationEnd = () => {
+  uiStore.setConversationalMode(false);
+};
+
+const handleSpeechError = (error: any) => {
+  presentToast(`Speech error: ${error.message || error}`, 3000, 'danger');
+  uiStore.setConversationalMode(false);
+};
+
 const presentToast = async (message: string, duration: number = 2000, color: string = 'warning') => {
   const toast = await toastController.create({
     message: message,
@@ -129,61 +165,8 @@ const presentToast = async (message: string, duration: number = 2000, color: str
   });
   await toast.present();
 };
-// Speech Recognition setup (same as original)
-if (SpeechRecognition && !Capacitor.isNativePlatform()) {
-  recognition = new SpeechRecognition();
-  recognition.continuous = false; 
-  recognition.interimResults = true; 
-  recognition.lang = 'en-US'; 
-  recognition.onstart = () => {
-    isRecording.value = true;
-  };
-  recognition.onend = () => {
-    if (isRecording.value) { 
-        isRecording.value = false;
-        emit('pttToggle', false);
-    }
-  };
-  recognition.onresult = (event: SpeechRecognitionEvent) => {
-    let interimTranscript = '';
-    let finalTranscript = '';
-    for (let i = event.resultIndex; i < event.results.length; ++i) {
-      if (event.results[i].isFinal) {
-        finalTranscript += event.results[i][0].transcript;
-      } else {
-        interimTranscript += event.results[i][0].transcript;
-      }
-    }
-    if (finalTranscript.trim()) {
-      inputText.value = finalTranscript.trim();
-    } else if (interimTranscript.trim()) {
-      inputText.value = interimTranscript.trim();
-    }
-  };
-  recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-    let userMessage = 'Voice input error.';
-    if (event.error === 'no-speech') {
-      userMessage = 'No speech was detected. Please try again.';
-    } else if (event.error === 'not-allowed') {
-      userMessage = 'Microphone access denied. Please enable microphone permissions.';
-    } else if (event.error === 'network') {
-      userMessage = 'Network error during voice input.';
-    } else {
-      userMessage = `Voice input failed: ${event.error}`;
-    }
-    presentToast(userMessage, 3000, 'danger');
-    if (isRecording.value) {
-      isRecording.value = false;
-      emit('pttToggle', false);
-      uiStore.setPttRecording(false); 
-    }
-  };
-} else if (!SpeechRecognition && !Capacitor.isNativePlatform()) {
-  // Web Speech API is not supported in this browser
-}
 const emit = defineEmits<{
   (e: 'sendMessage', text: string, llmSelection?: any): void;
-  (e: 'pttToggle', recordingState: boolean): void;
 }>();
 // Computed properties
 const estimatedCost = computed(() => {
@@ -198,7 +181,7 @@ const estimatedCost = computed(() => {
 });
 // Event handlers
 const sendMessage = async () => {
-  if (!inputText.value.trim() || isRecording.value) return;
+  if (!inputText.value.trim() || uiStore.isConversationalMode) return;
   
   // Validate and sanitize the message before sending
   const validationResult = await validation.validate('message', inputText.value.trim());
@@ -235,45 +218,15 @@ const applyLLMSelection = async () => {
 };
 
 const handleEnterKey = (event: KeyboardEvent) => {
-  if (!event.shiftKey && !isRecording.value) {
+  if (!event.shiftKey && !uiStore.isConversationalMode) {
     event.preventDefault();
     sendMessage();
   }
 };
-const togglePtt = async () => {
-  if (Capacitor.isNativePlatform()) {
-    // Native PTT logic (same as original)
-    isRecording.value = !isRecording.value;
-    const nativePttMessage = `Native PTT: Recording ${isRecording.value ? 'started' : 'stopped'}. (Plugin not yet implemented)`;
-    presentToast(nativePttMessage, 2000, isRecording.value ? 'success' : 'medium');
-    emit('pttToggle', isRecording.value);
-    uiStore.setPttRecording(isRecording.value);
-  } else if (recognition) {
-    if (isRecording.value) {
-      recognition.stop();
-    } else {
-      try {
-        inputText.value = '';
-        recognition.start();
-      } catch (e) {
-        isRecording.value = false;
-        emit('pttToggle', false);
-        uiStore.setPttRecording(false);
-        presentToast("Could not start voice input. Please try again.", 3000, 'danger');
-      }
-    }
-  } else {
-    presentToast('Voice input is not supported in your browser.', 3000, 'danger');
-  }
-};
-// Watchers
-watch(isRecording, (newValue) => {
-  uiStore.setPttRecording(newValue);
-});
-// Cleanup
-onUnmounted(() => {
-  if (recognition && isRecording.value && !Capacitor.isNativePlatform()) {
-    recognition.stop();
+// Watch for conversational mode changes to disable/enable text input
+watch(() => uiStore.isConversationalMode, (isConversational) => {
+  if (isConversational) {
+    inputText.value = ''; // Clear input when entering conversational mode
   }
 });
 </script>
