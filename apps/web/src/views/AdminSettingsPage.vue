@@ -504,7 +504,7 @@
               <ion-label position="stacked">Model</ion-label>
               <ion-select v-model="flat.model" interface="popover" :disabled="!flat.provider" placeholder="Select model">
                 <ion-select-option
-                  v-for="m in (providers.find(p => p.name === flat.provider)?.models || [])"
+                  v-for="m in flatModelOptions"
                   :key="m.model_name"
                   :value="m.model_name"
                 >{{ m.display_name || m.model_name }}</ion-select-option>
@@ -532,7 +532,7 @@
               <ion-label position="stacked">Model</ion-label>
               <ion-select v-model="dual.default.model" interface="popover" :disabled="!dual.default.provider" placeholder="Select model">
                 <ion-select-option
-                  v-for="m in (providers.find(p => p.name === dual.default.provider)?.models || [])"
+                  v-for="m in dualDefaultModelOptions"
                   :key="m.model_name"
                   :value="m.model_name"
                 >{{ m.display_name || m.model_name }}</ion-select-option>
@@ -557,7 +557,7 @@
               <ion-label position="stacked">Model</ion-label>
               <ion-select v-model="dual.localOnly.model" interface="popover" :disabled="!dual.localOnly.provider" placeholder="Select model">
                 <ion-select-option
-                  v-for="m in (providers.find(p => p.name === dual.localOnly.provider)?.models || [])"
+                  v-for="m in dualLocalModelOptions"
                   :key="m.model_name"
                   :value="m.model_name"
                 >{{ m.display_name || m.model_name }}</ion-select-option>
@@ -719,6 +719,31 @@ async function loadGlobalModelConfig() {
     }
   } catch {}
 }
+
+// Computed model lists with fallback to show DB-selected values
+const flatModelOptions = computed(() => {
+  const list = providers.value.find(p => p.name === flat.value.provider)?.models || [];
+  if (flat.value.model && !list.some(m => m.model_name === flat.value.model)) {
+    return [...list, { id: 'custom', model_name: flat.value.model, display_name: flat.value.model } as any];
+  }
+  return list;
+});
+
+const dualDefaultModelOptions = computed(() => {
+  const list = providers.value.find(p => p.name === dual.value.default.provider)?.models || [];
+  if (dual.value.default.model && !list.some(m => m.model_name === dual.value.default.model)) {
+    return [...list, { id: 'custom', model_name: dual.value.default.model, display_name: dual.value.default.model } as any];
+  }
+  return list;
+});
+
+const dualLocalModelOptions = computed(() => {
+  const list = providers.value.find(p => p.name === dual.value.localOnly.provider)?.models || [];
+  if (dual.value.localOnly.model && !list.some(m => m.model_name === dual.value.localOnly.model)) {
+    return [...list, { id: 'custom', model_name: dual.value.localOnly.model, display_name: dual.value.localOnly.model } as any];
+  }
+  return list;
+});
 
 async function saveModelConfig() {
   try {
