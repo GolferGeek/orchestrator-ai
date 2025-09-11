@@ -855,6 +855,8 @@ console.error(`ApiService.post error for ${url}:`, error);
     audioData: string;
     encoding: string;
     sampleRate: number;
+    agentName?: string;
+    agentType?: string;
   }): Promise<{
     transcript: string;
     response: string;
@@ -863,9 +865,18 @@ console.error(`ApiService.post error for ${url}:`, error);
     try {
       const authToken = localStorage.getItem('authToken');
       
+      // Use default agent if not specified
+      const agentName = data.agentName || 'assistant';
+      const agentType = data.agentType || 'generalists';
+      
       const response = await this.axiosInstance.post(
-        '/speech/process-conversation',
-        data,
+        `/speech/agents/${agentName}/${agentType}/conversation`,
+        {
+          audioData: data.audioData,
+          encoding: data.encoding,
+          sampleRate: data.sampleRate,
+          conversationId: data.conversationId
+        },
         {
           headers: {
             'Authorization': authToken ? `Bearer ${authToken}` : undefined,
