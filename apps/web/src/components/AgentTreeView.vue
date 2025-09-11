@@ -31,30 +31,71 @@
     <div v-else class="hierarchy-container">
       <!-- CEO as standalone agent (not accordion) -->
       <div v-for="group in hierarchyGroups.filter(g => g.isCEOAgent)" :key="group.type" class="agent-item">
-        <ion-item button @click="createNewConversation(group.agents[0])">
+        <ion-item class="ceo-item">
           <ion-icon :icon="icons.briefcaseOutline" color="primary" slot="start" />
-            <ion-label>
+          <ion-label>
             <h3>{{ formatAgentName(group.agents[0].name).replace(' Orchestrator', '') }}</h3>
-            </ion-label>
-          <ion-badge slot="end" :color="group.totalConversations > 0 ? 'primary' : 'medium'">
+          </ion-label>
+          <ion-badge :color="group.totalConversations > 0 ? 'primary' : 'medium'" class="conversation-count">
             {{ group.totalConversations }}
-            </ion-badge>
-          </ion-item>
-                </div>
+          </ion-badge>
+          <div class="header-actions" @click.stop>
+            <ion-button
+              fill="clear"
+              size="small"
+              @click="createNewConversation(group.agents[0])"
+              title="Start new conversation"
+              class="header-action-btn"
+            >
+              <ion-icon :icon="icons.chatbubbleOutline" />
+            </ion-button>
+            <ion-button
+              fill="clear"
+              size="small"
+              @click="createNewProject(group.agents[0])"
+              title="Start new project"
+              class="header-action-btn project-btn"
+            >
+              <span class="project-icon">P</span>
+            </ion-button>
+          </div>
+        </ion-item>
+      </div>
 
       <!-- Managers as accordions -->
       <div v-for="group in hierarchyGroups.filter(g => g.isManager && !g.isCEOAgent)" :key="group.type" class="agent-group">
         <ion-accordion-group>
-          <ion-accordion>
-            <!-- Manager as accordion header (no conversation creation) -->
-            <ion-item slot="header" color="light">
+          <ion-accordion :value="expandedAccordions.includes(group.type) ? group.type : undefined">
+            <!-- Manager as accordion header with action buttons -->
+            <ion-item slot="header" color="light" class="manager-header">
               <ion-icon :icon="icons.briefcaseOutline" color="primary" slot="start" />
               <ion-label>
                 <h3>{{ formatAgentName(group.agents[0].name).replace(' Orchestrator', '') }}</h3>
               </ion-label>
-              <ion-badge slot="end" :color="group.totalConversations > 0 ? 'primary' : 'medium'">
+              <ion-badge :color="group.totalConversations > 0 ? 'primary' : 'medium'" class="conversation-count">
                 {{ group.totalConversations }}
-                  </ion-badge>
+              </ion-badge>
+              <!-- Action buttons in header -->
+              <div class="header-actions" @click.stop>
+                <ion-button
+                  fill="clear"
+                  size="small"
+                  @click="startNewConversation(group.agents[0], group.type)"
+                  title="Start new conversation"
+                  class="header-action-btn"
+                >
+                  <ion-icon :icon="icons.chatbubbleOutline" />
+                </ion-button>
+                <ion-button
+                  fill="clear"
+                  size="small"
+                  @click="startNewProject(group.agents[0], group.type)"
+                  title="Start new project"
+                  class="header-action-btn project-btn"
+                >
+                  <span class="project-icon">P</span>
+                </ion-button>
+              </div>
             </ion-item>
             
             <!-- Team members in accordion content -->
@@ -62,14 +103,25 @@
               <!-- Skip the first agent (manager) and show the rest (team members) -->
               <div v-for="agent in group.agents.slice(1)" :key="agent.name" class="agent-section nested-agent">
                 <!-- Agent Header -->
-                <ion-item color="light">
+                <ion-item color="light" class="nested-agent-item">
                   <ion-icon :icon="icons.personOutline" slot="start" color="medium" />
                   <ion-label>
                     <h4>{{ formatAgentName(agent.name).replace(' Orchestrator', '') }}</h4>
                   </ion-label>
-                  <ion-badge slot="end" :color="agent.totalConversations > 0 ? 'secondary' : 'light'">
+                  <ion-badge :color="agent.totalConversations > 0 ? 'secondary' : 'light'" class="conversation-count">
                     {{ agent.totalConversations }}
                   </ion-badge>
+                  <div class="header-actions" @click.stop>
+                    <ion-button
+                      fill="clear"
+                      size="small"
+                      @click="createNewConversation(agent)"
+                      title="Start new conversation"
+                      class="header-action-btn"
+                    >
+                      <ion-icon :icon="icons.chatbubbleOutline" />
+                    </ion-button>
+                  </div>
                 </ion-item>
                 
                 <!-- Agent's Conversations -->
@@ -104,42 +156,8 @@
                   </ion-item>
                 </div>
                 
-                <!-- New Conversation Button for this agent -->
-                <div class="agent-actions">
-                  <ion-button 
-                    fill="clear" 
-                    size="small"
-                    @click="createNewConversation(agent)"
-                    class="agent-action-btn"
-                  >
-                    New Conversation
-                  </ion-button>
-                </div>
               </div>
               
-              <!-- Action Buttons -->
-              <div class="hierarchy-actions">
-                <div class="action-separator"></div>
-                <div class="action-buttons">
-                  <ion-button 
-                    fill="clear" 
-                    size="small"
-                    @click.stop="createNewConversation(group.agents[0])"
-                    class="hierarchy-action-btn"
-                  >
-                    New Conversation
-                  </ion-button>
-                      <ion-button
-                    fill="clear" 
-                    size="small"
-                    color="secondary"
-                    @click.stop="createNewProject(group.agents[0])"
-                    class="hierarchy-action-btn"
-                  >
-                    New Project
-                  </ion-button>
-                </div>
-                </div>
           </div>
         </ion-accordion>
       </ion-accordion-group>
@@ -149,14 +167,25 @@
       <div v-for="group in hierarchyGroups.filter(g => g.isSpecialists)" :key="group.type">
         <div v-for="agent in group.agents" :key="agent.name" class="agent-section">
           <!-- Agent Header -->
-          <ion-item color="light">
+          <ion-item color="light" class="specialist-item">
             <ion-icon :icon="icons.personOutline" color="medium" slot="start" />
             <ion-label>
               <h3>{{ formatAgentName(agent.name).replace(' Orchestrator', '') }}</h3>
             </ion-label>
-            <ion-badge slot="end" :color="agent.totalConversations > 0 ? 'primary' : 'medium'">
+            <ion-badge :color="agent.totalConversations > 0 ? 'primary' : 'medium'" class="conversation-count">
               {{ agent.totalConversations }}
             </ion-badge>
+            <div class="header-actions" @click.stop>
+              <ion-button
+                fill="clear"
+                size="small"
+                @click="createNewConversation(agent)"
+                title="Start new conversation"
+                class="header-action-btn"
+              >
+                <ion-icon :icon="icons.chatbubbleOutline" />
+              </ion-button>
+            </div>
           </ion-item>
           
           <!-- Agent's Conversations -->
@@ -191,17 +220,6 @@
             </ion-item>
                       </div>
           
-          <!-- New Conversation Button for this agent -->
-          <div class="agent-actions">
-                      <ion-button
-                        fill="clear"
-                        size="small"
-              @click="createNewConversation(agent)"
-              class="agent-action-btn"
-                      >
-              New Conversation
-                      </ion-button>
-                    </div>
                   </div>
                   </div>
                 </div>
@@ -261,6 +279,7 @@ const emit = defineEmits<{
 
 // Reactive state
 const searchQuery = ref(props.searchQuery || '');
+const expandedAccordions = ref<string[]>([]);
 
 // Delete modal state
 const showDeleteModal = ref(false);
@@ -586,6 +605,33 @@ const createNewProject = async (agent: any) => {
   }
 };
 
+// Wrapper methods for header buttons that also expand the accordion
+const startNewConversation = async (agent: any, groupType: string) => {
+  try {
+    // Expand the accordion if not already expanded
+    if (!expandedAccordions.value.includes(groupType)) {
+      expandedAccordions.value.push(groupType);
+    }
+    // Create the conversation
+    await createNewConversation(agent);
+  } catch (err) {
+    console.error('Failed to start conversation:', err);
+  }
+};
+
+const startNewProject = async (agent: any, groupType: string) => {
+  try {
+    // Expand the accordion if not already expanded
+    if (!expandedAccordions.value.includes(groupType)) {
+      expandedAccordions.value.push(groupType);
+    }
+    // Create the project
+    await createNewProject(agent);
+  } catch (err) {
+    console.error('Failed to start project:', err);
+  }
+};
+
 // Lifecycle
 onMounted(async () => {
   // Fetch data if not already loaded
@@ -707,5 +753,57 @@ onMounted(async () => {
 .agent-action-btn {
     --color: var(--ion-color-primary);
     font-size: 0.9em;
+}
+
+/* Header buttons styling */
+.manager-header {
+  position: relative;
+}
+
+.manager-header ion-label {
+  flex: 1;
+}
+
+.conversation-count {
+  margin-right: 8px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-left: auto;
+  padding-right: 8px;
+}
+
+.header-action-btn {
+  --padding-start: 6px;
+  --padding-end: 6px;
+  --padding-top: 4px;
+  --padding-bottom: 4px;
+  min-width: 32px;
+  height: 32px;
+}
+
+.header-action-btn ion-icon {
+  font-size: 18px;
+}
+
+.project-btn .project-icon {
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+/* Prevent accordion toggle when clicking buttons */
+.header-actions {
+  z-index: 10;
 }
 </style>
