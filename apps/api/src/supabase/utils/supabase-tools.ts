@@ -6,8 +6,8 @@ import {
   getAllTableNames,
 } from './database-schema';
 import { getLLM, initializeLangChain } from './langchain-client';
-import { SqlDatabase } from 'langchain/sql_db';
-import { createSqlQueryChain } from 'langchain/chains/sql_db';
+import { SqlDatabase } from '@langchain/community/sql_db';
+import { createSqlQueryChain } from '@langchain/community/chains/sql_db';
 
 // Global state for Supabase tools
 let orchestratorClient: any = null;
