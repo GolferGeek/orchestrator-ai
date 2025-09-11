@@ -2,7 +2,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { join } from 'path';
 import * as fs from 'fs';
-import * as yaml from 'yaml';
+import * as yaml from 'js-yaml';
 import { AgentConfigurationService, AgentConfigurationData } from './agents/actual/specialists/agent_creator/services/agent-configuration.service';
 
 export interface DiscoveredAgent {

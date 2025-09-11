@@ -319,8 +319,8 @@ import {
   lockClosedOutline,
   globeOutline,
 } from 'ionicons/icons';
-import { llmMonitoringStore } from '@/stores/llmMonitoringStore';
-import { pseudonymMappingsStore } from '@/stores/pseudonymMappingsStore';
+import { useLLMMonitoringStore } from '@/stores/llmMonitoringStore';
+import { usePseudonymMappingsStore } from '@/stores/pseudonymMappingsStore';
 
 interface Props {
   isOpen: boolean;
@@ -354,6 +354,9 @@ watch(() => props.isOpen, async (isOpen) => {
 
 async function loadUsageDetails(runId: string) {
   loading.value = true;
+  const llmMonitoringStore = useLLMMonitoringStore();
+  const pseudonymMappingsStore = usePseudonymMappingsStore();
+  
   try {
     // Load usage details
     const details = await llmMonitoringStore.getLLMUsageDetails(runId);
