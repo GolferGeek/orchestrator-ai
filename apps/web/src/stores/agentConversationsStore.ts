@@ -97,15 +97,24 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
         // Make API call
         await agentConversationsService.deleteConversation(conversationId);
         
-        // ✅ NEW: Close any open tabs for this conversation
+        // ✅ Close any open tabs for this conversation
+        // Import stores to close tabs and clean up deliverables
         const { useAgentChatStore } = await import('./agentChatStore');
-        const agentChatStore = useAgentChatStore();
-        agentChatStore.closeConversation(conversationId);
-        
-        // ✅ NEW: Notify deliverables store about conversation deletion
         const { useDeliverablesStore } = await import('./deliverablesStore');
+        
+        const agentChatStore = useAgentChatStore();
         const deliverablesStore = useDeliverablesStore();
-        deliverablesStore.handleConversationDeleted(conversationId);
+        
+        // Close the conversation tab immediately
+        console.log(`🗂️ Closing tabs for conversation: ${conversationId}`);
+        agentChatStore.closeConversation(conversationId);
+        console.log(`✅ Tab closure called for conversation: ${conversationId}`);
+        
+        // Clean up any deliverables references
+        if (deliverablesStore.handleConversationDeleted) {
+          console.log(`🗂️ Cleaning up deliverables for conversation: ${conversationId}`);
+          deliverablesStore.handleConversationDeleted(conversationId);
+        }
         
       } catch (error) {
 

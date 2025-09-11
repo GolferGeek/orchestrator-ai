@@ -7,7 +7,6 @@ import {
   ResponseMetadata 
 } from './llm-interfaces';
 import { PIIService } from '../../services/pii.service';
-import { PseudonymizerService } from '../../services/pseudonymizer.service';
 import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
@@ -46,7 +45,6 @@ export class AnthropicLLMService extends BaseLLMService {
   constructor(
     config: LLMServiceConfig,
     piiService: PIIService,
-    pseudonymizerService: PseudonymizerService,
     dictionaryPseudonymizerService: DictionaryPseudonymizerService,
     runMetadataService: RunMetadataService,
     providerConfigService: ProviderConfigService,
@@ -54,7 +52,6 @@ export class AnthropicLLMService extends BaseLLMService {
     super(
       config,
       piiService,
-      pseudonymizerService,
       dictionaryPseudonymizerService,
       runMetadataService,
       providerConfigService,
@@ -126,13 +123,23 @@ export class AnthropicLLMService extends BaseLLMService {
         requestId
       );
       
-      // Track usage
-      this.trackUsage(
+      // Track usage with full metadata for database persistence
+      await this.trackUsage(
         params.config.provider,
         params.config.model,
         metadata.usage.inputTokens,
         metadata.usage.outputTokens,
         metadata.usage.cost,
+        {
+          requestId,
+          userId: params.userId || params.options?.userId,
+          conversationId: params.conversationId || params.options?.conversationId,
+          callerType: params.options?.callerType,
+          callerName: params.options?.callerName,
+          piiMetadata: piiResult.piiMetadata,
+          startTime,
+          endTime,
+        }
       );
       
       const response: LLMResponse = {
@@ -270,7 +277,6 @@ export function createAnthropicService(
   config: LLMServiceConfig,
   dependencies: {
     piiService: PIIService;
-    pseudonymizerService: PseudonymizerService;
     dictionaryPseudonymizerService: DictionaryPseudonymizerService;
     runMetadataService: RunMetadataService;
     providerConfigService: ProviderConfigService;
@@ -279,7 +285,6 @@ export function createAnthropicService(
   return new AnthropicLLMService(
     { ...config, provider: 'anthropic' },
     dependencies.piiService,
-    dependencies.pseudonymizerService,
     dependencies.dictionaryPseudonymizerService,
     dependencies.runMetadataService,
     dependencies.providerConfigService,
@@ -301,7 +306,6 @@ export async function testAnthropicService() {
   // Mock dependencies for testing
   const mockDependencies = {
     piiService: {} as PIIService,
-    pseudonymizerService: {} as PseudonymizerService,
     dictionaryPseudonymizerService: {} as DictionaryPseudonymizerService,
     runMetadataService: {} as RunMetadataService,
     providerConfigService: {} as ProviderConfigService,

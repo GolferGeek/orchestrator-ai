@@ -418,6 +418,17 @@ export class RunMetadataService {
   }): Promise<void> {
     const client = this.supabaseService.getServiceClient();
     
+    this.logger.debug(`🔍 [PII-METADATA-DEBUG] updateUsageRecord - updates.enhancedMetrics exists:`, !!updates.enhancedMetrics);
+    if (updates.enhancedMetrics) {
+      this.logger.debug(`🔍 [PII-METADATA-DEBUG] updateUsageRecord - enhancedMetrics content:`, {
+        piiDetected: updates.enhancedMetrics.piiDetected,
+        pseudonymsUsed: updates.enhancedMetrics.pseudonymsUsed,
+        pseudonymTypes: updates.enhancedMetrics.pseudonymTypes,
+        redactionsApplied: updates.enhancedMetrics.redactionsApplied,
+        redactionTypes: updates.enhancedMetrics.redactionTypes
+      });
+    }
+
     const updateData = {
       status: updates.status,
       input_tokens: updates.inputTokens,
@@ -449,6 +460,14 @@ export class RunMetadataService {
         compliance_flags: updates.enhancedMetrics.complianceFlags,
       })
     };
+    
+    this.logger.debug(`🔍 [PII-METADATA-DEBUG] updateUsageRecord - Final updateData PII fields:`, {
+      pii_detected: updateData.pii_detected,
+      pseudonyms_used: updateData.pseudonyms_used,
+      pseudonym_types: updateData.pseudonym_types,
+      redactions_applied: updateData.redactions_applied,
+      redaction_types: updateData.redaction_types
+    });
 
     this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Updating runId ${runId} in ${getTableName('llm_usage')} with:`, updateData);
     

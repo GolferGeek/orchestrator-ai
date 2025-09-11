@@ -53,6 +53,12 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
    */
   public async executeTask(method: string, params: any): Promise<any> {
     const agentName = this.getAgentName();
+    
+    // DEBUG: Log what the agent receives
+    this.contextLogger.debug(`🔍 [AGENT-PARAMS-DEBUG] Agent received params keys:`, Object.keys(params));
+    this.contextLogger.debug(`🔍 [AGENT-PARAMS-DEBUG] params.piiMetadata exists:`, !!params.piiMetadata);
+    this.contextLogger.debug(`🔍 [AGENT-PARAMS-DEBUG] params.routingDecision exists:`, !!params.routingDecision);
+    this.contextLogger.debug(`🔍 [AGENT-PARAMS-DEBUG] params.metadata exists:`, !!params.metadata);
     const agentType = this.getAgentType();
 
     try {
@@ -139,6 +145,12 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         const duration = endTime - startTime;
       } else {
         // Use standard LLM processing for first message
+        const extractedPiiMetadata = this.extractPIIMetadata(params);
+        const extractedRoutingDecision = this.extractRoutingDecision(params);
+        
+        this.contextLogger.debug(`🔍 [AGENT-PII-DEBUG] extractPIIMetadata result:`, extractedPiiMetadata);
+        this.contextLogger.debug(`🔍 [AGENT-PII-DEBUG] extractRoutingDecision result:`, extractedRoutingDecision);
+        
         const llmOptions = {
           ...params,
           userId: this.extractUserId(params), // Add user ID for LLM usage tracking
@@ -150,7 +162,12 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           providerName: params.llmSelection?.providerName,
           provider: params.llmSelection?.providerName, // For routing service
           model: params.llmSelection?.modelName, // For routing service
+          // NEW: Pass PII metadata from routing decision to LLM service
+          piiMetadata: extractedPiiMetadata,
+          routingDecision: extractedRoutingDecision,
         };
+        
+        this.contextLogger.debug(`🔍 [AGENT-PII-DEBUG] Final llmOptions.piiMetadata:`, llmOptions.piiMetadata);
         
         llmResult = await this.services.llmService.generateResponse(
           systemPrompt,

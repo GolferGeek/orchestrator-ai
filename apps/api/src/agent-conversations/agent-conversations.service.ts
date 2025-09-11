@@ -52,13 +52,16 @@ export class AgentConversationsService {
     try {
       const validatedAgentType = this.validateAgentType(dto.agentType);
 
+      const now = new Date().toISOString();
       const { data, error } = await this.supabaseService
         .getAnonClient()
-        .from(getTableName('agent_conversations'))
+        .from(getTableName('conversations'))
         .insert({
           user_id: userId,
           agent_name: dto.agentName,
           agent_type: validatedAgentType,
+          started_at: now,
+          last_active_at: now,
           metadata: dto.metadata || {},
           ...(dto.workProduct && {
             primary_work_product_type: dto.workProduct.type,
@@ -88,17 +91,21 @@ export class AgentConversationsService {
     userId: string,
   ): Promise<AgentConversation | null> {
     try {
+      this.logger.debug(`🔍 getConversationById: Looking for conversation ${conversationId} for user ${userId}`);
+      
       const { data, error } = await this.supabaseService
         .getAnonClient()
-        .from(getTableName('agent_conversations'))
+        .from(getTableName('conversations'))
         .select()
         .eq('id', conversationId)
         .eq('user_id', userId)
         .single();
 
+      this.logger.debug(`🔍 getConversationById: Query result - data:`, data ? 'Found' : 'Null', 'error:', error?.message || 'None');
+
       if (error && error.code !== 'PGRST116') {
         // PGRST116 is "no rows found"
-
+        this.logger.error(`🔍 getConversationById: Database error:`, error);
         throw new Error(`Failed to fetch conversation: ${error.message}`);
       }
 
@@ -123,7 +130,7 @@ export class AgentConversationsService {
       if (existingConversationId) {
         const { data: existing } = await this.supabaseService
           .getAnonClient()
-          .from(getTableName('agent_conversations'))
+          .from(getTableName('conversations'))
           .select()
           .eq('id', existingConversationId)
           .eq('user_id', userId)
@@ -142,7 +149,7 @@ export class AgentConversationsService {
       // First try to find an active conversation
       const { data: existing } = await this.supabaseService
         .getAnonClient()
-        .from(getTableName('agent_conversations'))
+        .from(getTableName('conversations'))
         .select()
         .eq('user_id', userId)
         .eq('agent_name', agentName)
@@ -175,7 +182,7 @@ export class AgentConversationsService {
     try {
       let query = this.supabaseService
         .getAnonClient()
-        .from(getTableName('agent_conversations_with_stats'))
+        .from(getTableName('conversations_with_stats'))
         .select('*', { count: 'exact' });
 
       // Apply filters
@@ -225,7 +232,7 @@ export class AgentConversationsService {
     try {
       const { error } = await this.supabaseService
         .getAnonClient()
-        .from(getTableName('agent_conversations'))
+        .from(getTableName('conversations'))
         .update({
           ended_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -251,14 +258,37 @@ export class AgentConversationsService {
     userId: string,
   ): Promise<void> {
     try {
+      this.logger.debug(`🗑️ Attempting to delete conversation: ${conversationId} for user: ${userId}`);
+      
       // First verify the conversation exists and belongs to the user
       const conversation = await this.getConversationById(
         conversationId,
         userId,
       );
+      
+      this.logger.debug(`🗑️ getConversationById result:`, conversation ? 'Found' : 'Not found');
+      
       if (!conversation) {
+        this.logger.error(`🗑️ Conversation not found: ${conversationId} for user: ${userId}`);
         throw new Error('Conversation not found');
       }
+      
+      this.logger.debug(`🗑️ Found conversation to delete: ${conversation.agentName}`);
+
+      // Delete related LLM usage records first to avoid foreign key constraint violation
+      const { error: llmUsageDeleteError } = await this.supabaseService
+        .getAnonClient()
+        .from(getTableName('llm_usage'))
+        .delete()
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId);
+
+      if (llmUsageDeleteError) {
+        this.logger.error(`🗑️ Failed to delete LLM usage records:`, llmUsageDeleteError);
+        throw new Error(`Failed to delete LLM usage records: ${llmUsageDeleteError.message}`);
+      }
+      
+      this.logger.debug(`🗑️ Deleted LLM usage records for conversation: ${conversationId}`);
 
       // Preserve agent_name in deliverables before deleting conversation
       // The database will automatically set conversation_id to NULL due to SET NULL constraint,
@@ -284,7 +314,7 @@ export class AgentConversationsService {
         .getAnonClient()
         .from(getTableName('tasks'))
         .delete()
-        .eq('agent_conversation_id', conversationId)
+        .eq('conversation_id', conversationId)
         .eq('user_id', userId);
 
       if (tasksError) {
@@ -297,7 +327,7 @@ export class AgentConversationsService {
       // Delete the conversation
       const { error } = await this.supabaseService
         .getAnonClient()
-        .from(getTableName('agent_conversations'))
+        .from(getTableName('conversations'))
         .delete()
         .eq('id', conversationId)
         .eq('user_id', userId);
@@ -324,7 +354,7 @@ export class AgentConversationsService {
     try {
       const { error } = await this.supabaseService
         .getAnonClient()
-        .from(getTableName('agent_conversations'))
+        .from(getTableName('conversations'))
         .update({
           metadata,
           updated_at: new Date().toISOString(),
@@ -351,7 +381,7 @@ export class AgentConversationsService {
     try {
       const { data, error } = await this.supabaseService
         .getAnonClient()
-        .from(getTableName('agent_conversations'))
+        .from(getTableName('conversations'))
         .select()
         .eq('user_id', userId)
         .is('ended_at', null)
@@ -380,7 +410,7 @@ export class AgentConversationsService {
   ): Promise<AgentConversation | null> {
     const { data, error } = await this.supabaseService
       .getAnonClient()
-      .from('agent_conversations')
+      .from('conversations')
       .select('*')
       .eq('user_id', userId)
       .eq('primary_work_product_type', workProduct.type)
@@ -411,7 +441,7 @@ export class AgentConversationsService {
 
     // Fetch existing values
     const { data: existing, error: fetchError } = await client
-      .from('agent_conversations')
+      .from('conversations')
       .select('id, user_id, primary_work_product_type, primary_work_product_id')
       .eq('id', conversationId)
       .eq('user_id', userId)
@@ -447,7 +477,7 @@ export class AgentConversationsService {
     }
 
     const { error: updateError } = await client
-      .from('agent_conversations')
+      .from('conversations')
       .update({
         primary_work_product_type: workProduct.type,
         primary_work_product_id: workProduct.id,
@@ -473,9 +503,9 @@ export class AgentConversationsService {
       userId: data.user_id,
       agentName: data.agent_name,
       agentType: data.agent_type,
-      startedAt: new Date(data.started_at),
+      startedAt: data.started_at ? new Date(data.started_at) : new Date(data.created_at),
       endedAt: data.ended_at ? new Date(data.ended_at) : undefined,
-      lastActiveAt: new Date(data.last_active_at),
+      lastActiveAt: data.last_active_at ? new Date(data.last_active_at) : new Date(data.created_at),
       metadata: data.metadata,
       workProduct:
         data.primary_work_product_type && data.primary_work_product_id

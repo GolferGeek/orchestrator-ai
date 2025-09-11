@@ -62,17 +62,19 @@ export class SpeechService {
       
       // Create a task for this agent with the transcribed text
       const taskResult = await this.tasksService.createTask(
+        currentUser.id,
+        agentName,
+        'specialist', // agentType
         {
-          agentName,
+          method: 'process',
+          params: {},
           prompt: transcription.text.trim(),
           conversationId: conversation.id,
           metadata: {
             speechInput: true,
             transcriptionConfidence: transcription.confidence,
           },
-        },
-        currentUser.id,
-        authToken,
+        }
       );
 
       if (!taskResult || !taskResult.response) {
@@ -96,8 +98,8 @@ export class SpeechService {
 
       // Step 5: Return the complete conversation result
       const result: ConversationResponseDto = {
-        userMessageId: taskResult.taskId || 'temp-user-message',
-        assistantMessageId: taskResult.taskId || 'temp-assistant-message',
+        userMessageId: taskResult.id || 'temp-user-message',
+        assistantMessageId: taskResult.id || 'temp-assistant-message',
         transcribedText: transcription.text,
         responseText: responseText,
         responseAudio: synthesizedAudio.audioData,

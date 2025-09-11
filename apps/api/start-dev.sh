@@ -26,12 +26,27 @@ fi
 echo -e "${BLUE}🗄️  Checking local Supabase status...${NC}"
 if ! supabase status > /dev/null 2>&1; then
     echo -e "${BLUE}🚀 Starting local Supabase development instance...${NC}"
+    
+    # Check if backup script exists and create a backup if Supabase has data
+    if [ -f "supabase/backup-local-db.sh" ]; then
+        # Check if there are existing Docker volumes (indicating previous data)
+        if docker volume ls | grep -q "supabase_db_orchestrator-ai"; then
+            echo -e "${BLUE}💾 Creating safety backup before starting Supabase...${NC}"
+            ./supabase/backup-local-db.sh --force > /dev/null 2>&1 || echo -e "${YELLOW}⚠️  Backup failed, but continuing...${NC}"
+        fi
+    fi
+    
     supabase start
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Local Supabase started successfully${NC}"
         echo -e "${BLUE}   Studio: http://127.0.0.1:54323${NC}"
         echo -e "${BLUE}   API: http://127.0.0.1:54321${NC}"
         SUPABASE_STARTED_BY_SCRIPT=true
+        
+        # Remind about backup system
+        if [ -f "supabase/backup-local-db.sh" ]; then
+            echo -e "${BLUE}💡 Backup system available: ./supabase/backup-local-db.sh${NC}"
+        fi
     else
         echo -e "${RED}❌ Failed to start local Supabase${NC}"
         echo -e "${BLUE}💡 Try running: supabase start${NC}"
@@ -40,6 +55,11 @@ else
     echo -e "${GREEN}✅ Local Supabase is already running${NC}"
     # Show the current status briefly
     supabase status | grep -E "(Studio URL|API URL)"
+    
+    # Remind about backup system if available
+    if [ -f "supabase/backup-local-db.sh" ]; then
+        echo -e "${BLUE}💡 Backup system available: ./supabase/backup-local-db.sh --list${NC}"
+    fi
 fi
 
 # Function to cleanup on exit

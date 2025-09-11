@@ -7,7 +7,6 @@ import {
   ResponseMetadata 
 } from './llm-interfaces';
 import { PIIService } from '../../services/pii.service';
-import { PseudonymizerService } from '../../services/pseudonymizer.service';
 import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
@@ -44,7 +43,6 @@ export class GrokLLMService extends BaseLLMService {
   constructor(
     config: LLMServiceConfig,
     piiService: PIIService,
-    pseudonymizerService: PseudonymizerService,
     dictionaryPseudonymizerService: DictionaryPseudonymizerService,
     runMetadataService: RunMetadataService,
     providerConfigService: ProviderConfigService,
@@ -52,7 +50,6 @@ export class GrokLLMService extends BaseLLMService {
     super(
       config,
       piiService,
-      pseudonymizerService,
       dictionaryPseudonymizerService,
       runMetadataService,
       providerConfigService,
@@ -134,13 +131,23 @@ export class GrokLLMService extends BaseLLMService {
         requestId
       );
       
-      // Track usage
-      this.trackUsage(
+      // Track usage with full metadata for database persistence
+      await this.trackUsage(
         params.config.provider,
         params.config.model,
         metadata.usage.inputTokens,
         metadata.usage.outputTokens,
         metadata.usage.cost,
+        {
+          requestId,
+          userId: params.userId || params.options?.userId,
+          conversationId: params.conversationId || params.options?.conversationId,
+          callerType: params.options?.callerType,
+          callerName: params.options?.callerName,
+          piiMetadata: piiResult.piiMetadata,
+          startTime,
+          endTime,
+        }
       );
       
       const llmResponse: LLMResponse = {
@@ -303,7 +310,6 @@ export function createGrokService(
   config: LLMServiceConfig,
   dependencies: {
     piiService: PIIService;
-    pseudonymizerService: PseudonymizerService;
     dictionaryPseudonymizerService: DictionaryPseudonymizerService;
     runMetadataService: RunMetadataService;
     providerConfigService: ProviderConfigService;
@@ -312,7 +318,6 @@ export function createGrokService(
   return new GrokLLMService(
     { ...config, provider: 'grok' },
     dependencies.piiService,
-    dependencies.pseudonymizerService,
     dependencies.dictionaryPseudonymizerService,
     dependencies.runMetadataService,
     dependencies.providerConfigService,
@@ -334,7 +339,6 @@ export async function testGrokService() {
   // Mock dependencies for testing
   const mockDependencies = {
     piiService: {} as PIIService,
-    pseudonymizerService: {} as PseudonymizerService,
     dictionaryPseudonymizerService: {} as DictionaryPseudonymizerService,
     runMetadataService: {} as RunMetadataService,
     providerConfigService: {} as ProviderConfigService,

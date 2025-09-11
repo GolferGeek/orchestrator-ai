@@ -82,7 +82,7 @@ export class SystemController {
       ] = await Promise.all([
         client.from('users').select('id', { count: 'exact', head: true }),
         client.from('tasks').select('id', { count: 'exact', head: true }),
-        client.from('agent_conversations').select('id', { count: 'exact', head: true }),
+        client.from('conversations').select('id', { count: 'exact', head: true }),
         client.from('projects').select('id', { count: 'exact', head: true })
       ]);
 

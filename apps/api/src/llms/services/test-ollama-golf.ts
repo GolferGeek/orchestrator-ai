@@ -21,7 +21,6 @@ const mockDependencies = {
       piiMetadata: undefined 
     })
   } as any,
-  pseudonymizerService: {} as any,
   dictionaryPseudonymizerService: {} as any,
   runMetadataService: {} as any,
   providerConfigService: {} as any,
@@ -102,7 +101,6 @@ export async function testOllamaGolfBlogPost(): Promise<{
     const ollamaService = new OllamaLLMService(
       testConfig,
       mockDependencies.piiService,
-      mockDependencies.pseudonymizerService,
       mockDependencies.dictionaryPseudonymizerService,
       mockDependencies.runMetadataService,
       mockDependencies.providerConfigService,

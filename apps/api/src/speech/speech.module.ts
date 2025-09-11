@@ -6,6 +6,7 @@ import { SpeechService } from './speech.service';
 import { SpeechService as DeepgramElevenLabsService } from './deepgram-elevenlabs.service';
 import { AgentConversationsModule } from '../agent-conversations/agent-conversations.module';
 import { TasksModule } from '../tasks/tasks.module';
+import { SupabaseModule } from '../supabase/supabase.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { TasksModule } from '../tasks/tasks.module';
     HttpModule,
     AgentConversationsModule,
     TasksModule,
+    SupabaseModule,
   ],
   controllers: [SpeechController],
   providers: [

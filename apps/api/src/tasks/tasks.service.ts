@@ -72,7 +72,7 @@ export class TasksService {
 
       // Prepare task data with proper ID handling
       const taskData: any = {
-        agent_conversation_id: conversationId,
+        conversation_id: conversationId,
         user_id: userId,
         method: dto.method,
         prompt: dto.prompt,
@@ -222,7 +222,7 @@ export class TasksService {
 
       // Apply filters
       if (params.conversationId) {
-        query = query.eq('agent_conversation_id', params.conversationId);
+        query = query.eq('conversation_id', params.conversationId);
       }
       if (params.userId) {
         query = query.eq('user_id', params.userId);
@@ -631,7 +631,7 @@ export class TasksService {
 
     return {
       id: converted.id,
-      agentConversationId: converted.agentConversationId,
+      agentConversationId: converted.conversationId,
       userId: converted.userId,
       method: converted.method,
       prompt: converted.prompt,

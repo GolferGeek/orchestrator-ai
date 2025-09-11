@@ -146,8 +146,8 @@ export class ProjectsService {
     try {
       let query = client
         .from(getTableName('projects'))
-        .select('*, agent_conversations!inner(user_id)', { count: 'exact' })
-        .eq('agent_conversations.user_id', userId);
+        .select('*, conversations!inner(user_id)', { count: 'exact' })
+        .eq('conversations.user_id', userId);
 
       // Filter by status if provided
       if (params.status) {
@@ -298,9 +298,9 @@ export class ProjectsService {
     try {
       const { data, error } = await client
         .from(getTableName('projects'))
-        .select('id, agent_conversations!inner(user_id)')
+        .select('id, conversations!inner(user_id)')
         .eq('id', projectId)
-        .eq('agent_conversations.user_id', userId)
+        .eq('conversations.user_id', userId)
         .single();
 
       if (error) {
@@ -565,8 +565,8 @@ export class ProjectsService {
       const { data: projects, error } = await this.supabaseService
         .getServiceClient()
         .from('projects')
-        .select('*, agent_conversations!inner(user_id)')
-        .eq('agent_conversations.user_id', userId)
+        .select('*, conversations!inner(user_id)')
+        .eq('conversations.user_id', userId)
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 

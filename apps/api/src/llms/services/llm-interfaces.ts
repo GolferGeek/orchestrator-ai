@@ -45,6 +45,9 @@ export interface GenerateResponseParams {
     callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
     callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
     dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
+    // PII metadata from routing decision
+    piiMetadata?: any; // PIIProcessingMetadata from centralized routing
+    routingDecision?: any; // Full routing decision for context
     [key: string]: any;
   };
 }
@@ -72,6 +75,9 @@ export interface UnifiedGenerateResponseParams {
     dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
     // Return format control
     includeMetadata?: boolean; // If true, return LLMResponse object, otherwise just string
+    // PII metadata from routing decision
+    piiMetadata?: any; // PIIProcessingMetadata from centralized routing
+    routingDecision?: any; // Full routing decision for context
     [key: string]: any;
   };
 }
