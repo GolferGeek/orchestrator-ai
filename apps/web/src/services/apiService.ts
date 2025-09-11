@@ -846,6 +846,121 @@ console.error(`ApiService.post error for ${url}:`, error);
   getBaseUrl(): string {
     return API_BASE_URL;
   }
+
+  /**
+   * Process conversation with audio input
+   */
+  async processConversation(data: {
+    conversationId: string;
+    audioData: string;
+    encoding: string;
+    sampleRate: number;
+  }): Promise<{
+    transcript: string;
+    response: string;
+    responseAudio: string;
+  }> {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await this.axiosInstance.post(
+        '/speech/process-conversation',
+        data,
+        {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Speech API error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Start a speech conversation session
+   */
+  async startSpeechConversation(conversationId: string): Promise<{
+    sessionId: string;
+    status: string;
+  }> {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await this.axiosInstance.post(
+        '/speech/start-conversation',
+        { conversationId },
+        {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined
+          }
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Speech start conversation error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * End a speech conversation session
+   */
+  async endSpeechConversation(conversationId: string): Promise<void> {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      await this.axiosInstance.post(
+        '/speech/end-conversation',
+        { conversationId },
+        {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Speech end conversation error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process audio stream for speech
+   */
+  async processSpeechAudio(audioBlob: Blob, conversationId: string): Promise<{
+    transcript: string;
+    response: string;
+    responseAudio?: string;
+  }> {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const formData = new FormData();
+      formData.append('audio', audioBlob);
+      formData.append('conversationId', conversationId);
+      
+      const response = await this.axiosInstance.post(
+        '/speech/process-audio',
+        formData,
+        {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Speech audio processing error:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
