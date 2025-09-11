@@ -11,7 +11,6 @@ import { CIDAFMService } from '../cidafm/cidafm.service';
 import { CentralizedRoutingService } from './centralized-routing.service';
 import { RunMetadataService, RunMetadata } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';
-import { DataSanitizationService, DetailedSanitizationMetrics } from './data-sanitization.service';
 import { PIIService } from '../services/pii.service';
 import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
 import { PIIProcessingMetadata } from '../common/types/pii-metadata.types';
@@ -74,7 +73,6 @@ export class LLMService {
     private readonly centralizedRoutingService: CentralizedRoutingService,
     private readonly runMetadataService: RunMetadataService,
     private readonly providerConfigService: ProviderConfigService,
-    private readonly dataSanitizationService: DataSanitizationService,
     private readonly piiService: PIIService,
     private readonly dictionaryPseudonymizerService: DictionaryPseudonymizerService,
     private readonly localModelStatusService: LocalModelStatusService,
@@ -143,6 +141,45 @@ export class LLMService {
         this.logger.debug(`🔍 [LLM-PII-DEBUG] Received options.piiMetadata:`, options?.piiMetadata);
         this.logger.debug(`🔍 [LLM-PII-DEBUG] Received options.routingDecision:`, options?.routingDecision);
 
+        // === PII PROCESSING BEFORE FACTORY CALL ===
+        let processedUserMessage = userMessage;
+        let dictionaryMappings: any[] = [];
+        let enhancedPiiMetadata = options?.piiMetadata;
+
+        // Only process PII for non-Ollama providers
+        if (options.providerName.toLowerCase() !== 'ollama' && !enhancedPiiMetadata) {
+          console.log('🔍 [LLM-SERVICE] Processing PII for provider:', options.providerName);
+          
+          // 1. Check for flaggings using PII service
+          const piiPolicyResult = await this.piiService.checkPolicy(userMessage, {
+            provider: options.providerName,
+            providerName: options.providerName
+          });
+
+          // 2. Apply dictionary pseudonymization
+          const pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(userMessage);
+          processedUserMessage = pseudonymResult.pseudonymizedText;
+          dictionaryMappings = pseudonymResult.mappings;
+
+          // 3. Build complete PII metadata
+          enhancedPiiMetadata = {
+            ...piiPolicyResult.metadata,
+            pseudonymsApplied: pseudonymResult.mappings.map(m => ({
+              original: m.originalValue,
+              pseudonym: m.pseudonym,
+              type: m.dataType
+            })),
+            piiDetected: piiPolicyResult.metadata.piiDetected || pseudonymResult.mappings.length > 0,
+            flaggings: piiPolicyResult.metadata.detectionResults?.flaggedMatches || [],
+            processingTimeMs: (piiPolicyResult.metadata.timestamps?.policyCheck || Date.now()) - 
+                             (piiPolicyResult.metadata.timestamps?.detectionStart || Date.now()) + 
+                             pseudonymResult.processingTimeMs,
+            sanitizationLevel: pseudonymResult.mappings.length > 0 ? 'standard' : 'none'
+          };
+
+          console.log(`🎯 [LLM-SERVICE] PII complete - flags: ${piiPolicyResult.metadata.detectionResults?.flaggedMatches?.length || 0}, pseudonyms: ${pseudonymResult.mappings.length}`);
+        }
+
         // Use the new unified LLM service factory approach
         const config: LLMServiceConfig = {
           provider: options.providerName as any,
@@ -153,7 +190,7 @@ export class LLMService {
 
         const factoryParams: GenerateResponseParams = {
           systemPrompt,
-          userMessage,
+          userMessage: processedUserMessage, // Use processed message
           config,
           options: {
             callerType: options.callerType,
@@ -164,14 +201,32 @@ export class LLMService {
             authToken: options.authToken,
             currentUser: options.currentUser,
             dataClassification: options.dataClassification,
-            // Pass PII metadata from routing decision
-            piiMetadata: (options as any)?.piiMetadata,
+            // Pass enhanced PII metadata and mappings
+            piiMetadata: enhancedPiiMetadata,
+            dictionaryMappings: dictionaryMappings,
             routingDecision: (options as any)?.routingDecision,
           }
         };
 
         const unifiedResult = await this.llmServiceFactory.generateResponse(config, factoryParams);
 
+        // Apply reverse pseudonymization if we have mappings
+        if (dictionaryMappings && dictionaryMappings.length > 0 && unifiedResult.content) {
+          const reverseResult = await this.dictionaryPseudonymizerService.reversePseudonyms(
+            unifiedResult.content,
+            dictionaryMappings
+          );
+          unifiedResult.content = reverseResult.originalText;
+          this.logger.debug(`🔄 [LLM-SERVICE] Reversed ${reverseResult.reversalCount} pseudonyms in response`);
+        }
+
+        // Ensure PII metadata is included in response
+        if (enhancedPiiMetadata) {
+          unifiedResult.piiMetadata = enhancedPiiMetadata;
+          console.log('✅ [LLM-SERVICE] Added PII metadata to response');
+        }
+
+        console.log('📦 [LLM-SERVICE] Returning result with keys:', Object.keys(unifiedResult));
         // Return the result (string or object based on includeMetadata)
         return unifiedResult;
       }
@@ -408,6 +463,54 @@ export class LLMService {
         throw new Error(`Unsupported provider: ${params.provider}. Supported providers: ${supportedProviders.join(', ')}`);
       }
 
+      // === PII PROCESSING AT LLM SERVICE LEVEL ===
+      // Skip PII processing for Ollama (local models don't need sanitization)
+      let enhancedPiiMetadata = params.options?.piiMetadata;
+      let processedUserMessage = params.userMessage;
+      let dictionaryMappings: any[] = [];
+
+      // Only process PII for non-Ollama providers
+      if (params.provider.toLowerCase() === 'ollama') {
+        this.logger.debug('🏠 [LLM-SERVICE] Skipping PII processing for Ollama (local model)');
+      } else if (!enhancedPiiMetadata) {
+        this.logger.debug('🔍 [LLM-SERVICE] No PII metadata provided, performing PII processing at LLM Service level for provider:', params.provider);
+        
+        // 1. Check for flaggings using PII service (NOT showstoppers - those are handled at agent level)
+        const piiPolicyResult = await this.piiService.checkPolicy(params.userMessage, {
+          provider: params.provider,
+          providerName: params.provider
+        });
+
+        // 2. Apply dictionary pseudonymization
+        const pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(params.userMessage);
+        processedUserMessage = pseudonymResult.pseudonymizedText;
+        dictionaryMappings = pseudonymResult.mappings;
+
+        // 3. Build complete PII metadata combining policy check and pseudonymization
+        enhancedPiiMetadata = {
+          ...piiPolicyResult.metadata,
+          // Add pseudonym information
+          pseudonymsApplied: pseudonymResult.mappings.map(m => ({
+            original: m.originalValue,
+            pseudonym: m.pseudonym,
+            type: m.dataType
+          })),
+          // Update PII detected flag if pseudonyms were applied
+          piiDetected: piiPolicyResult.metadata.piiDetected || pseudonymResult.mappings.length > 0,
+          // Add processing times
+          processingTimeMs: (piiPolicyResult.metadata.timestamps?.policyCheck || Date.now()) - 
+                           (piiPolicyResult.metadata.timestamps?.detectionStart || Date.now()) + 
+                           pseudonymResult.processingTimeMs,
+          sanitizationLevel: pseudonymResult.mappings.length > 0 ? 'standard' : 'none'
+        };
+
+        this.logger.debug(`🎯 [LLM-SERVICE] PII Processing complete:`, {
+          flaggingsFound: piiPolicyResult.metadata.detectionResults?.flaggedMatches?.length || 0,
+          pseudonymsApplied: pseudonymResult.mappings.length,
+          textModified: processedUserMessage !== params.userMessage
+        });
+      }
+
       // Create LLM service configuration
       const config: LLMServiceConfig = {
         provider: params.provider,
@@ -416,10 +519,10 @@ export class LLMService {
         maxTokens: params.options?.maxTokens,
       };
 
-      // Create GenerateResponseParams for the factory
+      // Create GenerateResponseParams for the factory with enhanced PII metadata
       const factoryParams: GenerateResponseParams = {
         systemPrompt: params.systemPrompt,
-        userMessage: params.userMessage,
+        userMessage: processedUserMessage, // Use processed message with pseudonyms
         config,
         conversationId: params.options?.conversationId,
         sessionId: params.options?.sessionId,
@@ -432,14 +535,30 @@ export class LLMService {
           dataClassification: params.options?.dataClassification,
           authToken: params.options?.authToken,
           currentUser: params.options?.currentUser,
-          // Pass PII metadata from routing decision
-          piiMetadata: params.options?.piiMetadata,
+          // Pass enhanced PII metadata and dictionary mappings
+          piiMetadata: enhancedPiiMetadata,
+          dictionaryMappings: dictionaryMappings,
           routingDecision: params.options?.routingDecision,
         },
       };
 
       // Use the LLMServiceFactory to generate the response
       const response = await this.llmServiceFactory.generateResponse(config, factoryParams);
+      
+      // Apply reverse pseudonymization if we have mappings
+      if (dictionaryMappings && dictionaryMappings.length > 0 && response.content) {
+        const reverseResult = await this.dictionaryPseudonymizerService.reversePseudonyms(
+          response.content,
+          dictionaryMappings
+        );
+        response.content = reverseResult.originalText;
+        this.logger.debug(`🔄 [LLM-SERVICE] Reversed ${reverseResult.reversalCount} pseudonyms in response`);
+      }
+
+      // Ensure PII metadata is included in response
+      if (enhancedPiiMetadata) {
+        response.piiMetadata = enhancedPiiMetadata;
+      }
 
       // Return either string or full response based on includeMetadata flag
       if (params.options?.includeMetadata) {
@@ -532,12 +651,7 @@ export class LLMService {
 
     // Use LocalLLMService for local Ollama models - NO SANITIZATION needed
     if (routingDecision.isLocal && routingDecision.provider === 'ollama') {
-      await this.dataSanitizationService.debug(
-        'Using local Ollama - skipping sanitization',
-        undefined,
-        'CallProvider',
-        { provider: routingDecision.provider, model: routingDecision.model }
-      );
+      this.logger.debug('Using local Ollama - skipping sanitization');
 
       const response = await this.localLLMService.generateResponse({
         model: routingDecision.model,
@@ -602,12 +716,7 @@ export class LLMService {
     }
 
     // For EXTERNAL providers - apply sanitization before sending
-    await this.dataSanitizationService.debug(
-      'Using external provider - applying sanitization',
-      undefined,
-      'CallProvider',
-      { provider: routingDecision.provider, model: routingDecision.model }
-    );
+    this.logger.debug('Using external provider - applying sanitization');
 
     // NEW ARCHITECTURE: All PII processing is handled in the unified response method
     // This method receives already-processed content and just calls the LLM

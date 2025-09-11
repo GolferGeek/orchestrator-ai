@@ -31,6 +31,10 @@ interface AuthenticatedSocket extends Socket {
       // Development ports
       'http://localhost:7101',
       'http://127.0.0.1:7101',
+      'http://localhost:7201',
+      'http://127.0.0.1:7201',
+      'http://localhost:7202',
+      'http://127.0.0.1:7202',
       'http://localhost:9002',
       'http://127.0.0.1:9002',
       'http://localhost:9003',

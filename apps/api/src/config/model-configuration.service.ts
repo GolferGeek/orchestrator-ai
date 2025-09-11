@@ -29,17 +29,33 @@ export interface SystemModelConfiguration {
 export class ModelConfigurationService {
   private readonly config?: SystemModelConfiguration;
   private readonly globalDefault?: ModelConfiguration;
-  private readonly mode: 'system' | 'global';
+  private readonly globalLocalOnly?: ModelConfiguration;
+  private readonly mode: 'system' | 'global' | 'global_dual';
 
-  constructor(configOrGlobal?: SystemModelConfiguration | ModelConfiguration) {
-    // Support either a full system configuration or a single global default per deployment
-    if (configOrGlobal && 'provider' in (configOrGlobal as any)) {
-      this.mode = 'global';
-      this.globalDefault = configOrGlobal as ModelConfiguration;
-    } else {
-      this.mode = 'system';
-      this.config = (configOrGlobal as SystemModelConfiguration) ?? { agents: {}, environmentDefaults: {} as any };
+  constructor(
+    configOrGlobal?: SystemModelConfiguration | ModelConfiguration | { default: ModelConfiguration; localOnly?: ModelConfiguration },
+  ) {
+    // Accept:
+    // - System model config (agents + environmentDefaults)
+    // - Global single default (provider/model)
+    // - Global dual config { default, localOnly }
+    if (configOrGlobal && typeof configOrGlobal === 'object') {
+      const anyCfg = configOrGlobal as any;
+      if ('default' in anyCfg && !('provider' in anyCfg)) {
+        this.mode = 'global_dual';
+        this.globalDefault = anyCfg.default as ModelConfiguration;
+        this.globalLocalOnly = anyCfg.localOnly as ModelConfiguration | undefined;
+        return;
+      }
+      if ('provider' in anyCfg) {
+        this.mode = 'global';
+        this.globalDefault = anyCfg as ModelConfiguration;
+        return;
+      }
     }
+
+    this.mode = 'system';
+    this.config = (configOrGlobal as SystemModelConfiguration) ?? { agents: {}, environmentDefaults: {} as any };
   }
 
   /**
@@ -51,6 +67,16 @@ export class ModelConfigurationService {
         throw new Error('ModelConfigurationService: global default configuration is required');
       }
       this.assertModel(this.globalDefault, 'global default');
+      return;
+    }
+    if (this.mode === 'global_dual') {
+      if (!this.globalDefault) {
+        throw new Error('ModelConfigurationService: global dual configuration requires a default model');
+      }
+      this.assertModel(this.globalDefault, 'global dual default');
+      if (this.globalLocalOnly) {
+        this.assertModel(this.globalLocalOnly, 'global dual localOnly');
+      }
       return;
     }
     // system mode
@@ -125,11 +151,21 @@ export class ModelConfigurationService {
    * Get the single global default when running in global mode (no NODE_ENV required)
    */
   public getGlobalDefault(): ModelConfiguration {
-    if (this.mode !== 'global' || !this.globalDefault) {
-      throw new Error('ModelConfigurationService: global default not configured');
+    if ((this.mode === 'global' || this.mode === 'global_dual') && this.globalDefault) {
+      this.assertModel(this.globalDefault, 'global default');
+      return this.globalDefault;
     }
-    this.assertModel(this.globalDefault, 'global default');
-    return this.globalDefault;
+    throw new Error('ModelConfigurationService: global default not configured');
+  }
+
+  /**
+   * Get the global local-only default if configured
+   */
+  public getGlobalLocalOnly(): ModelConfiguration | undefined {
+    if (this.mode === 'global_dual') {
+      return this.globalLocalOnly;
+    }
+    return undefined;
   }
 
   /** Indicate current configuration mode */
@@ -157,5 +193,4 @@ export class ModelConfigurationService {
     }
   }
 }
-
 

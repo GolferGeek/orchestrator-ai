@@ -60,6 +60,7 @@
     "apps/web"
   ],
   "dependencies": {
+    "@openai/codex": "^0.34.0",
     "@supabase/supabase-js": "^2.57.2",
     "axios": "^1.10.0",
     "boxen": "^8.0.1",

@@ -8,9 +8,6 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}🚀 Starting Orchestrator AI Development Environment${NC}"
-echo -e "${BLUE}   API Port: 7100${NC}"
-echo -e "${BLUE}   Web Port: 7101${NC}"
-echo -e "${BLUE}   Supabase: Local instance${NC}"
 
 # Function to cleanup on exit
 cleanup() {
@@ -56,6 +53,22 @@ source .env
 set +a
 echo -e "${GREEN}✅ Environment variables loaded${NC}"
 
+# Check if ports are defined in .env
+if [ -z "$API_PORT" ] || [ -z "$WEB_PORT" ]; then
+    echo -e "${RED}❌ Error: API_PORT and WEB_PORT must be defined in .env file${NC}"
+    echo -e "${YELLOW}Please add the following to your .env file:${NC}"
+    echo -e "${YELLOW}API_PORT=7100${NC}"
+    echo -e "${YELLOW}WEB_PORT=7101${NC}"
+    exit 1
+fi
+
+# Set terminal title with port number
+echo -e "\033]0;Orch-port-${API_PORT}\007"
+
+echo -e "${BLUE}   API Port: ${API_PORT}${NC}"
+echo -e "${BLUE}   Web Port: ${WEB_PORT}${NC}"
+echo -e "${BLUE}   Supabase: Local instance${NC}"
+
 # Check if Supabase is running
 echo -e "${BLUE}🗄️  Checking Supabase status...${NC}"
 cd apps/api
@@ -73,8 +86,8 @@ else
 fi
 
 # Start API server
-echo -e "${BLUE}🔥 Starting API server on port 7100...${NC}"
-npm run start:dev &
+echo -e "${BLUE}🔥 Starting API server on port ${API_PORT}...${NC}"
+PORT=${API_PORT} npm run start:dev &
 API_PID=$!
 
 # Wait a moment for API to start
@@ -82,16 +95,16 @@ sleep 3
 
 # Go back to root and start web server
 cd ../../apps/web
-echo -e "${BLUE}🌐 Starting Web server on port 7101...${NC}"
-npm run dev:http &
+echo -e "${BLUE}🌐 Starting Web server on port ${WEB_PORT}...${NC}"
+PORT=${WEB_PORT} npm run dev:http &
 WEB_PID=$!
 
 # Wait a moment for web server to start
 sleep 3
 
 echo -e "${GREEN}✅ Development environment ready!${NC}"
-echo -e "${BLUE}📡 API Server: http://localhost:7100${NC}"
-echo -e "${BLUE}🌐 Web App: http://localhost:7101${NC}"
+echo -e "${BLUE}📡 API Server: http://localhost:${API_PORT}${NC}"
+echo -e "${BLUE}🌐 Web App: http://localhost:${WEB_PORT}${NC}"
 echo -e "${BLUE}🗄️  Supabase Studio: http://127.0.0.1:54323${NC}"
 echo -e "${BLUE}📧 Inbucket (Email): http://127.0.0.1:54324${NC}"
 echo -e "\n${BLUE}Press Ctrl+C to stop all services${NC}"

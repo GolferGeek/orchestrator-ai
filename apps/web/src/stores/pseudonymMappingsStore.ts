@@ -270,6 +270,25 @@ export const usePseudonymMappingsStore = defineStore('pseudonymMappings', () => 
     ]);
   };
 
+  /**
+   * Fetch pseudonym mappings for a specific run ID
+   */
+  const getMappingsByRunId = async (runId: string): Promise<PseudonymMapping[]> => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+      
+      const response = await pseudonymService.getMappingsByRunId(runId);
+      return response || [];
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch mappings by run ID';
+      console.error('Error fetching mappings by run ID:', err);
+      return [];
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
 
   return {
     // State
@@ -302,6 +321,7 @@ export const usePseudonymMappingsStore = defineStore('pseudonymMappings', () => 
     updateFilters,
     updateSortOptions,
     clearFilters,
-    refreshData
+    refreshData,
+    getMappingsByRunId
   };
 });

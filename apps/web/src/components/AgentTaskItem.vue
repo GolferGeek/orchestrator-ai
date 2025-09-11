@@ -511,17 +511,67 @@ const currentTrustScore = computed(() => {
 
 // Sanitization status - read from message metadata (better architecture)
 const pseudonymizedItemsCount = computed(() => {
-  const piiMetadata = props.message.metadata?.piiMetadata;
-  return piiMetadata?.pseudonymInstructions?.targetMatches?.length || 0;
+  // First check for simplified PII metadata
+  const simplifiedPii = props.message.metadata?.simplifiedPii;
+  if (simplifiedPii) {
+    console.log('🏷️ [BADGE-CHECK] Using simplified PII - pseudonym count:', simplifiedPii.pseudonymCount);
+    return simplifiedPii.pseudonymCount || 0;
+  }
+  
+  // Fall back to legacy PII metadata
+  const piiMetadata = props.message.metadata?.piiMetadata || props.message.piiMetadata;
+  
+  // Debug logging for PII badges (only when no simplified metadata)
+  if (props.message.role === 'assistant' && !simplifiedPii) {
+    console.log('🏷️ [BADGE-CHECK] Falling back to legacy PII metadata');
+    if (piiMetadata) {
+      console.log('🏷️ [BADGE-CHECK] Legacy PII structure found');
+    }
+  }
+  
+  // Check the correct structure based on PIIProcessingMetadata type
+  if (piiMetadata?.pseudonymResults?.processedMatches?.length) {
+    return piiMetadata.pseudonymResults.processedMatches.length;
+  }
+  if (piiMetadata?.pseudonymResults?.mappingsCount) {
+    return piiMetadata.pseudonymResults.mappingsCount;
+  }
+  if (piiMetadata?.pseudonymInstructions?.targetMatches?.length) {
+    return piiMetadata.pseudonymInstructions.targetMatches.length;
+  }
+  return 0;
 });
 
 const flaggedItemsCount = computed(() => {
-  const piiMetadata = props.message.metadata?.piiMetadata;
-  return piiMetadata?.detectionResults?.flaggedMatches?.length || 0;
+  // First check for simplified PII metadata
+  const simplifiedPii = props.message.metadata?.simplifiedPii;
+  if (simplifiedPii) {
+    console.log('🚩 [BADGE-CHECK] Using simplified PII - flag count:', simplifiedPii.flagCount);
+    return simplifiedPii.flagCount || 0;
+  }
+  
+  // Fall back to legacy PII metadata
+  const piiMetadata = props.message.metadata?.piiMetadata || props.message.piiMetadata;
+  
+  // Use the correct structure: detectionResults.flaggedMatches
+  if (piiMetadata?.detectionResults?.flaggedMatches?.length) {
+    const count = piiMetadata.detectionResults.flaggedMatches.length;
+    console.log('🚩 [BADGE-CHECK] Falling back to legacy - flaggedMatches:', count);
+    return count;
+  }
+  
+  // Alternative: use totalMatches if available
+  if (piiMetadata?.detectionResults?.totalMatches) {
+    const count = piiMetadata.detectionResults.totalMatches;
+    console.log('🚩 [BADGE-CHECK] Falling back to legacy - totalMatches:', count);
+    return count;
+  }
+  
+  return 0;
 });
 
 const sanitizationStatus = computed(() => {
-  const piiMetadata = props.message.metadata?.piiMetadata;
+  const piiMetadata = props.message.metadata?.piiMetadata || props.message.piiMetadata;
   if (piiMetadata?.showstopperDetected) {
     return 'blocked';
   }

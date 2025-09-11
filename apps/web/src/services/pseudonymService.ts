@@ -411,6 +411,23 @@ class PseudonymService {
       errors
     };
   }
+
+  /**
+   * Get pseudonym mappings for a specific run ID
+   */
+  async getMappingsByRunId(runId: string): Promise<PseudonymMapping[]> {
+    try {
+      const response = await apiService.get(`${this.basePath}/pseudonym/mappings/run/${runId}`);
+      return response.mappings || [];
+    } catch (error) {
+      console.error(`Error fetching mappings for run ${runId}:`, error);
+      // Return empty array if not found
+      if ((error as any)?.response?.status === 404) {
+        return [];
+      }
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
