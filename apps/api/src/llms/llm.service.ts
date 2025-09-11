@@ -13,7 +13,6 @@ import { RunMetadataService, RunMetadata } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';
 import { DataSanitizationService, DetailedSanitizationMetrics } from './data-sanitization.service';
 import { PIIService } from '../services/pii.service';
-import { PseudonymizerService } from '../services/pseudonymizer.service';
 import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
 import { PIIProcessingMetadata } from '../common/types/pii-metadata.types';
 import { LocalModelStatusService } from './local-model-status.service';
@@ -77,7 +76,6 @@ export class LLMService {
     private readonly providerConfigService: ProviderConfigService,
     private readonly dataSanitizationService: DataSanitizationService,
     private readonly piiService: PIIService,
-    private readonly pseudonymizerService: PseudonymizerService,
     private readonly dictionaryPseudonymizerService: DictionaryPseudonymizerService,
     private readonly localModelStatusService: LocalModelStatusService,
     private readonly localLLMService: LocalLLMService,
@@ -130,6 +128,9 @@ export class LLMService {
       dataClassification?: string; // 'public', 'internal', 'confidential', 'restricted'
       // Return format control
       includeMetadata?: boolean; // If true, return object with metadata instead of just string
+      // PII metadata from routing decision
+      piiMetadata?: any; // PIIProcessingMetadata from centralized routing
+      routingDecision?: any; // Full routing decision for context
     },
   ): Promise<string | any> {
     this.logger.debug(`🔍 [LLM-USAGE-DEBUG] generateResponse called with callerType: ${options?.callerType}, callerName: ${options?.callerName}, providerName: ${options?.providerName}, modelName: ${options?.modelName}`);
@@ -139,6 +140,8 @@ export class LLMService {
       // If providerName/modelName are provided, use the unified method
       if (options?.providerName && options?.modelName) {
         this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Using generateUnifiedResponse with explicit provider/model`);
+        this.logger.debug(`🔍 [LLM-PII-DEBUG] Received options.piiMetadata:`, options?.piiMetadata);
+        this.logger.debug(`🔍 [LLM-PII-DEBUG] Received options.routingDecision:`, options?.routingDecision);
 
         // Use the new unified LLM service factory approach
         const config: LLMServiceConfig = {
@@ -161,6 +164,9 @@ export class LLMService {
             authToken: options.authToken,
             currentUser: options.currentUser,
             dataClassification: options.dataClassification,
+            // Pass PII metadata from routing decision
+            piiMetadata: (options as any)?.piiMetadata,
+            routingDecision: (options as any)?.routingDecision,
           }
         };
 
@@ -209,7 +215,7 @@ export class LLMService {
       // Generate request ID for pseudonymization context
       const requestId = options?.conversationId || options?.sessionId || `simple-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      // Step 1: Dictionary-based pseudonymization for external providers
+      // Step 1: Dictionary-based pseudonymization for external providers only
       let sanitizedUserMessage = userMessage;
       let sanitizationContext: any = null;
       
@@ -426,6 +432,9 @@ export class LLMService {
           dataClassification: params.options?.dataClassification,
           authToken: params.options?.authToken,
           currentUser: params.options?.currentUser,
+          // Pass PII metadata from routing decision
+          piiMetadata: params.options?.piiMetadata,
+          routingDecision: params.options?.routingDecision,
         },
       };
 

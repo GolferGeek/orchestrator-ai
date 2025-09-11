@@ -54,11 +54,13 @@ INSERT INTO auth.identities (
     NOW()
 ) ON CONFLICT (id) DO NOTHING;
 
--- Update the public.users table to match the auth user ID and give admin roles
-UPDATE public.users 
-SET id = 'b29a590e-b07f-49df-a25b-574c956b5035',
-    roles = '["user", "admin"]'::jsonb
-WHERE email = 'demo.user@playground.com';
+-- Create the demo user in public.users table
+INSERT INTO public.users (id, email, display_name, roles)
+VALUES ('b29a590e-b07f-49df-a25b-574c956b5035', 'demo.user@playground.com', 'Demo User', '["user", "admin"]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    display_name = EXCLUDED.display_name,
+    roles = EXCLUDED.roles;
 
 -- Verify the setup and create sample data
 DO $$
@@ -90,7 +92,7 @@ BEGIN
         conv_id := gen_random_uuid();
         
         -- Create conversation
-        INSERT INTO public.agent_conversations (
+        INSERT INTO public.conversations (
             id,
             user_id,
             agent_name,
@@ -147,14 +149,29 @@ BEGIN
                 id,
                 conversation_id,
                 user_id,
+                project_step_id,
+                agent_name,
                 title,
-                content,
+                type,
                 created_at,
                 updated_at
             ) VALUES (
                 deliverable_id,
                 conv_id,
                 demo_user_id,
+                NULL,
+                CASE i
+                    WHEN 1 THEN 'Dashboard Builder Agent'
+                    WHEN 2 THEN 'Authentication Agent'
+                    WHEN 3 THEN 'Database Designer Agent'
+                    WHEN 4 THEN 'API Security Agent'
+                    WHEN 5 THEN 'Mobile UX Agent'
+                    WHEN 6 THEN 'Payment Integration Agent'
+                    WHEN 7 THEN 'Email Template Agent'
+                    WHEN 8 THEN 'Search Optimization Agent'
+                    WHEN 9 THEN 'Performance Agent'
+                    WHEN 10 THEN 'Security Audit Agent'
+                END,
                 CASE i
                     WHEN 1 THEN 'Dashboard Component Specification'
                     WHEN 2 THEN 'Authentication Implementation Guide'
@@ -168,16 +185,16 @@ BEGIN
                     WHEN 10 THEN 'Security Audit Checklist'
                 END,
                 CASE i
-                    WHEN 1 THEN 'Comprehensive specification for building a responsive React dashboard component with real-time data visualization, user interactions, and accessibility features.'
-                    WHEN 2 THEN 'Step-by-step implementation guide for JWT-based authentication system with role-based access control, password reset, and session management.'
-                    WHEN 3 THEN 'Complete database schema design with entity relationships, indexes, constraints, and migration strategies for scalable data architecture.'
-                    WHEN 4 THEN 'Strategic document outlining API rate limiting implementation using Redis, token bucket algorithms, and graceful degradation patterns.'
-                    WHEN 5 THEN 'Detailed wireframes and navigation flow for mobile application with intuitive user experience and platform-specific design patterns.'
-                    WHEN 6 THEN 'Comprehensive setup guide for integrating Stripe payment processing with webhook handling, error management, and PCI compliance.'
-                    WHEN 7 THEN 'Design system for responsive email templates with cross-client compatibility, dynamic content, and A/B testing capabilities.'
-                    WHEN 8 THEN 'Technical documentation for implementing full-text search with Elasticsearch, relevance scoring, and performance optimization.'
-                    WHEN 9 THEN 'Detailed performance analysis report with bottleneck identification, optimization recommendations, and implementation roadmap.'
-                    WHEN 10 THEN 'Comprehensive security audit checklist covering OWASP top 10, penetration testing, and compliance requirements.'
+                    WHEN 1 THEN 'specification'
+                    WHEN 2 THEN 'guide'
+                    WHEN 3 THEN 'documentation'
+                    WHEN 4 THEN 'strategy'
+                    WHEN 5 THEN 'wireframes'
+                    WHEN 6 THEN 'guide'
+                    WHEN 7 THEN 'design_system'
+                    WHEN 8 THEN 'documentation'
+                    WHEN 9 THEN 'report'
+                    WHEN 10 THEN 'checklist'
                 END,
                 NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '30 minutes',
                 NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '90 minutes'
@@ -191,21 +208,21 @@ BEGIN
             
             INSERT INTO public.tasks (
                 id,
-                agent_conversation_id,
                 user_id,
+                conversation_id,
                 method,
                 prompt,
                 response,
                 status,
                 started_at,
                 completed_at,
+                metadata,
                 created_at,
-                updated_at,
-                metadata
+                updated_at
             ) VALUES (
                 task_id,
-                conv_id,
                 demo_user_id,
+                conv_id,
                 CASE j
                     WHEN 1 THEN 'setup_project_structure'
                     WHEN 2 THEN 'implement_core_functionality'
@@ -237,8 +254,6 @@ BEGIN
                     WHEN 3 THEN CASE i % 4 WHEN 0 THEN NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '1 hour' * j + INTERVAL '60 minutes' ELSE NULL END
                     WHEN 4 THEN NULL
                 END,
-                NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '1 hour' * j,
-                NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '1 hour' * j + INTERVAL '5 minutes',
                 jsonb_build_object(
                     'title', CASE j
                         WHEN 1 THEN 'Setup project structure'
@@ -255,7 +270,90 @@ BEGIN
                     'estimated_hours', (j * 4) + (i % 3),
                     'complexity', CASE j WHEN 1 THEN 'low' WHEN 2 THEN 'high' ELSE 'medium' END,
                     'tags', ARRAY['development', CASE j WHEN 3 THEN 'testing' WHEN 4 THEN 'deployment' ELSE 'implementation' END]
-                )
+                ),
+                NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '1 hour' * j,
+                NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '1 hour' * j + INTERVAL '5 minutes'
+            );
+        END LOOP;
+
+        -- Create deliverable versions with blog post content
+        FOR d IN 1..1 LOOP
+            INSERT INTO public.deliverable_versions (
+                id,
+                deliverable_id,
+                version_number,
+                content,
+                format,
+                is_current_version,
+                created_by_type,
+                task_id,
+                metadata,
+                file_attachments,
+                created_at,
+                updated_at
+            ) VALUES (
+                gen_random_uuid(),
+                deliverable_id,
+                1,
+                CASE i
+                    WHEN 1 THEN E'# Building a Modern React Dashboard Component\n\nCreating an effective dashboard component is crucial for any modern web application. In this comprehensive guide, we''ll explore the essential elements that make a dashboard both functional and visually appealing.\n\n## Key Design Principles\n\nWhen building a dashboard component, consider these fundamental principles:\n\n- **Clarity**: Information should be immediately understandable\n- **Hierarchy**: Most important metrics should be prominently displayed\n- **Responsiveness**: Works seamlessly across all device sizes\n- **Performance**: Loads quickly even with large datasets\n\n## Implementation Strategy\n\nStart with a clean component structure:\n\n```jsx\nconst Dashboard = () => {\n  const [metrics, setMetrics] = useState([]);\n  const [loading, setLoading] = useState(true);\n  \n  return (\n    <div className="dashboard-container">\n      {/* Your dashboard content */}\n    </div>\n  );\n};\n```\n\n## Best Practices\n\n1. Use React hooks for state management\n2. Implement proper error boundaries\n3. Add loading states for better UX\n4. Consider using a charting library like Chart.js or D3\n\nBy following these guidelines, you''ll create a dashboard that users love to interact with and that scales with your application''s growth.'
+                    WHEN 2 THEN E'# Implementing Secure User Authentication: A Complete Guide\n\nUser authentication is the cornerstone of any secure web application. This guide walks you through implementing a robust authentication system that protects your users and your data.\n\n## Authentication Fundamentals\n\nModern authentication systems should include:\n\n- **Multi-factor authentication (MFA)**\n- **Secure password policies**\n- **Session management**\n- **Rate limiting**\n- **Account lockout protection**\n\n## JWT vs Session-Based Auth\n\n### JSON Web Tokens (JWT)\n\nJWTs offer stateless authentication with these advantages:\n- No server-side session storage required\n- Easy to scale across multiple servers\n- Built-in expiration handling\n\n### Session-Based Authentication\n\nTraditional sessions provide:\n- Immediate revocation capability\n- Server-side control over user sessions\n- Smaller client-side footprint\n\n## Implementation Steps\n\n1. **Choose your authentication strategy**\n2. **Set up secure password hashing** (use bcrypt or similar)\n3. **Implement login/logout endpoints**\n4. **Add middleware for route protection**\n5. **Create user registration flow**\n6. **Add password reset functionality**\n\n## Security Considerations\n\nAlways remember:\n- Hash passwords with salt\n- Use HTTPS in production\n- Implement proper CORS policies\n- Add request rate limiting\n- Log authentication attempts\n\nA well-implemented authentication system is invisible to legitimate users but impenetrable to attackers.'
+                    WHEN 3 THEN E'# Database Schema Design: Building Scalable Data Architecture\n\nA well-designed database schema is the foundation of any successful application. This guide covers essential principles and practical strategies for creating databases that scale.\n\n## Schema Design Principles\n\n### Normalization vs Denormalization\n\n**Normalization** reduces data redundancy:\n- Eliminates duplicate data\n- Ensures data consistency\n- Reduces storage requirements\n- Simplifies data updates\n\n**Denormalization** optimizes for read performance:\n- Faster query execution\n- Reduced join complexity\n- Better suited for analytics\n- May increase storage needs\n\n## Essential Design Patterns\n\n### 1. Primary Keys\nAlways use meaningful primary keys:\n```sql\nCREATE TABLE users (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    email VARCHAR(255) UNIQUE NOT NULL,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n```\n\n### 2. Foreign Key Relationships\nMaintain referential integrity:\n```sql\nCREATE TABLE orders (\n    id UUID PRIMARY KEY,\n    user_id UUID REFERENCES users(id),\n    total_amount DECIMAL(10,2)\n);\n```\n\n### 3. Indexing Strategy\nCreate indexes for frequently queried columns:\n```sql\nCREATE INDEX idx_users_email ON users(email);\nCREATE INDEX idx_orders_user_id ON orders(user_id);\n```\n\n## Performance Optimization\n\n- Use appropriate data types\n- Implement proper indexing\n- Consider partitioning for large tables\n- Monitor query performance regularly\n\nRemember: a good schema design today saves countless hours of refactoring tomorrow.'
+                    WHEN 4 THEN E'# API Rate Limiting: Protecting Your Services from Abuse\n\nRate limiting is essential for maintaining API performance and preventing abuse. Learn how to implement effective rate limiting strategies that protect your infrastructure while providing a smooth experience for legitimate users.\n\n## Why Rate Limiting Matters\n\nWithout proper rate limiting, your API faces several risks:\n- **DDoS attacks** can overwhelm your servers\n- **Resource exhaustion** from excessive requests\n- **Cost escalation** in cloud environments\n- **Poor user experience** due to system slowdowns\n\n## Common Rate Limiting Algorithms\n\n### 1. Token Bucket\n\nThe token bucket algorithm allows bursts while maintaining average limits:\n\n```javascript\nclass TokenBucket {\n  constructor(capacity, refillRate) {\n    this.capacity = capacity;\n    this.tokens = capacity;\n    this.refillRate = refillRate;\n    this.lastRefill = Date.now();\n  }\n  \n  consume(tokens = 1) {\n    this.refill();\n    if (this.tokens >= tokens) {\n      this.tokens -= tokens;\n      return true;\n    }\n    return false;\n  }\n}\n```\n\n### 2. Fixed Window\n\nSimple but effective for most use cases:\n- Reset counters at fixed intervals\n- Easy to implement and understand\n- May allow bursts at window boundaries\n\n### 3. Sliding Window\n\nMore accurate but computationally expensive:\n- Smooth rate limiting\n- No boundary burst issues\n- Requires more memory and processing\n\n## Implementation Best Practices\n\n1. **Choose appropriate limits** based on your infrastructure\n2. **Implement different tiers** for different user types\n3. **Provide clear error messages** when limits are exceeded\n4. **Monitor and adjust** limits based on usage patterns\n5. **Consider geographic distribution** for global applications\n\n## HTTP Status Codes\n\nUse proper status codes:\n- `429 Too Many Requests` for rate limit exceeded\n- Include `Retry-After` header\n- Provide remaining quota in response headers\n\nEffective rate limiting protects your API while maintaining excellent user experience.'
+                    WHEN 5 THEN E'# Mobile App Navigation: Creating Intuitive User Journeys\n\nGreat mobile navigation is invisible – users should effortlessly move through your app without thinking about how to get where they want to go. This guide explores proven patterns and emerging trends in mobile navigation design.\n\n## Navigation Fundamentals\n\n### The 3-Tap Rule\n\nUsers should reach any feature within three taps:\n- **Tap 1**: Open the app\n- **Tap 2**: Navigate to section\n- **Tap 3**: Access specific feature\n\n### Visual Hierarchy\n\nEstablish clear information architecture:\n- Primary navigation (bottom tabs)\n- Secondary navigation (top tabs or lists)\n- Tertiary navigation (action sheets, modals)\n\n## Popular Navigation Patterns\n\n### 1. Bottom Tab Navigation\n\nBest for 3-5 primary sections:\n\n```jsx\n<Tab.Navigator>\n  <Tab.Screen name="Home" component={HomeScreen} />\n  <Tab.Screen name="Search" component={SearchScreen} />\n  <Tab.Screen name="Profile" component={ProfileScreen} />\n</Tab.Navigator>\n```\n\n**Pros:**\n- Thumb-friendly on mobile devices\n- Always visible\n- Clear section separation\n\n**Cons:**\n- Limited to 5 items maximum\n- Takes up screen space\n\n### 2. Drawer Navigation\n\nIdeal for apps with many sections:\n\n```jsx\n<Drawer.Navigator>\n  <Drawer.Screen name="Dashboard" component={DashboardScreen} />\n  <Drawer.Screen name="Settings" component={SettingsScreen} />\n  <Drawer.Screen name="Help" component={HelpScreen} />\n</Drawer.Navigator>\n```\n\n**Pros:**\n- Accommodates many navigation items\n- Saves screen space\n- Can include user information\n\n**Cons:**\n- Hidden by default\n- Requires gesture or button tap\n\n## Accessibility Considerations\n\n- Use semantic labels for screen readers\n- Ensure sufficient touch target sizes (44pt minimum)\n- Provide clear focus indicators\n- Test with voice control features\n\n## Performance Tips\n\n- Implement lazy loading for screens\n- Use native navigation libraries\n- Optimize animations for 60fps\n- Preload critical screens\n\nGreat navigation feels natural and gets users to their destination quickly and efficiently.'
+                    WHEN 6 THEN E'# Payment Integration Made Simple: Stripe Setup Guide\n\nIntegrating payments into your application doesn''t have to be complicated. This comprehensive guide walks you through setting up Stripe payments with security best practices and optimal user experience.\n\n## Why Choose Stripe?\n\nStripe has become the gold standard for online payments:\n- **Security**: PCI DSS compliant out of the box\n- **Global reach**: Supports 135+ currencies\n- **Developer experience**: Excellent APIs and documentation\n- **Features**: Subscriptions, invoicing, marketplaces, and more\n\n## Setup Process\n\n### 1. Account Creation\n\n1. Sign up at stripe.com\n2. Complete business verification\n3. Get your API keys (test and live)\n4. Configure webhook endpoints\n\n### 2. Frontend Integration\n\nInstall Stripe Elements:\n\n```bash\nnpm install @stripe/stripe-js @stripe/react-stripe-js\n```\n\nBasic payment form:\n\n```jsx\nimport { loadStripe } from "@stripe/stripe-js";\nimport { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";\n\nconst PaymentForm = () => {\n  const stripe = useStripe();\n  const elements = useElements();\n  \n  const handleSubmit = async (event) => {\n    event.preventDefault();\n    \n    const { error, paymentMethod } = await stripe.createPaymentMethod({\n      type: "card",\n      card: elements.getElement(CardElement),\n    });\n    \n    if (!error) {\n      // Send paymentMethod.id to your server\n    }\n  };\n  \n  return (\n    <form onSubmit={handleSubmit}>\n      <CardElement />\n      <button type="submit" disabled={!stripe}>\n        Pay Now\n      </button>\n    </form>\n  );\n};\n```\n\n### 3. Backend Integration\n\nServer-side payment processing:\n\n```javascript\nconst stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);\n\napp.post("/create-payment-intent", async (req, res) => {\n  const { amount, currency } = req.body;\n  \n  try {\n    const paymentIntent = await stripe.paymentIntents.create({\n      amount: amount * 100, // Convert to cents\n      currency: currency,\n      metadata: {\n        order_id: req.body.order_id\n      }\n    });\n    \n    res.send({\n      client_secret: paymentIntent.client_secret\n    });\n  } catch (error) {\n    res.status(400).send({ error: error.message });\n  }\n});\n```\n\n## Security Best Practices\n\n1. **Never store card data** on your servers\n2. **Use HTTPS** for all payment pages\n3. **Validate on server-side** before processing\n4. **Implement webhook verification**\n5. **Log payment attempts** for monitoring\n\n## Testing\n\nStripe provides test card numbers:\n- `4242424242424242` - Successful payment\n- `4000000000000002` - Card declined\n- `4000000000009995` - Insufficient funds\n\n## Going Live\n\n1. Complete Stripe account verification\n2. Switch to live API keys\n3. Update webhook endpoints\n4. Test with real payment methods\n5. Monitor payment success rates\n\nWith Stripe, you can focus on your product while trusting that payments are handled securely and reliably.'
+                    WHEN 7 THEN E'# Email Template Systems: Building Responsive Communications\n\nEmail templates are crucial for maintaining consistent brand communication. This guide covers building a flexible, maintainable email template system that works across all email clients.\n\n## Email Template Challenges\n\nEmail rendering is notoriously difficult:\n- **Inconsistent CSS support** across email clients\n- **Limited HTML capabilities**\n- **Responsive design complexity**\n- **Dark mode considerations**\n- **Accessibility requirements**\n\n## Template Architecture\n\n### 1. Base Template Structure\n\n```html\n<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>{{subject}}</title>\n  <style>\n    /* Inline CSS for maximum compatibility */\n    .container { max-width: 600px; margin: 0 auto; }\n    .header { background-color: #f8f9fa; padding: 20px; }\n    .content { padding: 30px 20px; }\n    .footer { background-color: #6c757d; color: white; padding: 15px; }\n  </style>\n</head>\n<body>\n  <div class="container">\n    <div class="header">\n      <img src="{{logo_url}}" alt="{{company_name}}" height="40">\n    </div>\n    <div class="content">\n      {{content}}\n    </div>\n    <div class="footer">\n      <p>{{company_name}} | {{company_address}}</p>\n      <a href="{{unsubscribe_url}}">Unsubscribe</a>\n    </div>\n  </div>\n</body>\n</html>\n```\n\n### 2. Template Components\n\nCreate reusable components:\n\n```javascript\nconst EmailComponents = {\n  button: (text, url, color = "#007bff") => `\n    <table cellpadding="0" cellspacing="0" style="margin: 20px 0;">\n      <tr>\n        <td style="background-color: ${color}; border-radius: 4px; padding: 12px 24px;">\n          <a href="${url}" style="color: white; text-decoration: none; font-weight: bold;">\n            ${text}\n          </a>\n        </td>\n      </tr>\n    </table>\n  `,\n  \n  alert: (message, type = "info") => `\n    <div style="padding: 15px; margin: 20px 0; border-left: 4px solid ${getAlertColor(type)}; background-color: #f8f9fa;">\n      ${message}\n    </div>\n  `\n};\n```\n\n## Template Types\n\n### 1. Transactional Emails\n\n- Welcome messages\n- Password resets\n- Order confirmations\n- Account notifications\n\n### 2. Marketing Emails\n\n- Newsletters\n- Product announcements\n- Promotional campaigns\n- Event invitations\n\n### 3. System Notifications\n\n- Error alerts\n- System maintenance\n- Security notifications\n- Performance reports\n\n## Responsive Design\n\n```css\n@media screen and (max-width: 600px) {\n  .container {\n    width: 100% !important;\n    margin: 0 !important;\n  }\n  \n  .content {\n    padding: 20px 15px !important;\n  }\n  \n  .button {\n    width: 100% !important;\n    text-align: center !important;\n  }\n}\n```\n\n## Testing Strategy\n\n1. **Email client testing**: Gmail, Outlook, Apple Mail\n2. **Device testing**: Desktop, mobile, tablet\n3. **Dark mode testing**: iOS, Android, desktop clients\n4. **Accessibility testing**: Screen readers, keyboard navigation\n\n## Automation and Personalization\n\n```javascript\nconst personalizeEmail = (template, userData) => {\n  return template\n    .replace("{{user_name}}", userData.name)\n    .replace("{{user_email}}", userData.email)\n    .replace("{{custom_content}}", generateCustomContent(userData));\n};\n```\n\n## Performance Optimization\n\n- Optimize images for email\n- Use web-safe fonts\n- Minimize HTML size\n- Implement proper caching\n- Monitor delivery rates\n\nA well-designed email template system ensures consistent, professional communication that engages your audience across all devices and email clients.'
+                    WHEN 8 THEN E'# Search Functionality: Building Fast and Relevant Results\n\nImplementing effective search functionality can make or break user experience. This guide explores different search approaches, from simple text matching to advanced full-text search with ranking algorithms.\n\n## Search Implementation Strategies\n\n### 1. Database Full-Text Search\n\nMost databases offer built-in full-text search:\n\n**PostgreSQL:**\n```sql\n-- Create a text search vector\nALTER TABLE articles ADD COLUMN search_vector tsvector;\n\n-- Update search vector\nUPDATE articles SET search_vector = \n  to_tsvector(''english'', title || '' '' || content);\n\n-- Create index for performance\nCREATE INDEX articles_search_idx ON articles USING gin(search_vector);\n\n-- Search query\nSELECT title, \n       ts_rank(search_vector, query) as rank\nFROM articles, \n     to_tsquery(''english'', ''javascript & tutorial'') query\nWHERE search_vector @@ query\nORDER BY rank DESC;\n```\n\n**MySQL:**\n```sql\n-- Create full-text index\nALTER TABLE articles ADD FULLTEXT(title, content);\n\n-- Search with relevance scoring\nSELECT title,\n       MATCH(title, content) AGAINST(''javascript tutorial'') as relevance\nFROM articles\nWHERE MATCH(title, content) AGAINST(''javascript tutorial'')\nORDER BY relevance DESC;\n```\n\n### 2. Elasticsearch Integration\n\nFor advanced search capabilities:\n\n```javascript\nconst { Client } = require(''@elastic/elasticsearch'');\nconst client = new Client({ node: ''http://localhost:9200'' });\n\n// Index a document\nawait client.index({\n  index: ''articles'',\n  id: 1,\n  body: {\n    title: ''JavaScript Tutorial'',\n    content: ''Learn JavaScript fundamentals...'',\n    tags: [''javascript'', ''tutorial'', ''programming''],\n    published_date: ''2024-01-15''\n  }\n});\n\n// Search with multiple criteria\nconst searchResult = await client.search({\n  index: ''articles'',\n  body: {\n    query: {\n      bool: {\n        must: [\n          {\n            multi_match: {\n              query: ''javascript tutorial'',\n              fields: [''title^2'', ''content'', ''tags'']\n            }\n          }\n        ],\n        filter: [\n          {\n            range: {\n              published_date: {\n                gte: ''2024-01-01''\n              }\n            }\n          }\n        ]\n      }\n    },\n    highlight: {\n      fields: {\n        title: {},\n        content: {}\n      }\n    }\n  }\n});\n```\n\n## Search UX Best Practices\n\n### 1. Auto-complete and Suggestions\n\n```javascript\nconst searchSuggestions = async (query) => {\n  if (query.length < 2) return [];\n  \n  const suggestions = await client.search({\n    index: ''articles'',\n    body: {\n      suggest: {\n        article_suggest: {\n          prefix: query,\n          completion: {\n            field: ''suggest'',\n            size: 5\n          }\n        }\n      }\n    }\n  });\n  \n  return suggestions.body.suggest.article_suggest[0].options;\n};\n```\n\n### 2. Search Filters and Facets\n\n```javascript\nconst searchWithFilters = async (query, filters = {}) => {\n  const must = [{\n    multi_match: {\n      query: query,\n      fields: [''title^2'', ''content'']\n    }\n  }];\n  \n  const filter = [];\n  \n  if (filters.category) {\n    filter.push({ term: { category: filters.category } });\n  }\n  \n  if (filters.dateRange) {\n    filter.push({\n      range: {\n        published_date: {\n          gte: filters.dateRange.start,\n          lte: filters.dateRange.end\n        }\n      }\n    });\n  }\n  \n  return await client.search({\n    index: ''articles'',\n    body: {\n      query: { bool: { must, filter } },\n      aggs: {\n        categories: {\n          terms: { field: ''category'' }\n        },\n        date_histogram: {\n          date_histogram: {\n            field: ''published_date'',\n            calendar_interval: ''month''\n          }\n        }\n      }\n    }\n  });\n};\n```\n\n## Performance Optimization\n\n### 1. Caching Strategies\n\n```javascript\nconst Redis = require(''redis'');\nconst redis = Redis.createClient();\n\nconst searchWithCache = async (query) => {\n  const cacheKey = `search:${query}`;\n  const cached = await redis.get(cacheKey);\n  \n  if (cached) {\n    return JSON.parse(cached);\n  }\n  \n  const results = await performSearch(query);\n  await redis.setex(cacheKey, 300, JSON.stringify(results)); // Cache for 5 minutes\n  \n  return results;\n};\n```\n\n### 2. Search Analytics\n\n```javascript\nconst trackSearch = async (query, results, userId) => {\n  await analytics.track({\n    event: ''Search Performed'',\n    userId: userId,\n    properties: {\n      query: query,\n      results_count: results.length,\n      timestamp: new Date().toISOString()\n    }\n  });\n};\n```\n\n## Search Quality Metrics\n\n- **Click-through rate**: How often users click search results\n- **Zero-result searches**: Queries that return no results\n- **Search abandonment**: Users who search but don''t interact with results\n- **Query reformulation**: Users who modify their search terms\n\nGreat search functionality anticipates user needs and delivers relevant results quickly, making your application more discoverable and user-friendly.'
+                    WHEN 9 THEN E'# Application Performance Optimization: Speed at Scale\n\nPerformance optimization is an ongoing process that directly impacts user experience and business metrics. This comprehensive guide covers frontend, backend, and infrastructure optimizations that deliver measurable improvements.\n\n## Performance Metrics That Matter\n\n### Core Web Vitals\n\n- **Largest Contentful Paint (LCP)**: < 2.5 seconds\n- **First Input Delay (FID)**: < 100 milliseconds\n- **Cumulative Layout Shift (CLS)**: < 0.1\n\n### Additional Metrics\n\n- **First Contentful Paint (FCP)**: < 1.8 seconds\n- **Time to Interactive (TTI)**: < 3.8 seconds\n- **Total Blocking Time (TBT)**: < 200 milliseconds\n\n## Frontend Optimization\n\n### 1. Code Splitting and Lazy Loading\n\n```javascript\n// Route-based code splitting\nconst Dashboard = lazy(() => import(''./Dashboard''));\nconst Settings = lazy(() => import(''./Settings''));\n\nfunction App() {\n  return (\n    <Router>\n      <Suspense fallback={<div>Loading...</div>}>\n        <Routes>\n          <Route path="/dashboard" element={<Dashboard />} />\n          <Route path="/settings" element={<Settings />} />\n        </Routes>\n      </Suspense>\n    </Router>\n  );\n}\n\n// Component-level lazy loading\nconst HeavyChart = lazy(() => \n  import(''./HeavyChart'').then(module => ({\n    default: module.HeavyChart\n  }))\n);\n```\n\n### 2. Image Optimization\n\n```javascript\n// Modern image formats with fallbacks\nconst OptimizedImage = ({ src, alt, width, height }) => {\n  return (\n    <picture>\n      <source srcSet={`${src}.webp`} type="image/webp" />\n      <source srcSet={`${src}.avif`} type="image/avif" />\n      <img \n        src={`${src}.jpg`}\n        alt={alt}\n        width={width}\n        height={height}\n        loading="lazy"\n        decoding="async"\n      />\n    </picture>\n  );\n};\n\n// Responsive images\nconst ResponsiveImage = ({ src, alt }) => {\n  const srcSet = [\n    `${src}-400w.jpg 400w`,\n    `${src}-800w.jpg 800w`,\n    `${src}-1200w.jpg 1200w`\n  ].join('', '');\n  \n  return (\n    <img \n      src={`${src}-800w.jpg`}\n      srcSet={srcSet}\n      sizes="(max-width: 400px) 400px, (max-width: 800px) 800px, 1200px"\n      alt={alt}\n      loading="lazy"\n    />\n  );\n};\n```\n\n### 3. Memory Management\n\n```javascript\n// Proper cleanup in React\nuseEffect(() => {\n  const subscription = api.subscribe(data => {\n    setData(data);\n  });\n  \n  const timeoutId = setTimeout(() => {\n    // Some delayed operation\n  }, 5000);\n  \n  // Cleanup function\n  return () => {\n    subscription.unsubscribe();\n    clearTimeout(timeoutId);\n  };\n}, []);\n\n// Memoization for expensive calculations\nconst expensiveValue = useMemo(() => {\n  return heavyCalculation(data);\n}, [data]);\n\nconst memoizedComponent = memo(({ items }) => {\n  return (\n    <ul>\n      {items.map(item => <li key={item.id}>{item.name}</li>)}\n    </ul>\n  );\n});\n```\n\n## Backend Optimization\n\n### 1. Database Query Optimization\n\n```sql\n-- Add appropriate indexes\nCREATE INDEX idx_orders_user_id_created_at ON orders(user_id, created_at DESC);\nCREATE INDEX idx_products_category_price ON products(category, price);\n\n-- Optimize queries with EXPLAIN\nEXPLAIN ANALYZE\nSELECT p.name, p.price, c.name as category_name\nFROM products p\nJOIN categories c ON p.category_id = c.id\nWHERE p.price BETWEEN 10 AND 100\nAND c.active = true\nORDER BY p.created_at DESC\nLIMIT 20;\n\n-- Use query result caching\nSELECT /*+ USE_QUERY_CACHE */ \n       product_id, name, price\nFROM products\nWHERE category = ''electronics''\nAND price < 500;\n```\n\n### 2. API Response Optimization\n\n```javascript\n// Implement response compression\nconst compression = require(''compression'');\napp.use(compression());\n\n// Add response caching headers\napp.get(''/api/products'', (req, res) => {\n  res.set({\n    ''Cache-Control'': ''public, max-age=3600'', // 1 hour\n    ''ETag'': generateETag(products),\n    ''Last-Modified'': lastModifiedDate\n  });\n  \n  res.json(products);\n});\n\n// Implement pagination\napp.get(''/api/products'', async (req, res) => {\n  const page = parseInt(req.query.page) || 1;\n  const limit = parseInt(req.query.limit) || 20;\n  const offset = (page - 1) * limit;\n  \n  const products = await Product.findAll({\n    limit,\n    offset,\n    order: [[''created_at'', ''DESC'']]\n  });\n  \n  const total = await Product.count();\n  \n  res.json({\n    data: products,\n    pagination: {\n      page,\n      limit,\n      total,\n      pages: Math.ceil(total / limit)\n    }\n  });\n});\n```\n\n## Infrastructure Optimization\n\n### 1. CDN Configuration\n\n```javascript\n// CloudFront distribution settings\nconst distributionConfig = {\n  Origins: [{\n    DomainName: ''api.example.com'',\n    CustomOriginConfig: {\n      HTTPPort: 443,\n      OriginProtocolPolicy: ''https-only''\n    }\n  }],\n  DefaultCacheBehavior: {\n    TargetOriginId: ''api-origin'',\n    ViewerProtocolPolicy: ''redirect-to-https'',\n    CachePolicyId: ''custom-cache-policy'',\n    Compress: true\n  },\n  CacheBehaviors: [{\n    PathPattern: ''/static/*'',\n    CachePolicyId: ''static-assets-policy'',\n    TTL: 31536000 // 1 year\n  }]\n};\n```\n\n### 2. Load Balancing\n\n```yaml\n# nginx.conf\nupstream app_servers {\n    least_conn;\n    server app1:3000 weight=3;\n    server app2:3000 weight=3;\n    server app3:3000 weight=2;\n}\n\nserver {\n    listen 80;\n    server_name example.com;\n    \n    location / {\n        proxy_pass http://app_servers;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_cache_bypass $http_upgrade;\n    }\n    \n    location /static/ {\n        expires 1y;\n        add_header Cache-Control "public, immutable";\n        root /var/www;\n    }\n}\n```\n\n## Monitoring and Alerting\n\n```javascript\n// Performance monitoring\nconst performanceObserver = new PerformanceObserver((list) => {\n  for (const entry of list.getEntries()) {\n    if (entry.entryType === ''navigation'') {\n      analytics.track(''Page Load Performance'', {\n        loadTime: entry.loadEventEnd - entry.loadEventStart,\n        domContentLoaded: entry.domContentLoadedEventEnd - entry.domContentLoadedEventStart,\n        firstPaint: entry.responseEnd - entry.requestStart\n      });\n    }\n  }\n});\n\nperformanceObserver.observe({ entryTypes: [''navigation'', ''paint''] });\n```\n\nRemember: measure first, optimize second. Use real user monitoring to identify bottlenecks, then apply targeted optimizations that provide the biggest impact for your specific use case.'
+                    WHEN 10 THEN E'# Security Audit Checklist: Protecting Your Application\n\nA comprehensive security audit is essential for protecting your application and user data. This checklist covers the most critical security areas that every application should address.\n\n## Authentication and Authorization\n\n### ✅ Authentication Security\n\n- [ ] **Strong password policies** enforced (minimum 8 characters, complexity requirements)\n- [ ] **Multi-factor authentication** available for sensitive accounts\n- [ ] **Account lockout** after failed login attempts (5-10 attempts)\n- [ ] **Password reset** tokens expire within reasonable time (15-30 minutes)\n- [ ] **Session management** with secure cookies and proper expiration\n- [ ] **Brute force protection** implemented (rate limiting, CAPTCHA)\n\n### ✅ Authorization Controls\n\n- [ ] **Principle of least privilege** applied to all user roles\n- [ ] **Role-based access control** properly implemented\n- [ ] **API endpoints** protected with proper authentication\n- [ ] **Direct object references** validated (prevent IDOR attacks)\n- [ ] **Admin functions** require additional verification\n\n## Data Protection\n\n### ✅ Data Encryption\n\n```javascript\n// Encrypt sensitive data at rest\nconst crypto = require(''crypto'');\n\nconst encryptData = (text, key) => {\n  const algorithm = ''aes-256-gcm'';\n  const iv = crypto.randomBytes(16);\n  const cipher = crypto.createCipher(algorithm, key, iv);\n  \n  let encrypted = cipher.update(text, ''utf8'', ''hex'');\n  encrypted += cipher.final(''hex'');\n  \n  const authTag = cipher.getAuthTag();\n  \n  return {\n    encrypted,\n    iv: iv.toString(''hex''),\n    authTag: authTag.toString(''hex'')\n  };\n};\n```\n\n### ✅ Data Handling\n\n- [ ] **PII data** properly classified and protected\n- [ ] **Data retention** policies implemented\n- [ ] **Secure data deletion** when no longer needed\n- [ ] **Database encryption** enabled for sensitive tables\n- [ ] **Backup encryption** for all data backups\n- [ ] **Data masking** in non-production environments\n\n## Input Validation and Sanitization\n\n### ✅ SQL Injection Prevention\n\n```javascript\n// Use parameterized queries\nconst getUserById = async (userId) => {\n  // ✅ SECURE: Parameterized query\n  const query = ''SELECT * FROM users WHERE id = $1'';\n  const result = await db.query(query, [userId]);\n  return result.rows[0];\n};\n\n// ❌ VULNERABLE: String concatenation\n// const query = `SELECT * FROM users WHERE id = ${userId}`;\n```\n\n### ✅ XSS Prevention\n\n```javascript\n// Sanitize user input\nconst DOMPurify = require(''dompurify'');\n\nconst sanitizeInput = (userInput) => {\n  return DOMPurify.sanitize(userInput, {\n    ALLOWED_TAGS: [''b'', ''i'', ''em'', ''strong''],\n    ALLOWED_ATTR: []\n  });\n};\n\n// Content Security Policy headers\napp.use((req, res, next) => {\n  res.setHeader(\n    ''Content-Security-Policy'',\n    "default-src ''self''; script-src ''self'' ''unsafe-inline''; style-src ''self'' ''unsafe-inline''"\n  );\n  next();\n});\n```\n\n### ✅ Input Validation Checklist\n\n- [ ] **All user inputs** validated on both client and server\n- [ ] **File uploads** restricted by type, size, and content\n- [ ] **Email addresses** properly validated\n- [ ] **URLs** validated before processing\n- [ ] **JSON payloads** size-limited and schema-validated\n\n## Network Security\n\n### ✅ HTTPS and Transport Security\n\n```javascript\n// Force HTTPS in production\napp.use((req, res, next) => {\n  if (process.env.NODE_ENV === ''production'' && !req.secure) {\n    return res.redirect(301, `https://${req.headers.host}${req.url}`);\n  }\n  next();\n});\n\n// Security headers\nconst helmet = require(''helmet'');\napp.use(helmet({\n  hsts: {\n    maxAge: 31536000,\n    includeSubDomains: true,\n    preload: true\n  },\n  contentSecurityPolicy: {\n    directives: {\n      defaultSrc: ["''self''"],\n      styleSrc: ["''self''", "''unsafe-inline''"],\n      scriptSrc: ["''self''"],\n      imgSrc: ["''self''", "data:", "https:"],\n    },\n  },\n}));\n```\n\n### ✅ Network Security Checklist\n\n- [ ] **TLS 1.2+** enforced for all connections\n- [ ] **Certificate pinning** implemented for mobile apps\n- [ ] **CORS policies** properly configured\n- [ ] **Rate limiting** on all public endpoints\n- [ ] **DDoS protection** in place\n- [ ] **Firewall rules** restricting unnecessary ports\n\n## Infrastructure Security\n\n### ✅ Server Hardening\n\n```bash\n# Update system packages\nsudo apt update && sudo apt upgrade -y\n\n# Configure firewall\nsudo ufw default deny incoming\nsudo ufw default allow outgoing\nsudo ufw allow ssh\nsudo ufw allow 80\nsudo ufw allow 443\nsudo ufw enable\n\n# Disable unnecessary services\nsudo systemctl disable apache2\nsudo systemctl stop apache2\n\n# Set up fail2ban for SSH protection\nsudo apt install fail2ban\nsudo systemctl enable fail2ban\n```\n\n### ✅ Infrastructure Checklist\n\n- [ ] **Operating systems** kept up to date\n- [ ] **Unnecessary services** disabled\n- [ ] **SSH keys** used instead of passwords\n- [ ] **Regular security patches** applied\n- [ ] **Monitoring and logging** enabled\n- [ ] **Backup and recovery** procedures tested\n\n## Application Security\n\n### ✅ Dependency Management\n\n```bash\n# Audit npm dependencies\nnpm audit\nnpm audit fix\n\n# Use Snyk for continuous monitoring\nnpx snyk test\nnpx snyk monitor\n\n# Keep dependencies updated\nnpm outdated\nnpm update\n```\n\n### ✅ Error Handling\n\n```javascript\n// Secure error handling\napp.use((err, req, res, next) => {\n  // Log full error details internally\n  console.error(err.stack);\n  \n  // Return generic error to client\n  if (process.env.NODE_ENV === ''production'') {\n    res.status(500).json({\n      error: ''Internal server error'',\n      message: ''Something went wrong''\n    });\n  } else {\n    res.status(500).json({\n      error: err.message,\n      stack: err.stack\n    });\n  }\n});\n```\n\n## Compliance and Documentation\n\n### ✅ Compliance Checklist\n\n- [ ] **GDPR compliance** for EU users\n- [ ] **CCPA compliance** for California users\n- [ ] **Privacy policy** updated and accessible\n- [ ] **Terms of service** current\n- [ ] **Data processing agreements** with third parties\n- [ ] **Incident response plan** documented and tested\n\n## Security Testing\n\n### ✅ Regular Security Testing\n\n- [ ] **Automated security scanning** integrated into CI/CD\n- [ ] **Penetration testing** performed annually\n- [ ] **Code reviews** include security considerations\n- [ ] **Vulnerability assessments** conducted quarterly\n- [ ] **Security training** provided to development team\n\nRemember: security is not a one-time task but an ongoing process. Regular audits, updates, and monitoring are essential for maintaining a secure application.'
+                END,
+                'markdown',
+                true,
+                'ai_response',
+                NULL, -- task_id
+                jsonb_build_object(
+                    'word_count', CASE i
+                        WHEN 1 THEN 850
+                        WHEN 2 THEN 1200
+                        WHEN 3 THEN 950
+                        WHEN 4 THEN 1100
+                        WHEN 5 THEN 1050
+                        WHEN 6 THEN 1300
+                        WHEN 7 THEN 1150
+                        WHEN 8 THEN 1250
+                        WHEN 9 THEN 1400
+                        WHEN 10 THEN 1350
+                    END,
+                    'reading_time_minutes', CASE i
+                        WHEN 1 THEN 4
+                        WHEN 2 THEN 5
+                        WHEN 3 THEN 4
+                        WHEN 4 THEN 5
+                        WHEN 5 THEN 5
+                        WHEN 6 THEN 6
+                        WHEN 7 THEN 5
+                        WHEN 8 THEN 6
+                        WHEN 9 THEN 6
+                        WHEN 10 THEN 6
+                    END,
+                    'content_type', 'blog_post',
+                    'generated_by', 'ai_agent',
+                    'topics', CASE i
+                        WHEN 1 THEN '["react", "dashboard", "components", "frontend"]'::jsonb
+                        WHEN 2 THEN '["authentication", "security", "jwt", "backend"]'::jsonb
+                        WHEN 3 THEN '["database", "schema", "design", "sql"]'::jsonb
+                        WHEN 4 THEN '["api", "rate-limiting", "performance", "security"]'::jsonb
+                        WHEN 5 THEN '["mobile", "navigation", "ux", "design"]'::jsonb
+                        WHEN 6 THEN '["payments", "stripe", "integration", "security"]'::jsonb
+                        WHEN 7 THEN '["email", "templates", "communication", "html"]'::jsonb
+                        WHEN 8 THEN '["search", "elasticsearch", "performance", "ux"]'::jsonb
+                        WHEN 9 THEN '["performance", "optimization", "frontend", "backend"]'::jsonb
+                        WHEN 10 THEN '["security", "audit", "checklist", "compliance"]'::jsonb
+                    END
+                ),
+                '{}', -- file_attachments
+                NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '2 hours',
+                NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '2 hours'
             );
         END LOOP;
 
@@ -263,13 +361,21 @@ BEGIN
         FOR j IN 1..(3 + (i % 3)) LOOP
             usage_id := gen_random_uuid();
             
-            -- Get a random model with matching provider
+            -- Get a random model with matching provider (with fallback)
             WITH random_model AS (
+                SELECT 
+                    COALESCE(lm.provider_name, 'ollama') as provider_name,
+                    COALESCE(lm.model_name, 'llama3.2:latest') as model_name
+                FROM (
                 SELECT provider_name, model_name 
                 FROM public.llm_models 
                 ORDER BY random() 
                 LIMIT 1 
-                OFFSET ((i + j) % (SELECT COUNT(*) FROM public.llm_models))
+                ) lm
+                UNION ALL
+                SELECT 'ollama' as provider_name, 'llama3.2:latest' as model_name
+                WHERE NOT EXISTS (SELECT 1 FROM public.llm_models)
+                LIMIT 1
             )
             INSERT INTO public.llm_usage (
                 id,
@@ -285,13 +391,11 @@ BEGIN
                 duration_ms,
                 status,
                 caller_type,
-                caller_name,
                 agent_name,
                 data_classification,
                 started_at,
                 completed_at,
-                created_at,
-                updated_at
+                created_at
             ) 
             SELECT 
                 usage_id,
@@ -311,11 +415,6 @@ BEGIN
                     WHEN 1 THEN 'api_call'
                     ELSE 'background_task'
                 END,
-                CASE j % 3
-                    WHEN 0 THEN 'chat_interface'
-                    WHEN 1 THEN 'api_endpoint'
-                    ELSE 'scheduled_job'
-                END,
                 CASE j % 4
                     WHEN 0 THEN 'conversation_agent'
                     WHEN 1 THEN 'task_agent'
@@ -328,8 +427,7 @@ BEGIN
                     ELSE 'confidential'
                 END,
                 NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '1 hour' * j,
-                NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '1 hour' * j + INTERVAL '1 minute' * ((1500 + (i * 200) + (j * 100)) / 1000),
-                NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '1 hour' * j + INTERVAL '2 minutes',
+                NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '1 hour' * j + INTERVAL '1 second' * (1500 + (i * 200) + (j * 100)),
                 NOW() - INTERVAL '1 day' * (10 - i) + INTERVAL '1 hour' * j + INTERVAL '2 minutes'
             FROM random_model rm;
         END LOOP;
@@ -352,24 +450,8 @@ END $$;
 -- This ensures the database is the single source of truth for PII policy enforcement
 -- Note: severity and data_type columns are added by migration 20250115000001_add_pii_pattern_severity_columns.sql
 
--- Clean up existing inconsistent data
--- Remove sample data patterns (they don't have proper severity levels)
-DELETE FROM public.redaction_patterns WHERE description LIKE '%sample data%';
-
--- Remove any existing built-in patterns to avoid duplicates
-DELETE FROM public.redaction_patterns WHERE category = 'pii_builtin';
-
--- Remove old sample patterns from migrations that don't have proper severity/data_type
-DELETE FROM public.redaction_patterns WHERE category IN ('corporate', 'financial', 'network', 'support');
-
--- Remove patterns with invalid categories that should be built-in
-DELETE FROM public.redaction_patterns WHERE name IN (
-    'github_token', 'aws_access_key', 'jwt_token', 'bearer_token', 
-    'api_key_generic', 'slack_webhook', 'database_connection',
-    'docker_registry_token', 'stripe_key', 'openai_api_key'
-);
-
 -- Insert all built-in PII patterns with proper severity levels
+-- Using ON CONFLICT to make this idempotent (safe to run multiple times)
 INSERT INTO public.redaction_patterns (
     name, 
     pattern_regex, 
@@ -598,12 +680,19 @@ INSERT INTO public.redaction_patterns (
  1, 
  'showstopper', 
  'custom', 
- true);
+ true)
+ON CONFLICT (name) DO UPDATE SET
+    pattern_regex = EXCLUDED.pattern_regex,
+    replacement = EXCLUDED.replacement,
+    description = EXCLUDED.description,
+    category = EXCLUDED.category,
+    priority = EXCLUDED.priority,
+    severity = EXCLUDED.severity,
+    data_type = EXCLUDED.data_type,
+    is_active = EXCLUDED.is_active,
+    updated_at = CURRENT_TIMESTAMP;
 
--- Update statistics
-UPDATE public.redaction_patterns 
-SET updated_at = CURRENT_TIMESTAMP 
-WHERE category = 'pii_builtin';
+-- Statistics will be updated automatically via ON CONFLICT clause above
 
 -- Log the PII patterns seeding operation
 DO $$
@@ -639,6 +728,35 @@ BEGIN
     RAISE NOTICE '   - Social Security Numbers are correctly marked as SHOWSTOPPERS ✅';
 END $$;
 
+-- =====================================
+-- CIDAFM COMMANDS SEEDING
+-- =====================================
+
+-- Insert basic CIDAFM commands
+INSERT INTO public.cidafm_commands (
+    id,
+    type,
+    name,
+    description,
+    default_active,
+    is_builtin,
+    created_at,
+    updated_at
+) VALUES
+('550e8400-e29b-41d4-a716-446655440001', '^', 'format_markdown', 'Format response as Markdown with proper headers and structure', false, true, NOW(), NOW()),
+('550e8400-e29b-41d4-a716-446655440002', '^', 'format_json', 'Format response as JSON with proper structure', false, true, NOW(), NOW()),
+('550e8400-e29b-41d4-a716-446655440003', '&', 'include_examples', 'Include practical examples in the response', false, true, NOW(), NOW()),
+('550e8400-e29b-41d4-a716-446655440004', '&', 'include_code', 'Include code snippets and implementation details', false, true, NOW(), NOW()),
+('550e8400-e29b-41d4-a716-446655440005', '!', 'exclude_theory', 'Focus on practical implementation, avoid theoretical explanations', false, true, NOW(), NOW()),
+('550e8400-e29b-41d4-a716-446655440006', '!', 'exclude_warnings', 'Skip safety warnings and disclaimers', false, true, NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Log CIDAFM seeding completion
+DO $$
+BEGIN
+    RAISE NOTICE '✅ CIDAFM commands seeded successfully - 6 built-in commands available';
+END $$;
+
 -- Add custom pseudonyms for specific entities (dictionary-based pseudonymization)
 -- These are the only entities that will be pseudonymized during LLM processing
 INSERT INTO public.pseudonym_dictionaries (
@@ -653,3 +771,120 @@ INSERT INTO public.pseudonym_dictionaries (
 ('Matt Weber', '@person_matt', 'name', 'person', 1, true),
 ('GolferGeek', '@user_golfer', 'username', 'person', 1, true),
 ('Orchestrator AI', '@company_orchestrator', 'custom', 'business', 1, true);
+
+-- =====================================
+-- LLM PROVIDERS AND MODELS
+-- =====================================
+
+-- Insert LLM Providers (5 providers)
+INSERT INTO public.llm_providers (name, display_name, api_base_url, configuration_json, is_active) VALUES
+('openai', 'OpenAI', 'https://api.openai.com/v1', '{"timeout": 30, "max_retries": 3}'::jsonb, true),
+('google', 'Google Gemini', 'https://generativelanguage.googleapis.com/v1', '{"timeout": 30, "max_retries": 3}'::jsonb, true),
+('anthropic', 'Anthropic Claude', 'https://api.anthropic.com/v1', '{"timeout": 30, "max_retries": 3}'::jsonb, true),
+('grok', 'Grok (xAI)', 'https://api.xai.com', '{"timeout": 30, "max_retries": 3}'::jsonb, true),
+('ollama', 'Ollama', 'http://localhost:11434', '{"timeout": 30, "max_retries": 3, "local": true}'::jsonb, true)
+ON CONFLICT (name) DO NOTHING;
+
+-- Insert LLM Models with corrections based on your notes
+-- OPENAI MODELS (4 models)
+INSERT INTO public.llm_models (
+    model_name, provider_name, display_name, model_type, context_window, max_output_tokens,
+    pricing_info_json, capabilities, is_active, model_tier
+) VALUES
+('gpt-5', 'openai', 'GPT-5', 'text-generation', 128000, 8192, '{}', '[]', true, 'fast-thinking'),
+('o4-mini', 'openai', 'o4-mini', 'text-generation', 32000, 8192, '{}', '[]', true, 'general'),
+('o1-preview', 'openai', 'o1-preview', 'text-generation', 16000, 4096, '{}', '[]', true, 'general'),
+('o1-mini', 'openai', 'o1-mini', 'text-generation', 8000, 2048, '{}', '[]', true, 'ultra-fast');
+
+-- GOOGLE MODELS (4 models)
+INSERT INTO public.llm_models (
+    model_name, provider_name, display_name, model_type, context_window, max_output_tokens,
+    pricing_info_json, capabilities, is_active, model_tier
+) VALUES
+('gemini-2.5-pro', 'google', 'Gemini 2.5 Pro', 'text-generation', 1000000, 8192, '{}', '[]', true, 'fast-thinking'),
+('gemini-2.5-flash', 'google', 'Gemini 2.5 Flash', 'text-generation', 1000000, 8192, '{}', '[]', true, 'ultra-fast'),
+('gemini-2.0-pro', 'google', 'Gemini 2.0 Pro', 'text-generation', 1000000, 8192, '{}', '[]', true, 'general'),
+('gemini-2.0-flash', 'google', 'Gemini 2.0 Flash', 'text-generation', 1048576, 8192, '{}', '[]', true, 'general');
+
+-- ANTHROPIC MODELS (4 models) - with 3-5 naming fix
+INSERT INTO public.llm_models (
+    model_name, provider_name, display_name, model_type, context_window, max_output_tokens,
+    pricing_info_json, capabilities, is_active, model_tier
+) VALUES
+('claude-4-opus', 'anthropic', 'Claude 4 Opus', 'text-generation', 200000, 8192,
+ '{"input_cost_per_token": 0.000015, "output_cost_per_token": 0.000075}'::jsonb,
+ '["function_calling", "streaming", "vision", "coding", "reasoning", "agentic"]'::jsonb, true, 'fast-thinking'),
+
+('claude-4-sonnet', 'anthropic', 'Claude 4 Sonnet', 'text-generation', 200000, 64000,
+ '{"input_cost_per_token": 0.000003, "output_cost_per_token": 0.000015}'::jsonb,
+ '["function_calling", "streaming", "vision", "balanced", "high_output"]'::jsonb, true, 'general'),
+
+('claude-3-5-haiku-20241022', 'anthropic', 'Claude 3.5 Haiku', 'text-generation', 200000, 8192,
+ '{"input_cost_per_token": 0.0008, "output_cost_per_token": 0.004}'::jsonb,
+ '["streaming", "fast", "low_latency", "cost_effective"]'::jsonb, true, 'ultra-fast'),
+
+('claude-3-5-sonnet-20241022', 'anthropic', 'Claude 3.5 Sonnet', 'text-generation', 200000, 8192,
+ '{"input_cost_per_token": 0.000003, "output_cost_per_token": 0.000015}'::jsonb,
+ '["function_calling", "streaming", "balanced", "reasoning"]'::jsonb, true, 'general');
+
+-- GROK MODELS (5 models)
+INSERT INTO public.llm_models (
+    model_name, provider_name, display_name, model_type, context_window, max_output_tokens,
+    pricing_info_json, capabilities, is_active, model_tier
+) VALUES
+('grok-4', 'grok', 'Grok 4', 'text-generation', 128000, 8192,
+ '{"subscription_tier": "SuperGrok", "monthly_cost": 40, "api_pricing": "custom"}'::jsonb,
+ '["function_calling", "streaming", "tool_use", "real_time_search", "multimodal"]'::jsonb, true, 'fast-thinking'),
+
+('grok-4-heavy', 'grok', 'Grok 4 Heavy', 'text-generation', 256000, 8192,
+ '{"subscription_tier": "SuperGrok Heavy", "monthly_cost": 120, "api_pricing": "custom"}'::jsonb,
+ '["function_calling", "streaming", "tool_use", "max_accuracy", "enterprise"]'::jsonb, true, 'fast-thinking'),
+
+('grok-3', 'grok', 'Grok 3', 'text-generation', 128000, 8192,
+ '{"subscription_tier": "Standard Grok", "monthly_cost": 20, "api_pricing": "custom"}'::jsonb,
+ '["streaming", "reasoning", "think_mode"]'::jsonb, true, 'general'),
+
+('grok-3-mini', 'grok', 'Grok 3 mini', 'text-generation', 64000, 4096,
+ '{"subscription_tier": "included", "api_pricing": "low_cost"}'::jsonb,
+ '["streaming", "fast", "lower_accuracy"]'::jsonb, true, 'ultra-fast'),
+
+('grok-code-fast-1', 'grok', 'Grok Code Fast 1', 'text-generation', 256000, 8192,
+ '{"api_only": true, "pricing": "custom", "specialized": "coding"}'::jsonb,
+ '["function_calling", "tool_use", "coding", "ide_integration", "agentic"]'::jsonb, true, 'general');
+
+-- OLLAMA MODELS (6 models - excluding deepseek-r1:70b and gpt-oss:120b per your notes)
+INSERT INTO public.llm_models (
+    model_name, provider_name, display_name, model_type, context_window, max_output_tokens,
+    pricing_info_json, capabilities, is_local, model_tier, loading_priority, is_active
+) VALUES
+('llama3.2:latest', 'ollama', 'Llama 3.2 Latest', 'text-generation', 128000, 4096,
+ '{"local": true, "cost": 0}'::jsonb,
+ '["streaming", "local", "open_source"]'::jsonb,
+ true, 'general', 8, true),
+
+('qwen3:8b', 'ollama', 'Qwen 3 8B', 'text-generation', 32000, 4096,
+ '{"local": true, "cost": 0}'::jsonb,
+ '["streaming", "local", "multilingual", "efficient"]'::jsonb,
+ true, 'general', 7, true),
+
+('deepseek-r1:latest', 'ollama', 'DeepSeek R1 Latest', 'text-generation', 64000, 4096,
+ '{"local": true, "cost": 0}'::jsonb,
+ '["streaming", "local", "reasoning", "coding"]'::jsonb,
+ true, 'fast-thinking', 9, true),
+
+('qwq:latest', 'ollama', 'QwQ Latest', 'text-generation', 32000, 4096,
+ '{"local": true, "cost": 0}'::jsonb,
+ '["streaming", "local", "reasoning"]'::jsonb,
+ true, 'general', 5, true),
+
+('gpt-oss:20b', 'ollama', 'GPT-OSS 20B', 'text-generation', 32000, 4096,
+ '{"local": true, "cost": 0}'::jsonb,
+ '["streaming", "local", "open_source", "efficient"]'::jsonb,
+ true, 'ultra-fast', 8, true),
+
+('phi3.5:latest', 'ollama', 'Phi 3.5 Latest', 'text-generation', 32000, 4096,
+ '{"local": true, "cost": 0}'::jsonb,
+ '["streaming", "local", "efficient"]'::jsonb,
+ true, 'ultra-fast', 6, true)
+
+ON CONFLICT (provider_name, model_name) DO NOTHING;
