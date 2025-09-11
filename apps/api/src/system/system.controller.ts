@@ -1,13 +1,28 @@
-import { Controller, Get, Query, Logger } from '@nestjs/common';
+import { Controller, Get, Put, Body, Query, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SupabaseService } from '../supabase/supabase.service';
+import { IsOptional, IsObject, IsString } from 'class-validator';
+import { ConfigService } from '@nestjs/config';
+
+class UpdateGlobalModelConfigDto {
+  @IsObject()
+  @IsOptional()
+  config?: Record<string, any>;
+
+  @IsString()
+  @IsOptional()
+  config_json?: string; // alternative: raw JSON string
+}
 
 @ApiTags('System')
 @Controller('system')
 export class SystemController {
   private readonly logger = new Logger(SystemController.name);
 
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * Get basic system health status
@@ -159,6 +174,80 @@ export class SystemController {
     } catch (error) {
       this.logger.error('Failed to get system analytics', error);
       throw error;
+    }
+  }
+
+  // ==============================
+  // Global Model Config Management
+  // ==============================
+
+  @Get('model-config/global')
+  @ApiOperation({ summary: 'Get global model configuration (DB-backed)' })
+  @ApiResponse({ status: 200, description: 'Returns DB value and env override presence' })
+  async getGlobalModelConfig() {
+    try {
+      const envOverride = this.configService.get<string>('MODEL_CONFIG_GLOBAL_JSON');
+      const client = this.supabaseService.getServiceClient();
+      const { data, error } = await client.rpc('get_global_model_config');
+      if (error) {
+        throw new Error(error.message);
+      }
+      const dbConfig = typeof data === 'string' ? JSON.parse(data) : data;
+      return {
+        success: true,
+        source: envOverride ? 'env_override' : 'database',
+        dbConfig,
+        envOverrideActive: Boolean(envOverride),
+      };
+    } catch (error) {
+      this.logger.error('Failed to get global model config', error);
+      throw new HttpException('Failed to fetch model config', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Put('model-config/global')
+  @ApiOperation({ summary: 'Update global model configuration (writes to DB)' })
+  @ApiResponse({ status: 200, description: 'Stored configuration' })
+  async setGlobalModelConfig(@Body() dto: UpdateGlobalModelConfigDto) {
+    try {
+      const envOverride = this.configService.get<string>('MODEL_CONFIG_GLOBAL_JSON');
+      if (envOverride) {
+        // Warn that env override takes precedence
+        this.logger.warn('MODEL_CONFIG_GLOBAL_JSON is set; DB updates will not take effect until env override is removed');
+      }
+
+      // Determine payload
+      let payload: any = dto.config;
+      if (!payload && dto.config_json) {
+        try {
+          payload = JSON.parse(dto.config_json);
+        } catch (e) {
+          throw new HttpException('config_json is not valid JSON', HttpStatus.BAD_REQUEST);
+        }
+      }
+      if (!payload || typeof payload !== 'object') {
+        throw new HttpException('Missing config object or config_json', HttpStatus.BAD_REQUEST);
+      }
+
+      // Basic shape check: either flat {provider, model} or dual {default, localOnly?}
+      const isFlat = 'provider' in payload && 'model' in payload;
+      const isDual = 'default' in payload && typeof payload.default === 'object';
+      if (!isFlat && !isDual) {
+        throw new HttpException('Invalid config shape: expected {provider, model} or {default, localOnly?}', HttpStatus.BAD_REQUEST);
+      }
+
+      const client = this.supabaseService.getServiceClient();
+      const { error } = await client
+        .from('system_settings')
+        .upsert({ key: 'model_config_global', value: payload, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      if (error) {
+        throw new Error(error.message);
+      }
+      return { success: true, message: 'Global model configuration updated', envOverrideActive: Boolean(envOverride) };
+    } catch (error) {
+      this.logger.error('Failed to update global model config', error);
+      if (error instanceof HttpException) throw error;
+      throw new HttpException('Failed to update model config', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
