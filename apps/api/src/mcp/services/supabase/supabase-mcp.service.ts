@@ -35,9 +35,12 @@ export class SupabaseMCPService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private configService: ConfigService,
-    private llmService: LLMService
+    private llmService: LLMService,
   ) {
-    this.mcpServer = new SupabaseMCPServer(configService, llmService);
+    this.mcpServer = new SupabaseMCPServer(
+      configService,
+      llmService,
+    );
   }
 
   /**

@@ -116,10 +116,23 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
           // Merge user preferences with function options
           const mergedOptions = {
             ...options,
-            providerName: params.providerName || options?.providerName,
-            modelName: params.modelName || options?.modelName,
-            temperature: params.temperature ?? options?.temperature,
-            maxTokens: params.maxTokens || options?.maxTokens,
+            // Accept either flat params or nested llmSelection
+            providerName:
+              (params as any)?.providerName ||
+              (params as any)?.llmSelection?.providerName ||
+              options?.providerName,
+            modelName:
+              (params as any)?.modelName ||
+              (params as any)?.llmSelection?.modelName ||
+              options?.modelName,
+            temperature:
+              (params as any)?.temperature ??
+              (params as any)?.llmSelection?.temperature ??
+              options?.temperature,
+            maxTokens:
+              (params as any)?.maxTokens ||
+              (params as any)?.llmSelection?.maxTokens ||
+              options?.maxTokens,
             cidafmOptions: params.cidafmOptions || options?.cidafmOptions,
             authToken: params.authToken || options?.authToken,
             sessionId: params.sessionId || options?.sessionId,

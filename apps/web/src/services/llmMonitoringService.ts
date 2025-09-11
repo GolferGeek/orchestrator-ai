@@ -570,6 +570,19 @@ class LLMMonitoringService {
         return this.getDateRange('last30days');
     }
   }
+
+  /**
+   * Get detailed LLM usage information for a specific run
+   */
+  async getUsageDetails(runId: string): Promise<any> {
+    try {
+      const response = await apiService.get(`/api/llm-usage/details/${runId}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching usage details:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance

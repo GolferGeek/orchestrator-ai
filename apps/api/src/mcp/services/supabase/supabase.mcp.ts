@@ -554,6 +554,26 @@ export class SupabaseMCPServer implements IMCPServer {
     schemaContext: string, 
     maxRows: number
   ): Promise<string> {
+    // Resolve provider/model for this MCP system call
+    const forceLocal = (process.env.MCP_LOCAL_ONLY || process.env.SOVEREIGN_MODE_ENFORCED) === 'true';
+    let providerName = (process.env.MCP_SQL_PROVIDER || '').toLowerCase();
+    let modelName = process.env.MCP_SQL_MODEL || '';
+
+    if (forceLocal) {
+      providerName = 'ollama';
+      if (!modelName) {
+        try {
+          // TODO: Fix this - getBestModelForTask doesn't exist on llmService
+          const best = null; // await this.llmService.getBestModelForTask('medium', false, 'fast');
+          modelName = best || process.env.LOCAL_LLM_DEFAULT_MODEL || 'gpt-oss:20b';
+        } catch {
+          modelName = process.env.LOCAL_LLM_DEFAULT_MODEL || 'gpt-oss:20b';
+        }
+      }
+    } else {
+      if (!providerName) providerName = 'ollama';
+      if (!modelName) modelName = process.env.LOCAL_LLM_DEFAULT_MODEL || 'gpt-oss:20b';
+    }
     // Use LLM to generate SQL with proper schema context
     const systemPrompt = `You are an expert SQL query generator for a Supabase PostgreSQL database. 
 
@@ -592,7 +612,8 @@ Return ONLY the SQL query, no explanation or formatting.`;
         systemPrompt,
         userPrompt,
         {
-          provider: 'anthropic',
+          providerName: providerName as any,
+          modelName: modelName,
           temperature: 0.1,
           maxTokens: 1000,
           callerType: 'service',
@@ -628,12 +649,16 @@ Return ONLY the SQL query, no explanation or formatting.`;
       console.log('='.repeat(50));
       
       return sql;
-      
+
     } catch (error) {
-      // Fallback to simple query if LLM fails
-      console.warn('LLM SQL generation failed, using fallback:', getErrorMessage(error));
-      const primaryTable = tables[0] || 'users';
-      return `SELECT * FROM ${primaryTable} LIMIT ${maxRows}`;
+      // Do NOT fallback to a generic SELECT *; surface the failure for proper handling
+      const msg = getErrorMessage(error);
+      if (process.env.MCP_SQL_DEBUG === 'true') {
+        console.error('[MCP SQL DEBUG] generation failed:', msg);
+        console.error('[MCP SQL DEBUG] userPrompt:', userPrompt);
+        console.error('[MCP SQL DEBUG] tables:', tables);
+      }
+      throw new Error(`LLM SQL generation failed: ${msg}`);
     }
   }
 
@@ -653,12 +678,29 @@ Please provide:
 
 Format your response as a structured JSON object with these sections.`;
 
+      // Resolve local-only if requested
+      const forceLocal = (process.env.MCP_LOCAL_ONLY || process.env.SOVEREIGN_MODE_ENFORCED) === 'true';
+      let providerName = (provider || process.env.MCP_SQL_PROVIDER || '').toLowerCase();
+      let modelName = model || process.env.MCP_SQL_ANALYSIS_MODEL || process.env.MCP_SQL_MODEL || '';
+      if (forceLocal) {
+        providerName = 'ollama';
+        if (!modelName) {
+          try {
+            // TODO: Fix this - getBestModelForTask doesn't exist on llmService
+          const best = null; // await this.llmService.getBestModelForTask('medium', false, 'fast');
+            modelName = best || process.env.LOCAL_LLM_DEFAULT_MODEL || 'gpt-oss:20b';
+          } catch {
+            modelName = process.env.LOCAL_LLM_DEFAULT_MODEL || 'gpt-oss:20b';
+          }
+        }
+      }
+
       const response = await this.llmService.generateResponse(
         'You are a data analyst providing insights on business data.',
         analysisPrompt,
         {
-          provider: provider as 'anthropic' | 'openai' | 'google' | 'ollama',
-          modelName: model,
+          providerName: (providerName || 'ollama') as any,
+          modelName: modelName || 'gpt-oss:20b',
           temperature: 0.3,
           maxTokens: 1500,
           callerType: 'service',

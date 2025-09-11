@@ -204,6 +204,7 @@
                   <th>Caller</th>
                   <th>Model</th>
                   <th>Status</th>
+                  <th>PII</th>
                   <th>Duration</th>
                   <th>Tokens</th>
                   <th>Cost</th>
@@ -255,6 +256,27 @@
                     </ion-chip>
                   </td>
                   
+                  <td>
+                    <div class="pii-indicators">
+                      <ion-badge 
+                        v-if="record.pii_detected"
+                        color="warning"
+                        @click="viewDetails(record)"
+                        class="clickable"
+                      >
+                        <ion-icon :icon="warningOutline" />
+                        {{ record.pseudonyms_used || 0 }}P / {{ record.redactions_applied || 0 }}R
+                      </ion-badge>
+                      <ion-badge 
+                        v-else
+                        color="success"
+                      >
+                        <ion-icon :icon="checkmarkCircleOutline" />
+                        Clean
+                      </ion-badge>
+                    </div>
+                  </td>
+                  
                   <td>{{ llmUsageService.formatDuration(record.duration_ms) }}</td>
                   
                   <td>
@@ -294,8 +316,16 @@
       </ion-card>
     </div>
 
-    <!-- Details Modal -->
-    <ion-modal :is-open="showDetailsModal" @did-dismiss="closeDetails">
+    <!-- PII Details Modal -->
+    <LLMUsageDetailModal
+      :is-open="showDetailsModal"
+      :run-id="selectedRecord?.run_id"
+      @update:is-open="showDetailsModal = $event"
+      @dismiss="closeDetails"
+    />
+    
+    <!-- Old Details Modal (Backup) -->
+    <ion-modal v-if="false" :is-open="showDetailsModal" @did-dismiss="closeDetails">
       <ion-header>
         <ion-toolbar>
           <ion-title>Usage Record Details</ion-title>
@@ -374,7 +404,8 @@ import {
   IonButtons,
   IonContent,
   IonList,
-  IonLabel
+  IonLabel,
+  IonBadge
 } from '@ionic/vue';
 import {
   filterOutline,
@@ -388,12 +419,15 @@ import {
   personOutline,
   settingsOutline,
   serverOutline,
-  helpOutline
+  helpOutline,
+  warningOutline,
+  checkmarkCircleOutline
 } from 'ionicons/icons';
 
 import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { llmUsageService, type LlmUsageRecord } from '@/services/llmUsageService';
 import { storeToRefs } from 'pinia';
+import LLMUsageDetailModal from './LLMUsageDetailModal.vue';
 
 const store = useLlmUsageStore();
 
@@ -601,6 +635,32 @@ onUnmounted(() => {
 }
 
 .tokens-cell {
+  font-size: 0.875rem;
+}
+
+.pii-indicators {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pii-indicators ion-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+}
+
+.pii-indicators ion-badge.clickable {
+  cursor: pointer;
+}
+
+.pii-indicators ion-badge.clickable:hover {
+  opacity: 0.8;
+}
+
+.pii-indicators ion-badge ion-icon {
   font-size: 0.875rem;
 }
 

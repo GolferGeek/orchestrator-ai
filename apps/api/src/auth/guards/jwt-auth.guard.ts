@@ -36,10 +36,13 @@ export class JwtAuthGuard implements CanActivate {
     const configuredTestKey = process.env.TEST_API_SECRET_KEY;
 
     if (configuredTestKey && testApiKey && testApiKey === configuredTestKey) {
+      // Prefer configured test user from environment to satisfy DB FKs in development
+      const devUserId = process.env.SUPABASE_TEST_USERID || '00000000-0000-0000-0000-000000000001';
+      const devEmail = process.env.SUPABASE_TEST_USER || 'test_api_key_user@example.com';
 
       (request as any).user = {
-        id: '00000000-0000-0000-0000-000000000001',
-        email: 'test_api_key_user@example.com',
+        id: devUserId,
+        email: devEmail,
         aud: 'authenticated',
         role: 'authenticated',
         appMetadata: { provider: 'api_key', providers: ['api_key'] },

@@ -71,29 +71,28 @@ export class OpenAILLMService extends BaseLLMService {
       // Validate configuration
       this.validateConfig(params.config);
       
-      // Handle PII in input - ALWAYS apply dictionary pseudonymization
+      // Handle PII in input - use what's already been processed at LLM Service level
       let piiResult;
       if (params.options?.piiMetadata) {
-        // Use existing PII metadata from centralized routing, but still apply dictionary pseudonymization
-        this.logger.debug(`🔍 [PII-METADATA-DEBUG] OpenAILLMService - Using existing PII metadata from routing decision`);
+        // Use existing PII metadata from LLM Service level processing
+        this.logger.debug(`🔍 [PII-METADATA-DEBUG] OpenAILLMService - Using PII metadata from LLM Service level`);
         
-        // Apply dictionary pseudonymization to the original text
-        const dictionaryResult = await this.dictionaryPseudonymizerService.pseudonymizeText(params.userMessage);
-        
+        // The text has already been pseudonymized at LLM Service level
         piiResult = {
-          processedText: dictionaryResult.pseudonymizedText,
+          processedText: params.userMessage, // Already processed
           piiMetadata: params.options.piiMetadata,
-          dictionaryMappings: dictionaryResult.mappings, // Store for reversal
+          dictionaryMappings: params.options?.dictionaryMappings || [], // Already applied at LLM Service level
         };
         
-        this.logger.debug(`🎯 [DICTIONARY-DEBUG] Applied dictionary pseudonymization: ${dictionaryResult.mappings.length} replacements`);
+        this.logger.debug(`🎯 [DICTIONARY-DEBUG] Using pre-processed text with ${params.options?.dictionaryMappings?.length || 0} dictionary mappings`);
       } else {
-        // Fallback to local PII processing with dictionary pseudonymization enabled
-        this.logger.debug(`🔍 [PII-METADATA-DEBUG] OpenAILLMService - No existing PII metadata, performing local processing`);
-        piiResult = await this.handlePiiInput(params.userMessage, {
-          enablePseudonymization: true,
-          useDictionaryPseudonymizer: true, // Enable dictionary pseudonymization
-        });
+        // Fallback - shouldn't happen if LLM Service is processing correctly
+        this.logger.warn(`⚠️ [PII-METADATA-DEBUG] OpenAILLMService - No PII metadata from LLM Service, skipping PII processing`);
+        piiResult = {
+          processedText: params.userMessage,
+          piiMetadata: null,
+          dictionaryMappings: [],
+        };
       }
       
       // Normalize config for model-specific restrictions
@@ -131,16 +130,12 @@ export class OpenAILLMService extends BaseLLMService {
         throw new Error('No content in OpenAI response');
       }
 
-      // Handle PII in output (pseudonym reversal)
-      // Handle PII output and dictionary reversal
-      let finalContent = await this.handlePiiOutput(choice.message.content, requestId);
+      // Don't reverse pseudonyms here - it will be done at LLM Service level
+      let finalContent = choice.message.content;
       
-      // Apply dictionary reversal if we have mappings
+      // Skip dictionary reversal - handled at LLM Service level
       if ('dictionaryMappings' in piiResult && piiResult.dictionaryMappings && piiResult.dictionaryMappings.length > 0) {
-        this.logger.debug(`🎯 [DICTIONARY-DEBUG] Reversing dictionary pseudonyms: ${piiResult.dictionaryMappings.length} mappings`);
-        const reversalResult = await this.dictionaryPseudonymizerService.reversePseudonyms(finalContent, piiResult.dictionaryMappings);
-        finalContent = reversalResult.originalText;
-        this.logger.debug(`🎯 [DICTIONARY-DEBUG] Dictionary reversal completed: ${reversalResult.reversalCount} reversals`);
+        this.logger.debug(`🎯 [DICTIONARY-DEBUG] Skipping reversal - will be handled at LLM Service level with ${piiResult.dictionaryMappings.length} mappings`);
       }
       
       const endTime = Date.now();

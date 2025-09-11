@@ -108,8 +108,9 @@ Respond with JSON only:
       analysisPrompt,
       {
         temperature: 0.1,
-        provider: metadata?.providerName,
-        modelName: metadata?.modelName,
+        // Use unified keys; prefer llmSelection passed by UI, then metadata
+        providerName: (params as any)?.llmSelection?.providerName || metadata?.providerName,
+        modelName: (params as any)?.llmSelection?.modelName || metadata?.modelName,
         maxTokens: 1000,
         callerType: 'agent',
         callerName: metadata?.agentName || 'metrics-agent',
@@ -175,9 +176,13 @@ Respond with JSON only:
     
     try {
       // Step 3.1: Generate SQL using MCP client
+      // Heuristic: if the user asks "how many X" or "count X", steer the NL query toward COUNT(*)
+      // Pure LLM-driven SQL generation using MCP, guided only by schema context
+      const nlQuery = userMessage;
+      const schemaTables = availableTables;
       const sqlGenResponse = await mcpService.generateSQL({
-        natural_language_query: userMessage,
-        schema_tables: availableTables,
+        natural_language_query: nlQuery,
+        schema_tables: schemaTables,
         max_rows: 100,
       });
 
@@ -349,8 +354,8 @@ ${
       reportPrompt,
       {
         temperature: 0.3,
-        provider: metadata?.providerName,
-        modelName: metadata?.modelName,
+        providerName: (params as any)?.llmSelection?.providerName || metadata?.providerName,
+        modelName: (params as any)?.llmSelection?.modelName || metadata?.modelName,
         maxTokens: 4000,
         callerType: 'agent',
         callerName: metadata?.agentName || 'metrics-agent',

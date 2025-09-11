@@ -165,7 +165,10 @@ export class AppService implements OnModuleInit {
 
         return {
           id: this.agentDiscovery.generateAgentId(agent.name, agent.path),
-          name: agentCard?.name || agent.name,
+          // Preserve the discovered machine-friendly name so frontend matching works
+          name: agent.name,
+          // Expose human-friendly display name separately when available
+          displayName: agentCard?.name || agent.name,
           type: agent.type,
           description:
             agentCard?.description ||

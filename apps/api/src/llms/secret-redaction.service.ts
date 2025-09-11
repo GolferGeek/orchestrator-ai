@@ -147,6 +147,18 @@ export class SecretRedactionService {
       description: 'Email addresses',
     },
     {
+      name: 'ipAddress',
+      pattern: /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g,
+      replacement: '[IP_ADDRESS_REDACTED]',
+      description: 'IP addresses',
+    },
+    {
+      name: 'internalUrl',
+      pattern: /https?:\/\/(?:localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|[a-zA-Z0-9-]+\.(?:local|internal|corp|test|dev))[^\s]*/g,
+      replacement: '[INTERNAL_URL_REDACTED]',
+      description: 'Internal URLs',
+    },
+    {
       name: 'phone',
       pattern: /\b(?:\(\d{3}\)\s?|\d{3}[-.]?)\d{3}[-.]?\d{4}\b/g,
       replacement: '[PHONE_REDACTED]',

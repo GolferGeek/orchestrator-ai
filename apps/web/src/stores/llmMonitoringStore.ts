@@ -580,6 +580,19 @@ export const useLLMMonitoringStore = defineStore('llmMonitoring', () => {
     ]);
   }
 
+  /**
+   * Get detailed LLM usage information for a specific run
+   */
+  async function getLLMUsageDetails(runId: string) {
+    try {
+      const response = await llmMonitoringService.getUsageDetails(runId);
+      return response;
+    } catch (err) {
+      error.value = `Failed to load usage details: ${err}`;
+      throw err;
+    }
+  }
+
   // =====================================
   // RETURN STORE INTERFACE
   // =====================================
@@ -649,6 +662,7 @@ export const useLLMMonitoringStore = defineStore('llmMonitoring', () => {
     setUsageRecordsLimit,
     clearError,
     getDateRange,
-    refreshAllData
+    refreshAllData,
+    getLLMUsageDetails
   };
 });

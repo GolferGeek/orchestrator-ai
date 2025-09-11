@@ -40,8 +40,7 @@ export class LLMController {
         dataClassification?: string;
       };
     },
-  ): Promise<{ response: string; sanitizationMetadata?: any }> {
-
+  ): Promise<{ response: string; content?: string; sanitizationMetadata?: any; piiMetadata?: any; metadata?: any }> {
     try {
       const result = await this.llmService.generateResponse(
         request.systemPrompt,
@@ -63,14 +62,24 @@ export class LLMController {
         },
       );
 
+      console.log('🎮 [CONTROLLER] Result type:', typeof result);
+      console.log('🎮 [CONTROLLER] Result keys:', result && typeof result === 'object' ? Object.keys(result) : 'N/A');
+      console.log('🎮 [CONTROLLER] Has piiMetadata?', result && typeof result === 'object' ? !!result.piiMetadata : false);
+
       // Handle both string and object responses
       if (typeof result === 'string') {
         return { response: result };
       } else {
-        return { 
+        // Return all relevant fields from the LLM service response
+        const response = { 
           response: result.content || result.response || result,
-          sanitizationMetadata: result.sanitizationMetadata
+          content: result.content || result.response || result,
+          sanitizationMetadata: result.sanitizationMetadata,
+          piiMetadata: result.piiMetadata,
+          metadata: result.metadata
         };
+        console.log('🎮 [CONTROLLER] Returning response with piiMetadata?', !!response.piiMetadata);
+        return response;
       }
     } catch (error) {
 

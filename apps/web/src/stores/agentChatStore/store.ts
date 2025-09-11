@@ -637,6 +637,23 @@ export const useAgentChatStore = defineStore('agentChat', {
         console.log('🔍 [FRONTEND-DEBUG] Has sanitizationMetadata:', !!parsedResponse?.metadata?.sanitizationMetadata);
         console.log('🔍 [FRONTEND-DEBUG] Full sanitizationMetadata:', parsedResponse?.metadata?.sanitizationMetadata);
 
+        // Import the converter at the top of the function if needed
+        const { convertToSimplifiedPII } = await import('@/utils/pii-converter');
+        
+        // Extract PII metadata from the correct location
+        const legacyPiiMetadata = parsedResponse?.metadata?.piiMetadata || 
+                                  parsedResponse?.piiMetadata;
+        
+        // Convert to simplified format
+        const simplifiedPiiMetadata = convertToSimplifiedPII(legacyPiiMetadata);
+        
+        // Log the conversion
+        if (simplifiedPiiMetadata) {
+          console.log('✅ [SIMPLIFIED-PII] Created simplified metadata:', simplifiedPiiMetadata);
+          console.log('✅ [SIMPLIFIED-PII] Flag count:', simplifiedPiiMetadata.flagCount);
+          console.log('✅ [SIMPLIFIED-PII] Pseudonym count:', simplifiedPiiMetadata.pseudonymCount);
+        }
+        
         // Merge agent result metadata with task LLM metadata
         const mergedMetadata = {
           ...parsedResponse?.metadata,
@@ -644,9 +661,50 @@ export const useAgentChatStore = defineStore('agentChat', {
           ...(completedTask.llmMetadata && {
             llmMetadata: completedTask.llmMetadata,
           }),
+          // Include legacy PII metadata for backward compatibility
+          ...(legacyPiiMetadata && {
+            piiMetadata: legacyPiiMetadata,
+          }),
+          // Include new simplified PII metadata
+          ...(simplifiedPiiMetadata && {
+            simplifiedPii: simplifiedPiiMetadata,
+          }),
+          // Also check for sanitizationMetadata at the top level
+          ...(parsedResponse?.sanitizationMetadata && {
+            sanitizationMetadata: parsedResponse.sanitizationMetadata,
+          }),
         };
 
         console.log('🔍 [FRONTEND-DEBUG] Merged metadata for message:', mergedMetadata);
+        console.log('🔍 [FRONTEND-DEBUG] PII metadata extracted:', parsedResponse?.piiMetadata);
+        
+        // Add detailed PII debugging
+        console.log('🎯 [PII-CHECK] Full parsedResponse:', parsedResponse);
+        console.log('🎯 [PII-CHECK] completedTask.response type:', typeof completedTask.response);
+        console.log('🎯 [PII-CHECK] completedTask.llmMetadata:', completedTask.llmMetadata);
+        
+        // Check multiple locations for PII metadata
+        const piiLocations = {
+          'parsedResponse.piiMetadata': parsedResponse?.piiMetadata,
+          'parsedResponse.metadata.piiMetadata': parsedResponse?.metadata?.piiMetadata,
+          'completedTask.llmMetadata.piiMetadata': completedTask.llmMetadata?.piiMetadata,
+          'completedTask.piiMetadata': completedTask.piiMetadata,
+        };
+        
+        console.log('🔍 [PII-SEARCH] Checking all possible locations:', piiLocations);
+        
+        // Find where PII metadata actually is
+        const actualPiiMetadata = parsedResponse?.metadata?.piiMetadata || 
+                                  parsedResponse?.piiMetadata || 
+                                  completedTask.piiMetadata;
+        
+        if (actualPiiMetadata) {
+          console.log('✅ [PII-FOUND] PII metadata detected!', actualPiiMetadata);
+          console.log('✅ [PII-FOUND] Flaggings:', actualPiiMetadata.flaggings);
+          console.log('✅ [PII-FOUND] Pseudonyms Applied:', actualPiiMetadata.pseudonymsApplied);
+        } else {
+          console.log('❌ [PII-MISSING] No PII metadata found in any location');
+        }
 
         existingMessage.metadata = {
           ...existingMessage.metadata,
