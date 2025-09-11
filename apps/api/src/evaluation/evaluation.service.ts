@@ -686,7 +686,7 @@ export class EvaluationService {
       .from('tasks')
       .select('*')
       .eq('user_id', userId)
-      .eq('agent_conversation_id', conversationId)
+      .eq('conversation_id', conversationId)
       .not('evaluation', 'is', null)
       .order('created_at');
 
@@ -912,7 +912,7 @@ export class EvaluationService {
           id: task.id,
           content: taskContent,
           role: 'assistant' as const,
-          sessionId: task.agent_conversation_id || task.session_id,
+          sessionId: task.conversation_id || task.session_id,
           userId: task.user_id,
           timestamp:
             task.evaluation?.evaluation_timestamp ||

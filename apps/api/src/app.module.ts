@@ -13,6 +13,7 @@ import { AgentDiscoveryService } from './agent-discovery.service';
 import { AgentFactoryService } from './agent-factory.service';
 import { DynamicAgentsController } from './agents/dynamic-agents.controller';
 import { HierarchySimpleController } from './hierarchy-simple.controller';
+import { HierarchyController } from './hierarchy/hierarchy.controller';
 import { IntentRecognitionService } from './agents/base/implementations/base-services/orchestrator/intent-recognition.service';
 import { MarketingManagerOrchestratorModule } from './agents/actual/marketing/marketing_manager_orchestrator/agent.module';
 import { CEOOrchestratorModule } from './agents/actual/orchestrator/ceo_orchestrator/agent.module';
@@ -40,7 +41,6 @@ import { TasksModule } from './tasks/tasks.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { LangChainModule } from './langchain/langchain.module';
-import { HierarchyModule } from './hierarchy/hierarchy.module';
 import { ProjectsModule } from './projects/projects.module';
 import { DeliverablesModule } from './deliverables/deliverables.module';
 import { ContextOptimizationService } from './context-optimization/context-optimization.service';
@@ -59,6 +59,7 @@ import { MCPModule } from './mcp/mcp.module';
 import { SovereignPolicyModule } from './config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
 import { SpeechModule } from './speech/speech.module';
+import { AgentCreatorModule } from './agents/actual/specialists/agent_creator/agent.module';
 
 @Module({
   imports: [
@@ -107,7 +108,6 @@ import { SpeechModule } from './speech/speech.module';
     TasksModule, // Task lifecycle management
     WebSocketModule, // Real-time WebSocket updates
     LangChainModule, // LangChain.js integration for agents
-    HierarchyModule, // Agent hierarchy and discovery endpoints
     ProjectsModule, // Project lifecycle management and recovery
     DeliverablesModule, // Deliverables persistence and management
     AgentServicesContextModule, // Service container for simplified context agent DI
@@ -121,12 +121,14 @@ import { SpeechModule } from './speech/speech.module';
     SovereignPolicyModule, // Sovereign mode policy management
     SystemModule, // System analytics and monitoring
     SpeechModule, // Speech-to-text and text-to-speech functionality
+    AgentCreatorModule, // Agent configuration service for discovery
   ],
   controllers: [
     AppController,
     DynamicAgentsController,
     HierarchySimpleController,
     ContextMetricsController,
+    HierarchyController,
   ],
   providers: [
     AppService,

@@ -7,8 +7,7 @@ import {
   ResponseMetadata 
 } from './llm-interfaces';
 import { PIIService } from '../../services/pii.service';
-import { PseudonymizerService } from '../../services/pseudonymizer.service';
-import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
+import { DictionaryPseudonymizerService, DictionaryPseudonymMapping } from '../../services/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import OpenAI from 'openai';
@@ -42,7 +41,6 @@ export class OpenAILLMService extends BaseLLMService {
   constructor(
     config: LLMServiceConfig,
     piiService: PIIService,
-    pseudonymizerService: PseudonymizerService,
     dictionaryPseudonymizerService: DictionaryPseudonymizerService,
     runMetadataService: RunMetadataService,
     providerConfigService: ProviderConfigService,
@@ -50,7 +48,6 @@ export class OpenAILLMService extends BaseLLMService {
     super(
       config,
       piiService,
-      pseudonymizerService,
       dictionaryPseudonymizerService,
       runMetadataService,
       providerConfigService,
@@ -74,11 +71,30 @@ export class OpenAILLMService extends BaseLLMService {
       // Validate configuration
       this.validateConfig(params.config);
       
-      // Handle PII in input
-      const piiResult = await this.handlePiiInput(params.userMessage, {
-        enablePseudonymization: true,
-        useDictionaryPseudonymizer: false,
-      });
+      // Handle PII in input - ALWAYS apply dictionary pseudonymization
+      let piiResult;
+      if (params.options?.piiMetadata) {
+        // Use existing PII metadata from centralized routing, but still apply dictionary pseudonymization
+        this.logger.debug(`🔍 [PII-METADATA-DEBUG] OpenAILLMService - Using existing PII metadata from routing decision`);
+        
+        // Apply dictionary pseudonymization to the original text
+        const dictionaryResult = await this.dictionaryPseudonymizerService.pseudonymizeText(params.userMessage);
+        
+        piiResult = {
+          processedText: dictionaryResult.pseudonymizedText,
+          piiMetadata: params.options.piiMetadata,
+          dictionaryMappings: dictionaryResult.mappings, // Store for reversal
+        };
+        
+        this.logger.debug(`🎯 [DICTIONARY-DEBUG] Applied dictionary pseudonymization: ${dictionaryResult.mappings.length} replacements`);
+      } else {
+        // Fallback to local PII processing with dictionary pseudonymization enabled
+        this.logger.debug(`🔍 [PII-METADATA-DEBUG] OpenAILLMService - No existing PII metadata, performing local processing`);
+        piiResult = await this.handlePiiInput(params.userMessage, {
+          enablePseudonymization: true,
+          useDictionaryPseudonymizer: true, // Enable dictionary pseudonymization
+        });
+      }
       
       // Normalize config for model-specific restrictions
       const normalizedConfig = this.normalizeConfigForModel(params.config);
@@ -116,7 +132,16 @@ export class OpenAILLMService extends BaseLLMService {
       }
 
       // Handle PII in output (pseudonym reversal)
-      const finalContent = await this.handlePiiOutput(choice.message.content, requestId);
+      // Handle PII output and dictionary reversal
+      let finalContent = await this.handlePiiOutput(choice.message.content, requestId);
+      
+      // Apply dictionary reversal if we have mappings
+      if ('dictionaryMappings' in piiResult && piiResult.dictionaryMappings && piiResult.dictionaryMappings.length > 0) {
+        this.logger.debug(`🎯 [DICTIONARY-DEBUG] Reversing dictionary pseudonyms: ${piiResult.dictionaryMappings.length} mappings`);
+        const reversalResult = await this.dictionaryPseudonymizerService.reversePseudonyms(finalContent, piiResult.dictionaryMappings);
+        finalContent = reversalResult.originalText;
+        this.logger.debug(`🎯 [DICTIONARY-DEBUG] Dictionary reversal completed: ${reversalResult.reversalCount} reversals`);
+      }
       
       const endTime = Date.now();
       
@@ -129,13 +154,35 @@ export class OpenAILLMService extends BaseLLMService {
         requestId
       );
       
-      // Track usage
-      this.trackUsage(
+      // Debug PII metadata before passing to trackUsage
+      this.logger.debug(`🔍 [PII-METADATA-DEBUG] OpenAILLMService - piiResult structure:`, {
+        hasPiiResult: !!piiResult,
+        hasPiiMetadata: !!piiResult?.piiMetadata,
+        piiDetected: piiResult?.piiMetadata?.piiDetected,
+        processingFlow: piiResult?.piiMetadata?.processingFlow
+      });
+      
+      if (piiResult?.piiMetadata) {
+        this.logger.debug(`🔍 [PII-METADATA-DEBUG] OpenAILLMService - Full piiMetadata:`, piiResult.piiMetadata);
+      }
+      
+      // Track usage with full metadata for database persistence
+      await this.trackUsage(
         params.config.provider,
         params.config.model,
         metadata.usage.inputTokens,
         metadata.usage.outputTokens,
         metadata.usage.cost,
+        {
+          requestId,
+          userId: params.userId || params.options?.userId,
+          conversationId: params.conversationId || params.options?.conversationId,
+          callerType: params.options?.callerType,
+          callerName: params.options?.callerName,
+          piiMetadata: piiResult.piiMetadata,
+          startTime,
+          endTime,
+        }
       );
       
       const response: LLMResponse = {
@@ -314,7 +361,6 @@ export function createOpenAIService(
   config: LLMServiceConfig,
   dependencies: {
     piiService: PIIService;
-    pseudonymizerService: PseudonymizerService;
     dictionaryPseudonymizerService: DictionaryPseudonymizerService;
     runMetadataService: RunMetadataService;
     providerConfigService: ProviderConfigService;
@@ -323,7 +369,6 @@ export function createOpenAIService(
   return new OpenAILLMService(
     { ...config, provider: 'openai' },
     dependencies.piiService,
-    dependencies.pseudonymizerService,
     dependencies.dictionaryPseudonymizerService,
     dependencies.runMetadataService,
     dependencies.providerConfigService,
@@ -345,7 +390,6 @@ export async function testOpenAIService() {
   // Mock dependencies for testing
   const mockDependencies = {
     piiService: {} as PIIService,
-    pseudonymizerService: {} as PseudonymizerService,
     dictionaryPseudonymizerService: {} as DictionaryPseudonymizerService,
     runMetadataService: {} as RunMetadataService,
     providerConfigService: {} as ProviderConfigService,

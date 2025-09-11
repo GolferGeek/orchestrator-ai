@@ -4,6 +4,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 import { SovereignPolicyService } from '../config/sovereign-policy.service';
 import { FeatureFlagService, FeatureFlagContext } from '../config/feature-flag.service';
 import { PIIService } from '../services/pii.service';
+import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
 import { PIIProcessingMetadata, RoutingDecisionWithPII } from '../common/types/pii-metadata.types';
 import { createHash } from 'crypto';
 
@@ -90,6 +91,7 @@ export class CentralizedRoutingService {
     private readonly sovereignPolicyService: SovereignPolicyService,
     private readonly featureFlagService: FeatureFlagService,
     private readonly piiService: PIIService,
+    private readonly dictionaryPseudonymizerService: DictionaryPseudonymizerService,
   ) {
     this.logger.log('CentralizedRoutingService initialized');
   }
@@ -124,7 +126,7 @@ export class CentralizedRoutingService {
         const requestId = options.conversationId || options.requestId || `agent-response-${Date.now()}`;
         
         try {
-          const reversalResult = await this.pseudonymizerService.reversePseudonyms(
+          const reversalResult = await this.dictionaryPseudonymizerService.reversePseudonyms(
             agentResponse,
             requestId
           );

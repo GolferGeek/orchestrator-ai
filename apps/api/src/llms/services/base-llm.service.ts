@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PIIService } from '../../services/pii.service';
-import { PseudonymizerService } from '../../services/pseudonymizer.service';
 import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
@@ -155,9 +154,9 @@ export abstract class BaseLLMService {
 
       // Use standard pseudonymizer
       const requestId = this.generateRequestId('pii');
-      const result = await this.pseudonymizerService.pseudonymizeText(text, requestId, {
-        context: 'llm-boundary',
-      });
+      // Note: Pseudonymization is now handled at the LLM service level via DictionaryPseudonymizerService
+      const result = { pseudonymizedText: text, mappings: [] }; // No-op since pattern-based pseudonymization is removed
+      
       return {
         processedText: result.pseudonymizedText,
         // Note: Standard pseudonymizer doesn't directly provide PIIProcessingMetadata
@@ -191,7 +190,8 @@ export abstract class BaseLLMService {
 
       // For standard pseudonymizer, use the request ID
       if (requestId) {
-        const result = await this.pseudonymizerService.reversePseudonyms(text, requestId);
+        // Note: Pseudonym reversal is now handled at the LLM service level via DictionaryPseudonymizerService
+        const result = { originalText: text }; // No-op since pattern-based pseudonymization is removed
         return result.originalText;
       }
 
@@ -205,18 +205,83 @@ export abstract class BaseLLMService {
   /**
    * Track usage metrics and costs
    */
-  protected trackUsage(
+  protected async trackUsage(
     provider: string,
     model: string,
     inputTokens: number,
     outputTokens: number,
-    cost?: number
-  ): void {
+    cost?: number,
+    requestMetadata?: {
+      requestId?: string;
+      userId?: string;
+      conversationId?: string;
+      callerType?: string;
+      callerName?: string;
+      piiMetadata?: any;
+      startTime?: number;
+      endTime?: number;
+    }
+  ): Promise<void> {
     try {
       this.logger.debug(`Usage tracked - Provider: ${provider}, Model: ${model}, Input: ${inputTokens}, Output: ${outputTokens}, Cost: ${cost || 'N/A'}`);
       
-      // TODO: Integrate with usage tracking service
-      // This could send metrics to a centralized usage tracking system
+      // Start metadata tracking if we have the necessary info
+      if (requestMetadata?.startTime && requestMetadata?.userId) {
+        const routingDecision = {
+          provider,
+          model,
+          isLocal: provider === 'ollama',
+          modelTier: 'general',
+          fallbackUsed: false,
+        };
+        
+        const options = {
+          userId: requestMetadata.userId,
+          callerType: requestMetadata.callerType || 'llm_service',
+          callerName: requestMetadata.callerName || 'direct_call',
+          conversationId: requestMetadata.conversationId,
+        };
+        
+        const context = await this.runMetadataService.startRequest(routingDecision, options);
+        
+        // Complete the request with usage data including pseudonym information
+        this.logger.debug(`🔍 [PII-METADATA-DEBUG] trackUsage - requestMetadata.piiMetadata exists:`, !!requestMetadata.piiMetadata);
+        if (requestMetadata.piiMetadata) {
+          this.logger.debug(`🔍 [PII-METADATA-DEBUG] trackUsage - piiMetadata structure:`, {
+            piiDetected: requestMetadata.piiMetadata.piiDetected,
+            processingFlow: requestMetadata.piiMetadata.processingFlow,
+            totalMatches: requestMetadata.piiMetadata.totalMatches,
+            hasDetectionResults: !!requestMetadata.piiMetadata.detectionResults,
+            hasPseudonymInstructions: !!requestMetadata.piiMetadata.pseudonymInstructions
+          });
+        }
+        
+        const enhancedMetrics = requestMetadata.piiMetadata ? {
+          dataSanitizationApplied: requestMetadata.piiMetadata.piiDetected || false,
+          sanitizationLevel: requestMetadata.piiMetadata.processingFlow || 'none',
+          piiDetected: requestMetadata.piiMetadata.piiDetected || false,
+          piiTypes: requestMetadata.piiMetadata.detectionResults?.dataTypesSummary || {},
+          // Extract pseudonym information from pseudonymInstructions
+          pseudonymsUsed: requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches?.length || 0,
+          pseudonymTypes: requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches?.map((m: any) => m.dataType) || [],
+          // Also include flagged items count
+          redactionsApplied: requestMetadata.piiMetadata.detectionResults?.flaggedMatches?.length || 0,
+          redactionTypes: requestMetadata.piiMetadata.detectionResults?.flaggedMatches?.map((m: any) => m.dataType) || [],
+        } : undefined;
+        
+        this.logger.debug(`🔍 [PII-METADATA-DEBUG] trackUsage - enhancedMetrics:`, enhancedMetrics);
+        
+        await this.runMetadataService.completeRequest(context, {
+          content: 'LLM response generated',
+          inputTokens,
+          outputTokens,
+          enhancedMetrics,
+        });
+        
+        this.logger.debug(`✅ Usage data saved to database for ${provider}/${model}`);
+      } else {
+        this.logger.debug(`⚠️ Insufficient metadata for database tracking - missing startTime or userId`);
+      }
     } catch (error) {
       this.logger.error('Usage tracking failed:', error);
     }

@@ -1253,17 +1253,52 @@ export abstract class A2AAgentBaseService
    * This metadata flows from CentralizedRoutingService through agents
    */
   protected extractPIIMetadata(params: any): PIIProcessingMetadata | undefined {
+    // DEBUG: Log detailed structure
+    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractPIIMetadata - params.piiMetadata type:`, typeof params.piiMetadata);
+    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractPIIMetadata - params.piiMetadata value:`, params.piiMetadata);
+    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractPIIMetadata - params.routingDecision type:`, typeof params.routingDecision);
+    if (params.routingDecision) {
+      this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractPIIMetadata - params.routingDecision.piiMetadata:`, params.routingDecision.piiMetadata);
+    }
+    
     // Check multiple possible locations for PII metadata
-    return params.piiMetadata || 
-           params.metadata?.piiMetadata || 
-           params.routingDecision?.piiMetadata;
+    // Check for truthy values, not just existence
+    let result = null;
+    if (params.piiMetadata && typeof params.piiMetadata === 'object' && params.piiMetadata.piiDetected !== undefined) {
+      result = params.piiMetadata;
+    } else if (params.metadata?.piiMetadata && typeof params.metadata.piiMetadata === 'object' && params.metadata.piiMetadata.piiDetected !== undefined) {
+      result = params.metadata.piiMetadata;
+    } else if (params.routingDecision?.piiMetadata && typeof params.routingDecision.piiMetadata === 'object' && params.routingDecision.piiMetadata.piiDetected !== undefined) {
+      result = params.routingDecision.piiMetadata;
+    }
+    
+    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractPIIMetadata - final result:`, result);
+    
+    return result;
   }
 
   /**
    * Extract routing decision with PII information
    */
   protected extractRoutingDecision(params: any): RoutingDecisionWithPII | undefined {
-    return params.routingDecision || params.metadata?.routingDecision;
+    // DEBUG: Log extraction details
+    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractRoutingDecision - params.routingDecision type:`, typeof params.routingDecision);
+    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractRoutingDecision - params.routingDecision value:`, params.routingDecision);
+    
+    // Check for truthy values with proper structure
+    let result = null;
+    if (params.routingDecision && typeof params.routingDecision === 'object' && params.routingDecision.provider) {
+      result = params.routingDecision;
+    } else if (params.metadata?.routingDecision && typeof params.metadata.routingDecision === 'object' && params.metadata.routingDecision.provider) {
+      result = params.metadata.routingDecision;
+    }
+    
+    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractRoutingDecision - final result:`, result);
+    if (result) {
+      this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractRoutingDecision - result.piiMetadata:`, result.piiMetadata);
+    }
+    
+    return result;
   }
 
   /**

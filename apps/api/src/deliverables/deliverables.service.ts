@@ -399,7 +399,7 @@ export class DeliverablesService {
         return null;
       }
 
-      const conversationId = taskData.agent_conversation_id;
+      const conversationId = taskData.conversation_id;
       if (!conversationId) {
 
         return null;

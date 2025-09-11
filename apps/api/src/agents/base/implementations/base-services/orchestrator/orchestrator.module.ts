@@ -32,6 +32,7 @@ import { DelegationService } from './delegation.service';
 import { SubprojectManagementService } from './subproject-management.service';
 import { LangGraphStateManagementService } from './langgraph-state-management.service';
 import { OrchestratorFacadeService } from './orchestrator-facade.service';
+import { AgentCreatorModule } from '../../../../actual/specialists/agent_creator/agent.module';
 
 /**
  * Orchestrator Module - Wires together all orchestrator services
@@ -60,6 +61,7 @@ import { OrchestratorFacadeService } from './orchestrator-facade.service';
     ApiAgentServicesContextModule, // For API agents
     PythonFunctionAgentServicesContextModule, // For Python function agents
     ExternalAgentServicesContextModule, // For external agents
+    AgentCreatorModule, // For AgentConfigurationService needed by AgentDiscoveryService
   ],
   providers: [
     // Core services

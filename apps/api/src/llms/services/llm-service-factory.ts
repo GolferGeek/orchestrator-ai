@@ -7,7 +7,6 @@ import { GoogleLLMService } from './google-llm.service';
 import { OllamaLLMService } from './ollama-llm.service';
 import { GrokLLMService } from './grok-llm.service';
 import { PIIService } from '../../services/pii.service';
-import { PseudonymizerService } from '../../services/pseudonymizer.service';
 import { DictionaryPseudonymizerService } from '../../services/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
@@ -50,7 +49,6 @@ export class LLMServiceFactory {
 
   constructor(
     private readonly piiService: PIIService,
-    private readonly pseudonymizerService: PseudonymizerService,
     private readonly dictionaryPseudonymizerService: DictionaryPseudonymizerService,
     private readonly runMetadataService: RunMetadataService,
     private readonly providerConfigService: ProviderConfigService,
@@ -330,7 +328,6 @@ export class LLMServiceFactory {
           serviceInstance = new OpenAILLMService(
             config,
             this.piiService,
-            this.pseudonymizerService,
             this.dictionaryPseudonymizerService,
             this.runMetadataService,
             this.providerConfigService,
@@ -341,7 +338,6 @@ export class LLMServiceFactory {
           serviceInstance = new AnthropicLLMService(
             config,
             this.piiService,
-            this.pseudonymizerService,
             this.dictionaryPseudonymizerService,
             this.runMetadataService,
             this.providerConfigService,
@@ -352,7 +348,6 @@ export class LLMServiceFactory {
           serviceInstance = new GoogleLLMService(
             config,
             this.piiService,
-            this.pseudonymizerService,
             this.dictionaryPseudonymizerService,
             this.runMetadataService,
             this.providerConfigService,
@@ -363,7 +358,6 @@ export class LLMServiceFactory {
           serviceInstance = new OllamaLLMService(
             config,
             this.piiService,
-            this.pseudonymizerService,
             this.dictionaryPseudonymizerService,
             this.runMetadataService,
             this.providerConfigService,
@@ -375,7 +369,6 @@ export class LLMServiceFactory {
           serviceInstance = new GrokLLMService(
             config,
             this.piiService,
-            this.pseudonymizerService,
             this.dictionaryPseudonymizerService,
             this.runMetadataService,
             this.providerConfigService,
