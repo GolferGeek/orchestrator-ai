@@ -471,6 +471,78 @@
           </ion-card>
         </div>
       </div>
+    
+    <!-- Global Model Config Modal -->
+    <ion-modal :is-open="showModelConfigModal" @didDismiss="closeModelConfigModal">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Maintain Default Models</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="closeModelConfigModal">Close</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <div class="model-config">
+          <p class="hint" v-if="envOverrideActive">
+            MODEL_CONFIG_GLOBAL_JSON is set in the environment. DB changes will not take effect until the env override is removed.
+          </p>
+
+          <ion-segment v-model="mode">
+            <ion-segment-button value="flat">Single Default</ion-segment-button>
+            <ion-segment-button value="dual">Default + Local Only</ion-segment-button>
+          </ion-segment>
+
+          <div v-if="mode === 'flat'" class="segment-pane">
+            <ion-item>
+              <ion-label position="stacked">Provider</ion-label>
+              <ion-input v-model="flat.provider" placeholder="openai | anthropic | google | grok | ollama" />
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Model</ion-label>
+              <ion-input v-model="flat.model" placeholder="e.g. gpt-4o, claude-3-5-sonnet-20241022, llama3.2:latest" />
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Parameters (JSON)</ion-label>
+              <ion-textarea v-model="flatParamsJson" auto-grow />
+            </ion-item>
+          </div>
+
+          <div v-else class="segment-pane">
+            <h4>Default</h4>
+            <ion-item>
+              <ion-label position="stacked">Provider</ion-label>
+              <ion-input v-model="dual.default.provider" />
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Model</ion-label>
+              <ion-input v-model="dual.default.model" />
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Parameters (JSON)</ion-label>
+              <ion-textarea v-model="dualDefaultParamsJson" auto-grow />
+            </ion-item>
+            <h4 style="margin-top: 16px;">Local Only (optional)</h4>
+            <ion-item>
+              <ion-label position="stacked">Provider</ion-label>
+              <ion-input v-model="dual.localOnly.provider" />
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Model</ion-label>
+              <ion-input v-model="dual.localOnly.model" />
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Parameters (JSON)</ion-label>
+              <ion-textarea v-model="dualLocalParamsJson" auto-grow />
+            </ion-item>
+          </div>
+
+          <div class="actions">
+            <ion-button :disabled="saving || !isConfigValid" @click="saveModelConfig" expand="block">Save</ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ion-modal>
     </ion-content>
   </ion-page>
 </template>
@@ -558,6 +630,16 @@ const flatParamsJson = ref('');
 const dualDefaultParamsJson = ref('');
 const dualLocalParamsJson = ref('');
 const saving = ref(false);
+const isConfigValid = computed(() => {
+  if (mode.value === 'flat') {
+    return Boolean(flat.value.provider && flat.value.model);
+  }
+  // dual mode: default required, localOnly optional but must be complete if provided
+  const defOK = Boolean(dual.value.default.provider && dual.value.default.model);
+  const localProvided = Boolean(dual.value.localOnly.provider || dual.value.localOnly.model);
+  const localOK = !localProvided || Boolean(dual.value.localOnly.provider && dual.value.localOnly.model);
+  return defOK && localOK;
+});
 
 function openModelConfigModal() {
   showModelConfigModal.value = true;
@@ -595,6 +677,16 @@ async function loadGlobalModelConfig() {
 async function saveModelConfig() {
   try {
     saving.value = true;
+    if (!isConfigValid.value) {
+      const toast = await toastController.create({
+        message: 'Please complete required fields (provider and model).',
+        duration: 2500,
+        color: 'warning',
+        position: 'bottom'
+      });
+      await toast.present();
+      return;
+    }
     let payload: any;
     if (mode.value === 'flat') {
       try { flat.value.parameters = flatParamsJson.value ? JSON.parse(flatParamsJson.value) : {}; } catch { flat.value.parameters = {}; }
@@ -604,8 +696,25 @@ async function saveModelConfig() {
       try { dual.value.localOnly.parameters = dualLocalParamsJson.value ? JSON.parse(dualLocalParamsJson.value) : {}; } catch { dual.value.localOnly.parameters = {}; }
       payload = { default: dual.value.default, localOnly: (dual.value.localOnly.provider && dual.value.localOnly.model) ? dual.value.localOnly : undefined };
     }
-    await updateGlobalModelConfig(payload);
-    closeModelConfigModal();
+    try {
+      await updateGlobalModelConfig(payload);
+      const toast = await toastController.create({
+        message: 'Global model configuration saved.',
+        duration: 2000,
+        color: 'success',
+        position: 'bottom'
+      });
+      await toast.present();
+      closeModelConfigModal();
+    } catch (e) {
+      const toast = await toastController.create({
+        message: 'Failed to save configuration. Please try again.',
+        duration: 3000,
+        color: 'danger',
+        position: 'bottom'
+      });
+      await toast.present();
+    }
   } finally { saving.value = false; }
 }
 
