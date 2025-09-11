@@ -10,6 +10,9 @@ dev-debug.log
 data_dump.sql
 *.dump.sql
 
+# Supabase CLI working directories
+/supabase/
+
 # Dependency directories
 node_modules/
 
