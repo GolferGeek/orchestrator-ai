@@ -93,6 +93,22 @@
                   </ion-card-content>
                 </ion-card>
               </ion-col>
+
+              <!-- Maintain Default Models Card -->
+              <ion-col size="12" size-md="6" size-lg="4">
+                <ion-card class="action-card default-models" button @click="openModelConfigModal">
+                  <ion-card-content>
+                    <div class="card-icon">
+                      <ion-icon :icon="settingsOutline" />
+                    </div>
+                    <h3>Maintain Default Models</h3>
+                    <p>View or update global default model configuration</p>
+                    <ion-chip :color="envOverrideActive ? 'warning' : 'primary'" size="small">
+                      <ion-label>{{ envOverrideActive ? 'Env Override Active' : 'DB Backed' }}</ion-label>
+                    </ion-chip>
+                  </ion-card-content>
+                </ion-card>
+              </ion-col>
               
               <ion-col size="12" size-md="6" size-lg="4">
                 <ion-card class="action-card system-health" :class="{ 'health-warning': !systemHealth.healthy }">
@@ -484,6 +500,12 @@ import {
   IonSelect,
   IonSelectOption,
   IonInput,
+  IonModal,
+  IonButtons,
+  IonButton,
+  IonTextarea,
+  IonSegment,
+  IonSegmentButton,
   toastController
 } from '@ionic/vue';
 import {
@@ -498,7 +520,8 @@ import {
   documentTextOutline,
   hardwareChipOutline,
   peopleOutline,
-  chatbubblesOutline
+  chatbubblesOutline,
+  settingsOutline
 } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { usePrivacyDashboardStore } from '@/stores/privacyDashboardStore';
@@ -506,6 +529,7 @@ import { useLlmUsageStore } from '@/stores/llmUsageStore';
 import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
 import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
+import { fetchGlobalModelConfig, updateGlobalModelConfig } from '@/services/systemSettingsService';
 
 // Store and router
 const auth = useAuthStore();
@@ -520,6 +544,70 @@ const analyticsStore = useAnalyticsStore();
 
 // Reactive state (UI only)
 const isUpdating = ref(false);
+
+// Global Model Config Modal state
+const showModelConfigModal = ref(false);
+const envOverrideActive = ref(false);
+const mode = ref<'flat' | 'dual'>('flat');
+const flat = ref<{ provider: string; model: string; parameters?: Record<string, any> }>({ provider: '', model: '', parameters: {} });
+const dual = ref<{ default: { provider: string; model: string; parameters?: Record<string, any> }; localOnly: { provider: string; model: string; parameters?: Record<string, any> } }>({
+  default: { provider: '', model: '', parameters: {} },
+  localOnly: { provider: '', model: '', parameters: {} },
+});
+const flatParamsJson = ref('');
+const dualDefaultParamsJson = ref('');
+const dualLocalParamsJson = ref('');
+const saving = ref(false);
+
+function openModelConfigModal() {
+  showModelConfigModal.value = true;
+}
+function closeModelConfigModal() {
+  showModelConfigModal.value = false;
+}
+
+async function loadGlobalModelConfig() {
+  try {
+    const res = await fetchGlobalModelConfig();
+    envOverrideActive.value = !!res?.envOverrideActive;
+    const cfg = res?.dbConfig;
+    if (!cfg) return;
+    if (cfg.default || cfg.localOnly) {
+      mode.value = 'dual';
+      dual.value.default.provider = cfg.default?.provider || '';
+      dual.value.default.model = cfg.default?.model || '';
+      dual.value.default.parameters = cfg.default?.parameters || {};
+      dual.value.localOnly.provider = cfg.localOnly?.provider || '';
+      dual.value.localOnly.model = cfg.localOnly?.model || '';
+      dual.value.localOnly.parameters = cfg.localOnly?.parameters || {};
+      dualDefaultParamsJson.value = JSON.stringify(dual.value.default.parameters || {}, null, 2);
+      dualLocalParamsJson.value = JSON.stringify(dual.value.localOnly.parameters || {}, null, 2);
+    } else {
+      mode.value = 'flat';
+      flat.value.provider = cfg.provider || '';
+      flat.value.model = cfg.model || '';
+      flat.value.parameters = cfg.parameters || {};
+      flatParamsJson.value = JSON.stringify(flat.value.parameters || {}, null, 2);
+    }
+  } catch {}
+}
+
+async function saveModelConfig() {
+  try {
+    saving.value = true;
+    let payload: any;
+    if (mode.value === 'flat') {
+      try { flat.value.parameters = flatParamsJson.value ? JSON.parse(flatParamsJson.value) : {}; } catch { flat.value.parameters = {}; }
+      payload = { provider: flat.value.provider, model: flat.value.model, parameters: flat.value.parameters };
+    } else {
+      try { dual.value.default.parameters = dualDefaultParamsJson.value ? JSON.parse(dualDefaultParamsJson.value) : {}; } catch { dual.value.default.parameters = {}; }
+      try { dual.value.localOnly.parameters = dualLocalParamsJson.value ? JSON.parse(dualLocalParamsJson.value) : {}; } catch { dual.value.localOnly.parameters = {}; }
+      payload = { default: dual.value.default, localOnly: (dual.value.localOnly.provider && dual.value.localOnly.model) ? dual.value.localOnly : undefined };
+    }
+    await updateGlobalModelConfig(payload);
+    closeModelConfigModal();
+  } finally { saving.value = false; }
+}
 
 // Reactive computed properties from stores (no mock data)
 const privacySettings = computed(() => ({
@@ -709,6 +797,7 @@ onMounted(async () => {
       pseudonymDictionariesStore.fetchDictionaries(),
       analyticsStore.initialize?.() || Promise.resolve()
     ]);
+    await loadGlobalModelConfig();
   } catch (error) {
     console.error('Failed to load admin settings data:', error);
   }
@@ -768,6 +857,10 @@ onMounted(async () => {
 
 .action-card.health-warning {
   border-left: 4px solid var(--ion-color-danger);
+}
+
+.action-card.default-models {
+  border-left: 4px solid var(--ion-color-primary);
 }
 
 .card-icon {
@@ -867,6 +960,17 @@ onMounted(async () => {
   margin: 0;
   color: var(--ion-color-medium);
   font-size: 0.9rem;
+}
+
+.model-config .hint {
+  color: var(--ion-color-warning);
+  margin-bottom: 12px;
+}
+.model-config .segment-pane {
+  margin-top: 12px;
+}
+.model-config .actions {
+  margin-top: 16px;
 }
 
 /* Responsive design */
