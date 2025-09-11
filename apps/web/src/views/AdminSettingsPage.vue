@@ -550,7 +550,7 @@
             <ion-item>
               <ion-label position="stacked">Provider</ion-label>
               <ion-select v-model="dual.localOnly.provider" interface="popover" placeholder="Select provider">
-                <ion-select-option v-for="p in providers" :key="p.name" :value="p.name">{{ p.display_name || p.name }}</ion-option>
+                <ion-select-option v-for="p in providers" :key="p.name" :value="p.name">{{ p.display_name || p.name }}</ion-select-option>
               </ion-select>
             </ion-item>
             <ion-item>
