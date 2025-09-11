@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ModelConfigurationService, SystemModelConfiguration, ModelConfiguration } from './model-configuration.service';
 import * as fs from 'fs';
+import { SupabaseModule } from '../supabase/supabase.module';
+import { SupabaseService } from '../supabase/supabase.service';
 
 function deepMerge<T>(base: T, patch: Partial<T>): T {
   const out: any = Array.isArray(base) ? [...(base as any)] : { ...(base as any) };
@@ -16,11 +18,11 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
 }
 
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, SupabaseModule],
   providers: [
     {
       provide: ModelConfigurationService,
-      useFactory: (configService: ConfigService) => {
+      useFactory: async (configService: ConfigService, supabase: SupabaseService) => {
         const json = configService.get<string>('MODEL_CONFIG_JSON');
         const path = configService.get<string>('MODEL_CONFIG_PATH');
         const patchJson = configService.get<string>('MODEL_CONFIG_PATCH_JSON');
@@ -31,12 +33,37 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
         }
 
         let baseConfig: SystemModelConfiguration | undefined;
-        let globalConfig: ModelConfiguration | undefined;
+        let globalConfig: ModelConfiguration | undefined | { default: ModelConfiguration; localOnly?: ModelConfiguration };
         if (globalJson) {
           try {
-            globalConfig = JSON.parse(globalJson);
+            const parsed = JSON.parse(globalJson);
+            // Support either a flat ModelConfiguration or a dual config { default, localOnly }
+            if (parsed && typeof parsed === 'object' && 'default' in parsed) {
+              globalConfig = parsed as { default: ModelConfiguration; localOnly?: ModelConfiguration };
+            } else {
+              globalConfig = parsed as ModelConfiguration;
+            }
           } catch (parseError) {
             throw new Error(`Invalid MODEL_CONFIG_GLOBAL_JSON: ${(parseError as Error).message}. Value: ${globalJson}`);
+          }
+        }
+
+        // If no env-provided global config, try database-backed global config
+        if (!globalConfig) {
+          try {
+            // Prefer service client (no RLS for server boot-time settings)
+            const client = supabase.getServiceClient();
+            const { data, error } = await client.rpc('get_global_model_config');
+            if (!error && data) {
+              const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+              if (parsed && typeof parsed === 'object' && 'default' in parsed) {
+                globalConfig = parsed as { default: ModelConfiguration; localOnly?: ModelConfiguration };
+              } else if (parsed) {
+                globalConfig = parsed as ModelConfiguration;
+              }
+            }
+          } catch {
+            // Silently ignore DB config issues and continue with file/system config
           }
         }
         if (json) {
@@ -60,11 +87,9 @@ function deepMerge<T>(base: T, patch: Partial<T>): T {
         service.validateConfig();
         return service;
       },
-      inject: [ConfigService],
+      inject: [ConfigService, SupabaseService],
     },
   ],
   exports: [ModelConfigurationService],
 })
 export class ModelConfigurationModule {}
-
-
