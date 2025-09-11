@@ -40,7 +40,7 @@ import { useUiStore } from '../stores/uiStore';
 type ConversationState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'done';
 
 const props = defineProps<{
-  sessionId: string;
+  conversationId: string;
   disabled?: boolean;
 }>();
 
@@ -514,7 +514,7 @@ const processRecordedAudio = async () => {
 
     // Backend mode: Send audio to backend for full processing
     const conversationResponse = await apiService.processConversation({
-      sessionId: props.sessionId,
+      conversationId: props.conversationId,
       audioData: base64Audio,
       encoding: currentFormat.value,
       sampleRate: 48000,
