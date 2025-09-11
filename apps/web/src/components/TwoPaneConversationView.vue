@@ -119,6 +119,8 @@
                 v-if="props.conversation?.id"
                 slot="end"
                 :conversation-id="props.conversation.id"
+                :agent-name="currentAgent?.name"
+                :agent-type="currentAgent?.type || 'generalists'"
                 :disabled="!currentAgent"
                 @conversation-start="handleConversationStart"
                 @conversation-end="handleConversationEnd"

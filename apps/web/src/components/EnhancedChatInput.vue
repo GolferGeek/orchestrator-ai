@@ -73,6 +73,8 @@
         <ConversationalSpeechButton
           v-if="currentConversationId"
           :conversation-id="currentConversationId"
+          :agent-name="currentConversation?.agent?.name"
+          :agent-type="currentConversation?.agent?.type || 'generalists'"
           :disabled="!currentConversationId"
           @conversation-start="handleConversationStart"
           @conversation-end="handleConversationEnd"
@@ -131,6 +133,12 @@ const validation = useValidation();
 // Get current conversation ID from props or store
 const currentConversationId = computed(() => {
   return props.conversationId || agentChatStore.activeConversationId;
+});
+
+// Get current conversation for agent info
+const currentConversation = computed(() => {
+  if (!currentConversationId.value) return null;
+  return agentChatStore.getActiveConversation();
 });
 
 // Setup validation rules

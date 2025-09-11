@@ -42,6 +42,8 @@ type ConversationState = 'idle' | 'listening' | 'processing' | 'speaking' | 'err
 const props = defineProps<{
   conversationId: string;
   disabled?: boolean;
+  agentName?: string;
+  agentType?: string;
 }>();
 
 const emit = defineEmits<{
@@ -518,6 +520,8 @@ const processRecordedAudio = async () => {
       audioData: base64Audio,
       encoding: currentFormat.value,
       sampleRate: 48000,
+      agentName: props.agentName,
+      agentType: props.agentType,
     });
 
     // Play the AI response audio
