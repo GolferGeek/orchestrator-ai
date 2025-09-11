@@ -496,14 +496,26 @@
           <div v-if="mode === 'flat'" class="segment-pane">
             <ion-item>
               <ion-label position="stacked">Provider</ion-label>
-              <ion-input v-model="flat.provider" placeholder="openai | anthropic | google | grok | ollama" />
+              <ion-select v-model="flat.provider" interface="popover" placeholder="Select provider">
+                <ion-select-option v-for="p in providers" :key="p.name" :value="p.name">{{ p.display_name || p.name }}</ion-select-option>
+              </ion-select>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">Model</ion-label>
-              <ion-input v-model="flat.model" placeholder="e.g. gpt-4o, claude-3-5-sonnet-20241022, llama3.2:latest" />
+              <ion-select v-model="flat.model" interface="popover" :disabled="!flat.provider" placeholder="Select model">
+                <ion-select-option
+                  v-for="m in (providers.find(p => p.name === flat.provider)?.models || [])"
+                  :key="m.model_name"
+                  :value="m.model_name"
+                >{{ m.display_name || m.model_name }}</ion-select-option>
+              </ion-select>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">Parameters (JSON)</ion-label>
+              <ion-label position="stacked">Temperature</ion-label>
+              <ion-input type="number" step="0.1" min="0" max="2" v-model.number="flatTemp" />
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Advanced Parameters (JSON)</ion-label>
               <ion-textarea v-model="flatParamsJson" auto-grow />
             </ion-item>
           </div>
@@ -512,27 +524,51 @@
             <h4>Default</h4>
             <ion-item>
               <ion-label position="stacked">Provider</ion-label>
-              <ion-input v-model="dual.default.provider" />
+              <ion-select v-model="dual.default.provider" interface="popover" placeholder="Select provider">
+                <ion-select-option v-for="p in providers" :key="p.name" :value="p.name">{{ p.display_name || p.name }}</ion-select-option>
+              </ion-select>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">Model</ion-label>
-              <ion-input v-model="dual.default.model" />
+              <ion-select v-model="dual.default.model" interface="popover" :disabled="!dual.default.provider" placeholder="Select model">
+                <ion-select-option
+                  v-for="m in (providers.find(p => p.name === dual.default.provider)?.models || [])"
+                  :key="m.model_name"
+                  :value="m.model_name"
+                >{{ m.display_name || m.model_name }}</ion-select-option>
+              </ion-select>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">Parameters (JSON)</ion-label>
+              <ion-label position="stacked">Temperature</ion-label>
+              <ion-input type="number" step="0.1" min="0" max="2" v-model.number="dualDefaultTemp" />
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Advanced Parameters (JSON)</ion-label>
               <ion-textarea v-model="dualDefaultParamsJson" auto-grow />
             </ion-item>
             <h4 style="margin-top: 16px;">Local Only (optional)</h4>
             <ion-item>
               <ion-label position="stacked">Provider</ion-label>
-              <ion-input v-model="dual.localOnly.provider" />
+              <ion-select v-model="dual.localOnly.provider" interface="popover" placeholder="Select provider">
+                <ion-select-option v-for="p in providers" :key="p.name" :value="p.name">{{ p.display_name || p.name }}</ion-option>
+              </ion-select>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">Model</ion-label>
-              <ion-input v-model="dual.localOnly.model" />
+              <ion-select v-model="dual.localOnly.model" interface="popover" :disabled="!dual.localOnly.provider" placeholder="Select model">
+                <ion-select-option
+                  v-for="m in (providers.find(p => p.name === dual.localOnly.provider)?.models || [])"
+                  :key="m.model_name"
+                  :value="m.model_name"
+                >{{ m.display_name || m.model_name }}</ion-select-option>
+              </ion-select>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">Parameters (JSON)</ion-label>
+              <ion-label position="stacked">Temperature</ion-label>
+              <ion-input type="number" step="0.1" min="0" max="2" v-model.number="dualLocalTemp" />
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Advanced Parameters (JSON)</ion-label>
               <ion-textarea v-model="dualLocalParamsJson" auto-grow />
             </ion-item>
           </div>
@@ -602,6 +638,7 @@ import { usePIIPatternsStore } from '@/stores/piiPatternsStore';
 import { usePseudonymDictionariesStore } from '@/stores/pseudonymDictionariesStore';
 import { useAnalyticsStore } from '@/stores/analyticsStore';
 import { fetchGlobalModelConfig, updateGlobalModelConfig } from '@/services/systemSettingsService';
+import { fetchProvidersWithModels, type ProviderWithModels } from '@/services/modelCatalogService';
 
 // Store and router
 const auth = useAuthStore();
@@ -626,6 +663,10 @@ const dual = ref<{ default: { provider: string; model: string; parameters?: Reco
   default: { provider: '', model: '', parameters: {} },
   localOnly: { provider: '', model: '', parameters: {} },
 });
+const providers = ref<ProviderWithModels[]>([]);
+const flatTemp = ref<number>(0.7);
+const dualDefaultTemp = ref<number>(0.7);
+const dualLocalTemp = ref<number>(0.7);
 const flatParamsJson = ref('');
 const dualDefaultParamsJson = ref('');
 const dualLocalParamsJson = ref('');
@@ -650,6 +691,8 @@ function closeModelConfigModal() {
 
 async function loadGlobalModelConfig() {
   try {
+    // Load catalog first
+    providers.value = await fetchProvidersWithModels({ status: 'active' });
     const res = await fetchGlobalModelConfig();
     envOverrideActive.value = !!res?.envOverrideActive;
     const cfg = res?.dbConfig;
@@ -659,9 +702,11 @@ async function loadGlobalModelConfig() {
       dual.value.default.provider = cfg.default?.provider || '';
       dual.value.default.model = cfg.default?.model || '';
       dual.value.default.parameters = cfg.default?.parameters || {};
+      dualDefaultTemp.value = (dual.value.default.parameters?.temperature as number) ?? 0.7;
       dual.value.localOnly.provider = cfg.localOnly?.provider || '';
       dual.value.localOnly.model = cfg.localOnly?.model || '';
       dual.value.localOnly.parameters = cfg.localOnly?.parameters || {};
+      dualLocalTemp.value = (dual.value.localOnly.parameters?.temperature as number) ?? 0.7;
       dualDefaultParamsJson.value = JSON.stringify(dual.value.default.parameters || {}, null, 2);
       dualLocalParamsJson.value = JSON.stringify(dual.value.localOnly.parameters || {}, null, 2);
     } else {
@@ -669,6 +714,7 @@ async function loadGlobalModelConfig() {
       flat.value.provider = cfg.provider || '';
       flat.value.model = cfg.model || '';
       flat.value.parameters = cfg.parameters || {};
+      flatTemp.value = (flat.value.parameters?.temperature as number) ?? 0.7;
       flatParamsJson.value = JSON.stringify(flat.value.parameters || {}, null, 2);
     }
   } catch {}
@@ -690,10 +736,13 @@ async function saveModelConfig() {
     let payload: any;
     if (mode.value === 'flat') {
       try { flat.value.parameters = flatParamsJson.value ? JSON.parse(flatParamsJson.value) : {}; } catch { flat.value.parameters = {}; }
+      flat.value.parameters.temperature = flatTemp.value;
       payload = { provider: flat.value.provider, model: flat.value.model, parameters: flat.value.parameters };
     } else {
       try { dual.value.default.parameters = dualDefaultParamsJson.value ? JSON.parse(dualDefaultParamsJson.value) : {}; } catch { dual.value.default.parameters = {}; }
       try { dual.value.localOnly.parameters = dualLocalParamsJson.value ? JSON.parse(dualLocalParamsJson.value) : {}; } catch { dual.value.localOnly.parameters = {}; }
+      dual.value.default.parameters.temperature = dualDefaultTemp.value;
+      if (dual.value.localOnly) dual.value.localOnly.parameters.temperature = dualLocalTemp.value;
       payload = { default: dual.value.default, localOnly: (dual.value.localOnly.provider && dual.value.localOnly.model) ? dual.value.localOnly : undefined };
     }
     try {
