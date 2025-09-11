@@ -1,6 +1,6 @@
 # 🎭 VIP List Management API Reference
 
-**Base URL**: `http://localhost:7000/sanitization`
+**Base URL**: `http://localhost:7100/llm/sanitization`
 
 This API provides complete CRUD operations for managing VIP lists, custom PII patterns, and pseudonym dictionaries.
 
@@ -10,7 +10,7 @@ This API provides complete CRUD operations for managing VIP lists, custom PII pa
 
 ### **GET** `/pii/patterns` - List All VIP Patterns
 ```bash
-curl -X GET "http://localhost:7000/sanitization/pii/patterns"
+curl -X GET "http://localhost:7100/llm/sanitization/pii/patterns"
 ```
 **Response:**
 ```json
@@ -38,7 +38,7 @@ curl -X GET "http://localhost:7000/sanitization/pii/patterns"
 
 ### **POST** `/pii/patterns` - Add New VIP Pattern
 ```bash
-curl -X POST "http://localhost:7000/sanitization/pii/patterns" \
+curl -X POST "http://localhost:7100/llm/sanitization/pii/patterns" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "vip_tech_executives",
@@ -59,7 +59,7 @@ curl -X POST "http://localhost:7000/sanitization/pii/patterns" \
 
 ### **PUT** `/pii/patterns/:name` - Update VIP Pattern ✨ *NEW*
 ```bash
-curl -X PUT "http://localhost:7000/sanitization/pii/patterns/vip_tech_executives" \
+curl -X PUT "http://localhost:7100/llm/sanitization/pii/patterns/vip_tech_executives" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "vip_tech_executives_updated",
@@ -72,7 +72,7 @@ curl -X PUT "http://localhost:7000/sanitization/pii/patterns/vip_tech_executives
 
 ### **DELETE** `/pii/patterns/:name` - Delete VIP Pattern ✨ *NEW*
 ```bash
-curl -X DELETE "http://localhost:7000/sanitization/pii/patterns/vip_tech_executives"
+curl -X DELETE "http://localhost:7100/llm/sanitization/pii/patterns/vip_tech_executives"
 ```
 **Response:**
 ```json
@@ -84,7 +84,7 @@ curl -X DELETE "http://localhost:7000/sanitization/pii/patterns/vip_tech_executi
 
 ### **POST** `/pii/test` - Test VIP Detection
 ```bash
-curl -X POST "http://localhost:7000/sanitization/pii/test" \
+curl -X POST "http://localhost:7100/llm/sanitization/pii/test" \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Meeting with Tim Cook from Apple scheduled for 3pm",
@@ -121,12 +121,12 @@ curl -X POST "http://localhost:7000/sanitization/pii/test" \
 
 ### **GET** `/redaction/patterns` - List Redaction Patterns
 ```bash
-curl -X GET "http://localhost:7000/sanitization/redaction/patterns"
+curl -X GET "http://localhost:7100/llm/sanitization/redaction/patterns"
 ```
 
 ### **POST** `/redaction/patterns` - Add Redaction Pattern
 ```bash
-curl -X POST "http://localhost:7000/sanitization/redaction/patterns" \
+curl -X POST "http://localhost:7100/llm/sanitization/redaction/patterns" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "custom_project_codes",
@@ -140,7 +140,7 @@ curl -X POST "http://localhost:7000/sanitization/redaction/patterns" \
 
 ### **DELETE** `/redaction/patterns/:name` - Delete Redaction Pattern
 ```bash
-curl -X DELETE "http://localhost:7000/sanitization/redaction/patterns/custom_project_codes"
+curl -X DELETE "http://localhost:7100/llm/sanitization/redaction/patterns/custom_project_codes"
 ```
 
 ---
@@ -149,7 +149,7 @@ curl -X DELETE "http://localhost:7000/sanitization/redaction/patterns/custom_pro
 
 ### **POST** `/pseudonym/generate` - Generate Pseudonym
 ```bash
-curl -X POST "http://localhost:7000/sanitization/pseudonym/generate" \
+curl -X POST "http://localhost:7100/llm/sanitization/pseudonym/generate" \
   -H "Content-Type: application/json" \
   -d '{
     "value": "Tim Cook",
@@ -171,7 +171,7 @@ curl -X POST "http://localhost:7000/sanitization/pseudonym/generate" \
 
 ### **POST** `/pseudonym/lookup` - Lookup Existing Pseudonym
 ```bash
-curl -X POST "http://localhost:7000/sanitization/pseudonym/lookup" \
+curl -X POST "http://localhost:7100/llm/sanitization/pseudonym/lookup" \
   -H "Content-Type: application/json" \
   -d '{
     "value": "Tim Cook",
@@ -185,7 +185,7 @@ curl -X POST "http://localhost:7000/sanitization/pseudonym/lookup" \
 
 ### **POST** `/test` - Complete Sanitization Test
 ```bash
-curl -X POST "http://localhost:7000/sanitization/test" \
+curl -X POST "http://localhost:7100/llm/sanitization/test" \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Hi, I am Tim Cook from Apple. My API key is sk-1234567890abcdef.",
@@ -213,7 +213,7 @@ curl -X POST "http://localhost:7000/sanitization/test" \
 
 ### **GET** `/stats` - Service Statistics
 ```bash
-curl -X GET "http://localhost:7000/sanitization/stats"
+curl -X GET "http://localhost:7100/llm/sanitization/stats"
 ```
 **Response:**
 ```json

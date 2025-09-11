@@ -53,7 +53,7 @@ Build a comprehensive frontend interface to showcase and manage the privacy-firs
 - **Framework**: Vue.js 3 + Composition API
 - **UI Library**: Ionic Vue (existing)
 - **State Management**: Pinia stores
-- **API Integration**: Axios with localhost:9000/sanitization endpoints
+- **API Integration**: Axios hitting `http://localhost:7100/llm/sanitization` endpoints
 - **Real-time Updates**: Event-driven architecture
 
 ### Component Architecture
@@ -94,13 +94,14 @@ Frontend PII Management System
 - **Form Fields**:
   - Pattern Name (required, unique validation)
   - Regex Pattern (required, with live validation)
-  - Data Type (dropdown: name, email, phone, address, custom, etc.)
+  - Data Type (dropdown: name, email, phone, address, ip_address, username, credit_card, ssn, custom)
   - Description (optional)
   - Priority (1-100, lower = higher priority)
   - Category (corporate, executive, financial, etc.)
+  - Severity (flagger or showstopper)
 - **Live Preview**: Test regex against sample text in real-time
 - **Validation**: Client-side regex validation with error feedback
-- **API Integration**: POST/PUT to `/sanitization/pii/patterns`
+- **API Integration**: POST/PUT to `/llm/sanitization/pii/patterns`
 
 #### 1.3 PII Testing Interface
 **Component**: `PIITestingInterface.vue`
@@ -109,7 +110,7 @@ Frontend PII Management System
 - **Pattern Matching**: Show which patterns matched each detection
 - **Before/After Preview**: Original text vs sanitized text comparison
 - **Performance Metrics**: Detection time, patterns checked
-- **API Integration**: POST to `/sanitization/pii/test`
+- **API Integration**: POST to `/llm/sanitization/pii/test`
 
 #### 1.4 Pseudonym Dictionary Manager
 **Component**: `PseudonymDictionaryManager.vue`
@@ -194,24 +195,25 @@ Frontend PII Management System
 ## API Integration
 
 ### Required Endpoints (Already Available)
-- `GET /sanitization/pii/patterns` - List PII patterns
-- `POST /sanitization/pii/patterns` - Create PII pattern
-- `PUT /sanitization/pii/patterns/:name` - Update PII pattern
-- `DELETE /sanitization/pii/patterns/:name` - Delete PII pattern
-- `POST /sanitization/pii/test` - Test PII detection
-- `POST /sanitization/test` - Complete sanitization test
-- `GET /sanitization/stats` - Service statistics
+- `GET /llm/sanitization/pii/patterns` - List PII patterns
+- `POST /llm/sanitization/pii/patterns` - Create PII pattern
+- `PUT /llm/sanitization/pii/patterns/:name` - Update PII pattern
+- `DELETE /llm/sanitization/pii/patterns/:name` - Delete PII pattern
+- `POST /llm/sanitization/pii/test` - Test PII detection
+- `POST /llm/sanitization/test` - Complete sanitization test
+- `GET /llm/sanitization/stats` - Service statistics
 
 ### Data Models
 ```typescript
 interface PIIPattern {
   name: string;
-  dataType: 'name' | 'email' | 'phone' | 'address' | 'custom';
-  pattern: string; // regex
+  dataType: 'email' | 'phone' | 'name' | 'address' | 'ip_address' | 'username' | 'credit_card' | 'ssn' | 'custom';
+  pattern: string; // regex source string
   description?: string;
-  priority: number; // 1-100
-  category?: string;
-  enabled: boolean;
+  priority: number; // 1-100 (lower = higher priority)
+  category?: 'pii_builtin' | 'pii_custom' | string;
+  enabled: boolean; // maps to DB is_active
+  severity?: 'showstopper' | 'flagger';
 }
 
 interface SanitizationResult {
@@ -333,7 +335,7 @@ interface PIIDetectionResult {
 ## Dependencies and Prerequisites
 
 ### Technical Dependencies
-- **Backend API**: PII management endpoints at localhost:9000
+- **Backend API**: PII management endpoints at `http://localhost:7100/llm/sanitization`
 - **Database**: Supabase with PII pattern tables
 - **Frontend Framework**: Vue.js 3 + Ionic Vue setup
 - **Development Environment**: Node.js, npm/yarn

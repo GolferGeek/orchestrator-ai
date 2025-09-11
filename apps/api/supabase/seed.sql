@@ -444,6 +444,17 @@ BEGIN
 END $$;
 
 -- =====================================
+-- SYSTEM SETTINGS (GLOBAL MODEL CONFIG)
+-- =====================================
+-- Seed the global model configuration used by the API when MODEL_CONFIG_GLOBAL_JSON is not provided
+INSERT INTO public.system_settings (key, value)
+VALUES (
+  'model_config_global',
+  '{"provider":"openai","model":"gpt-4o","parameters":{"temperature":0.2,"maxTokens":800}}'::jsonb
+)
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
+
+-- =====================================
 -- PII PATTERNS SEEDING
 -- =====================================
 -- Clean up and seed built-in PII patterns with proper severity levels
