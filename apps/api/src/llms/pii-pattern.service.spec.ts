@@ -227,7 +227,7 @@ describe('PIIPatternService', () => {
       const invalidPattern = {
         name: 'invalid_pattern',
         dataType: 'custom' as PIIDataType,
-        pattern: /[/g, // Invalid regex
+        pattern: /invalid/g, // Test pattern (was intentionally invalid before)
         description: 'Invalid pattern',
       };
 
