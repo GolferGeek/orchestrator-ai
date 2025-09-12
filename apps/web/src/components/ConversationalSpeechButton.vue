@@ -35,6 +35,7 @@ import { IonButton, IonIcon, toastController } from '@ionic/vue';
 import { radioButtonOnOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
 import { useUiStore } from '../stores/uiStore';
+import { useLLMStore } from '../stores/llmStore';
 
 // Define conversation states
 type ConversationState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'done';
@@ -53,6 +54,7 @@ const emit = defineEmits<{
 }>();
 
 const uiStore = useUiStore();
+const llmStore = useLLMStore();
 
 // Component state
 const conversationState = ref<ConversationState>('idle');
@@ -514,6 +516,9 @@ const processRecordedAudio = async () => {
     const audioBlob = new Blob(audioChunks.value, { type: currentMimeType.value });
     const base64Audio = await blobToBase64(audioBlob);
 
+    // Debug: Log current LLM selection
+    console.log('🎤 [ConversationalSpeechButton] Current LLM Selection:', llmStore.currentLLMSelection);
+
     // Backend mode: Send audio to backend for full processing
     const conversationResponse = await apiService.processConversation({
       conversationId: props.conversationId,
@@ -522,6 +527,7 @@ const processRecordedAudio = async () => {
       sampleRate: 48000,
       agentName: props.agentName,
       agentType: props.agentType,
+      llmSelection: llmStore.currentLLMSelection, // Pass the actual user's LLM selection
     });
 
     // Play the AI response audio
