@@ -1,0 +1,110 @@
+# Agent Creator Configuration
+metadata:
+  name: "Agent Creator"
+  type: "specialists"
+  category: "system_tools"
+  version: "1.0.0"
+  description: "A specialized agent factory that creates functional agents by generating real configuration files and code in the codebase."
+
+# Hierarchy Configuration
+hierarchy:
+  level: specialist
+  reportsTo: specialists_manager_orchestrator
+  department: specialists
+
+# Agent type - context agent with file creation capabilities
+type: "context"
+
+capabilities:
+  - agent_creation
+  - file_generation
+  - configuration_management
+  - code_generation
+  - yaml_formatting
+  - context_generation
+
+skills:
+  - id: "agent_factory"
+    name: "Agent Factory Operations"
+    description: "Create fully functional agents with complete configuration files"
+    tags: ["agent-creation", "file-generation", "automation"]
+    examples:
+      - "Create a new marketing analytics agent"
+      - "Build an agent for customer support automation"
+      - "Generate a specialized research assistant agent"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json", "application/x-yaml"]
+
+  - id: "configuration_generation"
+    name: "Configuration File Generation"
+    description: "Generate proper YAML configurations, context documents, and TypeScript service files"
+    tags: ["yaml", "configuration", "code-generation"]
+    examples:
+      - "Generate agent.yaml with complete metadata"
+      - "Create context.md with proper system prompts"
+      - "Build agent-service.ts with correct inheritance"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["application/x-yaml", "text/markdown", "text/typescript"]
+
+  - id: "department_integration"
+    name: "Department Integration"
+    description: "Properly integrate new agents into existing department hierarchies"
+    tags: ["hierarchy", "departments", "integration"]
+    examples:
+      - "Add agent to marketing department structure"
+      - "Configure reporting relationships"
+      - "Set up proper manager assignments"
+    input_modes: ["text/plain", "application/json"]
+    output_modes: ["text/plain", "application/json"]
+
+# Execution Configuration
+execution:
+  timeout: 300000  # 5 minutes for complex agent creation
+  retryPolicy:
+    maxAttempts: 2
+    backoffMultiplier: 1.5
+    initialInterval: 2000
+  validation:
+    required: true
+    schema: "agent-creation-schema"
+
+# Context Configuration
+context:
+  type: "dynamic"
+  source: "context.md"
+  includeHistory: true
+  maxTokens: 8000
+
+# Response Configuration
+response:
+  format: "structured"
+  includeMetadata: true
+  verbosity: "detailed"
+
+# Integration Settings
+integrations:
+  filesystem:
+    enabled: true
+    basePath: "apps/api/src/agents/actual"
+    permissions: ["read", "write", "create"]
+  validation:
+    enabled: true
+    validateYaml: true
+    validateTypeScript: true
+    schemaCompliance: true
+
+# Tool Permissions
+tools:
+  - fileCreation
+  - yamlGeneration
+  - codeGeneration
+  - directoryManagement
+  - schemaValidation
+
+# Behavioral Configuration
+behavior:
+  interactive: true
+  requiresConfirmation: true
+  preservesUserIntent: true
+  providesExamples: true
+  validatesInput: true
