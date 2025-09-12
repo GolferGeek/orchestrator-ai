@@ -67,12 +67,12 @@
         <ion-accordion-group>
           <ion-accordion :value="expandedAccordions.includes(group.type) ? group.type : undefined">
             <!-- Manager as accordion header with action buttons -->
-            <ion-item slot="header" color="light" class="manager-header">
-              <ion-icon :icon="icons.briefcaseOutline" color="primary" slot="start" />
+            <ion-item slot="header" class="manager-header">
+              <ion-icon :icon="icons.briefcaseOutline" class="manager-icon" slot="start" />
               <ion-label>
                 <h3>{{ formatAgentName(group.agents[0].name).replace(' Orchestrator', '') }}</h3>
               </ion-label>
-              <ion-badge :color="group.totalConversations > 0 ? 'primary' : 'medium'" class="conversation-count">
+              <ion-badge :color="group.totalConversations > 0 ? 'tertiary' : 'medium'" class="manager-conversation-count">
                 {{ group.totalConversations }}
               </ion-badge>
               <!-- Action buttons in header -->
@@ -103,7 +103,7 @@
               <!-- Skip the first agent (manager) and show the rest (team members) -->
               <div v-for="agent in group.agents.slice(1)" :key="agent.name" class="agent-section nested-agent">
                 <!-- Agent Header -->
-                <ion-item color="light" class="nested-agent-item">
+                <ion-item class="nested-agent-item">
                   <ion-icon :icon="icons.personOutline" slot="start" color="medium" />
                   <ion-label>
                     <h4>{{ formatAgentName(agent.name).replace(' Orchestrator', '') }}</h4>
@@ -167,7 +167,7 @@
       <div v-for="group in hierarchyGroups.filter(g => g.isSpecialists)" :key="group.type">
         <div v-for="agent in group.agents" :key="agent.name" class="agent-section">
           <!-- Agent Header -->
-          <ion-item color="light" class="specialist-item">
+          <ion-item class="specialist-item">
             <ion-icon :icon="icons.personOutline" color="medium" slot="start" />
             <ion-label>
               <h3>{{ formatAgentName(agent.name).replace(' Orchestrator', '') }}</h3>
@@ -691,7 +691,11 @@ onMounted(async () => {
 }
 
 .nested-agent ion-item {
-  --padding-start: 8px; /* Reduce indentation by half */
+  --padding-start: 12px;
+}
+
+.nested-agent-item ion-icon {
+  margin-right: 8px;
 }
 
 /* Hierarchy Actions */
@@ -725,7 +729,7 @@ onMounted(async () => {
 
 /* Conversations list styling */
 .conversations-list {
-  background: var(--ion-color-light-tint);
+  background: var(--ion-color-step-50, #f7f7f7);
   border-radius: 8px;
   margin: 4px 8px;
 }
@@ -758,31 +762,56 @@ onMounted(async () => {
 /* Header buttons styling */
 .manager-header {
   position: relative;
+  --background: rgba(155, 89, 182, 0.1);  /* Light purple background */
+  --background-hover: rgba(155, 89, 182, 0.15);
+  --color: var(--ion-text-color);
+  --padding-start: 12px;
+}
+
+.manager-icon {
+  color: #9b59b6;  /* Purple color for managers */
+  font-size: 20px;
+  margin-right: 8px;
 }
 
 .manager-header ion-label {
   flex: 1;
 }
 
+.manager-header ion-label h3 {
+  color: #8e44ad;  /* Darker purple for manager names */
+  font-weight: 500;
+}
+
 .conversation-count {
-  margin-right: 8px;
+  margin-right: 4px;
+}
+
+.manager-conversation-count {
+  margin-right: 4px;
+  background: #9b59b6;
+  color: white;
+}
+
+.manager-conversation-count[color="medium"] {
+  background: var(--ion-color-medium);
 }
 
 .header-actions {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   align-items: center;
   margin-left: auto;
-  padding-right: 8px;
+  padding-right: 4px;
 }
 
 .header-action-btn {
-  --padding-start: 6px;
-  --padding-end: 6px;
+  --padding-start: 4px;
+  --padding-end: 4px;
   --padding-top: 4px;
   --padding-bottom: 4px;
-  min-width: 32px;
-  height: 32px;
+  min-width: 28px;
+  height: 28px;
 }
 
 .header-action-btn ion-icon {
@@ -805,5 +834,30 @@ onMounted(async () => {
 /* Prevent accordion toggle when clicking buttons */
 .header-actions {
   z-index: 10;
+}
+
+/* CEO item styling */
+.ceo-item {
+  --padding-start: 12px;
+  --background: var(--ion-item-background, var(--ion-background-color));
+}
+
+.ceo-item ion-icon {
+  margin-right: 8px;
+}
+
+/* Specialist item styling */
+.specialist-item {
+  --padding-start: 12px;
+  --background: var(--ion-color-step-100, #e7e7e7);
+}
+
+.specialist-item ion-icon {
+  margin-right: 8px;
+}
+
+/* Nested agent item styling */
+.nested-agent-item {
+  --background: var(--ion-color-step-100, #e7e7e7);
 }
 </style>
