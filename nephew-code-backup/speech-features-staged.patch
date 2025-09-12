@@ -1,0 +1,2996 @@
+diff --git a/apps/web/src/components/ConversationalSpeechButton.vue b/apps/web/src/components/ConversationalSpeechButton.vue
+new file mode 100644
+index 0000000..5264f41
+--- /dev/null
++++ b/apps/web/src/components/ConversationalSpeechButton.vue
+@@ -0,0 +1,1025 @@
++<template>
++  <ion-button
++    fill="clear"
++    :color="getButtonColor()"
++    @click="toggleConversation"
++    :disabled="disabled"
++    class="conversation-button custom-button-padding"
++    :title="getButtonTooltip()"
++  >
++    <div class="ripple-container">
++      <ion-icon
++        slot="icon-only"
++        :icon="radioButtonOnOutline"
++        :class="getIconClasses()"
++      ></ion-icon>
++
++      <!-- Ripple animations -->
++      <div
++        v-if="isListening || isProcessing || isSpeaking"
++        class="ripple-animation"
++        :class="getRippleClasses()"
++        :style="getRippleStyles()"
++      >
++        <div class="ripple"></div>
++        <div class="ripple"></div>
++        <div class="ripple"></div>
++      </div>
++    </div>
++  </ion-button>
++</template>
++
++<script setup lang="ts">
++import { ref, computed, defineEmits, defineProps, onUnmounted, onMounted } from 'vue';
++import { IonButton, IonIcon, toastController } from '@ionic/vue';
++import { radioButtonOnOutline } from 'ionicons/icons';
++import { apiService } from '../services/apiService';
++import { useUiStore } from '../stores/uiStore';
++
++// Define conversation states
++type ConversationState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'done';
++
++const props = defineProps<{
++  sessionId: string;
++  disabled?: boolean;
++}>();
++
++const emit = defineEmits<{
++  (e: 'conversationStart'): void;
++  (e: 'conversationEnd'): void;
++  (e: 'error', error: string): void;
++}>();
++
++const uiStore = useUiStore();
++
++// Component state
++const conversationState = ref<ConversationState>('idle');
++const currentAudio = ref<HTMLAudioElement | null>(null);
++const mediaRecorder = ref<MediaRecorder | null>(null);
++const audioChunks = ref<Blob[]>([]);
++const continuousListening = ref(false);
++const currentMimeType = ref('audio/webm;codecs=opus');
++const currentFormat = ref('webm');
++
++// Audio resource tracking
++const activeStreams = ref<MediaStream[]>([]);
++const audioContext = ref<AudioContext | null>(null);
++const currentSource = ref<MediaStreamAudioSourceNode | null>(null);
++
++// Voice Activity Detection state
++const baselineVolume = ref(0);
++const currentVolume = ref(0);
++const silenceStartTime = ref(0);
++const volumeThreshold = ref(0);
++const analyser = ref<AnalyserNode | null>(null);
++const dataArray = ref<Uint8Array | null>(null);
++const vadCheckInterval = ref<number | null>(null);
++const hasDetectedSpeech = ref(false);
++const lastVolumeChangeTime = ref(0);
++
++// Constants
++const SILENCE_DURATION_MS = 1800; // 1.8 seconds of silence to auto-stop
++const BASELINE_MEASUREMENT_MS = 500; // Measure baseline for 0.5 seconds
++const VOLUME_THRESHOLD_MULTIPLIER = 0.3; // Threshold is 30% above baseline
++const NO_VOLUME_CHANGE_MS = 3000; // 3 seconds of no significant volume change
++
++// Computed properties
++const isListening = computed(() => conversationState.value === 'listening');
++const isProcessing = computed(() => conversationState.value === 'processing');
++const isSpeaking = computed(() => conversationState.value === 'speaking');
++
++const volumeIntensity = computed(() => {
++  if (!isListening.value || !volumeThreshold.value) return 1;
++
++  // Calculate volume as a ratio above threshold (1.0 = at threshold, 2.0 = 2x threshold, etc.)
++  const ratio = Math.max(0.1, currentVolume.value / Math.max(volumeThreshold.value, 1));
++
++  // Cap at 3x for reasonable animation bounds
++  return Math.min(ratio, 3);
++});
++
++const getButtonColor = (): string => {
++  switch (conversationState.value) {
++    case 'listening':
++      return 'primary'; // Blue instead of red
++    case 'processing':
++      return 'secondary'; // Purple/gray instead of yellow
++    case 'speaking':
++      return 'tertiary'; // Light blue instead of green
++    case 'done':
++      return 'medium';
++    case 'error':
++      return 'dark'; // Dark instead of red for errors
++    default:
++      return 'primary';
++  }
++};
++
++const getIconClasses = (): string => {
++  const classes = ['conversation-icon'];
++
++  switch (conversationState.value) {
++    case 'listening':
++      classes.push('listening');
++      break;
++    case 'processing':
++      classes.push('processing');
++      break;
++    case 'speaking':
++      classes.push('speaking');
++      break;
++    case 'done':
++      classes.push('done');
++      break;
++  }
++
++  return classes.join(' ');
++};
++
++const getRippleClasses = (): string => {
++  switch (conversationState.value) {
++    case 'listening':
++      return 'listening-ripples';
++    case 'processing':
++      return 'processing-ripples';
++    case 'speaking':
++      return 'speaking-ripples';
++    default:
++      return '';
++  }
++};
++
++const getRippleStyles = () => {
++  if (conversationState.value === 'listening') {
++    // Use volume intensity to control ripple animation speed and scale
++    const intensity = volumeIntensity.value;
++    const animationDuration = Math.max(0.5, 2.5 - intensity); // Faster ripples for louder volume
++    const scale = 0.5 + (intensity * 0.5); // Bigger ripples for louder volume
++
++    return {
++      '--ripple-duration': `${animationDuration}s`,
++      '--ripple-scale': scale.toString()
++    };
++  }
++  return {};
++};
++
++const getButtonTooltip = (): string => {
++  switch (conversationState.value) {
++    case 'listening':
++      return 'Click to stop or wait for silence detection';
++    case 'processing':
++      return 'Processing your speech...';
++    case 'speaking':
++      return 'Click to interrupt or end conversation (if no recent audio)';
++    case 'done':
++      return 'Conversation ended - click to start new one';
++    case 'error':
++      return 'Error occurred - click to retry';
++    default:
++      return 'Start voice conversation';
++  }
++};
++
++// Voice Activity Detection functions
++const calculateVolume = (): number => {
++  if (!analyser.value || !dataArray.value) return 0;
++
++  analyser.value.getByteFrequencyData(dataArray.value);
++
++  let sum = 0;
++  for (let i = 0; i < dataArray.value.length; i++) {
++    sum += dataArray.value[i];
++  }
++
++  return sum / dataArray.value.length;
++};
++
++const startVoiceActivityDetection = (stream: MediaStream) => {
++  try {
++    // Create or reuse AudioContext
++    if (!audioContext.value || audioContext.value.state === 'closed') {
++      audioContext.value = new AudioContext();
++      console.log('VAD: Created new AudioContext');
++    }
++
++    // Disconnect any existing source
++    if (currentSource.value) {
++      currentSource.value.disconnect();
++      currentSource.value = null;
++    }
++
++    currentSource.value = audioContext.value.createMediaStreamSource(stream);
++    analyser.value = audioContext.value.createAnalyser();
++    analyser.value.fftSize = 256;
++
++    const bufferLength = analyser.value.frequencyBinCount;
++    dataArray.value = new Uint8Array(bufferLength);
++
++    currentSource.value.connect(analyser.value);
++
++    console.log('VAD: Starting voice activity detection');
++
++    // Measure baseline volume for first 500ms
++    const baselineEndTime = Date.now() + BASELINE_MEASUREMENT_MS;
++    let baselineSum = 0;
++    let baselineCount = 0;
++
++    const measureBaseline = () => {
++      if (Date.now() < baselineEndTime && conversationState.value === 'listening') {
++        const volume = calculateVolume();
++        baselineSum += volume;
++        baselineCount++;
++        console.log(`VAD: Measuring baseline - volume: ${volume}`);
++        requestAnimationFrame(measureBaseline);
++      } else {
++        baselineVolume.value = baselineSum / baselineCount;
++        // Use a more robust threshold calculation - at least 5 units above baseline, or 50% more
++        const minThreshold = baselineVolume.value + 5;
++        const proportionalThreshold = baselineVolume.value + (baselineVolume.value * VOLUME_THRESHOLD_MULTIPLIER);
++        volumeThreshold.value = Math.max(minThreshold, proportionalThreshold);
++
++        console.log(`VAD: Baseline complete - baseline: ${baselineVolume.value}, threshold: ${volumeThreshold.value} (min: ${minThreshold}, prop: ${proportionalThreshold})`);
++
++        // Start continuous VAD monitoring
++        startVADMonitoring();
++      }
++    };
++
++    measureBaseline();
++  } catch (error) {
++    console.error('VAD: Failed to start voice activity detection:', error);
++  }
++};
++
++const startVADMonitoring = () => {
++  let wasAboveThreshold = false;
++  let previousVolume = 0;
++  let logCount = 0;
++
++  console.log('VAD: Starting monitoring');
++
++  const checkVAD = () => {
++    if (conversationState.value !== 'listening') {
++      console.log('VAD: Stopping - conversation state changed to:', conversationState.value);
++      return;
++    }
++
++    currentVolume.value = calculateVolume();
++    const isAboveThreshold = currentVolume.value > volumeThreshold.value;
++
++    // Debug logging every 30 frames (about once per second at 30fps)
++    if (logCount % 30 === 0) {
++      console.log(`VAD: volume=${currentVolume.value.toFixed(1)}, threshold=${volumeThreshold.value.toFixed(1)}, above=${isAboveThreshold}, wasAbove=${wasAboveThreshold}`);
++    }
++    logCount++;
++
++    // Track significant volume changes
++    if (Math.abs(currentVolume.value - previousVolume) > volumeThreshold.value * 0.2) {
++      lastVolumeChangeTime.value = Date.now();
++    }
++    previousVolume = currentVolume.value;
++
++    if (isAboveThreshold) {
++      // User is speaking
++      if (!wasAboveThreshold) {
++        console.log('VAD: Speech detected!');
++      }
++      wasAboveThreshold = true;
++      hasDetectedSpeech.value = true;
++      silenceStartTime.value = 0;
++    } else if (wasAboveThreshold) {
++      // User stopped speaking, start silence timer
++      if (silenceStartTime.value === 0) {
++        silenceStartTime.value = Date.now();
++        console.log('VAD: Silence started');
++      } else {
++        const silenceDuration = Date.now() - silenceStartTime.value;
++        if (silenceDuration > SILENCE_DURATION_MS) {
++          // Silence detected for long enough, auto-stop
++          console.log(`VAD: Auto-stopping due to ${silenceDuration}ms of silence`);
++          stopListening();
++          return;
++        }
++      }
++    }
++
++    vadCheckInterval.value = requestAnimationFrame(checkVAD);
++  };
++
++  checkVAD();
++};
++
++const stopVADMonitoring = () => {
++  console.log('VAD: Stopping monitoring and cleaning up audio resources');
++
++  if (vadCheckInterval.value) {
++    cancelAnimationFrame(vadCheckInterval.value);
++    vadCheckInterval.value = null;
++  }
++
++  // Disconnect audio nodes
++  if (currentSource.value) {
++    try {
++      currentSource.value.disconnect();
++    } catch (error) {
++      console.warn('VAD: Error disconnecting source:', error);
++    }
++    currentSource.value = null;
++  }
++
++  if (analyser.value) {
++    try {
++      analyser.value.disconnect();
++    } catch (error) {
++      console.warn('VAD: Error disconnecting analyser:', error);
++    }
++    analyser.value = null;
++  }
++
++  dataArray.value = null;
++};
++
++// Main conversation control functions
++const toggleConversation = async () => {
++  if (conversationState.value === 'idle') {
++    await startConversation();
++  } else if (conversationState.value === 'listening') {
++    await stopListening();
++  } else if (conversationState.value === 'speaking') {
++    // Check if there's been no volume change recently - if so, end conversation
++    const timeSinceVolumeChange = Date.now() - lastVolumeChangeTime.value;
++    if (timeSinceVolumeChange > NO_VOLUME_CHANGE_MS && hasDetectedSpeech.value) {
++      // User pressed button while AI speaking with no recent volume = end conversation
++      conversationState.value = 'done';
++      stopSpeaking();
++      setTimeout(() => resetConversation(), 1000);
++    } else {
++      // Normal interruption - user wants to speak
++      stopSpeaking();
++    }
++  } else if (conversationState.value === 'error' || conversationState.value === 'done') {
++    resetConversation();
++  }
++};
++
++const startConversation = async () => {
++  try {
++    conversationState.value = 'listening';
++    hasDetectedSpeech.value = false;
++    lastVolumeChangeTime.value = Date.now();
++    emit('conversationStart');
++
++    // Only use frontend mode for now
++    await startMediaRecording();
++
++  } catch (error) {
++    console.error('Failed to start conversation:', error);
++    conversationState.value = 'error';
++
++    let errorMessage = 'Could not access microphone.';
++    if (error instanceof Error) {
++      if (error.name === 'NotAllowedError') {
++        errorMessage = 'Microphone access denied. Please enable microphone permissions.';
++      } else if (error.name === 'NotFoundError') {
++        errorMessage = 'No microphone found. Please connect a microphone.';
++      }
++    }
++
++    await presentToast(errorMessage);
++    emit('error', errorMessage);
++    resetConversation();
++  }
++};
++
++const startMediaRecording = async () => {
++  const stream = await navigator.mediaDevices.getUserMedia({
++    audio: {
++      sampleRate: 48000,
++      channelCount: 1,
++      echoCancellation: true,
++      noiseSuppression: true,
++    }
++  });
++
++  // Track this stream for cleanup
++  activeStreams.value.push(stream);
++  console.log(`Audio: Tracking new stream, total active: ${activeStreams.value.length}`);
++
++  // Start Voice Activity Detection
++  startVoiceActivityDetection(stream);
++
++  audioChunks.value = [];
++
++  // Try formats that work better with Deepgram, starting with most compatible
++  const formatPriority = [
++    { mime: 'audio/wav', format: 'wav' },
++    { mime: 'audio/webm;codecs=pcm', format: 'webm' },
++    { mime: 'audio/mp4', format: 'mp4' },
++    { mime: 'audio/webm', format: 'webm' },
++    { mime: 'audio/webm;codecs=opus', format: 'webm' },
++    { mime: 'audio/ogg;codecs=opus', format: 'ogg' }
++  ];
++
++  let mimeType = 'audio/webm;codecs=opus'; // fallback
++  let actualFormat = 'webm';
++
++  for (const format of formatPriority) {
++    if (MediaRecorder.isTypeSupported(format.mime)) {
++      mimeType = format.mime;
++      actualFormat = format.format;
++      console.log(`Selected ${actualFormat} format (${mimeType}) for recording`);
++      break;
++    }
++  }
++
++  // Store the format for use in processRecordedAudio
++  currentMimeType.value = mimeType;
++  currentFormat.value = actualFormat;
++
++  mediaRecorder.value = new MediaRecorder(stream, {
++    mimeType: mimeType
++  });
++
++  mediaRecorder.value.ondataavailable = (event) => {
++    if (event.data.size > 0) {
++      audioChunks.value.push(event.data);
++    }
++  };
++
++  mediaRecorder.value.onstop = async () => {
++    console.log('MediaRecorder: Stopping and cleaning up');
++
++    // Force cleanup of this specific stream
++    try {
++      stream.getTracks().forEach(track => {
++        track.stop();
++        console.log(`Audio: Stopped track: ${track.kind}`);
++      });
++    } catch (error) {
++      console.error('Error stopping stream tracks:', error);
++    }
++
++    stopVADMonitoring();
++
++    if (!continuousListening.value) {
++      await processRecordedAudio();
++    }
++  };
++
++  mediaRecorder.value.start();
++  console.log('MediaRecorder: Started recording');
++};
++
++const stopListening = async () => {
++  console.log('MediaRecorder: Attempting to stop listening');
++
++  if (mediaRecorder.value) {
++    const state = mediaRecorder.value.state;
++    console.log(`MediaRecorder: Current state: ${state}`);
++
++    if (state === 'recording') {
++      conversationState.value = 'processing';
++      continuousListening.value = false;
++      try {
++        mediaRecorder.value.stop();
++        console.log('MediaRecorder: Stop called successfully');
++      } catch (error) {
++        console.error('MediaRecorder: Error stopping:', error);
++        // Force cleanup even if stop fails
++        forceCleanupAllStreams();
++        resetConversation();
++      }
++    } else {
++      console.log(`MediaRecorder: Not recording (state: ${state}), cleaning up anyway`);
++      forceCleanupAllStreams();
++      conversationState.value = 'idle';
++    }
++  } else {
++    console.log('MediaRecorder: No active recorder to stop');
++    forceCleanupAllStreams();
++    conversationState.value = 'idle';
++  }
++};
++
++const processRecordedAudio = async () => {
++  try {
++    if (audioChunks.value.length === 0) {
++      throw new Error('No audio data recorded');
++    }
++
++    // Use the same format that was used for recording
++    const audioBlob = new Blob(audioChunks.value, { type: currentMimeType.value });
++    const base64Audio = await blobToBase64(audioBlob);
++
++    // Backend mode: Send audio to backend for full processing
++    const conversationResponse = await apiService.processConversation({
++      sessionId: props.sessionId,
++      audioData: base64Audio,
++      encoding: currentFormat.value,
++      sampleRate: 48000,
++    });
++
++    // Play the AI response audio
++    await playResponseAudio(conversationResponse.responseAudio);
++
++  } catch (error) {
++    console.error('Failed to process conversation:', error);
++    console.error('Error details:', error);
++
++    conversationState.value = 'error';
++
++    let errorMessage = 'Unknown error occurred';
++    if (error instanceof Error) {
++      errorMessage = error.message;
++
++      // Add more specific error information for debugging
++      if (error.message.includes('500')) {
++        errorMessage = 'Server error (500) - check backend API configuration';
++      } else if (error.message.includes('transcribe')) {
++        errorMessage = 'Speech transcription failed - API key issue?';
++      }
++    }
++
++    await presentToast(`Conversation failed: ${errorMessage}`, 5000);
++    emit('error', errorMessage);
++
++    setTimeout(() => resetConversation(), 3000);
++  }
++};
++
++
++const playResponseAudio = async (audioData: string) => {
++  try {
++    conversationState.value = 'speaking';
++
++    // Start continuous listening while speaking (for interruption)
++    if (!continuousListening.value) {
++      continuousListening.value = true;
++      await startContinuousListening();
++    }
++
++    currentAudio.value = new Audio(audioData);
++
++    return new Promise<void>((resolve, reject) => {
++      if (!currentAudio.value) {
++        reject(new Error('Audio element not created'));
++        return;
++      }
++
++      currentAudio.value.onended = () => {
++        console.log('Audio: Playback ended naturally');
++        resolve();
++        resetConversation();
++      };
++
++      currentAudio.value.onerror = (error) => {
++        console.error('Audio: Playback error:', error);
++        // Clean up resources even on error
++        try {
++          if (currentAudio.value) {
++            currentAudio.value.src = '';
++            currentAudio.value.load();
++          }
++        } catch (e) {
++          console.warn('Error cleaning up failed audio:', e);
++        }
++        reject(new Error('Audio playback failed'));
++      };
++
++      currentAudio.value.play().catch((playError) => {
++        console.error('Audio: Play promise rejected:', playError);
++        // Clean up on play failure
++        try {
++          if (currentAudio.value) {
++            currentAudio.value.src = '';
++            currentAudio.value.load();
++          }
++        } catch (e) {
++          console.warn('Error cleaning up after play failure:', e);
++        }
++        reject(playError);
++      });
++    });
++
++  } catch (error) {
++    console.error('Failed to play response audio:', error);
++    await presentToast('Could not play audio response');
++    resetConversation();
++  }
++};
++
++const startContinuousListening = async () => {
++  try {
++    const stream = await navigator.mediaDevices.getUserMedia({
++      audio: {
++        sampleRate: 48000,
++        channelCount: 1,
++        echoCancellation: true,
++        noiseSuppression: true,
++      }
++    });
++
++    // Track this stream for cleanup
++    activeStreams.value.push(stream);
++    console.log(`Audio: Tracking continuous listening stream, total active: ${activeStreams.value.length}`);
++
++    startVoiceActivityDetection(stream);
++
++    // Monitor for user interruption
++    const monitorInterruption = () => {
++      if (!continuousListening.value) return;
++
++      const volume = calculateVolume();
++
++      // If user starts speaking during AI response, interrupt
++      if (volume > volumeThreshold.value && conversationState.value === 'speaking') {
++        stopSpeaking();
++        conversationState.value = 'listening';
++
++        // Start new recording
++        startMediaRecording();
++        return;
++      }
++
++      requestAnimationFrame(monitorInterruption);
++    };
++
++    monitorInterruption();
++
++  } catch (error) {
++    console.error('Failed to start continuous listening:', error);
++  }
++};
++
++const stopSpeaking = () => {
++  console.log('Audio: Stopping speech playback');
++
++  if (currentAudio.value) {
++    try {
++      currentAudio.value.pause();
++      currentAudio.value.currentTime = 0;
++      // Clear the src to release audio data
++      currentAudio.value.src = '';
++      currentAudio.value.load();
++    } catch (error) {
++      console.warn('Error stopping audio:', error);
++    }
++  }
++
++  continuousListening.value = false;
++  stopVADMonitoring();
++  forceCleanupAllStreams();
++};
++
++const cancelConversation = () => {
++  console.log('Audio: Cancelling conversation and cleaning up resources');
++
++  try {
++    if (mediaRecorder.value && mediaRecorder.value.state === 'recording') {
++      mediaRecorder.value.stop();
++    }
++  } catch (error) {
++    console.warn('Error stopping MediaRecorder:', error);
++  }
++
++  if (currentAudio.value) {
++    stopSpeaking();
++  }
++
++  continuousListening.value = false;
++  stopVADMonitoring();
++  forceCleanupAllStreams();
++  closeAudioContext();
++  resetConversation();
++};
++
++const resetConversation = () => {
++  console.log('Audio: Resetting conversation state');
++
++  conversationState.value = 'idle';
++  audioChunks.value = [];
++  continuousListening.value = false;
++  hasDetectedSpeech.value = false;
++  lastVolumeChangeTime.value = 0;
++
++  // Clean up MediaRecorder
++  if (mediaRecorder.value) {
++    try {
++      if (mediaRecorder.value.state === 'recording') {
++        mediaRecorder.value.stop();
++      }
++    } catch (error) {
++      console.warn('Error stopping MediaRecorder in reset:', error);
++    }
++    mediaRecorder.value = null;
++  }
++
++  // Clean up audio element
++  if (currentAudio.value) {
++    try {
++      currentAudio.value.pause();
++      currentAudio.value.src = '';
++      currentAudio.value.load();
++      // Remove event listeners
++      currentAudio.value.onended = null;
++      currentAudio.value.onerror = null;
++    } catch (error) {
++      console.warn('Error cleaning up audio element:', error);
++    }
++    currentAudio.value = null;
++  }
++
++  stopVADMonitoring();
++  forceCleanupAllStreams();
++  emit('conversationEnd');
++};
++
++// Utility functions
++const presentToast = async (message: string, duration: number = 3000, color: string = 'danger') => {
++  console.log(`TOAST [${color}]: ${message}`);
++  const toast = await toastController.create({
++    message: message,
++    duration: duration,
++    position: 'bottom',
++    color: color,
++  });
++  await toast.present();
++};
++
++const blobToBase64 = (blob: Blob): Promise<string> => {
++  return new Promise((resolve, reject) => {
++    const reader = new FileReader();
++    reader.onload = () => {
++      const result = reader.result as string;
++      resolve(result);
++    };
++    reader.onerror = reject;
++    reader.readAsDataURL(blob);
++  });
++};
++
++// Force cleanup all MediaStreams
++const forceCleanupAllStreams = () => {
++  console.log(`Audio: Force cleaning up ${activeStreams.value.length} active streams`);
++
++  activeStreams.value.forEach((stream, index) => {
++    try {
++      stream.getTracks().forEach(track => {
++        if (track.readyState === 'live') {
++          track.stop();
++          console.log(`Audio: Force stopped track ${index}: ${track.kind}`);
++        }
++      });
++    } catch (error) {
++      console.warn(`Error cleaning up stream ${index}:`, error);
++    }
++  });
++
++  activeStreams.value = [];
++};
++
++// Close AudioContext properly
++const closeAudioContext = async () => {
++  if (audioContext.value && audioContext.value.state !== 'closed') {
++    try {
++      console.log('Audio: Closing AudioContext');
++      await audioContext.value.close();
++      audioContext.value = null;
++    } catch (error) {
++      console.warn('Error closing AudioContext:', error);
++    }
++  }
++};
++
++// System-level cleanup
++const systemCleanup = () => {
++  console.log('Audio: Performing system-level cleanup');
++  cancelConversation();
++  forceCleanupAllStreams();
++  closeAudioContext();
++};
++
++// Cleanup on unmount
++onUnmounted(() => {
++  systemCleanup();
++});
++
++// Cleanup on page unload/visibility change
++onMounted(() => {
++  const handleBeforeUnload = () => {
++    console.log('Audio: Page unloading, cleaning up resources');
++    systemCleanup();
++  };
++
++  const handleVisibilityChange = () => {
++    if (document.hidden) {
++      console.log('Audio: Page hidden, cleaning up resources');
++      systemCleanup();
++    }
++  };
++
++  window.addEventListener('beforeunload', handleBeforeUnload);
++  document.addEventListener('visibilitychange', handleVisibilityChange);
++
++  // Cleanup listeners on unmount
++  onUnmounted(() => {
++    window.removeEventListener('beforeunload', handleBeforeUnload);
++    document.removeEventListener('visibilitychange', handleVisibilityChange);
++  });
++});
++</script>
++
++<style scoped>
++.conversation-button {
++  --padding-start: 8px;
++  --padding-end: 8px;
++  height: 40px;
++  position: relative;
++}
++
++.ripple-container {
++  position: relative;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++}
++
++.conversation-icon {
++  transition: all 0.3s ease;
++  z-index: 2;
++  position: relative;
++}
++
++.conversation-icon.listening {
++  color: var(--ion-color-primary);
++}
++
++.conversation-icon.processing {
++  color: var(--ion-color-secondary);
++  animation: pulse 1.5s ease-in-out infinite;
++}
++
++.conversation-icon.speaking {
++  color: var(--ion-color-tertiary);
++}
++
++.conversation-icon.done {
++  color: var(--ion-color-medium);
++}
++
++.ripple-animation {
++  position: absolute;
++  top: 50%;
++  left: 50%;
++  transform: translate(-50%, -50%);
++  z-index: 1;
++}
++
++.ripple {
++  position: absolute;
++  border: 2px solid;
++  border-radius: 50%;
++  pointer-events: none;
++}
++
++/* Listening ripples - gentle pulse */
++.listening-ripples .ripple {
++  border-color: var(--ion-color-primary);
++  opacity: 0.6;
++  animation: listening-pulse var(--ripple-duration, 2.5s) infinite ease-out;
++  transform: scale(var(--ripple-scale, 1));
++}
++
++.listening-ripples .ripple:nth-child(1) {
++  animation-delay: 0s;
++}
++
++.listening-ripples .ripple:nth-child(2) {
++  animation-delay: 0.8s;
++  opacity: 0.4;
++}
++
++.listening-ripples .ripple:nth-child(3) {
++  animation-delay: 1.6s;
++  opacity: 0.3;
++}
++
++/* Processing ripples - subtle pulsing */
++.processing-ripples .ripple {
++  border-color: var(--ion-color-secondary);
++  opacity: 0.5;
++  animation: processing-pulse 2s infinite ease-in-out;
++}
++
++.processing-ripples .ripple:nth-child(1) {
++  animation-delay: 0s;
++}
++
++.processing-ripples .ripple:nth-child(2) {
++  animation-delay: 0.7s;
++  opacity: 0.3;
++}
++
++.processing-ripples .ripple:nth-child(3) {
++  animation-delay: 1.4s;
++  opacity: 0.2;
++}
++
++/* Speaking ripples - gentle waves */
++.speaking-ripples .ripple {
++  border-color: var(--ion-color-tertiary);
++  opacity: 0.5;
++  animation: speaking-wave 3.5s infinite ease-in-out;
++}
++
++.speaking-ripples .ripple:nth-child(1) {
++  animation-delay: 0s;
++}
++
++.speaking-ripples .ripple:nth-child(2) {
++  animation-delay: 1s;
++}
++
++.speaking-ripples .ripple:nth-child(3) {
++  animation-delay: 2s;
++}
++
++/* Animations - gentle and subtle */
++@keyframes listening-pulse {
++  0% {
++    width: 24px;
++    height: 24px;
++    opacity: 0.6;
++    top: -12px;
++    left: -12px;
++    transform: scale(var(--ripple-scale, 1));
++  }
++  70% {
++    width: 40px;
++    height: 40px;
++    opacity: 0.3;
++    top: -20px;
++    left: -20px;
++    transform: scale(var(--ripple-scale, 1.2));
++  }
++  100% {
++    width: 45px;
++    height: 45px;
++    opacity: 0;
++    top: -22.5px;
++    left: -22.5px;
++    transform: scale(var(--ripple-scale, 1.3));
++  }
++}
++
++@keyframes processing-pulse {
++  0%, 100% {
++    width: 26px;
++    height: 26px;
++    opacity: 0.5;
++    top: -13px;
++    left: -13px;
++  }
++  50% {
++    width: 34px;
++    height: 34px;
++    opacity: 0.2;
++    top: -17px;
++    left: -17px;
++  }
++}
++
++@keyframes speaking-wave {
++  0%, 100% {
++    width: 28px;
++    height: 28px;
++    opacity: 0.5;
++    top: -14px;
++    left: -14px;
++  }
++  50% {
++    width: 38px;
++    height: 38px;
++    opacity: 0.2;
++    top: -19px;
++    left: -19px;
++  }
++}
++
++@keyframes pulse {
++  0%, 100% {
++    transform: scale(1);
++  }
++  50% {
++    transform: scale(1.1);
++  }
++}
++
++/* Custom button padding class */
++.custom-button-padding {
++  --padding-start: 8px;
++  --padding-end: 8px;
++  height: 40px;
++}
++</style>
+\ No newline at end of file
+diff --git a/apps/web/src/components/EnhancedChatInput.vue b/apps/web/src/components/EnhancedChatInput.vue
+index d55266d..dabb617 100644
+--- a/apps/web/src/components/EnhancedChatInput.vue
++++ b/apps/web/src/components/EnhancedChatInput.vue
+@@ -19,22 +19,13 @@
+         </button>
+         <button @click="showLLMPanel = false" class="close-panel">×</button>
+       </div>
++
+       <div class="panel-content">
+-        <LLMSelector v-if="activeTab === 'model'">
+-          <template #actions>
+-            <ion-button 
+-              color="primary"
+-              size="small"
+-              @click="applyLLMSelection"
+-            >
+-              <ion-icon :icon="checkmarkOutline" slot="start" />
+-              Apply Selection
+-            </ion-button>
+-          </template>
+-        </LLMSelector>
++        <LLMSelector v-if="activeTab === 'model'" />
+         <CIDAFMControls v-if="activeTab === 'behavior'" />
+       </div>
+     </div>
++
+     <!-- Main Chat Input -->
+     <ion-toolbar color="light" class="chat-input-toolbar">
+       <!-- LLM Status Display -->
+@@ -51,6 +42,7 @@
+           <ion-icon :icon="chevronUpOutline" :class="{ rotated: !showLLMPanel }"></ion-icon>
+         </button>
+       </div>
++
+       <!-- Message Input -->
+       <ion-textarea
+         v-model="inputText"
+@@ -60,21 +52,36 @@
+         :rows="1"
+         @keydown.enter.prevent="handleEnterKey"
+       ></ion-textarea>
++
+       <!-- Input Buttons -->
+       <ion-buttons slot="end" class="input-buttons">
+         <!-- Cost Estimate -->
+         <div v-if="showCostEstimate && estimatedCost" class="cost-estimate">
+           ~${{ estimatedCost }}
+         </div>
+-        <!-- PTT Button -->
++
++
++        <!-- PTT Button (Speech-to-Text for input box) -->
+         <ion-button 
+           fill="clear" 
+           :color="isRecording ? 'danger' : 'medium'" 
+           @click="togglePtt" 
+           class="ptt-button custom-button-padding"
++          :title="'Voice input to text box'"
+         >
+           <ion-icon slot="icon-only" :icon="isRecording ? micOffOutline : micOutline"></ion-icon>
+         </ion-button>
++
++        <!-- Conversational Speech Button -->
++        <ConversationalSpeechButton
++          v-if="sessionId"
++          :session-id="sessionId"
++          :disabled="isRecording"
++          @conversation-start="handleConversationStart"
++          @conversation-end="handleConversationEnd"
++          @error="handleConversationError"
++        />
++
+         <!-- Send Button -->
+         <ion-button 
+           fill="clear" 
+@@ -89,37 +96,37 @@
+     </ion-toolbar>
+   </div>
+ </template>
++
+ <script setup lang="ts">
+ import { ref, computed, defineEmits, onUnmounted, watch, onMounted } from 'vue';
+ import { IonTextarea, IonButtons, IonButton, IonIcon, IonToolbar, toastController } from '@ionic/vue';
+-import { sendOutline, micOutline, micOffOutline, chevronUpOutline, checkmarkOutline } from 'ionicons/icons';
++import { sendOutline, micOutline, micOffOutline, chevronUpOutline } from 'ionicons/icons';
+ import { useUiStore } from '../stores/uiStore';
+ import { useLLMStore } from '../stores/llmStore';
+ import { Capacitor } from '@capacitor/core';
+ import LLMSelector from './LLMSelector.vue';
+ import CIDAFMControls from './CIDAFMControls.vue';
+-import { useValidation, ValidationRules } from '@/composables/useValidation';
++import ConversationalSpeechButton from './ConversationalSpeechButton.vue';
++
++// Props
++const props = defineProps<{
++  sessionId?: string;
++}>();
++
+ const inputText = ref('');
+ const isRecording = ref(false);
+ const showLLMPanel = ref(false);
+ const activeTab = ref<'model' | 'behavior'>('model');
+ const showCostEstimate = ref(true);
++
+ const uiStore = useUiStore();
+ const llmStore = useLLMStore();
+-const validation = useValidation();
+-
+-// Setup validation rules
+-onMounted(() => {
+-  validation.addRule('message', ValidationRules.required('Message cannot be empty'));
+-  validation.addRule('message', ValidationRules.maxLength(4000, 'Message must not exceed 4000 characters'));
+-  validation.addRule('message', ValidationRules.security('Potentially unsafe content detected in message'));
+-  validation.addRule('message', ValidationRules.sanitizeApiInput());
+-});
+ 
+ // Speech Recognition setup (copied from original ChatInput)
+ // @ts-ignore: next-line 
+ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+ let recognition: SpeechRecognition | null = null;
++
+ const presentToast = async (message: string, duration: number = 2000, color: string = 'warning') => {
+   const toast = await toastController.create({
+     message: message,
+@@ -129,21 +136,25 @@ const presentToast = async (message: string, duration: number = 2000, color: str
+   });
+   await toast.present();
+ };
++
+ // Speech Recognition setup (same as original)
+ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
+   recognition = new SpeechRecognition();
+   recognition.continuous = false; 
+   recognition.interimResults = true; 
+   recognition.lang = 'en-US'; 
++
+   recognition.onstart = () => {
+     isRecording.value = true;
+   };
++
+   recognition.onend = () => {
+     if (isRecording.value) { 
+         isRecording.value = false;
+         emit('pttToggle', false);
+     }
+   };
++
+   recognition.onresult = (event: SpeechRecognitionEvent) => {
+     let interimTranscript = '';
+     let finalTranscript = '';
+@@ -160,6 +171,7 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
+       inputText.value = interimTranscript.trim();
+     }
+   };
++
+   recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+     let userMessage = 'Voice input error.';
+     if (event.error === 'no-speech') {
+@@ -172,6 +184,7 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
+       userMessage = `Voice input failed: ${event.error}`;
+     }
+     presentToast(userMessage, 3000, 'danger');
++
+     if (isRecording.value) {
+       isRecording.value = false;
+       emit('pttToggle', false);
+@@ -181,57 +194,34 @@ if (SpeechRecognition && !Capacitor.isNativePlatform()) {
+ } else if (!SpeechRecognition && !Capacitor.isNativePlatform()) {
+   // Web Speech API is not supported in this browser
+ }
++
+ const emit = defineEmits<{
+   (e: 'sendMessage', text: string, llmSelection?: any): void;
+   (e: 'pttToggle', recordingState: boolean): void;
+ }>();
++
+ // Computed properties
+ const estimatedCost = computed(() => {
+   if (!inputText.value.trim() || !llmStore.selectedModel) return null;
++
+   const textLength = inputText.value.length;
+   const estimatedTokens = Math.ceil(textLength / 4); // Rough estimation
+   const inputCost = llmStore.selectedModel.pricingInputPer1k || 0;
+   const estimatedOutputTokens = estimatedTokens * 0.5; // Assume response is half the input
+   const outputCost = llmStore.selectedModel.pricingOutputPer1k || 0;
++
+   const totalCost = (estimatedTokens / 1000) * inputCost + (estimatedOutputTokens / 1000) * outputCost;
++
+   return totalCost > 0.001 ? totalCost.toFixed(4) : '< 0.001';
+ });
++
+ // Event handlers
+-const sendMessage = async () => {
+-  if (!inputText.value.trim() || isRecording.value) return;
+-  
+-  // Validate and sanitize the message before sending
+-  const validationResult = await validation.validate('message', inputText.value.trim());
+-  
+-  if (!validationResult.isValid) {
+-    const errorMessages = validationResult.errors.map(e => e.message).join(', ');
+-    presentToast(`Message validation failed: ${errorMessages}`, 3000, 'danger');
+-    return;
++const sendMessage = () => {
++  if (inputText.value.trim() && !isRecording.value) {
++    const llmSelection = llmStore.currentLLMSelection;
++    emit('sendMessage', inputText.value.trim(), llmSelection);
++    inputText.value = '';
+   }
+-  
+-  // Use the sanitized value if available
+-  const messageToSend = validationResult.sanitizedValue || inputText.value.trim();
+-  const llmSelection = llmStore.currentLLMSelection;
+-  
+-  emit('sendMessage', messageToSend, llmSelection);
+-  inputText.value = '';
+-};
+-
+-const applyLLMSelection = async () => {
+-  // Show confirmation that selection was applied
+-  const provider = llmStore.selectedProvider?.name || 'Unknown';
+-  const model = llmStore.selectedModel?.name || 'Unknown';
+-  
+-  const toast = await toastController.create({
+-    message: `✅ LLM selection applied: ${provider}/${model}`,
+-    duration: 2000,
+-    position: 'top',
+-    color: 'success'
+-  });
+-  await toast.present();
+-  
+-  // Optionally close the LLM panel after applying
+-  showLLMPanel.value = false;
+ };
+ 
+ const handleEnterKey = (event: KeyboardEvent) => {
+@@ -240,6 +230,7 @@ const handleEnterKey = (event: KeyboardEvent) => {
+     sendMessage();
+   }
+ };
++
+ const togglePtt = async () => {
+   if (Capacitor.isNativePlatform()) {
+     // Native PTT logic (same as original)
+@@ -266,34 +257,69 @@ const togglePtt = async () => {
+     presentToast('Voice input is not supported in your browser.', 3000, 'danger');
+   }
+ };
++
++// Conversation event handlers
++const handleConversationStart = () => {
++  // Disable the PTT button while in conversation mode
++  uiStore.setConversationMode(true);
++};
++
++const handleConversationEnd = () => {
++  // Re-enable normal input mode
++  uiStore.setConversationMode(false);
++};
++
++const handleConversationError = (error: string) => {
++  // Show error toast
++  presentToast(`Conversation error: ${error}`, 4000, 'danger');
++  uiStore.setConversationMode(false);
++};
++
++
++// Keyboard shortcuts (if needed in the future)
++const handleKeydown = (event: KeyboardEvent) => {
++  // Future keyboard shortcuts can be added here
++};
++
+ // Watchers
+ watch(isRecording, (newValue) => {
+   uiStore.setPttRecording(newValue);
+ });
++
++// Lifecycle hooks
++onMounted(() => {
++  document.addEventListener('keydown', handleKeydown);
++});
++
+ // Cleanup
+ onUnmounted(() => {
++  document.removeEventListener('keydown', handleKeydown);
+   if (recognition && isRecording.value && !Capacitor.isNativePlatform()) {
+     recognition.stop();
+   }
+ });
+ </script>
++
+ <style scoped>
+ .enhanced-chat-input {
+   display: flex;
+   flex-direction: column;
+ }
++
+ .llm-panel {
+   background: white;
+   border-top: 1px solid #e0e0e0;
+   max-height: 60vh;
+   overflow-y: auto;
+ }
++
+ .panel-tabs {
+   display: flex;
+   background: #f5f5f5;
+   border-bottom: 1px solid #e0e0e0;
+   position: relative;
+ }
++
+ .tab-button {
+   flex: 1;
+   padding: 0.75rem 1rem;
+@@ -304,11 +330,13 @@ onUnmounted(() => {
+   color: #666;
+   transition: all 0.2s ease;
+ }
++
+ .tab-button.active {
+   background: white;
+   color: #3498db;
+   border-bottom: 2px solid #3498db;
+ }
++
+ .close-panel {
+   position: absolute;
+   right: 0.5rem;
+@@ -319,15 +347,17 @@ onUnmounted(() => {
+   font-size: 1.5rem;
+   cursor: pointer;
+   color: #666;
+-  width: 2.75rem; /* 44px minimum touch target */
+-  height: 2.75rem;
++  width: 32px;
++  height: 32px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+ }
++
+ .panel-content {
+   padding: 0;
+ }
++
+ .chat-input-toolbar {
+   --padding-start: 8px;
+   --padding-end: 8px;
+@@ -337,47 +367,55 @@ onUnmounted(() => {
+   display: flex;
+   align-items: center;
+ }
++
+ .llm-status {
+   margin-right: 0.5rem;
+ }
++
+ .llm-toggle-btn {
+   display: flex;
+   align-items: center;
+   gap: 0.5rem;
+-  padding: 0.75rem;
++  padding: 0.5rem;
+   border: 1px solid #e0e0e0;
+   border-radius: 8px;
+   background: white;
+   cursor: pointer;
+   transition: all 0.2s ease;
+   min-width: 120px;
+-  min-height: 2.75rem; /* 44px minimum touch target */
+ }
++
+ .llm-toggle-btn:hover {
+   border-color: #3498db;
+   background: #f8fbff;
+ }
++
+ .llm-info {
+   flex: 1;
+   text-align: left;
+ }
++
+ .provider-name {
+   font-size: 0.75rem;
+   color: #666;
+   line-height: 1;
+ }
++
+ .model-name {
+   font-size: 0.8rem;
+   font-weight: 500;
+   color: #333;
+   line-height: 1.2;
+ }
++
+ .llm-toggle-btn ion-icon {
+   transition: transform 0.2s ease;
+ }
++
+ .llm-toggle-btn ion-icon.rotated {
+   transform: rotate(180deg);
+ }
++
+ .chat-textarea {
+   flex-grow: 1;
+   border: 1px solid var(--ion-color-medium-shade);
+@@ -391,11 +429,13 @@ onUnmounted(() => {
+   align-self: center;
+   margin-right: 4px;
+ }
++
+ .input-buttons {
+   display: flex;
+   align-items: center;
+-  gap: 0.5rem; /* Better spacing between touch targets */
++  gap: 0.25rem;
+ }
++
+ .cost-estimate {
+   font-size: 0.7rem;
+   color: #666;
+@@ -404,44 +444,32 @@ onUnmounted(() => {
+   border-radius: 12px;
+   white-space: nowrap;
+ }
++
+ .custom-button-padding {
+   --padding-start: 8px;
+   --padding-end: 8px;
+-  height: 2.75rem; /* 44px minimum touch target */
++  height: 40px;
+ }
++
++
+ /* Mobile responsiveness */
+ @media (max-width: 768px) {
+   .llm-toggle-btn {
+     min-width: 100px;
+-    padding: 0.75rem 0.5rem; /* Adjust padding for smaller screens */
+-  }
+-  
+-  .input-buttons {
+-    gap: 0.75rem; /* More spacing on mobile for easier tapping */
+-  }
+-  
+-  .chat-input-toolbar {
+-    --padding-start: 0.75rem;
+-    --padding-end: 0.75rem;
+-    --padding-top: 0.5rem;
+-    --padding-bottom: 0.5rem;
+   }
+   
+-  /* Ensure touch targets are thumb-friendly on mobile */
+-  .custom-button-padding {
+-    --padding-start: 0.75rem;
+-    --padding-end: 0.75rem;
+-    min-width: 2.75rem; /* Square touch target */
+-  }
+   .provider-name {
+     font-size: 0.7rem;
+   }
++
+   .model-name {
+     font-size: 0.75rem;
+   }
++
+   .llm-panel {
+     max-height: 50vh;
+   }
++
+   .cost-estimate {
+     display: none; /* Hide on mobile to save space */
+   }
+diff --git a/apps/web/src/components/SpeechDevModePanel.vue b/apps/web/src/components/SpeechDevModePanel.vue
+new file mode 100644
+index 0000000..9c832b8
+--- /dev/null
++++ b/apps/web/src/components/SpeechDevModePanel.vue
+@@ -0,0 +1,181 @@
++<template>
++  <div v-if="uiStore.showSpeechDevMode" class="speech-dev-panel">
++    <div class="dev-mode-header">
++      <span class="dev-mode-title">🎤 Speech Mode (Dev)</span>
++      <ion-button
++        fill="clear"
++        size="small"
++        color="medium"
++        @click="uiStore.toggleSpeechDevMode()"
++        class="close-button"
++      >
++        <ion-icon :icon="closeOutline" slot="icon-only"></ion-icon>
++      </ion-button>
++    </div>
++
++    <div class="speech-mode-controls">
++      <ion-segment
++        :value="uiStore.speechMode"
++        @ionChange="handleModeChange"
++        class="speech-mode-segment"
++      >
++        <ion-segment-button value="frontend">
++          <ion-label>
++            <div class="mode-label">Frontend</div>
++            <div class="mode-description">Browser → Deepgram → AI → Eleven Labs</div>
++          </ion-label>
++        </ion-segment-button>
++
++        <ion-segment-button value="backend">
++          <ion-label>
++            <div class="mode-label">Backend</div>
++            <div class="mode-description">Audio → Server Processing → Audio</div>
++          </ion-label>
++        </ion-segment-button>
++
++        <ion-segment-button value="hybrid">
++          <ion-label>
++            <div class="mode-label">Hybrid</div>
++            <div class="mode-description">Try Both → Use Best Result</div>
++          </ion-label>
++        </ion-segment-button>
++      </ion-segment>
++    </div>
++
++    <div class="current-mode-info">
++      <span class="current-mode-text">
++        Active: <strong>{{ getModeDisplayName() }}</strong> - {{ getModeDescription() }}
++      </span>
++    </div>
++  </div>
++</template>
++
++<script setup lang="ts">
++import { IonButton, IonIcon, IonSegment, IonSegmentButton, IonLabel } from '@ionic/vue';
++import { closeOutline } from 'ionicons/icons';
++import { useUiStore, type SpeechMode } from '../stores/uiStore';
++
++const uiStore = useUiStore();
++
++const handleModeChange = (event: CustomEvent) => {
++  const newMode = event.detail.value as SpeechMode;
++  uiStore.setSpeechMode(newMode);
++};
++
++const getModeDisplayName = (): string => {
++  switch (uiStore.speechMode) {
++    case 'frontend': return 'Frontend Processing';
++    case 'backend': return 'Backend Processing';
++    case 'hybrid': return 'Hybrid Processing';
++    default: return 'Backend Processing';
++  }
++};
++
++const getModeDescription = (): string => {
++  switch (uiStore.speechMode) {
++    case 'frontend': return 'Browser calls Deepgram/Eleven Labs directly';
++    case 'backend': return 'Server handles all speech processing';
++    case 'hybrid': return 'Tries both approaches, uses best result';
++    default: return 'Server handles all speech processing';
++  }
++};
++</script>
++
++<style scoped>
++.speech-dev-panel {
++  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
++  border: 1px solid #dee2e6;
++  border-radius: 12px;
++  margin: 8px 12px;
++  padding: 12px;
++  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
++  font-size: 0.9rem;
++}
++
++.dev-mode-header {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  margin-bottom: 12px;
++}
++
++.dev-mode-title {
++  font-weight: 600;
++  color: #495057;
++  font-size: 0.95rem;
++}
++
++.close-button {
++  --padding-start: 4px;
++  --padding-end: 4px;
++  height: 24px;
++  width: 24px;
++}
++
++.speech-mode-controls {
++  margin-bottom: 10px;
++}
++
++.speech-mode-segment {
++  --background: white;
++  --color-checked: #0066cc;
++  --indicator-color: #0066cc;
++  --border-radius: 8px;
++  font-size: 0.8rem;
++}
++
++.mode-label {
++  font-weight: 600;
++  font-size: 0.85rem;
++  margin-bottom: 2px;
++}
++
++.mode-description {
++  font-size: 0.7rem;
++  color: #6c757d;
++  line-height: 1.2;
++  white-space: nowrap;
++  overflow: hidden;
++  text-overflow: ellipsis;
++}
++
++.current-mode-info {
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  padding: 6px 12px;
++  background: rgba(0, 102, 204, 0.1);
++  border-radius: 6px;
++  border-left: 3px solid #0066cc;
++}
++
++.current-mode-text {
++  font-size: 0.8rem;
++  color: #495057;
++}
++
++.current-mode-text strong {
++  color: #0066cc;
++}
++
++/* Mobile responsiveness */
++@media (max-width: 768px) {
++  .speech-dev-panel {
++    margin: 6px 8px;
++    padding: 10px;
++    font-size: 0.85rem;
++  }
++
++  .mode-description {
++    font-size: 0.65rem;
++  }
++
++  .speech-mode-segment {
++    font-size: 0.75rem;
++  }
++
++  .mode-label {
++    font-size: 0.8rem;
++  }
++}
++</style>
+\ No newline at end of file
+diff --git a/apps/web/src/services/apiService.ts b/apps/web/src/services/apiService.ts
+index d1306a3..82b7728 100644
+--- a/apps/web/src/services/apiService.ts
++++ b/apps/web/src/services/apiService.ts
+@@ -1,17 +1,9 @@
+-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+-import axiosRetry from 'axios-retry';
++import axios, { AxiosInstance } from 'axios';
+ import { TaskResponse, AgentInfo } from '../types/chat';
+ import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
+-import { getSecureApiBaseUrl, getSecureHeaders, validateSecureContext, logSecurityConfig } from '../utils/securityConfig';
+-import { useApiSanitization } from '@/composables/useApiSanitization';
+-import { useErrorStore } from '@/stores/errorStore';
+-import { trackAPI } from '../utils/performanceMonitor';
+ 
+-// Validate security context on startup
+-validateSecureContext();
+-
+-// API endpoint configuration with HTTPS enforcement
+-const API_BASE_URL = getSecureApiBaseUrl();
++// API endpoint configuration
++const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:4000';
+ 
+ interface JsonRpcResponse {
+   jsonrpc: '2.0';
+@@ -26,77 +18,22 @@ interface JsonRpcResponse {
+ 
+ class ApiService {
+   private axiosInstance: AxiosInstance;
+-  private apiSanitization = useApiSanitization();
+-  private _errorStore?: ReturnType<typeof useErrorStore>;
+ 
+   constructor() {
+     this.axiosInstance = axios.create({
+       baseURL: API_BASE_URL,
+-      headers: getSecureHeaders(),
+-      timeout: 60000,
+-      // Additional security settings
+-      withCredentials: false, // Don't send credentials cross-origin unless explicitly needed
+-      maxRedirects: 0, // Prevent redirect attacks
+-    });
+-
+-    // Log security configuration in development
+-    if (import.meta.env.DEV) {
+-      logSecurityConfig();
+-    }
+-
+-    // Configure retry logic for failed requests
+-    axiosRetry(this.axiosInstance, {
+-      retries: 3, // Number of retry attempts
+-      retryDelay: axiosRetry.exponentialDelay, // Exponential backoff
+-      retryCondition: (error) => {
+-        // Retry on network errors or 5xx server errors
+-        return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+-               (error.response?.status ? error.response.status >= 500 : false) ||
+-               error.response?.status === 429; // Rate limiting
++      headers: {
++        'Content-Type': 'application/json',
+       },
+-      onRetry: (retryCount, error, requestConfig) => {
+-        console.log(`🔄 API Retry attempt ${retryCount} for ${requestConfig.url}:`, error.message);
+-      }
++      timeout: 30000,
+     });
+ 
+-    // Add request interceptor for performance tracking
+-    this.axiosInstance.interceptors.request.use(
+-      (config) => {
+-        // Add start time for performance tracking
+-        config.metadata = { startTime: performance.now() };
+-        return config;
+-      },
+-      (error) => Promise.reject(error)
+-    );
+-
+-    // Add response interceptor for error handling, automatic token refresh, and performance tracking
++    // Add response interceptor for error handling and automatic token refresh
+     this.axiosInstance.interceptors.response.use(
+-      (response: AxiosResponse) => {
+-        // Track API performance
+-        const config = response.config as any;
+-        if (config.metadata?.startTime) {
+-          const responseTime = performance.now() - config.metadata.startTime;
+-          const endpoint = config.url || 'unknown';
+-          const method = (config.method || 'GET').toUpperCase();
+-          trackAPI(endpoint, method, responseTime, response.status);
+-        }
+-        return response;
+-      },
++      (response) => response,
+       async (error) => {
+         const originalRequest = error.config;
+         
+-        // Track API performance for errors too
+-        if (originalRequest.metadata?.startTime) {
+-          const responseTime = performance.now() - originalRequest.metadata.startTime;
+-          const endpoint = originalRequest.url || 'unknown';
+-          const method = (originalRequest.method || 'GET').toUpperCase();
+-          const status = error.response?.status || 0;
+-          trackAPI(endpoint, method, responseTime, status);
+-        }
+-        
+-        // Global API failure detection - log all API errors
+-        this.logApiFailure(error, originalRequest);
+-        
+         // If error is 401 and we haven't already tried to refresh
+         if (error.response?.status === 401 && !originalRequest._retry) {
+           originalRequest._retry = true;
+@@ -133,8 +70,8 @@ class ApiService {
+             localStorage.removeItem('refreshToken');
+             this.clearAuth();
+             
+-            // Log the refresh token failure as a critical error
+-            this.logApiFailure(refreshError, { url: '/auth/refresh', method: 'POST' });
++            // You might want to emit an event or call a global auth handler here
++            // For now, we'll just let the error propagate
+           }
+         }
+         
+@@ -143,203 +80,6 @@ class ApiService {
+     );
+   }
+ 
+-  /**
+-   * Get error store instance (lazy-loaded)
+-   */
+-  private get errorStore() {
+-    if (!this._errorStore) {
+-      this._errorStore = useErrorStore();
+-    }
+-    return this._errorStore;
+-  }
+-
+-  /**
+-   * Global API failure detection and logging
+-   */
+-  private logApiFailure(error: any, requestConfig: any) {
+-    try {
+-      // Determine error type and severity
+-      const errorType = this.determineErrorType(error);
+-      const severity = this.determineErrorSeverity(error);
+-      
+-      // Create comprehensive error context
+-      const context = {
+-        url: requestConfig?.url || 'unknown',
+-        method: requestConfig?.method?.toUpperCase() || 'unknown',
+-        status: error.response?.status,
+-        statusText: error.response?.statusText,
+-        responseData: error.response?.data,
+-        requestData: requestConfig?.data,
+-        timeout: error.code === 'ECONNABORTED',
+-        networkError: !error.response,
+-        retryCount: requestConfig?._retryCount || 0,
+-        timestamp: Date.now()
+-      };
+-
+-      // Log to error store
+-      const apiError = new Error(this.formatErrorMessage(error, context));
+-      apiError.stack = error.stack;
+-      apiError.name = 'ApiError';
+-      
+-      this.errorStore.addError(apiError, {
+-        component: 'ApiService',
+-        url: context.url,
+-        additionalContext: {
+-          ...context,
+-          originalErrorType: errorType,
+-          originalSeverity: severity
+-        }
+-      });
+-
+-      // Console logging for development
+-      if (import.meta.env.DEV) {
+-        console.group(`🚨 API Failure Detected [${severity.toUpperCase()}]`);
+-        console.error('Error:', error.message);
+-        console.log('Request:', context);
+-        console.log('Full Error:', error);
+-        console.groupEnd();
+-      }
+-
+-      // Check for critical patterns that need immediate attention
+-      this.checkForCriticalPatterns(error, context);
+-
+-    } catch (loggingError) {
+-      console.error('Failed to log API failure:', loggingError);
+-    }
+-  }
+-
+-  /**
+-   * Determine the type of error for categorization
+-   */
+-  private determineErrorType(error: any): 'network' | 'api' | 'permission' | 'validation' | 'unknown' {
+-    if (!error.response) {
+-      return 'network'; // Network/connection errors
+-    }
+-    
+-    const status = error.response.status;
+-    if (status === 401 || status === 403) {
+-      return 'permission';
+-    }
+-    if (status >= 400 && status < 500) {
+-      return 'validation'; // Client errors
+-    }
+-    if (status >= 500) {
+-      return 'api'; // Server errors
+-    }
+-    
+-    return 'unknown';
+-  }
+-
+-  /**
+-   * Determine error severity based on status and context
+-   */
+-  private determineErrorSeverity(error: any): 'low' | 'medium' | 'high' | 'critical' {
+-    const status = error.response?.status;
+-    
+-    // Network errors are always high severity
+-    if (!error.response) {
+-      return 'high';
+-    }
+-    
+-    // Critical server errors
+-    if (status >= 500) {
+-      return 'critical';
+-    }
+-    
+-    // Auth errors are high priority
+-    if (status === 401 || status === 403) {
+-      return 'high';
+-    }
+-    
+-    // Client errors are medium
+-    if (status >= 400 && status < 500) {
+-      return 'medium';
+-    }
+-    
+-    return 'low';
+-  }
+-
+-  /**
+-   * Format a user-friendly error message
+-   */
+-  private formatErrorMessage(error: any, context: any): string {
+-    const { status, method, url } = context;
+-    
+-    if (!error.response) {
+-      return `Network connection failed for ${method} ${url}`;
+-    }
+-    
+-    switch (status) {
+-      case 401:
+-        return 'Authentication required - please log in again';
+-      case 403:
+-        return 'Access denied - insufficient permissions';
+-      case 404:
+-        return `Resource not found: ${method} ${url}`;
+-      case 429:
+-        return 'Too many requests - please wait and try again';
+-      case 500:
+-        return 'Server error - our team has been notified';
+-      case 502:
+-      case 503:
+-      case 504:
+-        return 'Service temporarily unavailable - please try again';
+-      default:
+-        return `API request failed: ${method} ${url} (${status})`;
+-    }
+-  }
+-
+-  /**
+-   * Check for patterns that indicate critical system issues
+-   */
+-  private checkForCriticalPatterns(error: any, context: any) {
+-    // Pattern 1: Multiple 5xx errors in short time frame
+-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+-    const recentServerErrors = this.errorStore.recentErrors
+-      .filter((e: any) => e.timestamp > fiveMinutesAgo && e.context?.status >= 500);
+-    
+-    if (recentServerErrors.length >= 3) {
+-      const outageError = new Error('Critical: Multiple server errors detected - possible system outage');
+-      outageError.name = 'SystemOutageError';
+-      this.errorStore.addError(outageError, {
+-        component: 'ApiService',
+-        additionalContext: { 
+-          pattern: 'server_outage', 
+-          errorCount: recentServerErrors.length,
+-          severity: 'critical'
+-        }
+-      });
+-    }
+-
+-    // Pattern 2: Network connectivity issues
+-    if (!error.response && context.retryCount >= 2) {
+-      const networkError = new Error('Critical: Persistent network connectivity issues detected');
+-      networkError.name = 'NetworkOutageError';
+-      this.errorStore.addError(networkError, {
+-        component: 'ApiService',
+-        additionalContext: { 
+-          pattern: 'network_outage', 
+-          retryCount: context.retryCount,
+-          severity: 'critical'
+-        }
+-      });
+-    }
+-
+-    // Pattern 3: Auth system failures
+-    if (context.status === 401 && context.url.includes('/auth/')) {
+-      const authError = new Error('Critical: Authentication system failure detected');
+-      authError.name = 'AuthSystemFailureError';
+-      this.errorStore.addError(authError, {
+-        component: 'ApiService',
+-        url: context.url,
+-        additionalContext: { 
+-          pattern: 'auth_system_failure',
+-          severity: 'critical'
+-        }
+-      });
+-    }
+-  }
+-
+   /**
+    * Send enhanced message with LLM preferences to sessions API
+    */
+@@ -401,7 +141,7 @@ class ApiService {
+         }
+       }
+       
+-      // Create and sanitize the request payload
++      // NestJS expects JSON-RPC 2.0 format
+       const requestPayload = {
+         jsonrpc: '2.0',
+         method: 'handle_request',
+@@ -417,17 +157,9 @@ class ApiService {
+         id: Date.now() // Use timestamp as unique ID
+       };
+ 
+-      // Sanitize the orchestrator request params
+-      const paramsToSanitize = {
+-        ...requestPayload.params,
+-        session_id: requestPayload.params.session_id || undefined // Convert null to undefined
+-      };
+-      const sanitizedParams = this.apiSanitization.sanitizeOrchestratorRequest(paramsToSanitize);
+-      const sanitizedPayload = { ...requestPayload, params: sanitizedParams };
+-
+       const response = await this.axiosInstance.post<JsonRpcResponse>(
+         '/agents/orchestrator/orchestrator/tasks', 
+-        sanitizedPayload,
++        requestPayload,
+         {
+           headers: {
+             'Authorization': authToken ? `Bearer ${authToken}` : undefined
+@@ -501,15 +233,6 @@ class ApiService {
+     }
+   }
+ 
+-  async getAgentHierarchy(): Promise<any> {
+-    try {
+-      const response = await this.axiosInstance.get('/agents/.well-known/hierarchy');
+-      return response.data;
+-    } catch (error) {
+-      throw error;
+-    }
+-  }
+-
+   /**
+    * Health check for NestJS API
+    */
+@@ -783,20 +506,76 @@ class ApiService {
+    * Generic GET method
+    */
+   async get(url: string): Promise<any> {
++    // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
++    const response = await this.axiosInstance.get(url);
++    return response.data;
++  }
+ 
+-    
++  /**
++   * Process conversational speech
++   */
++  async processConversation(request: {
++    sessionId: string;
++    audioData: string;
++    encoding?: string;
++    sampleRate?: number;
++  }): Promise<{
++    userMessageId: string;
++    assistantMessageId: string;
++    transcribedText: string;
++    responseText: string;
++    responseAudio: string;
++    metadata?: {
++      transcriptionConfidence?: number;
++      processingTimeMs?: number;
++      agentName?: string;
++    };
++  }> {
+     try {
+-      // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
+-      const response = await this.axiosInstance.get(url);
+-
+-      
++      const response = await this.axiosInstance.post('/speech/conversation', request);
++      return response.data;
++    } catch (error) {
++      console.error('Speech conversation failed:', error);
++      throw error;
++    }
++  }
+ 
+-      
++  /**
++   * Transcribe audio to text
++   */
++  async transcribeAudio(request: {
++    audioData: string;
++    encoding?: string;
++    sampleRate?: number;
++  }): Promise<{
++    text: string;
++    confidence: number;
++  }> {
++    try {
++      const response = await this.axiosInstance.post('/speech/transcribe', request);
++      return response.data;
++    } catch (error) {
++      console.error('Audio transcription failed:', error);
++      throw error;
++    }
++  }
+ 
+-      
++  /**
++   * Synthesize text to speech
++   */
++  async synthesizeText(request: {
++    text: string;
++    voiceName?: string;
++    speakingRate?: number;
++  }): Promise<{
++    audioData: string;
++    format: string;
++  }> {
++    try {
++      const response = await this.axiosInstance.post('/speech/synthesize', request);
+       return response.data;
+     } catch (error) {
+-console.error(`ApiService.get error for ${url}:`, error);
++      console.error('Text synthesis failed:', error);
+       throw error;
+     }
+   }
+@@ -805,18 +584,12 @@ console.error(`ApiService.get error for ${url}:`, error);
+    * Generic POST method
+    */
+   async post(url: string, data?: any): Promise<any> {
+-
+     
+     try {
+       // Use axios default headers (set via setAuthToken) instead of manually fetching from localStorage
+       const response = await this.axiosInstance.post(url, data);
+-
+-      
+-
+-      
+       return response.data;
+     } catch (error) {
+-console.error(`ApiService.post error for ${url}:`, error);
+       throw error;
+     }
+   }
+diff --git a/apps/web/src/stores/uiStore.ts b/apps/web/src/stores/uiStore.ts
+index ee216d6..fa45dc1 100644
+--- a/apps/web/src/stores/uiStore.ts
++++ b/apps/web/src/stores/uiStore.ts
+@@ -1,15 +1,19 @@
+ import { defineStore } from 'pinia';
++
+ export interface UiState {
+   isAppLoading: boolean;
+   isPttRecording: boolean;
++  isConversationMode: boolean;
+   // Add other UI related states here, e.g., theme, modal visibility
+   // isDarkMode: boolean;
+   // activeModal: string | null;
+ }
++
+ export const useUiStore = defineStore('ui', {
+   state: (): UiState => ({
+     isAppLoading: false,
+     isPttRecording: false,
++    isConversationMode: false,
+     // isDarkMode: window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
+     // activeModal: null,
+   }),
+@@ -20,6 +24,9 @@ export const useUiStore = defineStore('ui', {
+     setPttRecording(isRecording: boolean) {
+       this.isPttRecording = isRecording;
+     },
++    setConversationMode(isConversationMode: boolean) {
++      this.isConversationMode = isConversationMode;
++    },
+     // toggleDarkMode() {
+     //   this.isDarkMode = !this.isDarkMode;
+     //   // Optionally, save preference to localStorage and apply to body class
+@@ -33,6 +40,7 @@ export const useUiStore = defineStore('ui', {
+   getters: {
+     getIsAppLoading: (state): boolean => state.isAppLoading,
+     getIsPttRecording: (state): boolean => state.isPttRecording,
++    getIsConversationMode: (state): boolean => state.isConversationMode,
+     // getIsDarkMode: (state): boolean => state.isDarkMode,
+     // getActiveModal: (state): string | null => state.activeModal,
+   },
+diff --git a/apps/web/src/views/HomePage.vue b/apps/web/src/views/HomePage.vue
+index 14031bb..47ef8e0 100644
+--- a/apps/web/src/views/HomePage.vue
++++ b/apps/web/src/views/HomePage.vue
+@@ -1,232 +1,608 @@
+ <template>
+   <ion-page>
+     <ion-header :translucent="true">
+-      <ion-toolbar>
++      <ion-toolbar :class="{ 'ios-header-style': isIOS }">
+         <ion-buttons slot="start">
+           <ion-menu-button :auto-hide="false" v-if="auth.isAuthenticated"></ion-menu-button>
+         </ion-buttons>
+         <ion-title>{{ pageTitle }}</ion-title>
+         <ion-buttons slot="end">
+           <ion-button 
++            v-if="auth.isAuthenticated && sessionStore.currentSessionId"
+             fill="clear" 
+-            @click="toggleDarkMode"
+-            :title="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
++            @click="toggleDebugPanel"
++            :color="showDebugPanel ? 'primary' : 'medium'"
+           >
+-            <ion-icon 
+-              :icon="isDarkMode ? sunnyOutline : moonOutline" 
+-              slot="icon-only"
+-            />
++            <ion-icon :icon="bugOutline" slot="icon-only"></ion-icon>
+           </ion-button>
+         </ion-buttons>
+       </ion-toolbar>
+     </ion-header>
+-    <ion-content :fullscreen="true">
+-      <ion-header collapse="condense">
+-        <ion-toolbar>
+-          <ion-title size="large">{{ pageTitle }}</ion-title>
+-        </ion-toolbar>
+-      </ion-header>
+-      <!-- Authentication Check -->
+-      <div v-if="!auth.isAuthenticated" class="auth-required">
+-        <ion-icon :icon="lockClosedOutline" class="auth-icon"></ion-icon>
+-        <h2>Authentication Required</h2>
+-        <p>Please <router-link to="/login">log in</router-link> to access your conversations and projects.</p>
+-      </div>
+-      <!-- Agent Conversation View or Deliverable View -->
+-      <div v-else-if="agentChatStore.hasActiveConversation || route.query.deliverableId" class="conversation-container">
+-        <ConversationTabs />
+-      </div>
+-      <!-- Welcome/Empty State -->
+-      <div v-else class="welcome-container">
+-        <div class="welcome-content">
+-          <ion-icon :icon="chatbubblesOutline" class="welcome-icon"></ion-icon>
+-          <h2>Welcome to Orchestrator AI</h2>
+-          <p>Start a conversation with any agent from the sidebar, or create a new project to begin orchestrated workflows.</p>
+-          <div class="quick-nav">
+-            <ion-button 
+-              @click="navigateToProjects"
+-              fill="solid"
+-              size="large"
+-            >
+-              <ion-icon :icon="folderOutline" slot="start"></ion-icon>
+-              View Projects
+-            </ion-button>
+-          </div>
++
++    <ion-content :fullscreen="true" :class="{ 'ion-padding': !hasAgentConversations }" ref="chatContentEl">
++      <!-- Conversation Tabs View -->
++      <ConversationTabs
++        v-if="hasAgentConversations"
++        @close="handleCloseAgentChat"
++      />
++
++      <!-- Regular Chat View -->
++      <div v-else>
++        <div v-if="!auth.isAuthenticated" class="ion-text-center ion-padding">
++           <p>Please <router-link to="/login">login</router-link> to start chatting.</p>
++        </div>
++        <div v-else-if="!sessionStore.currentSessionId && !sessionStore.isLoadingMessages" class="ion-text-center ion-padding">
++          <p>Select a session or start a new chat from the menu.</p>
++        </div>
++        <div v-else-if="sessionStore.isLoadingMessages" class="ion-text-center ion-padding">
++          <ion-spinner name="crescent"></ion-spinner>
++          <p>Loading messages...</p>
+         </div>
++        <div v-else-if="sessionStore.messagesError" class="ion-text-center ion-padding">
++          <ion-text color="danger">Error loading messages: {{ sessionStore.messagesError }}</ion-text>
++        </div>
++        <MessageListComponent
++          v-else
++          :messages="sessionStore.currentSessionMessages"
++          @messages-rendered="handleMessagesRenderedInChild"
++          @returnToOrchestrator="handleReturnToOrchestrator"
++          @viewAllAgentsClicked="handleViewAllAgents"
++          @viewAgentCapabilitiesClicked="handleViewAgentCapabilities"
++          @agentCapabilityRequestedFor="handleAgentCapabilityRequestedFor" />
+       </div>
++
+     </ion-content>
++
++    <ion-footer v-if="auth.isAuthenticated && sessionStore.currentSessionId && !agentChatStore.hasCurrentAgent">
++      <EnhancedChatInput
++        @send-message="handleEnhancedSendMessage"
++        :disabled="uiStore.getIsAppLoading"
++        :session-id="sessionStore.currentSessionId"
++      />
++      <div v-if="uiStore.getIsAppLoading" class="loading-indicator ion-padding-start ion-padding-bottom">
++        <ion-spinner name="dots" color="primary"></ion-spinner>
++      </div>
++    </ion-footer>
++
++    <!-- Agent List Modal -->
++    <AgentCapabilitiesModal
++      :is-open="showAgentModal"
++      :agents="availableAgents"
++      @dismiss="closeAgentModal"
++      @agentSelected="handleAgentSelected"
++    />
++
++    <!-- Individual Agent Capabilities Modal -->
++    <AgentCapabilitiesModal
++      :is-open="showAgentCapabilitiesModal"
++      :single-agent="currentAgentCapabilities"
++      @dismiss="closeAgentCapabilitiesModal"
++    />
++
++    <!-- Delegation Debug Panel -->
++    <DelegationDebugPanel
++      :visible="showDebugPanel"
++      @close="closeDebugPanel"
++    />
+   </ion-page>
+ </template>
++
++
+ <script setup lang="ts">
+-import { computed, ref, onMounted, watch } from 'vue';
+ import {
+-  IonContent,
+-  IonHeader,
+-  IonPage,
+-  IonTitle,
+-  IonToolbar,
+-  IonButtons,
+-  IonMenuButton,
+-  IonButton,
+-  IonIcon,
++  IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonFooter, IonSpinner, IonText,
++  isPlatform, IonButtons, IonMenuButton, IonButton, IonIcon
+ } from '@ionic/vue';
+-import {
+-  lockClosedOutline,
+-  chatbubblesOutline,
+-  folderOutline,
+-  moonOutline,
+-  sunnyOutline,
+-} from 'ionicons/icons';
+-import { useRouter, useRoute } from 'vue-router';
++import { bugOutline, appsOutline } from 'ionicons/icons';
++import { onMounted, onUnmounted, computed, watch, nextTick, ref } from 'vue';
++import { Keyboard, KeyboardInfo } from '@capacitor/keyboard';
++import { Capacitor } from '@capacitor/core';
+ import { useAuthStore } from '@/stores/authStore';
+-import { useAgentChatStore } from '@/stores/agentChatStore';
+-import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
++import { useSessionStore } from '@/stores/sessionStore';
++import { useUiStore } from '@/stores/uiStore';
++import { useMessagesStore } from '@/stores/messagesStore';
++import { formatAgentName } from '@/utils/caseConverter';
++import { useRouter } from 'vue-router';
++// Removed obsolete import
++import { storeToRefs } from 'pinia';
++import { Message } from '../services/sessionService';
++import { apiService } from '../services/apiService';
++
++import MessageListComponent from '../components/MessageList.vue';
++import ChatInputComponent from '../components/ChatInput.vue';
++import EnhancedChatInput from '../components/EnhancedChatInput.vue';
++import SpeechDevModePanel from '../components/SpeechDevModePanel.vue';
++import AgentCapabilitiesModal from '@/components/AgentCapabilitiesModal.vue';
++import DelegationDebugPanel from '@/components/DelegationDebugPanel.vue';
++import AgentChatView from '@/components/AgentChatView.vue';
+ import ConversationTabs from '@/components/ConversationTabs.vue';
+-const router = useRouter();
+-const route = useRoute();
++import { useAgentChatStore } from '@/stores/agentChatStore';
++
+ const auth = useAuthStore();
++const sessionStore = useSessionStore();
++const uiStore = useUiStore();
++const messagesStore = useMessagesStore();
+ const agentChatStore = useAgentChatStore();
+-const userPreferencesStore = useUserPreferencesStore();
+-// Computed properties
++const router = useRouter();
++
++const { currentSessionId, currentSessionMessages } = storeToRefs(sessionStore);
++const chatContentEl = ref<InstanceType<typeof IonContent> | null>(null);
++
++// Modal state
++const showAgentModal = ref(false);
++const availableAgents = ref<Array<{ name: string; description: string }>>([]);
++const expectingAgentList = ref(false); // Track when we expect an agent list response
++
++// Agent capabilities modal state
++const showAgentCapabilitiesModal = ref(false);
++const currentAgentCapabilities = ref<any>(null);
++
++// Debug panel state
++const showDebugPanel = ref(false);
++
++
++const isIOS = computed(() => isPlatform('ios'));
++
++const currentSessionName = computed(() => {
++  if (currentSessionId.value) {
++          return `Orchestrator AI Chat`;
++  }
++      return 'Orchestrator AI';
++});
++
++const hasAgentConversations = computed(() => {
++  return agentChatStore.conversations.length > 0;
++});
++
+ const pageTitle = computed(() => {
+   const activeConversation = agentChatStore.getActiveConversation();
+   if (activeConversation) {
+-    return activeConversation.title || `Chat with ${activeConversation.agent?.name}`;
++    return activeConversation.title;
+   }
+-  return 'Orchestrator AI';
++  return currentSessionName.value || 'Orchestrator AI';
+ });
+-// Dark mode state and functionality
+-// Handle conversation opening from query parameters
+-const handleConversationFromQuery = async () => {
+-  const conversationId = route.query.conversationId as string;
+-  if (conversationId && auth.isAuthenticated) {
+-    try {
+-      // Check if conversation is already open
+-      const existingConversation = agentChatStore.conversations.find(conv => conv.id === conversationId);
+-      if (existingConversation) {
+-        // Just switch to it
+-        agentChatStore.switchToConversation(conversationId);
++
++const handleMessagesRenderedInChild = () => {
++  scrollToBottom();
++};
++
++const scrollToBottom = async () => {
++  await new Promise(resolve => setTimeout(resolve, 100));
++
++  const contentHostElement = chatContentEl.value?.$el as HTMLElement | undefined;
++  if (!contentHostElement) {
++    return;
++  }
++
++  let scrollElement = contentHostElement.querySelector('.inner-scroll') as HTMLElement ||
++                      (contentHostElement.shadowRoot ? contentHostElement.shadowRoot.querySelector('.inner-scroll') as HTMLElement : null) ||
++                      contentHostElement;
++
++  if (scrollElement === contentHostElement && scrollElement.firstElementChild && scrollElement.firstElementChild.scrollHeight > scrollElement.scrollHeight) {
++    scrollElement = scrollElement.firstElementChild as HTMLElement;
++  }
++
++  if (scrollElement && typeof scrollElement.scrollTop !== 'undefined') {
++    if (scrollElement.scrollHeight > scrollElement.clientHeight) {
++        scrollElement.scrollTop = scrollElement.scrollHeight;
++    } else {
++    }
++  }
++};
++
++watch(currentSessionId, (newId, oldId) => {
++  if (newId && newId !== oldId) {
++    if (!newId) currentSessionMessages.value = [];
++  }
++});
++
++const handleEnhancedSendMessage = async (text: string, llmSelection?: any) => {
++  if (!currentSessionId.value) {
++    return;
++  }
++
++  // Use the messages store's enhanced submission method
++  await messagesStore.submitMessageToOrchestrator(text, llmSelection);
++};
++
++const handleSendMessage = async (text: string) => {
++  if (!currentSessionId.value) {
++    return;
++  }
++
++  uiStore.setAppLoading(true);
++  const userMessageOrder = (currentSessionMessages.value.length > 0
++            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1
++            : 1);
++  const userMessage = {
++    id: `temp-user-${Date.now()}`,
++    session_id: currentSessionId.value,
++    user_id: auth.user?.id || 'unknown-user',
++    role: 'user' as const,
++    content: text,
++    timestamp: new Date().toISOString(),
++    order: userMessageOrder
++  };
++  sessionStore.addMessageToCurrentSession(userMessage);
++
++  try {
++    // Prepare conversation history for context (exclude the message we just added)
++    const conversationHistory = currentSessionMessages.value
++      .filter(msg => msg.id !== userMessage.id) // Exclude the message we just added
++      .map(msg => ({
++        role: msg.role === 'assistant' ? 'assistant' : 'user',
++        content: msg.content || '',
++        metadata: msg.metadata
++      }));
++
++
++    const taskResponse = await apiService.postTaskToOrchestrator(text, currentSessionId.value, conversationHistory);
++
++    // Extract response text
++    let agentText = 'No response text.';
++    let agentMetadata: Record<string, any> = {};
++
++    // Check for response_message.parts
++    if (taskResponse.response_message && taskResponse.response_message.parts && taskResponse.response_message.parts.length > 0) {
++      agentText = taskResponse.response_message.parts[0]?.text || 'No response text.';
++              if (taskResponse.response_message?.metadata?.respondingAgentName) {
++          agentMetadata.agentName = taskResponse.response_message.metadata.respondingAgentName;
++      }
++    }
++    // Additional fallback - check for direct result field
++    else if (taskResponse.result) {
++      // Handle both string and object result formats
++      if (typeof taskResponse.result === 'string') {
++        agentText = taskResponse.result;
++      } else if ((taskResponse.result as any).response) {
++        agentText = (taskResponse.result as any).response;
++        // Extract metadata if available
++        if ((taskResponse.result as any).metadata) {
++          agentMetadata = { ...(taskResponse.result as any).metadata };
++        }
++      }
++    }
++
++    // Also check taskResponse.metadata for agent information
++    if (taskResponse.metadata) {
++      // Merge taskResponse.metadata into agentMetadata, preserving any existing values
++      agentMetadata = { ...taskResponse.metadata, ...agentMetadata };
++
++      // Ensure agentName is set from various possible fields
++      if (!agentMetadata.agentName) {
++        agentMetadata.agentName = taskResponse.metadata.delegatedTo ||
++                                  taskResponse.metadata.originalAgent?.agentName ||
++                                  taskResponse.metadata.agentName ||
++                                                                      taskResponse.metadata.respondingAgentName;
++      }
++    }
++
++    const agentMessageOrder = (currentSessionMessages.value.length > 0
++          ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1
++          : 1);
++
++    // Check if this response should show a modal based on structured metadata
++    const contentType = (taskResponse.result as any)?.metadata?.contentType || agentMetadata.contentType;
++
++    if (contentType === 'agentListModal') {
++
++      // Extract agent list from structured metadata
++      const agentListData = (taskResponse.result as any)?.metadata?.agentList || agentMetadata.agentList;
++
++      if (agentListData && agentListData.length > 0) {
++        // Use the structured data directly
++        availableAgents.value = agentListData.map((agent: any) => ({
++          name: agent.name,
++          description: agent.description
++        }));
++        showAgentModal.value = true;
+       } else {
+-        // Open the conversation
+-        await agentChatStore.openExistingConversation(conversationId);
++        // Fallback to showing text message
++        const agentMessage: Message = {
++          id: taskResponse.id,
++          session_id: currentSessionId.value,
++          user_id: auth.user?.id || 'unknown-user',
++          role: 'assistant',
++          content: agentText,
++          timestamp: new Date().toISOString(),
++          order: agentMessageOrder,
++          metadata: agentMetadata
++        };
++        sessionStore.addMessageToCurrentSession(agentMessage);
+       }
+-      // Clear the query parameter to avoid re-opening on refresh
+-      router.replace({ 
+-        name: route.name as string, 
+-        params: route.params,
+-        query: { ...route.query, conversationId: undefined }
+-      });
+-    } catch (error) {
+ 
++      // Reset the expectation flag
++      expectingAgentList.value = false;
++    } else if (contentType === 'agentCapabilitiesModal') {
++
++      // Extract agent capabilities from structured metadata
++      const agentCapabilitiesData = (taskResponse.result as any)?.metadata?.agentCapabilities || agentMetadata.agentCapabilities;
++
++      if (agentCapabilitiesData) {
++        // Show agent capabilities modal
++        showAgentCapabilitiesModal.value = true;
++        currentAgentCapabilities.value = agentCapabilitiesData;
++      } else {
++        // Fallback to showing text message
++        const agentMessage: Message = {
++          id: taskResponse.id,
++          session_id: currentSessionId.value,
++          user_id: auth.user?.id || 'unknown-user',
++          role: 'assistant',
++          content: agentText,
++          timestamp: new Date().toISOString(),
++          order: agentMessageOrder,
++          metadata: agentMetadata
++        };
++        sessionStore.addMessageToCurrentSession(agentMessage);
++      }
++    } else if (contentType === 'agentListFromOrchestrator' && (expectingAgentList.value || agentText.includes('Agent Name:'))) {
++      // Legacy text-based agent list response - still support parsing for backward compatibility
++
++      // Parse agents and show modal instead of adding message to chat
++      const agents = parseAgentListFromResponse(agentText);
++
++      if (agents.length > 0) {
++        availableAgents.value = agents;
++        showAgentModal.value = true;
++      } else {
++        // Fallback to showing text message if parsing fails
++        const agentMessage: Message = {
++          id: taskResponse.id,
++          session_id: currentSessionId.value,
++          user_id: auth.user?.id || 'unknown-user',
++          role: 'assistant',
++          content: agentText,
++          timestamp: new Date().toISOString(),
++          order: agentMessageOrder,
++          metadata: agentMetadata
++        };
++        sessionStore.addMessageToCurrentSession(agentMessage);
++      }
++
++      // Reset the expectation flag
++      expectingAgentList.value = false;
++    } else {
++      // Regular response - add to chat as normal
++      const agentMessage: Message = {
++        id: taskResponse.id,
++        session_id: currentSessionId.value,
++        user_id: auth.user?.id || 'unknown-user',
++        role: 'assistant',
++        content: agentText,
++        timestamp: new Date().toISOString(),
++        order: agentMessageOrder,
++        metadata: agentMetadata
++      };
++
++      sessionStore.addMessageToCurrentSession(agentMessage);
+     }
++
++    // Message saving is handled automatically by sessionStore
++
++  } catch (error) {
++
++    const errorMessage: Message = {
++      id: `error-${Date.now()}`,
++      session_id: currentSessionId.value,
++      user_id: auth.user?.id || 'unknown-user',
++      role: 'assistant',
++      content: `Error: ${error instanceof Error ? error.message : 'An unknown error occurred'}`,
++      timestamp: new Date().toISOString(),
++      order: (currentSessionMessages.value.length > 0
++            ? Math.max(...currentSessionMessages.value.map(m => m.order)) + 1
++            : 1)
++    };
++
++    sessionStore.addMessageToCurrentSession(errorMessage);
++  } finally {
++    uiStore.setAppLoading(false);
+   }
+ };
+-// Watch for query parameter changes
+-watch(() => route.query.conversationId, handleConversationFromQuery, { immediate: true });
+ 
+-// Initialize user preferences store
+-onMounted(async () => {
+-  await userPreferencesStore.initializePreferences();
+-});
++const handleReturnToOrchestrator = () => {
++  // Send a message to clear the sticky agent and return to orchestrator mode
++  handleSendMessage("Return to orchestrator");
++};
+ 
+-// Reactive theme functionality
+-const isDarkMode = computed(() => userPreferencesStore.effectiveTheme === 'dark');
++const handleViewAllAgents = () => {
++  // This is now handled by the sidebar agent tree view
++};
+ 
+-const toggleDarkMode = () => {
+-  const currentTheme = userPreferencesStore.preferences.theme;
+-  let newTheme: 'light' | 'dark' | 'auto';
++const handleViewAgentCapabilities = async (agentInfo: any) => {
+   
+-  if (currentTheme === 'auto') {
+-    // If auto, switch to the opposite of current effective theme
+-    newTheme = isDarkMode.value ? 'light' : 'dark';
+-  } else {
+-    // If manual, toggle between light and dark
+-    newTheme = currentTheme === 'dark' ? 'light' : 'dark';
++  try {
++    if (agentInfo && agentInfo.name) {
++      // We're asking a specific agent about their capabilities via UI click
++      const agentName = agentInfo.name;
++
++      if (agentName.toLowerCase() === 'orchestrator' || agentName.toLowerCase() === 'orchestrator agent') {
++        // If it's the orchestrator, call REST endpoint for agent list modal
++        const response = await apiService.getAgentsList();
++
++        if (response.metadata?.agentList) {
++          availableAgents.value = response.metadata.agentList.map((agent: any) => ({
++            name: agent.name,
++            description: agent.description
++          }));
++          showAgentModal.value = true;
++        }
++      } else {
++        // For specific agents, call REST endpoint for capabilities modal
++        const response = await apiService.getAgentCapabilities(agentName);
++
++        if (response.metadata?.agentCapabilities) {
++          currentAgentCapabilities.value = response.metadata.agentCapabilities;
++          showAgentCapabilitiesModal.value = true;
++        }
++      }
++    } else {
++      // Fallback to orchestrator agent list modal
++      const response = await apiService.getAgentsList();
++
++      if (response.metadata?.agentList) {
++        availableAgents.value = response.metadata.agentList.map((agent: any) => ({
++          name: agent.name,
++          description: agent.description
++        }));
++        showAgentModal.value = true;
++      }
++    }
++  } catch (error) {
++    // Could show an error toast here
+   }
+-  
+-  // Just update the preference - let the store's reactivity handle theme application
+-  userPreferencesStore.setTheme(newTheme);
+ };
+ 
+-// Methods
+-const navigateToProjects = () => {
+-  router.push('/projects');
++const handleAgentCapabilityRequestedFor = (agentName: string) => {
++  // TODO: Implement agent capability request functionality
++};
++
++// Modal handlers
++const closeAgentModal = () => {
++  showAgentModal.value = false;
++  availableAgents.value = [];
++};
++
++const closeAgentCapabilitiesModal = () => {
++  showAgentCapabilitiesModal.value = false;
++  currentAgentCapabilities.value = null;
++};
++
++// Debug panel methods
++const toggleDebugPanel = () => {
++  showDebugPanel.value = !showDebugPanel.value;
++};
++
++const closeDebugPanel = () => {
++  showDebugPanel.value = false;
++};
++
++// Agent tree view event handlers (now handled in SessionSidebar)
++const handleConversationSelected = (conversation: any) => {
++  // You could navigate to this conversation or load it in the chat view
++};
++
++const handleAgentSelectedFromTree = (agent: any) => {
++  // Could start a new conversation with this agent
++};
++
++const handleAgentSelected = (agent: { name: string; description: string }) => {
++  // Send a message to talk to the specific agent with the requested format
++  handleSendMessage(`I would like to talk with the ${agent.name} agent.`);
+ };
++
++const handleCloseAgentChat = () => {
++  // Close the active conversation if there is one
++  const activeConversation = agentChatStore.getActiveConversation();
++  if (activeConversation) {
++    agentChatStore.closeConversation(activeConversation.id);
++  }
++};
++
++// Helper function to parse agent list from orchestrator response
++const parseAgentListFromResponse = (responseText: string): Array<{ name: string; description: string }> => {
++  const agents: Array<{ name: string; description: string }> = [];
++  const lines = responseText.split('\n');
++
++  for (let i = 0; i < lines.length; i++) {
++    const line = lines[i].trim();
++    if (!line) continue;
++
++
++    // Handle multiple formats:
++    // Format 1: "Agent Name: Blog Post Writer, Description: Blog Post Writer specialist agent"
++    let match = line.match(/Agent Name:\s*([^,]+),\s*Description:\s*(.+)/i);
++    if (match) {
++      const name = match[1].trim();
++      const description = match[2].trim();
++      agents.push({ name, description });
++      continue;
++    }
++
++    // Format 2: "- Agent Name: Blog Post, Description: Handles content creation..."
++    match = line.match(/- Agent Name:\s*([^,]+),\s*Description:\s*(.+)/i);
++    if (match) {
++      const name = match[1].trim();
++      const description = match[2].trim();
++      agents.push({ name, description });
++      continue;
++    }
++
++    // Format 3: "- Blog Post Agent: Handles content creation..."
++    match = line.match(/- ([^:]+):\s*(.+)/);
++    if (match) {
++      const name = match[1].trim();
++      const description = match[2].trim();
++      agents.push({ name, description });
++      continue;
++    }
++
++    // Format 4: "- Blog Post - Handles content creation..."
++    match = line.match(/- ([^-]+)\s*-\s*(.+)/);
++    if (match) {
++      const name = match[1].trim();
++      const description = match[2].trim();
++      agents.push({ name, description });
++      continue;
++    }
++
++  }
++
++  return agents;
++};
++
++// Agent list detection is now handled directly in handleSendMessage
++
++// Keyboard handling for mobile devices
++let keyboardHandler: (info: KeyboardInfo) => void;
++
++onMounted(() => {
++
++  if (Capacitor.isNativePlatform()) {
++    keyboardHandler = (info: KeyboardInfo) => {
++      const keyboardHeight = info.keyboardHeight;
++
++      nextTick(() => {
++        scrollToBottom();
++      });
++    };
++
++    Keyboard.addListener('keyboardWillShow', keyboardHandler);
++    Keyboard.addListener('keyboardDidShow', keyboardHandler);
++  }
++});
++
++onUnmounted(() => {
++
++  if (Capacitor.isNativePlatform() && typeof keyboardHandler === 'function') {
++    Keyboard.removeAllListeners();
++  }
++});
+ </script>
++
+ <style scoped>
+-.auth-required,
+-.welcome-container {
++.loading-indicator {
+   display: flex;
+   align-items: center;
+-  justify-content: center;
+-  height: 100%;
+-  padding: 2rem;
+-  text-align: center;
+-}
+-.welcome-content {
+-  max-width: 500px;
+-}
+-.auth-icon,
+-.welcome-icon {
+-  font-size: 4rem;
+-  color: var(--ion-color-primary);
+-  margin-bottom: 1.5rem;
+-}
+-.auth-required h2,
+-.welcome-content h2 {
+-  color: var(--ion-color-primary);
+-  margin-bottom: 1rem;
+-  font-size: 2rem;
+-  font-weight: 600;
+-}
+-.auth-required p,
+-.welcome-content p {
++  gap: 8px;
++  font-size: 14px;
+   color: var(--ion-color-medium);
+-  margin-bottom: 2rem;
+-  font-size: 1.1rem;
+-  line-height: 1.6;
+-}
+-.quick-nav {
+-  display: flex;
+-  flex-direction: column;
+-  gap: 1rem;
+-  align-items: center;
+ }
+-.quick-nav ion-button {
+-  width: 100%;
+-  max-width: 300px;
+-  --border-radius: 12px;
+-  --padding-top: 1rem;
+-  --padding-bottom: 1rem;
+-}
+-.conversation-container {
+-  height: 100%;
+-  display: flex;
+-  flex-direction: column;
++
++.ios-header-style {
++  --border-color: transparent;
++  --background: var(--ion-color-primary);
++  --color: white;
+ }
+-/* Responsive design */
+-@media (max-width: 768px) {
+-  .auth-required,
+-  .welcome-container {
+-    padding: 1rem;
+-  }
+-  .auth-required h2,
+-  .welcome-content h2 {
+-    font-size: 1.5rem;
+-  }
+-  .auth-required p,
+-  .welcome-content p {
+-    font-size: 1rem;
+-  }
+-  .quick-nav {
+-    gap: 0.75rem;
+-  }
++
++ion-content {
++  --overflow: hidden;
+ }
+-/* Dark theme support */
+-@media (prefers-color-scheme: dark) {
+-  .auth-icon,
+-  .welcome-icon {
+-    color: var(--ion-color-primary-tint);
+-  }
++
++.ion-padding {
++  --padding-start: 16px;
++  --padding-end: 16px;
++  --padding-top: 16px;
++  --padding-bottom: 16px;
+ }
+ </style> 
+\ No newline at end of file
