@@ -1,0 +1,163 @@
+From e1b6a1e6da180ccf8185eb89753431a1286bc704 Mon Sep 17 00:00:00 2001
+From: GolferGeek <golfergeek@gmail.com>
+Date: Thu, 11 Sep 2025 14:21:28 -0500
+Subject: [PATCH 3/5] admin(web): align provider/model dropdowns to API DTO
+ (providerName/modelName/displayName); remove status filter to load full
+ catalog; include DB values in options
+
+---
+ apps/web/src/services/modelCatalogService.ts | 13 +++---
+ apps/web/src/views/AdminSettingsPage.vue     | 46 ++++++++++----------
+ 2 files changed, 28 insertions(+), 31 deletions(-)
+
+diff --git a/apps/web/src/services/modelCatalogService.ts b/apps/web/src/services/modelCatalogService.ts
+index 295367f..e7cb106 100644
+--- a/apps/web/src/services/modelCatalogService.ts
++++ b/apps/web/src/services/modelCatalogService.ts
+@@ -1,22 +1,19 @@
+ import apiService from './apiService';
+ 
+ export interface ProviderWithModels {
+-  id: string;
+-  name: string; // provider name like 'openai', 'ollama'
+-  display_name?: string;
++  providerName: string; // e.g., 'openai', 'ollama'
+   models: Array<{
+-    id: string;
+-    model_name: string; // API model name like 'o4-mini', 'gpt-oss:220b'
+-    display_name?: string;
+-    is_active?: boolean;
++    providerName: string;
++    modelName: string; // e.g., 'o4-mini', 'gpt-oss:220b'
++    displayName?: string;
+   }>;
+ }
+ 
+ export async function fetchProvidersWithModels(options: { status?: 'active' | 'inactive' | 'deprecated'; sovereignMode?: boolean } = {}) {
+   const params = new URLSearchParams();
++  // Avoid sending status filter unless your backend supports it
+   if (options.status) params.set('status', options.status);
+   if (typeof options.sovereignMode === 'boolean') params.set('sovereign_mode', String(options.sovereignMode));
+   const { data } = await apiService.axiosInstance.get(`/providers/with-models${params.toString() ? `?${params.toString()}` : ''}`);
+   return data as ProviderWithModels[];
+ }
+-
+diff --git a/apps/web/src/views/AdminSettingsPage.vue b/apps/web/src/views/AdminSettingsPage.vue
+index 2228e15..6af66bf 100644
+--- a/apps/web/src/views/AdminSettingsPage.vue
++++ b/apps/web/src/views/AdminSettingsPage.vue
+@@ -497,7 +497,7 @@
+             <ion-item>
+               <ion-label position="stacked">Provider</ion-label>
+               <ion-select v-model="flat.provider" interface="popover" placeholder="Select provider">
+-                <ion-select-option v-for="p in providers" :key="p.name" :value="p.name">{{ p.display_name || p.name }}</ion-select-option>
++                <ion-select-option v-for="p in providers" :key="p.providerName" :value="p.providerName">{{ p.providerName }}</ion-select-option>
+               </ion-select>
+             </ion-item>
+             <ion-item>
+@@ -505,9 +505,9 @@
+               <ion-select v-model="flat.model" interface="popover" :disabled="!flat.provider" placeholder="Select model">
+                 <ion-select-option
+                   v-for="m in flatModelOptions"
+-                  :key="m.model_name"
+-                  :value="m.model_name"
+-                >{{ m.display_name || m.model_name }}</ion-select-option>
++                  :key="m.modelName"
++                  :value="m.modelName"
++                >{{ m.displayName || m.modelName }}</ion-select-option>
+               </ion-select>
+             </ion-item>
+             <ion-item>
+@@ -525,7 +525,7 @@
+             <ion-item>
+               <ion-label position="stacked">Provider</ion-label>
+               <ion-select v-model="dual.default.provider" interface="popover" placeholder="Select provider">
+-                <ion-select-option v-for="p in providers" :key="p.name" :value="p.name">{{ p.display_name || p.name }}</ion-select-option>
++                <ion-select-option v-for="p in providers" :key="p.providerName" :value="p.providerName">{{ p.providerName }}</ion-select-option>
+               </ion-select>
+             </ion-item>
+             <ion-item>
+@@ -533,9 +533,9 @@
+               <ion-select v-model="dual.default.model" interface="popover" :disabled="!dual.default.provider" placeholder="Select model">
+                 <ion-select-option
+                   v-for="m in dualDefaultModelOptions"
+-                  :key="m.model_name"
+-                  :value="m.model_name"
+-                >{{ m.display_name || m.model_name }}</ion-select-option>
++                  :key="m.modelName"
++                  :value="m.modelName"
++                >{{ m.displayName || m.modelName }}</ion-select-option>
+               </ion-select>
+             </ion-item>
+             <ion-item>
+@@ -550,7 +550,7 @@
+             <ion-item>
+               <ion-label position="stacked">Provider</ion-label>
+               <ion-select v-model="dual.localOnly.provider" interface="popover" placeholder="Select provider">
+-                <ion-select-option v-for="p in providers" :key="p.name" :value="p.name">{{ p.display_name || p.name }}</ion-select-option>
++                <ion-select-option v-for="p in providers" :key="p.providerName" :value="p.providerName">{{ p.providerName }}</ion-select-option>
+               </ion-select>
+             </ion-item>
+             <ion-item>
+@@ -558,9 +558,9 @@
+               <ion-select v-model="dual.localOnly.model" interface="popover" :disabled="!dual.localOnly.provider" placeholder="Select model">
+                 <ion-select-option
+                   v-for="m in dualLocalModelOptions"
+-                  :key="m.model_name"
+-                  :value="m.model_name"
+-                >{{ m.display_name || m.model_name }}</ion-select-option>
++                  :key="m.modelName"
++                  :value="m.modelName"
++                >{{ m.displayName || m.modelName }}</ion-select-option>
+               </ion-select>
+             </ion-item>
+             <ion-item>
+@@ -691,8 +691,8 @@ function closeModelConfigModal() {
+ 
+ async function loadGlobalModelConfig() {
+   try {
+-    // Load catalog first
+-    providers.value = await fetchProvidersWithModels({ status: 'active' });
++    // Load catalog first (no status filter to maximize results)
++    providers.value = await fetchProvidersWithModels();
+     const res = await fetchGlobalModelConfig();
+     envOverrideActive.value = !!res?.envOverrideActive;
+     const cfg = res?.dbConfig;
+@@ -722,25 +722,25 @@ async function loadGlobalModelConfig() {
+ 
+ // Computed model lists with fallback to show DB-selected values
+ const flatModelOptions = computed(() => {
+-  const list = providers.value.find(p => p.name === flat.value.provider)?.models || [];
+-  if (flat.value.model && !list.some(m => m.model_name === flat.value.model)) {
+-    return [...list, { id: 'custom', model_name: flat.value.model, display_name: flat.value.model } as any];
++  const list = providers.value.find(p => p.providerName === flat.value.provider)?.models || [];
++  if (flat.value.model && !list.some(m => m.modelName === flat.value.model)) {
++    return [...list, { providerName: flat.value.provider, modelName: flat.value.model, displayName: flat.value.model } as any];
+   }
+   return list;
+ });
+ 
+ const dualDefaultModelOptions = computed(() => {
+-  const list = providers.value.find(p => p.name === dual.value.default.provider)?.models || [];
+-  if (dual.value.default.model && !list.some(m => m.model_name === dual.value.default.model)) {
+-    return [...list, { id: 'custom', model_name: dual.value.default.model, display_name: dual.value.default.model } as any];
++  const list = providers.value.find(p => p.providerName === dual.value.default.provider)?.models || [];
++  if (dual.value.default.model && !list.some(m => m.modelName === dual.value.default.model)) {
++    return [...list, { providerName: dual.value.default.provider, modelName: dual.value.default.model, displayName: dual.value.default.model } as any];
+   }
+   return list;
+ });
+ 
+ const dualLocalModelOptions = computed(() => {
+-  const list = providers.value.find(p => p.name === dual.value.localOnly.provider)?.models || [];
+-  if (dual.value.localOnly.model && !list.some(m => m.model_name === dual.value.localOnly.model)) {
+-    return [...list, { id: 'custom', model_name: dual.value.localOnly.model, display_name: dual.value.localOnly.model } as any];
++  const list = providers.value.find(p => p.providerName === dual.value.localOnly.provider)?.models || [];
++  if (dual.value.localOnly.model && !list.some(m => m.modelName === dual.value.localOnly.model)) {
++    return [...list, { providerName: dual.value.localOnly.provider, modelName: dual.value.localOnly.model, displayName: dual.value.localOnly.model } as any];
+   }
+   return list;
+ });
+-- 
+2.50.1
+

@@ -1,0 +1,31 @@
+From d4bab3f9395a97026e6fecd0d96df81be75fed2e Mon Sep 17 00:00:00 2001
+From: SteakWrangler <131724066+SteakWrangler@users.noreply.github.com>
+Date: Thu, 11 Sep 2025 15:16:28 -0400
+Subject: [PATCH 2/5] cleanup: remove worktrees directory and references
+
+Both conversational-ai-speech and book-writing-agents worktrees have been
+removed after integrating speech functionality into main branch.
+---
+ worktrees/book-writing-agents      | 1 -
+ worktrees/conversational-ai-speech | 1 -
+ 2 files changed, 2 deletions(-)
+ delete mode 160000 worktrees/book-writing-agents
+ delete mode 160000 worktrees/conversational-ai-speech
+
+diff --git a/worktrees/book-writing-agents b/worktrees/book-writing-agents
+deleted file mode 160000
+index e92a316..0000000
+--- a/worktrees/book-writing-agents
++++ /dev/null
+@@ -1 +0,0 @@
+-Subproject commit e92a31673c45d0602fedfe1e8d883fbcb293a9bd
+diff --git a/worktrees/conversational-ai-speech b/worktrees/conversational-ai-speech
+deleted file mode 160000
+index b1b7c7e..0000000
+--- a/worktrees/conversational-ai-speech
++++ /dev/null
+@@ -1 +0,0 @@
+-Subproject commit b1b7c7ebdf267f55a454a93debcfba454ed05da0
+-- 
+2.50.1
+

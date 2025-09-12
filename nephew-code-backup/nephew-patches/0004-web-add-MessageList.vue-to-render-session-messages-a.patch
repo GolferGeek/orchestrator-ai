@@ -1,0 +1,77 @@
+From 58946569ca9fd7d44f6387394cbf4b8202c59535 Mon Sep 17 00:00:00 2001
+From: GolferGeek <golfergeek@gmail.com>
+Date: Thu, 11 Sep 2025 14:24:48 -0500
+Subject: [PATCH 4/5] web: add MessageList.vue to render session messages and
+ emit messages-rendered; fixes missing import in HomePage.vue
+
+---
+ apps/web/src/components/MessageList.vue | 57 +++++++++++++++++++++++++
+ 1 file changed, 57 insertions(+)
+ create mode 100644 apps/web/src/components/MessageList.vue
+
+diff --git a/apps/web/src/components/MessageList.vue b/apps/web/src/components/MessageList.vue
+new file mode 100644
+index 0000000..020a738
+--- /dev/null
++++ b/apps/web/src/components/MessageList.vue
+@@ -0,0 +1,57 @@
++<template>
++  <div class="message-list" ref="listEl">
++    <AgentTaskItem
++      v-for="msg in messages"
++      :key="msg.id || msg._key || msg.timestamp || Math.random()"
++      :message="msg"
++    />
++  </div>
++</template>
++
++<script setup lang="ts">
++import { ref, watch, nextTick, onMounted } from 'vue';
++import AgentTaskItem from './AgentTaskItem.vue';
++
++interface MessageLike {
++  id?: string;
++  _key?: string;
++  timestamp?: any;
++  [k: string]: any;
++}
++
++const props = defineProps<{ messages: MessageLike[] }>();
++const emit = defineEmits<{
++  (e: 'messages-rendered'): void;
++  (e: 'returnToOrchestrator'): void;
++  (e: 'viewAllAgentsClicked'): void;
++  (e: 'viewAgentCapabilitiesClicked'): void;
++  (e: 'agentCapabilityRequestedFor', payload: any): void;
++}>();
++
++const listEl = ref<HTMLElement | null>(null);
++
++async function notifyRendered() {
++  await nextTick();
++  emit('messages-rendered');
++}
++
++onMounted(() => {
++  notifyRendered();
++});
++
++watch(
++  () => props.messages?.length,
++  () => {
++    notifyRendered();
++  }
++);
++</script>
++
++<style scoped>
++.message-list {
++  display: flex;
++  flex-direction: column;
++  gap: 0.75rem;
++}
++</style>
++
+-- 
+2.50.1
+
