@@ -84,12 +84,22 @@
                   <ion-card-title>{{ project.name }}</ion-card-title>
                   <ion-card-subtitle>{{ project.description }}</ion-card-subtitle>
                 </div>
-                <ion-badge 
-                  :color="getStatusColor(project.status)"
-                  class="status-badge"
-                >
-                  {{ project.status }}
-                </ion-badge>
+                <div class="project-header-actions">
+                  <ion-badge 
+                    :color="getStatusColor(project.status)"
+                    class="status-badge"
+                  >
+                    {{ project.status }}
+                  </ion-badge>
+                  <ion-button 
+                    fill="clear" 
+                    color="danger" 
+                    size="small"
+                    @click="deleteProject"
+                  >
+                    <ion-icon :icon="trashOutline" slot="icon-only"></ion-icon>
+                  </ion-button>
+                </div>
               </div>
             </ion-card-header>
             <ion-card-content>
@@ -338,6 +348,7 @@ import {
   alertController,
   actionSheetController,
   toastController,
+  onIonViewWillEnter,
 } from '@ionic/vue';
 import {
   pauseOutline,
@@ -358,6 +369,7 @@ import {
   gitBranchOutline,
   layersOutline,
   folderOutline,
+  trashOutline,
 } from 'ionicons/icons';
 import { useRoute, useRouter } from 'vue-router';
 import { projectsService, type Project, type UpdateProjectDto, type ProjectHierarchyNode } from '@/services/projectsService';
@@ -570,29 +582,6 @@ const openOptionsMenu = async () => {
   });
   await actionSheet.present();
 };
-const deleteProject = async () => {
-  const alert = await alertController.create({
-    header: 'Delete Project',
-    message: `Are you sure you want to delete "${project.value?.name}"? This action cannot be undone.`,
-    buttons: [
-      { text: 'Cancel', role: 'cancel' },
-      {
-        text: 'Delete',
-        role: 'destructive',
-        handler: async () => {
-          const toast = await toastController.create({
-            message: 'Project deleted successfully',
-            duration: 2000,
-            color: 'success',
-          });
-          await toast.present();
-          router.push('/projects');
-        }
-      }
-    ]
-  });
-  await alert.present();
-};
 const filterTasks = () => {
   // Filtering is handled by computed property
 };
@@ -647,6 +636,50 @@ const createSubproject = () => {
   if (project.value) {
     router.push(`/app/projects/new?parentId=${project.value.id}&parentName=${encodeURIComponent(project.value.name || 'Unnamed Project')}`);
   }
+};
+const deleteProject = async () => {
+  if (!project.value) return;
+  
+  const alert = await alertController.create({
+    header: 'Delete Project',
+    message: `Are you sure you want to delete "${project.value.name}"? This action cannot be undone.`,
+    buttons: [
+      {
+        text: 'Cancel',
+        role: 'cancel',
+      },
+      {
+        text: 'Delete',
+        role: 'destructive',
+        handler: async () => {
+          try {
+            await projectsService.deleteProject(project.value!.id);
+            const toast = await toastController.create({
+              message: 'Project deleted successfully',
+              duration: 2000,
+              color: 'success',
+            });
+            await toast.present();
+            // Use router.back() to return to the previous page
+            // If there's no history, fall back to projects list
+            if (window.history.length > 1) {
+              router.back();
+            } else {
+              router.push('/app/projects');
+            }
+          } catch (err) {
+            const toast = await toastController.create({
+              message: 'Failed to delete project',
+              duration: 3000,
+              color: 'danger',
+            });
+            await toast.present();
+          }
+        },
+      },
+    ],
+  });
+  await alert.present();
 };
 // Map backend project status to frontend display status
 const mapBackendStatus = (status: Project['status']) => {
@@ -713,6 +746,11 @@ const formatRelativeTime = (date: Date) => {
 onMounted(() => {
   fetchProject();
 });
+
+// Use Ionic's lifecycle hook to refresh data when returning to this page
+onIonViewWillEnter(() => {
+  fetchProject();
+});
 </script>
 <style scoped>
 .project-detail-container {
@@ -748,6 +786,11 @@ onMounted(() => {
 .project-title-section {
   flex: 1;
   min-width: 0;
+}
+.project-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 .status-badge {
   flex-shrink: 0;

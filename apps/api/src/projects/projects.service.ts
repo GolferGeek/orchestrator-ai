@@ -144,10 +144,34 @@ export class ProjectsService {
     const client = this.supabaseService.getServiceClient();
 
     try {
+      // First, get conversation IDs for this user
+      const { data: conversations, error: convError } = await client
+        .from(getTableName('conversations'))
+        .select('id')
+        .eq('user_id', userId);
+
+      if (convError) {
+        this.logger.error(`Failed to get conversations for user: ${convError.message}`);
+        throw new Error(`Failed to get user conversations: ${convError.message}`);
+      }
+
+      const conversationIds = (conversations || []).map(c => c.id);
+
+      // If user has no conversations, return empty result
+      if (conversationIds.length === 0) {
+        return {
+          projects: [],
+          total: 0,
+          limit: params.limit,
+          offset: params.offset,
+        };
+      }
+
+      // Now get projects for those conversations
       let query = client
         .from(getTableName('projects'))
-        .select('*, conversations!inner(user_id)', { count: 'exact' })
-        .eq('conversations.user_id', userId);
+        .select('*', { count: 'exact' })
+        .in('conversation_id', conversationIds);
 
       // Filter by status if provided
       if (params.status) {
@@ -336,6 +360,31 @@ export class ProjectsService {
     } catch (error) {
 
       throw error;
+    }
+  }
+
+  /**
+   * Get subprojects for a given project
+   */
+  async getSubprojects(projectId: string): Promise<Project[]> {
+    const client = this.supabaseService.getServiceClient();
+
+    try {
+      const { data, error } = await client
+        .from(getTableName('projects'))
+        .select('*')
+        .eq('parent_project_id', projectId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        this.logger.error(`Failed to get subprojects: ${error.message}`);
+        return [];
+      }
+
+      return (data || []).map((row) => this.mapDatabaseToProject(row));
+    } catch (error) {
+      this.logger.error('Failed to get subprojects', error);
+      return [];
     }
   }
 
@@ -821,6 +870,44 @@ export class ProjectsService {
       hierarchyLevel: data.hierarchy_level || 0,
       subprojectCount: data.subproject_count || 0,
     };
+  }
+
+  /**
+   * Get project hierarchy path for breadcrumb navigation
+   */
+  async getProjectHierarchyPath(
+    projectId: string,
+  ): Promise<Array<{ id: string; name: string; level: number }>> {
+    const client = this.supabaseService.getServiceClient();
+    const path: Array<{ id: string; name: string; level: number }> = [];
+
+    let currentProjectId: string | null = projectId;
+    let level = 0;
+
+    // Walk up the hierarchy
+    while (currentProjectId) {
+      const result: any = await client
+        .from(getTableName('projects'))
+        .select('id, name, parent_project_id')
+        .eq('id', currentProjectId)
+        .single();
+
+      if (result.error || !result.data) {
+        break;
+      }
+
+      // Add to beginning of path (since we're walking up)
+      path.unshift({
+        id: result.data.id,
+        name: result.data.name || `Project ${level + 1}`,
+        level,
+      });
+
+      currentProjectId = result.data.parent_project_id;
+      level++;
+    }
+
+    return path;
   }
 
   /**
