@@ -848,7 +848,8 @@ console.error(`ApiService.post error for ${url}:`, error);
   }
 
   /**
-   * Process conversation with audio input
+   * Process conversation with audio input via A2A tasks endpoint
+   * IMPORTANT: This must match the exact format that normal text messages use
    */
   async processConversation(data: {
     conversationId: string;
@@ -857,10 +858,11 @@ console.error(`ApiService.post error for ${url}:`, error);
     sampleRate: number;
     agentName?: string;
     agentType?: string;
+    llmSelection?: any;
   }): Promise<{
     transcript: string;
     response: string;
-    responseAudio: string;
+    responseAudio?: string;
   }> {
     try {
       const authToken = localStorage.getItem('authToken');
@@ -869,14 +871,43 @@ console.error(`ApiService.post error for ${url}:`, error);
       const agentName = data.agentName || 'assistant';
       const agentType = data.agentType || 'generalists';
       
-      const response = await this.axiosInstance.post(
-        `/speech/agents/${agentName}/${agentType}/conversation`,
-        {
-          audioData: data.audioData,
+      // Build conversation history (simplified for speech - we don't have access to the full chat store here)
+      // In a real implementation, this should come from the ConversationalSpeechButton component
+      const conversationHistory: any[] = [];
+      
+      // Debug: Log the incoming LLM selection
+      console.log('🎤 [apiService.processConversation] Received llmSelection:', data.llmSelection);
+
+      // Use the LLM selection as-is - no fallbacks, let errors surface
+      const llmSelection = data.llmSelection;
+
+      console.log('🎤 [apiService.processConversation] Using llmSelection:', llmSelection);
+      
+      // Generate unique task ID
+      const taskId = crypto.randomUUID();
+      
+      // Send audio directly to A2A tasks endpoint with EXACT same format as normal text
+      const taskRequest = {
+        method: 'process',
+        prompt: data.audioData, // Send base64 audio as the prompt
+        conversationId: data.conversationId,
+        conversationHistory: conversationHistory,
+        llmSelection: llmSelection,
+        executionMode: 'immediate', // Use immediate mode for speech
+        taskId: taskId,
+        metadata: {
+          speechInput: true,
+          originalEncoding: data.encoding,
+          originalSampleRate: data.sampleRate,
+          audioInput: true,
           encoding: data.encoding,
           sampleRate: data.sampleRate,
-          conversationId: data.conversationId
-        },
+        }
+      };
+      
+      const response = await this.axiosInstance.post(
+        `/agents/${agentType}/${agentName}/tasks`,
+        taskRequest,
         {
           headers: {
             'Authorization': authToken ? `Bearer ${authToken}` : undefined,
@@ -885,9 +916,21 @@ console.error(`ApiService.post error for ${url}:`, error);
         }
       );
       
-      return response.data;
+      const result = response.data;
+      
+      // Extract the response from the A2A task result
+      const taskResponse = result.result;
+      const transcribedText = result.audioInput?.transcribedText || 'Audio transcription not available';
+      const responseText = taskResponse?.message || taskResponse?.response || taskResponse?.content || 'No response available';
+      const responseAudio = result.responseAudio; // Audio synthesis result if available
+      
+      return {
+        transcript: transcribedText,
+        response: responseText,
+        responseAudio: responseAudio
+      };
     } catch (error) {
-      console.error('Speech API error:', error);
+      console.error('A2A Audio processing error:', error);
       throw error;
     }
   }

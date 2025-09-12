@@ -27,6 +27,7 @@ import {
 } from '../common/types/agent-conversations.types';
 import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
 import { CentralizedRoutingService } from '../llms/centralized-routing.service';
+import { SpeechService } from '../speech/speech.service';
 
 @Controller('agents')
 export class DynamicAgentsController {
@@ -40,6 +41,7 @@ export class DynamicAgentsController {
     private readonly taskStatusService: TaskStatusService,
     private readonly contextOptimizationService: ContextOptimizationService,
     private readonly centralizedRoutingService: CentralizedRoutingService,
+    private readonly speechService: SpeechService,
   ) {}
 
   /**
@@ -156,9 +158,57 @@ export class DynamicAgentsController {
       normalizedTaskRequest = taskRequest as CreateTaskDto;
     }
 
+    // Debug: Log the received LLM selection
+    this.logger.log(`🎤 [DynamicAgentsController] Received llmSelection: ${JSON.stringify(normalizedTaskRequest.llmSelection)}`);
+
     // Validate required fields
     if (!normalizedTaskRequest.method || !normalizedTaskRequest.prompt) {
       throw new Error('Method and prompt are required');
+    }
+
+    // 🎤 AUDIO DETECTION AND TRANSCRIPTION - Convert audio to text if detected
+    let transcribedText: string | null = null;
+    let audioDetected = false;
+    
+    try {
+      // Check if prompt contains base64 audio data
+      if (this.isBase64Audio(normalizedTaskRequest.prompt)) {
+        this.logger.log(`🎤 [DynamicAgentsController] Audio detected in prompt for ${agentType}/${agentName}`);
+        audioDetected = true;
+        
+        // Extract audio format and data from the prompt
+        const audioData = normalizedTaskRequest.prompt;
+        
+        // Transcribe the audio using speech service
+        const transcriptionResult = await this.speechService.transcribeAudio(
+          audioData,
+          'wav', // Default to WAV format
+          48000 // Default sample rate
+        );
+        
+        transcribedText = transcriptionResult.text;
+        this.logger.log(`🎤 [DynamicAgentsController] Audio transcribed: "${transcribedText}" (confidence: ${transcriptionResult.confidence || 'N/A'})`);
+        
+        // Replace the audio prompt with transcribed text
+        normalizedTaskRequest.prompt = transcribedText;
+        
+        // Add audio metadata to the request
+        if (!normalizedTaskRequest.metadata) {
+          normalizedTaskRequest.metadata = {};
+        }
+        normalizedTaskRequest.metadata.audioInput = {
+          detected: true,
+          transcribedText: transcribedText,
+          confidence: transcriptionResult.confidence,
+          originalFormat: 'wav'
+        };
+      }
+    } catch (audioError) {
+      this.logger.error(`🎤 [DynamicAgentsController] Audio transcription failed for ${agentType}/${agentName}:`, audioError);
+      // If audio transcription fails, continue with original prompt but log the error
+      if (audioDetected) {
+        throw new BadRequestException(`Audio transcription failed: ${audioError instanceof Error ? audioError.message : 'Unknown error'}`);
+      }
     }
 
     // 🔒 PII POLICY CHECK - Block sensitive data before it reaches any agent
@@ -356,6 +406,27 @@ export class DynamicAgentsController {
         await this.taskStatusService.completeTask(task.id, currentUser.id, result);
       }
 
+      // 🔊 OPTIONAL AUDIO SYNTHESIS - Convert response to speech if original input was audio
+      let responseAudio: string | undefined = undefined;
+      
+      if (audioDetected && transcribedText && result?.message) {
+        try {
+          this.logger.log(`🔊 [DynamicAgentsController] Synthesizing audio response for ${agentType}/${agentName}`);
+          
+          const synthesisResult = await this.speechService.synthesizeText(
+            result.message,
+            'EXAVITQu4vr4xnSDxMaL', // Default to Bella voice from Eleven Labs
+            0.5 // Default stability setting
+          );
+          
+          responseAudio = synthesisResult.audioData;
+          this.logger.log(`🔊 [DynamicAgentsController] Audio response synthesized successfully for ${agentType}/${agentName}`);
+        } catch (synthesisError) {
+          this.logger.error(`🔊 [DynamicAgentsController] Audio synthesis failed for ${agentType}/${agentName}:`, synthesisError);
+          // Continue without audio - don't fail the entire request
+        }
+      }
+
       // Return the result for immediate response
       return {
         taskId: task.id,
@@ -367,6 +438,23 @@ export class DynamicAgentsController {
         // Include any PII metadata from the agent result if available
         ...(result?.metadata?.piiMetadata && {
           agentPiiMetadata: result.metadata.piiMetadata
+        }),
+        // Include audio synthesis results if available
+        ...(responseAudio && {
+          responseAudio: responseAudio,
+          audioSynthesis: {
+            synthesized: true,
+            voiceId: 'EXAVITQu4vr4xnSDxMaL',
+            format: 'mp3'
+          }
+        }),
+        // Include audio input metadata for frontend reference
+        ...(audioDetected && {
+          audioInput: {
+            detected: true,
+            transcribedText: transcribedText,
+            originalFormat: 'wav'
+          }
         })
       };
     } catch (error) {
@@ -478,5 +566,36 @@ export class DynamicAgentsController {
    */
   private normalizeAgentName(name: string): string {
     return name.toLowerCase().replace(/[\\s_-]+/g, '_');
+  }
+
+  /**
+   * Check if the prompt contains base64 audio data
+   * Detects common patterns for base64-encoded WAV files
+   */
+  private isBase64Audio(prompt: string): boolean {
+    if (!prompt || typeof prompt !== 'string') {
+      return false;
+    }
+
+    // Check for base64 audio data patterns
+    // WAV files typically start with specific headers when base64 encoded
+    const base64AudioPatterns = [
+      /^data:audio\/wav;base64,/i,
+      /^data:audio\/x-wav;base64,/i,
+      /^data:audio\/webm;base64,/i,
+      /^data:audio\/mp3;base64,/i,
+      /^data:audio\/mpeg;base64,/i,
+      // Check for raw base64 that looks like audio (starts with common WAV header patterns)
+      /^UklGR[A-Za-z0-9+/]{8,}/, // RIFF header in base64
+      /^UklGRg[A-Za-z0-9+/]{8,}/, // RIFF header in base64
+    ];
+
+    // Check if the prompt matches any audio pattern
+    const isAudio = base64AudioPatterns.some(pattern => pattern.test(prompt));
+    
+    // Also check for very long base64-like strings (likely audio data)
+    const isLongBase64 = prompt.length > 1000 && /^[A-Za-z0-9+/=]+$/.test(prompt);
+    
+    return isAudio || isLongBase64;
   }
 }

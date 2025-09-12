@@ -160,6 +160,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           dataClassification: 'internal', // Default for context agents
           // Extract provider info from llmSelection for both PII policy and routing decisions
           providerName: params.llmSelection?.providerName,
+          modelName: params.llmSelection?.modelName, // LLM service expects 'modelName'
           provider: params.llmSelection?.providerName, // For routing service
           model: params.llmSelection?.modelName, // For routing service
           // NEW: Pass PII metadata from routing decision to LLM service
