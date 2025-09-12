@@ -326,7 +326,7 @@ ion-item.selected {
 }
 /* Consistent compact sidebar width for all screen sizes */
 ion-menu {
-  --width: 300px; /* Same clean width as mobile hamburger mode */
+  --width: 348px; /* Extended width to accommodate conversation and project buttons */
 }
 /* Admin accordion content */
 .admin-content {
