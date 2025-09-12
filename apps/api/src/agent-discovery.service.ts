@@ -327,7 +327,7 @@ export class AgentDiscoveryService {
 
           try {
             const configContent = fs.readFileSync(configPath, 'utf8');
-            const parsed = yaml.parse(configContent);
+            const parsed = yaml.load(configContent) as any;
 
             // Extract metadata
             const metadata = parsed.metadata || {};
