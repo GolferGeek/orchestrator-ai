@@ -261,8 +261,8 @@ export class ProjectsService {
    * Get subprojects of a parent project
    */
   async getSubprojects(parentProjectId: string): Promise<Project[]> {
-    const response = await this.getProjects({ parentProjectId });
-    return response.projects;
+    const response = await apiService.get(`${this.baseUrl}/${parentProjectId}/subprojects`);
+    return response.data;
   }
   /**
    * Get root projects (top-level, no parent)

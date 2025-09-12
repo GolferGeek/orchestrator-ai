@@ -150,7 +150,7 @@ const toggleDarkMode = () => {
 
 // Methods
 const navigateToProjects = () => {
-  router.push('/projects');
+  router.push('/app/projects');
 };
 </script>
 <style scoped>

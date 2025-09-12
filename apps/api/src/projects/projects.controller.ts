@@ -105,6 +105,7 @@ export class ProjectsController {
     offset: number;
   }> {
     try {
+      this.logger.debug(`Getting projects for user: ${user?.id}, query: ${JSON.stringify(query)}`);
 
       const {
         limit = 20,
@@ -121,7 +122,9 @@ export class ProjectsController {
         sortOrder,
       });
     } catch (error) {
-
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to get projects for user ${user?.id}: ${errorMessage}`, errorStack);
       throw new InternalServerErrorException('Failed to get projects');
     }
   }
@@ -213,6 +216,29 @@ export class ProjectsController {
         throw error;
       }
       throw new InternalServerErrorException('Failed to delete project');
+    }
+  }
+
+  /**
+   * Get subprojects for a given project
+   */
+  @Get(':id/subprojects')
+  async getSubprojects(
+    @Param('id') projectId: string,
+    @CurrentUser() user: any,
+  ): Promise<Project[]> {
+    try {
+      // Check if user has access to this project
+      if (!(await this.projectsService.hasProjectAccess(projectId, user.id))) {
+        throw new NotFoundException(`Project ${projectId} not found`);
+      }
+
+      return await this.projectsService.getSubprojects(projectId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to get subprojects');
     }
   }
 
@@ -427,6 +453,33 @@ export class ProjectsController {
     } catch (error) {
       this.logger.error('Failed to get project analytics metrics', error);
       throw new InternalServerErrorException('Failed to get project analytics metrics');
+    }
+  }
+
+  /**
+   * Get project hierarchy path for breadcrumb navigation
+   */
+  @Get(':id/hierarchy-path')
+  async getProjectHierarchyPath(
+    @Param('id') projectId: string,
+    @CurrentUser() user: any,
+  ): Promise<Array<{
+    id: string;
+    name: string;
+    level: number;
+  }>> {
+    try {
+      // Check if user has access to this project
+      if (!(await this.projectsService.hasProjectAccess(projectId, user.id))) {
+        throw new NotFoundException(`Project ${projectId} not found`);
+      }
+
+      return await this.projectsService.getProjectHierarchyPath(projectId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to get project hierarchy path');
     }
   }
 

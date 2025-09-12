@@ -222,10 +222,22 @@ const handleConversationSelected = async (conversation: any) => {
 };
 const handleAgentSelected = async (agent: any) => {
   try {
-    await agentChatStore.startNewConversation(agent);
-    router.push('/app/home');
+    if (agent.createProject) {
+      // Navigate to projects page with agent info for creating new project
+      router.push({
+        path: '/app/projects',
+        query: { 
+          action: 'new',
+          agentName: agent.name,
+          agentType: agent.type
+        }
+      });
+    } else {
+      await agentChatStore.startNewConversation(agent);
+      router.push('/app/home');
+    }
   } catch (error) {
-
+    console.error('Failed to handle agent selection:', error);
   }
 };
 const handleSearch = () => {

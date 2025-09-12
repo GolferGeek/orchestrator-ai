@@ -213,6 +213,15 @@
                     <ion-icon :icon="playOutline" slot="start"></ion-icon>
                     Resume
                   </ion-button>
+                  <ion-button 
+                    fill="clear" 
+                    size="small"
+                    color="danger"
+                    @click.stop="deleteProject(project)"
+                  >
+                    <ion-icon :icon="trashOutline" slot="start"></ion-icon>
+                    Delete
+                  </ion-button>
                 </div>
               </ion-card-content>
             </ion-card>
@@ -250,6 +259,7 @@ import {
   IonSelectOption,
   IonProgressBar,
   alertController,
+  onIonViewWillEnter,
 } from '@ionic/vue';
 import {
   addOutline,
@@ -268,6 +278,7 @@ import {
   chevronDownOutline,
   moonOutline,
   sunnyOutline,
+  trashOutline,
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
@@ -482,6 +493,34 @@ const toggleViewMode = () => {
 const createSubproject = (parentProject: DisplayProject) => {
   router.push(`/app/projects/new?parentId=${parentProject.id}&parentName=${encodeURIComponent(parentProject.name || 'Unnamed Project')}`);
 };
+const deleteProject = async (project: DisplayProject) => {
+  const alert = await alertController.create({
+    header: 'Delete Project',
+    message: `Are you sure you want to delete "${project.name || 'this project'}"? This action cannot be undone.`,
+    buttons: [
+      { text: 'Cancel', role: 'cancel' },
+      {
+        text: 'Delete',
+        role: 'destructive',
+        handler: async () => {
+          try {
+            await projectsService.deleteProject(project.id);
+            // Remove the project from the list immediately for better UX
+            projects.value = projects.value.filter(p => p.id !== project.id);
+            // Then refresh the list to ensure consistency
+            await fetchProjects();
+          } catch (err) {
+            console.error('Failed to delete project:', err);
+            error.value = 'Failed to delete project';
+            // Refresh the list in case of error to restore the correct state
+            await fetchProjects();
+          }
+        }
+      }
+    ]
+  });
+  await alert.present();
+};
 const getStatusColor = (status: string) => {
   const colors = {
     active: 'success',
@@ -514,6 +553,11 @@ const formatRelativeTime = (date: Date) => {
 // Lifecycle
 onMounted(async () => {
   await userPreferencesStore.initializePreferences();
+  fetchProjects();
+});
+
+// Use Ionic's lifecycle hook to refresh when returning to this page
+onIonViewWillEnter(() => {
   fetchProjects();
 });
 </script>
