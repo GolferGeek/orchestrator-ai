@@ -65,6 +65,85 @@ export class AnthropicLLMService extends BaseLLMService {
   }
 
   /**
+   * Extract thinking from response content
+   * Handles both <thinking> tags and structured JSON responses
+   */
+  private extractThinking(rawContent: string): { content: string; thinking?: string } {
+    let content = rawContent;
+    let thinking: string | undefined;
+
+    // Check for <thinking> tags
+    if (content.includes('<thinking>') && content.includes('</thinking>')) {
+      const thinkingMatch = content.match(/<thinking>([\s\S]*?)<\/thinking>/);
+      if (thinkingMatch && thinkingMatch[1]) {
+        thinking = thinkingMatch[1].trim();
+        // Remove thinking tags and their content from the response
+        content = content.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim();
+      }
+    }
+
+    // Check if response is JSON with thinking field
+    if (!thinking && content.startsWith('{') && content.includes('"thinking"')) {
+      try {
+        const parsed = JSON.parse(content);
+        if (parsed.thinking) {
+          thinking = parsed.thinking;
+          // Extract the actual response content
+          content = parsed.response || parsed.content || parsed.answer || content;
+        }
+      } catch {
+        // Not valid JSON or parsing failed, continue with raw content
+      }
+    }
+
+    // Check for model-specific reasoning patterns
+    if (!thinking) {
+      let reasoningPatterns: RegExp[] = [];
+      
+      if (this.config?.model?.includes('claude-4') || this.config?.model?.includes('claude-sonnet-4') || this.config?.model?.includes('claude-opus-4')) {
+        // Claude 4 models - enhanced reasoning patterns
+        reasoningPatterns = [
+          /^Let me think[\s\S]*?(?=Now,|So,|Therefore,|The answer|In conclusion|Based on)/i,
+          /^I need to[\s\S]*?(?=The solution|The answer|Based on|Here's)/i,
+          /^First,? I'll[\s\S]*?(?=The result|The answer|So|Now)/i,
+          /^To solve this[\s\S]*?(?=The answer|Therefore|So|Now)/i,
+          /^Looking at this[\s\S]*?(?=The answer|Therefore|So|Now)/i
+        ];
+      } else if (this.config?.model?.includes('claude-3-5-sonnet')) {
+        // Sonnet-specific patterns
+        reasoningPatterns = [
+          /^Let me think[\s\S]*?(?=Now,|So,|Therefore,|The answer|In conclusion)/i,
+          /^I need to[\s\S]*?(?=The solution|The answer|Based on)/i,
+          /^First,? I'll[\s\S]*?(?=The result|The answer|So)/i
+        ];
+      } else if (this.config?.model?.includes('claude-3-5-haiku')) {
+        // Haiku-specific patterns - look for analytical sections that show reasoning
+        reasoningPatterns = [
+          /## 🔍[\s\S]*?### Key Observations/i,  // Analysis sections
+          /Based on the query results[\s\S]*?(?=###|##|$)/i, // Analysis based on data
+          /### Key Observations[\s\S]*?(?=###|##|$)/i, // Key insights section
+          /Analysis is based[\s\S]*?(?=###|##|Note:|$)/i, // Analysis disclaimers
+        ];
+      }
+
+      for (const pattern of reasoningPatterns) {
+        const match = content.match(pattern);
+        if (match) {
+          thinking = match[0].trim();
+          // For Haiku, keep the content as is since thinking is part of the structured response
+          if (!this.config?.model?.includes('claude-3-5-haiku')) {
+            content = content.replace(pattern, '').trim();
+          }
+          break;
+        }
+      }
+    }
+
+    return { content, thinking };
+  }
+
+
+  /**
    * Implementation of the abstract generateResponse method for Anthropic
    */
   async generateResponse(params: GenerateResponseParams): Promise<LLMResponse> {
@@ -100,14 +179,17 @@ export class AnthropicLLMService extends BaseLLMService {
       }
 
       // Extract text content (Anthropic returns array of content blocks)
-      const textContent = completion.content
+      const rawContent = completion.content
         .filter((block): block is Anthropic.Messages.TextBlock => block.type === 'text')
         .map(block => block.text)
         .join('');
 
-      if (!textContent) {
+      if (!rawContent) {
         throw new Error('No text content in Anthropic response');
       }
+
+      // Extract thinking and clean the response
+      const { content: textContent, thinking } = this.extractThinking(rawContent);
 
       // Handle PII in output (pseudonym reversal)
       const finalContent = await this.handlePiiOutput(textContent, requestId, piiResult.piiMetadata as any);
@@ -120,7 +202,8 @@ export class AnthropicLLMService extends BaseLLMService {
         params,
         startTime,
         endTime,
-        requestId
+        requestId,
+        thinking
       );
       
       // Track usage with full metadata for database persistence
@@ -171,7 +254,8 @@ export class AnthropicLLMService extends BaseLLMService {
     params: GenerateResponseParams,
     startTime: number,
     endTime: number,
-    requestId: string
+    requestId: string,
+    thinking?: string
   ): AnthropicResponseMetadata {
     const usage = completion.usage;
     
@@ -193,6 +277,7 @@ export class AnthropicLLMService extends BaseLLMService {
       },
       tier: params.options?.preferLocal ? 'local' : 'external',
       status: 'completed',
+      thinking,
       // Anthropic-specific fields
       providerSpecific: {
         stop_reason: completion.stop_reason as any,
@@ -246,8 +331,16 @@ export class AnthropicLLMService extends BaseLLMService {
     
     // Validate Anthropic-specific model names
     const validModels = [
+      // Claude 4 models
+      'claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-opus-4-1-20250805',
+      // Database aliases for Claude 4 models
+      'claude-4-sonnet', 'claude-4-opus',
+      // Claude 3.7 models
+      'claude-3-7-sonnet-20250219',
+      // Claude 3.5 models  
       'claude-3-5-sonnet-20241022', 'claude-3-5-sonnet-20240620',
       'claude-3-5-haiku-20241022',
+      // Claude 3 models
       'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'
     ];
     
@@ -255,6 +348,7 @@ export class AnthropicLLMService extends BaseLLMService {
       this.logger.warn(`Unknown Anthropic model: ${config.model}. Proceeding anyway.`);
     }
   }
+
 
   /**
    * Anthropic-specific error handling

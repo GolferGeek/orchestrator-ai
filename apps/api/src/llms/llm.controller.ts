@@ -6,6 +6,7 @@ import {
   Logger,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { LLMService } from './llm.service';
 import { LocalModelStatusService } from './local-model-status.service';
@@ -42,6 +43,27 @@ export class LLMController {
     },
   ): Promise<{ response: string; content?: string; sanitizationMetadata?: any; piiMetadata?: any; metadata?: any }> {
     try {
+      // Guard: Conversation-based requests must use the agent tasks endpoint
+      if (request?.options?.conversationId) {
+        const guidance = {
+          message: 'Conversation-based requests must use the agent tasks endpoint to preserve agent + MCP context.',
+          endpoint: '/agents/:agentType/:agentName/tasks',
+          example: {
+            url: '/agents/finance/metrics/tasks',
+            body: {
+              method: 'process',
+              prompt: request.userPrompt,
+              conversationId: request.options.conversationId,
+              llmSelection: {
+                providerName: request.options?.providerName,
+                modelName: request.options?.modelName,
+              },
+            },
+          },
+        } as const;
+        throw new BadRequestException(guidance);
+      }
+
       const result = await this.llmService.generateResponse(
         request.systemPrompt,
         request.userPrompt,

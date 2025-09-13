@@ -18,7 +18,7 @@ type: "function"
 # LLM Configuration - Use local Ollama for data security
 llm:
   provider: "ollama"
-  model: "gpt-oss:20b"
+  model: "llama3.2:latest"
   temperature: 0.1
   max_tokens: 4000
   # Use low temperature for consistent, factual metrics analysis

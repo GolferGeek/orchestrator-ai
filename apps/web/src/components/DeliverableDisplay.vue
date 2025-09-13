@@ -69,8 +69,8 @@
         </div>
       </div>
     </div>
-    <!-- Version Navigation (hidden by default) -->
-    <div class="version-section" v-if="showVersionControls">
+    <!-- Version Navigation (always visible) -->
+    <div class="version-section">
       <div class="version-info">
         <span class="version-label">
           Version {{ displayVersion?.versionNumber || currentVersion?.versionNumber || 1 }} of {{ totalVersions }}
@@ -78,8 +78,11 @@
         <span v-if="displayVersion?.createdByType" class="created-by">
           by {{ formatCreationType(displayVersion.createdByType) }}
         </span>
+        <ion-chip v-if="isViewingNewest && !displayVersion?.isCurrentVersion" color="tertiary" size="small" class="viewing-indicator">
+          Viewing new version
+        </ion-chip>
       </div>
-      <div class="version-controls">
+  <div class="version-controls">
         <ion-button
           fill="clear"
           size="small"
@@ -480,10 +483,11 @@ const displayTitle = computed(() => {
 // Reactive state
 const showVersionHistory = ref(false);
 const showVersionManagement = ref(false);
-const showVersionControls = ref(false);
+const showVersionControls = ref(true);
 const showActionsMenu = ref(false);
 const showFooterMenu = ref(false);
 const selectedVersion = ref<DeliverableVersion | null>(null);
+const lastVersionCount = ref(0);
 const selectedVersionIndex = ref(0);
 const isEditing = ref(false);
 const editedContent = ref('');
@@ -505,10 +509,16 @@ const currentVersion = computed(() => {
   return (props.deliverable as Deliverable).currentVersion || deliverablesStore.getCurrentVersion(actualDeliverableId.value);
 });
 const displayVersion = computed(() => {
-  return selectedVersion.value || currentVersion.value;
+  if (selectedVersion.value) return selectedVersion.value;
+  const list = [...versions.value].sort((a, b) => b.versionNumber - a.versionNumber);
+  return list[0] || currentVersion.value;
 });
 const sortedVersions = computed(() => {
   return [...versions.value].sort((a, b) => b.versionNumber - a.versionNumber);
+});
+const isViewingNewest = computed(() => {
+  const latest = sortedVersions.value[0];
+  return !!(displayVersion.value && latest && displayVersion.value.id === latest.id);
 });
 // Use sortedVersions for navigation to ensure consistent ordering
 const canGoPrevious = computed(() => {
@@ -556,10 +566,7 @@ const sanitizedHtml = computed(() => {
   return DOMPurify.sanitize(displayVersion.value.content);
 });
 // Methods
-const toggleVersionControls = () => {
-  showVersionControls.value = !showVersionControls.value;
-  showActionsMenu.value = false; // Close the menu
-};
+// Version controls are always visible; no toggle needed
 
 
 const getTypeColor = (type: string) => {

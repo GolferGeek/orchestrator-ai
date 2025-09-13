@@ -42,7 +42,7 @@ export class MemoryManagerService implements OnModuleInit {
   private readonly modelSizeEstimates = new Map([
     ['llama3.2:latest', 2.0],
     ['qwen3:8b', 4.7],
-    ['gpt-oss:20b', 12.0],
+    ['llama3.2:latest', 12.0],
     ['deepseek-r1:70b', 40.0],
     ['qwq:latest', 14.0],
     ['mistral:latest', 4.1],

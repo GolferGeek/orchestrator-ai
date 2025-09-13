@@ -107,6 +107,7 @@ export interface ResponseMetadata {
   errorMessage?: string;
   enhancedMetrics?: LLMUsageMetrics;
   langsmithRunId?: string;
+  thinking?: string; // Optional thinking/reasoning process from the model
   // Provider-specific fields (e.g., from LocalLLMResponse)
   providerSpecific?: {
     // Ollama/Local specific

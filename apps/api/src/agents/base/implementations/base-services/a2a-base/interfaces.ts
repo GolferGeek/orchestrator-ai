@@ -337,6 +337,8 @@ export interface AgentFunctionParams {
       include_explanation?: boolean;
       max_rows?: number;
       schema_tables?: string[];
+      providerName?: string;
+      modelName?: string;
     }) => Promise<any>;
     queryAndFormat: (params: {
       user_prompt: string;

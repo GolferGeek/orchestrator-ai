@@ -220,6 +220,9 @@ export interface SupabaseSQLRequest {
   tables: string[];
   domain_hint?: string;
   max_rows?: number;
+  // Optional LLM routing passthrough from callers (e.g., frontend -> agent -> MCP)
+  provider?: string;
+  model?: string;
 }
 
 export interface SupabaseExecuteRequest {

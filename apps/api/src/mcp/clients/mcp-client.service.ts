@@ -34,6 +34,8 @@ export class MCPClientService {
     include_explanation?: boolean;
     max_rows?: number;
     schema_tables?: string[];
+    providerName?: string;
+    modelName?: string;
   }): Promise<any> {
     try {
       const response = await this.mcpService.callTool({
@@ -42,6 +44,9 @@ export class MCPClientService {
           query: params.natural_language_query,
           tables: params.schema_tables || [],
           max_rows: params.max_rows || 100,
+          // Pass through provider/model (optional)
+          provider: params.providerName,
+          model: params.modelName,
         }
       });
 
