@@ -17,6 +17,8 @@ interface DeliverablesState {
   currentVersions: Map<string, DeliverableVersion>; // deliverableId -> current version
   isLoading: boolean;
   error: string | null;
+  // Cache agent routing for conversations to avoid backend lookups
+  conversationAgentRouting: Map<string, { agentType: string; agentName: string }>; // conversationId -> routing
 }
 export const useDeliverablesStore = defineStore('deliverables', () => {
   const authStore = useAuthStore();
@@ -28,6 +30,7 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
     currentVersions: new Map(),
     isLoading: false,
     error: null,
+    conversationAgentRouting: new Map(),
   });
   // Reactive counter to trigger updates when versions change
   const versionsUpdateCounter = ref(0);
@@ -167,6 +170,21 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
         // This handles the case where component loads before authentication
         return [];
       }
+
+      // Prime routing cache from local chat store if available (no network)
+      try {
+        const { useAgentChatStore } = await import('@/stores/agentChatStore');
+        const chatStore = useAgentChatStore();
+        const conv = chatStore.getConversationById(conversationId.trim());
+        if (conv?.agent?.name && conv?.agent?.type) {
+          state.value.conversationAgentRouting.set(conversationId.trim(), {
+            agentName: conv.agent.name as any,
+            agentType: conv.agent.type as any,
+          });
+        }
+      } catch (_) {
+        // ignore if chat store not initialized
+      }
       // Use the proper deliverablesService instead of direct fetch
       const { deliverablesService } = await import('@/services/deliverablesService');
       const deliverables = await deliverablesService.getConversationDeliverables(conversationId.trim());
@@ -177,8 +195,17 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
         state.value.currentVersions.delete(id);
       });
       state.value.conversationDeliverables.delete(conversationId);
-      // Add new deliverables
+      // Add new deliverables (inject routing slugs if we have them locally)
+      const routing = state.value.conversationAgentRouting.get(conversationId.trim());
       deliverables.forEach((deliverable: Deliverable) => {
+        if (routing) {
+          // Only inject slug if not already set by backend
+          if (!deliverable.agentName) {
+            (deliverable as any).agentName = routing.agentName;
+          }
+          // Optionally store agentType alongside for convenience
+          (deliverable as any).agentType = routing.agentType;
+        }
         addDeliverable(deliverable);
       });
       return deliverables;
@@ -490,14 +517,125 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       setLoading(true);
       clearError();
       const { deliverablesService } = await import('@/services/deliverablesService');
-      const newVersion = await deliverablesService.rerunWithDifferentLLM(versionId, llmConfig);
-      
-      // Add the new version to the store state
-      addVersion(newVersion.deliverableId, newVersion);
-      
-      return newVersion;
+      const { tasksService } = await import('@/services/tasksService');
+
+      // 1) Load the source version to get task/conversation/agent metadata
+      const sourceVersion = await deliverablesService.getVersion(versionId);
+      if (!sourceVersion) {
+        throw new Error('Source version not found');
+      }
+      const deliverableId = sourceVersion.deliverableId;
+      const currentNumber = sourceVersion.versionNumber || 0;
+
+      if (!sourceVersion.taskId) {
+        throw new Error('Cannot rerun: source version has no associated task');
+      }
+
+      // 2) Load original task to get prompt + conversation
+      const originalTask = await tasksService.getTask(sourceVersion.taskId);
+      if (!originalTask) {
+        throw new Error('Cannot rerun: original task not found');
+      }
+
+      const conversationId = (originalTask as any).agentConversationId || sourceVersion.metadata?.conversationId;
+      if (!conversationId) {
+        throw new Error('Cannot rerun: missing conversationId');
+      }
+
+      // Determine agent routing; prefer local routing cache, then chat store, then backend
+      let agentName = (sourceVersion.metadata as any)?.agentName as string | undefined;
+      let agentType = (sourceVersion.metadata as any)?.agentType as string | undefined;
+
+      // 2a) Try local routing cache populated when conversation was loaded
+      const cachedRouting = state.value.conversationAgentRouting.get(conversationId);
+      if (cachedRouting) {
+        agentName = cachedRouting.agentName;
+        agentType = cachedRouting.agentType;
+      }
+
+      // 2b) Try local agentChatStore next to avoid network calls
+      try {
+        const { useAgentChatStore } = await import('@/stores/agentChatStore');
+        const chatStore = useAgentChatStore();
+        const conv = chatStore.getConversationById(conversationId);
+        if (conv?.agent?.name && conv?.agent?.type) {
+          agentName = conv.agent.name as any;
+          agentType = conv.agent.type as any;
+          // Update cache for future lookups
+          state.value.conversationAgentRouting.set(conversationId, {
+            agentName: agentName as any,
+            agentType: agentType as any,
+          });
+        }
+      } catch (_) {
+        // ignore and fall back
+      }
+
+      // 2c) If still missing, ask backend for authoritative conversation data
+      if (!agentName || !agentType) {
+        try {
+          const { agentConversationsService } = await import('@/services/agentConversationsService');
+          const convo = await agentConversationsService.getConversation(conversationId);
+          if (convo?.agentName) agentName = convo.agentName as any;
+          if (convo?.agentType) agentType = convo.agentType as any;
+          if (agentName && agentType) {
+            state.value.conversationAgentRouting.set(conversationId, {
+              agentName: agentName as any,
+              agentType: agentType as any,
+            });
+          }
+        } catch (_) {
+          // ignore and continue to final check
+        }
+      }
+      if (!agentName || !agentType) {
+        const deliverable = state.value.deliverables.get(deliverableId);
+        if (deliverable?.agentName) agentName = deliverable.agentName as any;
+      }
+      if (!agentName || !agentType) {
+        throw new Error('Cannot rerun: missing agent routing (agentName/agentType) for conversation');
+      }
+
+      // 3) Create an agent task using the SAME prompt, with new provider/model
+      const llmSelection = {
+        providerName: llmConfig.provider,
+        modelName: llmConfig.model,
+        ...(llmConfig.temperature !== undefined ? { temperature: llmConfig.temperature } : {}),
+        ...(llmConfig.maxTokens !== undefined ? { maxTokens: llmConfig.maxTokens } : {}),
+      } as any;
+
+      await tasksService.createAgentTask(agentType!, agentName!, {
+        method: 'process',
+        prompt: originalTask.prompt,
+        conversationId,
+        llmSelection,
+        executionMode: 'immediate',
+      });
+
+      // 4) Poll for a new version to appear for the same deliverable
+      const start = Date.now();
+      const timeoutMs = 30000; // 30s
+      const intervalMs = 1000; // 1s
+      let latest: DeliverableVersion | null = null;
+      while (Date.now() - start < timeoutMs) {
+        const versions = await deliverablesService.getVersionHistory(deliverableId);
+        const maxVersion = versions.reduce((max, v) => (v.versionNumber > max.versionNumber ? v : max), versions[0] || sourceVersion);
+        if (maxVersion && maxVersion.versionNumber > currentNumber) {
+          latest = maxVersion;
+          break;
+        }
+        await new Promise(res => setTimeout(res, intervalMs));
+      }
+
+      if (!latest) {
+        throw new Error('Timed out waiting for new version after rerun');
+      }
+
+      // 5) Add the new version to the store state and return it
+      addVersion(latest.deliverableId, latest);
+      return latest;
     } catch (error: any) {
-      console.error('Failed to rerun with different LLM:', error);
+      console.error('Failed to rerun with different LLM via agent tasks:', error);
       setError(error.message);
       throw error;
     } finally {

@@ -226,7 +226,15 @@ class TasksService {
     status: string;
     result?: any;
   }> {
-    const url = `/agents/${agentType}/${agentName}/tasks`;
+    // Validate routing inputs early – never fall back silently
+    if (!agentType || !agentName) {
+      throw new Error('Cannot create agent task: missing agentType or agentName');
+    }
+
+    // Normalize agentType to match backend discovery paths
+    // Backend discovers specialists under "specialists/<name>"
+    const normalizedAgentType = agentType === 'specialist' ? 'specialists' : agentType;
+    const url = `/agents/${normalizedAgentType}/${agentName}/tasks`;
     try {
       // Sanitize the task data before sending
       const sanitizedTaskData = this.apiSanitization.sanitizeTaskRequest(taskData);
