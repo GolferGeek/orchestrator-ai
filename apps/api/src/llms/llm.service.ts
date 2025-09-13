@@ -66,6 +66,7 @@ export class LLMService {
   private openai: OpenAI | null = null;
   public readonly systemLLMConfigs: SystemLLMConfigs;
   private llmServiceFactory: LLMServiceFactory;
+  private readonly debugEnabled: boolean;
 
   constructor(
     private readonly supabaseService: SupabaseService,
@@ -97,6 +98,9 @@ export class LLMService {
 
     // Initialize the LLM service factory
     this.llmServiceFactory = this.llmServiceFactoryInstance;
+
+    // Disable verbose debug logs by default for cleaner output during metrics-agent work
+    this.debugEnabled = false;
   }
 
   /**
@@ -131,15 +135,19 @@ export class LLMService {
       routingDecision?: any; // Full routing decision for context
     },
   ): Promise<string | any> {
-    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] generateResponse called with callerType: ${options?.callerType}, callerName: ${options?.callerName}, providerName: ${options?.providerName}, modelName: ${options?.modelName}`);
+    if (this.debugEnabled) {
+      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] generateResponse called with callerType: ${options?.callerType}, callerName: ${options?.callerName}, providerName: ${options?.providerName}, modelName: ${options?.modelName}`);
+    }
     try {
       // Debug LLM options being received
 
       // If providerName/modelName are provided, use the unified method
       if (options?.providerName && options?.modelName) {
-        this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Using generateUnifiedResponse with explicit provider/model`);
-        this.logger.debug(`🔍 [LLM-PII-DEBUG] Received options.piiMetadata:`, options?.piiMetadata);
-        this.logger.debug(`🔍 [LLM-PII-DEBUG] Received options.routingDecision:`, options?.routingDecision);
+        if (this.debugEnabled) {
+          this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Using generateUnifiedResponse with explicit provider/model`);
+          this.logger.debug(`🔍 [LLM-PII-DEBUG] Received options.piiMetadata: ${options?.piiMetadata ? 'yes' : 'no'}`);
+          this.logger.debug(`🔍 [LLM-PII-DEBUG] Received options.routingDecision: ${options?.routingDecision ? 'yes' : 'no'}`);
+        }
 
         // === PII PROCESSING BEFORE FACTORY CALL ===
         let processedUserMessage = userMessage;
@@ -148,7 +156,7 @@ export class LLMService {
 
         // Only process PII for non-Ollama providers
         if (options.providerName.toLowerCase() !== 'ollama' && !enhancedPiiMetadata) {
-          console.log('🔍 [LLM-SERVICE] Processing PII for provider:', options.providerName);
+          if (this.debugEnabled) console.log('🔍 [LLM-SERVICE] Processing PII for provider:', options.providerName);
           
           // 1. Check for flaggings using PII service
           const piiPolicyResult = await this.piiService.checkPolicy(userMessage, {
@@ -177,7 +185,7 @@ export class LLMService {
             sanitizationLevel: pseudonymResult.mappings.length > 0 ? 'standard' : 'none'
           };
 
-          console.log(`🎯 [LLM-SERVICE] PII complete - flags: ${piiPolicyResult.metadata.detectionResults?.flaggedMatches?.length || 0}, pseudonyms: ${pseudonymResult.mappings.length}`);
+          if (this.debugEnabled) console.log(`🎯 [LLM-SERVICE] PII complete - flags: ${piiPolicyResult.metadata.detectionResults?.flaggedMatches?.length || 0}, pseudonyms: ${pseudonymResult.mappings.length}`);
         }
 
         // Use the new unified LLM service factory approach
@@ -217,16 +225,16 @@ export class LLMService {
             dictionaryMappings
           );
           unifiedResult.content = reverseResult.originalText;
-          this.logger.debug(`🔄 [LLM-SERVICE] Reversed ${reverseResult.reversalCount} pseudonyms in response`);
+          if (this.debugEnabled) this.logger.debug(`🔄 [LLM-SERVICE] Reversed ${reverseResult.reversalCount} pseudonyms in response`);
         }
 
         // Ensure PII metadata is included in response
         if (enhancedPiiMetadata) {
           unifiedResult.piiMetadata = enhancedPiiMetadata;
-          console.log('✅ [LLM-SERVICE] Added PII metadata to response');
+          if (this.debugEnabled) console.log('✅ [LLM-SERVICE] Added PII metadata to response');
         }
 
-        console.log('📦 [LLM-SERVICE] Returning result with keys:', Object.keys(unifiedResult));
+        if (this.debugEnabled) console.log('📦 [LLM-SERVICE] Returning result with keys:', Object.keys(unifiedResult));
         // Return the result (string or object based on includeMetadata)
         return unifiedResult;
       }
@@ -332,9 +340,11 @@ export class LLMService {
         );
         
         // Add debug logging to see what's being sent
-        this.logger.debug('🔍 [LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
-        this.logger.debug('🔍 [LLM-DEBUG] Provider:', validProvider);
-        this.logger.debug('🔍 [LLM-DEBUG] Model:', options?.modelName);
+        if (this.debugEnabled) {
+          this.logger.debug('🔍 [LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
+          this.logger.debug('🔍 [LLM-DEBUG] Provider:', validProvider);
+          this.logger.debug('🔍 [LLM-DEBUG] Model:', options?.modelName);
+        }
 
         const response = await llm.invoke(messages);
       let content = (response.content as string) || 'I apologize, but I was unable to generate a response.';
@@ -434,13 +444,15 @@ export class LLMService {
    * @returns Promise<string | LLMResponse> - String content or full response object based on includeMetadata flag
    */
   async generateUnifiedResponse(params: UnifiedGenerateResponseParams): Promise<string | LLMResponse> {
-    this.logger.debug(`🔍 [UNIFIED-LLM] generateUnifiedResponse called`, {
-      provider: params.provider,
-      model: params.model,
-      callerType: params.options?.callerType,
-      callerName: params.options?.callerName,
-      includeMetadata: params.options?.includeMetadata,
-    });
+    if (this.debugEnabled) {
+      this.logger.debug(`🔍 [UNIFIED-LLM] generateUnifiedResponse called`, {
+        provider: params.provider,
+        model: params.model,
+        callerType: params.options?.callerType,
+        callerName: params.options?.callerName,
+        includeMetadata: params.options?.includeMetadata,
+      });
+    }
 
     try {
       // Validate required parameters
@@ -471,9 +483,9 @@ export class LLMService {
 
       // Only process PII for non-Ollama providers
       if (params.provider.toLowerCase() === 'ollama') {
-        this.logger.debug('🏠 [LLM-SERVICE] Skipping PII processing for Ollama (local model)');
+      if (this.debugEnabled) this.logger.debug('🏠 [LLM-SERVICE] Skipping PII processing for Ollama (local model)');
       } else if (!enhancedPiiMetadata) {
-        this.logger.debug('🔍 [LLM-SERVICE] No PII metadata provided, performing PII processing at LLM Service level for provider:', params.provider);
+        if (this.debugEnabled) this.logger.debug('🔍 [LLM-SERVICE] No PII metadata provided, performing PII processing at LLM Service level for provider:', params.provider);
         
         // 1. Check for flaggings using PII service (NOT showstoppers - those are handled at agent level)
         const piiPolicyResult = await this.piiService.checkPolicy(params.userMessage, {
@@ -716,7 +728,7 @@ export class LLMService {
     }
 
     // For EXTERNAL providers - apply sanitization before sending
-    this.logger.debug('Using external provider - applying sanitization');
+    if (this.debugEnabled) this.logger.debug('Using external provider - applying sanitization');
 
     // NEW ARCHITECTURE: All PII processing is handled in the unified response method
     // This method receives already-processed content and just calls the LLM
@@ -739,9 +751,11 @@ export class LLMService {
     );
     
     // Add debug logging to see what's being sent
-    this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
-    this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Provider:', routingDecision.provider);
-    this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Model:', routingDecision.model);
+    if (this.debugEnabled) {
+      this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
+      this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Provider:', routingDecision.provider);
+      this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Model:', routingDecision.model);
+    }
 
     const response = await llm.invoke(messages);
     let responseContent = (response.content as string) || 'I apologize, but I was unable to generate a response.';

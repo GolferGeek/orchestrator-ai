@@ -6,15 +6,14 @@ import {
   getAllTableNames,
 } from './database-schema';
 import { getLLM, initializeLangChain } from './langchain-client';
-// TODO: Fix SqlDatabase imports - these have moved in newer versions of langchain
-// import { SqlDatabase } from '@langchain/community/sql_db';
-// import { createSqlQueryChain } from '@langchain/community/chains/sql_db';
+import { MCPClientService } from '../../mcp/clients/mcp-client.service';
 
 // Global state for Supabase tools
 let orchestratorClient: any = null;
 let companyClient: any = null;
-let orchestratorSqlDatabase: any | null = null; // SqlDatabase type commented out temporarily
-let companySqlDatabase: any | null = null; // SqlDatabase type commented out temporarily
+let orchestratorSqlDatabase: any | null = null;
+let companySqlDatabase: any | null = null;
+let mcpClientService: MCPClientService | null = null;
 let initialized = false;
 
 // Configuration interface
@@ -226,6 +225,13 @@ async function executeQueryOnCompanyDB(client: any, query: string): Promise<{dat
 }
 
 /**
+ * Set the MCP client service instance (for dependency injection)
+ */
+export function setMCPClientService(client: MCPClientService): void {
+  mcpClientService = client;
+}
+
+/**
  * Initialize Supabase tools for Orchestrator database
  */
 export async function initializeForOrchestrator(config?: SupabaseToolsConfig) {
@@ -328,7 +334,7 @@ export async function executeSQL(query: string): Promise<any> {
 }
 
 /**
- * Generate and execute SQL using LangChain - Company database
+ * Generate and execute SQL using MCP client - Company database
  */
 export async function generateAndExecuteCompanySQL(
   naturalLanguageQuery: string,
@@ -343,26 +349,28 @@ export async function generateAndExecuteCompanySQL(
   const startTime = Date.now();
   
   try {
-    await initializeForCompany(options.config);
+    // Note: MCPClientService should be injected via DI in production
+    // This is a temporary workaround for the standalone utility function
+    if (!mcpClientService) {
+      throw new Error('MCP Client Service not initialized. Use dependency injection.');
+    }
 
-    const llm = getLLM({ provider: options.provider, model: options.model });
-    const db = await createCompanySqlDatabase();
-    // TODO: Fix createSqlQueryChain - not available in current langchain version
-    // const chain = await createSqlQueryChain({
-    //   llm,
-    //   db,
-    //   dialect: 'postgres',
-    // });
+    // Generate SQL using MCP
+    const sqlResponse = await mcpClientService.generateSQL({
+      natural_language_query: naturalLanguageQuery,
+      schema_tables: options.config?.tableNames || ['companies', 'departments', 'kpi_metrics', 'kpi_goals', 'kpi_data'],
+      max_rows: options.maxRows,
+    });
 
-    // const generatedSQL = await chain.invoke({
-    //   question: naturalLanguageQuery,
-    // });
-    const generatedSQL = ''; // Temporary placeholder
+    if (sqlResponse.isError) {
+      throw new Error(sqlResponse.content[0]?.text || 'SQL generation failed');
+    }
 
+    const generatedSQL = JSON.parse(sqlResponse.content[0].text).sql;
     let result: any[] = [];
     let error: string | undefined;
 
-    if (options.executeQuery !== false) {
+    if (options.executeQuery !== false && generatedSQL) {
       try {
         result = await executeCompanySQL(generatedSQL);
         if (options.maxRows && result.length > options.maxRows) {
@@ -382,8 +390,8 @@ export async function generateAndExecuteCompanySQL(
       metadata: {
         executionTime,
         rowCount: result?.length,
-        provider: options.provider || 'unknown',
-        model: options.model || 'gpt-4',
+        provider: options.provider || 'mcp',
+        model: options.model || 'claude-3-5-sonnet',
       },
     };
   } catch (generationError) {
@@ -393,15 +401,15 @@ export async function generateAndExecuteCompanySQL(
       error: generationError instanceof Error ? generationError.message : 'SQL generation failed',
       metadata: {
         executionTime,
-        provider: options.provider || 'unknown',
-        model: options.model || 'gpt-4',
+        provider: options.provider || 'mcp',
+        model: options.model || 'claude-3-5-sonnet',
       },
     };
   }
 }
 
 /**
- * Generate and execute SQL using LangChain - Orchestrator database
+ * Generate and execute SQL using MCP client - Orchestrator database
  */
 export async function generateAndExecuteOrchestratorSQL(
   naturalLanguageQuery: string,
@@ -416,26 +424,28 @@ export async function generateAndExecuteOrchestratorSQL(
   const startTime = Date.now();
   
   try {
-    await initializeForOrchestrator(options.config);
+    // Note: MCPClientService should be injected via DI in production
+    // This is a temporary workaround for the standalone utility function
+    if (!mcpClientService) {
+      throw new Error('MCP Client Service not initialized. Use dependency injection.');
+    }
 
-    const llm = getLLM({ provider: options.provider, model: options.model });
-    const db = await createOrchestratorSqlDatabase();
-    // TODO: Fix createSqlQueryChain - not available in current langchain version
-    // const chain = await createSqlQueryChain({
-    //   llm,
-    //   db,
-    //   dialect: 'postgres',
-    // });
+    // Generate SQL using MCP
+    const sqlResponse = await mcpClientService.generateSQL({
+      natural_language_query: naturalLanguageQuery,
+      schema_tables: options.config?.tableNames || await getAllTableNames(),
+      max_rows: options.maxRows,
+    });
 
-    // const generatedSQL = await chain.invoke({
-    //   question: naturalLanguageQuery,
-    // });
-    const generatedSQL = ''; // Temporary placeholder
+    if (sqlResponse.isError) {
+      throw new Error(sqlResponse.content[0]?.text || 'SQL generation failed');
+    }
 
+    const generatedSQL = JSON.parse(sqlResponse.content[0].text).sql;
     let result: any[] = [];
     let error: string | undefined;
 
-    if (options.executeQuery !== false) {
+    if (options.executeQuery !== false && generatedSQL) {
       try {
         result = await executeOrchestratorSQL(generatedSQL);
         if (options.maxRows && result.length > options.maxRows) {
@@ -455,8 +465,8 @@ export async function generateAndExecuteOrchestratorSQL(
       metadata: {
         executionTime,
         rowCount: result?.length,
-        provider: options.provider || 'unknown',
-        model: options.model || 'gpt-4',
+        provider: options.provider || 'mcp',
+        model: options.model || 'claude-3-5-sonnet',
       },
     };
   } catch (generationError) {
@@ -466,8 +476,8 @@ export async function generateAndExecuteOrchestratorSQL(
       error: generationError instanceof Error ? generationError.message : 'SQL generation failed',
       metadata: {
         executionTime,
-        provider: options.provider || 'unknown',
-        model: options.model || 'gpt-4',
+        provider: options.provider || 'mcp',
+        model: options.model || 'claude-3-5-sonnet',
       },
     };
   }

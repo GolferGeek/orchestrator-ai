@@ -124,6 +124,10 @@ ORDER BY success_rate_pct DESC, avg_completion_minutes ASC;
 
 ### Revenue Analysis
 
+Note on metric selection:
+- Map any "sales" phrasing to the canonical metric "Revenue".
+- Prefer `km.name ILIKE '%Revenue%'` (not any `'%sales%'` filter).
+
 #### Company Revenue Rankings
 ```sql
 SELECT c.name as company,

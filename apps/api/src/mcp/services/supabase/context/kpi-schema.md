@@ -7,6 +7,114 @@
 
 ---
 
+## Primary KPI Metrics — Detailed Definitions
+
+Below is a curated set of primary KPIs with definitions, how to filter them in SQL, and typical aggregations. The data lives in `kpi_data` (values over time) joined to `kpi_metrics` (definitions). Join path for most analyses:
+
+`companies → departments → kpi_data ↔ kpi_metrics`
+
+General SQL filter pattern for a metric (use substring for resilience):
+
+`WHERE km.name ILIKE '%Revenue%'  -- example for Revenue`
+
+1) Revenue
+- Definition: Total recognized revenue over a period.
+- Filter: `km.name LIKE '%revenue%'`
+- Aggregate: `SUM(kd.value)`
+- Example:
+```sql
+SELECT d.name AS department, SUM(kd.value) AS total_revenue
+FROM departments d
+JOIN kpi_data kd ON d.id = kd.department_id
+JOIN kpi_metrics km ON kd.metric_id = km.id
+WHERE km.name ILIKE '%Revenue%'
+  AND kd.date_recorded >= CURRENT_DATE - INTERVAL '12 months'
+GROUP BY d.id, d.name
+ORDER BY total_revenue DESC;
+```
+
+2) Cost of Goods Sold (COGS)
+- Definition: Direct costs attributable to goods/services sold.
+- Filter: `km.name ILIKE '%cogs%' OR km.name ILIKE '%cost of goods%'`
+- Aggregate: `SUM(kd.value)`
+
+3) Gross Profit (Derived)
+- Definition: Revenue − COGS.
+- Approach: Compute revenue and COGS separately, then subtract.
+- Example:
+```sql
+WITH r AS (
+  SELECT d.id AS dept_id, SUM(kd.value) AS revenue
+  FROM departments d
+  JOIN kpi_data kd ON d.id = kd.department_id
+  JOIN kpi_metrics km ON kd.metric_id = km.id
+  WHERE km.name LIKE '%revenue%'
+  GROUP BY d.id
+), c AS (
+  SELECT d.id AS dept_id, SUM(kd.value) AS cogs
+  FROM departments d
+  JOIN kpi_data kd ON d.id = kd.department_id
+  JOIN kpi_metrics km ON kd.metric_id = km.id
+  WHERE km.name ILIKE '%cogs%' OR km.name ILIKE '%cost of goods%'
+  GROUP BY d.id
+)
+SELECT d.name AS department, (r.revenue - c.cogs) AS gross_profit
+FROM departments d
+LEFT JOIN r ON r.dept_id = d.id
+LEFT JOIN c ON c.dept_id = d.id
+ORDER BY gross_profit DESC;
+```
+
+4) Gross Margin % (Derived)
+- Definition: (Gross Profit ÷ Revenue) × 100.
+- Note: Guard against division by zero; compute after deriving Revenue and COGS.
+
+5) Operating Expenses (OPEX)
+- Definition: Operating expenses excluding COGS.
+- Filter: `km.name ILIKE '%operating expense%' OR km.name ILIKE '%opex%'`
+- Aggregate: `SUM(kd.value)`
+
+6) Net Profit (Derived)
+- Definition: Revenue − COGS − OPEX.
+- Approach: Derive via separate aggregates and subtract.
+
+7) CAC (Customer Acquisition Cost)
+- Definition: Cost to acquire one customer; often computed as Marketing/Sales spend ÷ new customers.
+- Filter: `km.name ILIKE '%cac%' OR km.name ILIKE '%acquisition cost%'`
+- Aggregate: `AVG(kd.value)` or `SUM(kd.value)` per period depending on how recorded.
+
+8) LTV (Customer Lifetime Value)
+- Definition: Estimated total value from a customer over their lifetime.
+- Filter: `km.name ILIKE '%ltv%' OR km.name ILIKE '%lifetime value%'`
+- Aggregate: `AVG(kd.value)` or `SUM(kd.value)` across cohorts.
+
+9) Churn Rate %
+- Definition: Percentage of customers lost in a period.
+- Filter: `km.name ILIKE '%churn%'`
+- Aggregate: `AVG(kd.value)` (values typically stored as percentage points).
+
+10) Retention Rate %
+- Definition: Percentage of customers retained in a period.
+- Filter: `km.name ILIKE '%retention%'`
+- Aggregate: `AVG(kd.value)`.
+
+11) NPS (Net Promoter Score)
+- Definition: Customer loyalty index typically ranging −100 to +100.
+- Filter: `km.name ILIKE '%nps%' OR km.name ILIKE '%net promoter%'`
+- Aggregate: `AVG(kd.value)`.
+
+12) Tasks Completed (Operational)
+- Definition: Total tasks completed (operational throughput metric).
+- Filter: `km.name ILIKE '%tasks completed%'`
+- Aggregate: `SUM(kd.value)`
+
+Notes
+- Use `LIKE`/`ILIKE` for resilient name matching when metric naming varies; prefer the canonical patterns above.
+- Always constrain date ranges (`kd.date_recorded`) and limit result size.
+- For derived metrics, compute component aggregates first using CTEs.
+
+---
+
 ## KPI Tables
 
 ### public.companies
@@ -102,6 +210,54 @@ CREATE INDEX idx_kpi_metrics_active ON kpi_metrics(is_active, metric_type) WHERE
 
 -- Current goals
 CREATE INDEX idx_kpi_goals_current ON kpi_goals(department_id, metric_id, period_start, period_end);
+```
+
+---
+
+## Canonical KPI Metrics Catalog (Use These Names)
+
+The `kpi_metrics.name` column should use the following canonical names. When generating SQL for top-line amounts, interpret "sales" as the canonical metric "Revenue" and prefer case-insensitive substring matching with:
+
+`km.name ILIKE '%Revenue%'`
+
+Important:
+- Do NOT use any `'%sales%'` filters; always map to revenue.
+- Prefer `ILIKE '%Revenue%'` for resilience across naming variants and case.
+
+| Name | metric_type | unit | Description | Notes |
+|---|---|---|---|---|
+| Revenue | financial | currency | Total recognized revenue | Prefer this over any "sales" term |
+| Cost of Goods Sold (COGS) | financial | currency | Direct costs attributable to goods/services |  |
+| Gross Profit | financial | currency | Revenue - COGS | Derived |
+| Gross Margin % | financial | percent | Gross Profit / Revenue | Derived |
+| Operating Expenses | financial | currency | Operating expenses (OPEX) |  |
+| Net Profit | financial | currency | Profit after all expenses |  |
+| Net Margin % | financial | percent | Net Profit / Revenue | Derived |
+| ARR | financial | currency | Annual Recurring Revenue | Subscription businesses |
+| MRR | financial | currency | Monthly Recurring Revenue | Subscription businesses |
+| ARPU | financial | currency | Average Revenue Per User | Subscription businesses |
+| CAC | customer | currency | Customer Acquisition Cost |  |
+| LTV | customer | currency | Customer Lifetime Value |  |
+| LTV/CAC Ratio | customer | ratio | Health of acquisition efficiency | Derived |
+| Churn Rate % | customer | percent | Percentage of customers lost |  |
+| Retention Rate % | customer | percent | Percentage of customers retained |  |
+| NPS | customer | index | Net Promoter Score | -100 to +100 |
+| CSAT % | customer | percent | Customer Satisfaction Score |  |
+| DAU | product | count | Daily Active Users |  |
+| WAU | product | count | Weekly Active Users |  |
+| MAU | product | count | Monthly Active Users |  |
+| Feature Adoption % | product | percent | Users adopting a feature |  |
+| Tasks Completed | operational | count | Number of tasks completed |  |
+| On-Time Delivery % | operational | percent | Deliveries completed on time |  |
+| Avg Resolution Minutes | operational | minutes | Average resolution time |  |
+| Bug Count | operational | count | Number of defects reported |  |
+| SLA Breach Count | operational | count | Number of SLA breaches |  |
+
+Quick check of available metrics:
+```sql
+SELECT name, metric_type, unit, description
+FROM kpi_metrics
+ORDER BY metric_type, name;
 ```
 
 ---
@@ -212,12 +368,11 @@ ORDER BY metric_count DESC;
 - **Many optional columns in context examples don't exist in actual database**
 
 ### Metric Name Standards
-Common metric names in the database:
-- "Revenue" (financial)
-- "Customer Satisfaction" (customer) 
-- "Employee Retention" (employee)
-- "Lead Conversion Rate" (operational)
-- "Cost per Acquisition" (financial)
+Common metric names in the database include those listed in the Canonical KPI Metrics Catalog above.
+
+Naming standards:
+- Use exact canonical names in filters (e.g., `km.name = 'Revenue'`).
+- Do NOT use "Sales" as a metric; map such requests to "Revenue".
 
 ### Date Handling
 - `kpi_data.date_recorded` is DATE type (no time)
