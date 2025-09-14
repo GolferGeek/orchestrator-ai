@@ -364,7 +364,7 @@ export const useLLMStore = defineStore('llm', {
       this.providerError = undefined;
       try {
         // Use unified API service
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:7100';
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:9000';
         const authToken = localStorage.getItem('authToken');
         
         const response = await fetch(`${baseUrl}/providers`, {
@@ -408,7 +408,7 @@ export const useLLMStore = defineStore('llm', {
       this.commandError = undefined;
       try {
         // Use unified API service
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:7100';
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:9000';
         const authToken = localStorage.getItem('authToken');
         const response = await fetch(`${baseUrl}/cidafm/commands`, {
           method: 'GET',
