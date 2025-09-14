@@ -177,7 +177,7 @@ async function bootstrap() {
   });
 
   // Start the HTTP server
-  const port = parseInt(process.env.API_PORT || '7100');
+  const port = parseInt(process.env.API_PORT || '9000');
 
   await app.listen(port);
 
