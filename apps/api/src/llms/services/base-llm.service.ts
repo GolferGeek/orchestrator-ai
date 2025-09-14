@@ -242,9 +242,7 @@ export abstract class BaseLLMService {
           conversationId: requestMetadata.conversationId,
         };
         
-        const context = await this.runMetadataService.startRequest(routingDecision, options);
-        
-        // Complete the request with usage data including pseudonym information
+        // Insert a single completed usage record (simpler, no two-phase update)
         this.logger.debug(`🔍 [PII-METADATA-DEBUG] trackUsage - requestMetadata.piiMetadata exists:`, !!requestMetadata.piiMetadata);
         if (requestMetadata.piiMetadata) {
           this.logger.debug(`🔍 [PII-METADATA-DEBUG] trackUsage - piiMetadata structure:`, {
@@ -271,11 +269,22 @@ export abstract class BaseLLMService {
         
         this.logger.debug(`🔍 [PII-METADATA-DEBUG] trackUsage - enhancedMetrics:`, enhancedMetrics);
         
-        await this.runMetadataService.completeRequest(context, {
-          content: 'LLM response generated',
+        await this.runMetadataService.insertCompletedUsage({
+          provider,
+          model,
+          isLocal: provider === 'ollama',
+          userId: requestMetadata.userId,
+          callerType: requestMetadata.callerType,
+          callerName: requestMetadata.callerName,
+          conversationId: requestMetadata.conversationId,
           inputTokens,
           outputTokens,
+          totalCost: cost,
+          startTime: requestMetadata.startTime,
+          endTime: requestMetadata.endTime,
+          status: 'completed',
           enhancedMetrics,
+          runId: requestMetadata.requestId,
         });
         
         this.logger.debug(`✅ Usage data saved to database for ${provider}/${model}`);
@@ -314,15 +323,52 @@ export abstract class BaseLLMService {
     outputTokens: number
   ): number | undefined {
     try {
-      // Get provider configuration for pricing
-      const providerConfig = this.providerConfigService.getEnhancedProviderConfig(provider);
-      if (!providerConfig) {
+      const p = provider.toLowerCase();
+      const m = model.toLowerCase();
+
+      // Basic per-token rate maps (USD) using reasonable defaults.
+      // Rates are expressed per token (i.e., $ per 1 token).
+      // Example rates are used where exact pricing is unavailable in code.
+      const openaiRates: Record<string, { input: number; output: number }> = {
+        // gpt-4o family
+        'gpt-4o': { input: 0.005 / 1000, output: 0.015 / 1000 },       // $5 / $15 per 1M
+        'gpt-4o-mini': { input: 0.00015 / 1000, output: 0.0006 / 1000 }, // $0.15 / $0.60 per 1M
+        // legacy models
+        'gpt-4': { input: 0.03 / 1000, output: 0.06 / 1000 },          // $30 / $60 per 1M
+        'gpt-4-turbo': { input: 0.01 / 1000, output: 0.03 / 1000 },    // $10 / $30 per 1M
+        'gpt-3.5-turbo': { input: 0.0015 / 1000, output: 0.002 / 1000 }, // $1.5 / $2 per 1M
+        // reasoning family (example rates)
+        'o1': { input: 0.003 / 1000, output: 0.012 / 1000 },           // $3 / $12 per 1M
+        'o1-mini': { input: 0.003 / 1000, output: 0.012 / 1000 },
+        'o4-mini': { input: 0.001 / 1000, output: 0.005 / 1000 },      // example placeholder
+      };
+
+      const anthropicRates: Record<string, { input: number; output: number }> = {
+        'claude-3-5-sonnet': { input: 0.003 / 1000, output: 0.015 / 1000 }, // $3 / $15 per 1M
+        'claude-3-5-haiku': { input: 0.00025 / 1000, output: 0.00125 / 1000 }, // $0.25 / $1.25 per 1M
+        'claude-3-sonnet': { input: 0.003 / 1000, output: 0.015 / 1000 },
+        'claude-3-haiku': { input: 0.00025 / 1000, output: 0.00125 / 1000 },
+      };
+
+      const defaultRates = { input: 0.001 / 1000, output: 0.002 / 1000 }; // $1 / $2 per 1M
+
+      const matchRate = (rates: Record<string, { input: number; output: number }>) => {
+        for (const key of Object.keys(rates)) {
+          if (m.includes(key)) return rates[key];
+        }
         return undefined;
+      };
+
+      let rate: { input: number; output: number } | undefined;
+      if (p === 'openai') {
+        rate = matchRate(openaiRates);
+      } else if (p === 'anthropic') {
+        rate = matchRate(anthropicRates);
       }
 
-      // TODO: Implement actual cost calculation based on provider pricing
-      // This would use the provider's pricing model to calculate costs
-      return undefined;
+      const r = rate || defaultRates;
+      const cost = inputTokens * r.input + outputTokens * r.output;
+      return cost;
     } catch (error) {
       this.logger.error('Cost calculation failed:', error);
       return undefined;

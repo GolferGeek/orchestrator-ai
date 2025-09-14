@@ -91,11 +91,15 @@ export class GoogleLLMService extends BaseLLMService {
       // Validate configuration
       this.validateConfig(params.config);
       
-      // Handle PII in input
-      const piiResult = await this.handlePiiInput(params.userMessage, {
-        enablePseudonymization: true,
-        useDictionaryPseudonymizer: false,
-      });
+      // Use LLM Service level PII pre-processing when provided
+      let processedText = params.userMessage;
+      let piiMetadata = params.options?.piiMetadata || null;
+      let dictionaryMappings = params.options?.dictionaryMappings || [];
+      if (!piiMetadata) {
+        this.logger.warn(`⚠️ [PII-METADATA-DEBUG] GoogleLLMService - No PII metadata from LLM Service, using raw message`);
+      } else {
+        this.logger.debug(`🔍 [PII-METADATA-DEBUG] GoogleLLMService - Using preprocessed text and PII metadata`);
+      }
       
       // Get the model
       const model = this.genAI.getGenerativeModel({
@@ -127,7 +131,7 @@ export class GoogleLLMService extends BaseLLMService {
       });
 
       // Prepare the prompt (Google uses a different format)
-      const prompt = `${params.systemPrompt}\n\nUser: ${piiResult.processedText}\n\nAssistant:`;
+      const prompt = `${params.systemPrompt}\n\nUser: ${processedText}\n\nAssistant:`;
 
       // Make Google API call
       const result = await model.generateContent(prompt);
@@ -137,8 +141,8 @@ export class GoogleLLMService extends BaseLLMService {
         throw new Error('No content in Google response');
       }
 
-      // Handle PII in output (pseudonym reversal)
-      const finalContent = await this.handlePiiOutput(response.text(), requestId);
+      // Do not reverse here; LLMService handles dictionary reversal consistently
+      const finalContent = response.text();
       
       const endTime = Date.now();
       
@@ -165,7 +169,7 @@ export class GoogleLLMService extends BaseLLMService {
           conversationId: params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: piiResult.piiMetadata,
+          piiMetadata: piiMetadata,
           startTime,
           endTime,
         }
@@ -174,7 +178,7 @@ export class GoogleLLMService extends BaseLLMService {
       const llmResponse: LLMResponse = {
         content: finalContent,
         metadata,
-        piiMetadata: piiResult.piiMetadata,
+        piiMetadata: piiMetadata,
       };
       
       // Optional LangSmith integration

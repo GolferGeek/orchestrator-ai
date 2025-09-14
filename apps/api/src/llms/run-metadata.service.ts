@@ -126,19 +126,7 @@ export class RunMetadataService {
       routingReason: routingDecision.routingReason,
     };
 
-    this.activeRuns.set(runId, context);
-    
-    // Insert initial record into database (async, non-blocking)
-    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Inserting initial usage record for runId: ${runId}`);
-    this.insertUsageRecord(context, 'started')
-      .then(() => {
-        this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Successfully inserted initial usage record for ${runId} (${routingDecision.provider}/${routingDecision.model})`);
-      })
-      .catch(error => {
-        this.logger.error(`🔍 [LLM-USAGE-DEBUG] Failed to insert initial usage record for ${runId}:`, error);
-        // Continue execution even if database insert fails
-      });
-    
+    // Legacy two-phase tracking disabled: do not insert starter rows
     return context;
   }
 
@@ -179,30 +167,123 @@ export class RunMetadataService {
       enhancedMetrics: response.enhancedMetrics,
     };
 
-    // Update database record (async, non-blocking)
-    this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Updating usage record for runId: ${context.runId} with completion data`);
-    this.updateUsageRecord(context.runId, {
-      status: 'completed',
+    // Single-pass insert for legacy callers
+    await this.insertCompletedUsage({
+      provider: context.provider,
+      model: context.model,
+      isLocal: context.isLocal,
+      userId: context.userId,
+      callerType: context.callerType,
+      callerName: context.callerName,
+      conversationId: context.conversationId,
       inputTokens,
       outputTokens,
-      inputCost: costEstimate.inputCost,
-      outputCost: costEstimate.outputCost,
-      durationMs: duration,
-      completedAt: new Date().toISOString(),
+      totalCost: costEstimate.totalCost,
+      startTime: context.startTime,
+      endTime: Date.now(),
+      status: 'completed',
       enhancedMetrics: response.enhancedMetrics,
-    }).then(() => {
-      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Successfully updated usage record for runId: ${context.runId}`);
-    }).catch(error => {
-      this.logger.error(`🔍 [LLM-USAGE-DEBUG] Failed to update usage record for ${context.runId}:`, error);
-      // Continue execution even if database update fails
+      runId: context.runId,
     });
 
-    // Clean up active tracking
-    this.activeRuns.delete(context.runId);
-    
-    this.logger.debug(`Completed run ${context.runId}: ${duration}ms, $${costEstimate.totalCost.toFixed(6)}`);
-    
     return metadata;
+  }
+
+  /**
+   * Insert a single completed usage record (preferred flow)
+   */
+  async insertCompletedUsage(params: {
+    provider: string;
+    model: string;
+    isLocal?: boolean;
+    userId?: string;
+    callerType?: string;
+    callerName?: string;
+    conversationId?: string;
+    inputTokens?: number;
+    outputTokens?: number;
+    totalCost?: number;
+    startTime?: number;
+    endTime?: number;
+    status?: 'completed' | 'blocked' | 'error';
+    enhancedMetrics?: LLMUsageMetrics;
+    runId?: string;
+  }): Promise<void> {
+    try {
+      const client = this.supabaseService.getServiceClient();
+      const runId = params.runId || uuidv4();
+      const startTime = params.startTime || Date.now();
+      const endTime = params.endTime || Date.now();
+      const duration = Math.max(0, endTime - startTime);
+
+      // Compute fallback cost if not provided
+      const inTok = params.inputTokens ?? 0;
+      const outTok = params.outputTokens ?? 0;
+      const needsCost = params.totalCost === undefined || params.totalCost === null;
+      const estimated = this.calculateCost(params.model, inTok, outTok);
+      const inputCost = needsCost ? estimated.inputCost : undefined;
+      const outputCost = needsCost ? estimated.outputCost : undefined;
+      const totalCost = needsCost ? estimated.totalCost : params.totalCost;
+
+      const insertData: any = {
+        run_id: runId,
+        user_id: params.userId || null,
+        caller_type: params.callerType || 'llm_service',
+        agent_name: params.callerName || 'direct_call',
+        conversation_id: params.conversationId || null,
+        provider_name: params.provider,
+        model_name: params.model,
+        is_local: !!params.isLocal,
+        model_tier: params.isLocal ? 'local' : 'external',
+        fallback_used: false,
+        status: params.status || 'completed',
+        started_at: new Date(startTime).toISOString(),
+        completed_at: new Date(endTime).toISOString(),
+        duration_ms: duration,
+        input_tokens: params.inputTokens ?? null,
+        output_tokens: params.outputTokens ?? null,
+        input_cost: inputCost ?? null,
+        output_cost: outputCost ?? null,
+        total_cost: totalCost ?? null,
+      };
+
+      // Map enhanced metrics if provided
+      if (params.enhancedMetrics) {
+        const m = params.enhancedMetrics as any;
+        insertData.data_sanitization_applied = m.dataSanitizationApplied ?? null;
+        insertData.sanitization_level = m.sanitizationLevel ?? null;
+        insertData.pii_detected = m.piiDetected ?? null;
+        insertData.pii_types = m.piiTypes ?? null;
+        insertData.pseudonyms_used = m.pseudonymsUsed ?? null;
+        insertData.pseudonym_types = m.pseudonymTypes ?? null;
+        insertData.redactions_applied = m.redactionsApplied ?? null;
+        insertData.redaction_types = m.redactionTypes ?? null;
+        insertData.source_blinding_applied = m.sourceBlindingApplied ?? null;
+        insertData.headers_stripped = m.headersStripped ?? null;
+        insertData.custom_user_agent_used = m.customUserAgentUsed ?? null;
+        insertData.proxy_used = m.proxyUsed ?? null;
+        insertData.no_train_header_sent = m.noTrainHeaderSent ?? null;
+        insertData.no_retain_header_sent = m.noRetainHeaderSent ?? null;
+        insertData.sanitization_time_ms = m.sanitizationTimeMs ?? null;
+        insertData.reversal_context_size = m.reversalContextSize ?? null;
+        insertData.policy_profile = m.policyProfile ?? null;
+        insertData.sovereign_mode = m.sovereignMode ?? null;
+        insertData.compliance_flags = m.complianceFlags ?? null;
+      }
+
+      const { error } = await client
+        .from(getTableName('llm_usage'))
+        .insert(insertData);
+
+      if (error) {
+        this.logger.error(`🔍 [LLM-USAGE-DEBUG] Insert usage failed for runId: ${runId}:`, error);
+        throw new Error(`Failed to insert usage record: ${error.message}`);
+      } else {
+        this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Inserted completed usage for runId: ${runId}`);
+      }
+    } catch (err) {
+      this.logger.error('Failed to insert completed usage:', err);
+    }
   }
 
   /**
@@ -283,6 +364,33 @@ export class RunMetadataService {
    */
   getRunMetadata(runId: string): MetadataContext | null {
     return this.activeRuns.get(runId) || null;
+  }
+
+  /**
+   * Fetch a single usage record by run_id from the database
+   */
+  async getUsageDetails(runId: string): Promise<any | null> {
+    try {
+      const client = this.supabaseService.getServiceClient();
+      const { data, error } = await client
+        .from(getTableName('llm_usage'))
+        .select('*')
+        .eq('run_id', runId)
+        .single();
+
+      if (error) {
+        if ((error as any)?.code === 'PGRST116') {
+          // no rows
+          return null;
+        }
+        throw error;
+      }
+
+      return data;
+    } catch (err) {
+      this.logger.error(`Failed to fetch usage details for runId ${runId}:`, err);
+      throw err;
+    }
   }
 
   /**
@@ -435,6 +543,7 @@ export class RunMetadataService {
       output_tokens: updates.outputTokens,
       input_cost: updates.inputCost,
       output_cost: updates.outputCost,
+      total_cost: (updates.inputCost || 0) + (updates.outputCost || 0),
       duration_ms: updates.durationMs,
       completed_at: updates.completedAt,
       error_message: updates.errorMessage,
@@ -471,16 +580,19 @@ export class RunMetadataService {
 
     this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Updating runId ${runId} in ${getTableName('llm_usage')} with:`, updateData);
     
-    const { error } = await client
+    const { data: updatedRow, error } = await client
       .from(getTableName('llm_usage'))
       .update(updateData)
-      .eq('run_id', runId);
+      .eq('run_id', runId)
+      .select('run_id,status,input_tokens,output_tokens,duration_ms,pii_detected,pseudonyms_used,sanitization_level,total_cost')
+      .single();
 
     if (error) {
       this.logger.error(`🔍 [LLM-USAGE-DEBUG] Database update failed for runId: ${runId}:`, error);
       throw new Error(`Failed to update usage record: ${error.message}`);
     } else {
       this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Database update successful for runId: ${runId}`);
+      this.logger.debug(`🔍 [LLM-USAGE-DEBUG] Updated row snapshot:`, updatedRow);
     }
   }
 

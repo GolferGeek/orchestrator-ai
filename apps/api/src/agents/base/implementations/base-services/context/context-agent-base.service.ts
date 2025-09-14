@@ -820,8 +820,16 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         fullPrompt,
         '',
         {
+          // Ensure we preserve LLM metadata (PII, tokens, timing)
+          includeMetadata: true,
+          // Honor explicit provider/model if provided by UI selection
+          providerName: params?.llmSelection?.providerName,
+          modelName: params?.llmSelection?.modelName,
+          // Caller/context info
           callerType: 'agent',
           callerName: this.getAgentName(),
+          userId: this.extractUserId(params),
+          conversationId: params?.conversationId,
           dataClassification: 'internal',
         }
       );
@@ -830,8 +838,16 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
         systemPrompt,
         userMessage,
         {
+          // Ensure we preserve LLM metadata (PII, tokens, timing)
+          includeMetadata: true,
+          // Honor explicit provider/model if provided by UI selection
+          providerName: params?.llmSelection?.providerName,
+          modelName: params?.llmSelection?.modelName,
+          // Caller/context info
           callerType: 'agent',
           callerName: this.getAgentName(),
+          userId: this.extractUserId(params),
+          conversationId: params?.conversationId,
           dataClassification: 'internal',
         }
       );

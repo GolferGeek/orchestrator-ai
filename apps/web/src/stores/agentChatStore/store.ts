@@ -642,7 +642,11 @@ export const useAgentChatStore = defineStore('agentChat', {
         
         // Extract PII metadata from the correct location
         const legacyPiiMetadata = parsedResponse?.metadata?.piiMetadata || 
-                                  parsedResponse?.piiMetadata;
+                                  parsedResponse?.piiMetadata ||
+                                  // Include server-provided top-level metadata from the task result
+                                  (completedTask as any)?.metadata?.piiMetadata ||
+                                  // Fallback to LLM-level metadata carried with the task
+                                  completedTask?.llmMetadata?.piiMetadata;
         
         // Convert to simplified format
         const simplifiedPiiMetadata = convertToSimplifiedPII(legacyPiiMetadata);
@@ -656,7 +660,10 @@ export const useAgentChatStore = defineStore('agentChat', {
         
         // Merge agent result metadata with task LLM metadata
         const mergedMetadata = {
+          // Prefer agent/LLM metadata embedded in the response
           ...parsedResponse?.metadata,
+          // Merge server-provided top-level metadata (tokens, timing, pii)
+          ...((completedTask as any)?.metadata || {}),
           // Include LLM metadata from the task record
           ...(completedTask.llmMetadata && {
             llmMetadata: completedTask.llmMetadata,

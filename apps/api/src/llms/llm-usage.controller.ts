@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
 import { RunMetadataService } from './run-metadata.service';
 
 @Controller('api/llm-usage')
@@ -97,6 +97,21 @@ export class LlmUsageController {
       success: true,
       data: activeRuns,
       count: activeRuns.length,
+    };
+  }
+
+  /**
+   * Get detailed usage information for a specific run
+   */
+  @Get('details/:runId')
+  async getUsageDetails(@Param('runId') runId: string) {
+    const details = await this.runMetadataService.getUsageDetails(runId);
+    if (!details) {
+      throw new NotFoundException(`Usage record not found for runId: ${runId}`);
+    }
+    return {
+      success: true,
+      data: details,
     };
   }
 }

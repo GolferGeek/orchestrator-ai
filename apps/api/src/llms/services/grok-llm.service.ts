@@ -75,16 +75,20 @@ export class GrokLLMService extends BaseLLMService {
       // Validate configuration
       this.validateConfig(params.config);
       
-      // Handle PII in input
-      const piiResult = await this.handlePiiInput(params.userMessage, {
-        enablePseudonymization: true,
-        useDictionaryPseudonymizer: false,
-      });
+      // Use PII pre-processing from LLM Service level when available (unified architecture)
+      let processedText = params.userMessage;
+      let piiMetadata = params.options?.piiMetadata || null;
+      let dictionaryMappings = params.options?.dictionaryMappings || [];
+      if (!piiMetadata) {
+        this.logger.warn(`⚠️ [PII-METADATA-DEBUG] GrokLLMService - No PII metadata from LLM Service, using raw message`);
+      } else {
+        this.logger.debug(`🔍 [PII-METADATA-DEBUG] GrokLLMService - Using preprocessed text and PII metadata`);
+      }
       
       // Prepare Grok request (OpenAI-compatible API)
       const messages = [
         { role: 'system', content: params.systemPrompt },
-        { role: 'user', content: piiResult.processedText },
+        { role: 'user', content: processedText },
       ];
 
       const requestBody = {
@@ -116,9 +120,8 @@ export class GrokLLMService extends BaseLLMService {
       if (!choice?.message?.content) {
         throw new Error('No content in Grok response');
       }
-
-      // Handle PII in output (pseudonym reversal)
-      const finalContent = await this.handlePiiOutput(choice.message.content, requestId);
+      // Do not reverse here; LLMService handles dictionary reversal consistently
+      const finalContent = choice.message.content;
       
       const endTime = Date.now();
       
@@ -144,7 +147,7 @@ export class GrokLLMService extends BaseLLMService {
           conversationId: params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: piiResult.piiMetadata,
+          piiMetadata: piiMetadata,
           startTime,
           endTime,
         }
@@ -153,7 +156,7 @@ export class GrokLLMService extends BaseLLMService {
       const llmResponse: LLMResponse = {
         content: finalContent,
         metadata,
-        piiMetadata: piiResult.piiMetadata,
+        piiMetadata: piiMetadata,
       };
       
       // Optional LangSmith integration

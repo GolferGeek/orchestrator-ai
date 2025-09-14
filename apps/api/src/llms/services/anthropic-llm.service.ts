@@ -154,15 +154,19 @@ export class AnthropicLLMService extends BaseLLMService {
       // Validate configuration
       this.validateConfig(params.config);
       
-      // Handle PII in input
-      const piiResult = await this.handlePiiInput(params.userMessage, {
-        enablePseudonymization: true,
-        useDictionaryPseudonymizer: true, // Anthropic example uses dictionary pseudonymizer
-      });
+      // Use LLM Service level PII pre-processing when provided
+      let processedText = params.userMessage;
+      let piiMetadata = params.options?.piiMetadata || null;
+      let dictionaryMappings = params.options?.dictionaryMappings || [];
+      if (!piiMetadata) {
+        this.logger.warn(`⚠️ [PII-METADATA-DEBUG] AnthropicLLMService - No PII metadata from LLM Service, using raw message`);
+      } else {
+        this.logger.debug(`🔍 [PII-METADATA-DEBUG] AnthropicLLMService - Using preprocessed text and PII metadata`);
+      }
       
       // Prepare Anthropic request
       const messages: Anthropic.Messages.MessageParam[] = [
-        { role: 'user', content: piiResult.processedText },
+        { role: 'user', content: processedText },
       ];
 
       // Make Anthropic API call
@@ -191,8 +195,8 @@ export class AnthropicLLMService extends BaseLLMService {
       // Extract thinking and clean the response
       const { content: textContent, thinking } = this.extractThinking(rawContent);
 
-      // Handle PII in output (pseudonym reversal)
-      const finalContent = await this.handlePiiOutput(textContent, requestId, piiResult.piiMetadata as any);
+      // Do not reverse here; LLMService handles dictionary reversal consistently
+      const finalContent = textContent;
       
       const endTime = Date.now();
       
@@ -219,7 +223,7 @@ export class AnthropicLLMService extends BaseLLMService {
           conversationId: params.conversationId || params.options?.conversationId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: piiResult.piiMetadata,
+          piiMetadata: piiMetadata,
           startTime,
           endTime,
         }
@@ -228,7 +232,7 @@ export class AnthropicLLMService extends BaseLLMService {
       const response: LLMResponse = {
         content: finalContent,
         metadata,
-        piiMetadata: piiResult.piiMetadata,
+        piiMetadata: piiMetadata,
       };
       
       // Optional LangSmith integration

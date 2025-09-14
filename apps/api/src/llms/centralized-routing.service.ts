@@ -6,6 +6,7 @@ import { FeatureFlagService, FeatureFlagContext } from '../config/feature-flag.s
 import { PIIService } from '../services/pii.service';
 import { DictionaryPseudonymizerService } from '../services/dictionary-pseudonymizer.service';
 import { PIIProcessingMetadata, RoutingDecisionWithPII } from '../common/types/pii-metadata.types';
+import { RunMetadataService } from './run-metadata.service';
 import { createHash } from 'crypto';
 
 interface RoutingAuditLog {
@@ -92,6 +93,7 @@ export class CentralizedRoutingService {
     private readonly featureFlagService: FeatureFlagService,
     private readonly piiService: PIIService,
     private readonly dictionaryPseudonymizerService: DictionaryPseudonymizerService,
+    private readonly runMetadataService: RunMetadataService,
   ) {
     this.logger.log('CentralizedRoutingService initialized');
   }
@@ -247,6 +249,35 @@ export class CentralizedRoutingService {
       if (piiResult.metadata.showstopperDetected) {
         this.logger.warn(`🛑 [CENTRALIZED-ROUTING] SHOWSTOPPER DETECTED - Blocking request`);
         
+        // Record a blocked usage row for analytics (single insert)
+        try {
+          await this.runMetadataService.insertCompletedUsage({
+            provider: 'policy',
+            model: 'showstopper-pii',
+            isLocal: true,
+            userId: options.userId,
+            callerType: 'agent',
+            callerName: 'centralized-routing',
+            conversationId: options.conversationId,
+            inputTokens: 0,
+            outputTokens: 0,
+            totalCost: 0,
+            startTime: startTime,
+            endTime: Date.now(),
+            status: 'blocked',
+            enhancedMetrics: {
+              dataSanitizationApplied: false,
+              sanitizationLevel: 'none',
+              piiDetected: true,
+              piiTypes: piiResult.metadata.detectionResults?.dataTypesSummary || {},
+              pseudonymsUsed: 0,
+              pseudonymTypes: [],
+              redactionsApplied: (piiResult.metadata.detectionResults?.showstopperMatches || []).length,
+              redactionTypes: (piiResult.metadata.detectionResults?.showstopperMatches || []).map((m: any) => m.dataType),
+            } as any
+          });
+        } catch {}
+
         // IMMEDIATE RETURN - Never route to agents
         return {
           provider: 'policy-blocked',
@@ -269,21 +300,24 @@ export class CentralizedRoutingService {
       const routingPrompt = prompt;
 
       // Step 4: Honor explicit provider/model requests (with sovereign mode validation)
-      if (options.provider && options.model) {
-        reasoningPath.push(`Explicit provider/model requested: ${options.provider}/${options.model}`);
+      // Support both legacy fields (provider/model) and UI fields (providerName/modelName)
+      const explicitProvider = options.provider || options.providerName;
+      const explicitModel = options.model || options.modelName;
+      if (explicitProvider && explicitModel) {
+        reasoningPath.push(`Explicit provider/model requested: ${explicitProvider}/${explicitModel}`);
         
         // Validate against sovereign mode if active and feature flag is enabled
-        if (sovereignRoutingEnabled && sovereignModeActive && sovereignPolicy && !this.sovereignPolicyService.isProviderAllowed(options.provider)) {
-          reasoningPath.push(`SOVEREIGN MODE VIOLATION: Provider ${options.provider} not allowed`);
-          this.logger.warn(`Sovereign mode violation: Provider ${options.provider} not allowed (only ollama permitted)`);
-          violations.push(`Explicit provider ${options.provider} blocked by sovereign mode policy`);
+        if (sovereignRoutingEnabled && sovereignModeActive && sovereignPolicy && !this.sovereignPolicyService.isProviderAllowed(explicitProvider)) {
+          reasoningPath.push(`SOVEREIGN MODE VIOLATION: Provider ${explicitProvider} not allowed`);
+          this.logger.warn(`Sovereign mode violation: Provider ${explicitProvider} not allowed (only ollama permitted)`);
+          violations.push(`Explicit provider ${explicitProvider} blocked by sovereign mode policy`);
           
           // Fall through to sovereign-compliant routing
         } else {
           const explicitDecision: RoutingDecision = {
-            provider: options.provider,
-            model: options.model,
-            isLocal: options.provider === 'ollama',
+            provider: explicitProvider,
+            model: explicitModel,
+            isLocal: explicitProvider.toLowerCase() === 'ollama',
             fallbackUsed: false,
             complexityScore: 0,
             reasoningPath,
