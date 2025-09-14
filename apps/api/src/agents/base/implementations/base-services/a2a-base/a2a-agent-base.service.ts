@@ -115,8 +115,11 @@ export abstract class A2AAgentBaseService
     this.loggingService.logAgentEvent(agentName, 'initializing');
 
     try {
-      // Discover agent path
-      this.agentPath = this.discoverAgentPath();
+      // Preserve agentPath if discovery service already set it.
+      // Only attempt stack-based discovery if it's not set or unknown.
+      if (!this.agentPath || this.agentPath === 'unknown') {
+        this.agentPath = this.discoverAgentPath();
+      }
 
       // Note: Agent registration is now handled by AppService via AgentFactoryService
       // No longer self-registering here to avoid conflicts
