@@ -297,8 +297,17 @@
                       fill="clear" 
                       size="small"
                       @click="viewDetails(record)"
+                      title="Quick View"
                     >
                       <ion-icon :icon="eyeOutline" />
+                    </ion-button>
+                    <ion-button 
+                      fill="clear"
+                      size="small"
+                      :router-link="{ name: 'LLMUsageDetails', params: { runId: record.run_id } }"
+                      title="Open Details Page"
+                    >
+                      <ion-icon :icon="documentOutline" />
                     </ion-button>
                   </td>
                 </tr>

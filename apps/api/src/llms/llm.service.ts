@@ -154,38 +154,98 @@ export class LLMService {
         let dictionaryMappings: any[] = [];
         let enhancedPiiMetadata = options?.piiMetadata;
 
-        // Only process PII for non-Ollama providers
-        if (options.providerName.toLowerCase() !== 'ollama' && !enhancedPiiMetadata) {
-          if (this.debugEnabled) console.log('🔍 [LLM-SERVICE] Processing PII for provider:', options.providerName);
-          
-          // 1. Check for flaggings using PII service
-          const piiPolicyResult = await this.piiService.checkPolicy(userMessage, {
-            provider: options.providerName,
-            providerName: options.providerName
-          });
+        // Always apply dictionary pseudonymization for external providers (non-Ollama)
+        if (options.providerName.toLowerCase() !== 'ollama') {
+          if (this.debugEnabled) console.log('🔍 [LLM-SERVICE] Applying dictionary pseudonymization for provider:', options.providerName);
 
-          // 2. Apply dictionary pseudonymization
           const pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(userMessage);
           processedUserMessage = pseudonymResult.pseudonymizedText;
           dictionaryMappings = pseudonymResult.mappings;
 
-          // 3. Build complete PII metadata
-          enhancedPiiMetadata = {
-            ...piiPolicyResult.metadata,
-            pseudonymsApplied: pseudonymResult.mappings.map(m => ({
-              original: m.originalValue,
-              pseudonym: m.pseudonym,
-              type: m.dataType
-            })),
-            piiDetected: piiPolicyResult.metadata.piiDetected || pseudonymResult.mappings.length > 0,
-            flaggings: piiPolicyResult.metadata.detectionResults?.flaggedMatches || [],
-            processingTimeMs: (piiPolicyResult.metadata.timestamps?.policyCheck || Date.now()) - 
-                             (piiPolicyResult.metadata.timestamps?.detectionStart || Date.now()) + 
-                             pseudonymResult.processingTimeMs,
-            sanitizationLevel: pseudonymResult.mappings.length > 0 ? 'standard' : 'none'
-          };
+          const requestId = options.conversationId || options.sessionId || `pii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const dictionaryMatches = pseudonymResult.mappings.map(m => ({
+            value: m.originalValue,
+            dataType: m.dataType,
+            severity: 'warning',
+            confidence: 1.0,
+            startIndex: -1,
+            endIndex: -1,
+            pattern: 'dictionary_match',
+            pseudonym: m.pseudonym,
+          }));
 
-          if (this.debugEnabled) console.log(`🎯 [LLM-SERVICE] PII complete - flags: ${piiPolicyResult.metadata.detectionResults?.flaggedMatches?.length || 0}, pseudonyms: ${pseudonymResult.mappings.length}`);
+          if (enhancedPiiMetadata) {
+            // Merge pseudonym info into existing metadata
+            enhancedPiiMetadata = {
+              ...enhancedPiiMetadata,
+              // Ensure flaggings available for UI debug panels
+              flaggings: enhancedPiiMetadata.detectionResults?.flaggedMatches || enhancedPiiMetadata.flaggings || [],
+              pseudonymsApplied: [
+                ...(enhancedPiiMetadata.pseudonymsApplied || []),
+                ...pseudonymResult.mappings.map(m => ({ original: m.originalValue, pseudonym: m.pseudonym, type: m.dataType }))
+              ],
+              pseudonymInstructions: {
+                shouldPseudonymize: true,
+                targetMatches: [
+                  ...((enhancedPiiMetadata.pseudonymInstructions?.targetMatches as any[]) || []),
+                  ...dictionaryMatches as any[]
+                ],
+                requestId: enhancedPiiMetadata.pseudonymInstructions?.requestId || requestId,
+                context: enhancedPiiMetadata.pseudonymInstructions?.context || 'llm-boundary'
+              },
+              pseudonymResults: {
+                applied: true,
+                processedMatches: [
+                  ...((enhancedPiiMetadata.pseudonymResults?.processedMatches as any[]) || []),
+                  ...dictionaryMatches as any[]
+                ],
+                mappingsCount: ((enhancedPiiMetadata.pseudonymResults?.mappingsCount || 0) + pseudonymResult.mappings.length),
+                processingTimeMs: ((enhancedPiiMetadata.pseudonymResults?.processingTimeMs || 0) + pseudonymResult.processingTimeMs),
+                reversalSuccess: enhancedPiiMetadata.pseudonymResults?.reversalSuccess,
+                reversalMatches: enhancedPiiMetadata.pseudonymResults?.reversalMatches,
+              },
+              piiDetected: true,
+              sanitizationLevel: pseudonymResult.mappings.length > 0 ? 'standard' : (enhancedPiiMetadata.sanitizationLevel || 'none')
+            } as any;
+          } else {
+            // No metadata provided – compute detection once, then attach pseudonym fields
+            const piiPolicyResult = await this.piiService.checkPolicy(userMessage, {
+              provider: options.providerName,
+              providerName: options.providerName
+            });
+
+            enhancedPiiMetadata = {
+              ...piiPolicyResult.metadata,
+              // For UI consumption
+              pseudonymsApplied: pseudonymResult.mappings.map(m => ({
+                original: m.originalValue,
+                pseudonym: m.pseudonym,
+                type: m.dataType
+              })),
+              // Provide flat flaggings array for UI convenience
+              flaggings: piiPolicyResult.metadata.detectionResults?.flaggedMatches || [],
+              // Standardized fields used across the app
+              pseudonymInstructions: {
+                shouldPseudonymize: pseudonymResult.mappings.length > 0,
+                targetMatches: dictionaryMatches as any,
+                requestId,
+                context: 'llm-boundary'
+              },
+              pseudonymResults: {
+                applied: pseudonymResult.mappings.length > 0,
+                processedMatches: dictionaryMatches as any,
+                mappingsCount: pseudonymResult.mappings.length,
+                processingTimeMs: pseudonymResult.processingTimeMs,
+              },
+              piiDetected: piiPolicyResult.metadata.piiDetected || pseudonymResult.mappings.length > 0,
+              processingTimeMs: (piiPolicyResult.metadata.timestamps?.policyCheck || Date.now()) - 
+                               (piiPolicyResult.metadata.timestamps?.detectionStart || Date.now()) + 
+                               pseudonymResult.processingTimeMs,
+              sanitizationLevel: pseudonymResult.mappings.length > 0 ? 'standard' : 'none'
+            } as any;
+          }
+
+          if (this.debugEnabled) console.log(`🎯 [LLM-SERVICE] PII applied - pseudonyms: ${dictionaryMappings.length}`);
         }
 
         // Use the new unified LLM service factory approach
@@ -302,22 +362,7 @@ export class LLMService {
 
       const sanitizedSystemPrompt = systemPrompt; // System prompts typically don't contain user PII
 
-      // Start usage tracking for simple path
-      const routingDecision = {
-        provider: validProvider,
-        model: options?.modelName || 'default',
-        tier: validProvider === 'ollama' ? 'local' : 'external',
-        isLocal: validProvider === 'ollama',
-        routingReason: 'simple-path-default'
-      };
-
-      const metadataContext = await this.runMetadataService.startRequest(routingDecision, {
-        userId: options?.userId || options?.currentUser?.id, // Accept userId directly or from currentUser object
-        callerType: options?.callerType || 'system',
-        callerName: options?.callerName || 'simple-llm',
-        conversationId: options?.conversationId, // Use proper conversation ID from current system
-        dataClassification: options?.dataClassification || 'internal',
-      });
+      // No DB usage tracking in simple path to avoid partial rows
 
       try {
         // Use LangChain LLM instead of raw OpenAI - this gets automatic LangSmith tracing
@@ -364,12 +409,7 @@ export class LLMService {
         }
       }
 
-      // Complete usage tracking for simple path
-      await this.runMetadataService.completeRequest(metadataContext, {
-        content: content,
-        inputTokens: 0, // LangChain doesn't provide token counts easily
-        outputTokens: 0,
-      });
+      // No DB usage write here — providers handle their own one-pass insert
 
       // Return metadata if requested (for HTTP API calls)
       if (options?.includeMetadata) {
@@ -399,24 +439,6 @@ export class LLMService {
 
       return content;
     } catch (error: unknown) {
-      // Complete usage tracking with error for simple path
-      if (metadataContext) {
-        try {
-          let errorToReport: Error;
-          if (error instanceof Error) {
-            errorToReport = error as Error;
-          } else {
-            errorToReport = new Error(String(error));
-          }
-          await this.runMetadataService.completeRequestWithError(
-            metadataContext,
-            errorToReport
-          );
-        } catch (trackingError) {
-          this.logger.error('Failed to complete usage tracking on error:', trackingError);
-        }
-      }
-
       let errorMessage: string;
       if (error instanceof Error) {
         errorMessage = (error as Error).message;
@@ -484,43 +506,71 @@ export class LLMService {
       // Only process PII for non-Ollama providers
       if (params.provider.toLowerCase() === 'ollama') {
       if (this.debugEnabled) this.logger.debug('🏠 [LLM-SERVICE] Skipping PII processing for Ollama (local model)');
-      } else if (!enhancedPiiMetadata) {
-        if (this.debugEnabled) this.logger.debug('🔍 [LLM-SERVICE] No PII metadata provided, performing PII processing at LLM Service level for provider:', params.provider);
-        
-        // 1. Check for flaggings using PII service (NOT showstoppers - those are handled at agent level)
-        const piiPolicyResult = await this.piiService.checkPolicy(params.userMessage, {
-          provider: params.provider,
-          providerName: params.provider
-        });
+      } else {
+        // Always apply dictionary pseudonymization for non-Ollama here; merge with existing metadata if provided
+        if (params.provider.toLowerCase() !== 'ollama') {
+          const pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(params.userMessage);
+          processedUserMessage = pseudonymResult.pseudonymizedText;
+          dictionaryMappings = pseudonymResult.mappings;
 
-        // 2. Apply dictionary pseudonymization
-        const pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(params.userMessage);
-        processedUserMessage = pseudonymResult.pseudonymizedText;
-        dictionaryMappings = pseudonymResult.mappings;
-
-        // 3. Build complete PII metadata combining policy check and pseudonymization
-        enhancedPiiMetadata = {
-          ...piiPolicyResult.metadata,
-          // Add pseudonym information
-          pseudonymsApplied: pseudonymResult.mappings.map(m => ({
-            original: m.originalValue,
+          const requestId = params.options?.conversationId || params.options?.sessionId || `pii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const dictionaryMatches = pseudonymResult.mappings.map(m => ({
+            value: m.originalValue,
+            dataType: m.dataType,
+            severity: 'warning',
+            confidence: 1.0,
+            startIndex: -1,
+            endIndex: -1,
+            pattern: 'dictionary_match',
             pseudonym: m.pseudonym,
-            type: m.dataType
-          })),
-          // Update PII detected flag if pseudonyms were applied
-          piiDetected: piiPolicyResult.metadata.piiDetected || pseudonymResult.mappings.length > 0,
-          // Add processing times
-          processingTimeMs: (piiPolicyResult.metadata.timestamps?.policyCheck || Date.now()) - 
-                           (piiPolicyResult.metadata.timestamps?.detectionStart || Date.now()) + 
-                           pseudonymResult.processingTimeMs,
-          sanitizationLevel: pseudonymResult.mappings.length > 0 ? 'standard' : 'none'
-        };
+          }));
 
-        this.logger.debug(`🎯 [LLM-SERVICE] PII Processing complete:`, {
-          flaggingsFound: piiPolicyResult.metadata.detectionResults?.flaggedMatches?.length || 0,
-          pseudonymsApplied: pseudonymResult.mappings.length,
-          textModified: processedUserMessage !== params.userMessage
-        });
+          if (!enhancedPiiMetadata) {
+            // Compute detection only if we don't already have metadata
+            const piiPolicyResult = await this.piiService.checkPolicy(params.userMessage, {
+              provider: params.provider,
+              providerName: params.provider
+            });
+            enhancedPiiMetadata = piiPolicyResult.metadata as any;
+          }
+
+          // Merge pseudonym data into metadata
+          enhancedPiiMetadata = {
+            ...enhancedPiiMetadata,
+            flaggings: enhancedPiiMetadata.detectionResults?.flaggedMatches || enhancedPiiMetadata.flaggings || [],
+            pseudonymsApplied: [
+              ...(enhancedPiiMetadata?.pseudonymsApplied || []),
+              ...pseudonymResult.mappings.map(m => ({ original: m.originalValue, pseudonym: m.pseudonym, type: m.dataType }))
+            ],
+            pseudonymInstructions: {
+              shouldPseudonymize: true,
+              targetMatches: [
+                ...((enhancedPiiMetadata?.pseudonymInstructions?.targetMatches as any[]) || []),
+                ...dictionaryMatches as any[]
+              ],
+              requestId: enhancedPiiMetadata?.pseudonymInstructions?.requestId || requestId,
+              context: enhancedPiiMetadata?.pseudonymInstructions?.context || 'llm-boundary'
+            },
+            pseudonymResults: {
+              applied: true,
+              processedMatches: [
+                ...((enhancedPiiMetadata?.pseudonymResults?.processedMatches as any[]) || []),
+                ...dictionaryMatches as any[]
+              ],
+              mappingsCount: ((enhancedPiiMetadata?.pseudonymResults?.mappingsCount || 0) + pseudonymResult.mappings.length),
+              processingTimeMs: ((enhancedPiiMetadata?.pseudonymResults?.processingTimeMs || 0) + pseudonymResult.processingTimeMs),
+              reversalSuccess: enhancedPiiMetadata?.pseudonymResults?.reversalSuccess,
+              reversalMatches: enhancedPiiMetadata?.pseudonymResults?.reversalMatches,
+            },
+            piiDetected: true,
+            sanitizationLevel: pseudonymResult.mappings.length > 0 ? 'standard' : (enhancedPiiMetadata?.sanitizationLevel || 'none')
+          } as any;
+
+          this.logger.debug(`🎯 [LLM-SERVICE] PII applied:`, {
+            pseudonymsApplied: pseudonymResult.mappings.length,
+            textModified: processedUserMessage !== params.userMessage
+          });
+        }
       }
 
       // Create LLM service configuration

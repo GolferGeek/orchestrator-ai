@@ -427,14 +427,39 @@ export class DynamicAgentsController {
         }
       }
 
+      // Normalize result metadata so frontend sees final PII in parsedResponse.metadata.piiMetadata
+      try {
+        const finalPii = (result as any)?.piiMetadata || (result as any)?.metadata?.piiMetadata || routingDecision.piiMetadata;
+        if (result && typeof result === 'object') {
+          (result as any).metadata = {
+            ...((result as any).metadata || {}),
+            piiMetadata: finalPii,
+          };
+        }
+      } catch {}
+
       // Return the result for immediate response
       return {
         taskId: task.id,
         conversationId: task.agentConversationId,
         status: 'completed',
         result,
-        // NEW ARCHITECTURE: Include PII metadata in response
-        piiMetadata: routingDecision.piiMetadata,
+        // Expose final LLM metadata at top-level for the frontend
+        ...(result?.metadata && {
+          metadata: {
+            ...result.metadata,
+            // Prefer LLM-level PII over routing-level
+            piiMetadata: (result as any)?.piiMetadata || (result as any)?.metadata?.piiMetadata || routingDecision.piiMetadata,
+          },
+        }),
+        // Also expose the final LLM PII metadata directly for convenience
+        ...(result as any)?.piiMetadata && {
+          piiMetadata: (result as any).piiMetadata,
+        },
+        // Fallback: if no LLM PII provided, include routing-level PII
+        ...(!((result as any)?.piiMetadata || (result as any)?.metadata?.piiMetadata) && {
+          piiMetadata: routingDecision.piiMetadata,
+        }),
         // Include any PII metadata from the agent result if available
         ...(result?.metadata?.piiMetadata && {
           agentPiiMetadata: result.metadata.piiMetadata

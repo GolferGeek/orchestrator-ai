@@ -269,17 +269,22 @@ export class OpenAILLMService extends BaseLLMService {
   ): OpenAIResponseMetadata {
     const choice = completion.choices[0];
     const usage = completion.usage;
-    
+    // Fallback estimation if usage is missing (not always present for some models)
+    const estInput = this.estimateTokens(`${params.systemPrompt}${params.systemPrompt ? '\n\n' : ''}${params.userMessage}`);
+    const estOutput = this.estimateTokens(choice?.message?.content || '');
+    const inputTokens = usage?.prompt_tokens ?? estInput;
+    const outputTokens = usage?.completion_tokens ?? estOutput;
+
     return {
       provider: 'openai',
       model: completion.model,
       requestId,
       timestamp: new Date().toISOString(),
       usage: {
-        inputTokens: usage?.prompt_tokens || 0,
-        outputTokens: usage?.completion_tokens || 0,
-        totalTokens: usage?.total_tokens || 0,
-        cost: this.calculateCost('openai', completion.model, usage?.prompt_tokens || 0, usage?.completion_tokens || 0),
+        inputTokens,
+        outputTokens,
+        totalTokens: (usage?.total_tokens ?? (inputTokens + outputTokens)) || 0,
+        cost: this.calculateCost('openai', completion.model, inputTokens, outputTokens),
       },
       timing: {
         startTime,

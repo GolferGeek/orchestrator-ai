@@ -115,7 +115,8 @@
                   <div 
                     v-for="record in recentRecords" 
                     :key="record.id"
-                    class="activity-item"
+                    class="activity-item clickable"
+                    @click="$router.push({ name: 'LLMUsageDetails', params: { runId: record.run_id } })"
                   >
                     <div class="activity-icon">
                       <ion-icon 
@@ -463,6 +464,9 @@ onUnmounted(() => {
   border-radius: 8px;
   background: var(--ion-color-light-tint);
 }
+
+.activity-item.clickable { cursor: pointer; }
+.activity-item.clickable:hover { background: var(--ion-color-light-shade); }
 
 .activity-icon {
   flex-shrink: 0;
