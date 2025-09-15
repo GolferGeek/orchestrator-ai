@@ -85,7 +85,34 @@
                 <ion-col size="12" size-md="4"><strong>Pseudonyms Used:</strong> {{ details.pseudonyms_used ?? 0 }}</ion-col>
                 <ion-col size="12" size-md="4"><strong>Redactions Applied:</strong> {{ details.redactions_applied ?? 0 }}</ion-col>
               </ion-row>
-              <ion-row v-if="details.pseudonym_types?.length">
+              <!-- Show detailed pseudonym mappings when available -->
+              <ion-row v-if="details.pseudonym_mappings?.length">
+                <ion-col size="12">
+                  <strong>Pseudonym Mappings:</strong>
+                  <div class="mapping-table-wrapper">
+                    <table class="mapping-table">
+                      <thead>
+                        <tr>
+                          <th>Original</th>
+                          <th>Pseudonym</th>
+                          <th>Type</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(m, idx) in details.pseudonym_mappings" :key="idx">
+                          <td class="mono">{{ m.original }}</td>
+                          <td class="mono">{{ m.pseudonym }}</td>
+                          <td>
+                            <ion-chip size="small">{{ m.dataType }}</ion-chip>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </ion-col>
+              </ion-row>
+              <!-- Fallback to type chips if no mappings -->
+              <ion-row v-else-if="details.pseudonym_types?.length">
                 <ion-col size="12">
                   <strong>Pseudonym Types:</strong>
                   <ion-chip v-for="t in details.pseudonym_types" :key="t" size="small">{{ t }}</ion-chip>
@@ -159,4 +186,8 @@ function formatCurrency(amount?: number | null): string {
 <style scoped>
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .loading, .error { padding: 16px; }
+.mapping-table-wrapper { overflow-x: auto; margin-top: 8px; }
+.mapping-table { width: 100%; border-collapse: collapse; }
+.mapping-table th, .mapping-table td { border-bottom: 1px solid var(--ion-color-light); padding: 8px; text-align: left; }
+.mapping-table th { background: var(--ion-color-light); font-weight: 600; }
 </style>
