@@ -10,8 +10,8 @@ echo -e "${BLUE}🚀 Orchestrator AI Development Ports${NC}"
 echo -e "${BLUE}======================================${NC}"
 echo ""
 echo -e "${GREEN}📱 Application Ports:${NC}"
-echo -e "   API Server:     http://localhost:7100"
-echo -e "   Web App:        http://localhost:7101"
+echo -e "   API Server:     http://localhost:9000"
+echo -e "   Web App:        http://localhost:9001"
 echo ""
 echo -e "${GREEN}🗄️  Supabase Local Ports:${NC}"
 echo -e "   API/REST:       http://127.0.0.1:54321"
@@ -29,17 +29,17 @@ echo ""
 echo -e "${BLUE}🔍 Service Status:${NC}"
 
 # Check API
-if curl -s http://localhost:7100/health > /dev/null 2>&1; then
-    echo -e "   API (7100):     ${GREEN}✅ Running${NC}"
+if curl -s http://localhost:9000/health > /dev/null 2>&1; then
+    echo -e "   API (9000):     ${GREEN}✅ Running${NC}"
 else
-    echo -e "   API (7100):     ${YELLOW}❌ Not Running${NC}"
+    echo -e "   API (9000):     ${YELLOW}❌ Not Running${NC}"
 fi
 
 # Check Web
 if curl -s http://localhost:7101 > /dev/null 2>&1; then
-    echo -e "   Web (7101):     ${GREEN}✅ Running${NC}"
+    echo -e "   Web (9001):     ${GREEN}✅ Running${NC}"
 else
-    echo -e "   Web (7101):     ${YELLOW}❌ Not Running${NC}"
+    echo -e "   Web (9001):     ${YELLOW}❌ Not Running${NC}"
 fi
 
 # Check Supabase

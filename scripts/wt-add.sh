@@ -13,8 +13,8 @@ if [ -f ".env" ]; then
     if [ -z "$API_PORT" ] || [ -z "$WEB_PORT" ]; then
         echo "Error: API_PORT and WEB_PORT must be defined in .env file"
         echo "Please add:"
-        echo "API_PORT=7100"
-        echo "WEB_PORT=7101"
+        echo "API_PORT=9000"
+        echo "WEB_PORT= 9001"
         exit 1
     fi
 else

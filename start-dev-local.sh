@@ -57,8 +57,8 @@ echo -e "${GREEN}✅ Environment variables loaded${NC}"
 if [ -z "$API_PORT" ] || [ -z "$WEB_PORT" ]; then
     echo -e "${RED}❌ Error: API_PORT and WEB_PORT must be defined in .env file${NC}"
     echo -e "${YELLOW}Please add the following to your .env file:${NC}"
-    echo -e "${YELLOW}API_PORT=7100${NC}"
-    echo -e "${YELLOW}WEB_PORT=7101${NC}"
+    echo -e "${YELLOW}API_PORT=9000${NC}"
+    echo -e "${YELLOW}WEB_PORT=9001${NC}"
     exit 1
 fi
 
