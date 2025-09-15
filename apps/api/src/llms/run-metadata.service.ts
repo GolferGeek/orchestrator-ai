@@ -269,6 +269,10 @@ export class RunMetadataService {
         insertData.policy_profile = m.policyProfile ?? null;
         insertData.sovereign_mode = m.sovereignMode ?? null;
         insertData.compliance_flags = m.complianceFlags ?? null;
+        // Persist full pseudonym mappings if provided
+        if (m.pseudonymMappings) {
+          insertData.pseudonym_mappings = m.pseudonymMappings;
+        }
       }
 
       const { error } = await client
@@ -567,6 +571,7 @@ export class RunMetadataService {
         policy_profile: updates.enhancedMetrics.policyProfile,
         sovereign_mode: updates.enhancedMetrics.sovereignMode,
         compliance_flags: updates.enhancedMetrics.complianceFlags,
+        pseudonym_mappings: updates.enhancedMetrics.pseudonymMappings,
       })
     };
     

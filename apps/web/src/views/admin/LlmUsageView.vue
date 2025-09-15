@@ -128,9 +128,12 @@
                       <div class="activity-title">
                         {{ record.caller_name }} ({{ record.caller_type }})
                       </div>
-                      <div class="activity-details">
-                        {{ record.model_name }} • {{ formatDuration(record.duration_ms) }} • {{ formatCurrency(record.total_cost || 0) }}
-                      </div>
+          <div class="activity-details">
+            {{ record.model_name }} • {{ formatDuration(record.duration_ms) }} • {{ formatCurrency(record.total_cost || 0) }}
+            <ion-badge v-if="record.pii_detected && (record.pseudonyms_used || 0) > 0" color="warning" style="margin-left:8px;">
+              {{ record.pseudonyms_used }} pseudonyms
+            </ion-badge>
+          </div>
                       <div class="activity-time">
                         {{ formatRelativeTime(record.started_at) }}
                       </div>
