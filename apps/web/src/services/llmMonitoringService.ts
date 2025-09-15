@@ -334,7 +334,7 @@ class LLMMonitoringService {
       // This endpoint might not exist yet, so we'll construct compliance data from available sources
       try {
         const [piiStats, usageStats] = await Promise.all([
-          apiService.get('/sanitization/stats'),
+          apiService.getQuiet404('/llm/sanitization/stats').catch(() => ({})),
           this.getUsageStats({ startDate, endDate })
         ]);
 

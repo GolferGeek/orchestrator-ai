@@ -627,8 +627,8 @@ export const useLLMStore = defineStore('llm', {
         this.sanitizationStatsLoading = true;
         this.sanitizationStatsError = null;
 
-        const response = await apiService.get('/llm/sanitization/stats');
-        const data = response.data;
+        const response = await apiService.getQuiet404('/llm/sanitization/stats');
+        const data = response?.data ?? response;
 
         // Handle different response structures
         let statsData = data;
@@ -661,9 +661,14 @@ export const useLLMStore = defineStore('llm', {
         };
 
         this.sanitizationStatsLastUpdated = new Date().toISOString();
-      } catch (error) {
-        this.sanitizationStatsError = error instanceof Error ? error.message : 'Failed to fetch sanitization stats';
-        console.error('Error fetching sanitization stats:', error);
+      } catch (error: any) {
+        // Quietly ignore 404; set defaults
+        if (error?.response?.status !== 404) {
+          this.sanitizationStatsError = error instanceof Error ? error.message : 'Failed to fetch sanitization stats';
+          console.error('Error fetching sanitization stats:', error);
+        } else {
+          this.sanitizationStatsError = null;
+        }
         
         // Fallback to reasonable defaults on error
         this.sanitizationStats = {

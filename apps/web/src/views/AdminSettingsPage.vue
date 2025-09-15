@@ -2,6 +2,9 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-menu-button />
+        </ion-buttons>
         <ion-title>Admin Settings</ion-title>
       </ion-toolbar>
     </ion-header>
@@ -610,6 +613,7 @@ import {
   IonInput,
   IonModal,
   IonButtons,
+  IonMenuButton,
   IonButton,
   IonTextarea,
   IonSegment,

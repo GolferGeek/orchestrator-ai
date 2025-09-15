@@ -17,7 +17,8 @@ import {
 } from '@/types/pii';
 
 class PseudonymService {
-  private readonly basePath = '/sanitization';
+  // Align with backend routes under /llm/sanitization
+  private readonly basePath = '/llm/sanitization';
 
   // =====================================
   // PSEUDONYM MAPPINGS
@@ -162,14 +163,14 @@ class PseudonymService {
    */
   async getPseudonymDictionaries(): Promise<PseudonymDictionaryEntry[]> {
     try {
-      const response = await apiService.get(`${this.basePath}/pseudonym/dictionaries`);
+      const response = await apiService.getQuiet404(`${this.basePath}/pseudonym/dictionaries`);
       return response.dictionaries || [];
     } catch (error) {
-      console.error('Error fetching pseudonym dictionaries:', error);
-      // For now, return empty array if endpoint doesn't exist
+      // Graceful fallback without noisy logs for 404
       if ((error as any)?.response?.status === 404) {
         return [];
       }
+      console.error('Error fetching pseudonym dictionaries:', error);
       throw error;
     }
   }

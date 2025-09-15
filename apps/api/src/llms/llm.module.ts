@@ -18,6 +18,7 @@ import { LocalLLMService } from './local-llm.service';
 import { MemoryManagerService } from './memory-manager.service';
 import { ModelMonitorService } from './model-monitor.service';
 import { ProductionOptimizationController } from './production-optimization.controller';
+import { SanitizationController } from './sanitization.controller';
 import { LlmUsageController } from './llm-usage.controller';
 import { SourceBlindingService } from './source-blinding.service';
 import { BlindedLLMService } from './blinded-llm.service';
@@ -33,7 +34,7 @@ import { GrokLLMService } from './services/grok-llm.service';
 
 @Module({
   imports: [SupabaseModule, CIDAFMModule, SovereignPolicyModule, FeatureFlagModule, ModelConfigurationModule, HttpModule],
-  controllers: [LLMController, LlmUsageController, ProductionOptimizationController],
+  controllers: [LLMController, LlmUsageController, ProductionOptimizationController, SanitizationController],
   providers: [
     LLMService,
     CentralizedRoutingService,

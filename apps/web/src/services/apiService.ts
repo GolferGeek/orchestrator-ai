@@ -158,6 +158,14 @@ class ApiService {
    */
   private logApiFailure(error: any, requestConfig: any) {
     try {
+      // Skip logging for optional endpoints when explicitly requested
+      const status = error?.response?.status;
+      const suppressed: number[] = Array.isArray(requestConfig?._suppressStatuses)
+        ? (requestConfig._suppressStatuses as number[])
+        : [];
+      if ((requestConfig?._suppress404Logging && status === 404) || (suppressed.length && status && suppressed.includes(status))) {
+        return;
+      }
       // Determine error type and severity
       const errorType = this.determineErrorType(error);
       const severity = this.determineErrorSeverity(error);
@@ -797,6 +805,19 @@ class ApiService {
       return response.data;
     } catch (error) {
 console.error(`ApiService.get error for ${url}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * GET but suppress error-store logging for 404s (for optional/demo endpoints)
+   */
+  async getQuiet404(url: string): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get(url, { _suppress404Logging: true } as any);
+      return response.data;
+    } catch (error) {
+      // Bubble up so caller can handle 404s; interceptor will skip logging
       throw error;
     }
   }
