@@ -254,6 +254,34 @@ export abstract class BaseLLMService {
           });
         }
         
+        // Derive full pseudonym mappings from PII metadata when available
+        const derivePseudonymMappings = (piiMeta: any): Array<{original: string; pseudonym: string; dataType: string}> => {
+          try {
+            // Prefer explicit pseudonymsApplied if present
+            if (Array.isArray(piiMeta?.pseudonymsApplied) && piiMeta.pseudonymsApplied.length > 0) {
+              return piiMeta.pseudonymsApplied
+                .map((m: any) => ({
+                  original: m.original ?? m.value ?? m.source ?? '',
+                  pseudonym: m.pseudonym ?? '',
+                  dataType: m.type ?? m.dataType ?? 'custom'
+                }))
+                .filter((m: {original: string; pseudonym: string; dataType: string}) => m.original && m.pseudonym);
+            }
+            // Fallback to processedMatches
+            const matches = piiMeta?.pseudonymResults?.processedMatches || piiMeta?.pseudonymInstructions?.targetMatches || [];
+            return (matches as any[])
+              .filter((m: any) => !!m?.pseudonym)
+              .map((m: any) => ({
+                original: m.value ?? '',
+                pseudonym: m.pseudonym ?? '',
+                dataType: m.dataType ?? 'custom'
+              }))
+              .filter((m: {original: string; pseudonym: string; dataType: string}) => m.original && m.pseudonym);
+          } catch {
+            return [];
+          }
+        };
+
         const enhancedMetrics = requestMetadata.piiMetadata ? {
           dataSanitizationApplied: requestMetadata.piiMetadata.piiDetected || false,
           sanitizationLevel: requestMetadata.piiMetadata.processingFlow || 'none',
@@ -262,6 +290,7 @@ export abstract class BaseLLMService {
           // Extract pseudonym information from pseudonymInstructions
           pseudonymsUsed: requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches?.length || 0,
           pseudonymTypes: requestMetadata.piiMetadata.pseudonymInstructions?.targetMatches?.map((m: any) => m.dataType) || [],
+          pseudonymMappings: derivePseudonymMappings(requestMetadata.piiMetadata),
           // Also include flagged items count
           redactionsApplied: requestMetadata.piiMetadata.detectionResults?.flaggedMatches?.length || 0,
           redactionTypes: requestMetadata.piiMetadata.detectionResults?.flaggedMatches?.map((m: any) => m.dataType) || [],
