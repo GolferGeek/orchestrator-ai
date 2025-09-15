@@ -16,12 +16,26 @@ const routes: Array<RouteRecordRaw> = [
     children: [
       {
         path: '',
-        redirect: '/app/home'
+        redirect: () => {
+          const authStore = useAuthStore();
+          // If admin, land on LLM Usage dashboard
+          if (authStore.user?.roles?.includes(UserRole.ADMIN)) {
+            return '/app/admin/settings';
+          }
+          // Otherwise, send to a simple welcome page
+          return '/app/welcome';
+        }
       },
       {
         path: 'home',
         name: 'Home',
         component: () => import('../views/HomePage.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'welcome',
+        name: 'Welcome',
+        component: () => import('../views/WelcomePage.vue'),
         meta: { requiresAuth: true }
       },
       {
@@ -227,6 +241,11 @@ router.beforeEach(async (to, from, next) => {
       }
     }
     
+    // If navigating to /app/home and user is admin, prefer the admin dashboard
+    if ((to.name === 'Home' || to.path === '/app/home') && authStore.user?.roles?.includes(UserRole.ADMIN)) {
+      next({ path: '/app/admin/settings' });
+      return;
+    }
     next();
   } else {
     next();

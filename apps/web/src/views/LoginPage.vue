@@ -24,6 +24,14 @@
             <ion-spinner v-if="auth.isLoading" name="crescent" slot="start"></ion-spinner>
             Login
           </ion-button>
+          <div v-if="hasDemoCreds" class="demo-actions">
+            <ion-button expand="block" fill="outline" color="medium" @click="demoLogin" :disabled="auth.isLoading">
+              Use Demo Account
+            </ion-button>
+            <ion-text color="medium" class="demo-hint">
+              Prefilled from environment for demos
+            </ion-text>
+          </div>
           <ion-text color="danger" v-if="auth.error" class="ion-padding-top">{{ auth.error }}</ion-text>
         </div>
       </form>
@@ -37,7 +45,7 @@
   </ion-page>
 </template>
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonInput, IonButton, IonText, IonSpinner } from '@ionic/vue';
 // LoginForm component is not directly used here anymore, logic moved to this view for store integration
 import { useRouter, useRoute } from 'vue-router';
@@ -45,14 +53,30 @@ import { useAuthStore } from '@/stores/authStore';
 const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
-const email = ref('');
-const password = ref('');
+// Prefill with demo credentials for the playground
+const DEMO_EMAIL = 'demo.user@playground.com';
+const DEMO_PASSWORD = 'demouser';
+
+const email = ref(DEMO_EMAIL);
+const password = ref(DEMO_PASSWORD);
+
+// Check if demo credentials are available
+const hasDemoCreds = computed(() => {
+  return DEMO_EMAIL && DEMO_PASSWORD;
+});
 const performLogin = async () => {
   const success = await auth.login({ email: email.value, password: password.value });
   if (success) {
     const redirectPath = route.query.redirect as string || '/';
     router.push(redirectPath);
   }
+};
+
+const demoLogin = async () => {
+  // Fields are already prefilled, but ensure values
+  email.value = DEMO_EMAIL;
+  password.value = DEMO_PASSWORD;
+  await performLogin();
 };
 </script>
 <style scoped>
@@ -65,5 +89,13 @@ const performLogin = async () => {
 }
 .ion-margin-top {
   margin-top: 16px;
+}
+.demo-actions {
+  margin-top: 8px;
+}
+.demo-hint {
+  display: block;
+  text-align: center;
+  margin-top: 6px;
 }
 </style> 

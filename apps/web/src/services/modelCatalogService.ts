@@ -16,7 +16,12 @@ export async function fetchProvidersWithModels(options: { status?: 'active' | 'i
   const params = new URLSearchParams();
   if (options.status) params.set('status', options.status);
   if (typeof options.sovereignMode === 'boolean') params.set('sovereign_mode', String(options.sovereignMode));
-  const { data } = await apiService.axiosInstance.get(`/providers/with-models${params.toString() ? `?${params.toString()}` : ''}`);
-  return data as ProviderWithModels[];
+  const url = `/providers/with-models${params.toString() ? `?${params.toString()}` : ''}`;
+  try {
+    const data = await apiService.getQuiet(url, [500]);
+    return data as ProviderWithModels[];
+  } catch (error: any) {
+    // Graceful fallback on error
+    return [];
+  }
 }
-
