@@ -83,7 +83,7 @@ export class SanitizationController {
     const client = this.supabaseService.getServiceClient();
     const { data, error } = await client
       .from('pseudonym_dictionaries')
-      .select('id, category, data_type, pseudonym, is_active, created_at, updated_at');
+      .select('id, category, data_type, pseudonym, is_active, created_at');
 
     if (error) {
       this.logger.error('Failed to load pseudonym dictionaries', error);
@@ -91,7 +91,7 @@ export class SanitizationController {
     }
 
     // Group rows by category + data_type to fit frontend PseudonymDictionaryEntry shape
-    const groups: Record<string, { id: string; category: string; dataType: string; isActive: boolean; words: string[]; createdAt?: string; updatedAt?: string }> = {};
+    const groups: Record<string, { id: string; category: string; dataType: string; isActive: boolean; words: string[]; createdAt?: string }> = {};
     for (const row of data || []) {
       const key = `${row.category || 'uncategorized'}::${row.data_type || 'custom'}::${row.is_active ? '1' : '0'}`;
       if (!groups[key]) {
@@ -102,7 +102,6 @@ export class SanitizationController {
           isActive: !!row.is_active,
           words: [],
           createdAt: row.created_at,
-          updatedAt: row.updated_at,
         } as any;
       }
       if (row.pseudonym && groups[key]) {
