@@ -294,9 +294,9 @@ class SanitizationAnalyticsService {
 
     // Generate sanitization method distribution
     const sanitizationMethods: SanitizationMethodStats[] = [
-      { name: 'Pseudonymization', percentage: 60, color: '#06b6d4', count: Math.floor(totalMappings * 0.6) },
-      { name: 'Redaction', percentage: 30, color: '#ef4444', count: Math.floor(totalMappings * 0.3) },
-      { name: 'Masking', percentage: 10, color: '#f59e0b', count: Math.floor(totalMappings * 0.1) }
+      { name: 'Pseudonymization', percentage: 60, color: getComputedStyle(document.documentElement).getPropertyValue('--ion-color-tertiary').trim() || '#06b6d4', count: Math.floor(totalMappings * 0.6) },
+      { name: 'Redaction', percentage: 30, color: getComputedStyle(document.documentElement).getPropertyValue('--ion-color-danger').trim() || '#ef4444', count: Math.floor(totalMappings * 0.3) },
+      { name: 'Masking', percentage: 10, color: getComputedStyle(document.documentElement).getPropertyValue('--ion-color-warning').trim() || '#f59e0b', count: Math.floor(totalMappings * 0.1) }
     ];
 
     // Generate performance data points (mock for now)

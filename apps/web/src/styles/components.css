@@ -37,14 +37,14 @@
   padding: 3rem 2rem;
   text-align: center;
   position: relative;
-  border: 3px solid #e5e7eb;
+  border: 3px solid var(--ion-color-light-shade);
   transition: var(--transition-bounce);
 }
 
 .pricing-card.featured {
   border-color: var(--landing-primary);
   transform: scale(1.05);
-  box-shadow: 0 20px 60px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 20px 60px rgba(var(--ion-color-primary-rgb), 0.2);
 }
 
 .pricing-card.featured::before {
@@ -78,7 +78,7 @@
 
 .cta-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 8px 25px rgba(var(--ion-color-primary-rgb), 0.3);
 }
 
 .cta-button.secondary {
@@ -317,25 +317,25 @@
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .feature-card {
-    background: #1f2937;
-    border-color: #374151;
+    background: var(--ion-color-step-100);
+    border-color: var(--ion-color-step-200);
   }
   
   .feature-card:hover {
-    border-color: #3b82f6;
+    border-color: var(--ion-color-primary);
   }
   
   .feature-card.highlight {
-    background: linear-gradient(135deg, #1e3a8a, #1f2937);
+    background: linear-gradient(135deg, var(--ion-color-primary-shade), var(--ion-color-step-100));
   }
   
   .stat {
-    background: #374151;
-    color: #60a5fa;
+    background: var(--ion-color-step-200);
+    color: var(--ion-color-primary-tint);
   }
   
   .video-placeholder-small {
-    background: linear-gradient(135deg, #374151, #4b5563);
-    border-color: #6b7280;
+    background: linear-gradient(135deg, var(--ion-color-step-200), var(--ion-color-step-150));
+    border-color: var(--ion-color-medium);
   }
 }

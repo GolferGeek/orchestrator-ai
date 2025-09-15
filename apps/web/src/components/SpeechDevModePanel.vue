@@ -83,12 +83,12 @@ const getModeDescription = (): string => {
 
 <style scoped>
 .speech-dev-panel {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 1px solid #dee2e6;
+  background: linear-gradient(135deg, var(--ion-color-light-tint) 0%, var(--ion-color-light-shade) 100%);
+  border: 1px solid var(--ion-color-light);
   border-radius: 12px;
   margin: 8px 12px;
   padding: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(var(--ion-color-dark-rgb), 0.1);
   font-size: 0.9rem;
 }
 
@@ -101,7 +101,7 @@ const getModeDescription = (): string => {
 
 .dev-mode-title {
   font-weight: 600;
-  color: #495057;
+  color: var(--ion-color-dark);
   font-size: 0.95rem;
 }
 
@@ -117,9 +117,9 @@ const getModeDescription = (): string => {
 }
 
 .speech-mode-segment {
-  --background: white;
-  --color-checked: #0066cc;
-  --indicator-color: #0066cc;
+  --background: var(--ion-background-color);
+  --color-checked: var(--ion-color-primary);
+  --indicator-color: var(--ion-color-primary);
   --border-radius: 8px;
   font-size: 0.8rem;
 }
@@ -132,7 +132,7 @@ const getModeDescription = (): string => {
 
 .mode-description {
   font-size: 0.7rem;
-  color: #6c757d;
+  color: var(--ion-color-medium);
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -144,18 +144,18 @@ const getModeDescription = (): string => {
   align-items: center;
   justify-content: center;
   padding: 6px 12px;
-  background: rgba(0, 102, 204, 0.1);
+  background: rgba(var(--ion-color-primary-rgb), 0.1);
   border-radius: 6px;
-  border-left: 3px solid #0066cc;
+  border-left: 3px solid var(--ion-color-primary);
 }
 
 .current-mode-text {
   font-size: 0.8rem;
-  color: #495057;
+  color: var(--ion-color-dark);
 }
 
 .current-mode-text strong {
-  color: #0066cc;
+  color: var(--ion-color-primary);
 }
 
 /* Mobile responsiveness */

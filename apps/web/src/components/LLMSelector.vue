@@ -158,6 +158,23 @@
         </div>
       </div>
       <div class="setting-group">
+        <label class="setting-label">
+          Sadafum: {{ sadafum }}
+        </label>
+        <input 
+          v-model.number="sadafum"
+          type="range" 
+          min="0" 
+          max="1" 
+          step="0.05"
+          class="setting-slider"
+          @input="onSadafumChange"
+        >
+        <div class="setting-description">
+          Model-specific control (0.0–1.0). Restores previous capability.
+        </div>
+      </div>
+      <div class="setting-group">
         <label class="setting-label">Max Tokens (optional)</label>
         <input 
           v-model.number="maxTokens"
@@ -199,6 +216,7 @@ const showAdvanced = ref(false);
 const selectedProvider = ref<Provider | ''>('');
 const selectedModel = ref<Model | ''>('');
 const temperature = ref(0.7);
+const sadafum = ref(0.5);
 const maxTokens = ref<number | undefined>(undefined);
 
 // Sovereign mode state
@@ -230,6 +248,7 @@ onMounted(async () => {
   selectedProvider.value = llmStore.selectedProvider || '';
   selectedModel.value = llmStore.selectedModel || '';
   temperature.value = llmStore.temperature;
+  sadafum.value = llmStore.sadafum;
   maxTokens.value = llmStore.maxTokens;
   
   // Sync sovereign mode state
@@ -288,6 +307,9 @@ const onModelChange = () => {
 };
 const onTemperatureChange = () => {
   llmStore.setTemperature(temperature.value);
+};
+const onSadafumChange = () => {
+  llmStore.setSadafum(sadafum.value);
 };
 const onMaxTokensChange = () => {
   llmStore.setMaxTokens(maxTokens.value);
@@ -397,9 +419,9 @@ const noModelsErrorSuggestion = computed(() => {
 <style scoped>
 .llm-selector {
   padding: 1rem;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--ion-color-light);
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--ion-color-step-50);
   margin-bottom: 1rem;
 }
 .selection-group {
@@ -409,22 +431,22 @@ const noModelsErrorSuggestion = computed(() => {
   display: block;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #333;
+  color: var(--ion-color-dark);
 }
 .selection-dropdown {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid #ccc;
+  border: 1px solid var(--ion-color-light);
   border-radius: 4px;
   background: white;
   font-size: 0.9rem;
 }
 .selection-dropdown:disabled {
-  background: #f5f5f5;
+  background: var(--ion-color-step-100);
   cursor: not-allowed;
 }
 .error-message {
-  color: #e74c3c;
+  color: var(--ion-color-danger);
   font-size: 0.8rem;
   margin-top: 0.25rem;
 }
@@ -433,7 +455,7 @@ const noModelsErrorSuggestion = computed(() => {
   padding: 1rem;
   background: white;
   border-radius: 6px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--ion-color-light);
 }
 .model-info-header {
   display: flex;
@@ -443,18 +465,18 @@ const noModelsErrorSuggestion = computed(() => {
 }
 .model-info-header h4 {
   margin: 0;
-  color: #2c3e50;
+  color: var(--ion-color-dark);
 }
 .provider-badge {
-  background: #3498db;
-  color: white;
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
   padding: 0.25rem 0.5rem;
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 500;
 }
 .model-description {
-  color: #666;
+  color: var(--ion-color-medium);
   font-size: 0.9rem;
   margin-bottom: 1rem;
 }
@@ -470,14 +492,14 @@ const noModelsErrorSuggestion = computed(() => {
 }
 .detail-label {
   font-weight: 500;
-  color: #555;
+  color: var(--ion-color-dark);
 }
 .detail-value {
-  color: #333;
+  color: var(--ion-color-dark);
 }
 .feature-tag {
-  background: #27ae60;
-  color: white;
+  background: var(--ion-color-success);
+  color: var(--ion-color-success-contrast, #000);
   padding: 0.125rem 0.375rem;
   border-radius: 8px;
   font-size: 0.7rem;
@@ -613,20 +635,20 @@ const noModelsErrorSuggestion = computed(() => {
 }
 
 .sovereign-active {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background: rgba(var(--ion-color-success-rgb), 0.15);
+  color: var(--ion-color-success);
+  border: 1px solid rgba(var(--ion-color-success-rgb), 0.35);
 }
 
 .sovereign-inactive {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background: rgba(var(--ion-color-danger-rgb), 0.15);
+  color: var(--ion-color-danger);
+  border: 1px solid rgba(var(--ion-color-danger-rgb), 0.35);
 }
 
 .sovereign-description {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--ion-color-medium);
   line-height: 1.4;
   margin-left: 1.5rem;
 }
@@ -642,21 +664,21 @@ const noModelsErrorSuggestion = computed(() => {
 }
 
 .policy-enforced {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
+  background: rgba(var(--ion-color-warning-rgb), 0.2);
+  color: var(--ion-color-warning-shade);
+  border: 1px solid rgba(var(--ion-color-warning-rgb), 0.35);
 }
 
 .policy-warning {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background: rgba(var(--ion-color-danger-rgb), 0.15);
+  color: var(--ion-color-danger);
+  border: 1px solid rgba(var(--ion-color-danger-rgb), 0.35);
 }
 
 .policy-info {
-  background: #d1ecf1;
-  color: #0c5460;
-  border: 1px solid #bee5eb;
+  background: rgba(var(--ion-color-secondary-rgb), 0.2);
+  color: var(--ion-color-secondary-shade);
+  border: 1px solid rgba(var(--ion-color-secondary-rgb), 0.35);
 }
 
 .policy-icon {
@@ -671,10 +693,10 @@ const noModelsErrorSuggestion = computed(() => {
   gap: 0.75rem;
   padding: 1rem;
   margin-top: 0.5rem;
-  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
-  border: 1px solid #feb2b2;
+  background: linear-gradient(135deg, rgba(var(--ion-color-danger-rgb), 0.08) 0%, rgba(var(--ion-color-danger-rgb), 0.16) 100%);
+  border: 1px solid rgba(var(--ion-color-danger-rgb), 0.35);
   border-radius: 8px;
-  color: #742a2a;
+  color: var(--ion-color-danger-shade);
 }
 
 .no-models-icon {
@@ -691,25 +713,25 @@ const noModelsErrorSuggestion = computed(() => {
   font-weight: 600;
   font-size: 0.95rem;
   margin-bottom: 0.5rem;
-  color: #742a2a;
+  color: var(--ion-color-danger-shade);
 }
 
 .no-models-description {
   font-size: 0.85rem;
   line-height: 1.4;
   margin-bottom: 0.5rem;
-  color: #822727;
+  color: var(--ion-color-danger);
 }
 
 .no-models-suggestion {
   font-size: 0.8rem;
   line-height: 1.4;
-  color: #975a5a;
+  color: var(--ion-color-danger);
   font-style: italic;
   padding: 0.5rem;
   background: rgba(255, 255, 255, 0.3);
   border-radius: 4px;
-  border-left: 3px solid #feb2b2;
+  border-left: 3px solid rgba(var(--ion-color-danger-rgb), 0.35);
 }
 
 /* Responsive adjustments */

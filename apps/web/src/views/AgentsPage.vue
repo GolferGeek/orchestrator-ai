@@ -24,7 +24,7 @@
             <!-- Deliverables, Projects & Evaluations Accordion -->
             <ion-accordion-group>
               <ion-accordion value="main-nav">
-                <ion-item slot="header" color="none" class="accordion-header-custom" style="background-color: rgba(204, 119, 34, 0.6) !important;">
+                <ion-item slot="header" color="none" class="accordion-header-custom">
                   <ion-icon aria-hidden="true" :icon="documentTextOutline" slot="start"></ion-icon>
                   <ion-label>Deliverables, Projects & Evaluations</ion-label>
                 </ion-item>
@@ -68,7 +68,7 @@
               <!-- Admin Accordion -->
               <ion-accordion-group v-if="auth.hasAdminAccess || auth.hasEvaluationAccess" :value="adminExpanded ? 'admin' : undefined">
                 <ion-accordion value="admin">
-                  <ion-item slot="header" color="none" class="accordion-header-custom" style="background-color: rgba(204, 119, 34, 0.6) !important;">
+                  <ion-item slot="header" color="none" class="accordion-header-custom">
                     <ion-icon aria-hidden="true" :icon="settingsOutline" slot="start"></ion-icon>
                     <ion-label>Admin</ion-label>
                   </ion-item>
@@ -141,7 +141,7 @@
               <!-- Agents & Conversations Accordion - Takes remaining space -->
               <ion-accordion-group :value="agentsExpanded ? 'agents' : undefined">
                 <ion-accordion value="agents">
-                  <ion-item slot="header" color="none" class="accordion-header-custom" style="background-color: rgba(204, 119, 34, 0.6) !important;">
+                  <ion-item slot="header" color="none" class="accordion-header-custom">
                     <ion-icon aria-hidden="true" :icon="chatbubblesOutline" slot="start"></ion-icon>
                     <ion-label>Agents & Conversations</ion-label>
                   </ion-item>
@@ -283,26 +283,27 @@ hr {
 }
 /* Accordion header styling - burnt orange theme with opacity */
 .accordion-header-custom {
-  background-color: rgba(204, 119, 34, 0.6) !important;
-  background: rgba(204, 119, 34, 0.6) !important;
-  --background: rgba(204, 119, 34, 0.6) !important;
-  --ion-background-color: rgba(204, 119, 34, 0.6) !important;
+  /* Subtle primary-tinted background using theme color */
+  background-color: rgba(var(--ion-color-primary-rgb), var(--app-accent-opacity)) !important;
+  background: rgba(var(--ion-color-primary-rgb), var(--app-accent-opacity)) !important;
+  --background: rgba(var(--ion-color-primary-rgb), var(--app-accent-opacity)) !important;
+  --ion-background-color: rgba(var(--ion-color-primary-rgb), var(--app-accent-opacity)) !important;
   border-radius: 6px !important;
   margin: 2px 0 !important;
   font-weight: 500 !important;
-  --color: #333 !important;
-  color: #333 !important;
+  --color: var(--ion-color-dark) !important;
+  color: var(--ion-color-dark) !important;
 }
 
 /* Try targeting the actual Ionic CSS variables */
 ion-accordion {
-  --background: #cc7722;
-  --color: white;
+  --background: var(--ion-color-primary);
+  --color: var(--ion-color-primary-contrast);
 }
 
 ion-accordion ion-item {
-  --background: #cc7722 !important;
-  --color: white !important;
+  --background: var(--ion-color-primary) !important;
+  --color: var(--ion-color-primary-contrast) !important;
 }
 
 /* Main navigation accordion content */
@@ -338,7 +339,12 @@ ion-item.selected {
 }
 /* Consistent compact sidebar width for all screen sizes */
 ion-menu {
-  --width: 348px; /* Extended width to accommodate conversation and project buttons */
+  --width: var(--app-sidebar-width);
+}
+/* Ensure split-pane (static) sidebar width matches hamburger menu width */
+ion-split-pane {
+  --side-min-width: var(--app-sidebar-width);
+  --side-max-width: var(--app-sidebar-width);
 }
 /* Admin accordion content */
 .admin-content {
@@ -436,13 +442,13 @@ ion-menu {
 
   /* Dark theme accordion headers */
   ion-accordion-group ion-accordion ion-item[slot="header"] {
-    --background: #994411 !important; /* Darker burnt orange for dark theme */
-    --color: #fff !important;
+    --background: var(--ion-color-primary-shade) !important;
+    --color: var(--ion-color-primary-contrast) !important;
   }
   
   .accordion-header-custom {
-    background-color: #994411 !important;
-    background: #994411 !important;
+    background-color: rgba(var(--ion-color-primary-rgb), 0.45) !important;
+    background: rgba(var(--ion-color-primary-rgb), 0.45) !important;
   }
 
   .main-nav-content {

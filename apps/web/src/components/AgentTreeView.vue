@@ -762,14 +762,14 @@ onMounted(async () => {
 /* Header buttons styling */
 .manager-header {
   position: relative;
-  --background: rgba(155, 89, 182, 0.1);  /* Light purple background */
-  --background-hover: rgba(155, 89, 182, 0.15);
+  --background: rgba(var(--ion-color-tertiary-rgb), 0.08);
+  --background-hover: rgba(var(--ion-color-tertiary-rgb), 0.12);
   --color: var(--ion-text-color);
   --padding-start: 12px;
 }
 
 .manager-icon {
-  color: #9b59b6;  /* Purple color for managers */
+  color: var(--ion-color-tertiary);
   font-size: 20px;
   margin-right: 8px;
 }
@@ -779,7 +779,7 @@ onMounted(async () => {
 }
 
 .manager-header ion-label h3 {
-  color: #8e44ad;  /* Darker purple for manager names */
+  color: var(--ion-color-tertiary-shade);
   font-weight: 500;
 }
 
@@ -789,8 +789,8 @@ onMounted(async () => {
 
 .manager-conversation-count {
   margin-right: 4px;
-  background: #9b59b6;
-  color: white;
+  background: var(--ion-color-tertiary);
+  color: var(--ion-color-tertiary-contrast, #fff);
 }
 
 .manager-conversation-count[color="medium"] {

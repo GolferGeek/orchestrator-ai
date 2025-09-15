@@ -1,4 +1,5 @@
 import { ref, onMounted, onUnmounted, watch, type Ref } from 'vue';
+import { getIonColor, withFallback } from '@/utils/themeColors';
 import type { ChartConfiguration, ChartType, ChartData, ChartOptions } from 'chart.js';
 
 // Lazy-loaded Chart.js for better performance
@@ -145,15 +146,15 @@ export const useChart = (canvasRef: Ref<HTMLCanvasElement | null>, config: Ref<C
 
 // Chart color palettes for consistent styling
 export const chartColors = {
-  primary: '#3880ff',
-  secondary: '#3dc2ff',
-  tertiary: '#5260ff',
-  success: '#2dd36f',
-  warning: '#ffc409',
-  danger: '#eb445a',
-  dark: '#222428',
-  medium: '#92949c',
-  light: '#f4f5f8',
+  primary: withFallback(getIonColor('primary'), '#3880ff'),
+  secondary: withFallback(getIonColor('secondary'), '#3dc2ff'),
+  tertiary: withFallback(getIonColor('tertiary'), '#5260ff'),
+  success: withFallback(getIonColor('success'), '#2dd36f'),
+  warning: withFallback(getIonColor('warning'), '#ffc409'),
+  danger: withFallback(getIonColor('danger'), '#eb445a'),
+  dark: withFallback(getIonColor('dark'), '#222428'),
+  medium: withFallback(getIonColor('medium'), '#92949c'),
+  light: withFallback(getIonColor('light'), '#f4f5f8'),
 };
 
 // Pre-configured chart options for common use cases

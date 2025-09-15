@@ -120,7 +120,7 @@ onMounted(() => {
   text-align: center;
   padding: 2rem;
   background: var(--landing-light);
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--ion-color-light-shade);
 }
 .video-gallery-link ion-button {
   font-size: 1.1rem;

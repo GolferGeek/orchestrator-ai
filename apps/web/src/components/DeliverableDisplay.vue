@@ -1013,7 +1013,7 @@ watch(() => props.deliverable?.id, async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #f8fafc;
+  background: var(--ion-color-step-50);
   padding: 20px;
   overflow-y: auto;
 }
@@ -1050,8 +1050,8 @@ watch(() => props.deliverable?.id, async () => {
   flex-direction: column;
   gap: 16px;
   padding: 24px 24px 16px 24px;
-  border-bottom: 2px solid #e2e8f0;
-  background: linear-gradient(to bottom, #fafbfc, #ffffff);
+  border-bottom: 2px solid var(--ion-color-light);
+  background: linear-gradient(to bottom, var(--ion-color-light-tint), #ffffff);
   border-radius: 12px 12px 0 0;
   position: relative;
   z-index: 1;
@@ -1153,11 +1153,11 @@ watch(() => props.deliverable?.id, async () => {
   border-radius: 8px;
 }
 .version-item.active {
-  background: #e3f2fd;
+  background: var(--ion-color-primary-tint);
   margin: 0 -16px;
   padding: 12px 16px;
   border-radius: 8px;
-  border-color: #bbdefb;
+  border-color: var(--ion-color-primary);
 }
 .version-marker {
   margin-right: 12px;
