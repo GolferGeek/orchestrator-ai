@@ -134,9 +134,9 @@ const handleQuickAction = async (agentType: string) => {
   width: 100%;
 }
 .agent-sidebar {
-  width: 400px;
-  min-width: 350px;
-  max-width: 500px;
+  width: var(--app-sidebar-width);
+  min-width: calc(var(--app-sidebar-width));
+  max-width: calc(var(--app-sidebar-width));
   border-right: 1px solid var(--ion-color-step-150);
   background: var(--ion-color-step-25);
   overflow-y: auto;

@@ -555,7 +555,7 @@ const canExecuteRerun = computed(() => {
 
 const executeRerunWithConfig = async (
   capturedRerunData: { deliverable: any; version: any }, 
-  llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number }
+  llmConfig: { provider: string; model: string; temperature?: number; sadafum?: number; maxTokens?: number }
 ) => {
   // Create a user message for the rerun request
   const rerunMessage = `🔄 Regenerating deliverable "${capturedRerunData.deliverable.title}" with ${llmConfig.provider}/${llmConfig.model}`;
@@ -759,7 +759,7 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   overflow: hidden;
 }
 .conversation-pane {
-  width: 360px; /* Compact width for desktop - much smaller for 4K screens */
+  width: var(--app-convo-width-desktop); /* Theme variable */
   min-width: 320px; /* Minimum for mobile */
   display: flex;
   flex-direction: column;
@@ -775,7 +775,7 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
 }
 .work-product-pane {
   flex: 1; /* Take remaining space */
-  min-width: 400px;
+  min-width: var(--app-workpane-min-width);
   max-width: none;
   border-left: 1px solid var(--ion-color-light);
   background: var(--ion-color-step-25);
@@ -1023,7 +1023,7 @@ html[data-theme="dark"] .dot {
 /* Tablet breakpoint */
 @media (max-width: 1024px) {
   .conversation-pane {
-    width: 340px; /* Smaller for tablets */
+    width: var(--app-convo-width-tablet); /* Theme variable */
     min-width: 300px;
   }
   .work-product-pane {

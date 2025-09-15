@@ -102,7 +102,7 @@ import { arrowBackOutline, rocketOutline } from 'ionicons/icons';
 }
 .gallery-intro p {
   font-size: 1.1rem;
-  color: #6b7280;
+  color: var(--ion-color-medium);
   max-width: 600px;
   margin: 0 auto;
 }
@@ -135,8 +135,8 @@ import { arrowBackOutline, rocketOutline } from 'ionicons/icons';
 .video-placeholder {
   padding: 2rem;
   text-align: center;
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-  border: 2px dashed #d1d5db;
+  background: linear-gradient(135deg, var(--ion-color-light-tint), var(--ion-color-light-shade));
+  border: 2px dashed var(--ion-color-light-shade);
   min-height: 200px;
   display: flex;
   flex-direction: column;
@@ -148,7 +148,7 @@ import { arrowBackOutline, rocketOutline } from 'ionicons/icons';
   font-size: 1.1rem;
 }
 .video-placeholder p {
-  color: #6b7280;
+  color: var(--ion-color-medium);
   margin-bottom: 0.5rem;
 }
 .video-placeholder em {
