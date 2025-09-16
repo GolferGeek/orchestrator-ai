@@ -242,9 +242,18 @@ router.beforeEach(async (to, from, next) => {
     }
     
     // If navigating to /app/home and user is admin, prefer the admin dashboard
+    // But allow access if they're coming from an agent selection (has conversation context)
     if ((to.name === 'Home' || to.path === '/app/home') && authStore.user?.roles?.includes(UserRole.ADMIN)) {
-      next({ path: '/app/admin/settings' });
-      return;
+      // Check if there's an active conversation or if coming from agent selection
+      const hasActiveConversation = from?.path?.includes('/app/home') || 
+                                   to.query?.conversationId || 
+                                   to.query?.agentId ||
+                                   sessionStorage.getItem('activeConversation');
+      
+      if (!hasActiveConversation) {
+        next({ path: '/app/admin/settings' });
+        return;
+      }
     }
     next();
   } else {

@@ -215,6 +215,8 @@ const navigateToLanding = () => {
 const handleConversationSelected = async (conversation: any) => {
   try {
     await agentChatStore.openExistingConversation(conversation.id);
+    // Set flag in sessionStorage to indicate active conversation for admin users
+    sessionStorage.setItem('activeConversation', 'true');
     router.push('/app/home');
   } catch (error) {
 
@@ -234,6 +236,8 @@ const handleAgentSelected = async (agent: any) => {
       });
     } else {
       await agentChatStore.startNewConversation(agent);
+      // Set flag in sessionStorage to indicate active conversation for admin users
+      sessionStorage.setItem('activeConversation', 'true');
       router.push('/app/home');
     }
   } catch (error) {
