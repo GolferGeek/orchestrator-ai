@@ -29,7 +29,7 @@ const defaultSecurityConfig: SecurityConfig = {
   ],
   requireSecureContext: false, // Temporarily disabled
   httpsPort: import.meta.env.VITE_HTTPS_PORT ? parseInt(import.meta.env.VITE_HTTPS_PORT, 10) : 9443, // Default HTTPS port for dev
-  httpPort: import.meta.env.VITE_HTTP_PORT ? parseInt(import.meta.env.VITE_HTTP_PORT, 10) :9000
+  httpPort: import.meta.env.VITE_HTTP_PORT ? parseInt(import.meta.env.VITE_HTTP_PORT, 10) : 7101
 };
 
 /**
@@ -141,7 +141,7 @@ export function getSecureApiBaseUrl(): string {
   const candidates = [
     import.meta.env.VITE_API_BASE_URL,
     import.meta.env.VITE_API_NESTJS_BASE_URL,
-    import.meta.env.VITE_BASE_URL ? `${import.meta.env.VITE_BASE_URL}:9000` : null,
+    import.meta.env.VITE_BASE_URL ? `${import.meta.env.VITE_BASE_URL}:7100` : null,
     'http://localhost:7100' // Final fallback
   ].filter(Boolean);
   

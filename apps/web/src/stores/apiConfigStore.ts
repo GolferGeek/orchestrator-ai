@@ -70,7 +70,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
     {
       version: 'v1' as const,
       technology: 'typescript-nestjs' as const,
-      baseUrl: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:9000',
+      baseUrl: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL,
       name: 'Orchestrator AI API',
       description: 'Unified NestJS API',
       features: [

@@ -242,7 +242,11 @@ router.beforeEach(async (to, from, next) => {
     }
     
     // If navigating to /app/home and user is admin, prefer the admin dashboard
-    if ((to.name === 'Home' || to.path === '/app/home') && authStore.user?.roles?.includes(UserRole.ADMIN)) {
+    // UNLESS there's a specific query parameter or redirect indicating intent to go to home
+    if ((to.name === 'Home' || to.path === '/app/home') &&
+        authStore.user?.roles?.includes(UserRole.ADMIN) &&
+        !to.query.forceHome &&
+        from.path !== '/app') {
       next({ path: '/app/admin/settings' });
       return;
     }
