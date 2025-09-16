@@ -30,12 +30,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineEmits, defineProps, onUnmounted, onMounted } from 'vue';
+import { ref, computed, defineEmits, defineProps, onUnmounted, onMounted, watch } from 'vue';
 import { IonButton, IonIcon, toastController } from '@ionic/vue';
 import { radioButtonOnOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
 import { useUiStore } from '../stores/uiStore';
 import { useLLMStore } from '../stores/llmStore';
+import { useAgentChatStore } from '../stores/agentChatStore';
 
 // Define conversation states
 type ConversationState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'done';
@@ -55,6 +56,7 @@ const emit = defineEmits<{
 
 const uiStore = useUiStore();
 const llmStore = useLLMStore();
+const agentChatStore = useAgentChatStore();
 
 // Component state
 const conversationState = ref<ConversationState>('idle');
@@ -64,6 +66,8 @@ const audioChunks = ref<Blob[]>([]);
 const continuousListening = ref(false);
 const currentMimeType = ref('audio/webm;codecs=opus');
 const currentFormat = ref('webm');
+const isInVoiceMode = ref(false);
+const pendingTaskIdForTTS = ref<string | null>(null);
 
 // Audio resource tracking
 const activeStreams = ref<MediaStream[]>([]);
@@ -182,6 +186,51 @@ const getButtonTooltip = (): string => {
       return 'Error occurred - click to retry';
     default:
       return 'Start voice conversation';
+  }
+};
+
+// Watch for new assistant messages to auto-convert to speech in voice mode
+watch(
+  () => agentChatStore.getActiveConversation()?.messages,
+  (newMessages, oldMessages) => {
+    if (!isInVoiceMode.value || !newMessages) return;
+
+    // Find newly added assistant messages
+    const oldLength = oldMessages?.length || 0;
+    const newAssistantMessages = newMessages
+      .slice(oldLength)
+      .filter(msg => msg.role === 'assistant' && msg.content && msg.taskId);
+
+    // Process the most recent assistant message for TTS
+    if (newAssistantMessages.length > 0) {
+      const latestMessage = newAssistantMessages[newAssistantMessages.length - 1];
+      handleNewAssistantMessage(latestMessage);
+    }
+  },
+  { deep: true }
+);
+
+// Handle new assistant messages by converting to speech
+const handleNewAssistantMessage = async (message: any) => {
+  try {
+    console.log('🎤 New assistant message received, converting to speech:', message.content);
+    
+    // Synthesize the response text to speech
+    const synthesizedAudio = await apiService.synthesizeText(
+      message.content,
+      'EXAVITQu4vr4xnSDxMaL', // Default voice ID
+      0.5 // Stability
+    );
+
+    // Play the response audio
+    await playResponseAudio(synthesizedAudio.audioData);
+    
+  } catch (error) {
+    console.error('Failed to convert assistant message to speech:', error);
+    // Don't fail the whole conversation just because TTS failed
+    await presentToast('Voice synthesis failed, continuing in text mode', 3000, 'warning');
+    conversationState.value = 'idle';
+    isInVoiceMode.value = false;
   }
 };
 
@@ -516,22 +565,34 @@ const processRecordedAudio = async () => {
     const audioBlob = new Blob(audioChunks.value, { type: currentMimeType.value });
     const base64Audio = await blobToBase64(audioBlob);
 
-    // Debug: Log current LLM selection
-    console.log('🎤 [ConversationalSpeechButton] Current LLM Selection:', llmStore.currentLLMSelection);
+    console.log('🎤 [ConversationalSpeechButton] Processing audio via new frontend flow');
 
-    // Backend mode: Send audio to backend for full processing
-    const conversationResponse = await apiService.processConversation({
-      conversationId: props.conversationId,
-      audioData: base64Audio,
-      encoding: currentFormat.value,
-      sampleRate: 48000,
-      agentName: props.agentName,
-      agentType: props.agentType,
-      llmSelection: llmStore.currentLLMSelection, // Pass the actual user's LLM selection
-    });
+    // Step 1: Transcribe the audio to text
+    const transcription = await apiService.transcribeAudio(
+      base64Audio,
+      currentFormat.value,
+      48000
+    );
 
-    // Play the AI response audio
-    await playResponseAudio(conversationResponse.responseAudio);
+    if (!transcription.text || transcription.text.trim().length === 0) {
+      throw new Error('No speech detected in audio');
+    }
+
+    console.log('🎤 Transcribed text:', transcription.text);
+
+    // Step 2: Send the transcribed text through normal chat flow
+    // This respects agent selection, conversation context, user preferences, etc.
+    await agentChatStore.sendMessage(transcription.text);
+
+    console.log('🎤 Message sent through chat store, waiting for response...');
+
+    // Step 3: Enable voice mode - response will be automatically converted to speech
+    isInVoiceMode.value = true;
+    
+    // Set to processing while waiting for agent response
+    conversationState.value = 'processing';
+    
+    console.log('🎤 Voice mode enabled, waiting for agent response...');
 
   } catch (error) {
     console.error('Failed to process conversation:', error);
@@ -712,6 +773,8 @@ const resetConversation = () => {
   continuousListening.value = false;
   hasDetectedSpeech.value = false;
   lastVolumeChangeTime.value = 0;
+  isInVoiceMode.value = false;
+  pendingTaskIdForTTS.value = null;
 
   // Clean up MediaRecorder
   if (mediaRecorder.value) {

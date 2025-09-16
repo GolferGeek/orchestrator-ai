@@ -1036,6 +1036,78 @@ console.error(`ApiService.post error for ${url}:`, error);
       throw error;
     }
   }
+
+  /**
+   * Transcribe audio to text only
+   */
+  async transcribeAudio(
+    audioData: string,
+    encoding?: string,
+    sampleRate?: number
+  ): Promise<{
+    text: string;
+    confidence: number;
+  }> {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await this.axiosInstance.post(
+        '/speech/transcribe',
+        {
+          audioData,
+          encoding,
+          sampleRate
+        },
+        {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Audio transcription error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Convert text to speech audio
+   */
+  async synthesizeText(
+    text: string,
+    voiceName?: string,
+    speakingRate?: number
+  ): Promise<{
+    audioData: string;
+    format: string;
+  }> {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      
+      const response = await this.axiosInstance.post(
+        '/speech/synthesize',
+        {
+          text,
+          voiceName,
+          speakingRate
+        },
+        {
+          headers: {
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Text-to-speech synthesis error:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
