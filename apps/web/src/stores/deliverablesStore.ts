@@ -188,6 +188,13 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       // Use the proper deliverablesService instead of direct fetch
       const { deliverablesService } = await import('@/services/deliverablesService');
       const deliverables = await deliverablesService.getConversationDeliverables(conversationId.trim());
+      
+      // Ensure deliverables is an array before proceeding
+      if (!Array.isArray(deliverables)) {
+        console.warn('Expected deliverables to be an array, got:', typeof deliverables, deliverables);
+        return [];
+      }
+      
       // Clear existing deliverables for this conversation
       const existingIds = state.value.conversationDeliverables.get(conversationId) || [];
       existingIds.forEach(id => {
@@ -210,9 +217,11 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       });
       return deliverables;
     } catch (error: any) {
-
+      console.error('Failed to load deliverables for conversation:', error);
       setError(error.message);
-      throw error;
+      
+      // Return empty array instead of throwing to prevent forEach errors
+      return [];
     } finally {
       setLoading(false);
     }

@@ -285,6 +285,10 @@ watch(() => conversationId.value, (newConversationId, oldConversationId) => {
 }
 .llm-controls {
   padding: 4px 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
 }
 .typing-indicator {
   display: flex;

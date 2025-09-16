@@ -146,9 +146,10 @@
               </ion-button>
             </ion-item>
           </form>
-          <!-- Compact LLM Controls -->
+          <!-- Compact LLM + Mode Controls -->
           <div class="llm-controls">
             <CompactLLMControl />
+            <ChatModeControl />
           </div>
         </div>
         <!-- Typing Indicator -->
@@ -271,6 +272,7 @@ import { useUiStore } from '@/stores/uiStore';
 import type { AgentChatMessage } from '@/stores/agentChatStore/types';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
+import ChatModeControl from './ChatModeControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 import DeliverableDisplay from './DeliverableDisplay.vue';
 import ProjectDisplay from './ProjectDisplay.vue';
@@ -822,6 +824,10 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   padding: 8px 16px;
   background: var(--ion-color-step-50);
   border-top: 1px solid var(--ion-color-light-shade);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
 }
 .typing-indicator {
   display: flex;

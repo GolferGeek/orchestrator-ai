@@ -146,31 +146,11 @@
                     <ion-label>Agents & Conversations</ion-label>
                   </ion-item>
                   <div slot="content" class="agents-content">
-                    <!-- Search and Refresh Controls -->
-                    <div class="agents-controls">
-                      <ion-searchbar
-                        v-model="searchQuery"
-                        placeholder="Search agents..."
-                        :debounce="300"
-                        @input="handleSearch"
-                        class="compact-searchbar"
-                      />
-                      <ion-button
-                        fill="clear"
-                        size="small"
-                        @click="handleRefresh"
-                        :disabled="isRefreshing"
-                        class="refresh-btn"
-                      >
-                        <ion-icon :icon="refreshOutline" />
-                      </ion-button>
-                    </div>
                     <!-- Agent Tree -->
                     <AgentTreeView 
                       @conversation-selected="handleConversationSelected"
                       @agent-selected="handleAgentSelected"
                       :compact-mode="true"
-                      :search-query="searchQuery"
                     />
                   </div>
                 </ion-accordion>
@@ -187,7 +167,7 @@ import { computed, ref } from 'vue';
 import { 
   IonPage, IonContent, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonMenu, IonMenuToggle, IonNote, IonRouterOutlet, IonSplitPane, IonHeader, IonToolbar, IonTitle, IonAccordion, IonAccordionGroup, IonSearchbar, IonButton
 } from '@ionic/vue';
-import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, refreshOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline, libraryOutline, settingsOutline, swapHorizontalOutline } from 'ionicons/icons';
+import { logOutOutline, starOutline, folderOutline, chatbubblesOutline, documentTextOutline, shieldCheckmarkOutline, analyticsOutline, barChartOutline, flaskOutline, libraryOutline, settingsOutline, swapHorizontalOutline } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/authStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useRouter } from 'vue-router';
@@ -199,8 +179,6 @@ const router = useRouter();
 const mainNavExpanded = ref(true); // Main navigation accordion starts expanded
 const agentsExpanded = ref(true);
 const adminExpanded = ref(false); // Admin accordion starts collapsed
-const searchQuery = ref('');
-const isRefreshing = ref(false);
 // Dynamic titles based on current route
 const menuTitle = computed(() => {
   return 'Orchestrator AI';
@@ -215,7 +193,7 @@ const navigateToLanding = () => {
 const handleConversationSelected = async (conversation: any) => {
   try {
     await agentChatStore.openExistingConversation(conversation.id);
-    router.push('/app/home');
+    router.push({ path: '/app/home', query: { forceHome: 'true' } });
   } catch (error) {
 
   }
@@ -234,26 +212,10 @@ const handleAgentSelected = async (agent: any) => {
       });
     } else {
       await agentChatStore.startNewConversation(agent);
-      router.push('/app/home');
+      router.push({ path: '/app/home', query: { forceHome: 'true' } });
     }
   } catch (error) {
     console.error('Failed to handle agent selection:', error);
-  }
-};
-const handleSearch = () => {
-  // The search query is passed as a prop to AgentTreeView
-  // The component will handle the actual filtering
-};
-const handleRefresh = async () => {
-  try {
-    isRefreshing.value = true;
-    // You can add refresh logic here if needed
-    // For now, we'll let the AgentTreeView handle its own refresh
-    await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for UX
-  } catch (error) {
-
-  } finally {
-    isRefreshing.value = false;
   }
 };
 </script>
