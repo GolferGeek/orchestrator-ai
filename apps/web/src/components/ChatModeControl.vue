@@ -14,6 +14,7 @@
 import { computed } from 'vue';
 import { IonItem, IonLabel, IonSelect, IonSelectOption } from '@ionic/vue';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import analyticsService from '@/services/analyticsService';
 
 const chatStore = useAgentChatStore();
 
@@ -23,6 +24,20 @@ function onChange(ev: CustomEvent) {
   const value = ev.detail.value as 'converse' | 'plan' | 'build';
   chatStore.setChatMode(value);
   // Optional: emit an event if switching to build should auto-trigger a build task later
+  const conv = chatStore.getActiveConversation();
+  analyticsService.trackEvent({
+    eventType: 'ui',
+    category: 'chat',
+    action: 'mode_selected',
+    label: value,
+    value: undefined,
+    properties: {
+      conversationId: conv?.id,
+      agentName: conv?.agent?.name,
+      agentType: conv?.agent?.type,
+    },
+    context: { url: window.location.pathname, userAgent: navigator.userAgent },
+  });
 }
 </script>
 <style scoped>
@@ -42,4 +57,3 @@ function onChange(ev: CustomEvent) {
   min-width: 120px;
 }
 </style>
-

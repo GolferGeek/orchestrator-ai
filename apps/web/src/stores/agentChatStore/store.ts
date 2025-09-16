@@ -22,6 +22,7 @@ import { conversation } from './conversation';
 import { taskExecution } from './taskExecution';
 import { websocketHandler } from './websocketHandler';
 import { messageFormatting } from './messageFormatting';
+import analyticsService from '@/services/analyticsService';
 
 
 // Import types
@@ -182,6 +183,16 @@ export const useAgentChatStore = defineStore('agentChat', {
         taskId: preGeneratedTaskId,
         mode,
       };
+
+      // Track plan/build dispatch from CTA or acceptance
+      analyticsService.trackEvent({
+        eventType: 'system',
+        category: 'chat',
+        action: mode === 'build' ? 'build_sent' : 'plan_sent',
+        label: mode,
+        properties: { conversationId, taskId: preGeneratedTaskId },
+        context: { url: window.location.pathname, userAgent: navigator.userAgent },
+      });
 
       await taskExecution.createAndExecuteTask(taskOptions, {
         onPlaceholder: (taskId) => this.createPlaceholderMessage(conversationId, taskId),
@@ -398,6 +409,15 @@ export const useAgentChatStore = defineStore('agentChat', {
         };
         activeConversation.messages.push(userMessage);
         this.setChatMode(pending.type);
+        // Track natural acceptance
+        analyticsService.trackEvent({
+          eventType: 'ui',
+          category: 'cta',
+          action: 'auto_accept_yes',
+          label: pending.type,
+          properties: { conversationId: activeConversation.id, sourceTaskId: pending.sourceTaskId },
+          context: { url: window.location.pathname, userAgent: navigator.userAgent },
+        });
         this.clearPendingAction();
         await this.executeFromLastUserMessage(pending.type);
         return; // Skip normal task creation flow
@@ -480,6 +500,18 @@ export const useAgentChatStore = defineStore('agentChat', {
           taskId: preGeneratedTaskId,
           mode: chatMode,
         };
+
+        // Track plan/build when dispatched from regular send
+        if (chatMode === 'build' || chatMode === 'plan') {
+          analyticsService.trackEvent({
+            eventType: 'system',
+            category: 'chat',
+            action: chatMode === 'build' ? 'build_sent' : 'plan_sent',
+            label: chatMode,
+            properties: { conversationId, taskId: preGeneratedTaskId },
+            context: { url: window.location.pathname, userAgent: navigator.userAgent },
+          });
+        }
 
         // Execute task using service
         await taskExecution.createAndExecuteTask(taskOptions, {

@@ -196,6 +196,7 @@ import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import analyticsService from '@/services/analyticsService';
 
 export interface AgentTaskMessage {
   id: string;
@@ -661,12 +662,28 @@ function handlePlanNow() {
   chatStore.setPendingAction('plan', props.message.taskId || undefined);
   // Immediately execute from last user message
   chatStore.executeFromLastUserMessage('plan');
+  analyticsService.trackEvent({
+    eventType: 'ui',
+    category: 'cta',
+    action: 'plan_clicked',
+    label: 'Plan It',
+    properties: { taskId: props.message.taskId, conversationId: props.conversationId },
+    context: { url: window.location.pathname, userAgent: navigator.userAgent },
+  });
 }
 function handleBuildNow() {
   chatStore.setChatMode('build');
   chatStore.setPendingAction('build', props.message.taskId || undefined);
   // Immediately execute from last user message
   chatStore.executeFromLastUserMessage('build');
+  analyticsService.trackEvent({
+    eventType: 'ui',
+    category: 'cta',
+    action: 'build_clicked',
+    label: 'Build It',
+    properties: { taskId: props.message.taskId, conversationId: props.conversationId },
+    context: { url: window.location.pathname, userAgent: navigator.userAgent },
+  });
 }
 
 // Workflow step styling methods
