@@ -25,7 +25,7 @@ import { messageFormatting } from './messageFormatting';
 
 
 // Import types
-import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent } from './types';
+import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent, PendingAction } from './types';
 
 // Pre-generated task ID for WebSocket mode
 let preGeneratedTaskId: string | undefined;
@@ -34,6 +34,7 @@ interface AgentChatState {
   conversations: AgentConversation[];
   activeConversationId: string | null;
   globalError: string | null;
+  pendingAction?: PendingAction | null;
 }
 
 export const useAgentChatStore = defineStore('agentChat', {
@@ -41,6 +42,7 @@ export const useAgentChatStore = defineStore('agentChat', {
     conversations: [],
     activeConversationId: null,
     globalError: null,
+    pendingAction: null,
   }),
 
   getters: {
@@ -103,6 +105,89 @@ export const useAgentChatStore = defineStore('agentChat', {
       if (conv) {
         conv.chatMode = mode;
       }
+    },
+
+    /**
+     * Set a pending Plan/Build action suggestion with expiry
+     */
+    setPendingAction(type: 'plan' | 'build', sourceTaskId?: string, ttlMs: number = 20000) {
+      const expiresAt = Date.now() + ttlMs;
+      this.pendingAction = { type, expiresAt, sourceTaskId };
+    },
+    clearPendingAction() {
+      this.pendingAction = null;
+    },
+    getPendingAction(): PendingAction | null {
+      if (!this.pendingAction) return null;
+      if (Date.now() > this.pendingAction.expiresAt) {
+        this.pendingAction = null;
+        return null;
+      }
+      return this.pendingAction;
+    },
+
+    /**
+     * Execute current mode from the last user message without adding a new user message
+     */
+    async executeFromLastUserMessage(mode: 'plan' | 'build') {
+      const activeConversation = this.getActiveConversation();
+      if (!activeConversation) return;
+
+      // Locate the most recent non-empty user message (excluding placeholders)
+      const lastUser = [...activeConversation.messages].reverse().find(m => m.role === 'user' && m.content?.trim());
+      const basePrompt = lastUser?.content || 'Please proceed.';
+
+      // Ensure backend conversation exists
+      let conversationId = activeConversation.id;
+      const hasOnlyInitialMessages = activeConversation.messages.length <= 1 && 
+        activeConversation.messages.every(msg => msg.metadata?.isWelcome);
+      if (hasOnlyInitialMessages) {
+        const exists = await conversation.conversationExists(conversationId);
+        if (!exists) {
+          const backendId = await conversation.createConversation(activeConversation.agent);
+          conversationId = backendId;
+          activeConversation.id = conversationId;
+          this.activeConversationId = conversationId;
+          const conversationsStore = useAgentConversationsStore();
+          conversationsStore.addExistingConversation({
+            id: conversationId,
+            agentName: activeConversation.agent.name,
+            agentType: activeConversation.agent.type,
+            startedAt: new Date(),
+            lastActiveAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            taskCount: 0,
+            completedTasks: 0,
+            failedTasks: 0,
+            activeTasks: 0,
+          });
+        }
+      }
+
+      // Determine execution mode
+      const userPreferences = useUserPreferencesStore();
+      const effectiveMode = taskExecution.determineExecutionMode(activeConversation, userPreferences.preferences);
+      preGeneratedTaskId = generateUUID();
+
+      const taskOptions = {
+        method: mode,
+        prompt: basePrompt,
+        conversationId,
+        conversationHistory: this.buildConversationHistory(activeConversation),
+        llmSelection: this.getLLMSelection(),
+        executionMode: effectiveMode,
+        agentType: activeConversation.agent.type,
+        agentName: activeConversation.agent.name,
+        taskId: preGeneratedTaskId,
+        mode,
+      };
+
+      await taskExecution.createAndExecuteTask(taskOptions, {
+        onPlaceholder: (taskId) => this.createPlaceholderMessage(conversationId, taskId),
+        onCompletion: (taskId) => this.handleTaskCompletion(conversationId, taskId),
+        onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
+      });
     },
 
     /**
@@ -298,6 +383,24 @@ export const useAgentChatStore = defineStore('agentChat', {
       if (!activeConversation) {
         console.error('No active conversation');
         return;
+      }
+
+      // Natural acceptance: if a pending action exists and the content is affirmative, auto-run and return
+      const pending = this.getPendingAction();
+      const affirmative = /^(yes|yeah|yep|yup|sure|ok|okay|please|do it|go ahead|sounds good|let's do it|proceed)[.!]?$/i;
+      if (pending && affirmative.test(content.trim())) {
+        // Record the user's short reply as a normal message for continuity
+        const userMessage: AgentChatMessage = {
+          id: `user-${Date.now()}`,
+          role: 'user',
+          content,
+          timestamp: new Date(),
+        };
+        activeConversation.messages.push(userMessage);
+        this.setChatMode(pending.type);
+        this.clearPendingAction();
+        await this.executeFromLastUserMessage(pending.type);
+        return; // Skip normal task creation flow
       }
 
       // Set loading state
