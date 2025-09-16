@@ -44,12 +44,26 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
    */
   public async executeTask(method: string, params: any): Promise<any> {
     try {
+      // Determine effective orchestrator method based on params.mode and context
+      const requestedMode = (params && params.mode) as 'converse' | 'plan' | 'build' | undefined;
+      let effectiveMethod: OrchestratorA2AMethod;
+      if (requestedMode === 'converse' || !requestedMode) {
+        effectiveMethod = 'converse';
+      } else if (requestedMode === 'plan') {
+        effectiveMethod = 'explicit_create_project';
+      } else if (requestedMode === 'build') {
+        // For now, treat build as approve/start if a project exists; otherwise fall back to converse
+        effectiveMethod = params?.projectId ? 'approve_project_plan' : 'converse';
+      } else {
+        effectiveMethod = 'converse';
+      }
+
       // Adapt A2A request to OrchestratorInput (conversation + tasks pattern)
-      const input = await this.adaptA2AToOrchestratorInput(method, params);
+      const input = await this.adaptA2AToOrchestratorInput(effectiveMethod, params);
 
       // Route through facade service (maintains single entry point principle)
       const response = await this.orchestratorFacadeService.processRequest(
-        method as OrchestratorA2AMethod,
+        effectiveMethod,
         input,
         this.delegationContext,
       );
@@ -65,6 +79,7 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
           agentType: 'orchestrator' as const,
           agentName: this.getAgentName(),
           processedAt: new Date().toISOString(),
+          mode: requestedMode || 'converse',
         };
         this.orchestratorLogger.log(
           `🔍 DEBUG - Enhanced response with orchestrator metadata: ${JSON.stringify(response, null, 2)}`,

@@ -373,6 +373,7 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       messages: [],
       createdAt,
       lastActiveAt: createdAt,
+      chatMode: 'converse',
       executionMode: 'immediate',
       supportedExecutionModes: ['immediate'], // Will be updated by updateConversationExecutionModes
       title: this.createConversationTitle(agent, createdAt), // Use proper title with timestamp

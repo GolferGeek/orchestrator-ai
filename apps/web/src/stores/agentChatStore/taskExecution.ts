@@ -43,6 +43,10 @@ export class TaskExecutionService {
         llmSelection: options.llmSelection,
         executionMode: options.executionMode,
         taskId: options.taskId,
+        // Pass mode in params for backend branching and deliverable gating
+        params: {
+          mode: options.mode || 'converse',
+        },
         metadata: options.metadata, // Pass context metadata to backend
       }
     );

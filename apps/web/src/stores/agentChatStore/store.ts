@@ -88,6 +88,24 @@ export const useAgentChatStore = defineStore('agentChat', {
     },
 
     /**
+     * Get current chat mode for active conversation
+     */
+    getActiveChatMode(): 'converse' | 'plan' | 'build' {
+      const conv = this.getActiveConversation();
+      return conv?.chatMode || 'converse';
+    },
+
+    /**
+     * Set chat mode for active conversation
+     */
+    setChatMode(mode: 'converse' | 'plan' | 'build') {
+      const conv = this.getActiveConversation();
+      if (conv) {
+        conv.chatMode = mode;
+      }
+    },
+
+    /**
      * Get conversation by ID
      */
     getConversationById(conversationId: string): AgentConversation | null {
@@ -346,8 +364,9 @@ export const useAgentChatStore = defineStore('agentChat', {
 
 
         // Prepare task execution options
+        const chatMode = activeConversation.chatMode || 'converse';
         const taskOptions = {
-          method: 'process',
+          method: chatMode,
           prompt: content,
           conversationId: conversationId,
           conversationHistory: this.buildConversationHistory(activeConversation),
@@ -356,6 +375,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           agentType: activeConversation.agent.type,
           agentName: activeConversation.agent.name,
           taskId: preGeneratedTaskId,
+          mode: chatMode,
         };
 
         // Execute task using service
@@ -450,8 +470,9 @@ export const useAgentChatStore = defineStore('agentChat', {
 
 
         // Prepare task execution options with context metadata
+        const chatMode2 = activeConversation.chatMode || 'converse';
         const taskOptions = {
-          method: 'process',
+          method: chatMode2,
           prompt: content,
           conversationId: conversationId,
           conversationHistory: this.buildConversationHistory(activeConversation),
@@ -460,6 +481,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           agentType: activeConversation.agent.type,
           agentName: activeConversation.agent.name,
           taskId: preGeneratedTaskId,
+          mode: chatMode2,
           metadata: enhancedMetadata, // Include context metadata with conversationId
         };
 
