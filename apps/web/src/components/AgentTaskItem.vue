@@ -138,8 +138,18 @@
       </div>
       
       <!-- Agent avatar removed for more space -->
-    </div>
+  </div>
     
+    <!-- Smart CTAs: Plan / Build (assistant messages only, no deliverable shown) -->
+    <div v-if="message.role === 'assistant' && !willHideForDeliverable && (suggestsPlan || suggestsBuild)" class="smart-cta-bar">
+      <ion-chip v-if="suggestsPlan" color="primary" outline @click="handlePlanNow">
+        Plan It
+      </ion-chip>
+      <ion-chip v-if="suggestsBuild" color="success" outline @click="handleBuildNow">
+        Build It
+      </ion-chip>
+    </div>
+
     <!-- Task evaluation interface for assistant messages -->
     <div v-if="message.role === 'assistant' && message.taskId && 
                 message.taskId !== 'pending' && 
@@ -185,6 +195,7 @@ import UserPrivacyIndicators from './UserPrivacyIndicators.vue';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import { useLLMStore } from '@/stores/llmStore';
+import { useAgentChatStore } from '@/stores/agentChatStore';
 
 export interface AgentTaskMessage {
   id: string;
@@ -214,6 +225,7 @@ const emit = defineEmits<{
 const deliverablesStore = useDeliverablesStore();
 const privacyIndicatorsStore = usePrivacyIndicatorsStore();
 const llmStore = useLLMStore();
+const chatStore = useAgentChatStore();
 
 // Reactive state
 const showMetadataModal = ref(false);
@@ -632,6 +644,30 @@ const handleCalloutClick = () => {
     emit('deliverable-selected', displayedDeliverable.value);
   }
 };
+
+// Smart CTA detection
+const contentText = computed(() => (props.message.content || '').toLowerCase());
+const suggestsPlan = computed(() => {
+  const c = contentText.value;
+  return /would you like.*plan|should i.*plan|plan (it|this)|create (a|the) (plan|prd)|requirements|spec/i.test(props.message.content || '');
+});
+const suggestsBuild = computed(() => {
+  const c = contentText.value;
+  return /would you like.*build|should i.*build|build (it|this)|proceed to build|execute (now|this)/i.test(props.message.content || '');
+});
+
+function handlePlanNow() {
+  chatStore.setChatMode('plan');
+  chatStore.setPendingAction('plan', props.message.taskId || undefined);
+  // Immediately execute from last user message
+  chatStore.executeFromLastUserMessage('plan');
+}
+function handleBuildNow() {
+  chatStore.setChatMode('build');
+  chatStore.setPendingAction('build', props.message.taskId || undefined);
+  // Immediately execute from last user message
+  chatStore.executeFromLastUserMessage('build');
+}
 
 // Workflow step styling methods
 const getWorkflowStepClass = (step: any) => {

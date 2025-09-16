@@ -68,6 +68,12 @@ export interface TaskExecutionOptions {
   mode?: 'converse' | 'plan' | 'build';
   metadata?: any; // Context metadata for version operations
 }
+
+export interface PendingAction {
+  type: 'plan' | 'build';
+  expiresAt: number; // epoch ms
+  sourceTaskId?: string;
+}
 export interface DeliverableOptions {
   taskId: string;
   content: string;
