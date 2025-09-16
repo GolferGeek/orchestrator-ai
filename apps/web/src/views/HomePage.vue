@@ -58,7 +58,7 @@
   </ion-page>
 </template>
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import {
   IonContent,
   IonHeader,
@@ -127,6 +127,13 @@ watch(() => route.query.conversationId, handleConversationFromQuery, { immediate
 // Initialize user preferences store
 onMounted(async () => {
   await userPreferencesStore.initializePreferences();
+});
+
+// Cleanup function to clear conversation flag when leaving the page
+onUnmounted(() => {
+  // Clear the active conversation flag when leaving the home page
+  // This allows admin users to be redirected back to admin settings when appropriate
+  sessionStorage.removeItem('activeConversation');
 });
 
 // Reactive theme functionality
