@@ -23,7 +23,7 @@ INSERT INTO auth.users (
     'authenticated',
     'authenticated',
     'demo.user@playground.com',
-    crypt('demouser', gen_salt('bf')),
+    extensions.crypt('demouser', extensions.gen_salt('bf')),
     NOW(),
     NOW(),
     NOW(),
