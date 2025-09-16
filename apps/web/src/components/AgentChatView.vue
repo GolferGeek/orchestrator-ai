@@ -56,6 +56,7 @@
       <!-- Compact LLM and CIDAFM Controls -->
       <div class="llm-controls">
         <CompactLLMControl />
+        <ChatModeControl />
       </div>
     </div>
     <!-- Typing Indicator -->
@@ -82,6 +83,7 @@ import { useAgentChatStore } from '@/stores/agentChatStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
+import ChatModeControl from './ChatModeControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 import SpeechButton from './SpeechButton.vue';
 // Define emits

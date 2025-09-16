@@ -694,7 +694,7 @@ export abstract class A2AAgentBaseService
   private async getTaskContext(
     taskId: string,
     userId: string,
-  ): Promise<{ conversationId?: string; projectStepId?: string }> {
+  ): Promise<{ conversationId?: string; projectStepId?: string; mode?: string }> {
     if (!this.tasksService) {
 
       return {};
@@ -719,6 +719,7 @@ export abstract class A2AAgentBaseService
       return {
         conversationId: task.agentConversationId || undefined,
         projectStepId,
+        mode: (task.params && (task.params as any).mode) || undefined,
       };
     } catch (error) {
       this.logger.warn(`Failed to get task context for ${taskId}:`, error);
@@ -757,6 +758,16 @@ export abstract class A2AAgentBaseService
     }
 
     try {
+      // Enforce deliverable gating: only create when params.mode === 'build'
+      const requireBuild = (process.env.DELIVERABLES_REQUIRE_BUILD ?? 'true') !== 'false';
+      if (requireBuild && taskId) {
+        const ctx = await this.getTaskContext(taskId, userId);
+        const mode = ctx.mode || (typeof result === 'object' ? (result as any).metadata?.mode : undefined);
+        if (mode !== 'build') {
+          return null;
+        }
+      }
+
       // Extract content from various result formats
       const content = this.extractContentFromResult(result);
 
