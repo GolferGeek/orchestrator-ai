@@ -391,6 +391,10 @@ const stopVADMonitoring = () => {
   }
 
   dataArray.value = null;
+
+  // Force cleanup streams and close AudioContext immediately
+  forceCleanupAllStreams();
+  closeAudioContext();
 };
 
 // Main conversation control functions
@@ -511,6 +515,13 @@ const startMediaRecording = async () => {
       });
     } catch (error) {
       console.error('Error stopping stream tracks:', error);
+    }
+
+    // Remove this stream from active tracking
+    const streamIndex = activeStreams.value.indexOf(stream);
+    if (streamIndex > -1) {
+      activeStreams.value.splice(streamIndex, 1);
+      console.log(`Audio: Removed stream from tracking, remaining: ${activeStreams.value.length}`);
     }
 
     stopVADMonitoring();
@@ -699,7 +710,19 @@ const startContinuousListening = async () => {
 
     // Monitor for user interruption
     const monitorInterruption = () => {
-      if (!continuousListening.value) return;
+      if (!continuousListening.value) {
+        // Clean up this stream when monitoring stops
+        try {
+          stream.getTracks().forEach(track => track.stop());
+          const streamIndex = activeStreams.value.indexOf(stream);
+          if (streamIndex > -1) {
+            activeStreams.value.splice(streamIndex, 1);
+          }
+        } catch (error) {
+          console.warn('Error cleaning up continuous listening stream:', error);
+        }
+        return;
+      }
 
       const volume = calculateVolume();
 
@@ -740,7 +763,6 @@ const stopSpeaking = () => {
 
   continuousListening.value = false;
   stopVADMonitoring();
-  forceCleanupAllStreams();
 };
 
 const cancelConversation = () => {
@@ -804,7 +826,6 @@ const resetConversation = () => {
   }
 
   stopVADMonitoring();
-  forceCleanupAllStreams();
   emit('conversationEnd');
 };
 
