@@ -193,18 +193,33 @@ const getButtonTooltip = (): string => {
 watch(
   () => agentChatStore.getActiveConversation()?.messages,
   (newMessages, oldMessages) => {
-    if (!isInVoiceMode.value || !newMessages) return;
+    if (!isInVoiceMode.value || !newMessages) {
+      console.log('🎤 Voice mode inactive or no messages, skipping TTS');
+      return;
+    }
 
     // Find newly added assistant messages
     const oldLength = oldMessages?.length || 0;
+    console.log(`🎤 Checking for new messages: ${newMessages.length} total, ${oldLength} old`);
+    
     const newAssistantMessages = newMessages
       .slice(oldLength)
-      .filter(msg => msg.role === 'assistant' && msg.content && msg.taskId);
+      .filter(msg => {
+        const isAssistant = msg.role === 'assistant';
+        const hasContent = msg.content && msg.content.trim().length > 0;
+        console.log(`🎤 Message check: role=${msg.role}, hasContent=${hasContent}, taskId=${!!msg.taskId}`);
+        return isAssistant && hasContent;
+      });
+
+    console.log(`🎤 Found ${newAssistantMessages.length} new assistant messages`);
 
     // Process the most recent assistant message for TTS
     if (newAssistantMessages.length > 0) {
       const latestMessage = newAssistantMessages[newAssistantMessages.length - 1];
+      console.log('🎤 Processing latest assistant message for TTS:', latestMessage);
       handleNewAssistantMessage(latestMessage);
+    } else {
+      console.log('🎤 No qualifying assistant messages found for TTS');
     }
   },
   { deep: true }
@@ -212,8 +227,10 @@ watch(
 
 // Handle new assistant messages by converting to speech
 const handleNewAssistantMessage = async (message: any) => {
+  console.log('🎤 [TTS START] Beginning text-to-speech conversion for message:', message.content);
+  
   try {
-    console.log('🎤 New assistant message received, converting to speech:', message.content);
+    console.log('🎤 [TTS SYNTHESIZE] Calling apiService.synthesizeText...');
     
     // Synthesize the response text to speech
     const synthesizedAudio = await apiService.synthesizeText(
@@ -222,11 +239,17 @@ const handleNewAssistantMessage = async (message: any) => {
       0.5 // Stability
     );
 
+    console.log('🎤 [TTS SYNTHESIZE SUCCESS] Audio synthesis completed, starting playback...');
+
     // Play the response audio
     await playResponseAudio(synthesizedAudio.audioData);
     
+    console.log('🎤 [TTS COMPLETE] Audio playback finished successfully');
+    
   } catch (error) {
-    console.error('Failed to convert assistant message to speech:', error);
+    console.error('🎤 [TTS ERROR] Failed to convert assistant message to speech:', error);
+    console.error('🎤 [TTS ERROR] Error details:', error);
+    
     // Don't fail the whole conversation just because TTS failed
     await presentToast('Voice synthesis failed, continuing in text mode', 3000, 'warning');
     conversationState.value = 'idle';
@@ -605,6 +628,15 @@ const processRecordedAudio = async () => {
     
     console.log('🎤 Voice mode enabled, waiting for agent response...');
 
+    // Set a timeout to reset state if no response comes back
+    setTimeout(() => {
+      if (conversationState.value === 'processing' && isInVoiceMode.value) {
+        console.log('🎤 No TTS response received within timeout, resetting to idle');
+        conversationState.value = 'idle';
+        isInVoiceMode.value = false;
+      }
+    }, 10000); // 10 second timeout
+
   } catch (error) {
     console.error('Failed to process conversation:', error);
     console.error('Error details:', error);
@@ -632,31 +664,37 @@ const processRecordedAudio = async () => {
 
 
 const playResponseAudio = async (audioData: string) => {
+  console.log('🎤 [AUDIO PLAY START] Starting audio playback...');
+  
   try {
+    console.log('🎤 [AUDIO PLAY] Setting conversation state to speaking');
     conversationState.value = 'speaking';
 
     // Start continuous listening while speaking (for interruption)
     if (!continuousListening.value) {
+      console.log('🎤 [AUDIO PLAY] Starting continuous listening for interruption');
       continuousListening.value = true;
       await startContinuousListening();
     }
 
+    console.log('🎤 [AUDIO PLAY] Creating Audio element');
     currentAudio.value = new Audio(audioData);
 
     return new Promise<void>((resolve, reject) => {
       if (!currentAudio.value) {
+        console.error('🎤 [AUDIO PLAY ERROR] Audio element not created');
         reject(new Error('Audio element not created'));
         return;
       }
 
       currentAudio.value.onended = () => {
-        console.log('Audio: Playback ended naturally');
+        console.log('🎤 [AUDIO PLAY ENDED] Playback ended naturally');
         resolve();
         resetConversation();
       };
 
       currentAudio.value.onerror = (error) => {
-        console.error('Audio: Playback error:', error);
+        console.error('🎤 [AUDIO PLAY ERROR] Playback error:', error);
         // Clean up resources even on error
         try {
           if (currentAudio.value) {
@@ -664,13 +702,14 @@ const playResponseAudio = async (audioData: string) => {
             currentAudio.value.load();
           }
         } catch (e) {
-          console.warn('Error cleaning up failed audio:', e);
+          console.warn('🎤 [AUDIO PLAY ERROR] Error cleaning up failed audio:', e);
         }
         reject(new Error('Audio playback failed'));
       };
 
+      console.log('🎤 [AUDIO PLAY] Starting audio.play()');
       currentAudio.value.play().catch((playError) => {
-        console.error('Audio: Play promise rejected:', playError);
+        console.error('🎤 [AUDIO PLAY ERROR] Play promise rejected:', playError);
         // Clean up on play failure
         try {
           if (currentAudio.value) {
@@ -678,14 +717,14 @@ const playResponseAudio = async (audioData: string) => {
             currentAudio.value.load();
           }
         } catch (e) {
-          console.warn('Error cleaning up after play failure:', e);
+          console.warn('🎤 [AUDIO PLAY ERROR] Error cleaning up after play failure:', e);
         }
         reject(playError);
       });
     });
 
   } catch (error) {
-    console.error('Failed to play response audio:', error);
+    console.error('🎤 [AUDIO PLAY ERROR] Failed to play response audio:', error);
     await presentToast('Could not play audio response');
     resetConversation();
   }
