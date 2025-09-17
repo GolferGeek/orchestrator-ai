@@ -29,7 +29,15 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
   protected delegationContext?: string;
 
   constructor(private readonly services: OrchestratorAgentServicesContext) {
-    super(services.httpService);
+    // Pass LLM service so A2A short-circuit can handle converse/plan
+    super(
+      services.httpService,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      services.llmService,
+    );
     this.orchestratorFacadeService = services.orchestratorFacadeService;
   }
 
@@ -68,22 +76,21 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
         this.delegationContext,
       );
 
-      // Enhance response with orchestrator metadata if needed
-      if (
-        response &&
-        typeof response === 'object' &&
-        !response.metadata?.agentType
-      ) {
-        response.metadata = {
-          ...response.metadata,
+      // Enhance response metadata if object and normalize content field
+      if (response && typeof response === 'object') {
+        (response as any).metadata = {
+          ...(response as any).metadata,
           agentType: 'orchestrator' as const,
           agentName: this.getAgentName(),
           processedAt: new Date().toISOString(),
           mode: requestedMode || 'converse',
+          effectiveMethod,
         };
-        this.orchestratorLogger.log(
-          `🔍 DEBUG - Enhanced response with orchestrator metadata: ${JSON.stringify(response, null, 2)}`,
-        );
+        // A2A convention uses `response` for main text; ensure it's populated
+        const r: any = response as any;
+        if (typeof r.message === 'string' && (r.response === undefined || r.response === null)) {
+          r.response = r.message;
+        }
       }
 
       return response;

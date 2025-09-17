@@ -170,6 +170,9 @@ export interface LLMPreferencesState {
   lastUnifiedResponse: UnifiedLLMResponse | null;
   lastStandardizedError: StandardizedLLMError | null;
   responseProcessing: boolean;
+  // Cached system model selection from backend model-config
+  _systemModelSelection?: LLMSelection | null;
+  _systemModelLoaded?: boolean;
 }
 
 // Unified LLM response types (inline to avoid circular imports)

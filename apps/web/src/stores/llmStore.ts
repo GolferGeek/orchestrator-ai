@@ -51,6 +51,9 @@ export const useLLMStore = defineStore('llm', {
     lastUnifiedResponse: null as UnifiedLLMResponse | null,
     lastStandardizedError: null as StandardizedLLMError | null,
     responseProcessing: false,
+    // Cached system model selection from server model-config
+    _systemModelSelection: undefined as any,
+    _systemModelLoaded: false,
   }),
   getters: {
     // Effective sovereign mode (policy enforced OR user enabled)
@@ -279,6 +282,46 @@ export const useLLMStore = defineStore('llm', {
     },
   },
   actions: {
+    // Fetch and cache the global system model selection (DB-backed; env override not disclosed)
+    async ensureSystemModelSelection(force: boolean = false) {
+      if (!force && this._systemModelLoaded && this._systemModelSelection) return this._systemModelSelection;
+      try {
+        const resp = await apiService.get('/system/model-config/global');
+        const cfg = resp?.dbConfig || resp?.config || resp;
+        if (!cfg || typeof cfg !== 'object') {
+          this._systemModelLoaded = true;
+          this._systemModelSelection = null;
+          return null;
+        }
+        // Shape: { provider, model, parameters? } or { default: { provider, model, parameters? }, localOnly?: {..} }
+        const useLocal = this.effectiveSovereignMode && cfg.localOnly;
+        const selected = useLocal ? cfg.localOnly : (cfg.default || cfg);
+        const provider = selected?.provider;
+        const model = selected?.model;
+        if (provider && model) {
+          this._systemModelSelection = {
+            providerName: provider,
+            modelName: model,
+            temperature: selected?.parameters?.temperature ?? this.temperature,
+            sadafum: selected?.parameters?.sadafum ?? this.sadafum,
+            maxTokens: selected?.parameters?.maxTokens ?? this.maxTokens,
+          };
+        } else {
+          this._systemModelSelection = null;
+        }
+        this._systemModelLoaded = true;
+        return this._systemModelSelection;
+      } catch (e) {
+        this._systemModelLoaded = true;
+        this._systemModelSelection = null;
+        return null;
+      }
+    },
+
+    // Force refresh cached system model selection
+    async refreshSystemModelSelection() {
+      return this.ensureSystemModelSelection(true);
+    },
     // Initialize sovereign mode from localStorage and fetch policy
     async initializeSovereignMode() {
       this.sovereignLoading = true;
@@ -366,25 +409,29 @@ export const useLLMStore = defineStore('llm', {
       this.loadingProviders = true;
       this.providerError = undefined;
       try {
-        // Use unified API service
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL;
-        const authToken = localStorage.getItem('authToken');
-        
-        const response = await fetch(`${baseUrl}/providers`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
-          },
-        });
-        if (!response.ok) {
-          throw new Error(`Failed to fetch providers: ${response.statusText}`);
+        // Use shared apiService to inherit base URL and auth headers
+        let response = await apiService.get('/providers');
+        // apiService returns parsed JSON
+        let providers = Array.isArray(response) ? response : (response?.data ?? response ?? []);
+
+        // Fallback to names endpoint if empty or unexpected
+        if (!Array.isArray(providers) || providers.length === 0) {
+          try {
+            const names = await apiService.get('/providers/names');
+            if (Array.isArray(names) && names.length) {
+              providers = names.map((n: any) => ({ name: n.name, authType: 'api_key', status: 'active', createdAt: '', updatedAt: '' }));
+            }
+          } catch (secondaryError) {
+            // Keep original error context
+          }
         }
-        this.providers = await response.json();
-        
+
+        this.providers = providers;
         console.log(`Fetched ${this.providers.length} providers (filtering handled reactively)`);
-      } catch (error) {
-        this.providerError = error instanceof Error ? error.message : 'Failed to fetch providers';
+      } catch (error: any) {
+        const msg = error?.message || error?.response?.statusText || 'Failed to fetch providers';
+        this.providerError = msg;
+        console.error('Error fetching providers:', error);
       } finally {
         this.loadingProviders = false;
       }
@@ -410,22 +457,12 @@ export const useLLMStore = defineStore('llm', {
       this.loadingCommands = true;
       this.commandError = undefined;
       try {
-        // Use unified API service
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL;
-        const authToken = localStorage.getItem('authToken');
-        const response = await fetch(`${baseUrl}/cidafm/commands`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
-          },
-        });
-        if (!response.ok) {
-          throw new Error(`Failed to fetch CIDAFM commands: ${response.statusText}`);
-        }
-        this.cidafmCommands = await response.json();
-      } catch (error) {
-        this.commandError = error instanceof Error ? error.message : 'Failed to fetch CIDAFM commands';
+        const response = await apiService.get('/cidafm/commands');
+        this.cidafmCommands = Array.isArray(response) ? response : (response?.data ?? response ?? []);
+      } catch (error: any) {
+        const msg = error?.message || error?.response?.statusText || 'Failed to fetch CIDAFM commands';
+        this.commandError = msg;
+        console.error('Error fetching CIDAFM commands:', error);
       } finally {
         this.loadingCommands = false;
       }

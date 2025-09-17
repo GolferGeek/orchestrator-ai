@@ -35,6 +35,7 @@ export class PythonFunctionAgentBaseService extends A2AAgentBaseService {
       services.deliverablesService,
       services.deliverableVersionsService,
       services.tasksService, // Fix: Pass tasksService to enable deliverable creation
+      services.llmService,
       services.agentRegistrationService,
       services.jsonRpcProtocolService,
       services.loggingService,

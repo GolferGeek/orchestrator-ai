@@ -8,6 +8,7 @@
 const { execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const dotenv = require('dotenv');
 
 const CERTS_DIR = path.join(__dirname, '..', 'certs');
 const KEY_FILE = path.join(CERTS_DIR, 'localhost-key.pem');
@@ -18,6 +19,16 @@ console.log('🚀 Starting development server...\n');
 // Check if HTTPS should be enabled
 const forceHttps = process.env.VITE_ENFORCE_HTTPS === 'true';
 const httpsPreferred = process.env.VITE_PREFER_HTTPS === 'true' || forceHttps;
+
+// Ensure root .env is loaded so VITE_* vars are available to this launcher
+try {
+  const ROOT_ENV = path.join(__dirname, '..', '..', '..', '.env');
+  if (fs.existsSync(ROOT_ENV)) {
+    dotenv.config({ path: ROOT_ENV });
+  }
+} catch (e) {
+  // Non-fatal if .env is missing
+}
 
 if (httpsPreferred) {
   console.log('🔒 HTTPS mode requested');
@@ -51,9 +62,12 @@ if (httpsPreferred) {
 const env = { ...process.env };
 if (httpsPreferred && fs.existsSync(KEY_FILE) && fs.existsSync(CERT_FILE)) {
   env.VITE_ENFORCE_HTTPS = 'true';
-  console.log('🌐 Starting Vite with HTTPS on https://localhost:9443');
+  const httpsPort = process.env.VITE_HTTPS_PORT || '7543';
+  console.log(`🌐 Starting Vite with HTTPS on https://localhost:${httpsPort}`);
 } else {
-  console.log('🌐 Starting Vite with HTTP on http://localhost:9001');
+  // Default to 9001 for dev unless explicitly overridden
+  const httpPort = process.env.VITE_WEB_PORT || process.env.WEB_PORT || '9001';
+  console.log(`🌐 Starting Vite with HTTP on http://localhost:${httpPort}`);
 }
 
 // Start Vite development server

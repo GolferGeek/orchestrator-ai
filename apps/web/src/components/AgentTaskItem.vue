@@ -130,7 +130,7 @@
         
         <!-- LLM Information for assistant messages -->
         <LLMInfo
-          v-if="message.role === 'assistant' && llmUsed"
+          v-if="message.role === 'assistant' && llmUsed && ((message.metadata?.mode || '').toLowerCase() !== 'converse') && ((message.metadata?.mode || '').toLowerCase() !== 'plan')"
           :llmUsed="llmUsed"
           :usage="usage || undefined"
           :costCalculation="costCalculation || undefined"
@@ -269,15 +269,12 @@ const displayedDeliverable = computed(() => {
 });
 
 const willHideForDeliverable = computed(() => {
-  // Show deliverable callout instead of message content if this message has a deliverable
+  // Only hide content for Build mode. In Converse/Plan we always show text.
   const hasDeliverableId = hasBackendDeliverable.value;
   const isAssistantMessage = props.message.role === 'assistant';
-  
-  // Force reactivity by checking if the deliverable is loaded in the store
-  const deliverableLoaded = !!backendDeliverable.value;
-  
-  // Simple rule: If an assistant message has a deliverableId, show the callout instead of content
-  return hasDeliverableId && isAssistantMessage;
+  const mode = (props.message.metadata?.mode || '').toLowerCase();
+
+  return hasDeliverableId && isAssistantMessage && mode === 'build';
 });
 
 const renderedContent = computed(() => {
@@ -504,9 +501,14 @@ const privacySettings = computed(() => {
 });
 
 const showPrivacyIndicators = computed(() => {
-  // Only show for assistant messages with metadata
-  return props.message.role === 'assistant' && 
-         (props.message.metadata || privacyState.value);
+  // Suppress badges for informal modes and placeholders
+  const mode = (props.message.metadata?.mode || '').toLowerCase();
+  const isPlaceholder = !!props.message.metadata?.isPlaceholder;
+  if (isPlaceholder) return false;
+  if (mode === 'converse' || mode === 'plan') return false;
+
+  // Only show for assistant messages with metadata otherwise
+  return props.message.role === 'assistant' && (props.message.metadata || privacyState.value);
 });
 
 // Reactive LLM-based privacy indicators

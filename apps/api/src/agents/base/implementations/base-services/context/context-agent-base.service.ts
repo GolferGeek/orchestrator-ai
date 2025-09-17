@@ -33,6 +33,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       services.deliverablesService,
       services.deliverableVersionsService,
       services.tasksService, // Context agents need TasksService for deliverable auto-persistence
+      services.llmService,
       services.agentRegistrationService,
       services.jsonRpcProtocolService,
       services.loggingService,
@@ -128,6 +129,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           conversationId: params.conversationId, // Use proper conversation ID, not legacy sessionId
           userId: this.extractUserId(params), // Add user ID for LLM usage tracking
           dataClassification: 'internal', // Default for context agents
+          quick: params?.quick === true, // Fast local path in converse mode
           // Pass through the frontend model selection
           providerName: params.llmSelection?.providerName,
           modelName: params.llmSelection?.modelName,
@@ -158,6 +160,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
           callerName: agentName,
           conversationId: params.conversationId || params.taskId, // Use proper conversation ID
           dataClassification: 'internal', // Default for context agents
+          quick: params?.quick === true, // Fast local path in converse mode
           // Extract provider info from llmSelection for both PII policy and routing decisions
           providerName: params.llmSelection?.providerName,
           modelName: params.llmSelection?.modelName, // LLM service expects 'modelName'

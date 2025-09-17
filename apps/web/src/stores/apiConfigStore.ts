@@ -186,6 +186,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       // In a real implementation, this might call a discovery service
       // For now, we'll check for additional endpoints based on environment
       const baseUrls = [
+        // Prefer explicit VITE_WEB_PORT; default dev port remains 9001; 7101 only as configured
         `http://localhost:${import.meta.env.VITE_WEB_PORT || '9001'}`,
         // Add staging/production URLs based on environment
       ];
