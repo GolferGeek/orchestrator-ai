@@ -27,6 +27,7 @@ import {
 } from '../common/types/agent-conversations.types';
 import { ContextOptimizationService } from '../context-optimization/context-optimization.service';
 import { CentralizedRoutingService } from '../llms/centralized-routing.service';
+import { PIIService } from '../services/pii.service';
 import { SpeechService } from '../speech/speech.service';
 
 @Controller('agents')
@@ -41,6 +42,7 @@ export class DynamicAgentsController {
     private readonly taskStatusService: TaskStatusService,
     private readonly contextOptimizationService: ContextOptimizationService,
     private readonly centralizedRoutingService: CentralizedRoutingService,
+    private readonly piiService: PIIService,
     private readonly speechService: SpeechService,
   ) {}
 
@@ -213,16 +215,61 @@ export class DynamicAgentsController {
 
     // 🔒 PII POLICY CHECK - Block sensitive data before it reaches any agent
     this.logger.debug(`🔒 [DynamicAgentsController] Performing PII policy check for ${agentType}/${agentName}`);
-    const routingDecision = await this.centralizedRoutingService.determineRoute(
-      normalizedTaskRequest.prompt,
-      {
-        conversationId: normalizedTaskRequest.conversationId,
-        userId: currentUser?.id,
-        requestId: `agent-${agentType}-${agentName}-${Date.now()}`,
-        // Pass provider information for PII policy decisions
-        providerName: normalizedTaskRequest.llmSelection?.providerName,
+    
+    // Check PII policy directly without centralized routing
+    const piiResult = await this.piiService.checkPolicy(normalizedTaskRequest.prompt, {
+      conversationId: normalizedTaskRequest.conversationId,
+      userId: currentUser?.id,
+      requestId: `agent-${agentType}-${agentName}-${Date.now()}`,
+      providerName: normalizedTaskRequest.llmSelection?.providerName
+    });
+
+    // Create routing decision for compatibility with existing code
+    let routingDecision;
+    if (piiResult.metadata.showstopperDetected) {
+      // Block the request due to PII policy violation
+      routingDecision = {
+        provider: 'policy-blocked',
+        model: 'showstopper-pii',
+        isLocal: true,
+        fallbackUsed: false,
+        complexityScore: 0,
+        reasoningPath: piiResult.metadata.policyDecision.reasoningPath,
+        piiMetadata: piiResult.metadata,
+        originalPrompt: normalizedTaskRequest.prompt,
+        routeToAgent: false,
+        blockingReason: 'showstopper-pii',
+      };
+    } else {
+      // Simple model selection based on mode - no centralized routing needed
+      const isConversationMode = normalizedTaskRequest.method === 'converse' || normalizedTaskRequest.method === 'plan';
+      
+      let selectedProvider, selectedModel;
+      if (isConversationMode) {
+        // Use system model for conversation/plan mode
+        const systemConfig = JSON.parse(process.env.MODEL_CONFIG_GLOBAL_JSON || '{"provider":"ollama","model":"llama3.2:1b"}');
+        selectedProvider = systemConfig.provider;
+        selectedModel = systemConfig.model;
+        this.logger.debug(`🎯 [DynamicAgentsController] Using system model for ${normalizedTaskRequest.method} mode: ${selectedProvider}/${selectedModel}`);
+      } else {
+        // Use passed llmSelection for deliverable mode (build/process)
+        selectedProvider = normalizedTaskRequest.llmSelection?.providerName || 'ollama';
+        selectedModel = normalizedTaskRequest.llmSelection?.modelName || 'llama3.2:1b';
+        this.logger.debug(`🎯 [DynamicAgentsController] Using explicit model for ${normalizedTaskRequest.method} mode: ${selectedProvider}/${selectedModel}`);
       }
-    );
+      
+      routingDecision = {
+        provider: selectedProvider,
+        model: selectedModel,
+        isLocal: selectedProvider.toLowerCase() === 'ollama',
+        fallbackUsed: false,
+        complexityScore: 0,
+        reasoningPath: [`Simple mode-based routing: ${normalizedTaskRequest.method} mode`],
+        piiMetadata: piiResult.metadata,
+        originalPrompt: normalizedTaskRequest.prompt,
+        routeToAgent: true,
+      };
+    }
 
     // Check if request was blocked by PII policy
     if (routingDecision.provider === 'policy-blocked') {
