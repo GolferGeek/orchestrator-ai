@@ -2,8 +2,18 @@
 
 # Server Startup Script for Orchestrator AI
 # This script starts everything needed after a server restart
+# Usage: ./start-server.sh [production]
 
 set -e
+
+# Check if running in production mode
+IS_PRODUCTION=false
+if [ "$1" = "production" ]; then
+    IS_PRODUCTION=true
+    echo "Starting in PRODUCTION mode"
+else
+    echo "Starting in DEVELOPMENT mode"
+fi
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -91,41 +101,55 @@ fi
 # Check if Supabase is running
 if command -v supabase &> /dev/null; then
     echo -e "${YELLOW}Checking Supabase status...${NC}"
-    
+
+    # Determine which port to use based on mode
+    if [ "$IS_PRODUCTION" = true ]; then
+        SUPABASE_PORT=9010
+        SUPABASE_DB_PORT=9012
+        SUPABASE_STUDIO_PORT=9015
+        SUPABASE_CONFIG="$PROJECT_DIR/apps/api/supabase/config.production.toml"
+        echo -e "${BLUE}Using production Supabase configuration (port 9010)${NC}"
+    else
+        SUPABASE_PORT=7010
+        SUPABASE_DB_PORT=7012
+        SUPABASE_STUDIO_PORT=7015
+        SUPABASE_CONFIG="$PROJECT_DIR/apps/api/supabase/config.dev.toml"
+        echo -e "${BLUE}Using development Supabase configuration (port 7010)${NC}"
+    fi
+
     # Check if Supabase ports are already in use (indicating it's running)
     SUPABASE_RUNNING=false
-    
-    # Check for production Supabase ports (55321-55324)
-    if check_port 55321 && check_port 55322 && check_port 55323; then
-        echo -e "${GREEN}✅ Production Supabase appears to be running (ports 55321-55323 in use)${NC}"
+
+    if check_port $SUPABASE_PORT && check_port $SUPABASE_DB_PORT; then
+        echo -e "${GREEN}✅ Supabase appears to be running on port $SUPABASE_PORT${NC}"
+        echo -e "${BLUE}   API: http://127.0.0.1:$SUPABASE_PORT${NC}"
+        echo -e "${BLUE}   Database: postgres://postgres:postgres@127.0.0.1:$SUPABASE_DB_PORT/postgres${NC}"
+        echo -e "${BLUE}   Studio: http://127.0.0.1:$SUPABASE_STUDIO_PORT${NC}"
         SUPABASE_RUNNING=true
-        
-        # Try to get status, but don't fail if it doesn't work
-        echo -e "${YELLOW}Attempting to get Supabase status...${NC}"
-        if supabase status 2>/dev/null | grep -E "(API URL|DB URL|Studio URL)"; then
-            echo -e "${GREEN}✅ Supabase status retrieved successfully${NC}"
-        else
-            echo -e "${YELLOW}⚠️  Production Supabase running but status command failed${NC}"
-            echo -e "${YELLOW}This can happen during startup - continuing...${NC}"
-        fi
     fi
-    
+
     # If Supabase doesn't appear to be running, try to start it
     if [ "$SUPABASE_RUNNING" = false ]; then
-        echo -e "${YELLOW}Starting Supabase local development...${NC}"
-        
-        # Try to start Supabase, but handle port conflicts gracefully
-        if supabase start 2>&1 | tee /tmp/supabase_start.log; then
-            echo -e "${GREEN}✅ Supabase started successfully${NC}"
+        echo -e "${YELLOW}Starting Supabase on port $SUPABASE_PORT...${NC}"
+
+        # Navigate to API directory where Supabase is configured
+        cd "$PROJECT_DIR/apps/api"
+
+        # Try to start Supabase with appropriate config
+        if supabase start --config "$SUPABASE_CONFIG" 2>&1 | tee /tmp/supabase_start.log; then
+            echo -e "${GREEN}✅ Supabase started successfully on port $SUPABASE_PORT${NC}"
+            echo -e "${BLUE}   API: http://127.0.0.1:$SUPABASE_PORT${NC}"
+            echo -e "${BLUE}   Database: postgres://postgres:postgres@127.0.0.1:$SUPABASE_DB_PORT/postgres${NC}"
+            echo -e "${BLUE}   Studio: http://127.0.0.1:$SUPABASE_STUDIO_PORT${NC}"
         else
             # Check if the error was due to port conflicts
             if grep -q "port is already allocated" /tmp/supabase_start.log; then
                 echo -e "${YELLOW}⚠️  Port conflict detected - Supabase may already be running elsewhere${NC}"
                 echo -e "${YELLOW}This is normal if you have multiple instances running${NC}"
-                
-                # Check if ports are now available (production instance started)
-                if check_port 55321 && check_port 55322; then
-                    echo -e "${GREEN}✅ Production Supabase ports are active, continuing...${NC}"
+
+                # Check if ports are now available
+                if check_port $SUPABASE_PORT && check_port $SUPABASE_DB_PORT; then
+                    echo -e "${GREEN}✅ Supabase ports are active, continuing...${NC}"
                 else
                     echo -e "${RED}❌ Failed to start Supabase and ports not available${NC}"
                     echo "This may affect database functionality"
@@ -136,7 +160,10 @@ if command -v supabase &> /dev/null; then
                 echo "Check the log above for details"
             fi
         fi
-        
+
+        # Return to project directory
+        cd "$PROJECT_DIR"
+
         # Clean up temp log
         rm -f /tmp/supabase_start.log
     fi
@@ -190,7 +217,11 @@ fi
 if [ -f "apps/web/package.json" ]; then
     echo -e "${YELLOW}Building web app with current environment variables...${NC}"
     # Load environment variables and build
-    export $(grep -v '^#' .env | xargs)
+    if [ "$IS_PRODUCTION" = true ]; then
+        export $(grep -v '^#' .env.production | xargs)
+    else
+        export $(grep -v '^#' .env | xargs)
+    fi
     npm run build --workspace=apps/web
     echo -e "${GREEN}✅ Web app build completed${NC}"
 else
@@ -200,10 +231,19 @@ fi
 # Step 4: Check and start PM2 processes
 echo -e "\n${BLUE}📦 Checking PM2 processes...${NC}"
 if command -v pm2 &> /dev/null; then
+    # Select the appropriate ecosystem config
+    if [ "$IS_PRODUCTION" = true ]; then
+        ECOSYSTEM_CONFIG="ecosystem.production.config.js"
+    else
+        ECOSYSTEM_CONFIG="ecosystem.config.js"
+    fi
+
+    echo -e "${YELLOW}Using config: $ECOSYSTEM_CONFIG${NC}"
+
     # Check if PM2 daemon is running
     if ! pm2 list &> /dev/null; then
         echo -e "${YELLOW}Starting PM2 daemon...${NC}"
-        pm2 resurrect || pm2 start ecosystem.config.js
+        pm2 resurrect || pm2 start $ECOSYSTEM_CONFIG
     else
         # Check if our apps are running
         if pm2 list | grep -q "orchestrator-api.*online" && pm2 list | grep -q "orchestrator-web.*online"; then
@@ -211,7 +251,7 @@ if command -v pm2 &> /dev/null; then
             pm2 list
         else
             echo -e "${YELLOW}Starting PM2 apps...${NC}"
-            pm2 start ecosystem.config.js
+            pm2 start $ECOSYSTEM_CONFIG
             sleep 3
             pm2 list
         fi
@@ -302,11 +342,24 @@ pm2 list
 
 # Supabase Status
 echo -e "\n${BLUE}Supabase Status:${NC}"
-if command -v supabase &> /dev/null && supabase status >/dev/null 2>&1; then
-    echo -e "${GREEN}✅ Supabase local development running${NC}"
-    supabase status | grep -E "(API URL|DB URL|Studio URL)" | sed 's/^/  /'
+if [ "$IS_PRODUCTION" = true ]; then
+    if check_port 9010 && check_port 9012; then
+        echo -e "${GREEN}✅ Production Supabase running${NC}"
+        echo -e "  API URL: http://127.0.0.1:9010"
+        echo -e "  DB URL: postgres://postgres:postgres@127.0.0.1:9012/postgres"
+        echo -e "  Studio URL: http://127.0.0.1:9015"
+    else
+        echo -e "${YELLOW}⚠️  Production Supabase not running${NC}"
+    fi
 else
-    echo -e "${YELLOW}⚠️  Supabase not running or not installed${NC}"
+    if check_port 7010 && check_port 7012; then
+        echo -e "${GREEN}✅ Development Supabase running${NC}"
+        echo -e "  API URL: http://127.0.0.1:7010"
+        echo -e "  DB URL: postgres://postgres:postgres@127.0.0.1:7012/postgres"
+        echo -e "  Studio URL: http://127.0.0.1:7015"
+    else
+        echo -e "${YELLOW}⚠️  Development Supabase not running${NC}"
+    fi
 fi
 
 # Check external connectivity
