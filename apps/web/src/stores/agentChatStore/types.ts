@@ -66,6 +66,7 @@ export interface TaskExecutionOptions {
   agentName: string;
   taskId?: string;
   mode?: 'converse' | 'plan' | 'build';
+  timeoutSeconds?: number;
   metadata?: any; // Context metadata for version operations
 }
 

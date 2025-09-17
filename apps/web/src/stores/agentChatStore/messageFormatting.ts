@@ -176,17 +176,27 @@ export class MessageFormattingService {
   /**
    * Create a placeholder message for ongoing tasks
    */
-  createPlaceholderMessage(taskId: string): AgentChatMessage {
+  createPlaceholderMessage(taskId: string, mode?: string): AgentChatMessage {
+    // Friendlier, mode-aware placeholder bubble text
+    let content = 'Processing your request...';
+    const m = (mode || '').toLowerCase();
+    if (m === 'converse') {
+      content = 'One sec — thinking it through…';
+    } else if (m === 'plan') {
+      content = 'Sketching a quick plan…';
+    }
+
     return {
       id: `placeholder-${Date.now()}`,
       role: 'assistant' as const,
-      content: 'Processing your request...',
+      content,
       timestamp: new Date(),
       taskId,
       metadata: {
         isPlaceholder: true,
         isCompleted: false,
         completedSteps: [],
+        mode: m || undefined,
       },
     };
   }

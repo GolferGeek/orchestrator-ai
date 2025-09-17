@@ -74,6 +74,7 @@ export class ApiAgentBaseService
       undefined, // No deliverablesService for API agents
       undefined, // No deliverableVersionsService for API agents
       undefined, // No tasksService for API agents
+      services.llmService,
       services.agentRegistrationService,
       services.jsonRpcProtocolService,
       services.loggingService,

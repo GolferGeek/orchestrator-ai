@@ -620,25 +620,46 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
         }
       } as any;
 
-      await tasksService.createAgentTask(agentType!, agentName!, {
+      const taskResp = await tasksService.createAgentTask(agentType!, agentName!, {
         method: 'process',
         prompt: originalTask.prompt,
         conversationId,
         llmSelection,
         executionMode: 'immediate',
+        timeoutSeconds: 90,
+        // Ensure backend interprets this as a Build so deliverable gating allows persistence
+        params: {
+          mode: 'build',
+        },
       });
 
       // 4) Poll for a new version to appear for the same deliverable
       const start = Date.now();
-      const timeoutMs = 30000; // 30s
+      const timeoutMs = 90000; // 90s
       const intervalMs = 1000; // 1s
       let latest: DeliverableVersion | null = null;
+      const newTaskId = (taskResp && (taskResp as any).taskId) || undefined;
       while (Date.now() - start < timeoutMs) {
-        const versions = await deliverablesService.getVersionHistory(deliverableId);
-        const maxVersion = versions.reduce((max, v) => (v.versionNumber > max.versionNumber ? v : max), versions[0] || sourceVersion);
-        if (maxVersion && maxVersion.versionNumber > currentNumber) {
-          latest = maxVersion;
-          break;
+        // Prefer a precise check by taskId if available
+        if (newTaskId) {
+          const maybeDeliverable = await deliverablesService.findExistingDeliverable(conversationId, newTaskId);
+          if (maybeDeliverable) {
+            // Load versions and pick the one created by this task
+            const versions = await deliverablesService.getVersionHistory(maybeDeliverable.id);
+            const created = versions.find(v => v.taskId === newTaskId) || null;
+            if (created) {
+              latest = created;
+              break;
+            }
+          }
+        } else {
+          // Fallback: detect by version number increment
+          const versions = await deliverablesService.getVersionHistory(deliverableId);
+          const maxVersion = versions.reduce((max, v) => (v.versionNumber > max.versionNumber ? v : max), versions[0] || sourceVersion);
+          if (maxVersion && maxVersion.versionNumber > currentNumber) {
+            latest = maxVersion;
+            break;
+          }
         }
         await new Promise(res => setTimeout(res, intervalMs));
       }

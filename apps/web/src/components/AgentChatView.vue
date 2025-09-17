@@ -60,9 +60,29 @@
       </div>
     </div>
     <!-- Typing Indicator -->
-    <div v-if="isSendingMessage" class="typing-indicator">
+    <!-- Conversational/Planning thinking bubble -->
+    <div v-if="isSendingMessage && (chatMode === 'converse' || chatMode === 'plan')" class="prominent-thinking-indicator">
+      <div class="thinking-content">
+        <div class="thinking-avatar">
+          <ion-spinner name="dots" color="primary"></ion-spinner>
+        </div>
+        <div class="thinking-bubble">
+          <div class="thinking-text">
+            <div class="agent-thinking-name">{{ currentAgent?.name || 'Agent' }}</div>
+            <div class="thinking-message">{{ thinkingMessage }}</div>
+          </div>
+          <div class="thinking-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Default typing indicator for non-converse modes -->
+    <div v-else-if="isSendingMessage" class="typing-indicator">
       <ion-spinner size="small" />
-      <span>Agent is thinking...</span>
+      <span>Processing...</span>
     </div>
   </div>
 </template>
@@ -116,6 +136,15 @@ const isSendingMessage = computed(() =>
 const canSend = computed(() => 
   messageText.value.trim().length > 0 && currentAgent.value && !isSendingMessage.value
 );
+const chatMode = computed(() => agentChatStore.getActiveChatMode());
+
+// Informal thinking message for converse/plan
+const thinkingMessage = computed(() => {
+  const mode = (chatMode.value || '').toLowerCase();
+  if (mode === 'converse') return 'One sec — thinking it through…';
+  if (mode === 'plan') return 'Sketching a quick plan…';
+  return 'Processing…';
+});
 
 const conversationId = computed(() => 
   props.conversation?.id || agentChatStore.getActiveConversation()?.id
@@ -297,5 +326,73 @@ watch(() => conversationId.value, (newConversationId, oldConversationId) => {
   padding: 8px 16px;
   font-size: 0.9em;
   color: var(--ion-color-medium);
+}
+/* Prominent thinking indicator (converse mode) */
+.prominent-thinking-indicator {
+  margin-bottom: 16px;
+  padding: 0 16px;
+}
+.thinking-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.thinking-avatar {
+  width: 32px;
+  height: 32px;
+  background-color: var(--ion-color-medium-tint);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.thinking-bubble {
+  background: var(--ion-color-light-shade);
+  padding: 12px 16px;
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  flex: 1;
+  max-width: 300px;
+}
+.thinking-text {
+  margin-bottom: 8px;
+}
+.agent-thinking-name {
+  font-size: 0.8em;
+  font-weight: bold;
+  color: var(--ion-color-medium-shade);
+  margin-bottom: 2px;
+}
+.thinking-message {
+  font-size: 0.9em;
+  color: var(--ion-color-medium);
+  font-style: italic;
+}
+.thinking-dots {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-start;
+}
+.dot {
+  width: 6px;
+  height: 6px;
+  background-color: var(--ion-color-medium);
+  border-radius: 50%;
+  animation: thinking-pulse 1.4s infinite ease-in-out;
+}
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+.dot:nth-child(3) { animation-delay: 0s; }
+@keyframes thinking-pulse {
+  0%, 80%, 100% { 
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% { 
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

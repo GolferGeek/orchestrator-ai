@@ -378,17 +378,26 @@ export class DynamicAgentsController {
       const executionMode = normalizedTaskRequest.executionMode;
       this.logger.log(`🚀 Processing task ${task.id} in ${executionMode} mode - will await completion`);
 
-      // 🔍 DEBUG: Log before calling processTask
-      this.logger.debug(`🎯 [DynamicAgentsController] About to call processTask on agent: ${agentName}`);
+      // 🔍 DEBUG: Log before calling JSON-RPC processing
+      this.logger.debug(`🎯 [DynamicAgentsController] About to call processJsonRpcRequest on agent: ${agentName}`);
       this.logger.debug(`🎯 [DynamicAgentsController] Agent instance type: ${agentInstance.constructor.name}`);
       this.logger.debug(`🎯 [DynamicAgentsController] Task request method: ${authenticatedTaskRequest.method}`);
       this.logger.debug(`🎯 [DynamicAgentsController] Task request prompt: ${authenticatedTaskRequest.prompt?.substring(0, 100)}...`);
 
-      // All modes now await the result for proper A2A behavior
-      const result = await agentInstance.processTask(authenticatedTaskRequest);
+      // Wrap into JSON-RPC request to use the normalized A2A path
+      const jsonRpcRequest = {
+        jsonrpc: '2.0',
+        id: task.id,
+        method: authenticatedTaskRequest.method || 'converse',
+        params: authenticatedTaskRequest,
+      };
 
-      // 🔍 DEBUG: Log the result from processTask
-      this.logger.debug(`🎯 [DynamicAgentsController] processTask completed for ${agentName}`);
+      // All modes await the result for proper A2A behavior
+      const rpcResponse = await (agentInstance as any).processJsonRpcRequest(jsonRpcRequest);
+      const result = rpcResponse?.result ?? rpcResponse; // Unwrap JSON-RPC result
+
+      // 🔍 DEBUG: Log the result from JSON-RPC processing
+      this.logger.debug(`🎯 [DynamicAgentsController] processJsonRpcRequest completed for ${agentName}`);
       this.logger.debug(`🎯 [DynamicAgentsController] Result type: ${typeof result}`);
       this.logger.debug(`🎯 [DynamicAgentsController] Result keys: ${result ? Object.keys(result).join(', ') : 'null'}`);
       this.logger.debug(`🎯 [DynamicAgentsController] Result success: ${result?.success}`);

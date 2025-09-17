@@ -13,8 +13,8 @@ export class TaskExecutionService {
   async createAndExecuteTask(
     options: TaskExecutionOptions,
     handlers: {
-      onPlaceholder: (taskId: string) => void;
-      onCompletion: (taskId: string) => void;
+      onPlaceholder: (taskId: string, mode?: string) => void;
+      onCompletion: (taskId: string, immediateTask?: any) => void;
       onStatusUpdate: (conversationId: string, taskId: string, statusUpdate: any) => void;
       // onImmediateResult removed - all modes use consistent flow
     }
@@ -23,7 +23,7 @@ export class TaskExecutionService {
     
     // Create placeholder message FIRST so WebSocket events can find it
     if (taskId) {
-      handlers.onPlaceholder(taskId);
+      handlers.onPlaceholder(taskId, options.mode);
     }
     
     // For WebSocket mode, set up subscriptions AFTER placeholder exists
@@ -43,9 +43,12 @@ export class TaskExecutionService {
         llmSelection: options.llmSelection,
         executionMode: options.executionMode,
         taskId: options.taskId,
+        timeoutSeconds: options.timeoutSeconds ?? (options.mode === 'build' ? 90 : 60),
         // Pass mode in params for backend branching and deliverable gating
         params: {
           mode: options.mode || 'converse',
+          quick: options.mode === 'converse' ? true : undefined,
+          noDeliverable: options.mode === 'converse' ? true : undefined,
         },
         metadata: options.metadata, // Pass context metadata to backend
       }
@@ -89,7 +92,7 @@ export class TaskExecutionService {
       throw new Error(`Backend error: ${executionMode} mode returned pending status for task ${task.taskId} - async call should have waited`);
     }
     
-    handlers.onCompletion(task.taskId);
+    handlers.onCompletion(task.taskId, task);
   }
 
   /**

@@ -64,8 +64,8 @@
         
         <!-- Messages -->
         <div class="messages-container" ref="messagesContainer">
-          <!-- Prominent thinking indicator -->
-          <div v-if="isSendingMessage" class="prominent-thinking-indicator">
+          <!-- Prominent thinking indicator (Converse/Plan modes) -->
+          <div v-if="isSendingMessage && (currentChatMode === 'converse' || currentChatMode === 'plan')" class="prominent-thinking-indicator">
             <div class="thinking-content">
               <div class="thinking-avatar">
                 <ion-spinner name="dots" color="primary"></ion-spinner>
@@ -73,7 +73,7 @@
               <div class="thinking-bubble">
                 <div class="thinking-text">
                   <div class="agent-thinking-name">{{ currentAgent?.name || 'Agent' }}</div>
-                  <div class="thinking-message">is thinking...</div>
+                  <div class="thinking-message">{{ thinkingMessage }}</div>
                 </div>
                 <div class="thinking-dots">
                   <span class="dot"></span>
@@ -155,7 +155,7 @@
         <!-- Typing Indicator -->
         <div v-if="isSendingMessage" class="typing-indicator">
           <ion-spinner size="small" />
-          <span>Agent is thinking...</span>
+          <span>Processing...</span>
         </div>
       </div>
       <!-- Work Product Pane (Deliverable or Project) -->
@@ -317,6 +317,14 @@ const canSend = computed(() => {
          !isSendingMessage.value && 
          currentAgent.value &&
          !uiStore.isConversationalMode;
+});
+const currentChatMode = computed(() => props.conversation?.chatMode || agentChatStore.getActiveChatMode());
+// Informal thinking message for converse/plan
+const thinkingMessage = computed(() => {
+  const mode = (currentChatMode.value || '').toLowerCase();
+  if (mode === 'converse') return 'One sec — thinking it through…';
+  if (mode === 'plan') return 'Sketching a quick plan…';
+  return 'Processing…';
 });
 const hasActiveWorkProduct = computed(() => {
   const result = activeWorkProduct.value !== null;
