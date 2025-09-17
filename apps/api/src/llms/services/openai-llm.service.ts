@@ -117,9 +117,19 @@ export class OpenAILLMService extends BaseLLMService {
         apiParams.temperature = normalizedConfig.temperature;
       }
 
-      // Add max_tokens if specified
+      // Add max_tokens or max_completion_tokens based on model requirements
       if (params.options?.maxTokens ?? normalizedConfig.maxTokens) {
-        apiParams.max_tokens = params.options?.maxTokens ?? normalizedConfig.maxTokens;
+        const maxTokensValue = params.options?.maxTokens ?? normalizedConfig.maxTokens;
+        
+        // Check if model requires max_completion_tokens instead of max_tokens
+        if (this.requiresMaxCompletionTokens(normalizedConfig.model)) {
+          apiParams.max_completion_tokens = maxTokensValue;
+          this.logger.debug(
+            `Using max_completion_tokens for model ${normalizedConfig.model}: ${maxTokensValue}`
+          );
+        } else {
+          apiParams.max_tokens = maxTokensValue;
+        }
       }
 
       // Make OpenAI API call
@@ -206,6 +216,17 @@ export class OpenAILLMService extends BaseLLMService {
    */
   private isO1SeriesModel(model: string): boolean {
     return model.startsWith('o1-') || model === 'o4-mini';
+  }
+
+  /**
+   * Check if a model requires max_completion_tokens instead of max_tokens
+   * This includes o1 models and GPT-5 models
+   */
+  private requiresMaxCompletionTokens(model: string): boolean {
+    return model.startsWith('o1-') || 
+           model === 'o4-mini' || 
+           model.startsWith('gpt-5') ||
+           model.startsWith('chatgpt-4o-latest');
   }
 
   /**
