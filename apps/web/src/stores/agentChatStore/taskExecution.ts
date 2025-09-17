@@ -2,6 +2,9 @@ import tasksService from '@/services/tasksService';
 import { websocketHandler } from './websocketHandler';
 import type { TaskExecutionOptions, ExecutionMode, AgentConversation } from './types';
 
+// Agent task timeout configuration (in seconds)
+const AGENT_TASK_TIMEOUT_SECONDS = parseInt(import.meta.env.VITE_API_TIMEOUT_MS || '120000', 10) / 1000;
+
 /**
  * Service for handling task execution in different modes
  */
@@ -43,7 +46,7 @@ export class TaskExecutionService {
         llmSelection: options.llmSelection,
         executionMode: options.executionMode,
         taskId: options.taskId,
-        timeoutSeconds: options.timeoutSeconds ?? (options.mode === 'build' ? 90 : 60),
+        timeoutSeconds: options.timeoutSeconds ?? (options.mode === 'build' ? AGENT_TASK_TIMEOUT_SECONDS : 60),
         // Pass mode in params for backend branching and deliverable gating
         params: {
           mode: options.mode || 'converse',

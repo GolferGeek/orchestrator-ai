@@ -79,7 +79,7 @@ export class TasksService {
         params: dto.params || {},
         status: 'pending',
         progress: 0,
-        timeout_seconds: dto.timeoutSeconds || 90,
+        timeout_seconds: dto.timeoutSeconds || parseInt(process.env.AGENT_TASK_TIMEOUT_SECONDS || '120', 10),
         metadata: dto.metadata || {},
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
