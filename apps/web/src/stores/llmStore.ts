@@ -19,7 +19,6 @@ export const useLLMStore = defineStore('llm', {
     selectedCIDAFMCommands: [],
     customModifiers: [],
     temperature: 0.7,
-    sadafum: 0.5,
     maxTokens: undefined,
     providers: [],
     models: [],
@@ -94,7 +93,6 @@ export const useLLMStore = defineStore('llm', {
         customOptions: {
           customModifiers: this.customModifiers,
           temperatureOverride: this.temperature !== 0.7 ? this.temperature : undefined,
-          sadafum: this.sadafum,
           maxTokensOverride: this.maxTokens,
         },
       };
@@ -103,7 +101,6 @@ export const useLLMStore = defineStore('llm', {
         modelName: this.selectedModel?.modelName,
         cidafmOptions: Object.keys(cidafmOptions).some(key => cidafmOptions[key as keyof CIDAFMOptions] !== undefined) ? cidafmOptions : undefined,
         temperature: this.temperature,
-        sadafum: this.sadafum,
         maxTokens: this.maxTokens,
       };
     },
@@ -303,7 +300,6 @@ export const useLLMStore = defineStore('llm', {
             providerName: provider,
             modelName: model,
             temperature: selected?.parameters?.temperature ?? this.temperature,
-            sadafum: selected?.parameters?.sadafum ?? this.sadafum,
             maxTokens: selected?.parameters?.maxTokens ?? this.maxTokens,
           };
         } else {
@@ -590,11 +586,6 @@ export const useLLMStore = defineStore('llm', {
     setTemperature(temperature: number) {
       this.temperature = Math.max(0, Math.min(2, temperature));
     },
-    // Set Sadafum (0.0 - 1.0)
-    setSadafum(value: number) {
-      const clamped = Math.max(0, Math.min(1, value));
-      this.sadafum = clamped;
-    },
     // Set max tokens
     setMaxTokens(maxTokens: number | undefined) {
       this.maxTokens = maxTokens;
@@ -629,7 +620,6 @@ export const useLLMStore = defineStore('llm', {
           this.selectedCIDAFMCommands = preferences.selectedCIDAFMCommands || [];
           this.customModifiers = preferences.customModifiers || [];
           this.temperature = preferences.temperature ?? 0.7;
-          this.sadafum = preferences.sadafum ?? 0.5;
           this.maxTokens = preferences.maxTokens;
         }
       } catch (error) {
@@ -645,7 +635,6 @@ export const useLLMStore = defineStore('llm', {
           selectedCIDAFMCommands: this.selectedCIDAFMCommands,
           customModifiers: this.customModifiers,
           temperature: this.temperature,
-          sadafum: this.sadafum,
           maxTokens: this.maxTokens,
         };
         localStorage.setItem('llm-preferences', JSON.stringify(preferences));

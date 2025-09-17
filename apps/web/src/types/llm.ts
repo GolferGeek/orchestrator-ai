@@ -53,7 +53,6 @@ export interface LLMSelection {
   modelName?: string;
   cidafmOptions?: CIDAFMOptions;
   temperature?: number;
-  sadafum?: number;
   maxTokens?: number;
 }
 export interface LLMUsageMetrics {
@@ -135,7 +134,6 @@ export interface LLMPreferencesState {
   selectedCIDAFMCommands: string[];
   customModifiers: string[];
   temperature: number;
-  sadafum: number;
   maxTokens?: number;
   // Available options
   providers: Provider[];
