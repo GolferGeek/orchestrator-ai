@@ -581,9 +581,17 @@ Format the response as a well-structured marketing content package with clear se
       finalResult = JSON.parse(finalPackage);
     } catch {
       // If JSON parsing fails, format the content as marketing package
+      // Extract just the content strings from agent outputs
+      const contentPieces: Record<string, any> = {};
+      state.agentOutputs.forEach((value, key) => {
+        contentPieces[key] = typeof value === 'object' && value.content
+          ? value.content
+          : value;
+      });
+
       finalResult = {
         marketing_content_package: finalPackage,
-        content_pieces: Object.fromEntries(state.agentOutputs),
+        content_pieces: contentPieces,
         evaluations: Object.fromEntries(state.evaluationResults),
         ready_to_use: true,
       };
@@ -605,13 +613,21 @@ Format the response as a well-structured marketing content package with clear se
       },
     };
   } catch (error) {
-    // Fallback to organized raw outputs
+    // Fallback to organized raw outputs - ensure content is properly extracted
+    const contentPieces: Record<string, any> = {};
+    state.agentOutputs.forEach((value, key) => {
+      // Extract just the content string if it's nested in an object
+      contentPieces[key] = typeof value === 'object' && value.content
+        ? value.content
+        : value;
+    });
+
     return {
       ...state,
       finalContent: {
         marketing_content_package:
           'Marketing content generation encountered an error, but here are the individual pieces created by our specialist agents:',
-        content_pieces: Object.fromEntries(state.agentOutputs),
+        content_pieces: contentPieces,
         evaluations: Object.fromEntries(state.evaluationResults),
         synthesis_error: error instanceof Error ? error.message : String(error),
         note: 'Each content piece above was created by a specialist agent and can be used individually for your marketing efforts.',
@@ -699,7 +715,7 @@ ${Object.entries(state.finalContent.content_pieces || {})
   .map(
     ([agent, piece]: [string, any]) =>
       `### ${agent}
-${piece.content || piece}
+${typeof piece === 'object' ? (piece.content || JSON.stringify(piece, null, 2)) : piece}
 `,
   )
   .join('\n')}`
