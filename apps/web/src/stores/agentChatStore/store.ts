@@ -31,6 +31,9 @@ import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent, Pending
 // Pre-generated task ID for WebSocket mode
 let preGeneratedTaskId: string | undefined;
 
+// Agent task timeout configuration (in seconds)
+const AGENT_TASK_TIMEOUT_SECONDS = parseInt(import.meta.env.VITE_API_TIMEOUT_MS || '120000', 10) / 1000;
+
 interface AgentChatState {
   conversations: AgentConversation[];
   activeConversationId: string | null;
@@ -187,7 +190,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         agentName: activeConversation.agent.name,
         taskId: preGeneratedTaskId,
         mode,
-        timeoutSeconds: mode === 'build' ? 90 : 60,
+        timeoutSeconds: mode === 'build' ? AGENT_TASK_TIMEOUT_SECONDS : 60,
       };
 
       // Track plan/build dispatch from CTA or acceptance
@@ -517,7 +520,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           agentName: activeConversation.agent.name,
           taskId: preGeneratedTaskId,
           mode: chatMode,
-          timeoutSeconds: chatMode === 'build' ? 90 : 60,
+          timeoutSeconds: chatMode === 'build' ? AGENT_TASK_TIMEOUT_SECONDS : 60,
         };
 
         // Track plan/build when dispatched from regular send
@@ -634,7 +637,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           agentName: activeConversation.agent.name,
           taskId: preGeneratedTaskId,
           mode: chatMode2,
-          timeoutSeconds: chatMode2 === 'build' ? 90 : 60,
+          timeoutSeconds: chatMode2 === 'build' ? AGENT_TASK_TIMEOUT_SECONDS : 60,
           metadata: enhancedMetadata, // Include context metadata with conversationId
         };
 

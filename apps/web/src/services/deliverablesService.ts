@@ -115,7 +115,7 @@ class DeliverablesService {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 90000,
+      timeout: parseInt(import.meta.env.VITE_API_TIMEOUT_MS || '120000', 10),
     });
     // Add auth token to requests
     this.axiosInstance.interceptors.request.use((config) => {

@@ -239,6 +239,9 @@ async function selectAgentTeam(
     message?: string,
   ) => void,
 ): Promise<SwarmWorkflowState> {
+  // Small delay to ensure previous step's completion is processed
+  await new Promise(resolve => setTimeout(resolve, 100));
+
   progressCallback?.(
     'Selecting agent team',
     1,
@@ -540,7 +543,10 @@ async function synthesizeFinalContent(
   const allContent = Array.from(state.agentOutputs.entries());
   const allEvaluations = Array.from(state.evaluationResults.entries());
 
-  const synthesisPrompt = `Create a final, optimized content package based on agent outputs and evaluations:
+  const synthesisPrompt = `Create a final, optimized content package for this marketing request:
+
+ORIGINAL REQUEST:
+"${state.originalRequest}"
 
 AGENT OUTPUTS:
 ${allContent.map(([name, output]) => `${name}:\n${output.content}`).join('\n\n')}
@@ -553,17 +559,19 @@ ${allEvaluations
   )
   .join('\n\n')}
 
-Create a comprehensive MARKETING CONTENT PACKAGE that:
+Create a comprehensive MARKETING CONTENT PACKAGE that directly addresses the original request:
 1. Incorporates the best elements from each specialist agent
 2. Implements evaluation recommendations for maximum impact
-3. Provides ready-to-use marketing content across multiple channels
+3. Provides ready-to-use marketing content that fulfills the specific request
 4. Includes actionable recommendations and next steps
+
+IMPORTANT: The content MUST be specifically about what was requested ("${state.originalRequest}"), not generic marketing examples.
 
 Format the response as a well-structured marketing content package with clear sections for each content type. Include headlines, copy, and implementation guidance. Make it immediately useful for marketing execution.`;
 
   try {
     const finalPackage = await llmService.generateResponse(
-      `You are a senior marketing coordinator. Synthesize agent outputs into a cohesive, optimized MARKETING CONTENT PACKAGE. Create ready-to-use marketing materials, not technical documentation. Focus on compelling copy, clear messaging, and actionable content.`,
+      `You are a senior marketing coordinator. Synthesize agent outputs into a cohesive, optimized MARKETING CONTENT PACKAGE that directly addresses the user's specific request. Create ready-to-use marketing materials that fulfill the exact needs stated in the original request. Do not create generic examples - focus on the actual topic/product/service requested.`,
       synthesisPrompt,
       { 
         temperature: 0.4, 
@@ -578,7 +586,26 @@ Format the response as a well-structured marketing content package with clear se
     // Try to parse as JSON, but if it fails, use the raw content
     let finalResult;
     try {
-      finalResult = JSON.parse(finalPackage);
+      const parsed = JSON.parse(finalPackage);
+      // If the parsed result has a 'content' field (from LLM response wrapper), extract it
+      if (parsed.content) {
+        // Extract content pieces from agent outputs
+        const contentPieces: Record<string, any> = {};
+        state.agentOutputs.forEach((value, key) => {
+          contentPieces[key] = typeof value === 'object' && value.content
+            ? value.content
+            : value;
+        });
+
+        finalResult = {
+          marketing_content_package: parsed.content,
+          content_pieces: contentPieces,
+          evaluations: Object.fromEntries(state.evaluationResults),
+          ready_to_use: true,
+        };
+      } else {
+        finalResult = parsed;
+      }
     } catch {
       // If JSON parsing fails, format the content as marketing package
       // Extract just the content strings from agent outputs
@@ -707,16 +734,44 @@ async function executeMarketingSwarm(
       state.finalContent.marketing_content_package
         ? `# 📋 Marketing Content Package
 
-${state.finalContent.marketing_content_package}
+${(() => {
+  const pkg = state.finalContent.marketing_content_package;
+  // If it's an object with a 'content' field (from LLM response), extract just the content
+  if (typeof pkg === 'object' && pkg.content) {
+    return pkg.content;
+  }
+  // If it's already a string, use it directly
+  if (typeof pkg === 'string') {
+    return pkg;
+  }
+  // Otherwise format the object (but exclude metadata)
+  if (typeof pkg === 'object') {
+    const { metadata, ...contentOnly } = pkg;
+    return JSON.stringify(contentOnly, null, 2);
+  }
+  return pkg;
+})()}
 
 ## Individual Content Pieces
 
 ${Object.entries(state.finalContent.content_pieces || {})
   .map(
-    ([agent, piece]: [string, any]) =>
-      `### ${agent}
-${typeof piece === 'object' ? (piece.content || JSON.stringify(piece, null, 2)) : piece}
-`,
+    ([agent, piece]: [string, any]) => {
+      let content = piece;
+      // Extract content if it's an object with a 'content' field
+      if (typeof piece === 'object' && piece.content) {
+        content = piece.content;
+      } else if (typeof piece === 'object' && piece.metadata) {
+        // If there's metadata, exclude it
+        const { metadata, ...contentOnly } = piece;
+        content = JSON.stringify(contentOnly, null, 2);
+      } else if (typeof piece === 'object') {
+        content = JSON.stringify(piece, null, 2);
+      }
+      return `### ${agent}
+${content}
+`;
+    }
   )
   .join('\n')}`
         : JSON.stringify(state.finalContent, null, 2);

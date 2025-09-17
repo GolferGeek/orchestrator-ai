@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia';
 import { ref, computed, reactive } from 'vue';
 import { useAuthStore } from './authStore';
+
+// Agent task timeout configuration (in seconds)
+const AGENT_TASK_TIMEOUT_SECONDS = parseInt(import.meta.env.VITE_API_TIMEOUT_MS || '120000', 10) / 1000;
+const AGENT_TASK_TIMEOUT_MS = AGENT_TASK_TIMEOUT_SECONDS * 1000;
 import type { 
   Deliverable,
   DeliverableVersion,
@@ -618,13 +622,49 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
         }
       } as any;
 
+      // Load conversation history to filter out the previous deliverable response
+      let filteredConversationHistory: any[] = [];
+      try {
+        const { useAgentChatStore } = await import('@/stores/agentChatStore');
+        const chatStore = useAgentChatStore();
+        const conversation = chatStore.getConversationById(conversationId);
+
+        if (conversation?.messages) {
+          // Filter out any assistant messages that contain this deliverable
+          // We want to exclude the previous deliverable response from the history
+          filteredConversationHistory = conversation.messages
+            .filter(msg => {
+              // Keep all user messages
+              if (msg.role === 'user') return true;
+
+              // Exclude assistant messages that contain this specific deliverable
+              const hasDeliverable = (msg as any).deliverableId === deliverableId ||
+                                   msg.metadata?.deliverableId === deliverableId;
+              return !hasDeliverable;
+            })
+            .map(msg => ({
+              role: msg.role,
+              content: msg.content,
+              timestamp: msg.timestamp.toISOString(),
+              taskId: msg.taskId,
+              metadata: msg.metadata
+            }));
+
+          console.log(`🔄 Filtered conversation history for rerun: ${filteredConversationHistory.length} messages (excluded deliverable response)`);
+        }
+      } catch (e) {
+        console.warn('Could not load conversation history for filtering, backend will use full history', e);
+      }
+
       const taskResp = await tasksService.createAgentTask(agentType!, agentName!, {
         method: 'process',
         prompt: originalTask.prompt,
         conversationId,
         llmSelection,
         executionMode: 'immediate',
-        timeoutSeconds: 90,
+        timeoutSeconds: AGENT_TASK_TIMEOUT_SECONDS,
+        // Pass filtered conversation history if we have it
+        ...(filteredConversationHistory.length > 0 ? { conversationHistory: filteredConversationHistory } : {}),
         // Ensure backend interprets this as a Build so deliverable gating allows persistence
         params: {
           mode: 'build',
@@ -633,7 +673,7 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
 
       // 4) Poll for a new version to appear for the same deliverable
       const start = Date.now();
-      const timeoutMs = 90000; // 90s
+      const timeoutMs = AGENT_TASK_TIMEOUT_MS;
       const intervalMs = 1000; // 1s
       let latest: DeliverableVersion | null = null;
       const newTaskId = (taskResp && (taskResp as any).taskId) || undefined;

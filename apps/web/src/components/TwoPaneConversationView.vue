@@ -30,7 +30,6 @@
           <ion-icon :icon="showWorkProductPane ? eyeOffOutline : eyeOutline" />
           {{ showWorkProductPane ? 'Hide' : 'Show' }} {{ getWorkProductLabel() }}
         </ion-button>
-        <TaskExecutionControls />
       </div>
     </div>
     <div class="panes-container">
@@ -135,21 +134,18 @@
               >
                 <ion-icon :icon="settingsOutline" />
               </ion-button>
-              <!-- Send Button -->
-              <ion-button
+              <!-- Mode-aware Send Button -->
+              <ChatModeSendButton
                 slot="end"
-                type="submit"
                 :disabled="!canSend || uiStore.isConversationalMode"
-                fill="clear"
-              >
-                <ion-icon :icon="sendOutline" />
-              </ion-button>
+                @send="sendMessage"
+              />
             </ion-item>
           </form>
-          <!-- Compact LLM + Mode Controls -->
+          <!-- Compact LLM + Mode + Execution Controls -->
           <div class="llm-controls">
             <CompactLLMControl />
-            <ChatModeControl />
+            <TaskExecutionControls />
           </div>
         </div>
         <!-- Typing Indicator -->
@@ -272,8 +268,8 @@ import { useUiStore } from '@/stores/uiStore';
 import type { AgentChatMessage } from '@/stores/agentChatStore/types';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
-import ChatModeControl from './ChatModeControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
+import ChatModeSendButton from './ChatModeSendButton.vue';
 import DeliverableDisplay from './DeliverableDisplay.vue';
 import ProjectDisplay from './ProjectDisplay.vue';
 import DeliverableMergeView from './DeliverableMergeView.vue';
@@ -381,10 +377,16 @@ const handleSpeechError = (error: any) => {
 };
 
 // Methods
-const sendMessage = async () => {
+const sendMessage = async (mode?: 'converse' | 'plan' | 'build') => {
   if (!canSend.value) return;
   const content = messageText.value.trim();
   messageText.value = '';
+
+  // If mode is provided, set it before sending
+  if (mode) {
+    agentChatStore.setChatMode(mode);
+  }
+
   try {
     await agentChatStore.sendMessage(content);
     scrollToBottom();
@@ -564,12 +566,32 @@ const canExecuteRerun = computed(() => {
 });
 
 const executeRerunWithConfig = async (
-  capturedRerunData: { deliverable: any; version: any }, 
+  capturedRerunData: { deliverable: any; version: any },
   llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number }
 ) => {
-  // Create a user message for the rerun request
-  const rerunMessage = `🔄 Regenerating deliverable "${capturedRerunData.deliverable.title}" with ${llmConfig.provider}/${llmConfig.model}`;
-  
+  // Find the original user message that generated this deliverable
+  let originalUserPrompt = '';
+  if (props.conversation && props.conversation.messages) {
+    // Find the last user message in the conversation
+    // This would be the message that triggered the deliverable creation
+    const userMessages = props.conversation.messages.filter(msg => msg.role === 'user');
+    if (userMessages.length > 0) {
+      // Get the last user message
+      originalUserPrompt = userMessages[userMessages.length - 1].content;
+    }
+  }
+
+  // Use original prompt if found, otherwise create a descriptive message
+  const rerunMessage = originalUserPrompt ||
+    `🔄 Regenerating deliverable "${capturedRerunData.deliverable.title}" with ${llmConfig.provider}/${llmConfig.model}`;
+
+  // Log whether we found the original prompt
+  if (originalUserPrompt) {
+    console.log('✅ Found original user prompt for rerun:', originalUserPrompt);
+  } else {
+    console.log('⚠️ Could not find original prompt, using descriptive message');
+  }
+
   try {
     // Add user message to conversation
     const userMessage: AgentChatMessage = {
@@ -580,7 +602,8 @@ const executeRerunWithConfig = async (
       metadata: {
         isRerunRequest: true,
         originalVersionId: capturedRerunData.version.id,
-        rerunLLMConfig: llmConfig
+        rerunLLMConfig: llmConfig,
+        isRegeneratedPrompt: !!originalUserPrompt  // Track if we found the original
       }
     };
 

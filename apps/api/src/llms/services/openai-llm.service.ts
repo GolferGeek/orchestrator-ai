@@ -1,16 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseLLMService } from './base-llm.service';
-import { 
-  GenerateResponseParams, 
-  LLMResponse, 
+import {
+  GenerateResponseParams,
+  LLMResponse,
   LLMServiceConfig,
-  ResponseMetadata 
+  ResponseMetadata
 } from './llm-interfaces';
 import { PIIService } from '../../services/pii.service';
 import { DictionaryPseudonymizerService, DictionaryPseudonymMapping } from '../../services/dictionary-pseudonymizer.service';
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import OpenAI from 'openai';
+import { getModelRestrictions } from '../config/model-restrictions.config';
 
 /**
  * OpenAI-specific response metadata extension
@@ -119,8 +120,17 @@ export class OpenAILLMService extends BaseLLMService {
 
       // Add max_tokens or max_completion_tokens based on model requirements
       if (params.options?.maxTokens ?? normalizedConfig.maxTokens) {
-        const maxTokensValue = params.options?.maxTokens ?? normalizedConfig.maxTokens;
-        
+        let maxTokensValue = params.options?.maxTokens ?? normalizedConfig.maxTokens;
+
+        // Check if model has a minimum token requirement
+        const restrictions = getModelRestrictions('openai', normalizedConfig.model);
+        if (restrictions?.minCompletionTokens && maxTokensValue && maxTokensValue < restrictions.minCompletionTokens) {
+          this.logger.debug(
+            `Model ${normalizedConfig.model} requires minimum ${restrictions.minCompletionTokens} tokens, increasing from ${maxTokensValue}`
+          );
+          maxTokensValue = restrictions.minCompletionTokens;
+        }
+
         // Check if model requires max_completion_tokens instead of max_tokens
         if (this.requiresMaxCompletionTokens(normalizedConfig.model)) {
           apiParams.max_completion_tokens = maxTokensValue;
@@ -137,6 +147,12 @@ export class OpenAILLMService extends BaseLLMService {
 
       const choice = completion.choices[0];
       if (!choice?.message?.content) {
+        // Log the full response for debugging
+        this.logger.warn(`OpenAI returned response without content for model ${normalizedConfig.model}:`, {
+          choices: completion.choices,
+          model: completion.model,
+          usage: completion.usage
+        });
         throw new Error('No content in OpenAI response');
       }
 
@@ -213,33 +229,39 @@ export class OpenAILLMService extends BaseLLMService {
 
   /**
    * Check if a model is part of the o1 series (with special restrictions)
+   * @deprecated Use getModelRestrictions from model-restrictions.config instead
    */
   private isO1SeriesModel(model: string): boolean {
-    return model.startsWith('o1-') || model === 'o4-mini';
+    const restrictions = getModelRestrictions('openai', model);
+    return restrictions?.temperature?.supported === false;
   }
 
   /**
    * Check if a model requires max_completion_tokens instead of max_tokens
-   * This includes o1 models and GPT-5 models
    */
   private requiresMaxCompletionTokens(model: string): boolean {
-    return model.startsWith('o1-') || 
-           model === 'o4-mini' || 
-           model.startsWith('gpt-5') ||
-           model.startsWith('chatgpt-4o-latest');
+    const restrictions = getModelRestrictions('openai', model);
+    return restrictions?.maxTokensField?.fieldName === 'max_completion_tokens';
   }
 
   /**
    * Normalize configuration for OpenAI model-specific restrictions
    */
   private normalizeConfigForModel(config: LLMServiceConfig): LLMServiceConfig {
+    const restrictions = getModelRestrictions('openai', config.model);
+
+    if (!restrictions) {
+      // No restrictions defined, return config as-is
+      return config;
+    }
+
     const normalizedConfig = { ...config };
 
-    if (this.isO1SeriesModel(config.model)) {
-      // o1 models don't support temperature
+    // Handle temperature restrictions
+    if (restrictions.temperature && !restrictions.temperature.supported) {
       if (normalizedConfig.temperature !== undefined) {
         this.logger.debug(
-          `OpenAI o1 model ${config.model} doesn't support temperature, removing: ${normalizedConfig.temperature}`
+          `OpenAI model ${config.model} doesn't support temperature, removing: ${normalizedConfig.temperature}`
         );
         delete normalizedConfig.temperature;
       }
@@ -250,25 +272,28 @@ export class OpenAILLMService extends BaseLLMService {
 
   /**
    * Prepare messages for OpenAI API based on model capabilities
-   * o1 models don't support system messages, so we combine them into user messages
    */
   private prepareMessagesForModel(
     model: string,
     systemPrompt: string,
     userMessage: string
   ): Array<{ role: 'system' | 'user'; content: string }> {
-    if (this.isO1SeriesModel(model)) {
-      // o1 models don't support system messages - combine into user message
+    const restrictions = getModelRestrictions('openai', model);
+
+    if (restrictions?.systemMessages && !restrictions.systemMessages.supported) {
+      // Model doesn't support system messages
       this.logger.debug(
-        `OpenAI o1 model ${model} doesn't support system messages, combining with user message`
+        `OpenAI model ${model} doesn't support system messages, combining with user message`
       );
-      
-      return [
-        { 
-          role: 'user' as const, 
-          content: `${systemPrompt}\n\n${userMessage}` 
-        }
-      ];
+
+      if (restrictions.systemMessages.workaround === 'combine_with_user') {
+        return [
+          {
+            role: 'user' as const,
+            content: `${systemPrompt}\n\n${userMessage}`
+          }
+        ];
+      }
     }
 
     // Standard models support system messages

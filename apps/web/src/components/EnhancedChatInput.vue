@@ -90,16 +90,11 @@
         >
           <ion-icon slot="icon-only" :icon="settingsOutline"></ion-icon>
         </ion-button>
-        <!-- Send Button -->
-        <ion-button 
-          fill="clear" 
-          color="primary" 
-          @click="sendMessage" 
-          :disabled="!inputText.trim() || uiStore.isConversationalMode" 
-          class="send-button custom-button-padding"
-        >
-          <ion-icon slot="icon-only" :icon="sendOutline"></ion-icon>
-        </ion-button>
+        <!-- Mode-aware Send Button -->
+        <ChatModeSendButton
+          :disabled="!inputText.trim() || uiStore.isConversationalMode"
+          @send="sendMessage"
+        />
       </ion-buttons>
     </ion-toolbar>
   </div>
@@ -107,7 +102,7 @@
 <script setup lang="ts">
 import { ref, computed, defineEmits, defineProps, onUnmounted, watch, onMounted } from 'vue';
 import { IonTextarea, IonButtons, IonButton, IonIcon, IonToolbar, toastController } from '@ionic/vue';
-import { sendOutline, chevronUpOutline, checkmarkOutline, settingsOutline } from 'ionicons/icons';
+import { chevronUpOutline, checkmarkOutline, settingsOutline } from 'ionicons/icons';
 import { useUiStore } from '../stores/uiStore';
 import { useLLMStore } from '../stores/llmStore';
 import { useAgentChatStore } from '../stores/agentChatStore';
@@ -116,6 +111,7 @@ import LLMSelector from './LLMSelector.vue';
 import CIDAFMControls from './CIDAFMControls.vue';
 import ConversationalSpeechButton from './ConversationalSpeechButton.vue';
 import SpeechDevModePanel from './SpeechDevModePanel.vue';
+import ChatModeSendButton from './ChatModeSendButton.vue';
 import { useValidation, ValidationRules } from '@/composables/useValidation';
 const props = defineProps<{
   conversationId?: string;
@@ -188,22 +184,27 @@ const estimatedCost = computed(() => {
   return totalCost > 0.001 ? totalCost.toFixed(4) : '< 0.001';
 });
 // Event handlers
-const sendMessage = async () => {
+const sendMessage = async (mode?: 'converse' | 'plan' | 'build') => {
   if (!inputText.value.trim() || uiStore.isConversationalMode) return;
-  
+
   // Validate and sanitize the message before sending
   const validationResult = await validation.validate('message', inputText.value.trim());
-  
+
   if (!validationResult.isValid) {
     const errorMessages = validationResult.errors.map(e => e.message).join(', ');
     presentToast(`Message validation failed: ${errorMessages}`, 3000, 'danger');
     return;
   }
-  
+
   // Use the sanitized value if available
   const messageToSend = validationResult.sanitizedValue || inputText.value.trim();
   const llmSelection = llmStore.currentLLMSelection;
-  
+
+  // If mode is provided, set it before sending
+  if (mode) {
+    agentChatStore.setChatMode(mode);
+  }
+
   emit('sendMessage', messageToSend, llmSelection);
   inputText.value = '';
 };

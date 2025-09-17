@@ -1,9 +1,5 @@
 <template>
   <div class="agent-chat-view">
-    <!-- Task Execution Controls Bar -->
-    <div class="controls-header">
-      <TaskExecutionControls />
-    </div>
     <!-- Loading State -->
     <div v-if="isLoading" class="loading-state">
       <ion-spinner />
@@ -43,20 +39,18 @@
             @transcription="handleTranscription"
             @error="handleSpeechError"
           />
-          <ion-button
+          <!-- Mode-aware Send Button -->
+          <ChatModeSendButton
             slot="end"
-            type="submit"
             :disabled="!canSend"
-            fill="clear"
-          >
-            <ion-icon :icon="sendOutline" />
-          </ion-button>
+            @send="sendMessage"
+          />
         </ion-item>
       </form>
-      <!-- Compact LLM and CIDAFM Controls -->
+      <!-- Compact LLM and Execution Controls -->
       <div class="llm-controls">
         <CompactLLMControl />
-        <ChatModeControl />
+        <TaskExecutionControls />
       </div>
     </div>
     <!-- Typing Indicator -->
@@ -104,9 +98,9 @@ import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import { useSpeechTTS } from '@/composables/useSpeechTTS';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
-import ChatModeControl from './ChatModeControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 import SpeechButton from './SpeechButton.vue';
+import ChatModeSendButton from './ChatModeSendButton.vue';
 // Define emits
 interface Props {
   conversation?: any; // The conversation object from the store
@@ -155,10 +149,16 @@ const conversationId = computed(() =>
   props.conversation?.id || agentChatStore.getActiveConversation()?.id
 );
 // Methods
-const sendMessage = async () => {
+const sendMessage = async (mode?: 'converse' | 'plan' | 'build') => {
   if (!canSend.value) return;
   const text = messageText.value.trim();
   messageText.value = '';
+
+  // If mode is provided, set it before sending
+  if (mode) {
+    agentChatStore.setChatMode(mode);
+  }
+
   try {
     // Send message directly through the agent chat store
     const activeConversation = agentChatStore.getActiveConversation();
