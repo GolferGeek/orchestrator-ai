@@ -53,6 +53,28 @@ export class DeliverablesService {
         return;
       }
 
+      // Enforce build-only deliverable creation if configured
+      const requireBuild = (process.env.DELIVERABLES_REQUIRE_BUILD ?? 'true') !== 'false';
+      if (requireBuild) {
+        // Attempt to determine mode from task params or response metadata
+        let mode: string | undefined;
+        try {
+          mode = taskData.params?.mode || taskData.metadata?.mode;
+        } catch {}
+        if (!mode) {
+          // Try to parse response JSON to extract metadata.mode
+          try {
+            const result = typeof taskData.response === 'string' ? JSON.parse(taskData.response) : taskData.response;
+            mode = result?.metadata?.mode || result?.mode;
+          } catch {}
+        }
+        if (mode !== 'build') {
+          // Skip deliverable creation for non-build modes
+          this.logger.debug(`Skipping deliverable creation for task ${payload.taskId} in mode: ${mode || 'unknown'}`);
+          return;
+        }
+      }
+
       // Create deliverable from task completion
       const deliverableId = await this.createOrUpdateFromTaskCompletion(
         payload.taskId,

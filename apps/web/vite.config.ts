@@ -97,13 +97,14 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: parseInt(env.WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '7543' : '7101')),
+      // Prefer VITE_WEB_PORT; for non-VITE values, check process.env.WEB_PORT at runtime via fallback
+      port: parseInt((env.VITE_WEB_PORT || process.env.WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '7543' : '9001'))),
       host: true,
       https: getHttpsConfig(env),
       hmr: {
         // Server binds to localhost (this is what Vite can actually bind to)
         host: 'localhost',
-        port: parseInt(env.WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '7543' : '7101')),
+        port: parseInt((env.VITE_WEB_PORT || process.env.WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '7543' : '9001'))),
         protocol: env.VITE_ENFORCE_HTTPS === 'true' ? 'wss' : 'ws'
       }
     },

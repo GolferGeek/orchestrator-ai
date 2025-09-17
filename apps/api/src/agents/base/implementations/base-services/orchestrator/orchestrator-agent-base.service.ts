@@ -29,7 +29,15 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
   protected delegationContext?: string;
 
   constructor(private readonly services: OrchestratorAgentServicesContext) {
-    super(services.httpService);
+    // Pass LLM service so A2A short-circuit can handle converse/plan
+    super(
+      services.httpService,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      services.llmService,
+    );
     this.orchestratorFacadeService = services.orchestratorFacadeService;
   }
 
@@ -44,31 +52,45 @@ export abstract class OrchestratorAgentBaseService extends A2AAgentBaseService {
    */
   public async executeTask(method: string, params: any): Promise<any> {
     try {
+      // Determine effective orchestrator method based on params.mode and context
+      const requestedMode = (params && params.mode) as 'converse' | 'plan' | 'build' | undefined;
+      let effectiveMethod: OrchestratorA2AMethod;
+      if (requestedMode === 'converse' || !requestedMode) {
+        effectiveMethod = 'converse';
+      } else if (requestedMode === 'plan') {
+        effectiveMethod = 'explicit_create_project';
+      } else if (requestedMode === 'build') {
+        // For now, treat build as approve/start if a project exists; otherwise fall back to converse
+        effectiveMethod = params?.projectId ? 'approve_project_plan' : 'converse';
+      } else {
+        effectiveMethod = 'converse';
+      }
+
       // Adapt A2A request to OrchestratorInput (conversation + tasks pattern)
-      const input = await this.adaptA2AToOrchestratorInput(method, params);
+      const input = await this.adaptA2AToOrchestratorInput(effectiveMethod, params);
 
       // Route through facade service (maintains single entry point principle)
       const response = await this.orchestratorFacadeService.processRequest(
-        method as OrchestratorA2AMethod,
+        effectiveMethod,
         input,
         this.delegationContext,
       );
 
-      // Enhance response with orchestrator metadata if needed
-      if (
-        response &&
-        typeof response === 'object' &&
-        !response.metadata?.agentType
-      ) {
-        response.metadata = {
-          ...response.metadata,
+      // Enhance response metadata if object and normalize content field
+      if (response && typeof response === 'object') {
+        (response as any).metadata = {
+          ...(response as any).metadata,
           agentType: 'orchestrator' as const,
           agentName: this.getAgentName(),
           processedAt: new Date().toISOString(),
+          mode: requestedMode || 'converse',
+          effectiveMethod,
         };
-        this.orchestratorLogger.log(
-          `🔍 DEBUG - Enhanced response with orchestrator metadata: ${JSON.stringify(response, null, 2)}`,
-        );
+        // A2A convention uses `response` for main text; ensure it's populated
+        const r: any = response as any;
+        if (typeof r.message === 'string' && (r.response === undefined || r.response === null)) {
+          r.response = r.message;
+        }
       }
 
       return response;

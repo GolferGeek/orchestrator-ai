@@ -64,8 +64,8 @@
         
         <!-- Messages -->
         <div class="messages-container" ref="messagesContainer">
-          <!-- Prominent thinking indicator -->
-          <div v-if="isSendingMessage" class="prominent-thinking-indicator">
+          <!-- Prominent thinking indicator (Converse/Plan modes) -->
+          <div v-if="isSendingMessage && (currentChatMode === 'converse' || currentChatMode === 'plan')" class="prominent-thinking-indicator">
             <div class="thinking-content">
               <div class="thinking-avatar">
                 <ion-spinner name="dots" color="primary"></ion-spinner>
@@ -73,7 +73,7 @@
               <div class="thinking-bubble">
                 <div class="thinking-text">
                   <div class="agent-thinking-name">{{ currentAgent?.name || 'Agent' }}</div>
-                  <div class="thinking-message">is thinking...</div>
+                  <div class="thinking-message">{{ thinkingMessage }}</div>
                 </div>
                 <div class="thinking-dots">
                   <span class="dot"></span>
@@ -146,15 +146,16 @@
               </ion-button>
             </ion-item>
           </form>
-          <!-- Compact LLM Controls -->
+          <!-- Compact LLM + Mode Controls -->
           <div class="llm-controls">
             <CompactLLMControl />
+            <ChatModeControl />
           </div>
         </div>
         <!-- Typing Indicator -->
         <div v-if="isSendingMessage" class="typing-indicator">
           <ion-spinner size="small" />
-          <span>Agent is thinking...</span>
+          <span>Processing...</span>
         </div>
       </div>
       <!-- Work Product Pane (Deliverable or Project) -->
@@ -271,6 +272,7 @@ import { useUiStore } from '@/stores/uiStore';
 import type { AgentChatMessage } from '@/stores/agentChatStore/types';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
+import ChatModeControl from './ChatModeControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 import DeliverableDisplay from './DeliverableDisplay.vue';
 import ProjectDisplay from './ProjectDisplay.vue';
@@ -315,6 +317,14 @@ const canSend = computed(() => {
          !isSendingMessage.value && 
          currentAgent.value &&
          !uiStore.isConversationalMode;
+});
+const currentChatMode = computed(() => props.conversation?.chatMode || agentChatStore.getActiveChatMode());
+// Informal thinking message for converse/plan
+const thinkingMessage = computed(() => {
+  const mode = (currentChatMode.value || '').toLowerCase();
+  if (mode === 'converse') return 'One sec — thinking it through…';
+  if (mode === 'plan') return 'Sketching a quick plan…';
+  return 'Processing…';
 });
 const hasActiveWorkProduct = computed(() => {
   const result = activeWorkProduct.value !== null;
@@ -822,6 +832,10 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   padding: 8px 16px;
   background: var(--ion-color-step-50);
   border-top: 1px solid var(--ion-color-light-shade);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
 }
 .typing-indicator {
   display: flex;

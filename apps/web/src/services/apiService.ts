@@ -33,7 +33,7 @@ class ApiService {
     this.axiosInstance = axios.create({
       baseURL: API_BASE_URL,
       headers: getSecureHeaders(),
-      timeout: 60000,
+      timeout: 90000,
       // Additional security settings
       withCredentials: false, // Don't send credentials cross-origin unless explicitly needed
       maxRedirects: 0, // Prevent redirect attacks

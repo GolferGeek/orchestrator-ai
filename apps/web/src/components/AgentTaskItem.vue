@@ -130,7 +130,7 @@
         
         <!-- LLM Information for assistant messages -->
         <LLMInfo
-          v-if="message.role === 'assistant' && llmUsed"
+          v-if="message.role === 'assistant' && llmUsed && ((message.metadata?.mode || '').toLowerCase() !== 'converse') && ((message.metadata?.mode || '').toLowerCase() !== 'plan')"
           :llmUsed="llmUsed"
           :usage="usage || undefined"
           :costCalculation="costCalculation || undefined"
@@ -138,8 +138,18 @@
       </div>
       
       <!-- Agent avatar removed for more space -->
-    </div>
+  </div>
     
+    <!-- Smart CTAs: Plan / Build (assistant messages only, no deliverable shown) -->
+    <div v-if="message.role === 'assistant' && !willHideForDeliverable && (suggestsPlan || suggestsBuild)" class="smart-cta-bar">
+      <ion-chip v-if="suggestsPlan" color="primary" outline @click="handlePlanNow">
+        Plan It
+      </ion-chip>
+      <ion-chip v-if="suggestsBuild" color="success" outline @click="handleBuildNow">
+        Build It
+      </ion-chip>
+    </div>
+
     <!-- Task evaluation interface for assistant messages -->
     <div v-if="message.role === 'assistant' && message.taskId && 
                 message.taskId !== 'pending' && 
@@ -185,6 +195,8 @@ import UserPrivacyIndicators from './UserPrivacyIndicators.vue';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import { useLLMStore } from '@/stores/llmStore';
+import { useAgentChatStore } from '@/stores/agentChatStore';
+import analyticsService from '@/services/analyticsService';
 
 export interface AgentTaskMessage {
   id: string;
@@ -214,6 +226,7 @@ const emit = defineEmits<{
 const deliverablesStore = useDeliverablesStore();
 const privacyIndicatorsStore = usePrivacyIndicatorsStore();
 const llmStore = useLLMStore();
+const chatStore = useAgentChatStore();
 
 // Reactive state
 const showMetadataModal = ref(false);
@@ -256,15 +269,12 @@ const displayedDeliverable = computed(() => {
 });
 
 const willHideForDeliverable = computed(() => {
-  // Show deliverable callout instead of message content if this message has a deliverable
+  // Only hide content for Build mode. In Converse/Plan we always show text.
   const hasDeliverableId = hasBackendDeliverable.value;
   const isAssistantMessage = props.message.role === 'assistant';
-  
-  // Force reactivity by checking if the deliverable is loaded in the store
-  const deliverableLoaded = !!backendDeliverable.value;
-  
-  // Simple rule: If an assistant message has a deliverableId, show the callout instead of content
-  return hasDeliverableId && isAssistantMessage;
+  const mode = (props.message.metadata?.mode || '').toLowerCase();
+
+  return hasDeliverableId && isAssistantMessage && mode === 'build';
 });
 
 const renderedContent = computed(() => {
@@ -491,9 +501,14 @@ const privacySettings = computed(() => {
 });
 
 const showPrivacyIndicators = computed(() => {
-  // Only show for assistant messages with metadata
-  return props.message.role === 'assistant' && 
-         (props.message.metadata || privacyState.value);
+  // Suppress badges for informal modes and placeholders
+  const mode = (props.message.metadata?.mode || '').toLowerCase();
+  const isPlaceholder = !!props.message.metadata?.isPlaceholder;
+  if (isPlaceholder) return false;
+  if (mode === 'converse' || mode === 'plan') return false;
+
+  // Only show for assistant messages with metadata otherwise
+  return props.message.role === 'assistant' && (props.message.metadata || privacyState.value);
 });
 
 // Reactive LLM-based privacy indicators
@@ -632,6 +647,46 @@ const handleCalloutClick = () => {
     emit('deliverable-selected', displayedDeliverable.value);
   }
 };
+
+// Smart CTA detection
+const contentText = computed(() => (props.message.content || '').toLowerCase());
+const suggestsPlan = computed(() => {
+  const c = contentText.value;
+  return /would you like.*plan|should i.*plan|plan (it|this)|create (a|the) (plan|prd)|requirements|spec/i.test(props.message.content || '');
+});
+const suggestsBuild = computed(() => {
+  const c = contentText.value;
+  return /would you like.*build|should i.*build|build (it|this)|proceed to build|execute (now|this)/i.test(props.message.content || '');
+});
+
+function handlePlanNow() {
+  chatStore.setChatMode('plan');
+  chatStore.setPendingAction('plan', props.message.taskId || undefined);
+  // Immediately execute from last user message
+  chatStore.executeFromLastUserMessage('plan');
+  analyticsService.trackEvent({
+    eventType: 'ui',
+    category: 'cta',
+    action: 'plan_clicked',
+    label: 'Plan It',
+    properties: { taskId: props.message.taskId, conversationId: props.conversationId },
+    context: { url: window.location.pathname, userAgent: navigator.userAgent },
+  });
+}
+function handleBuildNow() {
+  chatStore.setChatMode('build');
+  chatStore.setPendingAction('build', props.message.taskId || undefined);
+  // Immediately execute from last user message
+  chatStore.executeFromLastUserMessage('build');
+  analyticsService.trackEvent({
+    eventType: 'ui',
+    category: 'cta',
+    action: 'build_clicked',
+    label: 'Build It',
+    properties: { taskId: props.message.taskId, conversationId: props.conversationId },
+    context: { url: window.location.pathname, userAgent: navigator.userAgent },
+  });
+}
 
 // Workflow step styling methods
 const getWorkflowStepClass = (step: any) => {

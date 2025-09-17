@@ -1,6 +1,15 @@
 <template>
   <div class="compact-llm-control">
-    <div class="compact-display" @click="openModal">
+    <div 
+      class="compact-display"
+      role="button"
+      tabindex="0"
+      aria-label="Change AI provider and model"
+      title="Click to change AI provider and model"
+      @click="openModal"
+      @keydown.enter.prevent="openModal"
+      @keydown.space.prevent="openModal"
+    >
       <div class="llm-info">
         <span class="provider-model">
           {{ currentProvider }} - {{ currentModel }}
@@ -18,7 +27,10 @@
           </span>
         </div>
       </div>
-      <ion-icon :icon="settingsOutline" class="settings-icon" />
+      <div class="actions">
+        <span class="change-label">Change</span>
+        <ion-icon :icon="settingsOutline" class="settings-icon" />
+      </div>
     </div>
 
     <!-- Unified LLM Selector Modal -->
@@ -55,24 +67,32 @@ const userPreferencesStore = useUserPreferencesStore();
 const isModalOpen = ref(false);
 
 onMounted(async () => {
-  // Initialize both stores
+  // Ensure preferences are ready
   await userPreferencesStore.initializePreferences();
-  
-  // Initialize LLM store if not already done
-  if (!llmStore.selectedProvider && !llmStore.selectedModel) {
-    // Initialize LLM store with user preferences
+
+  // Always ensure the LLM catalog is loaded (idempotent)
+  // This avoids cases where a prior selection exists but provider/model lists are empty
+  try {
+    // Load policy first so filtering is correct if enforced
+    await llmStore.initializeSovereignMode?.();
+
     await llmStore.initialize({
       preferredProvider: userPreferencesStore.preferredProvider,
-      preferredModel: userPreferencesStore.preferredModel
+      preferredModel: userPreferencesStore.preferredModel,
     });
-    
-    // Sync LLM store selection back to user preferences to ensure consistency
-    if (llmStore.selectedProvider && llmStore.selectedModel) {
-      userPreferencesStore.setLLMPreferences(
-        llmStore.selectedProvider.name,
-        llmStore.selectedModel.modelName
-      );
-    }
+
+    // Warm the system model selection cache so Converse can use it immediately
+    await llmStore.ensureSystemModelSelection?.();
+  } catch (e) {
+    // Swallow initialization errors here; modal handles errors explicitly
+  }
+
+  // Keep user preferences in sync with current selection
+  if (llmStore.selectedProvider && llmStore.selectedModel) {
+    userPreferencesStore.setLLMPreferences(
+      llmStore.selectedProvider.name,
+      llmStore.selectedModel.modelName
+    );
   }
 });
 
@@ -125,17 +145,23 @@ const handleLLMSelect = (config: { provider: string; model: string; temperature?
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
-  background: var(--ion-color-step-50);
-  border: 1px solid var(--ion-color-step-150);
+  background: var(--ion-color-step-75);
+  border: 1px solid var(--ion-color-primary);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   min-height: 2.75rem; /* 44px minimum touch target */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
 
 .compact-display:hover {
-  background: var(--ion-color-step-100);
-  border-color: var(--ion-color-step-200);
+  background: var(--ion-color-primary-tint);
+  border-color: var(--ion-color-primary);
+}
+
+.compact-display:focus {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 2px;
 }
 
 .llm-info {
@@ -182,10 +208,22 @@ const handleLLMSelect = (config: { provider: string; model: string; temperature?
 }
 
 .settings-icon {
-  color: var(--ion-color-medium);
-  font-size: 1.2rem;
-  margin-left: 8px;
+  color: var(--ion-color-primary-shade);
+  font-size: 1.1rem;
+  margin-left: 6px;
   flex-shrink: 0;
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.change-label {
+  color: var(--ion-color-primary-shade);
+  font-weight: 600;
+  font-size: 0.85rem;
 }
 
 .modal-content {
