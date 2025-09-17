@@ -101,6 +101,7 @@ import {
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
+import { useSpeechTTS } from '@/composables/useSpeechTTS';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import ChatModeControl from './ChatModeControl.vue';
@@ -114,6 +115,10 @@ const props = defineProps<Props>();
 // Stores
 const agentChatStore = useAgentChatStore();
 const privacyIndicatorsStore = usePrivacyIndicatorsStore();
+
+// Initialize TTS system for speech-to-text responses
+const { stopWatcher } = useSpeechTTS();
+
 // Reactive state
 const messageText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
@@ -219,6 +224,8 @@ onUnmounted(() => {
   if (conversationId.value) {
     privacyIndicatorsStore.stopConversationRealTimeUpdates(conversationId.value);
   }
+  // Stop TTS watcher
+  stopWatcher();
 });
 
 // Watch for conversation changes

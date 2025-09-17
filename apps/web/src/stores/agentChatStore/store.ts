@@ -36,6 +36,7 @@ interface AgentChatState {
   activeConversationId: string | null;
   globalError: string | null;
   pendingAction?: PendingAction | null;
+  lastMessageWasSpeech: boolean;
 }
 
 export const useAgentChatStore = defineStore('agentChat', {
@@ -44,6 +45,7 @@ export const useAgentChatStore = defineStore('agentChat', {
     activeConversationId: null,
     globalError: null,
     pendingAction: null,
+    lastMessageWasSpeech: false,
   }),
 
   getters: {
@@ -394,6 +396,9 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Send message and create task
      */
     async sendMessage(content: string) {
+      // Clear speech flag since this is a typed message
+      this.lastMessageWasSpeech = false;
+      
       // Initialize WebSocket handler with store instance
       this.initializeWebSocketHandler();
       
@@ -1274,6 +1279,13 @@ export const useAgentChatStore = defineStore('agentChat', {
           // Don't throw - this is background processing
         }
       })();
+    },
+
+    /**
+     * Set flag to indicate last message was sent via speech-to-text
+     */
+    setLastMessageWasSpeech(wasSpeech: boolean) {
+      this.lastMessageWasSpeech = wasSpeech;
     }
   }
 });
