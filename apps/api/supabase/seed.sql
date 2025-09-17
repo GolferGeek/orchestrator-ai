@@ -822,11 +822,11 @@ INSERT INTO public.llm_models (
     model_name, provider_name, display_name, model_type, context_window, max_output_tokens,
     pricing_info_json, capabilities, is_active, model_tier
 ) VALUES
-('claude-4-opus', 'anthropic', 'Claude 4 Opus', 'text-generation', 200000, 8192,
+('claude-opus-4-1-20250805', 'anthropic', 'Claude Opus 4.1', 'text-generation', 200000, 8192,
  '{"input_cost_per_token": 0.000015, "output_cost_per_token": 0.000075}'::jsonb,
  '["function_calling", "streaming", "vision", "coding", "reasoning", "agentic"]'::jsonb, true, 'fast-thinking'),
 
-('claude-4-sonnet', 'anthropic', 'Claude 4 Sonnet', 'text-generation', 200000, 64000,
+('claude-sonnet-4-20250514', 'anthropic', 'Claude Sonnet 4', 'text-generation', 200000, 64000,
  '{"input_cost_per_token": 0.000003, "output_cost_per_token": 0.000015}'::jsonb,
  '["function_calling", "streaming", "vision", "balanced", "high_output"]'::jsonb, true, 'general'),
 
