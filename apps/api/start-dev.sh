@@ -22,43 +22,57 @@ else
     echo -e "${RED}⚠️  No .env file found in project root${NC}"
 fi
 
-# Check and start local Supabase (DEV ONLY - port 54321)
-echo -e "${BLUE}🗄️  Checking local Supabase status...${NC}"
-if ! supabase status > /dev/null 2>&1; then
-    echo -e "${BLUE}🚀 Starting local Supabase development instance...${NC}"
-    
+# Check and start local Supabase (DEV - port 7010)
+echo -e "${BLUE}🗄️  Checking local Supabase status (Development - Port 7010)...${NC}"
+
+# Function to check if port is in use
+check_port() {
+    if lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Check if Supabase is running on dev port 7010
+if check_port 7010; then
+    echo -e "${GREEN}✅ Local Supabase is already running on port 7010${NC}"
+    echo -e "${BLUE}   Studio: http://127.0.0.1:7015${NC}"
+    echo -e "${BLUE}   API: http://127.0.0.1:7010${NC}"
+    echo -e "${BLUE}   Database: postgres://postgres:postgres@127.0.0.1:7012/postgres${NC}"
+
+    # Remind about backup system if available
+    if [ -f "supabase/backup-local-db.sh" ]; then
+        echo -e "${BLUE}💡 Backup system available: ./supabase/backup-local-db.sh --list${NC}"
+    fi
+else
+    echo -e "${BLUE}🚀 Starting local Supabase development instance on port 7010...${NC}"
+
     # Check if backup script exists and create a backup if Supabase has data
     if [ -f "supabase/backup-local-db.sh" ]; then
         # Check if there are existing Docker volumes (indicating previous data)
-        if docker volume ls | grep -q "supabase_db_orchestrator-ai"; then
+        if docker volume ls | grep -q "supabase_db_api-dev"; then
             echo -e "${BLUE}💾 Creating safety backup before starting Supabase...${NC}"
             ./supabase/backup-local-db.sh --force > /dev/null 2>&1 || echo -e "${YELLOW}⚠️  Backup failed, but continuing...${NC}"
         fi
     fi
-    
-    supabase start
+
+    # Start Supabase with development config
+    supabase start --config ./supabase/config.dev.toml
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ Local Supabase started successfully${NC}"
-        echo -e "${BLUE}   Studio: http://127.0.0.1:54323${NC}"
-        echo -e "${BLUE}   API: http://127.0.0.1:54321${NC}"
+        echo -e "${GREEN}✅ Local Supabase started successfully on port 7010${NC}"
+        echo -e "${BLUE}   Studio: http://127.0.0.1:7015${NC}"
+        echo -e "${BLUE}   API: http://127.0.0.1:7010${NC}"
+        echo -e "${BLUE}   Database: postgres://postgres:postgres@127.0.0.1:7012/postgres${NC}"
         SUPABASE_STARTED_BY_SCRIPT=true
-        
+
         # Remind about backup system
         if [ -f "supabase/backup-local-db.sh" ]; then
             echo -e "${BLUE}💡 Backup system available: ./supabase/backup-local-db.sh${NC}"
         fi
     else
-        echo -e "${RED}❌ Failed to start local Supabase${NC}"
-        echo -e "${BLUE}💡 Try running: supabase start${NC}"
-    fi
-else
-    echo -e "${GREEN}✅ Local Supabase is already running${NC}"
-    # Show the current status briefly
-    supabase status | grep -E "(Studio URL|API URL)"
-    
-    # Remind about backup system if available
-    if [ -f "supabase/backup-local-db.sh" ]; then
-        echo -e "${BLUE}💡 Backup system available: ./supabase/backup-local-db.sh --list${NC}"
+        echo -e "${RED}❌ Failed to start local Supabase on port 7010${NC}"
+        echo -e "${BLUE}💡 Try running: supabase start --config ./supabase/config.dev.toml${NC}"
     fi
 fi
 
