@@ -479,6 +479,11 @@ const startMediaRecording = async () => {
       channelCount: 1,
       echoCancellation: true,
       noiseSuppression: true,
+      autoGainControl: false,  // Prevent exclusive mic access
+      googEchoCancellation: false,  // Disable Chrome-specific exclusive features
+      googAutoGainControl: false,
+      googNoiseSuppression: false,
+      googHighpassFilter: false,
     }
   });
 
@@ -614,7 +619,11 @@ const processRecordedAudio = async () => {
 
     console.log('🎤 Transcribed text:', transcription.text);
 
-    // Step 2: Send the transcribed text through normal chat flow
+    // Step 2: Mark that the next message was sent via speech (for TTS triggering)
+    console.log('🎤 [DEBUG] Setting lastMessageWasSpeech = true');
+    agentChatStore.setLastMessageWasSpeech(true);
+    
+    // Step 3: Send the transcribed text through normal chat flow
     // This respects agent selection, conversation context, user preferences, etc.
     await agentChatStore.sendMessage(transcription.text);
 
@@ -738,6 +747,11 @@ const startContinuousListening = async () => {
         channelCount: 1,
         echoCancellation: true,
         noiseSuppression: true,
+        autoGainControl: false,  // Prevent exclusive mic access
+        googEchoCancellation: false,  // Disable Chrome-specific exclusive features
+        googAutoGainControl: false,
+        googNoiseSuppression: false,
+        googHighpassFilter: false,
       }
     });
 
