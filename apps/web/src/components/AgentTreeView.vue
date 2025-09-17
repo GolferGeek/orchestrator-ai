@@ -29,37 +29,107 @@
 
     <!-- Hierarchy Display -->
     <div v-else class="hierarchy-container">
-      <!-- CEO as standalone agent (not accordion) -->
-      <div v-for="group in hierarchyGroups.filter(g => g.isCEOAgent)" :key="group.type" class="agent-item">
-        <ion-item class="ceo-item">
-          <ion-icon :icon="icons.briefcaseOutline" color="primary" slot="start" />
-          <ion-label>
-            <h3>{{ formatAgentName(group.agents[0].name).replace(' Orchestrator', '') }}</h3>
-          </ion-label>
-          <ion-badge :color="group.totalConversations > 0 ? 'primary' : 'medium'" class="conversation-count">
-            {{ group.totalConversations }}
-          </ion-badge>
-          <div class="header-actions" @click.stop>
-            <ion-button
-              fill="clear"
-              size="small"
-              @click="createNewConversation(group.agents[0])"
-              title="Start new conversation"
-              class="header-action-btn"
-            >
-              <ion-icon :icon="icons.chatbubbleOutline" />
-            </ion-button>
-            <ion-button
-              fill="clear"
-              size="small"
-              @click="createNewProject(group.agents[0])"
-              title="Start new project"
-              class="header-action-btn project-btn"
-            >
-              <span class="project-icon">P</span>
-            </ion-button>
-          </div>
-        </ion-item>
+      <!-- CEO as accordion (similar to managers) -->
+      <div v-for="group in hierarchyGroups.filter(g => g.isCEOAgent)" :key="group.type" class="agent-group">
+        <ion-accordion-group>
+          <ion-accordion :value="expandedAccordions.includes('ceo') ? 'ceo' : undefined">
+            <!-- CEO as accordion header with action buttons -->
+            <ion-item slot="header" class="ceo-header">
+              <ion-icon :icon="icons.briefcaseOutline" class="ceo-icon" slot="start" />
+              <ion-label>
+                <h3>{{ formatAgentName(group.agents[0].name).replace(' Orchestrator', '') }}</h3>
+              </ion-label>
+              <ion-badge :color="group.totalConversations > 0 ? 'primary' : 'medium'" class="ceo-conversation-count">
+                {{ group.totalConversations }}
+              </ion-badge>
+              <!-- Action buttons in header -->
+              <div class="header-actions" @click.stop>
+                <ion-button
+                  fill="clear"
+                  size="small"
+                  @click="startNewConversation(group.agents[0], 'ceo')"
+                  title="Start new conversation"
+                  class="header-action-btn"
+                >
+                  <ion-icon :icon="icons.chatbubbleOutline" />
+                </ion-button>
+                <ion-button
+                  fill="clear"
+                  size="small"
+                  @click="startNewProject(group.agents[0], 'ceo')"
+                  title="Start new project"
+                  class="header-action-btn project-btn"
+                >
+                  <span class="project-icon">P</span>
+                </ion-button>
+              </div>
+            </ion-item>
+
+            <!-- Accordion content: CEO's conversations and projects -->
+            <div slot="content" class="accordion-content">
+              <!-- CEO's Conversations and Projects -->
+              <div v-if="group.agents[0]" class="ceo-content">
+                <!-- CEO's Conversations -->
+                <div v-if="group.agents[0].conversations && group.agents[0].conversations.length > 0" class="ceo-conversations">
+                  <h5 class="section-title">CEO Conversations</h5>
+                  <div class="conversations-list">
+                    <ion-item
+                      v-for="conversation in group.agents[0].conversations"
+                      :key="conversation.id"
+                      @click="selectConversation(conversation)"
+                      button
+                      class="conversation-item ceo-conversation"
+                    >
+                      <ion-icon :icon="icons.chatbubbleOutline" slot="start" color="primary" />
+                      <ion-label>
+                        <p>{{ formatConversationTitle(conversation) }}</p>
+                      </ion-label>
+                      <ion-badge
+                        v-if="conversation.activeTasks > 0"
+                        slot="end"
+                        color="warning"
+                      >
+                        {{ conversation.activeTasks }}
+                      </ion-badge>
+                      <ion-button
+                        fill="clear"
+                        size="small"
+                        color="danger"
+                        slot="end"
+                        @click="deleteConversation(conversation, $event)"
+                      >
+                        <ion-icon :icon="icons.trashOutline" />
+                      </ion-button>
+                    </ion-item>
+                  </div>
+                </div>
+
+                <!-- CEO's Projects -->
+                <div v-if="group.agents[0].projects && group.agents[0].projects.length > 0" class="ceo-projects">
+                  <h5 class="section-title">CEO Projects</h5>
+                  <div class="projects-list">
+                    <ion-item
+                      v-for="project in group.agents[0].projects"
+                      :key="project.id"
+                      @click="selectProject(project)"
+                      button
+                      class="project-item ceo-project"
+                    >
+                      <ion-icon :icon="icons.folderOutline" slot="start" color="secondary" />
+                      <ion-label>
+                        <h6>{{ project.name || 'Untitled Project' }}</h6>
+                        <p>{{ project.description || 'No description' }}</p>
+                      </ion-label>
+                      <ion-badge :color="getProjectStatusColor(project.status)" slot="end">
+                        {{ project.status }}
+                      </ion-badge>
+                    </ion-item>
+                  </div>
+                </div>
+              </div>
+            </div> <!-- End accordion-content -->
+          </ion-accordion>
+        </ion-accordion-group>
       </div>
 
       <!-- Managers as accordions -->
@@ -613,6 +683,7 @@ const hierarchyGroups = computed(() => {
           description: ceoNode.metadata?.description || ceoNode.description || '',
           execution_modes: [],
           conversations: ceoConversations,
+          projects: ceoNode.projects || [], // Add projects support for CEO
           activeConversations: ceoConversations.filter(c => !c.endedAt).length,
           totalConversations: ceoConversations.length,
         }],
@@ -952,7 +1023,55 @@ onMounted(async () => {
   z-index: 10;
 }
 
-/* CEO item styling */
+/* CEO header and item styling */
+.ceo-header {
+  position: relative;
+  --background: rgba(var(--ion-color-primary-rgb), 0.08);
+  --background-hover: rgba(var(--ion-color-primary-rgb), 0.12);
+  --color: var(--ion-text-color);
+  --padding-start: 12px;
+}
+
+.ceo-icon {
+  color: var(--ion-color-primary);
+  font-size: 20px;
+  margin-right: 8px;
+}
+
+.ceo-header ion-label {
+  flex: 1;
+}
+
+.ceo-header ion-label h3 {
+  color: var(--ion-color-primary-shade);
+  font-weight: 500;
+}
+
+.ceo-conversation-count {
+  margin-right: 4px;
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast, #fff);
+}
+
+.ceo-conversation-count[color="medium"] {
+  background: var(--ion-color-medium);
+}
+
+/* CEO content sections */
+.ceo-content {
+  padding: 0;
+}
+
+.ceo-conversations,
+.ceo-projects {
+  margin-bottom: 12px;
+}
+
+.ceo-conversation,
+.ceo-project {
+  --background: var(--ion-color-step-50);
+}
+
 .ceo-item {
   --padding-start: 12px;
   --background: var(--ion-item-background, var(--ion-background-color));
