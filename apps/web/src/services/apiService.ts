@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import axiosRetry from 'axios-retry';
 import { TaskResponse, AgentInfo } from '../types/chat';
 import { LLMSelection, SendMessageRequest, SendMessageResponse } from '../types/llm';
@@ -6,6 +6,19 @@ import { getSecureApiBaseUrl, getSecureHeaders, validateSecureContext, logSecuri
 import { useApiSanitization } from '@/composables/useApiSanitization';
 import { useErrorStore } from '@/stores/errorStore';
 import { trackAPI } from '../utils/performanceMonitor';
+
+// Extend Axios types to include our custom metadata
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    metadata?: {
+      startTime?: number;
+    };
+    _suppress404Logging?: boolean;
+    _suppressStatuses?: number[];
+    _retry?: boolean;
+    _retryCount?: number;
+  }
+}
 
 // Validate security context on startup
 validateSecureContext();
