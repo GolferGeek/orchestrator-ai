@@ -22,10 +22,11 @@ import { conversation } from './conversation';
 import { taskExecution } from './taskExecution';
 import { websocketHandler } from './websocketHandler';
 import { messageFormatting } from './messageFormatting';
+import analyticsService from '@/services/analyticsService';
 
 
 // Import types
-import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent } from './types';
+import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent, PendingAction } from './types';
 
 // Pre-generated task ID for WebSocket mode
 let preGeneratedTaskId: string | undefined;
@@ -34,6 +35,7 @@ interface AgentChatState {
   conversations: AgentConversation[];
   activeConversationId: string | null;
   globalError: string | null;
+  pendingAction?: PendingAction | null;
 }
 
 export const useAgentChatStore = defineStore('agentChat', {
@@ -41,6 +43,7 @@ export const useAgentChatStore = defineStore('agentChat', {
     conversations: [],
     activeConversationId: null,
     globalError: null,
+    pendingAction: null,
   }),
 
   getters: {
@@ -85,6 +88,124 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     getActiveConversation(): AgentConversation | null {
       return this.conversations.find(conv => conv.id === this.activeConversationId) || null;
+    },
+
+    /**
+     * Get current chat mode for active conversation
+     */
+    getActiveChatMode(): 'converse' | 'plan' | 'build' {
+      const conv = this.getActiveConversation();
+      return conv?.chatMode || 'converse';
+    },
+
+    /**
+     * Set chat mode for active conversation
+     */
+    setChatMode(mode: 'converse' | 'plan' | 'build') {
+      const conv = this.getActiveConversation();
+      if (conv) {
+        conv.chatMode = mode;
+      }
+    },
+
+    /**
+     * Set a pending Plan/Build action suggestion with expiry
+     */
+    setPendingAction(type: 'plan' | 'build', sourceTaskId?: string, ttlMs: number = 20000) {
+      const expiresAt = Date.now() + ttlMs;
+      this.pendingAction = { type, expiresAt, sourceTaskId };
+    },
+    clearPendingAction() {
+      this.pendingAction = null;
+    },
+    getPendingAction(): PendingAction | null {
+      if (!this.pendingAction) return null;
+      if (Date.now() > this.pendingAction.expiresAt) {
+        this.pendingAction = null;
+        return null;
+      }
+      return this.pendingAction;
+    },
+
+    /**
+     * Execute current mode from the last user message without adding a new user message
+     */
+    async executeFromLastUserMessage(mode: 'plan' | 'build') {
+      const activeConversation = this.getActiveConversation();
+      if (!activeConversation) return;
+
+      // Locate the most recent non-empty user message (excluding placeholders)
+      const lastUser = [...activeConversation.messages].reverse().find(m => m.role === 'user' && m.content?.trim());
+      const basePrompt = lastUser?.content || 'Please proceed.';
+
+      // Ensure backend conversation exists
+      let conversationId = activeConversation.id;
+      const hasOnlyInitialMessages = activeConversation.messages.length <= 1 && 
+        activeConversation.messages.every(msg => msg.metadata?.isWelcome);
+      if (hasOnlyInitialMessages) {
+        const exists = await conversation.conversationExists(conversationId);
+        if (!exists) {
+          const backendId = await conversation.createConversation(activeConversation.agent);
+          conversationId = backendId;
+          activeConversation.id = conversationId;
+          this.activeConversationId = conversationId;
+          const conversationsStore = useAgentConversationsStore();
+          conversationsStore.addExistingConversation({
+            id: conversationId,
+            agentName: activeConversation.agent.name,
+            agentType: activeConversation.agent.type,
+            startedAt: new Date(),
+            lastActiveAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            taskCount: 0,
+            completedTasks: 0,
+            failedTasks: 0,
+            activeTasks: 0,
+          });
+        }
+      }
+
+      // Determine execution mode
+      const userPreferences = useUserPreferencesStore();
+      const effectiveMode = taskExecution.determineExecutionMode(activeConversation, userPreferences.preferences);
+      preGeneratedTaskId = generateUUID();
+
+      // Mark sending state for UI (mirrors sendMessage path)
+      activeConversation.isSendingMessage = true;
+
+      const taskOptions = {
+        method: mode,
+        prompt: basePrompt,
+        conversationId,
+        conversationHistory: this.buildConversationHistory(activeConversation),
+        llmSelection: this.getLLMSelection(),
+        executionMode: effectiveMode,
+        agentType: activeConversation.agent.type,
+        agentName: activeConversation.agent.name,
+        taskId: preGeneratedTaskId,
+        mode,
+        timeoutSeconds: mode === 'build' ? 90 : 60,
+      };
+
+      // Track plan/build dispatch from CTA or acceptance
+      analyticsService.trackEvent({
+        eventType: 'system',
+        category: 'chat',
+        action: mode === 'build' ? 'build_sent' : 'plan_sent',
+        label: mode,
+        properties: { conversationId, taskId: preGeneratedTaskId },
+        context: { url: window.location.pathname, userAgent: navigator.userAgent },
+      });
+
+      await taskExecution.createAndExecuteTask(taskOptions, {
+        onPlaceholder: (taskId, mode) => this.createPlaceholderMessage(conversationId, taskId, mode),
+        onCompletion: (taskId, immediateTask) => this.handleTaskCompletion(conversationId, taskId, immediateTask),
+        onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
+      });
+
+      // Clear sending state on completion path (safety)
+      activeConversation.isSendingMessage = false;
     },
 
     /**
@@ -282,6 +403,33 @@ export const useAgentChatStore = defineStore('agentChat', {
         return;
       }
 
+      // Natural acceptance: if a pending action exists and the content is affirmative, auto-run and return
+      const pending = this.getPendingAction();
+      const affirmative = /^(yes|yeah|yep|yup|sure|ok|okay|please|do it|go ahead|sounds good|let's do it|proceed)[.!]?$/i;
+      if (pending && affirmative.test(content.trim())) {
+        // Record the user's short reply as a normal message for continuity
+        const userMessage: AgentChatMessage = {
+          id: `user-${Date.now()}`,
+          role: 'user',
+          content,
+          timestamp: new Date(),
+        };
+        activeConversation.messages.push(userMessage);
+        this.setChatMode(pending.type);
+        // Track natural acceptance
+        analyticsService.trackEvent({
+          eventType: 'ui',
+          category: 'cta',
+          action: 'auto_accept_yes',
+          label: pending.type,
+          properties: { conversationId: activeConversation.id, sourceTaskId: pending.sourceTaskId },
+          context: { url: window.location.pathname, userAgent: navigator.userAgent },
+        });
+        this.clearPendingAction();
+        await this.executeFromLastUserMessage(pending.type);
+        return; // Skip normal task creation flow
+      }
+
       // Set loading state
       activeConversation.isSendingMessage = true;
       activeConversation.error = undefined;
@@ -345,9 +493,16 @@ export const useAgentChatStore = defineStore('agentChat', {
         preGeneratedTaskId = generateUUID();
 
 
+        // Ensure system model selection is warmed for Converse/Plan
+        const modeToWarm = (activeConversation.chatMode || 'converse');
+        if (modeToWarm === 'converse' || modeToWarm === 'plan') {
+          try { await (useLLMStore() as any).ensureSystemModelSelection?.(); } catch {}
+        }
+
         // Prepare task execution options
+        const chatMode = activeConversation.chatMode || 'converse';
         const taskOptions = {
-          method: 'process',
+          method: chatMode,
           prompt: content,
           conversationId: conversationId,
           conversationHistory: this.buildConversationHistory(activeConversation),
@@ -356,15 +511,27 @@ export const useAgentChatStore = defineStore('agentChat', {
           agentType: activeConversation.agent.type,
           agentName: activeConversation.agent.name,
           taskId: preGeneratedTaskId,
+          mode: chatMode,
+          timeoutSeconds: chatMode === 'build' ? 90 : 60,
         };
+
+        // Track plan/build when dispatched from regular send
+        if (chatMode === 'build' || chatMode === 'plan') {
+          analyticsService.trackEvent({
+            eventType: 'system',
+            category: 'chat',
+            action: chatMode === 'build' ? 'build_sent' : 'plan_sent',
+            label: chatMode,
+            properties: { conversationId, taskId: preGeneratedTaskId },
+            context: { url: window.location.pathname, userAgent: navigator.userAgent },
+          });
+        }
 
         // Execute task using service
         await taskExecution.createAndExecuteTask(taskOptions, {
-          onPlaceholder: (taskId) => this.createPlaceholderMessage(conversationId, taskId),
-          onCompletion: (taskId) => this.handleTaskCompletion(conversationId, taskId),
-
+          onPlaceholder: (taskId, mode) => this.createPlaceholderMessage(conversationId, taskId, mode),
+          onCompletion: (taskId, immediateTask) => this.handleTaskCompletion(conversationId, taskId, immediateTask),
           onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
-
         });
 
       } catch (error) {
@@ -450,8 +617,9 @@ export const useAgentChatStore = defineStore('agentChat', {
 
 
         // Prepare task execution options with context metadata
+        const chatMode2 = activeConversation.chatMode || 'converse';
         const taskOptions = {
-          method: 'process',
+          method: chatMode2,
           prompt: content,
           conversationId: conversationId,
           conversationHistory: this.buildConversationHistory(activeConversation),
@@ -460,16 +628,16 @@ export const useAgentChatStore = defineStore('agentChat', {
           agentType: activeConversation.agent.type,
           agentName: activeConversation.agent.name,
           taskId: preGeneratedTaskId,
+          mode: chatMode2,
+          timeoutSeconds: chatMode2 === 'build' ? 90 : 60,
           metadata: enhancedMetadata, // Include context metadata with conversationId
         };
 
         // Execute task using service
         await taskExecution.createAndExecuteTask(taskOptions, {
-          onPlaceholder: (taskId) => this.createPlaceholderMessage(conversationId, taskId),
-          onCompletion: (taskId) => this.handleTaskCompletion(conversationId, taskId),
-
+          onPlaceholder: (taskId, mode) => this.createPlaceholderMessage(conversationId, taskId, mode),
+          onCompletion: (taskId, immediateTask) => this.handleTaskCompletion(conversationId, taskId, immediateTask),
           onStatusUpdate: (convId, taskId, statusUpdate) => this.handleTaskStatusUpdate(convId, taskId, statusUpdate),
-
         });
 
       } catch (error) {
@@ -508,11 +676,11 @@ export const useAgentChatStore = defineStore('agentChat', {
     /**
      * Create placeholder message for ongoing task
      */
-    createPlaceholderMessage(conversationId: string, taskId: string) {
+    createPlaceholderMessage(conversationId: string, taskId: string, mode?: string) {
       const conv = this.getConversationById(conversationId);
       if (!conv) return;
 
-      const placeholderMessage = messageFormatting.createPlaceholderMessage(taskId);
+      const placeholderMessage = messageFormatting.createPlaceholderMessage(taskId, mode);
       conv.messages.push(placeholderMessage);
     },
 
@@ -542,7 +710,7 @@ export const useAgentChatStore = defineStore('agentChat', {
     /**
      * Handle task completion with deliverable generation
      */
-    async handleTaskCompletion(conversationId: string, taskId: string) {
+    async handleTaskCompletion(conversationId: string, taskId: string, immediateTask?: any) {
 
       console.log('🔍 [FRONTEND-DEBUG] handleTaskCompletion called for taskId:', taskId);
 
@@ -563,12 +731,24 @@ export const useAgentChatStore = defineStore('agentChat', {
         return;
       }
 
-      const existingMessage = conv.messages.find(msg => 
+      let existingMessage = conv.messages.find(msg => 
         msg.taskId === taskId && msg.role === 'assistant'
       );
 
       if (!existingMessage) {
-        return;
+        // Fallback: if we can't find the placeholder by taskId (e.g., ID changed), create a new assistant message to ensure UI shows content
+        existingMessage = {
+          id: `response-${Date.now()}`,
+          role: 'assistant',
+          content: 'Working on that…',
+          timestamp: new Date(),
+          taskId,
+          metadata: {
+            isPlaceholder: true,
+            isCompleted: false,
+          },
+        } as any;
+        conv.messages.push(existingMessage);
       }
 
 
@@ -577,12 +757,23 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Get completed task - small delay to work around backend timing issue
 
         await new Promise(resolve => setTimeout(resolve, 100)); // Workaround: backend sends WebSocket before DB commit
-        const completedTask = await tasksService.getTask(taskId);
+        let completedTask = await tasksService.getTask(taskId);
 
 
         if (completedTask.status !== 'completed') {
-          console.warn(`Task ${taskId} is not completed, status: ${completedTask.status}`);
-          return;
+          // Fallback: use immediate task result returned from the POST if available
+          if (immediateTask && immediateTask.status === 'completed' && immediateTask.result) {
+            completedTask = {
+              ...completedTask,
+              status: 'completed',
+              response: typeof immediateTask.result === 'string' ? immediateTask.result : JSON.stringify(immediateTask.result),
+              llmMetadata: (immediateTask.metadata && (immediateTask.metadata.llmUsed || immediateTask.metadata.llmMetadata)) || completedTask.llmMetadata,
+              metadata: immediateTask.metadata || completedTask.metadata,
+            } as any;
+          } else {
+            console.warn(`Task ${taskId} is not completed, status: ${completedTask.status}`);
+            return;
+          }
         }
 
 
@@ -760,6 +951,11 @@ export const useAgentChatStore = defineStore('agentChat', {
       } finally {
         // Clean up completion tracking
         (this as any)._completingTasks?.delete(taskId);
+        // Always clear sending state when a task completes
+        const convDone = this.getConversationById(conversationId);
+        if (convDone) {
+          convDone.isSendingMessage = false;
+        }
       }
     },
 
@@ -949,7 +1145,22 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     getLLMSelection() {
       const llmStore = useLLMStore();
+      const active = this.getActiveConversation();
+      // For Converse and Plan, prefer the system model from model-config service
+      if (active?.chatMode === 'converse' || active?.chatMode === 'plan') {
+        // Best effort: if system model cached, use it; otherwise fall back to current selection
+        const sys = (llmStore as any)._systemModelSelection;
+        if (sys) return sys;
+      }
       return llmStore.currentLLMSelection;
+    },
+
+    /**
+     * Internal: choose a fast local/cheap model for quick replies
+     */
+    _pickFastConversationModel(llmStore: any) {
+      // Deprecated: Switching Converse to system model via model-config
+      return null;
     },
 
     /**

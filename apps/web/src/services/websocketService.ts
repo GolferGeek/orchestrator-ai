@@ -74,7 +74,7 @@ class WebSocketService {
       } catch (error) {
         // Auth store not available, using anonymous WebSocket connection
       }
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:9000';
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
       this.socket = io(`${apiUrl}/task-progress`, {
         auth: token ? { token } : undefined,
         transports: ['polling', 'websocket'], // Allow polling first, then upgrade

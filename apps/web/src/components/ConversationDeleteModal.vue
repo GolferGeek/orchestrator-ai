@@ -144,12 +144,18 @@ const confirmDelete = () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: var(--ion-color-danger);
-  font-weight: 500;
-  background: var(--ion-color-danger-tint);
+  /* Use Ionic theme contrast for readable text on danger background */
+  background: var(--ion-color-danger);
+  color: var(--ion-color-danger-contrast);
+  font-weight: 600;
   padding: 12px;
   border-radius: 8px;
   margin-top: 16px;
+  border: 1px solid var(--ion-color-danger-shade);
+}
+/* Ensure the alert icon is visible on the danger background */
+.active-tasks-warning ion-icon {
+  color: var(--ion-color-danger-contrast) !important;
 }
 .deliverable-section {
   border-top: 1px solid var(--ion-color-light-shade);

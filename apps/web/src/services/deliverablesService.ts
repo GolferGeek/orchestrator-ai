@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
+import { apiService } from './apiService';
 // API endpoint configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:9000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL;
 // Deliverable types and interfaces
 export enum DeliverableType {
   DOCUMENT = 'document',
@@ -114,7 +115,7 @@ class DeliverablesService {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 60000,
+      timeout: 90000,
     });
     // Add auth token to requests
     this.axiosInstance.interceptors.request.use((config) => {
@@ -233,8 +234,10 @@ class DeliverablesService {
    * Get deliverables for a specific conversation
    */
   async getConversationDeliverables(conversationId: string): Promise<Deliverable[]> {
-    const response = await this.axiosInstance.get(`/deliverables/conversation/${conversationId}`);
-    return response.data;
+    // Use shared apiService to ensure correct base URL and auth headers
+    const response = await apiService.get(`/deliverables/conversation/${conversationId}`);
+    // apiService.get already returns parsed JSON
+    return Array.isArray(response) ? response : (response?.items || response || []);
   }
   /**
    * Get deliverables created by a specific agent (by searching version metadata)

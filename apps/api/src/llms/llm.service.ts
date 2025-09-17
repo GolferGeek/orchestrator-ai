@@ -123,6 +123,7 @@ export class LLMService {
       userId?: string; // Direct user ID for usage tracking
       // Intelligent routing hints
       complexity?: 'simple' | 'medium' | 'complex' | 'reasoning'; // Task complexity for routing decisions
+      quick?: boolean; // Skip PII processing/pseudonymization for fast local conversations
       // Caller tracking for usage analytics
       callerType?: string; // 'agent', 'api', 'user', 'system', 'service'
       callerName?: string; // 'metrics-agent', 'user-chat', 'api-endpoint', etc.
@@ -154,8 +155,9 @@ export class LLMService {
         let dictionaryMappings: any[] = [];
         let enhancedPiiMetadata = options?.piiMetadata;
 
-        // Always apply dictionary pseudonymization for external providers (non-Ollama)
-        if (options.providerName.toLowerCase() !== 'ollama') {
+        // Always apply dictionary pseudonymization for external providers (non-Ollama), unless quick bypass
+        const skipPII = (options as any)?.quick === true;
+        if (!skipPII && options.providerName.toLowerCase() !== 'ollama') {
           if (this.debugEnabled) console.log('🔍 [LLM-SERVICE] Applying dictionary pseudonymization for provider:', options.providerName);
 
           const pseudonymResult = await this.dictionaryPseudonymizerService.pseudonymizeText(userMessage);
@@ -246,6 +248,9 @@ export class LLMService {
           }
 
           if (this.debugEnabled) console.log(`🎯 [LLM-SERVICE] PII applied - pseudonyms: ${dictionaryMappings.length}`);
+        } else {
+          // Quick/local path – no pseudonymization
+          processedUserMessage = userMessage;
         }
 
         // Use the new unified LLM service factory approach

@@ -70,7 +70,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
     {
       version: 'v1' as const,
       technology: 'typescript-nestjs' as const,
-      baseUrl: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL || 'http://localhost:9000',
+      baseUrl: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_NESTJS_BASE_URL,
       name: 'Orchestrator AI API',
       description: 'Unified NestJS API',
       features: [
@@ -186,6 +186,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       // In a real implementation, this might call a discovery service
       // For now, we'll check for additional endpoints based on environment
       const baseUrls = [
+        // Prefer explicit VITE_WEB_PORT; default dev port remains 9001; 7101 only as configured
         `http://localhost:${import.meta.env.VITE_WEB_PORT || '9001'}`,
         // Add staging/production URLs based on environment
       ];

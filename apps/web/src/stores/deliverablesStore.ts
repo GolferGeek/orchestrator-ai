@@ -188,6 +188,13 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       // Use the proper deliverablesService instead of direct fetch
       const { deliverablesService } = await import('@/services/deliverablesService');
       const deliverables = await deliverablesService.getConversationDeliverables(conversationId.trim());
+      
+      // Ensure deliverables is an array before proceeding
+      if (!Array.isArray(deliverables)) {
+        console.warn('Expected deliverables to be an array, got:', typeof deliverables, deliverables);
+        return [];
+      }
+      
       // Clear existing deliverables for this conversation
       const existingIds = state.value.conversationDeliverables.get(conversationId) || [];
       existingIds.forEach(id => {
@@ -210,9 +217,11 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
       });
       return deliverables;
     } catch (error: any) {
-
+      console.error('Failed to load deliverables for conversation:', error);
       setError(error.message);
-      throw error;
+      
+      // Return empty array instead of throwing to prevent forEach errors
+      return [];
     } finally {
       setLoading(false);
     }
@@ -611,25 +620,46 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
         }
       } as any;
 
-      await tasksService.createAgentTask(agentType!, agentName!, {
+      const taskResp = await tasksService.createAgentTask(agentType!, agentName!, {
         method: 'process',
         prompt: originalTask.prompt,
         conversationId,
         llmSelection,
         executionMode: 'immediate',
+        timeoutSeconds: 90,
+        // Ensure backend interprets this as a Build so deliverable gating allows persistence
+        params: {
+          mode: 'build',
+        },
       });
 
       // 4) Poll for a new version to appear for the same deliverable
       const start = Date.now();
-      const timeoutMs = 30000; // 30s
+      const timeoutMs = 90000; // 90s
       const intervalMs = 1000; // 1s
       let latest: DeliverableVersion | null = null;
+      const newTaskId = (taskResp && (taskResp as any).taskId) || undefined;
       while (Date.now() - start < timeoutMs) {
-        const versions = await deliverablesService.getVersionHistory(deliverableId);
-        const maxVersion = versions.reduce((max, v) => (v.versionNumber > max.versionNumber ? v : max), versions[0] || sourceVersion);
-        if (maxVersion && maxVersion.versionNumber > currentNumber) {
-          latest = maxVersion;
-          break;
+        // Prefer a precise check by taskId if available
+        if (newTaskId) {
+          const maybeDeliverable = await deliverablesService.findExistingDeliverable(conversationId, newTaskId);
+          if (maybeDeliverable) {
+            // Load versions and pick the one created by this task
+            const versions = await deliverablesService.getVersionHistory(maybeDeliverable.id);
+            const created = versions.find(v => v.taskId === newTaskId) || null;
+            if (created) {
+              latest = created;
+              break;
+            }
+          }
+        } else {
+          // Fallback: detect by version number increment
+          const versions = await deliverablesService.getVersionHistory(deliverableId);
+          const maxVersion = versions.reduce((max, v) => (v.versionNumber > max.versionNumber ? v : max), versions[0] || sourceVersion);
+          if (maxVersion && maxVersion.versionNumber > currentNumber) {
+            latest = maxVersion;
+            break;
+          }
         }
         await new Promise(res => setTimeout(res, intervalMs));
       }

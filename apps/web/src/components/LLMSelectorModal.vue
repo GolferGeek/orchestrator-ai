@@ -236,6 +236,10 @@ const effectiveSovereignModeText = computed(() => {
 
 // Initialize
 onMounted(async () => {
+  // Align initialization with full LLMSelector component for consistency
+  try {
+    await llmStore.initializeSovereignMode();
+  } catch {}
   await llmStore.initialize();
   
   // Sync with store state

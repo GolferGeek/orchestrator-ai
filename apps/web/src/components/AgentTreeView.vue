@@ -98,10 +98,74 @@
               </div>
             </ion-item>
             
-            <!-- Team members in accordion content -->
+            <!-- Accordion content: Manager's conversations/projects first, then team members -->
             <div slot="content" class="accordion-content">
-              <!-- Skip the first agent (manager) and show the rest (team members) -->
-              <div v-for="agent in group.agents.slice(1)" :key="agent.name" class="agent-section nested-agent">
+
+              <!-- Manager's Conversations and Projects (first agent in the group) -->
+              <div v-if="group.agents[0]" class="manager-content">
+                <!-- Manager's Conversations -->
+                <div v-if="group.agents[0].conversations && group.agents[0].conversations.length > 0" class="manager-conversations">
+                  <h5 class="section-title">Manager Conversations</h5>
+                  <div class="conversations-list">
+                    <ion-item
+                      v-for="conversation in group.agents[0].conversations"
+                      :key="conversation.id"
+                      @click="selectConversation(conversation)"
+                      button
+                      class="conversation-item manager-conversation"
+                    >
+                      <ion-icon :icon="icons.chatbubbleOutline" slot="start" color="primary" />
+                      <ion-label>
+                        <p>{{ formatConversationTitle(conversation) }}</p>
+                      </ion-label>
+                      <ion-badge
+                        v-if="conversation.activeTasks > 0"
+                        slot="end"
+                        color="warning"
+                      >
+                        {{ conversation.activeTasks }}
+                      </ion-badge>
+                      <ion-button
+                        fill="clear"
+                        size="small"
+                        color="danger"
+                        slot="end"
+                        @click="deleteConversation(conversation, $event)"
+                      >
+                        <ion-icon :icon="icons.trashOutline" />
+                      </ion-button>
+                    </ion-item>
+                  </div>
+                </div>
+
+                <!-- Manager's Projects -->
+                <div v-if="group.agents[0].projects && group.agents[0].projects.length > 0" class="manager-projects">
+                  <h5 class="section-title">Manager Projects</h5>
+                  <div class="projects-list">
+                    <ion-item
+                      v-for="project in group.agents[0].projects"
+                      :key="project.id"
+                      @click="selectProject(project)"
+                      button
+                      class="project-item manager-project"
+                    >
+                      <ion-icon :icon="icons.folderOutline" slot="start" color="secondary" />
+                      <ion-label>
+                        <h6>{{ project.name || 'Untitled Project' }}</h6>
+                        <p>{{ project.description || 'No description' }}</p>
+                      </ion-label>
+                      <ion-badge :color="getProjectStatusColor(project.status)" slot="end">
+                        {{ project.status }}
+                      </ion-badge>
+                    </ion-item>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Team Members -->
+              <div v-if="group.agents.length > 1" class="team-members">
+                <h5 class="section-title">Team Members</h5>
+                <div v-for="agent in group.agents.slice(1)" :key="agent.name" class="agent-section nested-agent">
                 <!-- Agent Header -->
                 <ion-item class="nested-agent-item">
                   <ion-icon :icon="icons.personOutline" slot="start" color="medium" />
@@ -155,10 +219,11 @@
                     </ion-button>
                   </ion-item>
                 </div>
-                
-              </div>
-              
-          </div>
+
+              </div> <!-- End nested-agent -->
+              </div> <!-- End team-members -->
+
+            </div> <!-- End accordion-content -->
         </ion-accordion>
       </ion-accordion-group>
     </div>
@@ -275,6 +340,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'agent-selected': [agent: any];
   'conversation-selected': [conversation: any];
+  'project-selected': [project: any];
 }>();
 
 // Reactive state
@@ -327,8 +393,58 @@ const formatLastActive = (date: Date) => {
   return date.toLocaleDateString();
 };
 
+const formatDate = (date: string | Date) => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleDateString();
+};
+
 const selectConversation = (conversation: any) => {
   emit('conversation-selected', conversation);
+};
+
+const selectProject = (project: any) => {
+  emit('project-selected', project);
+};
+
+const getProjectStatusColor = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'active':
+    case 'in progress':
+      return 'primary';
+    case 'completed':
+    case 'done':
+      return 'success';
+    case 'paused':
+    case 'on hold':
+      return 'warning';
+    case 'cancelled':
+    case 'failed':
+      return 'danger';
+    default:
+      return 'medium';
+  }
+};
+
+const getConversationStatusColor = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'active':
+    case 'ongoing':
+      return 'primary';
+    case 'completed':
+    case 'done':
+      return 'success';
+    case 'paused':
+    case 'on hold':
+      return 'warning';
+    case 'archived':
+    case 'closed':
+      return 'medium';
+    case 'error':
+    case 'failed':
+      return 'danger';
+    default:
+      return 'tertiary';
+  }
 };
 
 const deleteConversation = async (conversation: any, event: Event) => {
@@ -859,5 +975,16 @@ onMounted(async () => {
 /* Nested agent item styling */
 .nested-agent-item {
   --background: var(--ion-color-step-100, #e7e7e7);
+}
+
+/* Section titles for manager content and team members */
+.section-title {
+  text-align: center;
+  color: var(--ion-color-primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 12px 16px 8px 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 </style>

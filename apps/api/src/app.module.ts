@@ -58,6 +58,7 @@ import { UniversalAgentServicesContextModule } from './agents/base/services/univ
 import { MCPModule } from './mcp/mcp.module';
 import { SovereignPolicyModule } from './config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
+import { AnalyticsController } from './analytics/analytics.controller';
 import { SpeechModule } from './speech/speech.module';
 import { AgentCreatorModule } from './agents/actual/specialists/agent_creator/agent.module';
 
@@ -129,6 +130,8 @@ import { AgentCreatorModule } from './agents/actual/specialists/agent_creator/ag
     HierarchySimpleController,
     ContextMetricsController,
     HierarchyController,
+    // Dev analytics sink to avoid 404s from frontend tracking
+    AnalyticsController,
   ],
   providers: [
     AppService,

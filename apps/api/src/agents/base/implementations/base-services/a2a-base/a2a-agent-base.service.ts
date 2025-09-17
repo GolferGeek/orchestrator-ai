@@ -39,6 +39,7 @@ import {
   DeliverableType,
   DeliverableFormat,
 } from '../../../../../deliverables/dto';
+import { LLMService } from '../../../../../llms/llm.service';
 
 /**
  * Minimal A2A Agent Base Service
@@ -67,6 +68,7 @@ export abstract class A2AAgentBaseService
   protected deliverablesService?: DeliverablesService;
   protected deliverableVersionsService?: DeliverableVersionsService;
   protected tasksService?: TasksService;
+  protected llmService?: LLMService;
 
   constructor(
     protected readonly httpService: HttpService,
@@ -82,6 +84,9 @@ export abstract class A2AAgentBaseService
     @Optional()
     @Inject(TasksService)
     tasksService?: TasksService,
+    @Optional()
+    @Inject(LLMService)
+    llmService?: LLMService,
     agentRegistrationService?: AgentRegistrationService,
     jsonRpcProtocolService?: JsonRpcProtocolService,
     loggingService?: LoggingService,
@@ -101,6 +106,7 @@ export abstract class A2AAgentBaseService
     this.deliverablesService = deliverablesService;
     this.deliverableVersionsService = deliverableVersionsService;
     this.tasksService = tasksService;
+    this.llmService = llmService;
     
     // Debug logging to track service injection
 
@@ -185,7 +191,8 @@ export abstract class A2AAgentBaseService
         method: string,
         params: any,
       ): Promise<any> => {
-        return this.executeTask(method, params);
+        // Normalize mode + quick flags and enforce early gating
+        return this.normalizeAndExecute(method, params);
       };
 
       // Create a notification handler (not used but required by interface)
@@ -299,8 +306,14 @@ export abstract class A2AAgentBaseService
       // Process as JSON-RPC request
       return this.processJsonRpcRequest(taskRequest);
     } else {
-      // Legacy direct call - delegate to executeTask
-      return this.executeTask('processTask', taskRequest);
+      // Legacy direct call – optionally block and always normalize
+      const disableLegacy = (process.env.DISABLE_LEGACY_A2A_DIRECT ?? 'true') === 'true';
+      if (disableLegacy) {
+        this.logger.warn(`Legacy A2A direct task path blocked. Agent=${this.getAgentName()}`);
+        throw new Error('Legacy A2A direct path is disabled. Please use JSON-RPC request shape.');
+      }
+      this.logger.warn(`Using legacy A2A direct task path. Consider migrating to JSON-RPC. Agent=${this.getAgentName()}`);
+      return this.normalizeAndExecute('processTask', taskRequest);
     }
   }
 
@@ -309,6 +322,277 @@ export abstract class A2AAgentBaseService
   // ============================================================================
 
   public abstract executeTask(method: string, params: any): Promise<any>;
+
+  /**
+   * Normalize params (mode gating, quick flags, LLM selection) and delegate to executeTask
+   */
+  protected async normalizeAndExecute(method: string, params: any): Promise<any> {
+    const normalized = { ...(params || {}) };
+
+    // Determine mode from params or method
+    const requestedMode = (normalized.mode as string) ||
+      (['converse', 'plan', 'build'].includes(method) ? method : undefined) ||
+      'converse';
+    normalized.mode = requestedMode;
+
+    // Early gating and fast-path hints
+    if (requestedMode === 'converse') {
+      normalized.quick = normalized.quick ?? true;
+      normalized.noDeliverable = normalized.noDeliverable ?? true;
+
+      // Optionally ignore UI-provided model selection for conversational consistency
+      const ignoreUi = (process.env.A2A_CONVERSE_IGNORE_UI_SELECTION ?? 'true') === 'true';
+      const forceLocal = (process.env.A2A_CONVERSE_FORCE_LOCAL ?? 'false') === 'true';
+      if (ignoreUi || forceLocal) {
+        const sys = forceLocal ? { providerName: 'ollama', modelName: 'llama3.2:1b' } : this.getSystemModelSelection(true /*preferLocalForConverse*/);
+        if (sys) {
+          normalized.llmSelection = {
+            providerName: sys.providerName,
+            modelName: sys.modelName,
+            temperature: sys.temperature,
+            maxTokens: sys.maxTokens,
+            ...(normalized.llmSelection?.cidafmOptions ? { cidafmOptions: normalized.llmSelection.cidafmOptions } : {}),
+          };
+        }
+      } else {
+        // Ensure an explicit provider/model is present for uniform behavior
+        const hasSelection = normalized.llmSelection && normalized.llmSelection.providerName && normalized.llmSelection.modelName;
+        if (!hasSelection) {
+          const sys = this.getSystemModelSelection(true /*preferLocalForConverse*/);
+          if (sys) {
+            normalized.llmSelection = {
+              providerName: sys.providerName,
+              modelName: sys.modelName,
+              temperature: sys.temperature,
+              maxTokens: sys.maxTokens,
+              ...(normalized.llmSelection?.cidafmOptions ? { cidafmOptions: normalized.llmSelection.cidafmOptions } : {}),
+            };
+          }
+        }
+      }
+    } else if (requestedMode === 'plan') {
+      // Planning should also be lightweight and avoid full content generation
+      normalized.quick = normalized.quick ?? true;
+      normalized.noDeliverable = normalized.noDeliverable ?? true;
+      const ignoreUiPlan = (process.env.A2A_PLAN_IGNORE_UI_SELECTION ?? 'true') === 'true';
+      const forceLocalPlan = (process.env.A2A_PLAN_FORCE_LOCAL ?? 'false') === 'true';
+      if (ignoreUiPlan || forceLocalPlan) {
+        const sys = forceLocalPlan ? { providerName: 'ollama', modelName: 'llama3.2:1b' } : this.getSystemModelSelection(true /*preferLocalForConverse*/);
+        if (sys) {
+          normalized.llmSelection = {
+            providerName: sys.providerName,
+            modelName: sys.modelName,
+            temperature: sys.temperature,
+            maxTokens: sys.maxTokens,
+            ...(normalized.llmSelection?.cidafmOptions ? { cidafmOptions: normalized.llmSelection.cidafmOptions } : {}),
+          };
+        }
+      }
+    } else if (requestedMode !== 'build') {
+      // For any non-build mode, ensure deliverables are disabled early
+      normalized.noDeliverable = normalized.noDeliverable ?? true;
+    }
+
+    // Stamp mode in metadata for downstream services/analytics
+    try {
+      normalized.metadata = {
+        ...(normalized.metadata || {}),
+        mode: requestedMode,
+      };
+    } catch {}
+
+    // Short-circuit Converse/Plan using agent context + small local LLM
+    const shortCircuitEnabled =
+      (requestedMode === 'converse' && (process.env.A2A_SHORTCIRCUIT_CONVERSE ?? 'true') !== 'false') ||
+      (requestedMode === 'plan' && (process.env.A2A_SHORTCIRCUIT_PLAN ?? 'true') !== 'false');
+
+    if (shortCircuitEnabled) {
+      const result = await this.shortCircuitConversePlan(requestedMode as any, normalized);
+      if (result) {
+        return result;
+      }
+    }
+
+    return this.executeTask(method, normalized);
+  }
+
+  /**
+   * Short-circuit Converse/Plan at the A2A base using the agent context file and full conversation history.
+   * Always renders via the local system LLM (no deterministic templating).
+   */
+  private async shortCircuitConversePlan(
+    mode: 'converse' | 'plan',
+    params: any,
+  ): Promise<any | null> {
+    try {
+      if (!this.llmService) return null; // If LLM service is not injected, skip
+
+      const contextText = this.loadAgentContextText();
+      const history = Array.isArray(params.conversationHistory)
+        ? params.conversationHistory
+        : [];
+      const historyLines = history
+        .slice(-10)
+        .map((m: any) => `${m.role}: ${m.content}`)
+        .join('\n');
+
+      const agentName = this.getAgentName ? this.getAgentName() : 'Agent';
+      const agentType = (this as any).getAgentType ? (this as any).getAgentType() : 'unknown';
+
+      // Build system prompt
+      const guidelines = mode === 'converse'
+        ? [
+            'Provide a brief, conversational reply.',
+            'Do NOT write full documents, drafts, or deliverables.',
+            "Avoid long structured markdown (no '# Title' or multi-section outlines).",
+            'Ask one clarifying or follow-up question at the end if appropriate.',
+          ]
+        : [
+            'Provide a concise plan/outline only (no full content).',
+            'Prefer sections like: Objectives, Audience, Outline, Acceptance Criteria.',
+            'End by asking whether to proceed to Build.',
+          ];
+
+      const contextHeader = contextText
+        ? `Agent Context (trimmed):\n${contextText.substring(0, 4000)}\n\n`
+        : '';
+
+      const historyBlock = historyLines
+        ? `Conversation History (recent):\n${historyLines}\n\n`
+        : '';
+
+      const systemPrompt = `You are ${agentName}, a ${agentType} agent.\n` +
+        `${contextHeader}` +
+        `${historyBlock}` +
+        `${mode === 'converse' ? 'Converse Mode' : 'Plan Mode'} Guidelines:\n- ${guidelines.join('\n- ')}\n`;
+
+      // Infer user message: last user entry or params.prompt
+      const lastUser = [...history].reverse().find((m: any) => m.role === 'user' && m.content?.trim());
+      const userMessage = lastUser?.content || params.prompt || params.message || 'Please respond.';
+
+      // Select model/provider: honor caller llmSelection if provided; otherwise use system config (prefer local for converse); final fallback = local ollama
+      // Determine selection honoring ignore flags for modes
+      const ignoreUi = (mode === 'converse' && (process.env.A2A_CONVERSE_IGNORE_UI_SELECTION ?? 'true') === 'true') ||
+                       (mode === 'plan' && (process.env.A2A_PLAN_IGNORE_UI_SELECTION ?? 'true') === 'true');
+      const forceLocal = (mode === 'converse' && (process.env.A2A_CONVERSE_FORCE_LOCAL ?? 'false') === 'true') ||
+                         (mode === 'plan' && (process.env.A2A_PLAN_FORCE_LOCAL ?? 'false') === 'true');
+
+      let sys;
+      if (forceLocal) {
+        sys = { providerName: 'ollama', modelName: 'llama3.2:1b' };
+      } else if (ignoreUi) {
+        sys = this.getSystemModelSelection(true) || { providerName: 'ollama', modelName: 'llama3.2:1b' };
+      } else {
+        const callerSel = (params && params.llmSelection && params.llmSelection.providerName && params.llmSelection.modelName)
+          ? {
+              providerName: params.llmSelection.providerName,
+              modelName: params.llmSelection.modelName,
+              temperature: params.llmSelection.temperature,
+              maxTokens: params.llmSelection.maxTokens,
+            }
+          : null;
+        sys = callerSel || this.getSystemModelSelection(true) || { providerName: 'ollama', modelName: 'llama3.2:1b' };
+      }
+      const maxTokens = mode === 'converse' ? 200 : 400;
+
+      const llmResult = await this.llmService.generateResponse(
+        systemPrompt,
+        userMessage,
+        {
+          includeMetadata: true,
+          providerName: sys.providerName,
+          modelName: sys.modelName,
+          temperature: typeof sys.temperature === 'number' ? sys.temperature : 0.2,
+          maxTokens: typeof sys.maxTokens === 'number' ? sys.maxTokens : maxTokens,
+          quick: true,
+          callerType: 'agent',
+          callerName: agentName,
+          conversationId: params.conversationId,
+          userId: params.userId || params.currentUser?.id,
+          dataClassification: 'internal',
+        },
+      );
+
+      const content = typeof llmResult === 'string' ? llmResult : (llmResult.content || llmResult.response || '');
+      return {
+        success: true,
+        response: content,
+        metadata: {
+          agentName,
+          agentType,
+          processedAt: new Date().toISOString(),
+          mode,
+          renderMode: 'llm_short_circuit',
+        },
+      };
+    } catch (error) {
+      this.logger.warn('Short-circuit converse/plan failed. Falling through to agent execution.', error);
+      return null;
+    }
+  }
+
+  /**
+   * Load the agent's context file (e.g., agent_context.md or context.md) as plain text.
+   */
+  private loadAgentContextText(): string {
+    try {
+      const fileName = process.env.A2A_CONTEXT_FILE_NAME || 'agent_context.md';
+      let basePath = this.agentPath;
+      if (!basePath || basePath === 'unknown') {
+        basePath = this.discoverAgentPath();
+      }
+      if (!basePath || basePath === 'unknown') return '';
+
+      const tryPaths = [
+        path.join(process.cwd(), 'src', 'agents', 'actual', basePath, fileName),
+        path.join(process.cwd(), 'src', 'agents', 'actual', basePath, 'context.md'),
+      ];
+      for (const p of tryPaths) {
+        if (fs.existsSync(p)) {
+          return fs.readFileSync(p, 'utf8');
+        }
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Resolve system model selection from environment MODEL_CONFIG_GLOBAL_JSON
+   * Supports shapes: {provider, model, parameters?} or {default, localOnly?}
+   */
+  private getSystemModelSelection(preferLocalForConverse = false): { providerName: string; modelName: string; temperature?: number; maxTokens?: number } | null {
+    try {
+      const raw = process.env.MODEL_CONFIG_GLOBAL_JSON;
+      if (!raw) return null;
+      const cfg = JSON.parse(raw);
+      // If caller prefers local for converse and a localOnly config is present, use it without requiring sovereign mode.
+      if (preferLocalForConverse && cfg.localOnly) {
+        const selectedLocal = cfg.localOnly;
+        if (selectedLocal?.provider && selectedLocal?.model) {
+          return {
+            providerName: selectedLocal.provider,
+            modelName: selectedLocal.model,
+            temperature: selectedLocal.parameters?.temperature,
+            maxTokens: selectedLocal.parameters?.maxTokens,
+          };
+        }
+      }
+      const selected = (cfg.default || cfg);
+      if (selected?.provider && selected?.model) {
+        return {
+          providerName: selected.provider,
+          modelName: selected.model,
+          temperature: selected.parameters?.temperature,
+          maxTokens: selected.parameters?.maxTokens,
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
 
   // ============================================================================
   // AGENT CARD GENERATION
@@ -694,7 +978,7 @@ export abstract class A2AAgentBaseService
   private async getTaskContext(
     taskId: string,
     userId: string,
-  ): Promise<{ conversationId?: string; projectStepId?: string }> {
+  ): Promise<{ conversationId?: string; projectStepId?: string; mode?: string }> {
     if (!this.tasksService) {
 
       return {};
@@ -719,6 +1003,7 @@ export abstract class A2AAgentBaseService
       return {
         conversationId: task.agentConversationId || undefined,
         projectStepId,
+        mode: (task.params && (task.params as any).mode) || undefined,
       };
     } catch (error) {
       this.logger.warn(`Failed to get task context for ${taskId}:`, error);
@@ -757,6 +1042,16 @@ export abstract class A2AAgentBaseService
     }
 
     try {
+      // Enforce deliverable gating: only create when params.mode === 'build'
+      const requireBuild = (process.env.DELIVERABLES_REQUIRE_BUILD ?? 'true') !== 'false';
+      if (requireBuild && taskId) {
+        const ctx = await this.getTaskContext(taskId, userId);
+        const mode = ctx.mode || (typeof result === 'object' ? (result as any).metadata?.mode : undefined);
+        if (mode !== 'build') {
+          return null;
+        }
+      }
+
       // Extract content from various result formats
       const content = this.extractContentFromResult(result);
 

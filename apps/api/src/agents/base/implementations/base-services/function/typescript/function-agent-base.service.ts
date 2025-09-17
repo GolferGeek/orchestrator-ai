@@ -50,6 +50,7 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       services.deliverablesService,
       services.deliverableVersionsService,
       services.tasksService,
+      services.llmService,
       services.agentRegistrationService,
       services.jsonRpcProtocolService,
       services.loggingService,
@@ -133,6 +134,8 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
               (params as any)?.maxTokens ||
               (params as any)?.llmSelection?.maxTokens ||
               options?.maxTokens,
+            // Honor quick path for converse/plan to bypass pseudonymization
+            quick: (params as any)?.quick === true || options?.quick === true,
             cidafmOptions: params.cidafmOptions || options?.cidafmOptions,
             authToken: params.authToken || options?.authToken,
             sessionId: params.sessionId || options?.sessionId,
@@ -243,15 +246,19 @@ export class FunctionAgentBaseService extends A2AAgentBaseService {
       }
 
       // Return structured response format to match ContextAgentBaseService
+      const hasContent = result && (result.response || result.message || typeof result === 'string');
       const successResponse = {
         success: true,
-        response: result.response || result,
+        response: hasContent
+          ? (result.response || result)
+          : 'Let’s continue the conversation — how would you like to proceed?',
         metadata: {
           agentType: this.getAgentType(),
           functionStatus: 'executed',
           processedAt: new Date().toISOString(),
           ...functionParams.metadata,
           ...(result.metadata || {}),
+          ...(hasContent ? {} : { fallback: true }),
           // Include aggregated LLM metadata
           ...(aggregatedLLMMetadata && {
             llmUsed: aggregatedLLMMetadata.primaryLLM,

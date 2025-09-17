@@ -43,6 +43,8 @@ export interface AgentConversation {
   messages: AgentChatMessage[];
   createdAt: Date;
   lastActiveAt: Date;
+  // Conversation mode controls high-level intent
+  chatMode: 'converse' | 'plan' | 'build';
   executionMode: 'immediate' | 'polling' | 'websocket';
   supportedExecutionModes: ('immediate' | 'polling' | 'websocket')[];
   isExecutionModeOverride?: boolean;
@@ -63,7 +65,15 @@ export interface TaskExecutionOptions {
   agentType: string;
   agentName: string;
   taskId?: string;
+  mode?: 'converse' | 'plan' | 'build';
+  timeoutSeconds?: number;
   metadata?: any; // Context metadata for version operations
+}
+
+export interface PendingAction {
+  type: 'plan' | 'build';
+  expiresAt: number; // epoch ms
+  sourceTaskId?: string;
 }
 export interface DeliverableOptions {
   taskId: string;
