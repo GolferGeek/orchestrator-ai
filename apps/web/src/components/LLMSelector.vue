@@ -158,23 +158,6 @@
         </div>
       </div>
       <div class="setting-group">
-        <label class="setting-label">
-          Sadafum: {{ sadafum }}
-        </label>
-        <input 
-          v-model.number="sadafum"
-          type="range" 
-          min="0" 
-          max="1" 
-          step="0.05"
-          class="setting-slider"
-          @input="onSadafumChange"
-        >
-        <div class="setting-description">
-          Model-specific control (0.0–1.0). Restores previous capability.
-        </div>
-      </div>
-      <div class="setting-group">
         <label class="setting-label">Max Tokens (optional)</label>
         <input 
           v-model.number="maxTokens"
@@ -216,7 +199,6 @@ const showAdvanced = ref(false);
 const selectedProvider = ref<Provider | ''>('');
 const selectedModel = ref<Model | ''>('');
 const temperature = ref(0.7);
-const sadafum = ref(0.5);
 const maxTokens = ref<number | undefined>(undefined);
 
 // Sovereign mode state
@@ -248,7 +230,6 @@ onMounted(async () => {
   selectedProvider.value = llmStore.selectedProvider || '';
   selectedModel.value = llmStore.selectedModel || '';
   temperature.value = llmStore.temperature;
-  sadafum.value = llmStore.sadafum;
   maxTokens.value = llmStore.maxTokens;
   
   // Sync sovereign mode state
@@ -307,9 +288,6 @@ const onModelChange = () => {
 };
 const onTemperatureChange = () => {
   llmStore.setTemperature(temperature.value);
-};
-const onSadafumChange = () => {
-  llmStore.setSadafum(sadafum.value);
 };
 const onMaxTokensChange = () => {
   llmStore.setMaxTokens(maxTokens.value);

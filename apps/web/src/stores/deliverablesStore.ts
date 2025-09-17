@@ -610,12 +610,10 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
         providerName: llmConfig.provider,
         modelName: llmConfig.model,
         ...(llmConfig.temperature !== undefined ? { temperature: llmConfig.temperature } : {}),
-        ...(llmConfig.sadafum !== undefined ? { sadafum: llmConfig.sadafum } : {}),
         ...(llmConfig.maxTokens !== undefined ? { maxTokens: llmConfig.maxTokens } : {}),
         // Include in cidafm custom options for broader compatibility
         cidafmOptions: {
           customOptions: {
-            ...(llmConfig.sadafum !== undefined ? { sadafum: llmConfig.sadafum } : {}),
           }
         }
       } as any;

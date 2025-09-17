@@ -565,7 +565,7 @@ const canExecuteRerun = computed(() => {
 
 const executeRerunWithConfig = async (
   capturedRerunData: { deliverable: any; version: any }, 
-  llmConfig: { provider: string; model: string; temperature?: number; sadafum?: number; maxTokens?: number }
+  llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number }
 ) => {
   // Create a user message for the rerun request
   const rerunMessage = `🔄 Regenerating deliverable "${capturedRerunData.deliverable.title}" with ${llmConfig.provider}/${llmConfig.model}`;

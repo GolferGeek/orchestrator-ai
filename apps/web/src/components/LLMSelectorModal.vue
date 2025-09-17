@@ -75,16 +75,6 @@
               >
             </div>
             <div class="setting-group">
-              <label class="setting-label">Sadafum ({{ sadafum }})</label>
-              <input 
-                type="range" 
-                min="0" 
-                max="1" 
-                step="0.05" 
-                v-model.number="sadafum"
-                @input="onSadafumChange"
-                class="setting-slider"
-              >
             </div>
             <div class="setting-group">
               <label class="setting-label">Max Tokens</label>
@@ -182,8 +172,8 @@ interface Props {
 
 interface Emits {
   (e: 'dismiss'): void;
-  (e: 'select', config: { provider: string; model: string; temperature?: number; sadafum?: number; maxTokens?: number }): void;
-  (e: 'execute', config: { provider: string; model: string; temperature?: number; sadafum?: number; maxTokens?: number }): void;
+  (e: 'select', config: { provider: string; model: string; temperature?: number; maxTokens?: number }): void;
+  (e: 'execute', config: { provider: string; model: string; temperature?: number; maxTokens?: number }): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -201,7 +191,6 @@ const userPreferencesStore = useUserPreferencesStore();
 const selectedProvider = ref<Provider | ''>('');
 const selectedModel = ref<Model | ''>('');
 const temperature = ref(0.7);
-const sadafum = ref(0.5);
 const maxTokens = ref<number | undefined>(undefined);
 const showAdvanced = ref(false);
 const userSovereignMode = ref(false);
@@ -246,7 +235,6 @@ onMounted(async () => {
   selectedProvider.value = llmStore.selectedProvider || '';
   selectedModel.value = llmStore.selectedModel || '';
   temperature.value = llmStore.temperature;
-  sadafum.value = llmStore.sadafum;
   maxTokens.value = llmStore.maxTokens;
   userSovereignMode.value = llmStore.sovereignMode;
 });
@@ -280,9 +268,6 @@ const onModelChange = () => {
 
 const onTemperatureChange = () => {
   llmStore.setTemperature(temperature.value);
-};
-const onSadafumChange = () => {
-  llmStore.setSadafum(sadafum.value);
 };
 
 const onMaxTokensChange = () => {
@@ -318,7 +303,6 @@ const handlePrimaryAction = async () => {
     provider: (selectedProvider.value as Provider).name.toLowerCase(),
     model: (selectedModel.value as Model).modelName,
     temperature: temperature.value,
-    sadafum: sadafum.value,
     maxTokens: maxTokens.value,
   };
 

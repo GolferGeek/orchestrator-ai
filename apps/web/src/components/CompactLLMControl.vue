@@ -127,7 +127,7 @@ const closeModal = () => {
   isModalOpen.value = false;
 };
 
-const handleLLMSelect = (config: { provider: string; model: string; temperature?: number; sadafum?: number; maxTokens?: number }) => {
+const handleLLMSelect = (config: { provider: string; model: string; temperature?: number; maxTokens?: number }) => {
   console.log('🎯 LLM selection applied:', config);
   // The LLMSelectorModal already handles the store updates and shows confirmation
   // Just close the modal
