@@ -148,9 +148,9 @@
             <ion-item>
               <ion-textarea
                 v-model="messageText"
-                :placeholder="uiStore.isConversationalMode ? 'Speaking...' : 'Type your message...'"
+                placeholder="Type your message..."
                 :rows="2"
-                :disabled="!currentAgent || uiStore.isConversationalMode"
+                :disabled="!currentAgent"
                 @keydown.enter.prevent="sendMessage"
               />
               <!-- Conversational Speech Button -->
@@ -177,7 +177,7 @@
               <!-- Mode-aware Send Button -->
               <ChatModeSendButton
                 slot="end"
-                :disabled="!canSend || uiStore.isConversationalMode"
+                :disabled="!canSend"
                 @send="sendMessage"
               />
             </ion-item>
@@ -354,8 +354,7 @@ const isSendingMessage = computed(() => agentChatStore.isSendingMessage);
 const canSend = computed(() => {
   return messageText.value.trim().length > 0 && 
          !isSendingMessage.value && 
-         currentAgent.value &&
-         !uiStore.isConversationalMode;
+         currentAgent.value;
 });
 const currentChatMode = computed(() => props.conversation?.chatMode || agentChatStore.getActiveChatMode());
 const agentRecommendations = computed(() =>
