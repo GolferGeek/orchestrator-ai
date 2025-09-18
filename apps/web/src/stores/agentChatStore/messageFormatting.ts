@@ -179,7 +179,8 @@ export class MessageFormattingService {
   createPlaceholderMessage(taskId: string, mode?: string): AgentChatMessage {
     // Friendlier, mode-aware placeholder bubble text
     let content = 'Processing your request...';
-    const m = (mode || '').toLowerCase();
+    // Ensure mode is a string before calling toLowerCase
+    const m = typeof mode === 'string' ? mode.toLowerCase() : '';
     if (m === 'converse') {
       content = 'One sec — thinking it through…';
     } else if (m === 'plan') {

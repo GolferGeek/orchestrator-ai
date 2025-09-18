@@ -906,6 +906,19 @@ export abstract class A2AAgentBaseService
       }
     }
 
+    if (result && typeof result === 'object') {
+      try {
+        (result as any).__taskCompletionHandled = true;
+        if ((result as any).metadata && typeof (result as any).metadata === 'object') {
+          (result as any).metadata.taskCompletionHandled = true;
+        }
+      } catch (markError) {
+        this.logger.debug(
+          `Failed to mark task completion flag for task ${taskId}: ${markError instanceof Error ? markError.message : markError}`,
+        );
+      }
+    }
+
     await this.taskStatusService.completeTask(taskId, userId, result);
 
     if (additionalData) {
@@ -1088,6 +1101,9 @@ export abstract class A2AAgentBaseService
       let deliverable;
 
       if (enhanceDeliverableId) {
+        this.logger.debug(
+          `Persist deliverable: enhancing existing deliverable ${enhanceDeliverableId} for task ${taskId}`,
+        );
         // Creating a new version of an existing deliverable
         if (!this.deliverableVersionsService) {
           throw new Error('DeliverableVersionsService not available for creating deliverable versions');
@@ -1140,6 +1156,9 @@ export abstract class A2AAgentBaseService
         }
 
         if (existingDeliverable) {
+          this.logger.debug(
+            `Persist deliverable: adding version to existing deliverable ${existingDeliverable.id} for conversation ${taskContext.conversationId} (task ${taskId})`,
+          );
           // Create a new version of the existing deliverable
           if (!this.deliverableVersionsService) {
             throw new Error('DeliverableVersionsService not available for creating deliverable versions');
@@ -1171,6 +1190,9 @@ export abstract class A2AAgentBaseService
           return existingDeliverable.id; // Return the deliverable ID, not the version ID
         }
 
+        this.logger.debug(
+          `Persist deliverable: creating new deliverable for conversation ${taskContext.conversationId} (task ${taskId})`,
+        );
         // Create a new deliverable if none exists
         deliverable = await this.deliverablesService.create(
           {

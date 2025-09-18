@@ -63,9 +63,12 @@ const props = defineProps<Props>();
 const isExpanded = ref(false);
 const showDelegationInfo = computed(() => {
   // Show delegation info if we have an agent name and it's not the orchestrator
-  return props.agentName && 
-         props.agentName.toLowerCase() !== 'orchestrator' && 
-         props.agentName.toLowerCase() !== 'orchestrator agent' &&
+  if (!props.agentName || typeof props.agentName !== 'string') {
+    return false;
+  }
+  const nameLower = props.agentName.toLowerCase();
+  return nameLower !== 'orchestrator' &&
+         nameLower !== 'orchestrator agent' &&
          (props.reason || props.stickyContext || props.confidence || props.agentName);
 });
 const delegationSummary = computed(() => {

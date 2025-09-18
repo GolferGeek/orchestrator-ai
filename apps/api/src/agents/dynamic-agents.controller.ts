@@ -453,13 +453,26 @@ export class DynamicAgentsController {
         this.logger.debug(`🎯 [DynamicAgentsController] Result response length: ${result.response?.length || 0}`);
       }
 
-      // Store the result in the task record with deliverable auto-creation
-      // Use the agent's completeTask method to enable deliverable creation
-      if (agentInstance.completeTask) {
-        await agentInstance.completeTask(task.id, currentUser.id, result);
+      const taskAlreadyHandled =
+        result &&
+        typeof result === 'object' &&
+        ((result as any).__taskCompletionHandled === true ||
+          ((result as any).metadata &&
+            (result as any).metadata.taskCompletionHandled === true));
+
+      if (!taskAlreadyHandled) {
+        // Store the result in the task record with deliverable auto-creation
+        // Use the agent's completeTask method to enable deliverable creation
+        if (agentInstance.completeTask) {
+          await agentInstance.completeTask(task.id, currentUser.id, result);
+        } else {
+          // Fallback to direct task completion if agent doesn't have completeTask method
+          await this.taskStatusService.completeTask(task.id, currentUser.id, result);
+        }
       } else {
-        // Fallback to direct task completion if agent doesn't have completeTask method
-        await this.taskStatusService.completeTask(task.id, currentUser.id, result);
+        this.logger.debug(
+          `🎯 [DynamicAgentsController] Task ${task.id} was already completed by agent instance – skipping duplicate completion call`,
+        );
       }
 
       // 🔊 OPTIONAL AUDIO SYNTHESIS - Convert response to speech if original input was audio
