@@ -873,6 +873,20 @@ async function playAudio(audioData: string) {
     // Set up event handlers
     audio.onended = () => {
       console.log('🎤 [TTS] Audio playback ended naturally');
+      
+      // Auto-start listening for user response by clicking the speech button
+      try {
+        const speechButton = document.querySelector('.conversation-button');
+        if (speechButton) {
+          console.log('🎤 [AUTO-LISTEN] Auto-clicking speech button after TTS');
+          speechButton.click();
+        } else {
+          console.log('🎤 [AUTO-LISTEN] Speech button not found');
+        }
+      } catch (error) {
+        console.error('🎤 [AUTO-LISTEN] Failed to auto-click speech button:', error);
+      }
+      
       resolve();
     };
     
