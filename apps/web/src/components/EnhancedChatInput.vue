@@ -56,11 +56,11 @@
       <!-- Message Input -->
       <ion-textarea
         v-model="inputText"
-        :placeholder="uiStore.isConversationalMode ? 'Speaking...' : 'Type a message...'"
+        placeholder="Type a message..."
         :auto-grow="true"
         class="chat-textarea"
         :rows="1"
-        :disabled="uiStore.isConversationalMode"
+        :disabled="false"
         @keydown.enter.prevent="handleEnterKey"
       ></ion-textarea>
       <!-- Input Buttons -->
@@ -92,7 +92,7 @@
         </ion-button>
         <!-- Mode-aware Send Button -->
         <ChatModeSendButton
-          :disabled="!inputText.trim() || uiStore.isConversationalMode"
+          :disabled="!inputText.trim()"
           @send="sendMessage"
         />
       </ion-buttons>
@@ -147,17 +147,17 @@ onMounted(() => {
 
 // Speech event handlers
 const handleConversationStart = () => {
-  uiStore.setConversationalMode(true);
+  // Conversational mode no longer affects the send button
   inputText.value = ''; // Clear text input when starting conversation
 };
 
 const handleConversationEnd = () => {
-  uiStore.setConversationalMode(false);
+  // Conversational mode no longer affects the send button
 };
 
 const handleSpeechError = (error: any) => {
   presentToast(`Speech error: ${error.message || error}`, 3000, 'danger');
-  uiStore.setConversationalMode(false);
+  // Conversational mode no longer affects the send button
 };
 
 const presentToast = async (message: string, duration: number = 2000, color: string = 'warning') => {
@@ -185,7 +185,7 @@ const estimatedCost = computed(() => {
 });
 // Event handlers
 const sendMessage = async (mode?: 'converse' | 'plan' | 'build') => {
-  if (!inputText.value.trim() || uiStore.isConversationalMode) return;
+  if (!inputText.value.trim()) return;
 
   // Validate and sanitize the message before sending
   const validationResult = await validation.validate('message', inputText.value.trim());
@@ -227,7 +227,7 @@ const applyLLMSelection = async () => {
 };
 
 const handleEnterKey = (event: KeyboardEvent) => {
-  if (!event.shiftKey && !uiStore.isConversationalMode) {
+  if (!event.shiftKey) {
     event.preventDefault();
     sendMessage();
   }

@@ -197,6 +197,8 @@ import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import analyticsService from '@/services/analyticsService';
+import { apiService } from '@/services/apiService';
+import { toastController } from '@ionic/vue';
 
 export interface AgentTaskMessage {
   id: string;
@@ -741,13 +743,36 @@ watch(() => hasBackendDeliverable.value, (newVal, oldVal) => {
   }
 }, { immediate: true });
 
-// Initialize privacy state for this message
+// Initialize privacy state for this message and handle TTS
 watch(() => props.message, (newMessage) => {
   if (newMessage && newMessage.role === 'assistant' && newMessage.metadata) {
     // Update privacy state from message metadata
     privacyIndicatorsStore.updateMessagePrivacyFromSources(newMessage.id, newMessage);
   }
-}, { immediate: true, deep: true });
+  
+  // TTS: Only trigger if last message was sent via speech
+  if (newMessage && 
+      newMessage.role === 'assistant' && 
+      newMessage.content && 
+      newMessage.content.trim().length > 0 &&
+      !newMessage.metadata?.isPlaceholder) {
+    
+    // Check if the last message was sent via speech
+    if (chatStore.lastMessageWasSpeech) {
+      console.log('🎤 [TTS] Assistant message detected, checking length...');
+      
+      if (isResponseTooLong(newMessage.content)) {
+        console.log('🎤 [TTS] Response is lengthy, using fallback message');
+        handleTextToSpeech(LENGTHY_RESPONSE_FALLBACK);
+      } else {
+        console.log('🎤 [TTS] Response is short, using full content');
+        handleTextToSpeech(newMessage.content);
+      }
+    } else {
+      console.log('🎤 [TTS] Skipping TTS - last message was not via speech');
+    }
+  }
+}, { immediate: false, deep: true });
 
 watch(() => backendDeliverable.value, (newVal, oldVal) => {
   if (newVal !== oldVal) {
@@ -784,6 +809,105 @@ watch(() => props.message.metadata, (newMetadata, oldMetadata) => {
 watch(() => props.message.deliverableId, (newId, oldId) => {
 
 }, { immediate: true });
+
+// Fallback message for lengthy responses
+const LENGTHY_RESPONSE_FALLBACK = "I successfully completed your request, but the response is quite lengthy. Please check the chat for the full details.";
+
+/**
+ * Check if a response is too long for TTS
+ * Uses both character count and sentence count as criteria
+ */
+function isResponseTooLong(text: string): boolean {
+  // Character threshold (~500 chars)
+  if (text.length > 500) return true;
+  
+  // Sentence count (count periods/exclamation/question marks)
+  const sentences = text.match(/[.!?]+/g) || [];
+  if (sentences.length > 5) return true;
+  
+  return false;
+}
+
+// TTS function to handle text-to-speech conversion (simple working version)
+async function handleTextToSpeech(text: string) {
+  try {
+    console.log('🎤 [TTS] Starting text-to-speech conversion...');
+    
+    // Synthesize the response text to speech
+    const synthesizedAudio = await apiService.synthesizeText(
+      text,
+      'EXAVITQu4vr4xnSDxMaL', // Default voice ID
+      0.5 // Speaking rate/stability
+    );
+
+    console.log('🎤 [TTS] Audio synthesis completed, starting playback...');
+    
+    // Play the response audio
+    await playAudio(synthesizedAudio.audioData);
+    
+    console.log('🎤 [TTS] Audio playback finished successfully');
+    
+  } catch (error) {
+    console.error('🎤 [TTS] Failed to convert text to speech:', error);
+    
+    // Show error toast
+    const toast = await toastController.create({
+      message: 'Voice synthesis failed',
+      duration: 3000,
+      color: 'warning',
+      position: 'bottom'
+    });
+    await toast.present();
+  } finally {
+    // Always clear the speech flag when TTS completes (success or error)
+    chatStore.setLastMessageWasSpeech(false);
+    console.log('🎤 [TTS] Cleared speech flag after TTS completion');
+  }
+}
+
+// Play audio function with proper format handling
+async function playAudio(audioData: string) {
+  return new Promise<void>((resolve, reject) => {
+    const audio = new Audio();
+    
+    // Set up event handlers
+    audio.onended = () => {
+      console.log('🎤 [TTS] Audio playback ended naturally');
+      
+      // Auto-start listening for user response by clicking the speech button
+      try {
+        const speechButton = document.querySelector('.conversation-button');
+        if (speechButton) {
+          console.log('🎤 [AUTO-LISTEN] Auto-clicking speech button after TTS');
+          speechButton.click();
+        } else {
+          console.log('🎤 [AUTO-LISTEN] Speech button not found');
+        }
+      } catch (error) {
+        console.error('🎤 [AUTO-LISTEN] Failed to auto-click speech button:', error);
+      }
+      
+      resolve();
+    };
+    
+    audio.onerror = (error) => {
+      console.error('🎤 [TTS] Audio playback error:', error);
+      reject(new Error('Audio playback failed'));
+    };
+    
+    // Handle different audio data formats
+    if (audioData.startsWith('data:')) {
+      // Already a data URL
+      audio.src = audioData;
+    } else {
+      // Assume base64 and add proper data URL prefix
+      audio.src = `data:audio/mpeg;base64,${audioData}`;
+    }
+    
+    console.log('🎤 [TTS DEBUG] Audio src format:', audio.src.substring(0, 50) + '...');
+    audio.play().catch(reject);
+  });
+}
 </script>
 
 <style scoped>

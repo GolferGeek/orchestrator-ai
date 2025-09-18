@@ -95,7 +95,7 @@ import {
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { usePrivacyIndicatorsStore } from '@/stores/privacyIndicatorsStore';
-import { useSpeechTTS } from '@/composables/useSpeechTTS';
+// TTS is now handled directly in AgentTaskItem when messages are displayed
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
@@ -110,8 +110,7 @@ const props = defineProps<Props>();
 const agentChatStore = useAgentChatStore();
 const privacyIndicatorsStore = usePrivacyIndicatorsStore();
 
-// Initialize TTS system for speech-to-text responses
-const { stopWatcher } = useSpeechTTS();
+// TTS is now handled directly in AgentTaskItem components
 
 // Reactive state
 const messageText = ref('');
@@ -224,8 +223,7 @@ onUnmounted(() => {
   if (conversationId.value) {
     privacyIndicatorsStore.stopConversationRealTimeUpdates(conversationId.value);
   }
-  // Stop TTS watcher
-  stopWatcher();
+  // TTS cleanup is handled in individual AgentTaskItem components
 });
 
 // Watch for conversation changes
