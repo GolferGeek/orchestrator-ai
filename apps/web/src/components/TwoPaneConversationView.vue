@@ -102,6 +102,46 @@
             />
           </div>
         </div>
+        <div
+          v-if="shouldShowRecommendations"
+          class="agent-llm-suggestions"
+        >
+          <div class="agent-llm-suggestions__header">
+            <span>Popular picks for {{ currentAgent?.name || 'this agent' }}</span>
+            <ion-spinner v-if="isRecommendationsLoading" name="lines" />
+          </div>
+          <div
+            v-if="topAgentRecommendations.length"
+            class="agent-llm-suggestions__chips"
+          >
+            <ion-chip
+              v-for="rec in topAgentRecommendations"
+              :key="`${rec.providerName}-${rec.modelName}`"
+              class="agent-llm-suggestions__chip"
+              :class="{ 'chip-selected': isRecommendationActive(rec) }"
+              :outline="!isRecommendationActive(rec)"
+              :color="isRecommendationActive(rec) ? 'primary' : undefined"
+              @click="applyRecommendation(rec)"
+            >
+              <span class="chip-provider">{{ rec.providerName }}</span>
+              <span class="chip-divider">•</span>
+              <span class="chip-model">{{ rec.modelName }}</span>
+              <span class="chip-rating">{{ rec.averageRating.toFixed(1) }}</span>
+            </ion-chip>
+          </div>
+          <p
+            v-else-if="!isRecommendationsLoading && !recommendationsError"
+            class="agent-llm-suggestions__empty"
+          >
+            No highly rated runs yet.
+          </p>
+          <p
+            v-if="!isRecommendationsLoading && !topAgentRecommendations.length && recommendationsError"
+            class="agent-llm-suggestions__error"
+          >
+            {{ recommendationsError }}
+          </p>
+        </div>
         <!-- Input Area (always visible) -->
         <div class="input-area">
           <form @submit.prevent="sendMessage">
@@ -265,7 +305,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSovereignPolicyStore } from '@/stores/sovereignPolicyStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useUiStore } from '@/stores/uiStore';
+import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import type { AgentChatMessage } from '@/stores/agentChatStore/types';
+import type { AgentLLMRecommendation } from '@/types/evaluation';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
@@ -304,6 +346,7 @@ const activeWorkProduct = ref<{ type: 'deliverable' | 'project'; data: any } | n
 const isMobile = ref(false);
 // Computed properties
 const currentAgent = computed(() => props.conversation?.agent);
+const currentAgentIdentifier = computed(() => currentAgent.value?.name || '');
 const messages = computed(() => props.conversation?.messages || []);
 const isLoading = computed(() => agentChatStore.isLoading);
 const error = computed(() => agentChatStore.error);
@@ -315,6 +358,24 @@ const canSend = computed(() => {
          !uiStore.isConversationalMode;
 });
 const currentChatMode = computed(() => props.conversation?.chatMode || agentChatStore.getActiveChatMode());
+const agentRecommendations = computed(() =>
+  currentAgentIdentifier.value
+    ? llmStore.getRecommendationsForAgent(currentAgentIdentifier.value)
+    : [],
+);
+const topAgentRecommendations = computed(() => agentRecommendations.value.slice(0, 3));
+const isRecommendationsLoading = computed(() => llmStore.isAgentRecommendationsLoading);
+const recommendationsError = computed(() => llmStore.agentRecommendationsErrorMessage);
+const shouldShowRecommendations = computed(
+  () =>
+    isRecommendationsLoading.value ||
+    topAgentRecommendations.value.length > 0 ||
+    !!recommendationsError.value,
+);
+
+// Current LLM selection for display
+const currentLLMProvider = computed(() => llmStore.selectedProvider?.name || 'No provider selected');
+const currentLLMModel = computed(() => llmStore.selectedModel?.modelName || 'No model selected');
 // Informal thinking message for converse/plan
 const thinkingMessage = computed(() => {
   const mode = (currentChatMode.value || '').toLowerCase();
@@ -327,7 +388,7 @@ const hasActiveWorkProduct = computed(() => {
   return result;
 });
 const isOrchestratorConversation = computed(() => {
-  return props.conversation?.agent?.name?.toLowerCase().includes('orchestrator') || false;
+  return props.conversation?.agent?.name?.toLowerCase()?.includes('orchestrator') || false;
 });
 
 // Sovereign mode computed properties
@@ -393,6 +454,116 @@ const sendMessage = async (mode?: 'converse' | 'plan' | 'build') => {
   } catch (error) {
 
   }
+};
+// Check if a recommendation matches the current selection
+const isRecommendationActive = (recommendation: AgentLLMRecommendation) => {
+  if (!recommendation || !recommendation.providerName || !recommendation.modelName) {
+    return false;
+  }
+  
+  return (
+    llmStore.selectedProvider?.name?.toLowerCase() === recommendation.providerName.toLowerCase() &&
+    llmStore.selectedModel?.modelName?.toLowerCase() === recommendation.modelName.toLowerCase()
+  );
+};
+
+const applyRecommendation = (recommendation: AgentLLMRecommendation) => {
+  if (!recommendation || !recommendation.providerName || !recommendation.modelName) {
+    console.error('❌ Invalid recommendation:', recommendation);
+    return;
+  }
+
+  console.log('🎯 Applying recommendation:', recommendation);
+  console.log('📋 Before update - Current selection:', {
+    provider: llmStore.selectedProvider?.name,
+    model: llmStore.selectedModel?.modelName
+  });
+
+  // Find provider by name
+  const provider = llmStore.filteredProviders.find(
+    (p) => p.name?.toLowerCase() === recommendation.providerName.toLowerCase(),
+  );
+
+  if (!provider) {
+    console.error('❌ Provider not found:', recommendation.providerName);
+    return;
+  }
+
+  // Set provider first
+  console.log('Setting provider to:', provider.name);
+  llmStore.setProvider(provider);
+
+  // Find model - must match both provider and model name
+  // The recommendation.modelName might be "ollama/gpt-oss:20b" format
+  // We need to match against the actual model name which might be "gpt-oss:20b"
+  const recommendedModelName = recommendation.modelName.toLowerCase();
+
+  console.log('Looking for model:', recommendedModelName, 'in provider:', provider.name);
+  console.log('Available models for this provider:', llmStore.filteredModels
+    .filter(m => m.providerName === provider.name)
+    .map(m => ({ modelName: m.modelName, name: m.name })));
+
+  const model = llmStore.filteredModels.find((m) => {
+    if (m.providerName !== provider.name) return false;
+
+    const modelNameLower = m.modelName?.toLowerCase() || '';
+    const modelDisplayNameLower = m.name?.toLowerCase() || '';
+
+    // Debug log for each model checked
+    console.log(`Checking model: modelName="${m.modelName}", name="${m.name}" against recommendation="${recommendedModelName}"`);
+
+    // Try exact match first
+    if (modelNameLower === recommendedModelName || modelDisplayNameLower === recommendedModelName) {
+      console.log('✅ Exact match found!');
+      return true;
+    }
+
+    // If recommendation includes provider prefix like "ollama/gpt-oss:20b", try without prefix
+    const withoutPrefix = recommendedModelName.replace(`${provider.name?.toLowerCase() || ''}/`, '');
+    if (modelNameLower === withoutPrefix || modelDisplayNameLower === withoutPrefix) {
+      console.log('✅ Match found without provider prefix!');
+      return true;
+    }
+
+    // Also try matching if one has :latest and the other doesn't
+    const modelBase = modelNameLower.replace(':latest', '');
+    const recBase = withoutPrefix.replace(':latest', '');
+    if (modelBase === recBase) {
+      console.log('✅ Match found ignoring :latest suffix!');
+      return true;
+    }
+
+    return false;
+  });
+
+  if (!model) {
+    console.error('❌ Model not found:', recommendation.modelName, 'for provider:', provider.name);
+    console.log('Available models for provider:', llmStore.filteredModels
+      .filter(m => m.providerName === provider.name)
+      .map(m => ({ name: m.name, modelName: m.modelName })));
+    return;
+  }
+
+  // Set model
+  console.log('Setting model to:', model.modelName);
+  llmStore.setModel(model);
+
+  // IMPORTANT: Also update user preferences so CompactLLMControl updates
+  const userPreferencesStore = useUserPreferencesStore();
+  userPreferencesStore.setLLMPreferences(provider.name, model.modelName);
+
+  // Verify the change happened
+  nextTick(() => {
+    console.log('✅ After update - Current selection:', {
+      provider: llmStore.selectedProvider?.name,
+      model: llmStore.selectedModel?.modelName,
+      llmSelection: llmStore.currentLLMSelection,
+      userPrefs: {
+        provider: userPreferencesStore.preferredProvider,
+        model: userPreferencesStore.preferredModel
+      }
+    });
+  });
 };
 const clearError = () => {
   agentChatStore.clearError();
@@ -693,6 +864,21 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile);
 });
+watch(
+  () => currentAgentIdentifier.value,
+  (agentName) => {
+    if (!agentName) {
+      return;
+    }
+
+    console.log('📊 Fetching recommendations for agent:', agentName);
+    const existing = llmStore.getRecommendationsForAgent(agentName);
+    if (!existing.length && !llmStore.isAgentRecommendationsLoading) {
+      llmStore.fetchAgentRecommendations(agentName, 3);
+    }
+  },
+  { immediate: true },
+);
 // Ensure pane opens when a work product becomes active (desktop)
 watch(() => activeWorkProduct.value, (val) => {
   if (val && !isMobile.value && !showWorkProductPane.value) {
@@ -831,6 +1017,73 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   overflow-y: auto;
   padding: 16px;
   scroll-behavior: smooth;
+}
+.current-model-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+}
+
+.model-label {
+  font-weight: 600;
+  color: var(--ion-color-medium);
+}
+
+.agent-llm-suggestions {
+  margin: 12px 16px 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+.agent-llm-suggestions__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--ion-color-dark);
+  margin-bottom: 8px;
+}
+.agent-llm-suggestions__chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.agent-llm-suggestions__chip {
+  cursor: pointer;
+  --background: rgba(255, 255, 255, 0.94);
+  --color: var(--ion-color-dark);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.agent-llm-suggestions__chip:hover {
+  --background: var(--ion-color-light);
+  --color: var(--ion-color-dark);
+  font-weight: 600;
+}
+.agent-llm-suggestions__chip .chip-provider {
+  font-weight: 600;
+}
+.agent-llm-suggestions__chip .chip-divider {
+  margin: 0 4px;
+  opacity: 0.6;
+}
+.agent-llm-suggestions__chip .chip-rating {
+  margin-left: 6px;
+  font-weight: 600;
+  color: var(--ion-color-primary);
+}
+.agent-llm-suggestions__empty,
+.agent-llm-suggestions__error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+}
+.agent-llm-suggestions__error {
+  color: var(--ion-color-danger);
 }
 .message-wrapper {
   margin-bottom: 16px;
@@ -1039,6 +1292,25 @@ html[data-theme="dark"] .work-product-pane {
 }
 html[data-theme="dark"] .messages-container {
   background: #1f2937;
+}
+html[data-theme="dark"] .agent-llm-suggestions {
+  background: rgba(45, 55, 72, 0.9);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+html[data-theme="dark"] .agent-llm-suggestions__header {
+  color: #e2e8f0;
+}
+html[data-theme="dark"] .agent-llm-suggestions__chip {
+  --background: rgba(55, 65, 81, 0.9);
+  --color: #e2e8f0;
+}
+html[data-theme="dark"] .agent-llm-suggestions__chip .chip-rating {
+  color: var(--ion-color-primary-tint);
+}
+html[data-theme="dark"] .agent-llm-suggestions__empty,
+html[data-theme="dark"] .agent-llm-suggestions__error {
+  color: #a0aec0;
 }
 html[data-theme="dark"] .input-area {
   background: #2d3748;

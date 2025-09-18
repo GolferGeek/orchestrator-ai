@@ -34,6 +34,7 @@ import {
   AdminEvaluationFiltersDto,
   EvaluationAnalyticsDto,
   EnhancedEvaluationMetadataDto,
+  AgentLLMRecommendationDto,
 } from '../dto/enhanced-evaluation.dto';
 
 @ApiTags('Message Evaluation')
@@ -125,6 +126,33 @@ export class EvaluationController {
       minRating,
       hasNotes,
     });
+  }
+
+  @Get('agents/:agentIdentifier/llm-recommendations')
+  @ApiOperation({
+    summary: 'Get recommended LLM models for an agent based on user evaluations',
+  })
+  @ApiParam({ name: 'agentIdentifier', description: 'Agent identifier or name' })
+  @ApiQuery({
+    name: 'minRating',
+    required: false,
+    type: Number,
+    description: 'Minimum average rating (default: 3)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of recommended models for the agent',
+    type: [AgentLLMRecommendationDto],
+  })
+  async getAgentLLMRecommendations(
+    @Param('agentIdentifier') agentIdentifier: string,
+    @Query('minRating') minRating?: string,
+  ): Promise<AgentLLMRecommendationDto[]> {
+    const parsedMinRating = minRating !== undefined ? Number(minRating) : 3;
+    return this.evaluationService.getAgentLLMRecommendations(
+      agentIdentifier,
+      Number.isFinite(parsedMinRating) ? parsedMinRating : 3,
+    );
   }
 
   @Get('user/all')

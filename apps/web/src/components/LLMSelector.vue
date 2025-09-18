@@ -237,11 +237,24 @@ onMounted(async () => {
 });
 // Watch store changes and sync to local state
 watch(() => llmStore.selectedProvider, (newProvider) => {
-  selectedProvider.value = newProvider || '';
-});
+  // Find the matching provider object from the available options
+  if (newProvider) {
+    const matchingProvider = llmStore.filteredProviders.find(p => p.id === newProvider.id);
+    selectedProvider.value = matchingProvider || newProvider;
+  } else {
+    selectedProvider.value = '';
+  }
+}, { immediate: true });
+
 watch(() => llmStore.selectedModel, (newModel) => {
-  selectedModel.value = newModel || '';
-});
+  // Find the matching model object from the available options
+  if (newModel) {
+    const matchingModel = llmStore.availableModels.find(m => m.id === newModel.id);
+    selectedModel.value = matchingModel || newModel;
+  } else {
+    selectedModel.value = '';
+  }
+}, { immediate: true });
 
 // Watch sovereign mode changes and sync local state
 watch(() => llmStore.sovereignMode, (newMode) => {

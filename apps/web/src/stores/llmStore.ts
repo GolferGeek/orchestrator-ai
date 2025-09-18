@@ -1,17 +1,19 @@
 import { defineStore } from 'pinia';
-import { 
-  Provider, 
-  Model, 
-  CIDAFMCommand, 
-  LLMSelection, 
+import {
+  Provider,
+  Model,
+  CIDAFMCommand,
+  LLMSelection,
   LLMPreferencesState,
   CIDAFMOptions,
   UnifiedLLMResponse,
-  StandardizedLLMError
+  StandardizedLLMError,
 } from '../types/llm';
+import type { AgentLLMRecommendation } from '../types/evaluation';
 import { apiService } from '../services/apiService';
 import { sovereignPolicyService } from '../services/sovereignPolicyService';
 import { useSovereignPolicyStore } from './sovereignPolicyStore';
+import evaluationService from '../services/evaluationService';
 export const useLLMStore = defineStore('llm', {
   state: (): LLMPreferencesState => ({
     selectedProvider: undefined,
@@ -29,6 +31,9 @@ export const useLLMStore = defineStore('llm', {
     providerError: undefined,
     modelError: undefined,
     commandError: undefined,
+    agentRecommendations: {},
+    agentRecommendationsLoading: false,
+    agentRecommendationsError: null,
     // Sovereign mode state
     sovereignMode: false,
     sovereignPolicy: null,
@@ -83,6 +88,12 @@ export const useLLMStore = defineStore('llm', {
       }
       return state.models;
     },
+    getRecommendationsForAgent: (state) => (agentIdentifier?: string) => {
+      if (!agentIdentifier) return [];
+      return state.agentRecommendations[agentIdentifier] || [];
+    },
+    isAgentRecommendationsLoading: (state) => state.agentRecommendationsLoading,
+    agentRecommendationsErrorMessage: (state) => state.agentRecommendationsError,
     
     // Get current LLM selection for API calls
     currentLLMSelection(): LLMSelection {
@@ -317,6 +328,48 @@ export const useLLMStore = defineStore('llm', {
     // Force refresh cached system model selection
     async refreshSystemModelSelection() {
       return this.ensureSystemModelSelection(true);
+    },
+
+    async fetchAgentRecommendations(
+      agentIdentifier: string,
+      minRating: number = 3,
+    ): Promise<AgentLLMRecommendation[]> {
+      if (!agentIdentifier) {
+        return [];
+      }
+
+      this.agentRecommendationsLoading = true;
+      this.agentRecommendationsError = null;
+
+      try {
+        const recommendations = await evaluationService.getAgentLLMRecommendations(
+          agentIdentifier,
+          minRating,
+        );
+        this.agentRecommendations[agentIdentifier] = recommendations;
+        return recommendations;
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Failed to load LLM recommendations';
+        this.agentRecommendationsError = message;
+        console.error('[LLMStore] Failed to fetch agent recommendations', error);
+        this.agentRecommendations[agentIdentifier] = [];
+        return [];
+      } finally {
+        this.agentRecommendationsLoading = false;
+      }
+    },
+
+    clearAgentRecommendations(agentIdentifier?: string) {
+      if (agentIdentifier) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete this.agentRecommendations[agentIdentifier];
+        return;
+      }
+
+      this.agentRecommendations = {};
     },
     // Initialize sovereign mode from localStorage and fetch policy
     async initializeSovereignMode() {

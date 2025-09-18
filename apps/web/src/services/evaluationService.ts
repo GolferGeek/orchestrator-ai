@@ -1,4 +1,10 @@
-import type { EvaluationRequest, EvaluationResponse, AllEvaluationsFilters, AllEvaluationsResponse } from '../types/evaluation';
+import type {
+  EvaluationRequest,
+  EvaluationResponse,
+  AllEvaluationsFilters,
+  AllEvaluationsResponse,
+  AgentLLMRecommendation,
+} from '../types/evaluation';
 class EvaluationService {
   /**
    * Rate a message
@@ -124,6 +130,46 @@ class EvaluationService {
       if (!response.ok) {
         throw new Error(`Failed to get user evaluations: ${response.statusText}`);
       }
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getAgentLLMRecommendations(
+    agentIdentifier: string,
+    minRating: number = 3,
+  ): Promise<AgentLLMRecommendation[]> {
+    try {
+      if (!agentIdentifier) {
+        return [];
+      }
+
+      const authToken = localStorage.getItem('authToken');
+      const queryParams = new URLSearchParams();
+      if (minRating !== undefined) {
+        queryParams.append('minRating', minRating.toString());
+      }
+
+      const response = await fetch(
+        `${this.getBaseUrl()}/evaluation/agents/${encodeURIComponent(
+          agentIdentifier,
+        )}/llm-recommendations?${queryParams.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authToken && { Authorization: `Bearer ${authToken}` }),
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to load agent recommendations: ${response.statusText}`,
+        );
+      }
+
       return await response.json();
     } catch (error) {
       throw error;

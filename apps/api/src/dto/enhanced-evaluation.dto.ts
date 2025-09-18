@@ -279,6 +279,45 @@ export class EnhancedLLMInfoDto {
   maxTokens?: number;
 }
 
+export class AgentLLMRecommendationDto {
+  @ApiPropertyOptional({ description: 'LLM provider UUID' })
+  @IsUUID()
+  @IsOptional()
+  providerId?: string;
+
+  @ApiProperty({ description: 'LLM provider display name', example: 'OpenAI' })
+  @IsString()
+  providerName!: string;
+
+  @ApiPropertyOptional({ description: 'LLM model UUID' })
+  @IsUUID()
+  @IsOptional()
+  modelId?: string;
+
+  @ApiProperty({ description: 'LLM model name', example: 'gpt-4o-mini' })
+  @IsString()
+  modelName!: string;
+
+  @ApiProperty({ description: 'Average overall user rating (1-5)', example: 4.7 })
+  @IsNumber()
+  @Min(0)
+  @Max(5)
+  averageRating!: number;
+
+  @ApiProperty({ description: 'Number of evaluations contributing to the score', example: 12 })
+  @IsNumber()
+  @Min(1)
+  evaluationCount!: number;
+
+  @ApiPropertyOptional({
+    description: 'Latest evaluation timestamp included in this aggregate',
+    example: '2024-09-15T18:23:11.123Z',
+  })
+  @IsOptional()
+  @IsString()
+  lastEvaluatedAt?: string;
+}
+
 /**
  * Task information for evaluation context
  */
