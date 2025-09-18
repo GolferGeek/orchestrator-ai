@@ -180,7 +180,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       activeConversation.isSendingMessage = true;
 
       const taskOptions = {
-        method: mode,
+        method: String(mode), // Ensure method is always a string for JSON-RPC
         prompt: basePrompt,
         conversationId,
         conversationHistory: this.buildConversationHistory(activeConversation),
@@ -508,9 +508,12 @@ export const useAgentChatStore = defineStore('agentChat', {
         }
 
         // Prepare task execution options
-        const chatMode = activeConversation.chatMode || 'converse';
+        // Ensure chatMode is a string to prevent JSON-RPC errors
+        const chatMode = typeof activeConversation.chatMode === 'string'
+          ? activeConversation.chatMode
+          : 'converse';
         const taskOptions = {
-          method: chatMode,
+          method: chatMode, // This must be a string for JSON-RPC
           prompt: content,
           conversationId: conversationId,
           conversationHistory: this.buildConversationHistory(activeConversation),
@@ -625,9 +628,12 @@ export const useAgentChatStore = defineStore('agentChat', {
 
 
         // Prepare task execution options with context metadata
-        const chatMode2 = activeConversation.chatMode || 'converse';
+        // Ensure chatMode is a string to prevent JSON-RPC errors
+        const chatMode2 = typeof activeConversation.chatMode === 'string'
+          ? activeConversation.chatMode
+          : 'converse';
         const taskOptions = {
-          method: chatMode2,
+          method: chatMode2, // This must be a string for JSON-RPC
           prompt: content,
           conversationId: conversationId,
           conversationHistory: this.buildConversationHistory(activeConversation),
@@ -684,11 +690,13 @@ export const useAgentChatStore = defineStore('agentChat', {
     /**
      * Create placeholder message for ongoing task
      */
-    createPlaceholderMessage(conversationId: string, taskId: string, mode?: string) {
+    createPlaceholderMessage(conversationId: string, taskId: string, mode?: string | any) {
       const conv = this.getConversationById(conversationId);
       if (!conv) return;
 
-      const placeholderMessage = messageFormatting.createPlaceholderMessage(taskId, mode);
+      // Ensure mode is a string before passing to messageFormatting
+      const modeString = typeof mode === 'string' ? mode : undefined;
+      const placeholderMessage = messageFormatting.createPlaceholderMessage(taskId, modeString);
       conv.messages.push(placeholderMessage);
     },
 

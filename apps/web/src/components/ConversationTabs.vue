@@ -62,7 +62,12 @@ const activeConversation = computed(() => {
   return agentChatStore.getActiveConversation();
 });
 const isOrchestratorConversation = computed(() => {
-  return activeConversation.value?.agent?.name?.toLowerCase().includes('orchestrator') || false;
+  const agentName = activeConversation.value?.agent?.name;
+  // Ensure agentName is a string before calling toLowerCase
+  if (typeof agentName === 'string') {
+    return agentName.toLowerCase().includes('orchestrator');
+  }
+  return false;
 });
 const shouldUseTwoPaneView = computed(() => {
   // Enable two-pane view for all conversations

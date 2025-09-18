@@ -48,6 +48,10 @@ export class DeliverableVersionsService {
       // Get the next version number
       const nextVersionNumber = await this.getNextVersionNumber(deliverableId);
 
+      this.logger.debug(
+        `Creating deliverable version: deliverableId=${deliverableId}, nextVersion=${nextVersionNumber}, createdBy=${createVersionDto.createdByType}, taskId=${createVersionDto.taskId}`,
+      );
+
       // Mark all previous versions as not current
       await this.markPreviousVersionsAsNotCurrent(deliverableId);
 

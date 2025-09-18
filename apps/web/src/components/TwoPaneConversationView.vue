@@ -388,7 +388,12 @@ const hasActiveWorkProduct = computed(() => {
   return result;
 });
 const isOrchestratorConversation = computed(() => {
-  return props.conversation?.agent?.name?.toLowerCase()?.includes('orchestrator') || false;
+  const agentName = props.conversation?.agent?.name;
+  // Ensure agentName is a string before calling toLowerCase
+  if (typeof agentName === 'string') {
+    return agentName.toLowerCase().includes('orchestrator');
+  }
+  return false;
 });
 
 // Sovereign mode computed properties
