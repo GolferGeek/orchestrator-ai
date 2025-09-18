@@ -102,3 +102,13 @@ export interface AllEvaluationsResponse {
     totalPages: number;
   };
 }
+
+export interface AgentLLMRecommendation {
+  providerId?: string;
+  providerName: string;
+  modelId?: string;
+  modelName: string;
+  averageRating: number;
+  evaluationCount: number;
+  lastEvaluatedAt?: string;
+}

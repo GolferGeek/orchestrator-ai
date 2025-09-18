@@ -1,4 +1,5 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { SupabaseService } from '../supabase/supabase.service';
 import {
   MessageEvaluationDto,
@@ -21,6 +22,7 @@ import {
   EnhancedLLMInfoDto,
   WorkflowStepDto,
   ConstraintEffectivenessDto,
+  AgentLLMRecommendationDto,
 } from '../dto/enhanced-evaluation.dto';
 import { UserRole } from '../auth/decorators/roles.decorator';
 
@@ -79,6 +81,8 @@ function formatAgentNameForDisplay(agentName: string): string {
 
 @Injectable()
 export class EvaluationService {
+  private readonly logger = new Logger(EvaluationService.name);
+
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async evaluateMessage(
@@ -86,7 +90,7 @@ export class EvaluationService {
     messageId: string,
     evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto | null> {
-    const client = this.supabaseService.getAnonClient();
+    const { client, isServiceClient } = this.getAggregationsClient();
 
     // Verify message exists and belongs to user
     const { data: message, error: messageError } = await client
@@ -139,7 +143,7 @@ export class EvaluationService {
     userId: string,
     messageId: string,
   ): Promise<EnhancedMessageResponseDto | null> {
-    const client = this.supabaseService.getAnonClient();
+    const { client, isServiceClient } = this.getAggregationsClient();
 
     const { data: message, error } = await client
       .from('messages')
@@ -172,7 +176,7 @@ export class EvaluationService {
     sessionId: string,
     filters: EvaluationFilters = {},
   ): Promise<EnhancedMessageResponseDto[]> {
-    const client = this.supabaseService.getAnonClient();
+    const { client, isServiceClient } = this.getAggregationsClient();
 
     let query = client
       .from('messages')
@@ -402,6 +406,270 @@ export class EvaluationService {
       comparison,
       recommendations,
     };
+  }
+
+  async getAgentLLMRecommendations(
+    agentIdentifier: string,
+    minRating: number = 3,
+  ): Promise<AgentLLMRecommendationDto[]> {
+    const normalizedTarget = this.normalizeAgentIdentifier(agentIdentifier);
+    if (!normalizedTarget) {
+      return [];
+    }
+
+    interface AggregateEntry {
+      providerId?: string;
+      providerName?: string;
+      modelId?: string;
+      modelName?: string;
+      totalRating: number;
+      evaluationCount: number;
+      lastEvaluatedAt?: string;
+    }
+
+    const aggregates = new Map<string, AggregateEntry>();
+    const providerIds = new Set<string>();
+    const modelIds = new Set<string>();
+
+    const { client, isServiceClient } = this.getAggregationsClient();
+
+    const [{ data: tasksData, error: taskError }, { data: messagesData, error: messageError }] =
+      await Promise.all([
+        client
+          .from('tasks')
+          .select('*')
+          .not('evaluation', 'is', null)
+          .not('llm_metadata', 'is', null),
+        client
+          .from('messages')
+          .select(
+            `
+            *,
+            provider:llm_providers(*),
+            model:llm_models(*)
+          `,
+          )
+          .not('user_rating', 'is', null),
+      ]);
+
+    if (taskError) {
+      this.logger.warn(
+        `[EvaluationService] Failed to fetch task evaluations for agent ${agentIdentifier}: ${taskError.message}`,
+      );
+    }
+
+    let effectiveMessages = messagesData || [];
+
+    if (messageError) {
+      this.logger.warn(
+        `[EvaluationService] Failed to fetch message evaluations for agent ${agentIdentifier}: ${messageError.message}`,
+      );
+
+      if (!isServiceClient) {
+        const { data: fallbackMessages, error: fallbackError } = await client
+          .from('messages')
+          .select('*')
+          .not('user_rating', 'is', null);
+
+        if (fallbackError) {
+          this.logger.warn(
+            `[EvaluationService] Fallback message query also failed for agent ${agentIdentifier}: ${fallbackError.message}`,
+          );
+        } else {
+          effectiveMessages = fallbackMessages || [];
+        }
+      }
+    }
+
+    const relevantTasks = (tasksData || []).filter((task) =>
+      this.recordMatchesAgent(task, normalizedTarget),
+    );
+
+    const relevantMessages = (effectiveMessages || []).filter((message) =>
+      this.recordMatchesAgent(message, normalizedTarget),
+    );
+
+    if (relevantTasks.length === 0 && relevantMessages.length === 0) {
+      return [];
+    }
+
+    const accumulateSample = (
+      info:
+        | {
+            rating: number;
+            providerId?: string;
+            providerName?: string;
+            modelId?: string;
+            modelName?: string;
+            timestamp?: string;
+          }
+        | null,
+    ) => {
+      if (!info || typeof info.rating !== 'number' || Number.isNaN(info.rating)) {
+        return;
+      }
+
+      const { rating, providerId, providerName, modelId, modelName, timestamp } = info;
+
+      if (providerId) {
+        providerIds.add(providerId);
+      }
+      if (modelId) {
+        modelIds.add(modelId);
+      }
+
+      const aggregateKey = this.buildRecommendationKey(
+        providerId,
+        providerName,
+        modelId,
+        modelName,
+      );
+
+      let entry = aggregates.get(aggregateKey);
+      if (!entry) {
+        entry = {
+          providerId,
+          providerName,
+          modelId,
+          modelName,
+          totalRating: 0,
+          evaluationCount: 0,
+        };
+        aggregates.set(aggregateKey, entry);
+      }
+
+      if (providerName && !entry.providerName) {
+        entry.providerName = providerName;
+      }
+      if (modelName && !entry.modelName) {
+        entry.modelName = modelName;
+      }
+      if (providerId && !entry.providerId) {
+        entry.providerId = providerId;
+      }
+      if (modelId && !entry.modelId) {
+        entry.modelId = modelId;
+      }
+
+      entry.totalRating += rating;
+      entry.evaluationCount += 1;
+
+      if (timestamp) {
+        const currentTimestamp = entry.lastEvaluatedAt
+          ? new Date(entry.lastEvaluatedAt).getTime()
+          : 0;
+        const candidateTimestamp = new Date(timestamp).getTime();
+        if (candidateTimestamp > currentTimestamp) {
+          entry.lastEvaluatedAt = new Date(timestamp).toISOString();
+        }
+      }
+    };
+
+    relevantTasks.forEach((task) => {
+      const rating = task.evaluation?.user_rating;
+      if (typeof rating !== 'number' || Number.isNaN(rating)) {
+        return;
+      }
+      const providerModelInfo = this.extractProviderModelInfo(task);
+      if (!providerModelInfo) {
+        return;
+      }
+
+      accumulateSample({
+        rating,
+        providerId: providerModelInfo.providerId,
+        providerName: providerModelInfo.providerName,
+        modelId: providerModelInfo.modelId,
+        modelName: providerModelInfo.modelName,
+        timestamp:
+          task.evaluation?.evaluation_timestamp ||
+          task.completed_at ||
+          task.updated_at ||
+          task.created_at,
+      });
+    });
+
+    relevantMessages.forEach((message) => {
+      const rating = message.user_rating;
+      if (typeof rating !== 'number' || Number.isNaN(rating)) {
+        return;
+      }
+      const providerModelInfo = this.extractProviderModelInfo(message);
+      if (!providerModelInfo) {
+        return;
+      }
+
+      accumulateSample({
+        rating,
+        providerId: providerModelInfo.providerId,
+        providerName: providerModelInfo.providerName,
+        modelId: providerModelInfo.modelId,
+        modelName: providerModelInfo.modelName,
+        timestamp:
+          message.evaluation_timestamp ||
+          message.timestamp ||
+          message.updated_at ||
+          message.created_at,
+      });
+    });
+
+    if (aggregates.size === 0) {
+      return [];
+    }
+
+    const sanitizedMinRating = Math.min(Math.max(minRating || 0, 0), 5);
+
+    const [providersMap, modelsMap] = await Promise.all([
+      this.fetchProvidersMap(Array.from(providerIds)),
+      this.fetchModelsMap(Array.from(modelIds)),
+    ]);
+
+    const recommendations = Array.from(aggregates.values())
+      .map((entry) => {
+        const averageRating = entry.totalRating / entry.evaluationCount;
+        if (averageRating < sanitizedMinRating) {
+          return null;
+        }
+
+        const provider = entry.providerId
+          ? providersMap.get(entry.providerId)
+          : undefined;
+        const model = entry.modelId ? modelsMap.get(entry.modelId) : undefined;
+
+        return {
+          providerId: entry.providerId,
+          providerName:
+            provider?.name || entry.providerName || 'Unknown Provider',
+          modelId: entry.modelId,
+          modelName:
+            model?.modelName ||
+            model?.name ||
+            entry.modelName ||
+            'Unknown Model',
+          averageRating: Number(averageRating.toFixed(2)),
+          evaluationCount: entry.evaluationCount,
+          lastEvaluatedAt: entry.lastEvaluatedAt,
+        } as AgentLLMRecommendationDto;
+      })
+      .filter((rec): rec is AgentLLMRecommendationDto => rec !== null)
+      .sort((a, b) => {
+        if (b.averageRating !== a.averageRating) {
+          return b.averageRating - a.averageRating;
+        }
+        if (b.evaluationCount !== a.evaluationCount) {
+          return b.evaluationCount - a.evaluationCount;
+        }
+
+        const aTime = a.lastEvaluatedAt
+          ? new Date(a.lastEvaluatedAt).getTime()
+          : 0;
+        const bTime = b.lastEvaluatedAt
+          ? new Date(b.lastEvaluatedAt).getTime()
+          : 0;
+        return bTime - aTime;
+      });
+
+    return recommendations;
   }
 
   // Helper methods
@@ -1917,6 +2185,188 @@ export class EvaluationService {
         evaluationCount: data.count,
       }),
     );
+  }
+
+  private extractProviderModelInfo(task: any):
+    | {
+        providerId?: string;
+        providerName?: string;
+        modelId?: string;
+        modelName?: string;
+      }
+    | null {
+    const llmMetadata = task.llm_metadata || {};
+    const selection =
+      llmMetadata.originalLLMSelection ||
+      llmMetadata.currentLLMSelection ||
+      llmMetadata.selectedLLM ||
+      llmMetadata.llmSelection ||
+      {};
+
+    const providerId =
+      selection.providerId ||
+      selection.provider_id ||
+      llmMetadata.providerId ||
+      llmMetadata.provider_id ||
+      task.provider_id ||
+      task.provider?.id ||
+      undefined;
+    const modelId =
+      selection.modelId ||
+      selection.model_id ||
+      llmMetadata.modelId ||
+      llmMetadata.model_id ||
+      task.model_id ||
+      task.model?.id ||
+      undefined;
+
+    const providerName =
+      selection.providerName ||
+      selection.provider ||
+      llmMetadata.providerName ||
+      llmMetadata.provider ||
+      llmMetadata.provider_name ||
+      task.provider_name ||
+      task.provider?.display_name ||
+      task.provider?.provider_name ||
+      task.provider?.name ||
+      task.metadata?.providerName ||
+      task.metadata?.provider?.name ||
+      task.metadata?.provider?.displayName ||
+      task.metadata?.provider ||
+      undefined;
+
+    const modelName =
+      selection.modelName ||
+      selection.model ||
+      llmMetadata.modelName ||
+      llmMetadata.model ||
+      llmMetadata.model_name ||
+      task.model_name ||
+      task.model?.model_name ||
+      task.model?.display_name ||
+      task.model?.name ||
+      task.metadata?.modelName ||
+      task.metadata?.model?.name ||
+      task.metadata?.model?.displayName ||
+      task.metadata?.model ||
+      undefined;
+
+    if (!providerId && !providerName) {
+      return null;
+    }
+
+    if (!modelId && !modelName) {
+      return null;
+    }
+
+    return { providerId, providerName, modelId, modelName };
+  }
+
+  private buildRecommendationKey(
+    providerId?: string,
+    providerName?: string,
+    modelId?: string,
+    modelName?: string,
+  ): string {
+    const providerPart = (providerId || providerName || 'unknown_provider')
+      .toString()
+      .toLowerCase();
+    const modelPart = (modelId || modelName || 'unknown_model')
+      .toString()
+      .toLowerCase();
+    return `${providerPart}::${modelPart}`;
+  }
+
+  private normalizeAgentIdentifier(value?: string | null): string {
+    if (!value || typeof value !== 'string') {
+      return '';
+    }
+
+    // Convert to consistent underscore format:
+    // 1. Replace spaces, hyphens with underscores
+    // 2. Remove common suffixes like 'agent', 'assistant', 'writer'
+    // 3. Convert to lowercase
+    // 4. Trim and clean up multiple underscores
+    return value
+      .toLowerCase()
+      .replace(/\s+/g, '_')  // Replace spaces with underscores
+      .replace(/-/g, '_')     // Replace hyphens with underscores
+      .replace(/_writer$/i, '') // Remove 'writer' suffix
+      .replace(/_agent$/i, '') // Remove 'agent' suffix
+      .replace(/_assistant$/i, '') // Remove 'assistant' suffix
+      .replace(/writer$/i, '')  // Remove 'writer' suffix without underscore
+      .replace(/agent$/i, '')  // Remove 'agent' suffix without underscore
+      .replace(/assistant$/i, '') // Remove 'assistant' suffix without underscore
+      .replace(/_{2,}/g, '_')  // Replace multiple underscores with single
+      .replace(/^_|_$/g, '')   // Remove leading/trailing underscores
+      .trim();
+  }
+
+  private extractAgentIdentifiers(task: any): string[] {
+    const names = new Set<string>();
+
+    const candidateValues = [
+      task.response_metadata?.agent_name,
+      task.response_metadata?.agentName,
+      task.metadata?.agent_name,
+      task.metadata?.agentName,
+      task.metadata?.agent?.name,
+      task.metadata?.agent?.displayName,
+      task.metadata?.originalAgent?.agentName,
+      task.metadata?.originalAgent?.name,
+      task.metadata?.originalAgentName,
+      task.metadata?.agentDisplayName,
+      task.metadata?.agentLabel,
+      task.metadata?.llmMetadata?.originalLLMSelection?.agentName,
+      task.metadata?.llmMetadata?.originalLLMSelection?.agent_name,
+      task.llm_metadata?.agent_name,
+      task.llm_metadata?.agentName,
+      task.llm_metadata?.originalLLMSelection?.agentName,
+      task.llm_metadata?.originalLLMSelection?.agent_name,
+      task.agent_name,
+      task.agentName,
+      task.method,
+    ];
+
+    candidateValues.forEach((value) => {
+      const normalized = this.normalizeAgentIdentifier(value);
+      if (normalized) {
+        names.add(normalized);
+      }
+    });
+
+    const firstCandidate = candidateValues.find((value) => value);
+    if (firstCandidate) {
+      const display = formatAgentNameForDisplay(firstCandidate as string);
+      const normalizedDisplay = this.normalizeAgentIdentifier(display);
+      if (normalizedDisplay) {
+        names.add(normalizedDisplay);
+      }
+    }
+
+    return Array.from(names);
+  }
+
+  private recordMatchesAgent(record: any, normalizedTarget: string): boolean {
+    if (!normalizedTarget) {
+      return false;
+    }
+
+    const identifiers = this.extractAgentIdentifiers(record);
+    return identifiers.includes(normalizedTarget);
+  }
+
+  private getAggregationsClient(): { client: SupabaseClient; isServiceClient: boolean } {
+    try {
+      const client = this.supabaseService.getServiceClient();
+      return { client, isServiceClient: true };
+    } catch (error) {
+      this.logger.warn(
+        `[EvaluationService] Service client unavailable, falling back to anon client for recommendations: ${error instanceof Error ? error.message : error}`,
+      );
+      return { client: this.supabaseService.getAnonClient(), isServiceClient: false };
+    }
   }
 
   private calculateConstraintEffectiveness(tasks: any[]): Array<{

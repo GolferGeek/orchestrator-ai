@@ -1,3 +1,5 @@
+import type { AgentLLMRecommendation } from './evaluation';
+
 // LLM Evaluation Types for Frontend
 export type AuthType = 'api_key' | 'oauth' | 'none';
 export type ProviderStatus = 'active' | 'inactive' | 'maintenance';
@@ -147,6 +149,10 @@ export interface LLMPreferencesState {
   providerError?: string;
   modelError?: string;
   commandError?: string;
+  // Agent recommendations state
+  agentRecommendations: Record<string, AgentLLMRecommendation[]>;
+  agentRecommendationsLoading: boolean;
+  agentRecommendationsError: string | null;
   // Sovereign mode state
   sovereignMode: boolean;
   sovereignPolicy: any; // TODO: Define proper type
