@@ -391,9 +391,7 @@ export class LLMService {
         
         // Add debug logging to see what's being sent
         if (this.debugEnabled) {
-          this.logger.debug('🔍 [LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
-          this.logger.debug('🔍 [LLM-DEBUG] Provider:', validProvider);
-          this.logger.debug('🔍 [LLM-DEBUG] Model:', options?.modelName);
+          this.logger.debug(`🔍 [LLM-DEBUG] Sending ${messages.length} messages to ${validProvider}/${options?.modelName}`);
         }
 
         const response = await llm.invoke(messages);
@@ -807,9 +805,7 @@ export class LLMService {
     
     // Add debug logging to see what's being sent
     if (this.debugEnabled) {
-      this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
-      this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Provider:', routingDecision.provider);
-      this.logger.debug('🔍 [CENTRALIZED-LLM-DEBUG] Model:', routingDecision.model);
+      this.logger.debug(`🔍 [CENTRALIZED-LLM-DEBUG] Sending ${messages.length} messages to ${routingDecision.provider}/${routingDecision.model}`);
     }
 
     const response = await llm.invoke(messages);
@@ -1018,9 +1014,9 @@ export class LLMService {
       );
 
       // Debug
-      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Messages being sent to LLM:', JSON.stringify(messages, null, 2));
-      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Provider:', selectedDefault.provider);
-      this.logger.debug('🔍 [SYSTEM-LLM-DEBUG] Model:', selectedDefault.model);
+      if (this.debugEnabled) {
+        this.logger.debug(`🔍 [SYSTEM-LLM-DEBUG] Sending ${messages.length} messages to ${selectedDefault.provider}/${selectedDefault.model}`);
+      }
 
       const response = await llm.invoke(messages);
       const content =

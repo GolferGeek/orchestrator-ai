@@ -238,6 +238,15 @@ class TasksService {
     try {
       // Sanitize the task data before sending
       const sanitizedTaskData = this.apiSanitization.sanitizeTaskRequest(taskData);
+
+      // Debug: Log what's being sent to the backend
+      console.log('🚀 Sending task to backend:', {
+        url,
+        llmSelection: sanitizedTaskData.llmSelection,
+        hasLlmSelection: !!sanitizedTaskData.llmSelection,
+        method: sanitizedTaskData.method
+      });
+
       const response = await apiService.post(url, sanitizedTaskData);
       return response;
     } catch (error) {
