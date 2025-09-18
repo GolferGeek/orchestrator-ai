@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted, onMounted } from 'vue';
+import { ref, computed, onUnmounted, onMounted, watch } from 'vue';
 import { IonButton, IonIcon, toastController } from '@ionic/vue';
 import { micOutline } from 'ionicons/icons';
 import { apiService } from '../services/apiService';
@@ -168,7 +168,7 @@ const stopListening = async () => {
   }
 };
 
-// Audio processing
+// Audio processing (new speech-to-text only flow)
 const processAudio = async () => {
   if (audioChunks.value.length === 0) {
     speechState.value = 'idle';
@@ -179,31 +179,33 @@ const processAudio = async () => {
     const audioBlob = new Blob(audioChunks.value, { type: 'audio/webm;codecs=opus' });
     const base64Audio = await blobToBase64(audioBlob);
     
-    if (!currentAgent.value || !conversationId.value) {
-      throw new Error('No agent or conversation selected');
-    }
+    console.log('🎤 [SpeechButton] Processing audio via new frontend flow');
 
-    const response = await apiService.post(
-      `/speech/agents/${currentAgent.value.name}/${currentAgent.value.type}/conversation`,
-      {
-        conversationId: conversationId.value,
-        audioData: base64Audio,
-        encoding: 'webm',
-        sampleRate: 48000,
-      }
+    // Step 1: Transcribe the audio to text
+    const transcription = await apiService.transcribeAudio(
+      base64Audio,
+      'webm',
+      48000
     );
 
-    if (response.data) {
-      // Emit transcription for UI updates
-      emit('transcription', response.data.transcribedText);
-      
-      // Play the response audio
-      await playAudioResponse(response.data.responseAudio);
-      
-      // Update the conversation in the store
-      await agentChatStore.refreshConversation(conversationId.value);
+    if (!transcription.text || transcription.text.trim().length === 0) {
+      throw new Error('No speech detected in audio');
     }
 
+    console.log('🎤 [SpeechButton] Transcribed text:', transcription.text);
+
+    // Step 2: Mark that the next message was sent via speech (for TTS triggering)
+    agentChatStore.setLastMessageWasSpeech(true);
+    
+    // Step 3: Send the transcribed text through normal chat flow
+    await agentChatStore.sendMessage(transcription.text);
+
+    console.log('🎤 [SpeechButton] Message sent through chat store');
+
+    // Emit transcription for UI updates
+    emit('transcription', transcription.text);
+    
+    // Speech-to-text complete, TTS will be handled separately
     speechState.value = 'idle';
     emit('speechEnd');
 
@@ -214,37 +216,12 @@ const processAudio = async () => {
   }
 };
 
-// Audio playback
-const playAudioResponse = async (audioData: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    try {
-      speechState.value = 'speaking';
-      currentAudio.value = new Audio(audioData);
-      
-      currentAudio.value.onended = () => {
-        speechState.value = 'idle';
-        resolve();
-      };
-      
-      currentAudio.value.onerror = () => {
-        speechState.value = 'error';
-        reject(new Error('Failed to play audio response'));
-      };
-      
-      currentAudio.value.play();
-    } catch (error) {
-      speechState.value = 'error';
-      reject(error);
-    }
-  });
-};
+// Old TTS functions removed - now handled by useSpeechTTS composable
 
 const stopSpeaking = () => {
-  if (currentAudio.value) {
-    currentAudio.value.pause();
-    currentAudio.value.currentTime = 0;
-    speechState.value = 'idle';
-  }
+  // In new architecture, speech button should stay idle
+  // TTS is handled separately and doesn't affect button state
+  speechState.value = 'idle';
 };
 
 // Utility functions
@@ -290,6 +267,8 @@ onMounted(() => {
     console.warn('Speech functionality not available - missing media devices API');
   }
 });
+
+// No longer needed - speech button stays idle after speech-to-text completes
 </script>
 
 <style scoped>
