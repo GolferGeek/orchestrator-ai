@@ -759,8 +759,15 @@ watch(() => props.message, (newMessage) => {
     
     // Check if the last message was sent via speech
     if (chatStore.lastMessageWasSpeech) {
-      console.log('🎤 [TTS] Assistant message detected, triggering TTS for speech message:', newMessage.content.substring(0, 100) + '...');
-      handleTextToSpeech(newMessage.content);
+      console.log('🎤 [TTS] Assistant message detected, checking length...');
+      
+      if (isResponseTooLong(newMessage.content)) {
+        console.log('🎤 [TTS] Response is lengthy, using fallback message');
+        handleTextToSpeech(LENGTHY_RESPONSE_FALLBACK);
+      } else {
+        console.log('🎤 [TTS] Response is short, using full content');
+        handleTextToSpeech(newMessage.content);
+      }
     } else {
       console.log('🎤 [TTS] Skipping TTS - last message was not via speech');
     }
@@ -802,6 +809,24 @@ watch(() => props.message.metadata, (newMetadata, oldMetadata) => {
 watch(() => props.message.deliverableId, (newId, oldId) => {
 
 }, { immediate: true });
+
+// Fallback message for lengthy responses
+const LENGTHY_RESPONSE_FALLBACK = "I successfully completed your request, but the response is quite lengthy. Please check the chat for the full details.";
+
+/**
+ * Check if a response is too long for TTS
+ * Uses both character count and sentence count as criteria
+ */
+function isResponseTooLong(text: string): boolean {
+  // Character threshold (~500 chars)
+  if (text.length > 500) return true;
+  
+  // Sentence count (count periods/exclamation/question marks)
+  const sentences = text.match(/[.!?]+/g) || [];
+  if (sentences.length > 5) return true;
+  
+  return false;
+}
 
 // TTS function to handle text-to-speech conversion (simple working version)
 async function handleTextToSpeech(text: string) {
