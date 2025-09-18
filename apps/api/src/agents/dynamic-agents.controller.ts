@@ -118,12 +118,8 @@ export class DynamicAgentsController {
     @CurrentUser() currentUser: SupabaseAuthUserDto,
     @Request() req: any,
   ) {
-    // 🔍 DEBUG: Log incoming request at the very top
-    this.logger.debug(`🚀 [DynamicAgentsController] Incoming request to ${agentType}/${agentName}`);
-    this.logger.debug(`🚀 [DynamicAgentsController] Request body type: ${typeof taskRequest}`);
-    this.logger.debug(`🚀 [DynamicAgentsController] Request method: ${taskRequest?.method || 'undefined'}`);
-    this.logger.debug(`🚀 [DynamicAgentsController] User ID: ${currentUser?.id || 'undefined'}`);
-    this.logger.debug(`🚀 [DynamicAgentsController] Full request body: ${JSON.stringify(taskRequest, null, 2)}`);
+    // 🔍 Log minimal info about incoming request
+    this.logger.log(`[DynamicAgentsController] ${taskRequest?.method || 'unknown'} request to ${agentType}/${agentName}`);
 
 
     // Check if this is a JSON-RPC request and convert it to CreateTaskDto format
@@ -162,6 +158,11 @@ export class DynamicAgentsController {
 
     // Debug: Log the received LLM selection
     this.logger.log(`🎤 [DynamicAgentsController] Received llmSelection: ${JSON.stringify(normalizedTaskRequest.llmSelection)}`);
+    this.logger.log(`🎤 [DynamicAgentsController] Full normalized request has llmSelection: ${!!normalizedTaskRequest.llmSelection}`);
+    if (normalizedTaskRequest.llmSelection) {
+      this.logger.log(`🎤 [DynamicAgentsController] llmSelection.providerName: ${normalizedTaskRequest.llmSelection.providerName}`);
+      this.logger.log(`🎤 [DynamicAgentsController] llmSelection.modelName: ${normalizedTaskRequest.llmSelection.modelName}`);
+    }
 
     // Validate required fields
     if (!normalizedTaskRequest.method || !normalizedTaskRequest.prompt) {
@@ -214,7 +215,7 @@ export class DynamicAgentsController {
     }
 
     // 🔒 PII POLICY CHECK - Block sensitive data before it reaches any agent
-    this.logger.debug(`🔒 [DynamicAgentsController] Performing PII policy check for ${agentType}/${agentName}`);
+    // PII policy check
     
     // Check PII policy directly without centralized routing
     const piiResult = await this.piiService.checkPolicy(normalizedTaskRequest.prompt, {
@@ -250,12 +251,12 @@ export class DynamicAgentsController {
         const systemConfig = JSON.parse(process.env.MODEL_CONFIG_GLOBAL_JSON || '{"provider":"ollama","model":"llama3.2:1b"}');
         selectedProvider = systemConfig.provider;
         selectedModel = systemConfig.model;
-        this.logger.debug(`🎯 [DynamicAgentsController] Using system model for ${normalizedTaskRequest.method} mode: ${selectedProvider}/${selectedModel}`);
+        // Using system model
       } else {
         // Use passed llmSelection for deliverable mode (build/process)
         selectedProvider = normalizedTaskRequest.llmSelection?.providerName || 'ollama';
         selectedModel = normalizedTaskRequest.llmSelection?.modelName || 'llama3.2:1b';
-        this.logger.debug(`🎯 [DynamicAgentsController] Using explicit model for ${normalizedTaskRequest.method} mode: ${selectedProvider}/${selectedModel}`);
+        // Using explicit model
       }
       
       routingDecision = {
@@ -314,7 +315,7 @@ export class DynamicAgentsController {
       };
     }
 
-    this.logger.debug(`✅ [DynamicAgentsController] PII policy check passed for ${agentType}/${agentName}`);
+    // PII check passed
 
     // Extract auth token from request
     const authHeader = req.headers.authorization;
@@ -410,12 +411,22 @@ export class DynamicAgentsController {
         authToken: token,
         llmSelection: normalizedTaskRequest.llmSelection,
         conversationHistory: normalizedTaskRequest.conversationHistory || [],
-        metadata: normalizedTaskRequest.metadata, // Pass metadata for deliverable operations
+        metadata: {
+          ...normalizedTaskRequest.metadata, // Pass existing metadata
+          // Python agents expect llmPreferences in metadata
+          llmPreferences: normalizedTaskRequest.llmSelection,
+        },
         // NEW ARCHITECTURE: Pass PII metadata and routing decision to agents
         piiMetadata: routingDecision.piiMetadata,
         routingDecision: routingDecision,
         originalPrompt: routingDecision.originalPrompt,
       };
+
+      // Debug: Log what we're sending to the agent
+      this.logger.log(`🎯 [DynamicAgentsController] Sending to agent ${agentType}/${agentName}:`);
+      this.logger.log(`   metadata.llmPreferences: ${JSON.stringify(authenticatedTaskRequest.metadata?.llmPreferences)}`);
+      this.logger.log(`   Has providerName: ${!!authenticatedTaskRequest.metadata?.llmPreferences?.providerName}`);
+      this.logger.log(`   Has modelName: ${!!authenticatedTaskRequest.metadata?.llmPreferences?.modelName}`);
 
       // In A2A architecture, all execution modes should await completion
       // The difference is only in progress reporting:
@@ -426,10 +437,7 @@ export class DynamicAgentsController {
       this.logger.log(`🚀 Processing task ${task.id} in ${executionMode} mode - will await completion`);
 
       // 🔍 DEBUG: Log before calling JSON-RPC processing
-      this.logger.debug(`🎯 [DynamicAgentsController] About to call processJsonRpcRequest on agent: ${agentName}`);
-      this.logger.debug(`🎯 [DynamicAgentsController] Agent instance type: ${agentInstance.constructor.name}`);
-      this.logger.debug(`🎯 [DynamicAgentsController] Task request method: ${authenticatedTaskRequest.method}`);
-      this.logger.debug(`🎯 [DynamicAgentsController] Task request prompt: ${authenticatedTaskRequest.prompt?.substring(0, 100)}...`);
+      // Call agent's processJsonRpcRequest
 
       // Wrap into JSON-RPC request to use the normalized A2A path
       const jsonRpcRequest = {
@@ -444,14 +452,7 @@ export class DynamicAgentsController {
       const result = rpcResponse?.result ?? rpcResponse; // Unwrap JSON-RPC result
 
       // 🔍 DEBUG: Log the result from JSON-RPC processing
-      this.logger.debug(`🎯 [DynamicAgentsController] processJsonRpcRequest completed for ${agentName}`);
-      this.logger.debug(`🎯 [DynamicAgentsController] Result type: ${typeof result}`);
-      this.logger.debug(`🎯 [DynamicAgentsController] Result keys: ${result ? Object.keys(result).join(', ') : 'null'}`);
-      this.logger.debug(`🎯 [DynamicAgentsController] Result success: ${result?.success}`);
-      this.logger.debug(`🎯 [DynamicAgentsController] Result message length: ${result?.message?.length || 0}`);
-      if (result?.response) {
-        this.logger.debug(`🎯 [DynamicAgentsController] Result response length: ${result.response?.length || 0}`);
-      }
+      // Request completed
 
       const taskAlreadyHandled =
         result &&

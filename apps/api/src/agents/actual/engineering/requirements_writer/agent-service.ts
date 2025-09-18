@@ -1,22 +1,25 @@
 import { Injectable } from '@nestjs/common';
-import { PythonFunctionAgentBaseService } from '@agents/base/implementations/base-services/function';
-import { PythonFunctionAgentServicesContext } from '@agents/base/services/python-function-agent-services-context';
+import { FunctionAgentBaseService } from '@agents/base/implementations/base-services/function';
+import { FunctionAgentServicesContext } from '@agents/base/services/function-agent-services-context';
 
 @Injectable()
-export class RequirementsWriterService extends PythonFunctionAgentBaseService {
+export class RequirementsWriterService extends FunctionAgentBaseService {
   constructor(
-    // Pure service container pattern - only accepts PythonFunctionAgentServicesContext
-    services: PythonFunctionAgentServicesContext,
+    // Pure service container pattern - only accepts FunctionAgentServicesContext
+    services: FunctionAgentServicesContext,
   ) {
     super(services);
-    // Python script path will be set by AgentDiscoveryService during discovery
+    // Align total workflow steps with the TypeScript implementation
+    this.setTotalSteps(6);
   }
 
   getAgentName(): string {
     return 'requirements_writer';
   }
 
-  // Task type is no longer used - all tasks are handled as ephemeral
+  getAgentType(): 'engineering' {
+    return 'engineering';
+  }
 
   /**
    * Define status schema for workflow progress tracking

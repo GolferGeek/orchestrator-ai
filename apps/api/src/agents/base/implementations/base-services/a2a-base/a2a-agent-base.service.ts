@@ -1573,14 +1573,6 @@ export abstract class A2AAgentBaseService
    * This metadata flows from CentralizedRoutingService through agents
    */
   protected extractPIIMetadata(params: any): PIIProcessingMetadata | undefined {
-    // DEBUG: Log detailed structure
-    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractPIIMetadata - params.piiMetadata type:`, typeof params.piiMetadata);
-    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractPIIMetadata - params.piiMetadata value:`, params.piiMetadata);
-    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractPIIMetadata - params.routingDecision type:`, typeof params.routingDecision);
-    if (params.routingDecision) {
-      this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractPIIMetadata - params.routingDecision.piiMetadata:`, params.routingDecision.piiMetadata);
-    }
-    
     // Check multiple possible locations for PII metadata
     // Check for truthy values, not just existence
     let result = null;
@@ -1591,9 +1583,7 @@ export abstract class A2AAgentBaseService
     } else if (params.routingDecision?.piiMetadata && typeof params.routingDecision.piiMetadata === 'object' && params.routingDecision.piiMetadata.piiDetected !== undefined) {
       result = params.routingDecision.piiMetadata;
     }
-    
-    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractPIIMetadata - final result:`, result);
-    
+
     return result;
   }
 
@@ -1601,10 +1591,6 @@ export abstract class A2AAgentBaseService
    * Extract routing decision with PII information
    */
   protected extractRoutingDecision(params: any): RoutingDecisionWithPII | undefined {
-    // DEBUG: Log extraction details
-    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractRoutingDecision - params.routingDecision type:`, typeof params.routingDecision);
-    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractRoutingDecision - params.routingDecision value:`, params.routingDecision);
-    
     // Check for truthy values with proper structure
     let result = null;
     if (params.routingDecision && typeof params.routingDecision === 'object' && params.routingDecision.provider) {
@@ -1612,12 +1598,7 @@ export abstract class A2AAgentBaseService
     } else if (params.metadata?.routingDecision && typeof params.metadata.routingDecision === 'object' && params.metadata.routingDecision.provider) {
       result = params.metadata.routingDecision;
     }
-    
-    this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractRoutingDecision - final result:`, result);
-    if (result) {
-      this.logger.debug(`🔍 [PII-EXTRACT-DEBUG] extractRoutingDecision - result.piiMetadata:`, result.piiMetadata);
-    }
-    
+
     return result;
   }
 
