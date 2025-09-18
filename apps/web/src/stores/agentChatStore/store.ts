@@ -399,8 +399,8 @@ export const useAgentChatStore = defineStore('agentChat', {
      * Send message and create task
      */
     async sendMessage(content: string) {
-      // Clear speech flag since this is a typed message
-      this.lastMessageWasSpeech = false;
+      // Don't clear speech flag here - let TTS handle clearing it after playback
+      // The flag should only be cleared after TTS completes or if user types a new message
       
       // Initialize WebSocket handler with store instance
       this.initializeWebSocketHandler();

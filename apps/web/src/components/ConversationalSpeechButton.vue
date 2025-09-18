@@ -66,8 +66,7 @@ const audioChunks = ref<Blob[]>([]);
 const continuousListening = ref(false);
 const currentMimeType = ref('audio/webm;codecs=opus');
 const currentFormat = ref('webm');
-const isInVoiceMode = ref(false);
-const pendingTaskIdForTTS = ref<string | null>(null);
+// Voice mode is now handled by the useSpeechTTS composable
 
 // Audio resource tracking
 const activeStreams = ref<MediaStream[]>([]);
@@ -189,73 +188,8 @@ const getButtonTooltip = (): string => {
   }
 };
 
-// Watch for new assistant messages to auto-convert to speech in voice mode
-watch(
-  () => agentChatStore.getActiveConversation()?.messages,
-  (newMessages, oldMessages) => {
-    if (!isInVoiceMode.value || !newMessages) {
-      console.log('🎤 Voice mode inactive or no messages, skipping TTS');
-      return;
-    }
-
-    // Find newly added assistant messages
-    const oldLength = oldMessages?.length || 0;
-    console.log(`🎤 Checking for new messages: ${newMessages.length} total, ${oldLength} old`);
-    
-    const newAssistantMessages = newMessages
-      .slice(oldLength)
-      .filter(msg => {
-        const isAssistant = msg.role === 'assistant';
-        const hasContent = msg.content && msg.content.trim().length > 0;
-        console.log(`🎤 Message check: role=${msg.role}, hasContent=${hasContent}, taskId=${!!msg.taskId}`);
-        return isAssistant && hasContent;
-      });
-
-    console.log(`🎤 Found ${newAssistantMessages.length} new assistant messages`);
-
-    // Process the most recent assistant message for TTS
-    if (newAssistantMessages.length > 0) {
-      const latestMessage = newAssistantMessages[newAssistantMessages.length - 1];
-      console.log('🎤 Processing latest assistant message for TTS:', latestMessage);
-      handleNewAssistantMessage(latestMessage);
-    } else {
-      console.log('🎤 No qualifying assistant messages found for TTS');
-    }
-  },
-  { deep: true }
-);
-
-// Handle new assistant messages by converting to speech
-const handleNewAssistantMessage = async (message: any) => {
-  console.log('🎤 [TTS START] Beginning text-to-speech conversion for message:', message.content);
-  
-  try {
-    console.log('🎤 [TTS SYNTHESIZE] Calling apiService.synthesizeText...');
-    
-    // Synthesize the response text to speech
-    const synthesizedAudio = await apiService.synthesizeText(
-      message.content,
-      'EXAVITQu4vr4xnSDxMaL', // Default voice ID
-      0.5 // Stability
-    );
-
-    console.log('🎤 [TTS SYNTHESIZE SUCCESS] Audio synthesis completed, starting playback...');
-
-    // Play the response audio
-    await playResponseAudio(synthesizedAudio.audioData);
-    
-    console.log('🎤 [TTS COMPLETE] Audio playback finished successfully');
-    
-  } catch (error) {
-    console.error('🎤 [TTS ERROR] Failed to convert assistant message to speech:', error);
-    console.error('🎤 [TTS ERROR] Error details:', error);
-    
-    // Don't fail the whole conversation just because TTS failed
-    await presentToast('Voice synthesis failed, continuing in text mode', 3000, 'warning');
-    conversationState.value = 'idle';
-    isInVoiceMode.value = false;
-  }
-};
+// Note: TTS is now handled by the intelligent useSpeechTTS composable in AgentChatView
+// which only triggers TTS when the last message was sent via speech-to-text
 
 // Voice Activity Detection functions
 const calculateVolume = (): number => {
@@ -426,18 +360,7 @@ const toggleConversation = async () => {
     await startConversation();
   } else if (conversationState.value === 'listening') {
     await stopListening();
-  } else if (conversationState.value === 'speaking') {
-    // Check if there's been no volume change recently - if so, end conversation
-    const timeSinceVolumeChange = Date.now() - lastVolumeChangeTime.value;
-    if (timeSinceVolumeChange > NO_VOLUME_CHANGE_MS && hasDetectedSpeech.value) {
-      // User pressed button while AI speaking with no recent volume = end conversation
-      conversationState.value = 'done';
-      stopSpeaking();
-      setTimeout(() => resetConversation(), 1000);
-    } else {
-      // Normal interruption - user wants to speak
-      stopSpeaking();
-    }
+  // Speaking state removed - TTS is now handled by useSpeechTTS composable
   } else if (conversationState.value === 'error' || conversationState.value === 'done') {
     resetConversation();
   }
@@ -629,22 +552,11 @@ const processRecordedAudio = async () => {
 
     console.log('🎤 Message sent through chat store, waiting for response...');
 
-    // Step 3: Enable voice mode - response will be automatically converted to speech
-    isInVoiceMode.value = true;
+    // Response will be automatically converted to speech by useSpeechTTS composable
+    // since we set lastMessageWasSpeech = true above
+    conversationState.value = 'idle';
     
-    // Set to processing while waiting for agent response
-    conversationState.value = 'processing';
-    
-    console.log('🎤 Voice mode enabled, waiting for agent response...');
-
-    // Set a timeout to reset state if no response comes back
-    setTimeout(() => {
-      if (conversationState.value === 'processing' && isInVoiceMode.value) {
-        console.log('🎤 No TTS response received within timeout, resetting to idle');
-        conversationState.value = 'idle';
-        isInVoiceMode.value = false;
-      }
-    }, 10000); // 10 second timeout
+    console.log('🎤 Message sent successfully, TTS will be handled by composable');
 
   } catch (error) {
     console.error('Failed to process conversation:', error);
@@ -672,151 +584,11 @@ const processRecordedAudio = async () => {
 };
 
 
-const playResponseAudio = async (audioData: string) => {
-  console.log('🎤 [AUDIO PLAY START] Starting audio playback...');
-  
-  try {
-    console.log('🎤 [AUDIO PLAY] Setting conversation state to speaking');
-    conversationState.value = 'speaking';
+// playResponseAudio function removed - TTS is now handled by useSpeechTTS composable
 
-    // Start continuous listening while speaking (for interruption)
-    if (!continuousListening.value) {
-      console.log('🎤 [AUDIO PLAY] Starting continuous listening for interruption');
-      continuousListening.value = true;
-      await startContinuousListening();
-    }
+// startContinuousListening function removed - no longer needed with new TTS system
 
-    console.log('🎤 [AUDIO PLAY] Creating Audio element');
-    currentAudio.value = new Audio(audioData);
-
-    return new Promise<void>((resolve, reject) => {
-      if (!currentAudio.value) {
-        console.error('🎤 [AUDIO PLAY ERROR] Audio element not created');
-        reject(new Error('Audio element not created'));
-        return;
-      }
-
-      currentAudio.value.onended = () => {
-        console.log('🎤 [AUDIO PLAY ENDED] Playback ended naturally');
-        resolve();
-        resetConversation();
-      };
-
-      currentAudio.value.onerror = (error) => {
-        console.error('🎤 [AUDIO PLAY ERROR] Playback error:', error);
-        // Clean up resources even on error
-        try {
-          if (currentAudio.value) {
-            currentAudio.value.src = '';
-            currentAudio.value.load();
-          }
-        } catch (e) {
-          console.warn('🎤 [AUDIO PLAY ERROR] Error cleaning up failed audio:', e);
-        }
-        reject(new Error('Audio playback failed'));
-      };
-
-      console.log('🎤 [AUDIO PLAY] Starting audio.play()');
-      currentAudio.value.play().catch((playError) => {
-        console.error('🎤 [AUDIO PLAY ERROR] Play promise rejected:', playError);
-        // Clean up on play failure
-        try {
-          if (currentAudio.value) {
-            currentAudio.value.src = '';
-            currentAudio.value.load();
-          }
-        } catch (e) {
-          console.warn('🎤 [AUDIO PLAY ERROR] Error cleaning up after play failure:', e);
-        }
-        reject(playError);
-      });
-    });
-
-  } catch (error) {
-    console.error('🎤 [AUDIO PLAY ERROR] Failed to play response audio:', error);
-    await presentToast('Could not play audio response');
-    resetConversation();
-  }
-};
-
-const startContinuousListening = async () => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        sampleRate: 48000,
-        channelCount: 1,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: false,  // Prevent exclusive mic access
-        googEchoCancellation: false,  // Disable Chrome-specific exclusive features
-        googAutoGainControl: false,
-        googNoiseSuppression: false,
-        googHighpassFilter: false,
-      }
-    });
-
-    // Track this stream for cleanup
-    activeStreams.value.push(stream);
-    console.log(`Audio: Tracking continuous listening stream, total active: ${activeStreams.value.length}`);
-
-    startVoiceActivityDetection(stream);
-
-    // Monitor for user interruption
-    const monitorInterruption = () => {
-      if (!continuousListening.value) {
-        // Clean up this stream when monitoring stops
-        try {
-          stream.getTracks().forEach(track => track.stop());
-          const streamIndex = activeStreams.value.indexOf(stream);
-          if (streamIndex > -1) {
-            activeStreams.value.splice(streamIndex, 1);
-          }
-        } catch (error) {
-          console.warn('Error cleaning up continuous listening stream:', error);
-        }
-        return;
-      }
-
-      const volume = calculateVolume();
-
-      // If user starts speaking during AI response, interrupt
-      if (volume > volumeThreshold.value && conversationState.value === 'speaking') {
-        stopSpeaking();
-        conversationState.value = 'listening';
-
-        // Start new recording
-        startMediaRecording();
-        return;
-      }
-
-      requestAnimationFrame(monitorInterruption);
-    };
-
-    monitorInterruption();
-
-  } catch (error) {
-    console.error('Failed to start continuous listening:', error);
-  }
-};
-
-const stopSpeaking = () => {
-  console.log('Audio: Stopping speech playback');
-
-  if (currentAudio.value) {
-    try {
-      currentAudio.value.pause();
-      currentAudio.value.currentTime = 0;
-      // Clear the src to release audio data
-      currentAudio.value.src = '';
-      currentAudio.value.load();
-    } catch (error) {
-      console.warn('Error stopping audio:', error);
-    }
-  }
-
-  continuousListening.value = false;
-  stopVADMonitoring();
-};
+// stopSpeaking function removed - no longer needed with new TTS system
 
 const cancelConversation = () => {
   console.log('Audio: Cancelling conversation and cleaning up resources');
@@ -830,7 +602,15 @@ const cancelConversation = () => {
   }
 
   if (currentAudio.value) {
-    stopSpeaking();
+    try {
+      currentAudio.value.pause();
+      currentAudio.value.currentTime = 0;
+      currentAudio.value.src = '';
+      currentAudio.value.load();
+    } catch (error) {
+      console.warn('Error stopping audio:', error);
+    }
+    currentAudio.value = null;
   }
 
   continuousListening.value = false;
@@ -848,8 +628,6 @@ const resetConversation = () => {
   continuousListening.value = false;
   hasDetectedSpeech.value = false;
   lastVolumeChangeTime.value = 0;
-  isInVoiceMode.value = false;
-  pendingTaskIdForTTS.value = null;
 
   // Clean up MediaRecorder
   if (mediaRecorder.value) {
