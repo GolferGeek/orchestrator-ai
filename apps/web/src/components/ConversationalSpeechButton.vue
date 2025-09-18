@@ -595,8 +595,11 @@ const processRecordedAudio = async () => {
       }
     }
 
-    await presentToast(`Conversation failed: ${errorMessage}`, 5000);
-    emit('error', errorMessage);
+    // Don't show toast for "No speech detected" errors - this is expected for auto-listen
+    if (!errorMessage.includes('No speech detected')) {
+      await presentToast(`Conversation failed: ${errorMessage}`, 5000);
+      emit('error', errorMessage);
+    }
 
     setTimeout(() => resetConversation(), 3000);
   }
