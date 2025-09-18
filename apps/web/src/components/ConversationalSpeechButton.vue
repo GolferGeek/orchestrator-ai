@@ -83,12 +83,13 @@ const dataArray = ref<Uint8Array | null>(null);
 const vadCheckInterval = ref<number | null>(null);
 const hasDetectedSpeech = ref(false);
 const lastVolumeChangeTime = ref(0);
+const stoppedDueToNoSpeech = ref(false);
 
 // Constants
 const SILENCE_DURATION_MS = 1800; // 1.8 seconds of silence to auto-stop
 const BASELINE_MEASUREMENT_MS = 500; // Measure baseline for 0.5 seconds
 const VOLUME_THRESHOLD_MULTIPLIER = 0.3; // Threshold is 30% above baseline
-const NO_VOLUME_CHANGE_MS = 3000; // 3 seconds of no significant volume change
+const NO_AUDIO_TIMEOUT_MS = 3000; // 3 seconds timeout if no significant speech detected
 
 // Computed properties
 const isListening = computed(() => conversationState.value === 'listening');
@@ -266,6 +267,7 @@ const startVADMonitoring = () => {
   let wasAboveThreshold = false;
   let previousVolume = 0;
   let logCount = 0;
+  const monitoringStartTime = Date.now();
 
   console.log('VAD: Starting monitoring');
 
@@ -277,10 +279,11 @@ const startVADMonitoring = () => {
 
     currentVolume.value = calculateVolume();
     const isAboveThreshold = currentVolume.value > volumeThreshold.value;
+    const timeSinceStart = Date.now() - monitoringStartTime;
 
     // Debug logging every 30 frames (about once per second at 30fps)
     if (logCount % 30 === 0) {
-      console.log(`VAD: volume=${currentVolume.value.toFixed(1)}, threshold=${volumeThreshold.value.toFixed(1)}, above=${isAboveThreshold}, wasAbove=${wasAboveThreshold}`);
+      console.log(`VAD: volume=${currentVolume.value.toFixed(1)}, threshold=${volumeThreshold.value.toFixed(1)}, above=${isAboveThreshold}, wasAbove=${wasAboveThreshold}, time=${timeSinceStart}ms`);
     }
     logCount++;
 
@@ -311,6 +314,14 @@ const startVADMonitoring = () => {
           stopListening();
           return;
         }
+      }
+    } else {
+      // Check if we've been monitoring for 3 seconds without detecting significant speech
+      if (!hasDetectedSpeech.value && timeSinceStart > NO_AUDIO_TIMEOUT_MS) {
+        console.log(`VAD: Auto-stopping - no significant speech detected in ${timeSinceStart}ms`);
+        stoppedDueToNoSpeech.value = true;
+        stopListening();
+        return;
       }
     }
 
@@ -370,6 +381,7 @@ const startConversation = async () => {
   try {
     conversationState.value = 'listening';
     hasDetectedSpeech.value = false;
+    stoppedDueToNoSpeech.value = false;
     lastVolumeChangeTime.value = Date.now();
     emit('conversationStart');
 
@@ -519,6 +531,13 @@ const stopListening = async () => {
 
 const processRecordedAudio = async () => {
   try {
+    // If we stopped due to no speech being detected, just reset silently
+    if (stoppedDueToNoSpeech.value) {
+      console.log('🎤 Stopped due to no speech detected - resetting silently');
+      conversationState.value = 'idle';
+      return;
+    }
+
     if (audioChunks.value.length === 0) {
       throw new Error('No audio data recorded');
     }
