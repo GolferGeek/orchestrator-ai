@@ -25,17 +25,50 @@
         39 specialized AI agents. On-premise deployment. Zero clients yet.<br />
         <strong>Let's build something real together.</strong>
       </p>
-      <!-- Hero Video -->
-      <div class="video-container" v-if="heroVideoId">
-        <iframe 
-          :src="`https://www.loom.com/embed/${heroVideoId}?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true`"
-          frameborder="0" 
-          webkitallowfullscreen 
-          mozallowfullscreen 
-          allowfullscreen
-          loading="lazy"
-          @load="trackVideoView('hero')"
-        ></iframe>
+      <!-- Hero Video Carousel -->
+      <div class="video-carousel" v-if="heroVideos.length > 0">
+        <div class="video-container">
+          <iframe 
+            :src="`https://www.loom.com/embed/${currentVideoId}?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true`"
+            frameborder="0" 
+            webkitallowfullscreen 
+            mozallowfullscreen 
+            allowfullscreen
+            loading="lazy"
+            @load="trackVideoView('hero')"
+          ></iframe>
+        </div>
+        <!-- Video Navigation -->
+        <div class="video-navigation" v-if="heroVideos.length > 1">
+          <button 
+            class="nav-arrow nav-prev" 
+            @click="previousVideo"
+            :disabled="currentVideoIndex === 0"
+          >
+            <ion-icon :icon="chevronBackOutline"></ion-icon>
+          </button>
+          <div class="video-indicators">
+            <span 
+              v-for="(video, index) in heroVideos" 
+              :key="index"
+              class="indicator"
+              :class="{ active: index === currentVideoIndex }"
+              @click="goToVideo(index)"
+            ></span>
+          </div>
+          <button 
+            class="nav-arrow nav-next" 
+            @click="nextVideo"
+            :disabled="currentVideoIndex === heroVideos.length - 1"
+          >
+            <ion-icon :icon="chevronForwardOutline"></ion-icon>
+          </button>
+        </div>
+        <!-- Video Title -->
+        <div class="video-title">
+          <h3>{{ currentVideo.title }}</h3>
+          <p>{{ currentVideo.description }}</p>
+        </div>
       </div>
       <div class="video-placeholder" v-else>
         <h3>🎬 "Here's What We Built" Demo</h3>
@@ -98,7 +131,9 @@ import {
   appsOutline,
   shieldCheckmarkOutline, 
   speedometerOutline, 
-  peopleOutline 
+  peopleOutline,
+  chevronBackOutline,
+  chevronForwardOutline
 } from 'ionicons/icons';
 import { useLandingStore } from '@/stores/landingStore';
 import { useRouter } from 'vue-router';
@@ -106,13 +141,48 @@ import { useAuthStore } from '@/stores/authStore';
 const landingStore = useLandingStore();
 const router = useRouter();
 const authStore = useAuthStore();
-// Hero video ID (will be set when video is recorded)
-const heroVideoId = ref(''); // Set this to your Loom video ID when ready
+// Hero videos array
+const heroVideos = ref([
+  {
+    id: 'debf7736e3104891aa8014b65fab9d2f',
+    title: '🎬 "Here\'s What We Built" Demo',
+    description: 'Dashboard tour + 3 agent demos (2 min)'
+  },
+  {
+    id: 'ff5bc018a69148dfa42ad733831bdb6c',
+    title: '🎬 Additional Demo',
+    description: 'More features and capabilities'
+  }
+]);
+
+// Current video index
+const currentVideoIndex = ref(0);
+
+// Computed properties
+const currentVideo = computed(() => heroVideos.value[currentVideoIndex.value]);
+const currentVideoId = computed(() => currentVideo.value.id);
 // Computed properties from store
 const foundingPartnerCount = computed(() => landingStore.foundingPartnerCount);
 const maxFoundingPartners = computed(() => landingStore.maxFoundingPartners);
 const foundingPartnersRemaining = computed(() => landingStore.foundingPartnersRemaining);
 const progressPercentage = computed(() => landingStore.progressPercentage);
+// Video navigation methods
+function nextVideo() {
+  if (currentVideoIndex.value < heroVideos.value.length - 1) {
+    currentVideoIndex.value++;
+  }
+}
+
+function previousVideo() {
+  if (currentVideoIndex.value > 0) {
+    currentVideoIndex.value--;
+  }
+}
+
+function goToVideo(index: number) {
+  currentVideoIndex.value = index;
+}
+
 // Methods
 function scrollToSection(sectionId: string) {
   // For pricing, scroll to that section
@@ -207,6 +277,85 @@ onMounted(() => {
   transform: translateY(-2px);
   transition: var(--transition-smooth);
 }
+/* Video Carousel Styles */
+.video-carousel {
+  position: relative;
+  margin: 2rem 0;
+}
+
+.video-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.nav-arrow {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.nav-arrow:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.nav-arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.video-indicators {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.indicator.active {
+  background: var(--landing-accent);
+  transform: scale(1.2);
+}
+
+.indicator:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.video-title {
+  text-align: center;
+  margin-top: 1rem;
+  color: white;
+}
+
+.video-title h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.video-title p {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   .trust-signals {
     gap: 1rem;
@@ -218,6 +367,19 @@ onMounted(() => {
     display: block;
     width: 100%;
     margin: 0.5rem 0;
+  }
+  .video-navigation {
+    gap: 0.5rem;
+  }
+  .nav-arrow {
+    width: 35px;
+    height: 35px;
+  }
+  .video-title h3 {
+    font-size: 1rem;
+  }
+  .video-title p {
+    font-size: 0.8rem;
   }
 }
 </style>

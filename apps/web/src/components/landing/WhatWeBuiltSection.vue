@@ -33,10 +33,15 @@
           <p>CEO orchestrator delegates to department managers. Intent recognition, multi-agent coordination, subproject management.</p>
           <div class="feature-demo">
             <div class="video-embed-small">
-              <div class="video-placeholder-small">
+              <a 
+                href="https://www.loom.com/share/debf7736e3104891aa8014b65fab9d2f?sid=a19c6e34-6a65-4b3a-affc-700b3869e7eb" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="video-placeholder-small"
+              >
                 <ion-icon :icon="playOutline"></ion-icon>
                 <span>Project Orchestration Demo</span>
-              </div>
+              </a>
             </div>
           </div>
         </div>
@@ -512,6 +517,7 @@ onUnmounted(() => {
   font-size: 0.85rem;
   cursor: pointer;
   transition: var(--transition-smooth);
+  text-decoration: none;
 }
 .video-placeholder-small:hover {
   background: linear-gradient(135deg, #e5e7eb, #d1d5db);

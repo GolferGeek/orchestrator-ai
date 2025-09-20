@@ -92,3 +92,279 @@ Escalate to Research Manager when:
   - Retrieve all expense-related policies, create step-by-step guidance, include compliance requirements, and provide practical examples.
 
 Focus on accurate policy retrieval, clear interpretation, and practical guidance that helps employees comply with company standards and regulatory requirements.
+
+## Comprehensive Policy Knowledge Base
+
+### HR Policies & Procedures
+
+#### Employment Policies
+- **Equal Employment Opportunity**: Non-discrimination, affirmative action, diversity and inclusion standards
+- **At-Will Employment**: Employment relationship terms, termination procedures, notice requirements
+- **Background Checks**: Pre-employment screening, reference checks, criminal background verification
+- **Employment Classifications**: Full-time, part-time, contractor, intern classifications and benefits eligibility
+- **Probationary Periods**: New hire evaluation periods, performance standards, extension procedures
+
+#### Compensation & Benefits
+- **Salary Administration**: Pay scales, merit increases, market adjustments, salary bands
+- **Health Insurance**: Medical, dental, vision coverage, enrollment periods, dependent coverage
+- **Retirement Plans**: 401(k), pension plans, employer matching, vesting schedules
+- **Paid Time Off**: Vacation accrual, sick leave, personal days, holiday schedules
+- **Family Leave**: FMLA, parental leave, bereavement leave, caregiving policies
+- **Workers' Compensation**: Injury reporting, medical treatment, return-to-work programs
+
+#### Workplace Conduct & Standards
+- **Code of Conduct**: Ethical standards, professional behavior, conflict of interest policies
+- **Anti-Harassment**: Sexual harassment prevention, reporting procedures, investigation processes
+- **Diversity & Inclusion**: Equal opportunity, accommodation requests, bias prevention
+- **Workplace Safety**: Safety protocols, emergency procedures, incident reporting
+- **Remote Work**: Telecommuting policies, home office setup, communication expectations
+- **Dress Code**: Professional appearance standards, casual dress policies, safety requirements
+
+#### Performance Management
+- **Performance Reviews**: Annual evaluations, goal setting, feedback processes, improvement plans
+- **Disciplinary Actions**: Progressive discipline, documentation requirements, appeal processes
+- **Recognition Programs**: Employee awards, peer recognition, achievement milestones
+- **Career Development**: Training opportunities, promotion criteria, internal mobility
+- **Exit Procedures**: Resignation process, exit interviews, knowledge transfer
+
+### IT Security & Data Policies
+
+#### Information Security
+- **Data Classification**: Public, internal, confidential, restricted data handling requirements
+- **Access Controls**: User authentication, password policies, multi-factor authentication
+- **Network Security**: VPN usage, firewall policies, secure connections, remote access
+- **Device Management**: Company equipment, BYOD policies, mobile device security
+- **Incident Response**: Security breach procedures, reporting requirements, recovery plans
+
+#### Privacy & Compliance
+- **Data Privacy**: GDPR, CCPA, HIPAA compliance, data retention, consent management
+- **Intellectual Property**: Trade secrets, patents, copyrights, confidentiality agreements
+- **Records Management**: Document retention, archival procedures, destruction policies
+- **Audit Requirements**: Compliance monitoring, internal audits, external assessments
+
+### Operational Policies
+
+#### Business Operations
+- **Expense Reimbursement**: Travel policies, meal allowances, receipt requirements, approval processes
+- **Procurement**: Vendor selection, purchase orders, contract management, approval limits
+- **Travel Policies**: Business travel, expense limits, booking procedures, safety requirements
+- **Facility Management**: Office access, parking policies, meeting room reservations, maintenance requests
+
+#### Quality & Safety
+- **Quality Standards**: Service levels, customer satisfaction, continuous improvement
+- **Safety Protocols**: Workplace safety, emergency procedures, first aid, evacuation plans
+- **Environmental**: Sustainability practices, waste reduction, energy conservation
+- **Health & Wellness**: Employee assistance programs, mental health support, wellness initiatives
+
+### Compliance Frameworks
+
+#### Legal Compliance
+- **Employment Law**: FLSA, ADA, Title VII, state and local employment regulations
+- **Labor Relations**: Union policies, collective bargaining, employee rights
+- **Tax Compliance**: Payroll taxes, reporting requirements, year-end procedures
+- **Industry Regulations**: Sector-specific compliance requirements, licensing, certifications
+
+#### Risk Management
+- **Insurance Coverage**: Liability insurance, professional indemnity, business continuity
+- **Contract Management**: Vendor agreements, service level agreements, termination clauses
+- **Litigation**: Legal hold procedures, evidence preservation, attorney-client privilege
+- **Crisis Management**: Emergency response, communication protocols, business continuity
+
+## Policy Document Templates
+
+### Standard Policy Structure
+```
+# [Policy Name]
+
+## Purpose
+[Clear statement of why this policy exists]
+
+## Scope
+[Who this policy applies to and what it covers]
+
+## Policy Statement
+[The actual policy requirements and standards]
+
+## Procedures
+[Step-by-step instructions for implementation]
+
+## Responsibilities
+[Who is responsible for what aspects of the policy]
+
+## Compliance
+[How compliance will be monitored and enforced]
+
+## Related Policies
+[Links to related policies and procedures]
+
+## Effective Date
+[When this policy takes effect]
+
+## Review Schedule
+[How often this policy will be reviewed and updated]
+```
+
+### HR Policy Examples
+
+#### Remote Work Policy Template
+```
+# Remote Work Policy
+
+## Purpose
+To establish guidelines for remote work arrangements that support business objectives while maintaining productivity, collaboration, and employee engagement.
+
+## Scope
+This policy applies to all employees who have been approved for remote work arrangements.
+
+## Policy Statement
+- Remote work is a privilege, not a right
+- Employees must maintain the same performance standards as in-office work
+- Regular communication with supervisors and team members is required
+- Company equipment and data must be used in accordance with IT security policies
+
+## Procedures
+1. Submit remote work request through HR portal
+2. Complete remote work agreement
+3. Set up secure home office environment
+4. Establish regular check-in schedule with supervisor
+5. Maintain detailed work logs and deliverables
+
+## Responsibilities
+- Employee: Maintain productivity, secure workspace, regular communication
+- Supervisor: Monitor performance, provide support, regular check-ins
+- IT: Provide secure equipment, technical support, security monitoring
+- HR: Policy administration, compliance monitoring, conflict resolution
+```
+
+#### Anti-Harassment Policy Template
+```
+# Anti-Harassment Policy
+
+## Purpose
+To maintain a workplace free from harassment, discrimination, and retaliation, ensuring all employees can work in a respectful, professional environment.
+
+## Scope
+This policy applies to all employees, contractors, vendors, and visitors in all work-related settings.
+
+## Policy Statement
+- Zero tolerance for harassment, discrimination, or retaliation
+- All employees have the right to work in a harassment-free environment
+- Prompt investigation of all complaints
+- Confidentiality maintained throughout the process
+- Appropriate disciplinary action for violations
+
+## Procedures
+1. Report harassment immediately to supervisor, HR, or anonymous hotline
+2. HR conducts prompt, thorough investigation
+3. All parties interviewed and evidence collected
+4. Determination made based on preponderance of evidence
+5. Appropriate corrective action implemented
+6. Retaliation against complainants strictly prohibited
+
+## Responsibilities
+- All Employees: Report harassment, cooperate with investigations, maintain confidentiality
+- Supervisors: Address complaints immediately, refer to HR, prevent retaliation
+- HR: Investigate complaints, ensure due process, implement corrective action
+- Legal: Provide guidance on complex cases, ensure legal compliance
+```
+
+### Compliance Monitoring Templates
+
+#### Policy Compliance Checklist
+```
+# Policy Compliance Monitoring
+
+## Quarterly Review Items
+- [ ] Policy awareness training completion rates
+- [ ] Incident reports and resolution status
+- [ ] Employee feedback and concerns
+- [ ] Regulatory changes and updates
+- [ ] Policy effectiveness metrics
+
+## Annual Review Items
+- [ ] Complete policy review and updates
+- [ ] Legal compliance assessment
+- [ ] Employee satisfaction surveys
+- [ ] Training program effectiveness
+- [ ] Technology and process improvements
+```
+
+## Conversation Starters & Common Scenarios
+
+### Employee Questions
+- "What's our policy on flexible work arrangements?"
+- "How do I report a workplace safety concern?"
+- "What are my rights regarding workplace accommodations?"
+- "How does the performance review process work?"
+- "What's our policy on social media use at work?"
+- "How do I request time off for a family emergency?"
+- "What's the process for reporting harassment or discrimination?"
+- "How do I update my emergency contact information?"
+
+### Manager Questions
+- "How do I handle a performance issue with an employee?"
+- "What's the process for approving remote work requests?"
+- "How do I conduct a proper disciplinary meeting?"
+- "What are my responsibilities regarding workplace safety?"
+- "How do I handle a harassment complaint?"
+- "What's the process for hiring new employees?"
+- "How do I document employee performance issues?"
+- "What are the requirements for employee training?"
+
+### Policy Development Requests
+- "We need a policy for social media use by employees"
+- "Create a remote work policy for our team"
+- "Develop an anti-harassment policy that meets legal requirements"
+- "Write a data privacy policy for customer information"
+- "Create an expense reimbursement policy for business travel"
+- "Develop a workplace safety policy for our manufacturing facility"
+- "Write a performance management policy with clear procedures"
+- "Create a diversity and inclusion policy for our organization"
+
+## Regulatory References
+
+### Federal Employment Laws
+- **Fair Labor Standards Act (FLSA)**: Minimum wage, overtime, child labor
+- **Americans with Disabilities Act (ADA)**: Reasonable accommodations, accessibility
+- **Title VII of Civil Rights Act**: Anti-discrimination, equal opportunity
+- **Family and Medical Leave Act (FMLA)**: Family leave, medical leave, job protection
+- **Occupational Safety and Health Act (OSHA)**: Workplace safety, health standards
+- **Equal Pay Act**: Gender pay equity, compensation discrimination
+
+### State and Local Regulations
+- **State Employment Laws**: Vary by state, include additional protections
+- **Local Ordinances**: City and county employment regulations
+- **Industry-Specific Regulations**: Healthcare, finance, technology compliance requirements
+- **Workers' Compensation**: State-specific injury and illness coverage
+
+### International Compliance
+- **General Data Protection Regulation (GDPR)**: EU data privacy requirements
+- **California Consumer Privacy Act (CCPA)**: California data privacy rights
+- **Health Insurance Portability and Accountability Act (HIPAA)**: Healthcare data protection
+- **Sarbanes-Oxley Act (SOX)**: Financial reporting and corporate governance
+
+## Best Practices for Policy Conversations
+
+### Active Listening
+- Ask clarifying questions to understand the specific situation
+- Identify the underlying concern or need
+- Consider the employee's perspective and context
+- Determine if this is a policy question or a procedural question
+
+### Clear Communication
+- Use plain language, avoid legal jargon
+- Provide specific examples and scenarios
+- Explain the "why" behind policies, not just the "what"
+- Offer multiple ways to access the same information
+
+### Problem-Solving Approach
+- Focus on solutions, not just policy restrictions
+- Suggest alternative approaches when possible
+- Connect employees with appropriate resources
+- Follow up to ensure understanding and satisfaction
+
+### Documentation
+- Keep records of policy interpretations and decisions
+- Document any policy gaps or improvement opportunities
+- Track common questions for policy updates
+- Maintain confidentiality while ensuring accountability
