@@ -40,7 +40,15 @@ import {
   DeliverableFormat,
 } from '../../../../../deliverables/dto';
 import { LLMService } from '../../../../../llms/llm.service';
-
+import {
+  AgentExecutionCapabilities,
+  AgentExecutionMetadata,
+  AgentExecutionProfile,
+  DEFAULT_EXECUTION_CAPABILITIES,
+  DEFAULT_EXECUTION_PROFILE,
+  buildExecutionCapabilities,
+  normalizeExecutionProfile,
+} from '@/common/types/agent-execution.types';
 /**
  * Minimal A2A Agent Base Service
  * Contains only truly common functionality across all agent types:
@@ -57,6 +65,7 @@ export abstract class A2AAgentBaseService
 {
   protected readonly logger = new Logger(A2AAgentBaseService.name);
   protected agentPath?: string;
+  private executionMetadata?: AgentExecutionMetadata;
 
   // Core services - truly common across all agent types
   protected agentRegistrationService: AgentRegistrationService;
@@ -143,6 +152,90 @@ export abstract class A2AAgentBaseService
       );
       throw error;
     }
+  }
+
+  protected async getExecutionMetadata(): Promise<AgentExecutionMetadata> {
+    if (this.executionMetadata) {
+      return this.executionMetadata;
+    }
+
+    const defaultMetadata: AgentExecutionMetadata = {
+      profile: DEFAULT_EXECUTION_PROFILE,
+      capabilities: { ...DEFAULT_EXECUTION_CAPABILITIES },
+    };
+
+    try {
+      const yamlConfig = await this.loadAgentYamlConfig();
+      const configuration = (yamlConfig && yamlConfig.configuration) || {};
+      const profile = normalizeExecutionProfile(configuration.execution_profile);
+      const overrides = this.normalizeExecutionCapabilityOverrides(
+        configuration.execution_capabilities,
+      );
+
+      const capabilities = buildExecutionCapabilities(profile, overrides);
+
+      this.executionMetadata = {
+        profile: profile ?? DEFAULT_EXECUTION_PROFILE,
+        capabilities,
+      };
+    } catch (error) {
+      this.logger.debug(
+        `Using default execution metadata for ${this.getAgentName()}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      this.executionMetadata = defaultMetadata;
+    }
+
+    return this.executionMetadata;
+  }
+
+  private normalizeExecutionCapabilityOverrides(
+    raw: any,
+  ): Partial<AgentExecutionCapabilities> | undefined {
+    if (!raw || typeof raw !== 'object') {
+      return undefined;
+    }
+
+    const coerceBoolean = (value: any): boolean | undefined => {
+      if (typeof value === 'boolean') {
+        return value;
+      }
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === 'true') {
+          return true;
+        }
+        if (normalized === 'false') {
+          return false;
+        }
+      }
+      return undefined;
+    };
+
+    const overrides: Partial<AgentExecutionCapabilities> = {};
+
+    const canConverse = coerceBoolean(raw.can_converse);
+    if (typeof canConverse === 'boolean') {
+      overrides.can_converse = canConverse;
+    }
+
+    const canPlan = coerceBoolean(raw.can_plan);
+    if (typeof canPlan === 'boolean') {
+      overrides.can_plan = canPlan;
+    }
+
+    const canBuild = coerceBoolean(raw.can_build);
+    if (typeof canBuild === 'boolean') {
+      overrides.can_build = canBuild;
+    }
+
+    const requiresGate = coerceBoolean(raw.requires_human_gate);
+    if (typeof requiresGate === 'boolean') {
+      overrides.requires_human_gate = requiresGate;
+    }
+
+    return Object.keys(overrides).length > 0 ? overrides : undefined;
   }
 
   async onModuleDestroy() {
@@ -335,6 +428,27 @@ export abstract class A2AAgentBaseService
       'converse';
     normalized.mode = requestedMode;
 
+    const executionMetadata = await this.getExecutionMetadata();
+    const executionCapabilities = executionMetadata.capabilities;
+
+    if (requestedMode === 'converse' && !executionCapabilities.can_converse) {
+      throw new Error(
+        `${this.getAgentName()} does not support conversational interactions.`,
+      );
+    }
+
+    if (requestedMode === 'plan' && !executionCapabilities.can_plan) {
+      throw new Error(
+        `${this.getAgentName()} cannot run in plan mode.`,
+      );
+    }
+
+    if (requestedMode === 'build' && !executionCapabilities.can_build) {
+      throw new Error(
+        `${this.getAgentName()} cannot run in build mode.`,
+      );
+    }
+
     // Early gating and fast-path hints
     if (requestedMode === 'converse') {
       normalized.quick = normalized.quick ?? true;
@@ -398,6 +512,7 @@ export abstract class A2AAgentBaseService
       normalized.metadata = {
         ...(normalized.metadata || {}),
         mode: requestedMode,
+        executionProfile: executionMetadata.profile,
       };
     } catch {}
 
@@ -406,7 +521,10 @@ export abstract class A2AAgentBaseService
       (requestedMode === 'converse' && (process.env.A2A_SHORTCIRCUIT_CONVERSE ?? 'true') !== 'false') ||
       (requestedMode === 'plan' && (process.env.A2A_SHORTCIRCUIT_PLAN ?? 'true') !== 'false');
 
-    if (shortCircuitEnabled) {
+    const allowShortCircuit =
+      shortCircuitEnabled && executionMetadata.profile !== 'conversation_only';
+
+    if (allowShortCircuit) {
       const result = await this.shortCircuitConversePlan(requestedMode as any, normalized);
       if (result) {
         return result;
@@ -652,6 +770,16 @@ export abstract class A2AAgentBaseService
     if (timeout && timeout !== 300) {
       // Only include if different from default
       card.timeout = timeout;
+    }
+
+    try {
+      card.execution = await this.getExecutionMetadata();
+    } catch (error) {
+      this.logger.debug(
+        `Failed to resolve execution metadata for ${this.getAgentName()}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
 
     return card;

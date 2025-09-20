@@ -653,15 +653,24 @@ const handleCalloutClick = () => {
 // Smart CTA detection
 const contentText = computed(() => (props.message.content || '').toLowerCase());
 const suggestsPlan = computed(() => {
+  if (!chatStore.isModeAllowed('plan')) {
+    return false;
+  }
   const c = contentText.value;
   return /would you like.*plan|should i.*plan|plan (it|this)|create (a|the) (plan|prd)|requirements|spec/i.test(props.message.content || '');
 });
 const suggestsBuild = computed(() => {
+  if (!chatStore.isModeAllowed('build')) {
+    return false;
+  }
   const c = contentText.value;
   return /would you like.*build|should i.*build|build (it|this)|proceed to build|execute (now|this)/i.test(props.message.content || '');
 });
 
 function handlePlanNow() {
+  if (!chatStore.isModeAllowed('plan')) {
+    return;
+  }
   chatStore.setChatMode('plan');
   chatStore.setPendingAction('plan', props.message.taskId || undefined);
   // Immediately execute from last user message
@@ -676,6 +685,9 @@ function handlePlanNow() {
   });
 }
 function handleBuildNow() {
+  if (!chatStore.isModeAllowed('build')) {
+    return;
+  }
   chatStore.setChatMode('build');
   chatStore.setPendingAction('build', props.message.taskId || undefined);
   // Immediately execute from last user message

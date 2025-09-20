@@ -53,6 +53,13 @@ export interface AgentInfo {
   description: string;
   type?: string;
   execution_modes?: ('immediate' | 'polling' | 'real-time')[];
+  execution_profile?: 'conversation_only' | 'autonomous_build' | 'human_gate' | 'conversation_with_gate';
+  execution_capabilities?: {
+    can_converse: boolean;
+    can_plan: boolean;
+    can_build: boolean;
+    requires_human_gate: boolean;
+  };
   // capabilities?: string[]; // Example
 }
 // Corrected TaskCreationRequest for /agents/orchestrator/tasks

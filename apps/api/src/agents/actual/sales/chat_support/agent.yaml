@@ -70,6 +70,11 @@ output_modes:
 configuration:
   default_output_format: "plain"
   execution_modes: ["immediate"]
+  execution_profile: "conversation_only"
+  execution_capabilities:
+    can_plan: false
+    can_build: false
+    requires_human_gate: false
   response_time_target: "30_seconds"
   escalation_triggers:
     - "technical_complexity"

@@ -3,6 +3,10 @@ import { AgentDiscoveryService } from './agent-discovery.service';
 import { AgentFactoryService } from './agent-factory.service';
 import { AgentPoolService } from './agent-pool/agent-pool.service';
 import { LLMService } from '@llm/llm.service';
+import {
+  DEFAULT_EXECUTION_CAPABILITIES,
+  DEFAULT_EXECUTION_PROFILE,
+} from './common/types/agent-execution.types';
 
 @Injectable()
 export class AppService implements OnModuleInit {
@@ -146,6 +150,8 @@ export class AppService implements OnModuleInit {
       this.discoveredAgents.map(async (agent) => {
         let agentCard = null;
         let executionModes = ['immediate']; // Default execution mode
+        let executionProfile = DEFAULT_EXECUTION_PROFILE;
+        let executionCapabilities = { ...DEFAULT_EXECUTION_CAPABILITIES };
 
         try {
           if (
@@ -157,6 +163,17 @@ export class AppService implements OnModuleInit {
             // Extract execution modes from agent card configuration
             if (agentCard?.configuration?.execution_modes) {
               executionModes = agentCard.configuration.execution_modes;
+            }
+
+            if (agentCard?.execution?.profile) {
+              executionProfile = agentCard.execution.profile;
+            }
+
+            if (agentCard?.execution?.capabilities) {
+              executionCapabilities = {
+                ...executionCapabilities,
+                ...agentCard.execution.capabilities,
+              };
             }
           }
         } catch (error) {
@@ -176,6 +193,8 @@ export class AppService implements OnModuleInit {
           serviceClass: agent.serviceClass?.name,
           hasInstance: !!agent.serviceInstance,
           execution_modes: executionModes,
+          execution_profile: executionProfile,
+          execution_capabilities: executionCapabilities,
         };
       }),
     );

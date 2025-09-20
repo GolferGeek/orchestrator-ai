@@ -88,7 +88,7 @@ const emit = defineEmits<{
 const chatStore = useAgentChatStore();
 const showModeMenu = ref(false);
 
-const modes = [
+const baseModes = [
   {
     value: 'converse',
     name: 'Converse',
@@ -111,8 +111,17 @@ const modes = [
 
 const currentMode = computed(() => chatStore.getActiveChatMode());
 
+const allowedModes = computed(() => {
+  const conversation = chatStore.getActiveConversation();
+  return conversation?.allowedChatModes || ['converse', 'plan', 'build'];
+});
+
+const modes = computed(() =>
+  baseModes.filter(mode => allowedModes.value.includes(mode.value))
+);
+
 const currentModeConfig = computed(() => {
-  return modes.find(m => m.value === currentMode.value) || modes[0];
+  return modes.value.find(m => m.value === currentMode.value) || modes.value[0] || baseModes[0];
 });
 
 const currentModeIcon = computed(() => {
@@ -129,7 +138,8 @@ function toggleModeMenu() {
 
 function sendWithCurrentMode() {
   if (!props.disabled) {
-    emit('send', currentMode.value);
+    const activeMode = modes.value.find(m => m.value === currentMode.value)?.value || modes.value[0]?.value || 'converse';
+    emit('send', activeMode);
   }
 }
 

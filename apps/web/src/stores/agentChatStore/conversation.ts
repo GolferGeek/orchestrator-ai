@@ -284,15 +284,11 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       
       // Find agent info from the store
       const agentInfo = agentsStore.availableAgents.find(agent => agent.name === conversation.agent?.name);
-      
 
-
-      
       if (agentInfo?.execution_modes && Array.isArray(agentInfo.execution_modes)) {
         // Map execution modes from agent data (handles 'real-time' -> 'websocket')
         const rawModes = agentInfo.execution_modes;
 
-        
         const mappedModes = rawModes.map((mode: string) => {
           if (mode === 'real-time') {
 
@@ -301,15 +297,11 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
 
           return mode as ExecutionMode;
         });
-        
-
-        
         const supportedModes = mappedModes.filter((mode: string) => {
           const isSupported = ['immediate', 'polling', 'websocket'].includes(mode);
 
           return isSupported;
         });
-        
         conversation.supportedExecutionModes = supportedModes;
 
       } else {
@@ -317,9 +309,38 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
         conversation.supportedExecutionModes = ['immediate'];
 
       }
+
+      const defaultAllowed: ('converse' | 'plan' | 'build')[] = ['converse', 'plan', 'build'];
+      let allowedChatModes = [...defaultAllowed];
+
+      const profile = agentInfo?.execution_profile;
+      const capabilities = agentInfo?.execution_capabilities;
+
+      conversation.executionProfile = profile;
+      conversation.executionCapabilities = capabilities;
+
+      if (profile === 'conversation_only') {
+        allowedChatModes = ['converse'];
+      } else {
+        if (capabilities?.can_plan === false) {
+          allowedChatModes = allowedChatModes.filter(mode => mode !== 'plan');
+        }
+
+        if (capabilities?.can_build === false) {
+          allowedChatModes = allowedChatModes.filter(mode => mode !== 'build');
+        }
+      }
+
+      conversation.allowedChatModes = allowedChatModes;
+      if (!allowedChatModes.includes(conversation.chatMode)) {
+        conversation.chatMode = allowedChatModes[0] || 'converse';
+      }
     } catch (error) {
 
       conversation.supportedExecutionModes = ['immediate'];
+      if (!conversation.allowedChatModes || conversation.allowedChatModes.length === 0) {
+        conversation.allowedChatModes = ['converse', 'plan', 'build'];
+      }
     }
   }
 
@@ -374,8 +395,11 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       createdAt,
       lastActiveAt: createdAt,
       chatMode: 'converse',
+      allowedChatModes: ['converse', 'plan', 'build'],
       executionMode: 'immediate',
       supportedExecutionModes: ['immediate'], // Will be updated by updateConversationExecutionModes
+      executionProfile: agent.execution_profile,
+      executionCapabilities: agent.execution_capabilities,
       title: this.createConversationTitle(agent, createdAt), // Use proper title with timestamp
       isLoading: false,
       isSendingMessage: false,
