@@ -39,6 +39,15 @@
             <strong>What to expect:</strong> We'll ask about your current challenges, show you a live demo of our platform, 
             and discuss how we could customize it for your specific needs. If it's not a good fit, we'll tell you upfront.
           </p>
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            class="view-video-button"
+            @click="openVideoModal"
+          >
+            <ion-icon slot="start" :icon="playCircleOutline"></ion-icon>
+            View Video
+          </ion-button>
         </div>
       </div>
     </div>
@@ -46,7 +55,15 @@
 </template>
 <script setup lang="ts">
 import { IonButton, IonIcon } from '@ionic/vue';
-import { calendarOutline, mailOutline } from 'ionicons/icons';
+import { calendarOutline, mailOutline, playCircleOutline } from 'ionicons/icons';
+
+const emit = defineEmits<{
+  openVideoModal: [videoId: string];
+}>();
+
+function openVideoModal() {
+  emit('openVideoModal', 'how-we-work');
+}
 function openCalendly() {
   // Open Calendly in a new window/tab
   window.open('https://calendly.com/orchestrator-ai/founding-partner-consultation', '_blank');
@@ -98,8 +115,9 @@ function openEmailForm() {
 }
 .cta-option p {
   margin-bottom: 1.5rem;
-  opacity: 0.9;
+  opacity: 1;
   line-height: 1.5;
+  color: rgba(255, 255, 255, 0.95);
 }
 .cta-button {
   --background: var(--landing-white);
@@ -120,9 +138,23 @@ function openEmailForm() {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 .cta-note p {
-  margin: 0;
+  margin: 0 0 1rem 0;
   font-size: 0.95rem;
-  opacity: 0.9;
+  opacity: 1;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.view-video-button {
+  --color: rgba(255, 255, 255, 0.9);
+  --background: rgba(255, 255, 255, 0.1);
+  --border-radius: 8px;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.view-video-button:hover {
+  --color: white;
+  --background: rgba(255, 255, 255, 0.2);
 }
 @media (max-width: 768px) {
   .cta-content h2 {

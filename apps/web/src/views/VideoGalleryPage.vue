@@ -12,80 +12,75 @@
     </ion-header>
     <ion-content class="ion-padding">
       <div class="gallery-intro">
-        <h1>The Complete Picture</h1>
-        <p>Raw, unpolished demos showing exactly how our AI workforce platform works. No marketing fluff - just real functionality.</p>
+        <h1>Video Library</h1>
+        <p>All our demos and behind-the-scenes videos in one place.</p>
       </div>
-      <!-- Video Categories -->
-      <div class="video-categories">
-        <!-- Quick Demos -->
-        <div class="category-section">
-          <h2>Quick Demos (2-3 min)</h2>
-          <div class="video-grid">
-            <div class="video-card">
-              <div class="video-placeholder">
-                <h3>🎬 Here's What We Built</h3>
-                <p>Dashboard tour + 3 agent demos</p>
-                <p><em>Recording in progress...</em></p>
-              </div>
-            </div>
-            <div class="video-card">
-              <div class="video-placeholder">
-                <h3>🗣️ Voice + Agent Builder Demo</h3>
-                <p>STT/TTS + agent-building-agent</p>
-                <p><em>Recording in progress...</em></p>
-              </div>
-            </div>
-            <div class="video-card">
-              <div class="video-placeholder">
-                <h3>📊 SQL Generation Live</h3>
-                <p>Natural language to SQL queries</p>
-                <p><em>Recording in progress...</em></p>
-              </div>
-            </div>
-          </div>
+
+      <!-- Video Links -->
+      <div class="video-links">
+        <div class="video-link-item">
+          <button @click="openVideoModal('introduction')">
+            <ion-icon :icon="playCircleOutline"></ion-icon>
+            <span>Introduction</span>
+          </button>
         </div>
-        <!-- Deep Dives -->
-        <div class="category-section">
-          <h2>Deep Dives (5+ min)</h2>
-          <div class="video-grid">
-            <div class="video-card">
-              <div class="video-placeholder">
-                <h3>🚀 Deployment in Real Time</h3>
-                <p>Docker deploy process from start to finish</p>
-                <p><em>Recording in progress...</em></p>
-              </div>
-            </div>
-            <div class="video-card">
-              <div class="video-placeholder">
-                <h3>⚙️ Agent Customization Process</h3>
-                <p>Edit context files live for client needs</p>
-                <p><em>Recording in progress...</em></p>
-              </div>
-            </div>
-            <div class="video-card">
-              <div class="video-placeholder">
-                <h3>🔄 Project Orchestration Preview</h3>
-                <p>Multi-agent workflow concepts</p>
-                <p><em>Recording in progress...</em></p>
-              </div>
-            </div>
-          </div>
+        <div class="video-link-item">
+          <button @click="openVideoModal('privacy-security')">
+            <ion-icon :icon="playCircleOutline"></ion-icon>
+            <span>Privacy and Security</span>
+          </button>
         </div>
-      </div>
-      <!-- CTA -->
-      <div class="gallery-cta">
-        <h2>Ready to See This Running for Your Business?</h2>
-        <ion-button size="large" @click="$router.push('/#pricing')">
-          <ion-icon slot="start" :icon="rocketOutline"></ion-icon>
-          Become a Founding Partner
-        </ion-button>
       </div>
     </ion-content>
+
+    <!-- Video Modal -->
+    <VideoModal 
+      :is-open="isVideoModalOpen"
+      :video-title="currentVideo?.title || ''"
+      :video-description="currentVideo?.description || ''"
+      :video-url="currentVideo?.videoUrl"
+      @close="closeVideoModal"
+    />
   </ion-page>
 </template>
 <script setup lang="ts">
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonButtons, IonIcon } from '@ionic/vue';
-import { arrowBackOutline, rocketOutline } from 'ionicons/icons';
+import { ref } from 'vue';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonIcon } from '@ionic/vue';
+import { arrowBackOutline, playCircleOutline } from 'ionicons/icons';
+import VideoModal from '@/components/landing/VideoModal.vue';
+
+// Video modal state
+const isVideoModalOpen = ref(false);
+const currentVideo = ref<any>(null);
+
+// Video data
+const videoTopics = [
+  {
+    id: 'introduction',
+    title: 'Introduction',
+    description: 'Get to know Orchestrator AI and our mission to build AI workforce solutions for small businesses.',
+    videoUrl: 'https://www.loom.com/embed/debf7736e3104891aa8014b65fab9d2f'
+  },
+  {
+    id: 'privacy-security',
+    title: 'Privacy & Security',
+    description: 'Learn about our on-premise deployment and privacy-first approach to AI workforce management.',
+    videoUrl: 'https://www.loom.com/embed/ff5bc018a69148dfa42ad733831bdb6c'
+  }
+];
+
+function openVideoModal(videoId: string) {
+  const video = videoTopics.find(v => v.id === videoId);
+  if (video) {
+    currentVideo.value = video;
+    isVideoModalOpen.value = true;
+  }
+}
+
+function closeVideoModal() {
+  isVideoModalOpen.value = false;
+  currentVideo.value = null;
+}
 </script>
 <style scoped>
 .video-gallery-page {
@@ -105,6 +100,49 @@ import { arrowBackOutline, rocketOutline } from 'ionicons/icons';
   color: var(--ion-color-medium);
   max-width: 600px;
   margin: 0 auto;
+}
+
+/* Video Links Styles */
+.video-links {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.video-link-item {
+  margin-bottom: 1rem;
+}
+
+.video-link-item button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: white;
+  border: 2px solid var(--ion-color-light-shade);
+  border-radius: 12px;
+  color: var(--landing-dark);
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  text-align: left;
+}
+
+.video-link-item button:hover {
+  border-color: var(--landing-primary);
+  background: var(--landing-primary-50);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.video-link-item button ion-icon {
+  font-size: 1.3rem;
+  color: var(--landing-primary);
+}
+
+.video-link-item button span {
+  flex: 1;
 }
 .category-section {
   margin-bottom: 3rem;
