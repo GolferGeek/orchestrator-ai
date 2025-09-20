@@ -3,9 +3,13 @@
     <ion-item lines="none" class="compact-item">
       <ion-label class="label">Mode</ion-label>
       <ion-select interface="popover" :value="mode" @ionChange="onChange" class="compact-select">
-        <ion-select-option value="converse">Converse</ion-select-option>
-        <ion-select-option value="plan">Plan</ion-select-option>
-        <ion-select-option value="build">Build</ion-select-option>
+        <ion-select-option
+          v-for="option in selectableModes"
+          :key="option.value"
+          :value="option.value"
+        >
+          {{ option.label }}
+        </ion-select-option>
       </ion-select>
     </ion-item>
   </div>
@@ -19,6 +23,17 @@ import analyticsService from '@/services/analyticsService';
 const chatStore = useAgentChatStore();
 
 const mode = computed(() => chatStore.getActiveChatMode());
+
+const modeOptions = [
+  { value: 'converse' as const, label: 'Converse' },
+  { value: 'plan' as const, label: 'Plan' },
+  { value: 'build' as const, label: 'Build' },
+];
+
+const selectableModes = computed(() => {
+  const allowed = chatStore.getActiveConversation()?.allowedChatModes || ['converse', 'plan', 'build'];
+  return modeOptions.filter(option => allowed.includes(option.value));
+});
 
 function onChange(ev: CustomEvent) {
   const value = ev.detail.value as 'converse' | 'plan' | 'build';

@@ -100,7 +100,18 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     getActiveChatMode(): 'converse' | 'plan' | 'build' {
       const conv = this.getActiveConversation();
-      return conv?.chatMode || 'converse';
+      if (!conv) {
+        return 'converse';
+      }
+
+      const current = conv.chatMode || 'converse';
+      const allowed = conv.allowedChatModes || ['converse', 'plan', 'build'];
+
+      if (!allowed.includes(current)) {
+        return allowed[0] || 'converse';
+      }
+
+      return current;
     },
 
     /**
@@ -109,8 +120,21 @@ export const useAgentChatStore = defineStore('agentChat', {
     setChatMode(mode: 'converse' | 'plan' | 'build') {
       const conv = this.getActiveConversation();
       if (conv) {
+        const allowed = conv.allowedChatModes || ['converse', 'plan', 'build'];
+        if (!allowed.includes(mode)) {
+          return;
+        }
         conv.chatMode = mode;
       }
+    },
+
+    isModeAllowed(mode: 'converse' | 'plan' | 'build'): boolean {
+      const conv = this.getActiveConversation();
+      if (!conv) {
+        return mode === 'converse';
+      }
+      const allowed = conv.allowedChatModes || ['converse', 'plan', 'build'];
+      return allowed.includes(mode);
     },
 
     /**
@@ -138,6 +162,11 @@ export const useAgentChatStore = defineStore('agentChat', {
     async executeFromLastUserMessage(mode: 'plan' | 'build') {
       const activeConversation = this.getActiveConversation();
       if (!activeConversation) return;
+
+      if (!this.isModeAllowed(mode)) {
+        console.warn(`Mode ${mode} is not allowed for this conversation.`);
+        return;
+      }
 
       // Locate the most recent non-empty user message (excluding placeholders)
       const lastUser = [...activeConversation.messages].reverse().find(m => m.role === 'user' && m.content?.trim());
@@ -509,9 +538,7 @@ export const useAgentChatStore = defineStore('agentChat', {
 
         // Prepare task execution options
         // Ensure chatMode is a string to prevent JSON-RPC errors
-        const chatMode = typeof activeConversation.chatMode === 'string'
-          ? activeConversation.chatMode
-          : 'converse';
+        const chatMode = this.getActiveChatMode();
         const taskOptions = {
           method: chatMode, // This must be a string for JSON-RPC
           prompt: content,
@@ -629,9 +656,7 @@ export const useAgentChatStore = defineStore('agentChat', {
 
         // Prepare task execution options with context metadata
         // Ensure chatMode is a string to prevent JSON-RPC errors
-        const chatMode2 = typeof activeConversation.chatMode === 'string'
-          ? activeConversation.chatMode
-          : 'converse';
+        const chatMode2 = this.getActiveChatMode();
         const taskOptions = {
           method: chatMode2, // This must be a string for JSON-RPC
           prompt: content,

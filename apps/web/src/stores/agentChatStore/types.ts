@@ -1,9 +1,24 @@
 // Agent interface based on the original implementation
+export type AgentExecutionProfile =
+  | 'conversation_only'
+  | 'autonomous_build'
+  | 'human_gate'
+  | 'conversation_with_gate';
+
+export interface AgentExecutionCapabilities {
+  can_converse: boolean;
+  can_plan: boolean;
+  can_build: boolean;
+  requires_human_gate: boolean;
+}
+
 export interface Agent {
   name: string;
   type: string;
   description?: string;
   execution_modes?: string[];
+  execution_profile?: AgentExecutionProfile;
+  execution_capabilities?: AgentExecutionCapabilities;
 }
 export interface AgentChatMessage {
   id: string;
@@ -45,9 +60,12 @@ export interface AgentConversation {
   lastActiveAt: Date;
   // Conversation mode controls high-level intent
   chatMode: 'converse' | 'plan' | 'build';
+  allowedChatModes: ('converse' | 'plan' | 'build')[];
   executionMode: 'immediate' | 'polling' | 'websocket';
   supportedExecutionModes: ('immediate' | 'polling' | 'websocket')[];
   isExecutionModeOverride?: boolean;
+  executionProfile?: AgentExecutionProfile;
+  executionCapabilities?: AgentExecutionCapabilities;
   error?: string;
   // Additional properties from original interface
   title: string;

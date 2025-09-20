@@ -108,4 +108,9 @@ configuration:
   include_rule_citations: true
   provide_step_by_step: true
   distinguish_play_formats: true
+  execution_profile: "conversation_only"
+  execution_capabilities:
+    can_plan: false
+    can_build: false
+    requires_human_gate: false
   timeout_seconds: 30 

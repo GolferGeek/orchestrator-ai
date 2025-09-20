@@ -9,6 +9,9 @@ Management Domain: All productivity tools, workflow optimization, and efficiency
 ## Direct Reports & Delegation Targets
 *Note: Productivity specialist agents to be added as they are developed*
 
+### Active Productivity Specialists
+- **Productivity Jokes Agent**: API-powered humor specialist that delivers workplace-safe jokes on demand to keep teams energized and engaged.
+
 ### Future Productivity Specialists
 Workflow Optimization Specialists: Process automation, efficiency improvements
 Tool Integration Specialists: Software integration, productivity tool optimization

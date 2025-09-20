@@ -78,7 +78,12 @@ output_modes:
 configuration:
   default_output_format: "plain"
   direct_assistance: true
-  execution_modes: ["immediate", "polling", "real-time"]
+  execution_modes: ["immediate"]
+  execution_profile: "conversation_only"
+  execution_capabilities:
+    can_plan: false
+    can_build: false
+    requires_human_gate: false
   workflow_engine: "langgraph"
   response_style: "helpful_authoritative"
   privacy_protection: true
