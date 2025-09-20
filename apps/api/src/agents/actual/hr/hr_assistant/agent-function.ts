@@ -86,11 +86,18 @@ Respond with a JSON object:
         callerName: 'hr-assistant-agent',
         conversationId: state.metadata?.sessionId,
         dataClassification: 'confidential',
+        providerName: 'anthropic',
+        modelName: 'claude-3-5-sonnet-20241022',
       },
     );
 
+    // Handle both string and object responses from LLM service
+    const responseContent = typeof classificationResponse === 'string' 
+      ? classificationResponse 
+      : classificationResponse?.content || classificationResponse?.response || String(classificationResponse);
+    
     const classification: HRQueryClassification = JSON.parse(
-      classificationResponse,
+      responseContent,
     );
 
     progressCallback?.(
@@ -273,6 +280,8 @@ Be comprehensive and anticipate follow-up questions they might have.`;
         callerName: 'hr-assistant-agent',
         conversationId: state.metadata?.sessionId,
         dataClassification: 'confidential',
+        providerName: 'anthropic',
+        modelName: 'claude-3-5-sonnet-20241022',
       },
     );
 
@@ -284,9 +293,14 @@ Be comprehensive and anticipate follow-up questions they might have.`;
       `HR response generated for ${type} query${complexityNote}`,
     );
 
+    // Handle both string and object responses from LLM service
+    const responseContent = typeof response === 'string' 
+      ? response 
+      : response?.content || response?.response || String(response);
+
     return {
       ...state,
-      response,
+      response: responseContent,
       metadata: {
         ...state.metadata,
         response_step: 'completed',

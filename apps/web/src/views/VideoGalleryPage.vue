@@ -30,6 +30,18 @@
             <span>Privacy and Security</span>
           </button>
         </div>
+        <div class="video-link-item">
+          <button @click="openVideoModal('how-we-work')">
+            <ion-icon :icon="playCircleOutline"></ion-icon>
+            <span>How We Work Together</span>
+          </button>
+        </div>
+        <div class="video-link-item">
+          <button @click="openVideoModal('evaluations')">
+            <ion-icon :icon="playCircleOutline"></ion-icon>
+            <span>Evaluations</span>
+          </button>
+        </div>
       </div>
     </ion-content>
 
@@ -66,6 +78,18 @@ const videoTopics = [
     title: 'Privacy & Security',
     description: 'Learn about our on-premise deployment and privacy-first approach to AI workforce management.',
     videoUrl: 'https://www.loom.com/embed/ff5bc018a69148dfa42ad733831bdb6c'
+  },
+  {
+    id: 'how-we-work',
+    title: 'How We Work Together',
+    description: 'Discover our collaborative approach and how we customize solutions for your specific business needs.',
+    videoUrl: 'https://www.loom.com/embed/3031a8bea61f408186cdf2e088cb4c92'
+  },
+  {
+    id: 'evaluations',
+    title: 'Evaluations',
+    description: 'See how our AI agents evaluate and improve their performance through continuous learning.',
+    videoUrl: 'https://www.loom.com/embed/592bc517179247bd8e7a3c38e0a4413c'
   }
 ];
 
