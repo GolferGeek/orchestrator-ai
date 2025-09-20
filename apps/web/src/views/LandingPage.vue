@@ -2,32 +2,44 @@
   <ion-page class="landing-page">
     <!-- Landing Header -->
     <LandingHeader />
+    
+    <!-- Section Navigation -->
+    <SectionNavigation @section-toggled="handleSectionToggle" />
+    
     <ion-content :fullscreen="true" class="landing-content">
       <!-- Hero Section -->
-      <HeroSection />
-      <!-- Progressive Disclosure Navigation -->
-      <ProgressiveDisclosure @section-toggled="handleSectionToggle" />
+      <HeroSection @open-video-modal="handleOpenVideoModal" />
       <!-- What We've Built Section -->
-      <WhatWeBuiltSection v-show="activeSections.includes('what-we-built')" />
+      <WhatWeBuiltSection 
+        id="what-we-built"
+        @open-video-modal="handleSectionVideoModal"
+      />
       <!-- Small Company Advantage Section -->
       <SmallCompanyAdvantage 
-        v-show="activeSections.includes('small-company-advantage')" 
+        id="small-company-advantage"
         @scroll-to-pricing="handleScrollToPricing"
+        @open-video-modal="handleSectionVideoModal"
       />
       <!-- Anti-Influencer Section -->
       <AntiInfluencerSection 
-        v-show="activeSections.includes('anti-influencer')" 
+        id="anti-influencer"
         @scroll-to-pricing="handleScrollToPricing"
+        @open-video-modal="handleSectionVideoModal"
       />
       <!-- Pricing Section -->
-      <PricingSection v-show="activeSections.includes('pricing') || shouldShowPricing" @schedule-call="handleScheduleCall" />
+      <PricingSection 
+        id="pricing"
+        @schedule-call="handleScheduleCall"
+        @open-video-modal="handleSectionVideoModal"
+      />
       <!-- Our Purpose Section -->
       <PurposeSection 
-        v-show="activeSections.includes('our-purpose')" 
+        id="our-purpose"
         @scroll-to-pricing="handleScrollToPricing"
+        @open-video-modal="handleSectionVideoModal"
       />
       <!-- CTA Section -->
-      <CTASection />
+      <CTASection @open-video-modal="handleSectionVideoModal" />
       <!-- Video Gallery Link -->
       <div class="video-gallery-link">
         <ion-button 
@@ -40,6 +52,15 @@
         </ion-button>
       </div>
     </ion-content>
+    
+    <!-- Video Modal -->
+    <VideoModal 
+      :is-open="isVideoModalOpen"
+      :video-title="currentVideo?.title || ''"
+      :video-description="currentVideo?.description || ''"
+      :video-url="currentVideo?.videoUrl"
+      @close="closeVideoModal"
+    />
   </ion-page>
 </template>
 <script setup lang="ts">
@@ -48,26 +69,31 @@ import { IonPage, IonContent, IonButton, IonIcon } from '@ionic/vue';
 import { playCircleOutline } from 'ionicons/icons';
 // Import landing page components
 import LandingHeader from '@/components/landing/LandingHeader.vue';
+import SectionNavigation from '@/components/landing/SectionNavigation.vue';
 import HeroSection from '@/components/landing/HeroSection.vue';
-import ProgressiveDisclosure from '@/components/landing/ProgressiveDisclosure.vue';
 import WhatWeBuiltSection from '@/components/landing/WhatWeBuiltSection.vue';
 import SmallCompanyAdvantage from '@/components/landing/SmallCompanyAdvantage.vue';
 import AntiInfluencerSection from '@/components/landing/AntiInfluencerSection.vue';
 import PricingSection from '@/components/landing/PricingSection.vue';
 import PurposeSection from '@/components/landing/PurposeSection.vue';
 import CTASection from '@/components/landing/CTASection.vue';
+import VideoModal from '@/components/landing/VideoModal.vue';
 // Landing page store
 import { useLandingStore } from '@/stores/landingStore';
 const landingStore = useLandingStore();
-const activeSections = ref<string[]>([]);
-const shouldShowPricing = ref(false);
+
+// Video modal state
+const isVideoModalOpen = ref(false);
+const currentVideo = ref<any>(null);
+
 function handleSectionToggle(sectionId: string, isActive: boolean) {
-  if (isActive && !activeSections.value.includes(sectionId)) {
-    activeSections.value.push(sectionId);
-  } else if (!isActive) {
-    activeSections.value = activeSections.value.filter(id => id !== sectionId);
+  // Scroll to the section when button is clicked
+  const element = document.getElementById(sectionId);
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
+
 function handleScheduleCall() {
   // Scroll to CTA section or trigger Calendly
   const ctaSection = document.getElementById('cta-section');
@@ -75,34 +101,98 @@ function handleScheduleCall() {
     ctaSection.scrollIntoView({ behavior: 'smooth' });
   }
 }
+
 function handleScrollToPricing() {
-  // Show pricing section and scroll to it
-  shouldShowPricing.value = true;
-  if (!activeSections.value.includes('pricing')) {
-    activeSections.value.push('pricing');
-  }
   // Scroll to pricing section
-  setTimeout(() => {
-    const pricingSection = document.getElementById('pricing');
-    if (pricingSection) {
-      pricingSection.scrollIntoView({ behavior: 'smooth' });
+  const pricingSection = document.getElementById('pricing');
+  if (pricingSection) {
+    pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function handleOpenVideoModal(video: any) {
+  currentVideo.value = video;
+  isVideoModalOpen.value = true;
+}
+
+function handleSectionVideoModal(sectionId: string) {
+  // Map section IDs to video topics
+  const sectionVideoMap: Record<string, string> = {
+    'what-we-built': 'introduction',
+    'small-company-advantage': 'how-we-work',
+    'anti-influencer': 'introduction',
+    'pricing': 'how-we-work',
+    'our-purpose': 'introduction'
+  };
+  
+  const videoId = sectionVideoMap[sectionId] || 'introduction';
+  
+  // Find the video topic from the header
+  const videoTopics = [
+    {
+      id: 'introduction',
+      title: 'Introduction',
+      description: 'Get to know Orchestrator AI and our mission to build AI workforce solutions for small businesses.',
+      videoUrl: 'https://www.loom.com/embed/debf7736e3104891aa8014b65fab9d2f'
+    },
+    {
+      id: 'privacy-security',
+      title: 'Privacy & Security',
+      description: 'Learn about our on-premise deployment and privacy-first approach to AI workforce management.',
+      videoUrl: 'https://www.loom.com/embed/ff5bc018a69148dfa42ad733831bdb6c'
+    },
+    {
+      id: 'how-we-work',
+      title: 'How We Work Together',
+      description: 'Discover our collaborative approach and how we customize solutions for your specific business needs.',
+      videoUrl: 'https://www.loom.com/embed/debf7736e3104891aa8014b65fab9d2f'
+    },
+    {
+      id: 'evaluations',
+      title: 'Evaluations',
+      description: 'See how our AI agents evaluate and improve their performance through continuous learning.',
+      videoUrl: 'https://www.loom.com/embed/debf7736e3104891aa8014b65fab9d2f'
+    },
+    {
+      id: 'comparing-llms',
+      title: 'Comparing LLMs',
+      description: 'Understand how we help you choose the right AI models for your specific use cases.',
+      videoUrl: 'https://www.loom.com/embed/debf7736e3104891aa8014b65fab9d2f'
     }
-  }, 100);
+  ];
+  
+  const video = videoTopics.find(v => v.id === videoId);
+  if (video) {
+    handleOpenVideoModal(video);
+  }
+}
+
+function closeVideoModal() {
+  isVideoModalOpen.value = false;
+  currentVideo.value = null;
 }
 onMounted(() => {
   // Initialize landing page analytics
   landingStore.trackPageView('landing');
+  
   // Check URL hash for direct navigation
-  if (window.location.hash === '#pricing') {
-    shouldShowPricing.value = true;
-    activeSections.value.push('pricing');
+  if (window.location.hash) {
+    const sectionId = window.location.hash.substring(1); // Remove the #
+    setTimeout(() => {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   }
+  
   // Listen for hash changes
   window.addEventListener('hashchange', () => {
-    if (window.location.hash === '#pricing') {
-      shouldShowPricing.value = true;
-      if (!activeSections.value.includes('pricing')) {
-        activeSections.value.push('pricing');
+    if (window.location.hash) {
+      const sectionId = window.location.hash.substring(1);
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
   });

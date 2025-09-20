@@ -5,14 +5,14 @@
         <h1>Orchestrator AI</h1>
         <span class="tagline">Building Together</span>
       </div>
+      
+      
+      
+      <!-- Main Navigation -->
       <nav class="header-nav">
         <a href="/videos" class="nav-link">
           <ion-icon :icon="playCircleOutline"></ion-icon>
-          Demos
-        </a>
-        <a href="#pricing" class="nav-link" @click.prevent="navigateToPricing">
-          <ion-icon :icon="cardOutline"></ion-icon>
-          Pricing
+          All Videos
         </a>
         <ion-button 
           fill="outline" 
@@ -28,21 +28,18 @@
   </header>
 </template>
 <script setup lang="ts">
+import { ref } from 'vue';
 import { IonButton, IonIcon } from '@ionic/vue';
-import { playCircleOutline, cardOutline, appsOutline } from 'ionicons/icons';
+import { 
+  playCircleOutline, 
+  appsOutline
+} from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
+
 const router = useRouter();
 const authStore = useAuthStore();
-function navigateToPricing() {
-  // Update URL hash to trigger pricing section visibility
-  window.location.hash = '#pricing';
-  // Also scroll to the section
-  const element = document.getElementById('pricing');
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth' });
-  }
-}
+
 function navigateToApp() {
   if (authStore.isAuthenticated) {
     router.push('/app');
@@ -71,6 +68,7 @@ function navigateToApp() {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
 }
 .logo h1 {
   font-size: var(--text-2xl);
@@ -163,6 +161,31 @@ function navigateToApp() {
     font-size: 0.75rem;
   }
 }
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .header-content {
+    padding: 0 1rem;
+  }
+  
+  .header-nav {
+    gap: 0.75rem;
+  }
+  
+  .nav-link {
+    font-size: 0.8rem;
+    padding: 0.75rem;
+    min-height: 2.75rem;
+  }
+  
+  .nav-link span {
+    display: none;
+  }
+  
+  .login-button {
+    font-size: 0.75rem;
+  }
+}
+
 /* Add top padding to body content to account for fixed header */
 :global(body) {
   padding-top: 60px;

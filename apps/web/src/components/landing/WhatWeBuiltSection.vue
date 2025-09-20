@@ -8,6 +8,15 @@
           Real AI workforce, not just chatbots. 39 specialized agents working together 
           with cutting-edge orchestration, real-time monitoring, and enterprise deployment.
         </p>
+        <ion-button 
+          fill="outline" 
+          size="small" 
+          class="view-video-button"
+          @click="openVideoModal"
+        >
+          <ion-icon slot="start" :icon="playCircleOutline"></ion-icon>
+          View Video
+        </ion-button>
       </div>
       <!-- Feature Grid -->
       <div class="features-grid stagger-children" ref="featuresGrid">
@@ -355,12 +364,19 @@ import {
   peopleCircleOutline,
   searchOutline,
   bulbOutline,
-  documentTextOutline
+  documentTextOutline,
+  playCircleOutline
 } from 'ionicons/icons';
 const featuresGrid = ref<HTMLElement>();
-defineEmits<{
-  scrollToPricing: []
+const emit = defineEmits<{
+  scrollToPricing: [];
+  openVideoModal: [videoId: string];
 }>();
+
+function openVideoModal() {
+  // Emit event to parent to open video modal for "what-we-built" section
+  emit('openVideoModal', 'what-we-built');
+}
 // Intersection Observer for scroll animations
 let observer: IntersectionObserver | null = null;
 onMounted(() => {
@@ -406,6 +422,13 @@ onUnmounted(() => {
 .section-header {
   text-align: center;
   margin-bottom: 4rem;
+}
+
+.view-video-button {
+  margin-top: 1rem;
+  --color: var(--landing-primary);
+  --border-color: var(--landing-primary);
+  font-weight: 500;
 }
 .section-header h2 {
   font-size: 2.5rem;
