@@ -7,7 +7,12 @@ export PATH="$HOME/Library/Python/3.9/bin:$PATH"
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 RED='\033[0;31m'
+YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
+
+N8N_MANAGE_SCRIPT="../n8n/manage.sh"
+N8N_CONTAINER_NAME="orchestrator-n8n"
+N8N_STARTED_BY_SCRIPT=false
 
 echo -e "${BLUE}🚀 Starting OrchAI NestJS API with Python Agent Support${NC}"
 
@@ -22,6 +27,67 @@ else
     echo -e "${RED}⚠️  No .env file found in project root${NC}"
 fi
 
+# Check Docker daemon status
+echo -e "${BLUE}🐳 Checking Docker daemon status...${NC}"
+
+# Function to check if Docker daemon is running
+check_docker() {
+    if docker info >/dev/null 2>&1; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Function to start Docker Desktop (macOS)
+start_docker_desktop() {
+    echo -e "${BLUE}🚀 Starting Docker Desktop...${NC}"
+    
+    # Try to start Docker Desktop
+    if command -v open >/dev/null 2>&1; then
+        open -a Docker
+        echo -e "${BLUE}⏳ Waiting for Docker Desktop to start (this may take 30-60 seconds)...${NC}"
+        
+        # Wait for Docker to start (max 2 minutes)
+        local count=0
+        local max_attempts=24  # 24 * 5 seconds = 2 minutes
+        while [ $count -lt $max_attempts ]; do
+            if check_docker; then
+                echo -e "${GREEN}✅ Docker Desktop started successfully${NC}"
+                return 0
+            fi
+            echo -e "${BLUE}   Waiting... ($((count + 1))/$max_attempts)${NC}"
+            sleep 5
+            count=$((count + 1))
+        done
+        
+        echo -e "${RED}❌ Docker Desktop failed to start within 2 minutes${NC}"
+        echo -e "${BLUE}💡 Please start Docker Desktop manually and try again${NC}"
+        return 1
+    else
+        echo -e "${RED}❌ Cannot start Docker Desktop automatically on this system${NC}"
+        echo -e "${BLUE}💡 Please start Docker Desktop manually and try again${NC}"
+        return 1
+    fi
+}
+
+# Check if Docker is running
+if check_docker; then
+    echo -e "${GREEN}✅ Docker daemon is running${NC}"
+else
+    echo -e "${RED}❌ Docker daemon is not running${NC}"
+    echo -e "${BLUE}🔧 Attempting to start Docker Desktop...${NC}"
+    
+    if start_docker_desktop; then
+        echo -e "${GREEN}✅ Docker is now ready${NC}"
+    else
+        echo -e "${RED}❌ Failed to start Docker Desktop${NC}"
+        echo -e "${BLUE}💡 Please start Docker Desktop manually and run this script again${NC}"
+        echo -e "${BLUE}   Docker Desktop is required for Supabase local development${NC}"
+        exit 1
+    fi
+fi
+
 # Check and start local Supabase (DEV - port 7010)
 echo -e "${BLUE}🗄️  Checking local Supabase status (Development - Port 7010)...${NC}"
 
@@ -30,6 +96,37 @@ check_port() {
     if lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null 2>&1; then
         return 0
     else
+        return 1
+    fi
+}
+
+is_n8n_running() {
+    if docker ps --filter "name=$N8N_CONTAINER_NAME" --filter "status=running" --format '{{.Names}}' | grep -q "^$N8N_CONTAINER_NAME$"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+start_n8n() {
+    if [ ! -x "$N8N_MANAGE_SCRIPT" ]; then
+        echo -e "${RED}⚠️  n8n helper script not found at $N8N_MANAGE_SCRIPT${NC}"
+        return 1
+    fi
+
+    if is_n8n_running; then
+        echo -e "${GREEN}✅ n8n container already running${NC}"
+        return 0
+    fi
+
+    echo -e "${BLUE}🤖 Starting n8n via Docker Compose...${NC}"
+    if "$N8N_MANAGE_SCRIPT" up >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ n8n is running at http://localhost:${N8N_PORT:-5678}${NC}"
+        N8N_STARTED_BY_SCRIPT=true
+        return 0
+    else
+        echo -e "${RED}❌ Failed to start n8n container${NC}"
+        echo -e "${BLUE}💡 Try running: docker compose -f apps/n8n/docker-compose.yml up -d${NC}"
         return 1
     fi
 }
@@ -49,7 +146,7 @@ else
     echo -e "${BLUE}🚀 Starting local Supabase development instance on port 7010...${NC}"
 
     # Check if backup script exists and create a backup if Supabase has data
-    if [ -f "supabase/backup-local-db.sh" ]; then
+    if [ -f "supabase/backup-local-db.sh" ] && check_docker; then
         # Check if there are existing Docker volumes (indicating previous data)
         if docker volume ls | grep -q "supabase_db_api-dev"; then
             echo -e "${BLUE}💾 Creating safety backup before starting Supabase...${NC}"
@@ -58,6 +155,7 @@ else
     fi
 
     # Start Supabase with development config
+    echo -e "${BLUE}🔧 Starting Supabase with development configuration...${NC}"
     supabase start --config ./supabase/config.dev.toml
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✅ Local Supabase started successfully on port 7010${NC}"
@@ -72,14 +170,21 @@ else
         fi
     else
         echo -e "${RED}❌ Failed to start local Supabase on port 7010${NC}"
+        echo -e "${BLUE}💡 This might be due to Docker not being ready yet${NC}"
         echo -e "${BLUE}💡 Try running: supabase start --config ./supabase/config.dev.toml${NC}"
+        echo -e "${BLUE}💡 Or check Docker Desktop status and restart if needed${NC}"
+        exit 1
     fi
+fi
+
+if ! start_n8n; then
+    echo -e "${YELLOW}⚠️  Continuing without local n8n instance${NC}"
 fi
 
 # Function to cleanup on exit
 cleanup() {
     echo -e "\n${RED}🛑 Shutting down services...${NC}"
-    
+
     # Kill the NestJS development server
     if [ ! -z "$NESTJS_PID" ]; then
         echo -e "${RED}📦 Stopping NestJS server...${NC}"
@@ -87,10 +192,16 @@ cleanup() {
         wait $NESTJS_PID 2>/dev/null
         echo -e "${GREEN}✅ NestJS server stopped${NC}"
     fi
-    
+
+    if [ "$N8N_STARTED_BY_SCRIPT" = true ] && [ -x "$N8N_MANAGE_SCRIPT" ]; then
+        echo -e "${RED}🤖 Stopping n8n container...${NC}"
+        "$N8N_MANAGE_SCRIPT" down >/dev/null 2>&1 || true
+        echo -e "${GREEN}✅ n8n container stopped${NC}"
+    fi
+
     # Deactivate PDM environment (handled automatically when shell exits)
     echo -e "${GREEN}✅ Python virtual environment deactivated${NC}"
-    
+
     echo -e "${GREEN}🏁 Cleanup complete${NC}"
     exit 0
 }
