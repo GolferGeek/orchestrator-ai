@@ -119,14 +119,14 @@ start_n8n() {
         return 0
     fi
 
-    echo -e "${BLUE}🤖 Starting n8n via Docker Compose...${NC}"
+    echo -e "${BLUE}🤖 Ensuring n8n is running...${NC}"
     if "$N8N_MANAGE_SCRIPT" up >/dev/null 2>&1; then
-        echo -e "${GREEN}✅ n8n is running at http://localhost:${N8N_PORT:-5678}${NC}"
+        echo -e "${GREEN}✅ n8n is running at http://localhost:5678${NC}"
         N8N_STARTED_BY_SCRIPT=true
         return 0
     else
         echo -e "${RED}❌ Failed to start n8n container${NC}"
-        echo -e "${BLUE}💡 Try running: docker compose -f apps/n8n/docker-compose.yml up -d${NC}"
+        echo -e "${BLUE}💡 Try running: ./apps/n8n/manage.sh up${NC}"
         return 1
     fi
 }

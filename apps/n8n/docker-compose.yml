@@ -4,28 +4,26 @@ services:
     container_name: orchestrator-n8n
     restart: unless-stopped
     ports:
-      - "${N8N_PORT:-5678}:5678"
+      - "5678:5678"
+    env_file:
+      - .env
     environment:
       GENERIC_TIMEZONE: "${GENERIC_TIMEZONE}"
       TZ: "${TZ}"
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-      N8N_RUNNERS_ENABLED: "true"
-      N8N_ENCRYPTION_KEY: "${N8N_ENCRYPTION_KEY}"
-      N8N_PROTOCOL: "${N8N_PROTOCOL:-http}"
-      N8N_PORT: "${N8N_PORT:-5678}"
-      DB_TYPE: "postgresdb"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "${N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS}"
+      N8N_RUNNERS_ENABLED: "${N8N_RUNNERS_ENABLED}"
+      DB_TYPE: "${DB_TYPE}"
       DB_POSTGRESDB_DATABASE: "${DB_POSTGRESDB_DATABASE}"
       DB_POSTGRESDB_HOST: "${DB_POSTGRESDB_HOST}"
       DB_POSTGRESDB_PORT: "${DB_POSTGRESDB_PORT}"
       DB_POSTGRESDB_USER: "${DB_POSTGRESDB_USER}"
-      DB_POSTGRESDB_SCHEMA: "${DB_POSTGRESDB_SCHEMA:-public}"
+      DB_POSTGRESDB_SCHEMA: "${DB_POSTGRESDB_SCHEMA}"
       DB_POSTGRESDB_PASSWORD: "${DB_POSTGRESDB_PASSWORD}"
-      DB_POSTGRESDB_SSL: "${DB_POSTGRESDB_SSL:-true}"
-      DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED: "${DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED:-false}"
     volumes:
       - n8n_data:/home/node/.n8n
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
 volumes:
   n8n_data:
     name: orchestrator-n8n-data

@@ -172,7 +172,28 @@ else
     echo "Database functionality may be limited"
 fi
 
-# Step 2: Clean up any conflicting processes on production ports
+# Step 2: Start n8n instance
+echo -e "\n${BLUE}🤖 Checking n8n instance...${NC}"
+
+    # Check if n8n is already running
+    if check_port 5678; then
+        echo -e "${GREEN}✅ n8n instance already running on port 5678${NC}"
+        echo -e "${BLUE}   Access: http://localhost:5678${NC}"
+    else
+        echo -e "${YELLOW}Starting n8n instance on port 5678...${NC}"
+
+        # Start n8n using the manage script
+        if ./apps/n8n/manage.sh up >/dev/null 2>&1; then
+            echo -e "${GREEN}✅ n8n instance started successfully${NC}"
+            echo -e "${BLUE}   Access: http://localhost:5678${NC}"
+        else
+            echo -e "${YELLOW}⚠️  Failed to start n8n instance${NC}"
+            echo -e "${BLUE}💡 You can start it manually with: ./apps/n8n/manage.sh up${NC}"
+            echo "Workflow automation may be limited"
+        fi
+    fi
+
+# Step 3: Clean up any conflicting processes on production ports
 echo -e "\n${BLUE}🧹 Checking for conflicting processes...${NC}"
 
 # Kill anything on port 9000 that's not PM2
@@ -201,7 +222,7 @@ if check_port 9001; then
     fi
 fi
 
-# Step 3: Build API and web app with latest environment variables
+# Step 4: Build API and web app with latest environment variables
 echo -e "\n${BLUE}🔨 Building applications...${NC}"
 
 # Build API from root (to pick up .env properly)
@@ -228,7 +249,7 @@ else
     echo -e "${RED}❌ Web app package.json not found${NC}"
 fi
 
-# Step 4: Check and start PM2 processes
+# Step 5: Check and start PM2 processes
 echo -e "\n${BLUE}📦 Checking PM2 processes...${NC}"
 if command -v pm2 &> /dev/null; then
     # Select the appropriate ecosystem config
@@ -261,7 +282,7 @@ else
     exit 1
 fi
 
-# Step 5: Verify services are accessible locally
+# Step 6: Verify services are accessible locally
 echo -e "\n${BLUE}🔍 Verifying local services...${NC}"
 
 # Check API on port 9000
@@ -288,7 +309,7 @@ else
     sleep 5
 fi
 
-# Step 6: Check and start CloudFlare Tunnel
+# Step 7: Check and start CloudFlare Tunnel
 echo -e "\n${BLUE}🌐 Checking CloudFlare Tunnel...${NC}"
 
 if command -v cloudflared &> /dev/null; then
