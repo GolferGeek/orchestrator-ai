@@ -1,15 +1,21 @@
 <template>
   <section class="hero-section">
     <div class="hero-content">
-      <!-- Video Buttons Section -->
-      <div class="video-buttons-section">
+      <!-- Video Player Section -->
+      <div class="video-section">
         <h2>Let's Build Something Together</h2>
+        
+        <!-- Video Player -->
+        <VideoPlayer :current-video="currentVideo" />
+        
+        <!-- Video Buttons -->
         <div class="video-buttons-grid">
           <button 
             v-for="video in videoTopics" 
             :key="video.id"
             class="video-button"
-            @click="openVideoModal(video)"
+            :class="{ active: currentVideo?.id === video.id }"
+            @click="selectVideo(video)"
           >
             <ion-icon :icon="playCircleOutline"></ion-icon>
             <span>{{ video.title }}</span>
@@ -28,6 +34,8 @@ import {
 import { useLandingStore } from '@/stores/landingStore';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
+import VideoPlayer from './VideoPlayer.vue';
+
 const landingStore = useLandingStore();
 const router = useRouter();
 const authStore = useAuthStore();
@@ -38,7 +46,7 @@ const videoTopics = ref([
     id: 'introduction',
     title: 'Introduction',
     description: 'Get to know Orchestrator AI and our mission to build AI workforce solutions for small businesses.',
-    videoUrl: 'https://www.loom.com/embed/debf7736e3104891aa8014b65fab9d2f'
+    videoUrl: 'https://www.loom.com/embed/bcbb8a69a4cc4d3d8f85674958b5bfe2'
   },
   {
     id: 'privacy-security',
@@ -66,10 +74,17 @@ const videoTopics = ref([
   }
 ]);
 
-// Emit events to parent
+// Current video state
+const currentVideo = ref(null);
+
+// Emit events to parent (keeping for other sections that still use modal)
 const emit = defineEmits<{
   openVideoModal: [video: any];
 }>();
+
+function selectVideo(video: any) {
+  currentVideo.value = video;
+}
 
 function openVideoModal(video: any) {
   emit('openVideoModal', video);
@@ -78,6 +93,11 @@ function openVideoModal(video: any) {
 onMounted(() => {
   // Track hero section view
   landingStore.trackSectionView('hero');
+  
+  // Set the first video as the default when the page loads
+  if (videoTopics.value.length > 0) {
+    currentVideo.value = videoTopics.value[0];
+  }
 });
 </script>
 <style scoped>
@@ -97,7 +117,7 @@ onMounted(() => {
   text-align: center;
 }
 
-.video-buttons-section h2 {
+.video-section h2 {
   font-size: 2.5rem;
   margin-bottom: 2rem;
   font-weight: 700;
@@ -136,6 +156,14 @@ onMounted(() => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
+.video-button.active {
+  background: var(--landing-accent);
+  border-color: var(--landing-accent);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+}
+
 .video-button ion-icon {
   font-size: 1.1rem;
 }
@@ -146,7 +174,7 @@ onMounted(() => {
     min-height: 50vh;
   }
   
-  .video-buttons-section h2 {
+  .video-section h2 {
     font-size: 2rem;
     margin-bottom: 1.5rem;
   }
