@@ -58,7 +58,7 @@ const videoTopics = ref([
     id: 'how-we-work',
     title: 'How We Work Together',
     description: 'Discover our collaborative approach and how we customize solutions for your specific business needs.',
-    videoUrl: 'https://www.loom.com/embed/3031a8bea61f408186cdf2e088cb4c92'
+    videoUrl: 'https://www.loom.com/embed/280a30c80a4c4533bc01ef8de2876424'
   },
   {
     id: 'evaluations',

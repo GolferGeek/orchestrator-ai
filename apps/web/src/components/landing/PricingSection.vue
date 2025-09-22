@@ -25,8 +25,8 @@
       <!-- Ongoing Development -->
       <div class="pricing-card">
         <h3 class="package-title">Ongoing Development</h3>
-        <p class="package-price">$225/hr <span class="price-tag">Founder</span></p>
-        <p class="sub-price">$75/hr <span class="price-tag">Interns</span></p>
+        <p class="package-price">$100/hr <span class="price-tag">Founder</span></p>
+        <p class="sub-price">$40/hr <span class="price-tag">Interns</span></p>
         <ul class="package-features">
           <li>🔧 Pay-as-you-go, billed weekly</li>
           <li>🧰 Mix founder & intern hours as needed</li>
