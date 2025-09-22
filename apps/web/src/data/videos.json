@@ -1,0 +1,129 @@
+{
+  "categoryOrder": [
+    "introduction",
+    "privacy-security", 
+    "how-we-work",
+    "evaluations",
+    "what-were-working-on-next",
+    "demos"
+  ],
+  "categories": {
+    "introduction": {
+      "title": "Introduction",
+      "description": "Get to know Orchestrator AI and our mission to build AI workforce solutions for small businesses.",
+      "order": 1,
+      "videos": [
+        {
+          "id": "intro-main",
+          "title": "Introduction to Orchestrator AI",
+          "description": "Get to know Orchestrator AI and our mission to build AI workforce solutions for small businesses.",
+          "url": "https://www.loom.com/embed/bcbb8a69a4cc4d3d8f85674958b5bfe2",
+          "duration": "5:30",
+          "createdAt": "2024-01-15",
+          "featured": true,
+          "order": 1
+        }
+      ]
+    },
+    "privacy-security": {
+      "title": "Privacy & Security",
+      "description": "Learn about our on-premise deployment and privacy-first approach to AI workforce management.",
+      "order": 2,
+      "videos": [
+        {
+          "id": "privacy-main",
+          "title": "Privacy & Security Overview",
+          "description": "Learn about our on-premise deployment and privacy-first approach to AI workforce management.",
+          "url": "https://www.loom.com/embed/ff5bc018a69148dfa42ad733831bdb6c",
+          "duration": "4:15",
+          "createdAt": "2024-01-10",
+          "featured": true,
+          "order": 1
+        }
+      ]
+    },
+    "how-we-work": {
+      "title": "How We Work Together",
+      "description": "Discover our collaborative approach and how we customize solutions for your specific business needs.",
+      "order": 3,
+      "videos": [
+        {
+          "id": "collaboration-main",
+          "title": "How We Work Together",
+          "description": "Discover our collaborative approach and how we customize solutions for your specific business needs.",
+          "url": "https://www.loom.com/embed/280a30c80a4c4533bc01ef8de2876424",
+          "duration": "6:45",
+          "createdAt": "2024-01-12",
+          "featured": true,
+          "order": 1
+        }
+      ]
+    },
+    "evaluations": {
+      "title": "Evaluations",
+      "description": "See how our AI agents evaluate and improve their performance through continuous learning.",
+      "order": 4,
+      "videos": [
+        {
+          "id": "evaluations-main",
+          "title": "AI Agent Evaluations",
+          "description": "See how our AI agents evaluate and improve their performance through continuous learning.",
+          "url": "https://www.loom.com/embed/592bc517179247bd8e7a3c38e0a4413c",
+          "duration": "7:20",
+          "createdAt": "2024-01-08",
+          "featured": true,
+          "order": 1
+        }
+      ]
+    },
+    "what-were-working-on-next": {
+      "title": "What We're Working On Next",
+      "description": "See what exciting features and improvements we're building for the future.",
+      "order": 5,
+      "videos": [
+        {
+          "id": "roadmap-main",
+          "title": "What We're Working On Next",
+          "description": "See what exciting features and improvements we're building for the future.",
+          "url": "https://www.loom.com/embed/b449f8d3a0f8470389facea3e30aaf87",
+          "duration": "8:10",
+          "createdAt": "2024-01-05",
+          "featured": true,
+          "order": 1
+        }
+      ]
+    },
+    "demos": {
+      "title": "Demos & Behind-the-Scenes",
+      "description": "Watch our latest demos and behind-the-scenes content.",
+      "order": 6,
+      "videos": [
+        {
+          "id": "demo-1",
+          "title": "Agent Demo - Marketing Assistant",
+          "description": "See our marketing agent in action, creating content and managing campaigns.",
+          "url": "https://www.loom.com/embed/example-demo-1",
+          "duration": "12:30",
+          "createdAt": "2024-01-20",
+          "featured": false,
+          "order": 1
+        },
+        {
+          "id": "demo-2",
+          "title": "Behind the Scenes - Development Process",
+          "description": "Get a peek into how we build and deploy AI agents for our clients.",
+          "url": "https://www.loom.com/embed/example-demo-2",
+          "duration": "9:45",
+          "createdAt": "2024-01-18",
+          "featured": false,
+          "order": 2
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "lastUpdated": "2024-01-20",
+    "totalVideos": 7,
+    "categories": 6
+  }
+}
