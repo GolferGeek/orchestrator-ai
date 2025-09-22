@@ -11,7 +11,7 @@
         <!-- Video Buttons -->
         <div class="video-buttons-grid">
           <button 
-            v-for="video in videoTopics" 
+            v-for="video in featuredVideos" 
             :key="video.id"
             class="video-button"
             :class="{ active: currentVideo?.id === video.id }"
@@ -35,54 +35,39 @@ import { useLandingStore } from '@/stores/landingStore';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import VideoPlayer from './VideoPlayer.vue';
+import { videoService, type Video } from '@/services/videoService';
+
+// Interface for video player (simplified)
+interface VideoPlayerVideo {
+  id: string;
+  title: string;
+  description: string;
+  videoUrl: string;
+}
 
 const landingStore = useLandingStore();
 const router = useRouter();
 const authStore = useAuthStore();
 
-// Video topics for the hero section
-const videoTopics = ref([
-  {
-    id: 'introduction',
-    title: 'Introduction',
-    description: 'Get to know Orchestrator AI and our mission to build AI workforce solutions for small businesses.',
-    videoUrl: 'https://www.loom.com/embed/bcbb8a69a4cc4d3d8f85674958b5bfe2'
-  },
-  {
-    id: 'privacy-security',
-    title: 'Privacy & Security',
-    description: 'Learn about our on-premise deployment and privacy-first approach to AI workforce management.',
-    videoUrl: 'https://www.loom.com/embed/ff5bc018a69148dfa42ad733831bdb6c'
-  },
-  {
-    id: 'how-we-work',
-    title: 'How We Work Together',
-    description: 'Discover our collaborative approach and how we customize solutions for your specific business needs.',
-    videoUrl: 'https://www.loom.com/embed/280a30c80a4c4533bc01ef8de2876424'
-  },
-  {
-    id: 'evaluations',
-    title: 'Evaluations',
-    description: 'See how our AI agents evaluate and improve their performance through continuous learning.',
-    videoUrl: 'https://www.loom.com/embed/592bc517179247bd8e7a3c38e0a4413c'
-  },
-  {
-    id: 'what-were-working-on-next',
-    title: 'What We\'re Working On Next',
-    description: 'See what exciting features and improvements we\'re building for the future.',
-    videoUrl: 'https://www.loom.com/embed/b449f8d3a0f8470389facea3e30aaf87'
-  }
-]);
+// Get featured videos for the hero section
+const featuredVideos = computed(() => {
+  return videoService.getFeaturedVideos().map(item => ({
+    id: item.categoryKey,
+    title: item.category.title,
+    description: item.category.description,
+    videoUrl: item.video.url
+  }));
+});
 
 // Current video state
-const currentVideo = ref(null);
+const currentVideo = ref<VideoPlayerVideo | null>(null);
 
 // Emit events to parent (keeping for other sections that still use modal)
 const emit = defineEmits<{
   openVideoModal: [video: any];
 }>();
 
-function selectVideo(video: any) {
+function selectVideo(video: VideoPlayerVideo) {
   currentVideo.value = video;
 }
 
@@ -95,8 +80,8 @@ onMounted(() => {
   landingStore.trackSectionView('hero');
   
   // Set the first video as the default when the page loads
-  if (videoTopics.value.length > 0) {
-    currentVideo.value = videoTopics.value[0];
+  if (featuredVideos.value.length > 0) {
+    currentVideo.value = featuredVideos.value[0];
   }
 });
 </script>

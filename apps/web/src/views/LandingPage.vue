@@ -58,7 +58,7 @@
       :is-open="isVideoModalOpen"
       :video-title="currentVideo?.title || ''"
       :video-description="currentVideo?.description || ''"
-      :video-url="currentVideo?.videoUrl"
+      :video-url="currentVideo?.url"
       @close="closeVideoModal"
     />
   </ion-page>
@@ -80,11 +80,13 @@ import CTASection from '@/components/landing/CTASection.vue';
 import VideoModal from '@/components/landing/VideoModal.vue';
 // Landing page store
 import { useLandingStore } from '@/stores/landingStore';
+// Video service
+import { videoService, type Video } from '@/services/videoService';
 const landingStore = useLandingStore();
 
 // Video modal state
 const isVideoModalOpen = ref(false);
-const currentVideo = ref<any>(null);
+const currentVideo = ref<Video | null>(null);
 
 function handleSectionToggle(sectionId: string, isActive: boolean) {
   // Scroll to the section when button is clicked
@@ -110,13 +112,13 @@ function handleScrollToPricing() {
   }
 }
 
-function handleOpenVideoModal(video: any) {
+function handleOpenVideoModal(video: Video) {
   currentVideo.value = video;
   isVideoModalOpen.value = true;
 }
 
 function handleSectionVideoModal(sectionId: string) {
-  // Map section IDs to video topics
+  // Map section IDs to video categories
   const sectionVideoMap: Record<string, string> = {
     'what-we-built': 'introduction',
     'small-company-advantage': 'how-we-work',
@@ -125,45 +127,15 @@ function handleSectionVideoModal(sectionId: string) {
     'our-purpose': 'introduction'
   };
   
-  const videoId = sectionVideoMap[sectionId] || 'introduction';
+  const categoryKey = sectionVideoMap[sectionId] || 'introduction';
   
-  // Find the video topic from the header
-  const videoTopics = [
-    {
-      id: 'introduction',
-      title: 'Introduction',
-      description: 'Get to know Orchestrator AI and our mission to build AI workforce solutions for small businesses.',
-      videoUrl: 'https://www.loom.com/embed/debf7736e3104891aa8014b65fab9d2f'
-    },
-    {
-      id: 'privacy-security',
-      title: 'Privacy & Security',
-      description: 'Learn about our on-premise deployment and privacy-first approach to AI workforce management.',
-      videoUrl: 'https://www.loom.com/embed/ff5bc018a69148dfa42ad733831bdb6c'
-    },
-    {
-      id: 'how-we-work',
-      title: 'How We Work Together',
-      description: 'Discover our collaborative approach and how we customize solutions for your specific business needs.',
-      videoUrl: 'https://www.loom.com/embed/3031a8bea61f408186cdf2e088cb4c92'
-    },
-    {
-      id: 'evaluations',
-      title: 'Evaluations',
-      description: 'See how our AI agents evaluate and improve their performance through continuous learning.',
-      videoUrl: 'https://www.loom.com/embed/592bc517179247bd8e7a3c38e0a4413c'
-    },
-    {
-      id: 'what-were-working-on-next',
-      title: 'What We\'re Working On Next',
-      description: 'See what exciting features and improvements we\'re building for the future.',
-      videoUrl: 'https://www.loom.com/embed/b449f8d3a0f8470389facea3e30aaf87'
+  // Get the featured video from the specified category
+  const category = videoService.getCategory(categoryKey);
+  if (category) {
+    const featuredVideo = category.videos.find(video => video.featured);
+    if (featuredVideo) {
+      handleOpenVideoModal(featuredVideo);
     }
-  ];
-  
-  const video = videoTopics.find(v => v.id === videoId);
-  if (video) {
-    handleOpenVideoModal(video);
   }
 }
 

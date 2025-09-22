@@ -14,40 +14,102 @@
       <div class="gallery-intro">
         <h1>Video Library</h1>
         <p>All our demos and behind-the-scenes videos in one place.</p>
+        
+        <!-- Stats -->
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-number">{{ videoStats.totalVideos }}</span>
+            <span class="stat-label">Videos</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">{{ videoStats.totalCategories }}</span>
+            <span class="stat-label">Categories</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">{{ videoStats.totalDurationFormatted }}</span>
+            <span class="stat-label">Total Duration</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Video Links -->
-      <div class="video-links">
-        <div class="video-link-item">
-          <button @click="openVideoModal('introduction')">
-            <ion-icon :icon="playCircleOutline"></ion-icon>
-            <span>Introduction</span>
-          </button>
+      <!-- Search Bar -->
+      <div class="search-section">
+        <ion-searchbar 
+          v-model="searchQuery" 
+          placeholder="Search videos..."
+          @ion-input="handleSearch"
+          class="custom-searchbar"
+        ></ion-searchbar>
+      </div>
+
+      <!-- Search Results -->
+      <div v-if="searchResults.length > 0" class="search-results">
+        <h2>Search Results ({{ searchResults.length }})</h2>
+        <div class="video-list">
+          <div 
+            v-for="result in searchResults" 
+            :key="result.video.id"
+            class="video-list-item"
+            @click="openVideoModal(result.video)"
+          >
+            <div class="video-info">
+              <h3>{{ result.video.title }}</h3>
+              <p>{{ result.video.description }}</p>
+              <div class="video-meta">
+                <span class="duration">{{ result.video.duration }}</span>
+                <span class="category">{{ result.category.title }}</span>
+                <span v-if="result.video.featured" class="featured-badge">Featured</span>
+              </div>
+            </div>
+            <div class="video-action">
+              <ion-icon :icon="playCircleOutline" class="play-icon"></ion-icon>
+            </div>
+          </div>
         </div>
-        <div class="video-link-item">
-          <button @click="openVideoModal('privacy-security')">
-            <ion-icon :icon="playCircleOutline"></ion-icon>
-            <span>Privacy and Security</span>
-          </button>
+      </div>
+
+      <!-- Categories -->
+      <div v-else>
+        <div 
+          v-for="item in videoCategories" 
+          :key="item.key"
+          class="category-section"
+        >
+          <h2>{{ item.category.title }}</h2>
+          <p class="category-description">{{ item.category.description }}</p>
+          
+          <div class="video-list">
+            <div 
+              v-for="video in videoService.getVideosByCategory(item.key)" 
+              :key="video.id"
+              class="video-list-item"
+              :class="{ featured: video.featured }"
+              @click="openVideoModal(video)"
+            >
+              <div class="video-info">
+                <h3>{{ video.title }}</h3>
+                <p>{{ video.description }}</p>
+                <div class="video-meta">
+                  <span class="duration">{{ video.duration }}</span>
+                  <span v-if="video.featured" class="featured-badge">Featured</span>
+                </div>
+              </div>
+              <div class="video-action">
+                <ion-icon :icon="playCircleOutline" class="play-icon"></ion-icon>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="video-link-item">
-          <button @click="openVideoModal('how-we-work')">
-            <ion-icon :icon="playCircleOutline"></ion-icon>
-            <span>How We Work Together</span>
-          </button>
-        </div>
-        <div class="video-link-item">
-          <button @click="openVideoModal('evaluations')">
-            <ion-icon :icon="playCircleOutline"></ion-icon>
-            <span>Evaluations</span>
-          </button>
-        </div>
-        <div class="video-link-item">
-          <button @click="openVideoModal('what-were-working-on-next')">
-            <ion-icon :icon="playCircleOutline"></ion-icon>
-            <span>What We're Working On Next</span>
-          </button>
-        </div>
+      </div>
+
+      <!-- CTA Section -->
+      <div class="gallery-cta">
+        <h2>Want to See More?</h2>
+        <p>Schedule a call to see live demos and discuss your specific needs.</p>
+        <ion-button size="large" @click="$router.push('/')">
+          <ion-icon slot="start" :icon="calendarOutline"></ion-icon>
+          Schedule a Call
+        </ion-button>
       </div>
     </ion-content>
 
@@ -56,66 +118,46 @@
       :is-open="isVideoModalOpen"
       :video-title="currentVideo?.title || ''"
       :video-description="currentVideo?.description || ''"
-      :video-url="currentVideo?.videoUrl"
+      :video-url="currentVideo?.url"
       @close="closeVideoModal"
     />
   </ion-page>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonIcon } from '@ionic/vue';
-import { arrowBackOutline, playCircleOutline } from 'ionicons/icons';
+import { ref, computed } from 'vue';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonIcon, IonButton, IonSearchbar } from '@ionic/vue';
+import { arrowBackOutline, playCircleOutline, calendarOutline } from 'ionicons/icons';
 import VideoModal from '@/components/landing/VideoModal.vue';
+import { videoService, type Video } from '@/services/videoService';
 
 // Video modal state
 const isVideoModalOpen = ref(false);
-const currentVideo = ref<any>(null);
+const currentVideo = ref<Video | null>(null);
 
-// Video data
-const videoTopics = [
-  {
-    id: 'introduction',
-    title: 'Introduction',
-    description: 'Get to know Orchestrator AI and our mission to build AI workforce solutions for small businesses.',
-    videoUrl: 'https://www.loom.com/embed/debf7736e3104891aa8014b65fab9d2f'
-  },
-  {
-    id: 'privacy-security',
-    title: 'Privacy & Security',
-    description: 'Learn about our on-premise deployment and privacy-first approach to AI workforce management.',
-    videoUrl: 'https://www.loom.com/embed/ff5bc018a69148dfa42ad733831bdb6c'
-  },
-  {
-    id: 'how-we-work',
-    title: 'How We Work Together',
-    description: 'Discover our collaborative approach and how we customize solutions for your specific business needs.',
-    videoUrl: 'https://www.loom.com/embed/3031a8bea61f408186cdf2e088cb4c92'
-  },
-  {
-    id: 'evaluations',
-    title: 'Evaluations',
-    description: 'See how our AI agents evaluate and improve their performance through continuous learning.',
-    videoUrl: 'https://www.loom.com/embed/592bc517179247bd8e7a3c38e0a4413c'
-  },
-  {
-    id: 'what-were-working-on-next',
-    title: 'What We\'re Working On Next',
-    description: 'See what exciting features and improvements we\'re building for the future.',
-    videoUrl: 'https://www.loom.com/embed/b449f8d3a0f8470389facea3e30aaf87'
-  }
-];
+// Search state
+const searchQuery = ref('');
+const searchResults = ref<Array<{ video: Video; category: any; categoryKey: string }>>([]);
 
-function openVideoModal(videoId: string) {
-  const video = videoTopics.find(v => v.id === videoId);
-  if (video) {
-    currentVideo.value = video;
-    isVideoModalOpen.value = true;
-  }
+// Get video data from service
+const videoCategories = computed(() => videoService.getCategoriesInOrder());
+const videoStats = computed(() => videoService.getStats());
+
+function openVideoModal(video: Video) {
+  currentVideo.value = video;
+  isVideoModalOpen.value = true;
 }
 
 function closeVideoModal() {
   isVideoModalOpen.value = false;
   currentVideo.value = null;
+}
+
+function handleSearch() {
+  if (searchQuery.value.trim()) {
+    searchResults.value = videoService.searchVideos(searchQuery.value);
+  } else {
+    searchResults.value = [];
+  }
 }
 </script>
 <style scoped>
@@ -124,18 +166,65 @@ function closeVideoModal() {
 }
 .gallery-intro {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 1.5rem;
 }
 .gallery-intro h1 {
-  font-size: 2.5rem;
+  font-size: 2rem;
   color: var(--landing-dark);
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 .gallery-intro p {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--ion-color-medium);
   max-width: 600px;
   margin: 0 auto;
+}
+
+/* Stats Bar */
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--landing-primary);
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Search Section */
+.search-section {
+  margin: 2rem 0;
+}
+
+.custom-searchbar {
+  --background: white;
+  --border-radius: 12px;
+  --box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Search Results */
+.search-results h2 {
+  color: var(--landing-primary);
+  margin-bottom: 1.5rem;
 }
 
 /* Video Links Styles */
@@ -181,53 +270,126 @@ function closeVideoModal() {
   flex: 1;
 }
 .category-section {
-  margin-bottom: 3rem;
+  margin-bottom: 1.5rem;
 }
 .category-section h2 {
   color: var(--landing-primary);
-  font-size: 1.5rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 2px solid var(--landing-primary);
-  padding-bottom: 0.5rem;
+  font-size: 1.2rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--landing-primary);
+  padding-bottom: 0.25rem;
+  font-weight: 600;
 }
-.video-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2rem;
-}
-.video-card {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  transition: var(--transition-smooth);
-}
-.video-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.15);
-}
-.video-placeholder {
-  padding: 2rem;
-  text-align: center;
-  background: linear-gradient(135deg, var(--ion-color-light-tint), var(--ion-color-light-shade));
-  border: 2px dashed var(--ion-color-light-shade);
-  min-height: 200px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.video-placeholder h3 {
-  color: var(--landing-dark);
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
-}
-.video-placeholder p {
+.category-description {
   color: var(--ion-color-medium);
   margin-bottom: 0.5rem;
-}
-.video-placeholder em {
-  color: var(--landing-primary);
   font-style: italic;
+  font-size: 0.85rem;
+}
+/* Compact Video List Styles */
+.video-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.video-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 1px solid var(--ion-color-light-shade);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  min-height: 48px;
+}
+
+.video-list-item:hover {
+  border-color: var(--landing-primary);
+  background: var(--landing-primary-50);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.video-list-item.featured {
+  border-color: var(--landing-accent);
+  background: var(--landing-accent-50);
+}
+
+.video-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.video-info h3 {
+  color: var(--landing-dark);
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.video-info p {
+  display: none; /* Hide description to save space */
+}
+
+.video-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.video-meta span {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.duration {
+  background: var(--ion-color-light);
+  color: var(--ion-color-dark);
+}
+
+.category {
+  background: var(--landing-primary-50);
+  color: var(--landing-primary);
+}
+
+.featured-badge {
+  background: var(--landing-accent);
+  color: white;
+}
+
+.video-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+.play-icon {
+  font-size: 1.1rem;
+  color: var(--landing-primary);
+  transition: var(--transition-smooth);
+}
+
+.video-list-item:hover .play-icon {
+  color: var(--landing-accent);
 }
 .gallery-cta {
   text-align: center;
@@ -244,5 +406,65 @@ function closeVideoModal() {
   --background: var(--landing-accent);
   --color: white;
   font-weight: 600;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .video-list {
+    gap: 0.2rem;
+  }
+  
+  .video-list-item {
+    padding: 0.4rem 0.6rem;
+    min-height: 44px;
+  }
+  
+  .video-info {
+    gap: 0.5rem;
+  }
+  
+  .video-info h3 {
+    font-size: 0.9rem;
+  }
+  
+  .video-meta {
+    gap: 0.3rem;
+  }
+  
+  .video-meta span {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.3rem;
+  }
+  
+  .play-icon {
+    font-size: 1rem;
+  }
+  
+  .category-section {
+    margin-bottom: 1rem;
+  }
+  
+  .category-section h2 {
+    font-size: 1.1rem;
+  }
+  
+  .category-description {
+    font-size: 0.8rem;
+    margin-bottom: 0.4rem;
+  }
+  
+  .stats-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  
+  .stat-item {
+    text-align: center;
+  }
+  
+  .stat-number {
+    font-size: 1.4rem;
+  }
 }
 </style>
