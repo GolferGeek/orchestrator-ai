@@ -154,10 +154,10 @@ function handleSectionVideoModal(sectionId: string) {
       videoUrl: 'https://www.loom.com/embed/592bc517179247bd8e7a3c38e0a4413c'
     },
     {
-      id: 'comparing-llms',
-      title: 'Comparing LLMs',
-      description: 'Understand how we help you choose the right AI models for your specific use cases.',
-      videoUrl: 'https://www.loom.com/embed/debf7736e3104891aa8014b65fab9d2f'
+      id: 'what-were-working-on-next',
+      title: 'What We\'re Working On Next',
+      description: 'See what exciting features and improvements we\'re building for the future.',
+      videoUrl: 'https://www.loom.com/embed/b449f8d3a0f8470389facea3e30aaf87'
     }
   ];
   
