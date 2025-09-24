@@ -109,8 +109,8 @@ This phase creates the actual orchestrator agents and builds the user interface.
 
 *   **Objective:** Build the actual orchestrator agent implementations that will manage the hierarchy.
 *   **Actions:**
-    1.  **Create CEO Orchestrator:** Create directory structure and implementation at `apps/api/src/agents/actual/orchestrator/ceo_orchestrator/` with broad delegation authority.
-    2.  **Create Marketing Manager Orchestrator:** Create directory structure and implementation at `apps/api/src/agents/actual/orchestrator/marketing_manager/` to manage marketing specialists.
+    1.  **Create CEO Orchestrator:** Create directory structure and implementation at `apps/api/src/agents/demo/orchestrator/ceo_orchestrator/` with broad delegation authority.
+    2.  **Create Marketing Manager Orchestrator:** Create directory structure and implementation at `apps/api/src/agents/demo/orchestrator/marketing_manager/` to manage marketing specialists.
     3.  **Create Agent Configuration Files:** Create `agent.yaml` files for both orchestrators with appropriate metadata and reporting relationships.
     4.  **Register in Agent Factory:** Update the agent discovery and factory systems to recognize and instantiate the new orchestrator agents.
 

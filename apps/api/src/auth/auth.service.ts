@@ -206,17 +206,22 @@ export class AuthService {
 
       const { data: userData, error: queryError } = await serviceClient
         .from(getTableName('users'))
-        .select('id, email, display_name, roles, created_at')
+        .select('id, email, display_name, roles, created_at, namespace_access')
         .eq('id', currentAuthUser.id)
         .single();
 
       if (userData) {
+        const namespaceAccess = Array.isArray(userData.namespace_access)
+          ? (userData.namespace_access as string[])
+          : ['my-org'];
+
         // Combine auth user data with public profile data
         return {
           id: currentAuthUser.id,
           email: currentAuthUser.email, // Email from auth is authoritative
           displayName: userData.display_name,
           roles: userData.roles || [UserRole.USER], // Default to 'user' role if none set
+          namespaceAccess,
         };
       } else {
         // Fallback to auth user data if no public profile found
@@ -226,6 +231,7 @@ export class AuthService {
           email: currentAuthUser.email,
           displayName: currentAuthUser.userMetadata?.display_name,
           roles: [UserRole.USER], // Default role for fallback
+          namespaceAccess: ['my-org'],
         };
       }
     } catch (error) {
@@ -283,7 +289,7 @@ export class AuthService {
       const { data, error } = await this.supabaseService
         .getAnonClient()
         .from(getTableName('users'))
-        .select('id, email, display_name, roles, created_at, updated_at')
+        .select('id, email, display_name, roles, created_at, updated_at, namespace_access')
         .eq('id', userId)
         .single();
 
@@ -301,6 +307,9 @@ export class AuthService {
         roles: data.roles || [UserRole.USER],
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
+        namespaceAccess: Array.isArray(data.namespace_access)
+          ? (data.namespace_access as string[])
+          : ['my-org'],
       };
     } catch (error) {
 
@@ -309,6 +318,17 @@ export class AuthService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  async getNamespaceAccessForUser(userId: string): Promise<string[]> {
+    const profile = await this.getUserProfile(userId);
+    if (!profile) {
+      return ['demo'];
+    }
+
+    return profile.namespaceAccess?.length
+      ? profile.namespaceAccess
+      : ['demo'];
   }
 
   /**
@@ -563,6 +583,9 @@ export class AuthService {
           status: 'active',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          namespace_access: createUserDto.namespaceAccess?.length
+            ? createUserDto.namespaceAccess
+            : ['my-org'],
         })
         .select()
         .single();
@@ -579,7 +602,11 @@ export class AuthService {
         displayName: createUserDto.displayName,
         roles: roles,
         emailConfirmationRequired: !authUser.user.email_confirmed_at,
-        message: 'User created successfully'
+        message: 'User created successfully',
+        namespaceAccess:
+          createUserDto.namespaceAccess?.length
+            ? createUserDto.namespaceAccess
+            : ['my-org'],
       };
     } catch (error) {
       throw new Error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -595,7 +622,7 @@ export class AuthService {
 
       const { data: users, error } = await serviceClient
         .from(getTableName('users'))
-        .select('id, email, display_name, roles, created_at, status')
+        .select('id, email, display_name, roles, created_at, status, namespace_access')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -617,7 +644,7 @@ export class AuthService {
 
       const { data: user, error } = await serviceClient
         .from(getTableName('users'))
-        .select('id, email, display_name, roles, created_at, status')
+        .select('id, email, display_name, roles, created_at, status, namespace_access')
         .eq('id', userId)
         .single();
 

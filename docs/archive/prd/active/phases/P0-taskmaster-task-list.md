@@ -224,7 +224,7 @@
 **Dependencies**: Shared SDK, routing system
 
 #### Tasks:
-- [ ] Update Metrics/KPI agent (`apps/api/src/agents/actual/finance/metrics/`)
+- [ ] Update Metrics/KPI agent (`apps/api/src/agents/demo/finance/metrics/`)
 - [ ] Replace direct provider clients with shared SDK
 - [ ] Update import statements and remove provider dependencies
 - [ ] Test agent functionality with centralized service

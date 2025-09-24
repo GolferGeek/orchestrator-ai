@@ -14,8 +14,8 @@ describe('LLM Unified Architecture Integration Tests', () => {
     // Get auth token for testing
     try {
       const response = await axios.post(`${API_BASE}/auth/login`, {
-        email: 'demo.user@playground.com',
-        password: 'demouser'
+        email: 'demo.user@orchestratorai.io',
+        password: 'DemoUser123!'
       });
       authToken = response.data.access_token;
       console.log('✅ Authentication successful');

@@ -50,7 +50,6 @@ BEGIN
     id,
     email,
     display_name,
-    role,
     roles,
     namespace_access,
     created_at,
@@ -60,8 +59,7 @@ BEGIN
     demo_user_id,
     'demo.user@orchestratorai.io',
     'Demo User',
-    'user',
-    ARRAY['user'],
+    '["user"]'::jsonb,
     jsonb_build_array('demo'),
     now(),
     now()
@@ -70,7 +68,6 @@ BEGIN
     SET namespace_access = EXCLUDED.namespace_access,
         display_name = EXCLUDED.display_name,
         email = EXCLUDED.email,
-        role = EXCLUDED.role,
         roles = EXCLUDED.roles;
 
   -- Ensure golfergeek account exists with demo + my-org access
@@ -110,7 +107,6 @@ BEGIN
     id,
     email,
     display_name,
-    role,
     roles,
     namespace_access,
     created_at,
@@ -120,8 +116,7 @@ BEGIN
     owner_user_id,
     'golfergeek@gmail.com',
     'Golfer Geek',
-    'admin',
-    ARRAY['admin'],
+    '["admin"]'::jsonb,
     jsonb_build_array('demo', 'my-org'),
     now(),
     now()
@@ -130,7 +125,6 @@ BEGIN
     SET namespace_access = EXCLUDED.namespace_access,
         display_name = EXCLUDED.display_name,
         email = EXCLUDED.email,
-        role = EXCLUDED.role,
         roles = EXCLUDED.roles;
 END
 $$;

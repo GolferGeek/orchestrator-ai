@@ -57,7 +57,7 @@ CREATE INDEX idx_agents_agent_type ON agents(agent_type);
 ### Agent Discovery System
 
 #### Enhanced Agent Discovery Flow
-1. **File-based Discovery** (existing): Scan `apps/api/src/agents/actual/` directory
+1. **File-based Discovery** (existing): Scan `apps/api/src/agents/demo/` directory
 2. **Database Discovery** (new): Query `agents` table for active agents
 3. **Unified Agent Registry**: Combine both sources into a single registry
 4. **Dynamic Loading**: Load agent configurations from appropriate source

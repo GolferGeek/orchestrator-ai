@@ -51,12 +51,26 @@ const authStore = useAuthStore();
 
 // Get featured videos for the hero section
 const featuredVideos = computed(() => {
-  return videoService.getFeaturedVideos().map(item => ({
-    id: item.categoryKey,
-    title: item.category.title,
-    description: item.category.description,
-    videoUrl: item.video.url
-  }));
+  const videos: VideoPlayerVideo[] = [];
+  
+  // Get all categories in order
+  const categoriesInOrder = videoService.getCategoriesInOrder();
+  
+  categoriesInOrder.forEach(({ key, category }) => {
+    // Get all featured videos from this category
+    const featuredVideosInCategory = category.videos.filter(video => video.featured);
+    
+    featuredVideosInCategory.forEach(video => {
+      videos.push({
+        id: video.id,
+        title: video.title,
+        description: video.description,
+        videoUrl: video.url
+      });
+    });
+  });
+  
+  return videos;
 });
 
 // Current video state

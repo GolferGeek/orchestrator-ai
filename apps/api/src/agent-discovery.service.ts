@@ -3,11 +3,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { join } from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-import { AgentConfigurationService, AgentConfigurationData } from './agents/actual/specialists/agent_creator/services/agent-configuration.service';
+import { AgentConfigurationService, AgentConfigurationData } from './agents/demo/specialists/agent_creator/services/agent-configuration.service';
 
 export interface DiscoveredAgent {
   name: string;
   type: string;
+  namespace: string;
+  relativePath: string;
+  namespacedPath: string;
   path: string;
   servicePath: string;
   functionPath?: string;
@@ -38,6 +41,9 @@ export interface AgentHierarchy {
   displayName: string;
   type: string;
   path: string;
+  relativePath?: string;
+  namespace?: string;
+  namespacedPath?: string;
   metadata?: {
     description?: string;
     category?: string;
@@ -46,17 +52,25 @@ export interface AgentHierarchy {
   children: AgentHierarchy[];
 }
 
+interface AgentNamespaceConfig {
+  key: string;
+  relativePath: string;
+  absolutePath: string;
+}
+
 @Injectable()
 export class AgentDiscoveryService {
   private readonly logger = new Logger(AgentDiscoveryService.name);
   private discoveredAgents: DiscoveredAgent[] = [];
   private agentHierarchy: AgentHierarchy[] = [];
   private hierarchyCache: Map<string, AgentHierarchy> = new Map();
+  private namespaceConfigs: AgentNamespaceConfig[] = [];
 
   constructor(
     private agentConfigService?: AgentConfigurationService
   ) {
     this.logger.log('🔍 AgentDiscoveryService initialized');
+    this.namespaceConfigs = this.parseNamespaceConfigs();
   }
 
   /**
@@ -64,6 +78,9 @@ export class AgentDiscoveryService {
    */
   async discoverAgents(): Promise<DiscoveredAgent[]> {
     this.logger.log('🔍 Starting hybrid agent discovery...');
+
+    // Refresh namespace configuration in case env changed
+    this.namespaceConfigs = this.parseNamespaceConfigs();
 
     this.discoveredAgents = [];
 
@@ -87,15 +104,73 @@ export class AgentDiscoveryService {
   /**
    * Discover filesystem-based agents
    */
+  private parseNamespaceConfigs(): AgentNamespaceConfig[] {
+    const rawConfig = process.env.AGENT_NAMESPACES || 'demo:agents/demo';
+    const entries = rawConfig.split(',').map((entry) => entry.trim()).filter(Boolean);
+
+    const sourceRoot = this.resolveSourceRoot();
+    const configs: AgentNamespaceConfig[] = [];
+
+    for (const entry of entries) {
+      const [key, relativePath] = entry.split(':').map((part) => part?.trim());
+
+      if (!key || !relativePath) {
+        this.logger.warn(`⚠️ Invalid AGENT_NAMESPACES entry: "${entry}"`);
+        continue;
+      }
+
+      const normalizedRelativePath = relativePath
+        .replace(/^\.\//, '')
+        .replace(/^\//, '')
+        .replace(/\/+/g, '/');
+
+      const absolutePath = join(sourceRoot, normalizedRelativePath);
+      configs.push({
+        key,
+        relativePath: normalizedRelativePath,
+        absolutePath,
+      });
+    }
+
+    if (!configs.length) {
+      const fallbackRelative = 'agents/demo';
+      configs.push({
+        key: 'demo',
+        relativePath: fallbackRelative,
+        absolutePath: join(sourceRoot, fallbackRelative),
+      });
+    }
+
+    return configs;
+  }
+
+  private resolveSourceRoot(): string {
+    const cwd = process.cwd();
+    const candidates = [
+      join(cwd, 'src'),
+      join(cwd, 'apps', 'api', 'src'),
+    ];
+
+    for (const candidate of candidates) {
+      if (fs.existsSync(join(candidate, 'agents'))) {
+        return candidate;
+      }
+    }
+
+    // Default to first candidate even if directory does not exist yet
+    return candidates[0] ?? cwd;
+  }
+
   private async discoverFilesystemAgents(): Promise<void> {
     this.logger.log('🗂️ Discovering filesystem agents...');
 
-    // Handle both monorepo (apps/api/src) and standalone (src) structures
-    const agentsBasePath = process.cwd().includes('/apps/api')
-      ? join(process.cwd(), 'src', 'agents', 'actual')
-      : join(process.cwd(), 'apps', 'api', 'src', 'agents', 'actual');
+    for (const namespaceConfig of this.namespaceConfigs) {
+      this.logger.debug(
+        `🗂️ Namespace ${namespaceConfig.key} mapped to ${namespaceConfig.relativePath}`,
+      );
 
-    await this.traverseDirectory(agentsBasePath);
+      await this.traverseDirectory(namespaceConfig.absolutePath, namespaceConfig.key);
+    }
 
     // Discover agent functions after service discovery
     this.discoverAgentFunctions();
@@ -116,10 +191,16 @@ export class AgentDiscoveryService {
       const databaseAgents = await this.agentConfigService.listAgentConfigurations();
       
       for (const agentConfig of databaseAgents) {
+        const namespaceKey =
+          (agentConfig.metadata?.namespace as string) || 'database';
+        const relativePath = `${agentConfig.department}/${agentConfig.agentId}`;
         const agent: DiscoveredAgent = {
           name: agentConfig.agentId,
           type: agentConfig.department,
-          path: `${agentConfig.department}/${agentConfig.agentId}`,
+          namespace: namespaceKey,
+          relativePath,
+          namespacedPath: `${namespaceKey}/${relativePath}`,
+          path: relativePath,
           servicePath: `virtual://database/${agentConfig.agentId}`, // Virtual path for database agents
           isDatabaseAgent: true,
           databaseId: agentConfig.agentId,
@@ -145,10 +226,13 @@ export class AgentDiscoveryService {
   /**
    * Recursively traverse directory structure to find agent services
    */
-  private async traverseDirectory(dirPath: string): Promise<void> {
+  private async traverseDirectory(
+    dirPath: string,
+    namespaceKey: string,
+  ): Promise<void> {
     try {
       if (!fs.existsSync(dirPath)) {
-
+        this.logger.debug(`ℹ️ Namespace ${namespaceKey}: path not found (${dirPath}), skipping`);
         return;
       }
 
@@ -170,10 +254,10 @@ export class AgentDiscoveryService {
           }
 
           // Recursively traverse subdirectories
-          await this.traverseDirectory(fullPath);
+          await this.traverseDirectory(fullPath, namespaceKey);
         } else if (entry.isFile() && entry.name === 'agent-service.ts') {
           // Found an agent service file
-          this.processAgentService(fullPath);
+          this.processAgentService(fullPath, namespaceKey);
         }
       }
     } catch (error: any) {
@@ -184,7 +268,7 @@ export class AgentDiscoveryService {
   /**
    * Process discovered agent service file
    */
-  private processAgentService(servicePath: string): void {
+  private processAgentService(servicePath: string, namespaceKey: string): void {
     try {
 
       // Extract agent information from path
@@ -192,8 +276,8 @@ export class AgentDiscoveryService {
       const agentIndex = pathParts.findIndex((part) => part === 'agents');
 
       if (agentIndex >= 0 && agentIndex < pathParts.length - 2) {
-        // Skip 'agents/actual' to get to the type/name structure
-        const relevantParts = pathParts.slice(agentIndex + 2, -1); // Remove 'agents', 'actual', and 'agent-service.ts'
+        // Skip 'agents/demo' to get to the type/name structure
+        const relevantParts = pathParts.slice(agentIndex + 2, -1); // Remove 'agents', 'demo', and 'agent-service.ts'
 
         if (relevantParts.length >= 1) {
           const agentType = relevantParts[0] || 'unknown'; // e.g., 'orchestrator', 'specialists'
@@ -208,12 +292,16 @@ export class AgentDiscoveryService {
           }
 
           // Create agent path format for routing (e.g., "orchestrator/orchestrator", "specialists/blog_post")
-          const agentPath = `${agentType}/${agentName}`;
+          const relativePath = `${agentType}/${agentName}`;
+          const namespacedPath = `${namespaceKey}/${relativePath}`;
 
           const agent: DiscoveredAgent = {
             name: agentName,
             type: agentType,
-            path: agentPath,
+            namespace: namespaceKey,
+            relativePath,
+            namespacedPath,
+            path: relativePath,
             servicePath: servicePath,
           };
 
@@ -273,26 +361,48 @@ export class AgentDiscoveryService {
     return this.discoveredAgents;
   }
 
+  getDiscoveredAgentsForNamespaces(namespaces: string[]): DiscoveredAgent[] {
+    if (!namespaces.length) {
+      return this.discoveredAgents;
+    }
+
+    return this.discoveredAgents.filter((agent) =>
+      namespaces.includes(agent.namespace),
+    );
+  }
+
   /**
    * Get agent by path (supports both filesystem and database agents)
    */
-  getAgentByPath(agentPath: string): DiscoveredAgent | undefined {
-    return this.discoveredAgents.find(agent => agent.path === agentPath);
+  getAgentByPath(agentPath: string, namespace?: string): DiscoveredAgent | undefined {
+    return this.discoveredAgents.find((agent) => {
+      const pathMatches =
+        agent.path === agentPath || agent.relativePath === agentPath;
+
+      if (namespace) {
+        return pathMatches && agent.namespace === namespace;
+      }
+
+      return pathMatches;
+    });
   }
 
   /**
    * Check if an agent is stored in the database
    */
-  isDatabaseAgent(agentPath: string): boolean {
-    const agent = this.getAgentByPath(agentPath);
+  isDatabaseAgent(agentPath: string, namespace?: string): boolean {
+    const agent = this.getAgentByPath(agentPath, namespace);
     return agent?.isDatabaseAgent || false;
   }
 
   /**
    * Get database configuration for an agent
    */
-  getDatabaseConfiguration(agentPath: string): AgentConfigurationData | undefined {
-    const agent = this.getAgentByPath(agentPath);
+  getDatabaseConfiguration(
+    agentPath: string,
+    namespace?: string,
+  ): AgentConfigurationData | undefined {
+    const agent = this.getAgentByPath(agentPath, namespace);
     return agent?.agentConfiguration;
   }
 
@@ -384,17 +494,20 @@ export class AgentDiscoveryService {
 
     for (const agent of this.discoveredAgents) {
       const node: AgentHierarchy = {
-        id: agent.path,
+        id: agent.namespacedPath,
         name: agent.name,
         displayName: agent.metadata?.displayName || agent.name,
         type: agent.type,
         path: agent.path,
+        relativePath: agent.relativePath,
+        namespace: agent.namespace,
+        namespacedPath: agent.namespacedPath,
         metadata: agent.metadata,
         children: [],
       };
 
-      nodeMap.set(agent.path, node);
-      this.hierarchyCache.set(agent.path, node);
+      nodeMap.set(agent.namespacedPath, node);
+      this.hierarchyCache.set(agent.namespacedPath, node);
     }
 
     // Build parent-child relationships using team-based approach
@@ -403,7 +516,7 @@ export class AgentDiscoveryService {
 
     // First pass: Build parent-child relationships from team definitions
     for (const agent of this.discoveredAgents) {
-      const node = nodeMap.get(agent.path)!;
+      const node = nodeMap.get(agent.namespacedPath)!;
       
       // Check if this agent has a team (is a manager/orchestrator)
       if (agent.hierarchy?.team && Array.isArray(agent.hierarchy.team)) {
@@ -415,7 +528,9 @@ export class AgentDiscoveryService {
           
           if (teamMemberNode) {
             node.children.push(teamMemberNode);
-            assignedNodes.add(teamMemberNode.path);
+            assignedNodes.add(
+              teamMemberNode.namespacedPath || `${node.namespace}/${teamMemberNode.path}`,
+            );
           } else {
             this.logger.warn(`Team member not found: ${teamMemberName} for ${agent.name}`);
           }
@@ -425,9 +540,9 @@ export class AgentDiscoveryService {
 
     // Second pass: Add unassigned nodes as root nodes
     for (const agent of this.discoveredAgents) {
-      const node = nodeMap.get(agent.path)!;
-      
-      if (!assignedNodes.has(agent.path)) {
+      const node = nodeMap.get(agent.namespacedPath)!;
+
+      if (!assignedNodes.has(agent.namespacedPath)) {
         rootNodes.push(node);
       }
       
@@ -467,8 +582,31 @@ export class AgentDiscoveryService {
   /**
    * Get agent hierarchy
    */
-  getAgentHierarchy(): AgentHierarchy[] {
-    return this.agentHierarchy;
+  getAgentHierarchy(namespaces?: string[]): AgentHierarchy[] {
+    if (!namespaces || namespaces.length === 0) {
+      return this.agentHierarchy;
+    }
+
+    return this.filterHierarchyByNamespaces(new Set(namespaces));
+  }
+
+  private filterHierarchyByNamespaces(allowedNamespaces: Set<string>): AgentHierarchy[] {
+    const allowedAgentPaths = new Set(
+      this.discoveredAgents
+        .filter((agent) => allowedNamespaces.has(agent.namespace))
+        .map((agent) => agent.path),
+    );
+
+    const cloneAndFilter = (nodes: AgentHierarchy[]): AgentHierarchy[] => {
+      return nodes
+        .filter((node) => allowedAgentPaths.has(node.id))
+        .map((node) => ({
+          ...node,
+          children: cloneAndFilter(node.children),
+        }));
+    };
+
+    return cloneAndFilter(this.agentHierarchy);
   }
 
   /**
@@ -482,7 +620,7 @@ export class AgentDiscoveryService {
    * Generate agent ID for registration
    */
   generateAgentId(name: string, path: string): string {
-    return `${path.replace('/', '_')}_${Date.now()}`;
+    return `${path.replace(/\//g, '_')}_${Date.now()}`;
   }
 
   /**

@@ -22,8 +22,8 @@ INSERT INTO auth.users (
     'b29a590e-b07f-49df-a25b-574c956b5035',
     'authenticated',
     'authenticated',
-    'demo.user@playground.com',
-    extensions.crypt('demouser', extensions.gen_salt('bf')),
+    'demo.user@orchestratorai.io',
+    extensions.crypt('DemoUser123!', extensions.gen_salt('bf')),
     NOW(),
     NOW(),
     NOW(),
@@ -46,7 +46,7 @@ INSERT INTO auth.identities (
 ) VALUES (
     '2f1ee5e9-cae2-4f66-a1e0-bd2c02a11321',
     'b29a590e-b07f-49df-a25b-574c956b5035',
-    '{"sub": "b29a590e-b07f-49df-a25b-574c956b5035", "email": "demo.user@playground.com", "email_verified": true, "phone_verified": false}'::jsonb,
+    '{"sub": "b29a590e-b07f-49df-a25b-574c956b5035", "email": "demo.user@orchestratorai.io", "email_verified": true, "phone_verified": false}'::jsonb,
     'email',
     'b29a590e-b07f-49df-a25b-574c956b5035',
     NOW(),
@@ -56,7 +56,7 @@ INSERT INTO auth.identities (
 
 -- Create the demo user in public.users table
 INSERT INTO public.users (id, email, display_name, roles)
-VALUES ('b29a590e-b07f-49df-a25b-574c956b5035', 'demo.user@playground.com', 'Demo User', '["user", "admin"]'::jsonb)
+VALUES ('b29a590e-b07f-49df-a25b-574c956b5035', 'demo.user@orchestratorai.io', 'Demo User', '["user", "admin"]'::jsonb)
 ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     display_name = EXCLUDED.display_name,
@@ -75,8 +75,8 @@ DECLARE
     d INTEGER;
 BEGIN
     -- Verify demo user exists
-    IF EXISTS (SELECT 1 FROM auth.users WHERE email = 'demo.user@playground.com') AND
-       EXISTS (SELECT 1 FROM public.users WHERE email = 'demo.user@playground.com') THEN
+    IF EXISTS (SELECT 1 FROM auth.users WHERE email = 'demo.user@orchestratorai.io') AND
+       EXISTS (SELECT 1 FROM public.users WHERE email = 'demo.user@orchestratorai.io') THEN
         RAISE NOTICE 'Demo user successfully created in both auth.users and public.users';
     ELSE
         RAISE WARNING 'Demo user creation may have failed - check both tables';

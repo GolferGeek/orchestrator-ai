@@ -156,6 +156,7 @@ interface UserProfile {
   email?: string;
   displayName?: string;
   roles: UserRole[]; // Array of user roles
+  namespaceAccess: string[];
   // Add other relevant user properties from your /auth/me endpoint
 }
 export const useAuthStore = defineStore('auth', () => {
@@ -173,6 +174,50 @@ export const useAuthStore = defineStore('auth', () => {
   const sessionStartTime = ref<Date | null>(null);
   const lastActivityTime = ref<Date | null>(null);
   const sessionTimeoutMinutes = ref(480); // 8 hours default
+
+  const activeNamespace = ref<string | null>(localStorage.getItem('activeNamespace'));
+  const availableNamespaces = computed(() => user.value?.namespaceAccess ?? []);
+
+  const resolveDefaultNamespace = (namespaces: string[]): string => {
+    if (!namespaces.length) {
+      return 'my-org';
+    }
+    const preferred = namespaces.find(ns => ns !== 'demo');
+    return preferred || namespaces[0];
+  };
+
+  const ensureActiveNamespace = (namespaces: string[]) => {
+    if (!namespaces.length) {
+      if (activeNamespace.value !== null) {
+        activeNamespace.value = null;
+        localStorage.removeItem('activeNamespace');
+        apiService.setActiveNamespace(null);
+      }
+      return;
+    }
+
+    const current = activeNamespace.value;
+    if (current && namespaces.includes(current)) {
+      apiService.setActiveNamespace(current);
+      return;
+    }
+
+    const nextNamespace = resolveDefaultNamespace(namespaces);
+    activeNamespace.value = nextNamespace;
+    localStorage.setItem('activeNamespace', nextNamespace);
+    apiService.setActiveNamespace(nextNamespace);
+  };
+
+  const currentNamespace = computed(() => {
+    const namespaces = availableNamespaces.value;
+    if (!namespaces.length) {
+      return activeNamespace.value || 'my-org';
+    }
+    if (activeNamespace.value && namespaces.includes(activeNamespace.value)) {
+      return activeNamespace.value;
+    }
+    return resolveDefaultNamespace(namespaces);
+  });
   
   // Session management
   const isSessionActive = computed(() => {
@@ -198,6 +243,26 @@ export const useAuthStore = defineStore('auth', () => {
       permissionCache.value.clear();
     }
   });
+
+  watch(
+    availableNamespaces,
+    (namespaces) => {
+      ensureActiveNamespace(namespaces);
+    },
+    { immediate: true },
+  );
+
+  watch(
+    currentNamespace,
+    (namespace) => {
+      if (namespace) {
+        apiService.setActiveNamespace(namespace);
+      } else {
+        apiService.setActiveNamespace(null);
+      }
+    },
+    { immediate: true },
+  );
 
   // Role-based computed properties
   const isAdmin = computed(() => user.value?.roles?.includes(UserRole.ADMIN) ?? false);
@@ -402,6 +467,23 @@ export const useAuthStore = defineStore('auth', () => {
     const remaining = (sessionTimeoutMinutes.value * 60 * 1000) - elapsed;
     return Math.max(0, remaining);
   };
+
+  const hasNamespaceAccess = (namespace: string): boolean => {
+    return availableNamespaces.value.includes(namespace);
+  };
+
+  const setActiveNamespace = (namespace: string) => {
+    if (!availableNamespaces.value.includes(namespace)) {
+      return;
+    }
+    if (activeNamespace.value === namespace) {
+      return;
+    }
+    activeNamespace.value = namespace;
+    localStorage.setItem('activeNamespace', namespace);
+    apiService.setActiveNamespace(namespace);
+  };
+
   // This function is primarily for internal state update after successful token acquisition
   function setTokenData(tokenData: TokenData) {
     token.value = tokenData.accessToken;
@@ -421,8 +503,11 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userData');
+    localStorage.removeItem('activeNamespace');
+    activeNamespace.value = null;
     // Clear auth from API service
     apiService.clearAuth();
+    apiService.setActiveNamespace(null);
   }
   async function login(credentials: { email: string; password: string }) {
     isLoading.value = true;
@@ -503,6 +588,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const userData = await apiService.getCurrentUser(); 
       user.value = userData;
+      ensureActiveNamespace(userData.namespaceAccess || []);
       // Store user data in localStorage for router access
       localStorage.setItem('userData', JSON.stringify(userData));
       error.value = null; // Clear previous errors if user fetch is successful
@@ -532,7 +618,11 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     error,
     isAuthenticated,
-    
+    availableNamespaces,
+    currentNamespace,
+    setActiveNamespace,
+    hasNamespaceAccess,
+
     // Role-based computed properties
     isAdmin,
     isDeveloper,

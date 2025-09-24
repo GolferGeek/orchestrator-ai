@@ -59,11 +59,17 @@ apps/web/dist/
 # tasks/ 
 
 # Private agent namespaces (keep internal agents out of public forks)
-apps/api/src/agents/my-org/
-apps/api/src/agents/saas/
+apps/api/src/agents/my-org/*
+!apps/api/src/agents/my-org/README.md
+apps/api/src/agents/saas/*
+!apps/api/src/agents/saas/README.md
 
 # Private landing variants corresponding to internal namespaces
-apps/web/src/views/landing/my-org/
-apps/web/src/views/landing/saas/
-apps/web/src/components/landing/my-org/
-apps/web/src/components/landing/saas/
+apps/web/src/views/landing/my-org/*
+!apps/web/src/views/landing/my-org/README.md
+apps/web/src/views/landing/saas/*
+!apps/web/src/views/landing/saas/README.md
+apps/web/src/components/landing/my-org/*
+!apps/web/src/components/landing/my-org/README.md
+apps/web/src/components/landing/saas/*
+!apps/web/src/components/landing/saas/README.md

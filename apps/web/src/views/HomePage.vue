@@ -7,6 +7,10 @@
         </ion-buttons>
         <ion-title>{{ pageTitle }}</ion-title>
         <ion-buttons slot="end">
+          <NamespaceSwitcher 
+            v-if="auth.isAuthenticated"
+            class="namespace-switcher"
+          />
           <ion-button 
             fill="clear" 
             @click="toggleDarkMode"
@@ -79,6 +83,7 @@ import {
 } from 'ionicons/icons';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
+import NamespaceSwitcher from '@/components/common/NamespaceSwitcher.vue';
 import { useAgentChatStore } from '@/stores/agentChatStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import ConversationTabs from '@/components/ConversationTabs.vue';
@@ -192,6 +197,9 @@ const navigateToProjects = () => {
   margin-bottom: 2rem;
   font-size: 1.1rem;
   line-height: 1.6;
+}
+.namespace-switcher {
+  margin-right: 0.75rem;
 }
 .quick-nav {
   display: flex;

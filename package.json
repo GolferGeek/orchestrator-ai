@@ -45,7 +45,8 @@
     "ollama:server": "./scripts/ollama-server.sh",
     "ollama:stop:all": "./scripts/ollama-stop-all-models.sh",
     "ollama:add": "./scripts/ollama-add-model.sh",
-    "ollama:stop": "./scripts/ollama-stop-model.sh"
+    "ollama:stop": "./scripts/ollama-stop-model.sh",
+    "publish:public": "node scripts/publish-public-branch.js"
   },
   "devDependencies": {
     "@babel/plugin-proposal-class-properties": "^7.18.6",

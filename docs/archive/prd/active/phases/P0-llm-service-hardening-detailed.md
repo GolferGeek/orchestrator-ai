@@ -148,7 +148,7 @@ const response = await centralizedLLM.complete(request);
 ## Implementation Plan
 
 ### Test Harness Strategy
-**Primary Test Path**: `apps/api/src/agents/actual/finance/metrics/agent-function.ts`
+**Primary Test Path**: `apps/api/src/agents/demo/finance/metrics/agent-function.ts`
 - Single, well-understood agent for consistent testing
 - Uses standard KPI prompt fixtures with synthetic identifiers
 - Safe for redaction/pseudonymization testing in future phases

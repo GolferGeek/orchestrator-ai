@@ -136,7 +136,7 @@ Context and Function agents require additional services:
 ## Agent Discovery and Registration
 
 ### Discovery Process
-1. **AgentDiscoveryService** scans `src/agents/actual/` directories
+1. **AgentDiscoveryService** scans `src/agents/demo/` directories
 2. Loads agent.yaml configuration files
 3. Determines agent type (context, function, external)
 4. Creates appropriate base service instance

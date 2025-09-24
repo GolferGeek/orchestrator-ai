@@ -41,6 +41,7 @@ class ApiService {
   private axiosInstance: AxiosInstance;
   private apiSanitization = useApiSanitization();
   private _errorStore?: ReturnType<typeof useErrorStore>;
+  private activeNamespace: string | null = null;
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -77,6 +78,13 @@ class ApiService {
       (config) => {
         // Add start time for performance tracking
         config.metadata = { startTime: performance.now() };
+
+        if (this.activeNamespace) {
+          config.headers = config.headers || {};
+          config.headers['X-Agent-Namespace'] = this.activeNamespace;
+        } else if (config.headers && config.headers['X-Agent-Namespace']) {
+          delete config.headers['X-Agent-Namespace'];
+        }
         return config;
       },
       (error) => Promise.reject(error)
@@ -601,6 +609,16 @@ class ApiService {
       this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } else {
       delete this.axiosInstance.defaults.headers.common['Authorization'];
+    }
+  }
+
+  setActiveNamespace(namespace: string | null): void {
+    this.activeNamespace = namespace;
+
+    if (namespace) {
+      this.axiosInstance.defaults.headers.common['X-Agent-Namespace'] = namespace;
+    } else {
+      delete this.axiosInstance.defaults.headers.common['X-Agent-Namespace'];
     }
   }
 

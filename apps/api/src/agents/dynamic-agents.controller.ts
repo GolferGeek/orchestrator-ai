@@ -9,9 +9,9 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  Request,
   BadRequestException,
   ForbiddenException,
+  Req,
 } from '@nestjs/common';
 import { AgentDiscoveryService } from '../agent-discovery.service';
 import { AppService } from '../app.service';
@@ -31,6 +31,7 @@ import { ContextOptimizationService } from '../context-optimization/context-opti
 import { CentralizedRoutingService } from '../llms/centralized-routing.service';
 import { PIIService } from '../services/pii.service';
 import { SpeechService } from '../speech/speech.service';
+import { Request as ExpressRequest } from 'express';
 
 @Controller('agents')
 export class DynamicAgentsController {
@@ -119,7 +120,7 @@ export class DynamicAgentsController {
     @Param('agentName') agentName: string,
     @Body() taskRequest: any, // Change from CreateTaskDto to any to handle both formats
     @CurrentUser() currentUser: SupabaseAuthUserDto,
-    @Request() req: any,
+    @Req() req: ExpressRequest & { activeNamespace?: string },
   ) {
     // 🔍 Log minimal info about incoming request
     this.logger.log(`[DynamicAgentsController] ${taskRequest?.method || 'unknown'} request to ${agentType}/${agentName}`);
@@ -607,7 +608,8 @@ export class DynamicAgentsController {
     @Param('agentType') agentType: string,
     @Param('agentName') agentName: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
-    @Request() req: Request,
+    @Req()
+    req: ExpressRequest & { activeNamespace?: string },
   ) {
     const { activeNamespace } = await this.resolveNamespaceContext(
       currentUser,
@@ -638,7 +640,7 @@ export class DynamicAgentsController {
     @Param('agentType') agentType: string,
     @Param('agentName') agentName: string,
     @CurrentUser() currentUser: SupabaseAuthUserDto,
-    @Request() req: Request,
+    @Req() req: ExpressRequest,
   ) {
     const { activeNamespace } = await this.resolveNamespaceContext(
       currentUser,
@@ -717,7 +719,7 @@ export class DynamicAgentsController {
 
   private async resolveNamespaceContext(
     currentUser: SupabaseAuthUserDto,
-    req: Request,
+    req: ExpressRequest,
   ): Promise<{ activeNamespace: string; allowedNamespaces: string[] }> {
     const namespaces = await this.authService.getNamespaceAccessForUser(
       currentUser.id,
@@ -728,16 +730,21 @@ export class DynamicAgentsController {
     }
 
     let requestedNamespace: string | undefined;
-    const headerNamespace = req.headers['x-agent-namespace'];
-    if (Array.isArray(headerNamespace)) {
-      requestedNamespace = headerNamespace[0];
-    } else if (typeof headerNamespace === 'string') {
-      requestedNamespace = headerNamespace;
+    const headerValue = req.header?.('x-agent-namespace');
+    if (headerValue) {
+      requestedNamespace = headerValue;
     }
 
-    const queryNamespace = req.query['namespace'];
-    if (!requestedNamespace && typeof queryNamespace === 'string') {
-      requestedNamespace = queryNamespace;
+    if (!requestedNamespace) {
+      const queryValue = req.query?.['namespace'];
+      if (typeof queryValue === 'string') {
+        requestedNamespace = queryValue;
+      } else if (Array.isArray(queryValue) && queryValue.length > 0) {
+        const first = queryValue[0];
+        if (typeof first === 'string') {
+          requestedNamespace = first;
+        }
+      }
     }
 
     let activeNamespace = this.pickDefaultNamespace(namespaces);
@@ -763,7 +770,7 @@ export class DynamicAgentsController {
     }
 
     const preferred = namespaces.find((ns) => ns !== 'demo');
-    return preferred || namespaces[0];
+    return preferred || namespaces[0] || 'demo';
   }
 
   /**

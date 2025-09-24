@@ -18,23 +18,26 @@ import { ApiAgentServicesContext } from './agents/base/services/api-agent-servic
 import { PythonFunctionAgentServicesContext } from './agents/base/services/python-function-agent-services-context';
 import { ExternalAgentServicesContext } from './agents/base/services/external-agent-services-context';
 import { OrchestratorAgentServicesContext } from './agents/base/implementations/base-services/orchestrator/orchestrator-agent-services.context';
-import { MarketingManagerOrchestratorService } from './agents/actual/marketing/marketing_manager_orchestrator/agent-service';
-import { CEOOrchestratorService } from './agents/actual/orchestrator/ceo_orchestrator/agent-service';
-import { EngineeringManagerOrchestratorService } from './agents/actual/engineering/engineering_manager_orchestrator/agent-service';
-import { OperationsManagerOrchestratorService } from './agents/actual/operations/operations_manager_orchestrator/agent-service';
-import { FinanceManagerOrchestratorService } from './agents/actual/finance/finance_manager_orchestrator/agent-service';
-import { HRManagerOrchestratorService } from './agents/actual/hr/hr_manager_orchestrator/agent-service';
-import { SalesManagerOrchestratorService } from './agents/actual/sales/sales_manager_orchestrator/agent-service';
-import { ProductManagerOrchestratorService } from './agents/actual/product/product_manager_orchestrator/agent-service';
-import { ResearchManagerOrchestratorService } from './agents/actual/research/research_manager_orchestrator/agent-service';
-import { SpecialistsManagerOrchestratorService } from './agents/actual/specialists/specialists_manager_orchestrator/agent-service';
-import { LegalManagerOrchestratorService } from './agents/actual/legal/legal_manager_orchestrator/agent-service';
-import { ProductivityManagerOrchestratorService } from './agents/actual/productivity/productivity_manager_orchestrator/agent-service';
+import { MarketingManagerOrchestratorService } from './agents/demo/marketing/marketing_manager_orchestrator/agent-service';
+import { CEOOrchestratorService } from './agents/demo/orchestrator/ceo_orchestrator/agent-service';
+import { EngineeringManagerOrchestratorService } from './agents/demo/engineering/engineering_manager_orchestrator/agent-service';
+import { OperationsManagerOrchestratorService } from './agents/demo/operations/operations_manager_orchestrator/agent-service';
+import { FinanceManagerOrchestratorService } from './agents/demo/finance/finance_manager_orchestrator/agent-service';
+import { HRManagerOrchestratorService } from './agents/demo/hr/hr_manager_orchestrator/agent-service';
+import { SalesManagerOrchestratorService } from './agents/demo/sales/sales_manager_orchestrator/agent-service';
+import { ProductManagerOrchestratorService } from './agents/demo/product/product_manager_orchestrator/agent-service';
+import { ResearchManagerOrchestratorService } from './agents/demo/research/research_manager_orchestrator/agent-service';
+import { SpecialistsManagerOrchestratorService } from './agents/demo/specialists/specialists_manager_orchestrator/agent-service';
+import { LegalManagerOrchestratorService } from './agents/demo/legal/legal_manager_orchestrator/agent-service';
+import { ProductivityManagerOrchestratorService } from './agents/demo/productivity/productivity_manager_orchestrator/agent-service';
 // Note: MCPClientService removed - replaced with LangChain.js services
 
 export interface DiscoveredAgent {
   name: string;
   type: string;
+  namespace: string;
+  relativePath: string;
+  namespacedPath: string;
   path: string;
   servicePath: string;
   serviceClass?: ServiceClass;

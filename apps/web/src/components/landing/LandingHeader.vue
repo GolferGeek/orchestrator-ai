@@ -10,6 +10,7 @@
       
       <!-- Main Navigation -->
       <nav class="header-nav">
+        <NamespaceSwitcher v-if="authStore.isAuthenticated" />
         <a href="/videos" class="nav-link">
           <ion-icon :icon="playCircleOutline"></ion-icon>
           All Videos
@@ -28,7 +29,6 @@
   </header>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue';
 import { IonButton, IonIcon } from '@ionic/vue';
 import { 
   playCircleOutline, 
@@ -36,6 +36,7 @@ import {
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
+import NamespaceSwitcher from '@/components/common/NamespaceSwitcher.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();

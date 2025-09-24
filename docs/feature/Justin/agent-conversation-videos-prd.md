@@ -158,5 +158,5 @@ This leaves users without guided instruction on how to leverage each agent effec
 - Existing video data source: `apps/web/src/data/videos.json`
 - Transcript drafts: `apps/web/src/data/video-texts/`
 - Transcript registry: `apps/web/src/data/videoTexts.json`
-- Target agent context files live under `apps/api/src/agents/actual/.../context.md`
+- Target agent context files live under `apps/api/src/agents/demo/.../context.md`
 - Related services: `apps/web/src/services/videoService.ts`, `ContextLoaderService`
