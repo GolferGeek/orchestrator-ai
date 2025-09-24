@@ -57,3 +57,13 @@ apps/web/dist/
 # Task files
 # tasks.json
 # tasks/ 
+
+# Private agent namespaces (keep internal agents out of public forks)
+apps/api/src/agents/my-org/
+apps/api/src/agents/saas/
+
+# Private landing variants corresponding to internal namespaces
+apps/web/src/views/landing/my-org/
+apps/web/src/views/landing/saas/
+apps/web/src/components/landing/my-org/
+apps/web/src/components/landing/saas/
