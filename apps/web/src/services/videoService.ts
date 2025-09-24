@@ -9,6 +9,7 @@ export interface Video {
   createdAt: string;
   featured: boolean;
   order: number;
+  recordingStatus?: string;
 }
 
 export interface VideoCategory {
@@ -21,6 +22,7 @@ export interface VideoCategory {
 export interface VideosData {
   categoryOrder: string[];
   categories: Record<string, VideoCategory>;
+  agentDefaults: Record<string, string[]>;
   metadata: {
     lastUpdated: string;
     totalVideos: number;

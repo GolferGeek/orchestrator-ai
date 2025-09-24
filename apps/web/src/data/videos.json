@@ -6,7 +6,8 @@
     "how-we-work",
     "evaluations",
     "what-were-working-on-next",
-    "demos"
+    "demos",
+    "agents"
   ],
   "categories": {
     "introduction": {
@@ -137,11 +138,83 @@
           "order": 2
         }
       ]
+    },
+    "agents": {
+      "title": "Agent Tutorials",
+      "description": "Learn how to work with specific AI agents and general agent workflows.",
+      "order": 8,
+      "videos": [
+        {
+          "id": "agent-default-overview",
+          "title": "Working with Orchestrator AI Agents",
+          "description": "Learn the essential workflows for engaging with Orchestrator AI agents. This comprehensive overview covers agent selection, conversation management, leveraging capabilities, and maximizing value from AI workforce solutions.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "6:00",
+          "createdAt": "2025-01-24",
+          "featured": true,
+          "order": 1
+        },
+        {
+          "id": "metrics-agent-walkthrough",
+          "title": "Finance Metrics Agent: Business Intelligence at Your Fingertips",
+          "description": "Deep dive into the Finance Metrics Agent's capabilities. Learn to analyze revenue performance, track customer metrics like CAC and LTV, create performance dashboards, and leverage data-driven insights for business optimization.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "9:00",
+          "createdAt": "2025-01-24",
+          "featured": false,
+          "order": 2
+        },
+        {
+          "id": "marketing-swarm-demo",
+          "title": "Marketing Swarm Agent: Multi-Agent Campaign Creation",
+          "description": "Witness the power of collaborative AI marketing. See how the Marketing Swarm orchestrates multiple specialist agents to create comprehensive campaigns including blog posts, social media content, email sequences, and conversion-optimized copy.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "11:00",
+          "createdAt": "2025-01-24",
+          "featured": false,
+          "order": 3
+        },
+        {
+          "id": "requirements-writer-tutorial",
+          "title": "Requirements Writer Agent: From Ideas to Professional Documentation",
+          "description": "Master the art of requirements documentation with our step-by-step tutorial. Learn how to transform ideas into professional PRDs, technical specifications, user stories, and API documentation using structured workflows.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "9:00",
+          "createdAt": "2025-01-24",
+          "featured": false,
+          "order": 4
+        },
+        {
+          "id": "golf-rules-coach-demo",
+          "title": "Golf Rules Expert: Your On-Course Rules Authority",
+          "description": "Navigate complex golf situations with confidence. See how our Golf Rules Expert provides authoritative USGA and R&A guidance for penalty areas, unplayable balls, putting green scenarios, and equipment regulations.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "9:00",
+          "createdAt": "2025-01-24",
+          "featured": false,
+          "order": 5,
+          "recordingStatus": "ready_for_recording"
+        },
+        {
+          "id": "jokes-agent-demo",
+          "title": "Jokes Agent: Productivity with a Smile",
+          "description": "Discover how the Jokes Agent enhances productivity while maintaining team morale. See how it integrates humor into workflows, lightens tense meetings, and creates positive work environments without compromising professional goals.",
+          "url": "TBD_RECORDING_NEEDED",
+          "duration": "7:00",
+          "createdAt": "2025-01-24",
+          "featured": false,
+          "order": 6,
+          "recordingStatus": "ready_for_recording"
+        }
+      ]
     }
   },
+  "agentDefaults": {
+    "_comment": "Maps agent slugs to video ID arrays for fallback behavior"
+  },
   "metadata": {
-    "lastUpdated": "2025-01-22",
-    "totalVideos": 8,
-    "categories": 7
+    "lastUpdated": "2025-01-24",
+    "totalVideos": 14,
+    "categories": 8
   }
 }
