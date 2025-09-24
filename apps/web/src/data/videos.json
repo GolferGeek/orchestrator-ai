@@ -1,6 +1,7 @@
 {
   "categoryOrder": [
     "introduction",
+    "agent-architecture",
     "privacy-security", 
     "how-we-work",
     "evaluations",
@@ -25,10 +26,27 @@
         }
       ]
     },
+    "agent-architecture": {
+      "title": "Agent Architecture",
+      "description": "Explore our AI agent architecture and how we build intelligent workforce solutions.",
+      "order": 2,
+      "videos": [
+        {
+          "id": "agent-architecture-main",
+          "title": "Agent Architecture",
+          "description": "Explore our AI agent architecture and how we build intelligent workforce solutions.",
+          "url": "https://www.loom.com/embed/f118083b1ec64233bfdaf872af7c46a6",
+          "duration": "TBD",
+          "createdAt": "2025-01-22",
+          "featured": true,
+          "order": 1
+        }
+      ]
+    },
     "privacy-security": {
       "title": "Privacy & Security",
       "description": "Learn about our on-premise deployment and privacy-first approach to AI workforce management.",
-      "order": 2,
+      "order": 3,
       "videos": [
         {
           "id": "privacy-main",
@@ -45,7 +63,7 @@
     "how-we-work": {
       "title": "How We Work Together",
       "description": "Discover our collaborative approach and how we customize solutions for your specific business needs.",
-      "order": 3,
+      "order": 4,
       "videos": [
         {
           "id": "collaboration-main",
@@ -62,7 +80,7 @@
     "evaluations": {
       "title": "Evaluations",
       "description": "See how our AI agents evaluate and improve their performance through continuous learning.",
-      "order": 4,
+      "order": 5,
       "videos": [
         {
           "id": "evaluations-main",
@@ -79,7 +97,7 @@
     "what-were-working-on-next": {
       "title": "What We're Working On Next",
       "description": "See what exciting features and improvements we're building for the future.",
-      "order": 5,
+      "order": 6,
       "videos": [
         {
           "id": "roadmap-main",
@@ -96,7 +114,7 @@
     "demos": {
       "title": "Demos & Behind-the-Scenes",
       "description": "Watch our latest demos and behind-the-scenes content.",
-      "order": 6,
+      "order": 7,
       "videos": [
         {
           "id": "demo-1",
@@ -122,8 +140,8 @@
     }
   },
   "metadata": {
-    "lastUpdated": "2024-01-20",
-    "totalVideos": 7,
-    "categories": 6
+    "lastUpdated": "2025-01-22",
+    "totalVideos": 8,
+    "categories": 7
   }
 }
