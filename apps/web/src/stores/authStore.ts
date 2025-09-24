@@ -178,10 +178,18 @@ export const useAuthStore = defineStore('auth', () => {
   const activeNamespace = ref<string | null>(localStorage.getItem('activeNamespace'));
   const availableNamespaces = computed(() => user.value?.namespaceAccess ?? []);
 
+  // Get default from environment variable (defaults to 'demo' if not set)
+  const defaultCodebaseLocation = (import.meta.env.VITE_CODEBASE_LOCATION || 'demo').toLowerCase();
+
   const resolveDefaultNamespace = (namespaces: string[]): string => {
     if (!namespaces.length) {
-      return 'my-org';
+      return defaultCodebaseLocation;
     }
+    // If codebase is set to demo, prefer demo if available
+    if (defaultCodebaseLocation === 'demo' && namespaces.includes('demo')) {
+      return 'demo';
+    }
+    // Otherwise prefer non-demo namespace (my-org or saas)
     const preferred = namespaces.find(ns => ns !== 'demo');
     return preferred || namespaces[0];
   };
@@ -211,7 +219,7 @@ export const useAuthStore = defineStore('auth', () => {
   const currentNamespace = computed(() => {
     const namespaces = availableNamespaces.value;
     if (!namespaces.length) {
-      return activeNamespace.value || 'my-org';
+      return activeNamespace.value || defaultCodebaseLocation;
     }
     if (activeNamespace.value && namespaces.includes(activeNamespace.value)) {
       return activeNamespace.value;
