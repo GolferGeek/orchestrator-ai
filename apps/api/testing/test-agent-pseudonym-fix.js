@@ -15,8 +15,8 @@ const API_BASE = 'http://localhost:7100';
 async function getAuthToken() {
   try {
     const response = await axios.post(`${API_BASE}/auth/login`, {
-      email: process.env.SUPABASE_TEST_USER || 'demo.user@playground.com',
-      password: process.env.SUPABASE_TEST_PASSWORD || 'demouser'
+      email: process.env.SUPABASE_TEST_USER || 'demo.user@orchestratorai.io',
+      password: process.env.SUPABASE_TEST_PASSWORD || 'DemoUser123!'
     });
     
     return response.data.accessToken;

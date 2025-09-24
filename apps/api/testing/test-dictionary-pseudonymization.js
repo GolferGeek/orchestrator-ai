@@ -4,8 +4,8 @@ async function testDictionaryPseudonymization() {
   try {
     console.log('🔐 Logging in...');
     const loginResponse = await axios.post('http://localhost:7100/auth/login', {
-      email: 'demo.user@playground.com',
-      password: 'demouser'
+      email: 'demo.user@orchestratorai.io',
+      password: 'DemoUser123!'
     });
     
     const token = loginResponse.data.accessToken;

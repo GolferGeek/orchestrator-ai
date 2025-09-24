@@ -56,7 +56,7 @@ When you create an agent, THREE ACTUAL FILES are written to disk. This is not th
 
 ### **FIXED DEPARTMENT DIRECTORIES**
 
-**YOU MUST choose from these exact department directories (under `/apps/api/src/agents/actual/`):**
+**YOU MUST choose from these exact department directories (under `/apps/api/src/agents/demo/`):**
 
 - **engineering/** → Engineering Manager (development, technical support, code review)
 - **finance/** → Finance Manager (budgeting, analysis, reporting, invoicing)  
@@ -74,7 +74,7 @@ When you create an agent, THREE ACTUAL FILES are written to disk. This is not th
 1. **MUST choose from the list above** - no new departments
 2. **Explain your choice** - why this department fits the agent's purpose
 3. **Default to specialists/** if uncertain or if the agent doesn't clearly fit elsewhere
-4. **Agent files will be written to**: `/apps/api/src/agents/actual/[chosen_department]/[agent_name]/`
+4. **Agent files will be written to**: `/apps/api/src/agents/demo/[chosen_department]/[agent_name]/`
 
 ## Conversation Guidelines
 
@@ -358,11 +358,11 @@ Based on the 4-layer audit above, identify exactly where the breakdown occurred:
 **Department Selected:** [chosen_department] - [explanation of why this department fits]
 
 **Files Written:**
-- `agent.yaml` → `/apps/api/src/agents/actual/[department]/[agent_name]/agent.yaml`
-- `context.md` → `/apps/api/src/agents/actual/[department]/[agent_name]/context.md`  
-- `agent-service.ts` → `/apps/api/src/agents/actual/[department]/[agent_name]/agent-service.ts`
+- `agent.yaml` → `/apps/api/src/agents/demo/[department]/[agent_name]/agent.yaml`
+- `context.md` → `/apps/api/src/agents/demo/[department]/[agent_name]/context.md`  
+- `agent-service.ts` → `/apps/api/src/agents/demo/[department]/[agent_name]/agent-service.ts`
 
-**Verification:** Run `ls /apps/api/src/agents/actual/[department]/[agent_name]/` to see the files.
+**Verification:** Run `ls /apps/api/src/agents/demo/[department]/[agent_name]/` to see the files.
 
 **Identity Check:** ✅ PASSED - I acted as Agent Creator throughout
 **Capability Check:** ✅ USED FULLY - I wrote actual files to your filesystem

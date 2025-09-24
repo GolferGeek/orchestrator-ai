@@ -662,8 +662,8 @@ export abstract class A2AAgentBaseService
       if (!basePath || basePath === 'unknown') return '';
 
       const tryPaths = [
-        path.join(process.cwd(), 'src', 'agents', 'actual', basePath, fileName),
-        path.join(process.cwd(), 'src', 'agents', 'actual', basePath, 'context.md'),
+        path.join(process.cwd(), 'src', 'agents', 'demo', basePath, fileName),
+        path.join(process.cwd(), 'src', 'agents', 'demo', basePath, 'context.md'),
       ];
       for (const p of tryPaths) {
         if (fs.existsSync(p)) {
@@ -1615,8 +1615,8 @@ export abstract class A2AAgentBaseService
     if (stack) {
       const stackLines = stack.split('\n');
       for (const line of stackLines) {
-        if (line.includes('agents/actual/') && line.includes('agent-service')) {
-          const match = line.match(/agents\/actual\/([^)]+)/);
+        if (line.includes('agents/demo/') && line.includes('agent-service')) {
+          const match = line.match(/agents\/demo\/([^)]+)/);
           if (match && match[1]) {
             // Extract the path and format it correctly
             const fullPath = match[1].replace(/\\/g, '/');
@@ -1653,7 +1653,7 @@ export abstract class A2AAgentBaseService
 
     // Construct the full path to agent.yaml
     // Handle both monorepo (from root) and app-specific (from apps/api) working directories
-    let agentsBasePath = path.join(process.cwd(), 'src', 'agents', 'actual');
+    let agentsBasePath = path.join(process.cwd(), 'src', 'agents', 'demo');
 
     // If running from monorepo root, adjust path to apps/api
     if (!fs.existsSync(agentsBasePath)) {
@@ -1663,7 +1663,7 @@ export abstract class A2AAgentBaseService
         'api',
         'src',
         'agents',
-        'actual',
+        'demo',
       );
     }
 

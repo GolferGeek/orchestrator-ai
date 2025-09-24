@@ -18,7 +18,7 @@ INSERT INTO public.users (
     roles
 ) VALUES (
     'b29a590e-b07f-49df-a25b-574c956b5035',  -- Fixed UUID for consistency
-    'demo.user@playground.com',
+    'demo.user@orchestratorai.io',
     'Demo User',
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP,
@@ -43,10 +43,10 @@ DECLARE
     public_exists boolean;
 BEGIN
     -- Check auth.users
-    SELECT EXISTS(SELECT 1 FROM auth.users WHERE email = 'demo.user@playground.com') INTO auth_exists;
+    SELECT EXISTS(SELECT 1 FROM auth.users WHERE email = 'demo.user@orchestratorai.io') INTO auth_exists;
     
     -- Check public.users  
-    SELECT EXISTS(SELECT 1 FROM public.users WHERE email = 'demo.user@playground.com') INTO public_exists;
+    SELECT EXISTS(SELECT 1 FROM public.users WHERE email = 'demo.user@orchestratorai.io') INTO public_exists;
     
     IF auth_exists AND public_exists THEN
         RAISE NOTICE '✅ Demo user exists in both auth.users and public.users';

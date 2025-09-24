@@ -8,8 +8,8 @@ async function testDictionaryDirect() {
     console.log('📊 Checking dictionary data in database...');
     
     const loginResponse = await axios.post('http://localhost:7100/auth/login', {
-      email: 'demo.user@playground.com',
-      password: 'demouser'
+      email: 'demo.user@orchestratorai.io',
+      password: 'DemoUser123!'
     });
     
     const token = loginResponse.data.accessToken;

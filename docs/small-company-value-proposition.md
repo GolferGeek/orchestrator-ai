@@ -188,7 +188,7 @@ After building 39 different AI agents and testing various approaches, we discove
 - **Why This Works:** Small companies trust peer recommendations over vendor marketing
 
 #### **Interactive Demonstrations**
-- **Live demo available:** Try the full system with demo.user@playground.com
+- **Live demo available:** Try the full system with demo.user@orchestratorai.io
 - **No signup required:** Explore at your own pace
 - **Real functionality:** Not a sales demo, but the actual working system
 - **Self-qualifying:** Only serious prospects invest time exploring
@@ -333,7 +333,7 @@ Get a quick understanding of what we've built and how it works.
 
 #### **2. Try the Live Demo**
 Explore the actual working system with full functionality.
-**Login:** demo.user@playground.com
+**Login:** demo.user@orchestratorai.io
 **No signup required** - just click and explore.
 
 #### **3. Have a Conversation**

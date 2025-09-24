@@ -99,7 +99,7 @@ GOOGLE_HELLO_WORLD_API_KEY=your_api_key_here
 
 1. **Create agent directory**:
    ```
-   src/agents/actual/external/my-external-agent/
+   src/agents/demo/external/my-external-agent/
    ├── agent.yaml
    └── agent-service.ts (optional)
    ```
@@ -200,7 +200,7 @@ The service integrates with our evaluation system:
 Example test agent configuration (Google Hello World):
 
 ```yaml
-# apps/api/src/agents/actual/external/google-hello-world/agent.yaml
+# apps/api/src/agents/demo/external/google-hello-world/agent.yaml
 external_a2a_configuration:
   endpoint: "https://hello-world-agent.googleapis.com"
   authentication:
@@ -245,7 +245,7 @@ LOG_LEVEL=debug npm run start:dev
 
 When adding new external agents:
 
-1. Create agent directory under `src/agents/actual/external/`
+1. Create agent directory under `src/agents/demo/external/`
 2. Add proper `agent.yaml` configuration
 3. Document required environment variables
 4. Test with actual external agent endpoint

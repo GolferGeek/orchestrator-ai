@@ -15,8 +15,8 @@ async function testMetricsAgentSQL() {
   console.log('===================================================\n');
 
   const API_URL = 'http://localhost:7100';
-  const TEST_EMAIL = 'demo.user@playground.com';
-  const TEST_PASSWORD = 'demouser';
+  const TEST_EMAIL = 'demo.user@orchestratorai.io';
+  const TEST_PASSWORD = 'DemoUser123!';
 
   console.log('🔐 Step 0: AUTHENTICATING');
   console.log('=========================');

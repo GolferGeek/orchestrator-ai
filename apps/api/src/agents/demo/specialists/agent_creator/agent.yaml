@@ -85,7 +85,7 @@ response:
 integrations:
   filesystem:
     enabled: true
-    basePath: "apps/api/src/agents/actual"
+    basePath: "apps/api/src/agents/demo"
     permissions: ["read", "write", "create"]
   validation:
     enabled: true

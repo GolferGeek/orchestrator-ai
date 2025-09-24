@@ -11,6 +11,7 @@ import {
   UseGuards,
   Request,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AgentDiscoveryService } from '../agent-discovery.service';
 import { AppService } from '../app.service';
@@ -18,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { SupabaseAuthUserDto } from '../auth/dto/auth.dto';
+import { AuthService } from '../auth/auth.service';
 import { AgentConversationsService } from '../agent-conversations/agent-conversations.service';
 import { TasksService } from '../tasks/tasks.service';
 import { TaskStatusService } from '../tasks/task-status.service';
@@ -44,6 +46,7 @@ export class DynamicAgentsController {
     private readonly centralizedRoutingService: CentralizedRoutingService,
     private readonly piiService: PIIService,
     private readonly speechService: SpeechService,
+    private readonly authService: AuthService,
   ) {}
 
   /**
@@ -121,7 +124,12 @@ export class DynamicAgentsController {
     // 🔍 Log minimal info about incoming request
     this.logger.log(`[DynamicAgentsController] ${taskRequest?.method || 'unknown'} request to ${agentType}/${agentName}`);
 
+    const { activeNamespace } =
+      await this.resolveNamespaceContext(currentUser, req);
 
+    req.activeNamespace = activeNamespace;
+
+    
     // Check if this is a JSON-RPC request and convert it to CreateTaskDto format
     let normalizedTaskRequest: CreateTaskDto;
 
@@ -213,6 +221,12 @@ export class DynamicAgentsController {
         throw new BadRequestException(`Audio transcription failed: ${audioError instanceof Error ? audioError.message : 'Unknown error'}`);
       }
     }
+
+    // Attach namespace metadata
+    normalizedTaskRequest.metadata = {
+      ...(normalizedTaskRequest.metadata || {}),
+      namespace: activeNamespace,
+    };
 
     // 🔒 PII POLICY CHECK - Block sensitive data before it reaches any agent
     // PII policy check
@@ -322,7 +336,11 @@ export class DynamicAgentsController {
     const token = authHeader?.replace('Bearer ', '');
 
     // Find the agent instance
-    const agentInstance = this.findAgentInstance(agentType, agentName);
+    const agentInstance = this.findAgentInstance(
+      agentType,
+      agentName,
+      [activeNamespace],
+    );
     if (!agentInstance) {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
@@ -584,13 +602,24 @@ export class DynamicAgentsController {
    * Route: GET /agents/:agentType/:agentName/.well-known/agent.json
    */
   @Get(':agentType/:agentName/.well-known/agent.json')
+  @UseGuards(JwtAuthGuard)
   async getAgentCard(
     @Param('agentType') agentType: string,
     @Param('agentName') agentName: string,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+    @Request() req: Request,
   ) {
+    const { activeNamespace } = await this.resolveNamespaceContext(
+      currentUser,
+      req,
+    );
 
     // Find the agent instance
-    const agentInstance = this.findAgentInstance(agentType, agentName);
+    const agentInstance = this.findAgentInstance(
+      agentType,
+      agentName,
+      [activeNamespace],
+    );
     if (!agentInstance) {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
@@ -604,13 +633,24 @@ export class DynamicAgentsController {
    * Route: GET /agents/:agentType/:agentName/health
    */
   @Get(':agentType/:agentName/health')
+  @UseGuards(JwtAuthGuard)
   async getAgentHealth(
     @Param('agentType') agentType: string,
     @Param('agentName') agentName: string,
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+    @Request() req: Request,
   ) {
+    const { activeNamespace } = await this.resolveNamespaceContext(
+      currentUser,
+      req,
+    );
 
     // Find the agent instance
-    const agentInstance = this.findAgentInstance(agentType, agentName);
+    const agentInstance = this.findAgentInstance(
+      agentType,
+      agentName,
+      [activeNamespace],
+    );
     if (!agentInstance) {
       throw new NotFoundException(`Agent ${agentType}/${agentName} not found`);
     }
@@ -626,20 +666,40 @@ export class DynamicAgentsController {
   /**
    * Find an agent instance by type and name
    */
-  private findAgentInstance(agentType: string, agentName: string): any {
-    const discoveredAgents = this.appService.getDiscoveredAgents();
-    const agentInstances = this.appService.getAgentInstances();
+  private findAgentInstance(
+    agentType: string,
+    agentName: string,
+    namespaces: string[],
+  ): any {
+    const discoveredAgents = namespaces.length
+      ? this.appService.getDiscoveredAgentsByNamespaces(namespaces)
+      : this.appService.getDiscoveredAgents();
+    const agentInstances = namespaces.length
+      ? this.appService.getAgentInstancesByNamespaces(namespaces)
+      : this.appService.getAgentInstances();
 
-    // Match the agent by path logic (e.g., "specialists/blog_post" or "orchestrator/orchestrator")
-    const expectedPath = `${agentType}/${agentName}`;
+    const normalizedExpectedRelative = this.normalizeAgentName(
+      `${agentType}/${agentName}`,
+    );
+    const normalizedExpectedNamespaced = new Set(
+      namespaces.map((ns) =>
+        this.normalizeAgentName(`${ns}/${agentType}/${agentName}`),
+      ),
+    );
+
     const agentIndex = discoveredAgents.findIndex((a) => {
-      if (!a.path) {
-        // Fallback for agents with null path - match by type and name
-        return a.type === agentType && a.name === agentName;
-      }
-      const normalizedAgentPath = this.normalizeAgentName(a.path);
-      const normalizedExpectedPath = this.normalizeAgentName(expectedPath);
-      return normalizedAgentPath === normalizedExpectedPath;
+      const relativePath = a.relativePath || a.path;
+      const namespacedPath = a.namespacedPath || a.path;
+
+      const normalizedRelative = this.normalizeAgentName(relativePath);
+      const normalizedNamespaced = this.normalizeAgentName(namespacedPath);
+
+      if (normalizedRelative === normalizedExpectedRelative) return true;
+      if (normalizedNamespaced === normalizedExpectedRelative) return true;
+      if (normalizedExpectedNamespaced.has(normalizedNamespaced)) return true;
+
+      // Fallback for agents missing path metadata
+      return a.type === agentType && a.name === agentName;
     });
 
     if (agentIndex === -1) {
@@ -647,7 +707,6 @@ export class DynamicAgentsController {
       return null;
     }
 
-    // Return the corresponding agent instance
     return agentInstances[agentIndex] || null;
   }
 
@@ -655,6 +714,57 @@ export class DynamicAgentsController {
    * Process task asynchronously - simplified version using TaskStatusService
    */
   // processTaskAsync method removed - all execution modes now use synchronous await pattern
+
+  private async resolveNamespaceContext(
+    currentUser: SupabaseAuthUserDto,
+    req: Request,
+  ): Promise<{ activeNamespace: string; allowedNamespaces: string[] }> {
+    const namespaces = await this.authService.getNamespaceAccessForUser(
+      currentUser.id,
+    );
+
+    if (!namespaces.length) {
+      throw new ForbiddenException('User has no namespaces assigned');
+    }
+
+    let requestedNamespace: string | undefined;
+    const headerNamespace = req.headers['x-agent-namespace'];
+    if (Array.isArray(headerNamespace)) {
+      requestedNamespace = headerNamespace[0];
+    } else if (typeof headerNamespace === 'string') {
+      requestedNamespace = headerNamespace;
+    }
+
+    const queryNamespace = req.query['namespace'];
+    if (!requestedNamespace && typeof queryNamespace === 'string') {
+      requestedNamespace = queryNamespace;
+    }
+
+    let activeNamespace = this.pickDefaultNamespace(namespaces);
+
+    if (requestedNamespace) {
+      if (!namespaces.includes(requestedNamespace)) {
+        throw new ForbiddenException(
+          `Namespace ${requestedNamespace} is not permitted for this user`,
+        );
+      }
+      activeNamespace = requestedNamespace;
+    }
+
+    return {
+      activeNamespace,
+      allowedNamespaces: namespaces,
+    };
+  }
+
+  private pickDefaultNamespace(namespaces: string[]): string {
+    if (!namespaces.length) {
+      return 'demo';
+    }
+
+    const preferred = namespaces.find((ns) => ns !== 'demo');
+    return preferred || namespaces[0];
+  }
 
   /**
    * Normalize agent name for comparison (handle underscores, spaces, etc.)
