@@ -3,15 +3,22 @@
     <button
       class="sub-accordion-header"
       @click="toggle"
+      @keydown="handleKeydown"
       :aria-expanded="isExpanded"
       :aria-controls="`sub-accordion-content-${subId}`"
       :id="`sub-accordion-header-${subId}`"
+      tabindex="0"
     >
       <h3 class="sub-accordion-title">{{ title }}</h3>
       <ion-icon 
         :icon="isExpanded ? chevronUpOutline : chevronDownOutline"
         class="sub-accordion-icon"
         :class="{ 'rotated': isExpanded }"
+        @click="toggle"
+        @keydown="handleKeydown"
+        tabindex="0"
+        role="button"
+        :aria-label="isExpanded ? 'Collapse subsection' : 'Expand subsection'"
       />
     </button>
     
@@ -30,25 +37,61 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { IonIcon } from '@ionic/vue';
 import { chevronUpOutline, chevronDownOutline } from 'ionicons/icons';
 
 interface Props {
   title: string;
   isExpanded?: boolean;
+  id?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isExpanded: false
 });
 
-// Generate a unique ID for this sub-accordion
-const subId = `sub-${Math.random().toString(36).substr(2, 9)}`;
+// Generate a more predictable ID for this sub-accordion
+const subId = computed(() => {
+  if (props.id) {
+    return `sub-${props.id}`;
+  }
+  // Fallback to title-based ID
+  return `sub-${props.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Math.random().toString(36).substr(2, 6)}`;
+});
+
 const isExpanded = ref(props.isExpanded);
 
 const toggle = () => {
   isExpanded.value = !isExpanded.value;
+};
+
+// Handle keyboard navigation
+const handleKeydown = (event: KeyboardEvent) => {
+  switch (event.key) {
+    case 'Enter':
+    case ' ':
+      event.preventDefault();
+      toggle();
+      break;
+    case 'ArrowDown':
+      event.preventDefault();
+      if (!isExpanded.value) {
+        toggle();
+      }
+      break;
+    case 'ArrowUp':
+      event.preventDefault();
+      if (isExpanded.value) {
+        toggle();
+      }
+      break;
+    case 'Escape':
+      if (isExpanded.value) {
+        toggle();
+      }
+      break;
+  }
 };
 </script>
 
@@ -86,6 +129,7 @@ const toggle = () => {
   cursor: pointer;
   transition: var(--transition-smooth);
   min-height: 48px;
+  min-width: 44px;
   text-align: left;
 }
 
@@ -117,10 +161,31 @@ const toggle = () => {
   transition: transform 0.3s ease;
   margin-left: 0.75rem;
   flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
 }
 
 .sub-accordion-icon.rotated {
   transform: rotate(180deg);
+}
+
+.sub-accordion-icon:hover {
+  background: rgba(139, 90, 60, 0.1);
+}
+
+.sub-accordion-icon:focus {
+  outline: 2px solid var(--landing-primary);
+  outline-offset: 2px;
+}
+
+.sub-accordion-icon:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .sub-accordion-content {

@@ -21,7 +21,7 @@
           <AccordionSection
             id="small-business-ai"
             title="Small Business and AI"
-            :is-expanded="true"
+            :default-expanded="true"
           >
             <template #content>
               <p class="section-summary">
@@ -31,23 +31,23 @@
                 and complete implementation support.
               </p>
               
-              <SubAccordion title="AI as a Fire Hose">
+              <SubAccordion id="ai-fire-hose" title="AI as a Fire Hose">
                 <p>The information overload problem that small businesses face when trying to understand AI.</p>
               </SubAccordion>
               
-              <SubAccordion title="Technical Complexity">
+              <SubAccordion id="technical-complexity" title="Technical Complexity">
                 <p>Why AI feels above small business pay grade and how we make it accessible.</p>
               </SubAccordion>
               
-              <SubAccordion title="Security and Privacy">
+              <SubAccordion id="security-privacy" title="Security and Privacy">
                 <p>Small business concerns with AI adoption and how we address them.</p>
               </SubAccordion>
               
-              <SubAccordion title="Cost and ROI">
+              <SubAccordion id="cost-roi" title="Cost and ROI">
                 <p>Financial considerations and return on investment for AI implementation.</p>
               </SubAccordion>
               
-              <SubAccordion title="Development Challenges">
+              <SubAccordion id="development-challenges" title="Development Challenges">
                 <p>Technical implementation barriers and our solutions.</p>
               </SubAccordion>
             </template>
@@ -57,7 +57,7 @@
           <AccordionSection
             id="our-offering"
             title="Our Offering"
-            :is-expanded="true"
+            :default-expanded="true"
           >
             <template #content>
               <p class="section-summary">
@@ -67,23 +67,23 @@
                 software, training, and initial configuration.
               </p>
               
-              <SubAccordion title="Piloting Server">
+              <SubAccordion id="piloting-server" title="Piloting Server">
                 <p>Hardware requirements and specifications for running local LLMs.</p>
               </SubAccordion>
               
-              <SubAccordion title="Forked Repository">
+              <SubAccordion id="forked-repository" title="Forked Repository">
                 <p>Starter agents and customization options available in our repository.</p>
               </SubAccordion>
               
-              <SubAccordion title="Consulting Services">
+              <SubAccordion id="consulting-services" title="Consulting Services">
                 <p>Setup, training, and ongoing support services we provide.</p>
               </SubAccordion>
               
-              <SubAccordion title="Pricing Structure">
+              <SubAccordion id="pricing-structure" title="Pricing Structure">
                 <p>$15k setup, $120/hour consulting, $50/hour interns - transparent pricing.</p>
               </SubAccordion>
               
-              <SubAccordion title="Team Building">
+              <SubAccordion id="team-building" title="Team Building">
                 <p>AI group development and leadership training programs.</p>
               </SubAccordion>
             </template>
@@ -93,7 +93,7 @@
           <AccordionSection
             id="agent-architecture"
             title="Agent Architecture"
-            :is-expanded="true"
+            :default-expanded="true"
           >
             <template #content>
               <p class="section-summary">
@@ -103,23 +103,23 @@
                 and my-org/ directories, with file-based storage now and database-based agents coming soon for rapid creation.
               </p>
               
-              <SubAccordion title="A2A Protocol">
+              <SubAccordion id="a2a-protocol" title="A2A Protocol">
                 <p>Agent-to-Agent communication standards we follow.</p>
               </SubAccordion>
               
-              <SubAccordion title="MCP Integration">
+              <SubAccordion id="mcp-integration" title="MCP Integration">
                 <p>Model Context Protocol implementation in our system.</p>
               </SubAccordion>
               
-              <SubAccordion title="Agent Types">
+              <SubAccordion id="agent-types" title="Agent Types">
                 <p>Context, Function (TypeScript/Python), API, and Orchestrator agents.</p>
               </SubAccordion>
               
-              <SubAccordion title="File vs Database Agents">
+              <SubAccordion id="file-vs-database-agents" title="File vs Database Agents">
                 <p>Current and future agent storage approaches.</p>
               </SubAccordion>
               
-              <SubAccordion title="Demo vs MyOrg">
+              <SubAccordion id="demo-vs-myorg" title="Demo vs MyOrg">
                 <p>Agent organization and customization structure.</p>
               </SubAccordion>
             </template>
@@ -129,7 +129,7 @@
           <AccordionSection
             id="what-were-working-on"
             title="What We're Working On"
-            :is-expanded="true"
+            :default-expanded="true"
           >
             <template #content>
               <p class="section-summary">
@@ -139,27 +139,27 @@
                 Our goal is finely-tuned, single-purpose agents that work together seamlessly.
               </p>
               
-              <SubAccordion title="Project Orchestration">
+              <SubAccordion id="project-orchestration" title="Project Orchestration">
                 <p>Large-scale agent activity planning and coordination.</p>
               </SubAccordion>
               
-              <SubAccordion title="Human-in-the-Loop">
+              <SubAccordion id="human-in-the-loop" title="Human-in-the-Loop">
                 <p>Evaluation and approval workflows for AI decisions.</p>
               </SubAccordion>
               
-              <SubAccordion title="AI Versioning">
+              <SubAccordion id="ai-versioning" title="AI Versioning">
                 <p>Content comparison and merging capabilities.</p>
               </SubAccordion>
               
-              <SubAccordion title="Multi-Modal Inputs">
+              <SubAccordion id="multi-modal-inputs" title="Multi-Modal Inputs">
                 <p>Image and file processing capabilities.</p>
               </SubAccordion>
               
-              <SubAccordion title="Database-Based Agents">
+              <SubAccordion id="database-based-agents" title="Database-Based Agents">
                 <p>Rapid agent creation and deployment system.</p>
               </SubAccordion>
               
-              <SubAccordion title="MCP Tool Integration">
+              <SubAccordion id="mcp-tool-integration" title="MCP Tool Integration">
                 <p>Agents using MCP tools for complex projects.</p>
               </SubAccordion>
             </template>
@@ -169,7 +169,7 @@
           <AccordionSection
             id="technology-stack"
             title="Technology Stack"
-            :is-expanded="true"
+            :default-expanded="true"
           >
             <template #content>
               <p class="section-summary">
@@ -179,27 +179,27 @@
                 and configure local LLM environments with MCP integration for testing and deployment.
               </p>
               
-              <SubAccordion title="Frontend Technology">
+              <SubAccordion id="frontend-technology" title="Frontend Technology">
                 <p>Vue.js, Ionic, TypeScript, and modern web technologies.</p>
               </SubAccordion>
               
-              <SubAccordion title="Backend Architecture">
+              <SubAccordion id="backend-architecture" title="Backend Architecture">
                 <p>NestJS, Node.js, and API design patterns.</p>
               </SubAccordion>
               
-              <SubAccordion title="Database & Storage">
+              <SubAccordion id="database-storage" title="Database & Storage">
                 <p>Supabase, PostgreSQL, and data management.</p>
               </SubAccordion>
               
-              <SubAccordion title="Development Tools">
+              <SubAccordion id="development-tools" title="Development Tools">
                 <p>Cursor, GitHub, and modern development workflow.</p>
               </SubAccordion>
               
-              <SubAccordion title="Fork Management">
+              <SubAccordion id="fork-management" title="Fork Management">
                 <p>Understanding forks, updates, and safe agent development.</p>
               </SubAccordion>
               
-              <SubAccordion title="AI Development Environment">
+              <SubAccordion id="ai-development-environment" title="AI Development Environment">
                 <p>Local LLM setup, MCP integration, and testing.</p>
               </SubAccordion>
             </template>
@@ -209,7 +209,7 @@
           <AccordionSection
             id="agent-building-process"
             title="Agent Building Process"
-            :is-expanded="true"
+            :default-expanded="true"
           >
             <template #content>
               <p class="section-summary">
@@ -220,31 +220,31 @@
                 for seamless integration.
               </p>
               
-              <SubAccordion title="What Are Agents?">
+              <SubAccordion id="what-are-agents" title="What Are Agents?">
                 <p>Understanding AI agents and their capabilities.</p>
               </SubAccordion>
               
-              <SubAccordion title="Context Agent Builder">
+              <SubAccordion id="context-agent-builder" title="Context Agent Builder">
                 <p>Building knowledge-based agents with rules files.</p>
               </SubAccordion>
               
-              <SubAccordion title="Function Agent Builder">
+              <SubAccordion id="function-agent-builder" title="Function Agent Builder">
                 <p>Creating TypeScript and Python function agents.</p>
               </SubAccordion>
               
-              <SubAccordion title="API Agent Builder">
+              <SubAccordion id="api-agent-builder" title="API Agent Builder">
                 <p>Wrapping external APIs and services.</p>
               </SubAccordion>
               
-              <SubAccordion title="Orchestrator Agent Builder">
+              <SubAccordion id="orchestrator-agent-builder" title="Orchestrator Agent Builder">
                 <p>Building coordination and workflow agents.</p>
               </SubAccordion>
               
-              <SubAccordion title="Rules File System">
+              <SubAccordion id="rules-file-system" title="Rules File System">
                 <p>Using Cursor rules for consistent agent development.</p>
               </SubAccordion>
               
-              <SubAccordion title="AI-Assisted Development">
+              <SubAccordion id="ai-assisted-development" title="AI-Assisted Development">
                 <p>Leveraging Cursor, Claude, and other AI tools.</p>
               </SubAccordion>
             </template>

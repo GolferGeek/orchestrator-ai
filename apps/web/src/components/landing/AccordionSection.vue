@@ -3,15 +3,22 @@
     <button
       class="accordion-header"
       @click="toggle"
+      @keydown="handleKeydown"
       :aria-expanded="isExpanded"
       :aria-controls="`accordion-content-${id}`"
       :id="`accordion-header-${id}`"
+      tabindex="0"
     >
       <h2 class="accordion-title">{{ title }}</h2>
       <ion-icon 
         :icon="isExpanded ? chevronUpOutline : chevronDownOutline"
         class="accordion-icon"
         :class="{ 'rotated': isExpanded }"
+        @click="toggle"
+        @keydown="handleKeydown"
+        tabindex="0"
+        role="button"
+        :aria-label="isExpanded ? 'Collapse section' : 'Expand section'"
       />
     </button>
     
@@ -30,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { IonIcon } from '@ionic/vue';
 import { chevronUpOutline, chevronDownOutline } from 'ionicons/icons';
 
@@ -38,16 +45,54 @@ interface Props {
   id: string;
   title: string;
   isExpanded?: boolean;
+  defaultExpanded?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  isExpanded: false
+  isExpanded: false,
+  defaultExpanded: true
 });
 
 const isExpanded = ref(props.isExpanded);
 
+// Initialize with default expanded state on first visit
+onMounted(() => {
+  if (props.defaultExpanded && !localStorage.getItem(`accordion-${props.id}-visited`)) {
+    isExpanded.value = true;
+    localStorage.setItem(`accordion-${props.id}-visited`, 'true');
+  }
+});
+
 const toggle = () => {
   isExpanded.value = !isExpanded.value;
+};
+
+// Handle keyboard navigation
+const handleKeydown = (event: KeyboardEvent) => {
+  switch (event.key) {
+    case 'Enter':
+    case ' ':
+      event.preventDefault();
+      toggle();
+      break;
+    case 'ArrowDown':
+      event.preventDefault();
+      if (!isExpanded.value) {
+        toggle();
+      }
+      break;
+    case 'ArrowUp':
+      event.preventDefault();
+      if (isExpanded.value) {
+        toggle();
+      }
+      break;
+    case 'Escape':
+      if (isExpanded.value) {
+        toggle();
+      }
+      break;
+  }
 };
 
 // Watch for prop changes
@@ -87,6 +132,7 @@ watch(() => props.isExpanded, (newValue) => {
   cursor: pointer;
   transition: var(--transition-smooth);
   min-height: 60px;
+  min-width: 44px;
   text-align: left;
 }
 
@@ -118,10 +164,31 @@ watch(() => props.isExpanded, (newValue) => {
   transition: transform 0.3s ease;
   margin-left: 1rem;
   flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
 }
 
 .accordion-icon.rotated {
   transform: rotate(180deg);
+}
+
+.accordion-icon:hover {
+  background: rgba(139, 90, 60, 0.1);
+}
+
+.accordion-icon:focus {
+  outline: 2px solid var(--landing-primary);
+  outline-offset: 2px;
+}
+
+.accordion-icon:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .accordion-content {
