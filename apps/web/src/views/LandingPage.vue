@@ -1,31 +1,38 @@
 <template>
-  <div class="landing-page-container">
-    <Suspense>
-      <template #default>
-        <component :is="activeLandingComponent" />
-      </template>
-      <template #fallback>
-        <div class="landing-loading">
-          <ion-spinner name="crescent" />
-        </div>
-      </template>
-    </Suspense>
-  </div>
+  <component :is="activeLandingComponent" />
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue';
-import { IonSpinner } from '@ionic/vue';
+import { computed, defineAsyncComponent, defineComponent, h } from 'vue';
+import { IonContent, IonPage, IonSpinner } from '@ionic/vue';
 import { useAuthStore } from '@/stores/authStore';
 import { storeToRefs } from 'pinia';
 
 const authStore = useAuthStore();
 const { currentNamespace } = storeToRefs(authStore);
 
+const LoadingLandingPage = defineComponent({
+  name: 'LoadingLandingPage',
+  setup() {
+    return () => h(IonPage, null, {
+      default: () => h(IonContent, { fullscreen: true, class: 'landing-loading' }, () =>
+        h(IonSpinner, { name: 'crescent' })
+      )
+    });
+  }
+});
+
+const createAsyncLanding = (loader: () => Promise<any>) =>
+  defineAsyncComponent({
+    loader,
+    loadingComponent: LoadingLandingPage,
+    suspensible: false,
+  });
+
 const landingComponents = {
-  demo: defineAsyncComponent(() => import('./landing/demo/DemoLandingPage.vue')),
-  'my-org': defineAsyncComponent(() => import('./landing/my-org/MyOrgLandingPage.vue')),
-  saas: defineAsyncComponent(() => import('./landing/saas/SaasLandingPage.vue')),
+  demo: createAsyncLanding(() => import('./landing/demo/DemoLandingPage.vue')),
+  'my-org': createAsyncLanding(() => import('./landing/my-org/MyOrgLandingPage.vue')),
+  saas: createAsyncLanding(() => import('./landing/saas/SaasLandingPage.vue')),
 } as const;
 
 type LandingNamespace = keyof typeof landingComponents;
@@ -51,11 +58,6 @@ const activeLandingComponent = computed(() => landingComponents[resolvedNamespac
 </script>
 
 <style scoped>
-.landing-page-container {
-  width: 100%;
-  height: 100%;
-}
-
 .landing-loading {
   min-height: 100vh;
   display: flex;
