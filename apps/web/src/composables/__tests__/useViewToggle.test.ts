@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { useViewToggle } from '../useViewToggle';
+import { useViewToggle, resetViewMode } from '../useViewToggle';
 
 // Mock Vue Router
 const mockRouter = {
@@ -31,6 +31,7 @@ describe('useViewToggle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorageMock.getItem.mockReturnValue(null);
+    resetViewMode();
   });
 
   it('should initialize with default marketing view when no stored value exists', () => {

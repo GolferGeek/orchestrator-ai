@@ -32,31 +32,71 @@
               </p>
               
               <SubAccordion id="ai-fire-hose" title="AI as a Fire Hose">
-                <p>The information overload problem that small businesses face when trying to understand AI.</p>
+                <p>This section explores the information overload problem that small businesses face when trying to understand AI. We'll examine how the constant stream of new tools, conflicting advice, and technical complexity creates decision paralysis, and how our approach cuts through the noise with clear, actionable guidance.</p>
                 
                 <SubSubAccordion id="information-overload" title="Information Overload">
-                  <p>Too many AI tools, frameworks, and approaches to choose from.</p>
+                  <div class="content-details">
+                    <p>Small businesses face an impossible choice: spend months researching AI or risk falling behind competitors.</p>
+                    
+                    <h4>What You're Up Against</h4>
+                    <ul>
+                      <li><strong>10,000+ AI tools</strong> available today</li>
+                      <li><strong>New tools launched daily</strong> - impossible to keep up</li>
+                      <li><strong>Conflicting reviews</strong> - every tool claims to be "the best"</li>
+                      <li><strong>Technical complexity</strong> - most require technical expertise</li>
+                      <li><strong>Integration challenges</strong> - tools don't work together</li>
+                    </ul>
+                    
+                    <h4>Why This Matters</h4>
+                    <p>Without proper guidance, small businesses typically:</p>
+                    <ul>
+                      <li>Waste 3-6 months trying different tools</li>
+                      <li>Spend $5,000-$15,000 on tools that don't work</li>
+                      <li>Lose confidence in AI's potential</li>
+                      <li>Fall further behind competitors</li>
+                    </ul>
+                  </div>
                 </SubSubAccordion>
                 
                 <SubSubAccordion id="decision-fatigue" title="Decision Fatigue">
-                  <p>Paralysis from too many options and conflicting advice.</p>
+                  <div class="content-details">
+                    <p>When faced with too many options, decision-making becomes paralyzing rather than empowering.</p>
+                    
+                    <h4>The Psychology of Choice</h4>
+                    <p>Research shows that when people have too many options, they:</p>
+                    <ul>
+                      <li><strong>Experience decision paralysis</strong> - can't choose anything</li>
+                      <li><strong>Make worse decisions</strong> - overwhelmed by choice</li>
+                      <li><strong>Feel less satisfied</strong> - always wondering if they chose wrong</li>
+                      <li><strong>Give up entirely</strong> - avoid making any decision</li>
+                    </ul>
+                    
+                    <h4>Our Approach</h4>
+                    <p>We eliminate decision fatigue by providing:</p>
+                    <ul>
+                      <li><strong>One proven solution</strong> - no endless comparisons</li>
+                      <li><strong>Clear implementation path</strong> - step-by-step guidance</li>
+                      <li><strong>Complete package</strong> - everything you need in one place</li>
+                      <li><strong>Expert guidance</strong> - we make the hard decisions for you</li>
+                    </ul>
+                  </div>
                 </SubSubAccordion>
               </SubAccordion>
               
               <SubAccordion id="technical-complexity" title="Technical Complexity">
-                <p>Why AI feels above small business pay grade and how we make it accessible.</p>
+                <p>This section addresses the technical barriers that prevent small businesses from implementing AI. We'll discuss why traditional AI solutions require expertise that small businesses don't have, and how our pre-built, ready-to-use approach eliminates these technical hurdles.</p>
               </SubAccordion>
               
               <SubAccordion id="security-privacy" title="Security and Privacy">
-                <p>Small business concerns with AI adoption and how we address them.</p>
+                <p>This section examines the legitimate security and privacy concerns that small businesses have about AI adoption. We'll explore common fears about data breaches, compliance issues, and third-party risks, and explain how our security-first approach addresses these concerns through local deployment and privacy by design.</p>
               </SubAccordion>
               
               <SubAccordion id="cost-roi" title="Cost and ROI">
-                <p>Financial considerations and return on investment for AI implementation.</p>
+                <p>This section tackles the financial uncertainty that surrounds AI implementation. We'll address the common problem of unclear costs and unpredictable ROI, and demonstrate how our transparent pricing model and proven return timeline eliminate financial guesswork.</p>
               </SubAccordion>
               
               <SubAccordion id="development-challenges" title="Development Challenges">
-                <p>Technical implementation barriers and our solutions.</p>
+                <p>This section explores the development barriers that prevent small businesses from building their own AI solutions. We'll examine why building from scratch requires months of work and specialized expertise, and how our pre-built, tested approach eliminates these development challenges.</p>
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -76,23 +116,23 @@
               </p>
               
               <SubAccordion id="piloting-server" title="Piloting Server">
-                <p>Hardware requirements and specifications for running local LLMs.</p>
+                <p>This section details our hardware solution for running AI locally. We'll cover the Mac Studio 128GB specifications, why local deployment matters for privacy and performance, and how this hardware choice eliminates cloud dependency and ongoing subscription costs.</p>
               </SubAccordion>
               
               <SubAccordion id="forked-repository" title="Forked Repository">
-                <p>Starter agents and customization options available in our repository.</p>
+                <p>This section explores our pre-built agent ecosystem and customization capabilities. We'll showcase the starter agents we provide, explain how our forked repository gives you a head start, and detail the customization options that let you adapt the system to your specific business needs.</p>
               </SubAccordion>
               
               <SubAccordion id="consulting-services" title="Consulting Services">
-                <p>Setup, training, and ongoing support services we provide.</p>
+                <p>This section outlines our comprehensive consulting approach, from initial setup through ongoing support. We'll explain our transparent pricing structure ($120/hour for senior consulting, $50/hour for intern support), detail the training and team building process, and describe how our ongoing support ensures long-term success.</p>
               </SubAccordion>
               
               <SubAccordion id="pricing-structure" title="Pricing Structure">
-                <p>$15k setup, $120/hour consulting, $50/hour interns - transparent pricing.</p>
+                <p>This section breaks down our transparent pricing model and value proposition. We'll detail what's included in the $15k setup cost, explain our consulting rate structure, and demonstrate how our pricing compares to traditional AI implementation costs while delivering better results.</p>
               </SubAccordion>
               
               <SubAccordion id="team-building" title="Team Building">
-                <p>AI group development and leadership training programs.</p>
+                <p>This section covers our team development and training programs. We'll explain how we help build AI competency within your organization, detail our leadership training approach, and describe how we create sustainable AI adoption that doesn't depend on external consultants long-term.</p>
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -112,7 +152,7 @@
               </p>
               
               <SubAccordion id="a2a-protocol" title="A2A Protocol">
-                <p>Agent-to-Agent communication standards we follow.</p>
+                <p>This section explains our Agent-to-Agent communication framework. We'll cover the A2A standards we follow, detail our implementation approach, and demonstrate how this protocol ensures reliable, standardized communication between different AI agents in your system.</p>
                 
                 <SubSubAccordion id="a2a-standards" title="A2A Standards" :lazy-load="true">
                   <p>Detailed information about Agent-to-Agent communication protocols and standards.</p>
@@ -124,19 +164,19 @@
               </SubAccordion>
               
               <SubAccordion id="mcp-integration" title="MCP Integration">
-                <p>Model Context Protocol implementation in our system.</p>
+                <p>This section covers our Model Context Protocol implementation. We'll explain how MCP enables seamless integration with external tools and services, detail our specific MCP configurations, and show how this protocol makes our agents more powerful and flexible.</p>
               </SubAccordion>
               
               <SubAccordion id="agent-types" title="Agent Types">
-                <p>Context, Function (TypeScript/Python), API, and Orchestrator agents.</p>
+                <p>This section introduces our four specialized agent types and their capabilities. We'll explain Context agents for knowledge management, Function agents for custom logic, API agents for external integrations, and Orchestrator agents for workflow coordination, showing how each type serves specific business needs.</p>
               </SubAccordion>
               
               <SubAccordion id="file-vs-database-agents" title="File vs Database Agents">
-                <p>Current and future agent storage approaches.</p>
+                <p>This section explains our current file-based agent system and our upcoming database-based approach. We'll detail how file-based agents work today, explain the benefits of the upcoming database system for rapid agent creation, and show how this evolution will make agent management even more efficient.</p>
               </SubAccordion>
               
               <SubAccordion id="demo-vs-myorg" title="Demo vs MyOrg">
-                <p>Agent organization and customization structure.</p>
+                <p>This section outlines our agent organization structure and customization approach. We'll explain the demo/ directory with pre-built agents, detail the my-org/ directory for your custom agents, and show how this structure allows you to start with proven solutions while building your own specialized agents.</p>
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -156,27 +196,27 @@
               </p>
               
               <SubAccordion id="project-orchestration" title="Project Orchestration">
-                <p>Large-scale agent activity planning and coordination.</p>
+                <p>This section explores our advanced project orchestration capabilities for managing large-scale agent activities. We'll explain how multiple agents can work together on complex projects, detail our coordination algorithms, and show how this system scales from simple tasks to enterprise-level operations.</p>
               </SubAccordion>
               
               <SubAccordion id="human-in-the-loop" title="Human-in-the-Loop">
-                <p>Evaluation and approval workflows for AI decisions.</p>
+                <p>This section covers our human-in-the-loop evaluation system that ensures AI decisions meet your standards. We'll explain how approval workflows work, detail the evaluation criteria, and show how this system maintains human oversight while maximizing AI efficiency.</p>
               </SubAccordion>
               
               <SubAccordion id="ai-versioning" title="AI Versioning">
-                <p>Content comparison and merging capabilities.</p>
+                <p>This section details our AI versioning system for content comparison and merging. We'll explain how different AI outputs can be compared, detail our merging algorithms, and show how this system helps you track and improve AI performance over time.</p>
               </SubAccordion>
               
               <SubAccordion id="multi-modal-inputs" title="Multi-Modal Inputs">
-                <p>Image and file processing capabilities.</p>
+                <p>This section covers our multi-modal input processing capabilities for images, files, and other data types. We'll explain how agents can process different input formats, detail our file handling capabilities, and show how this makes our system more versatile for real-world business applications.</p>
               </SubAccordion>
               
               <SubAccordion id="database-based-agents" title="Database-Based Agents">
-                <p>Rapid agent creation and deployment system.</p>
+                <p>This section explains our upcoming database-based agent system for rapid creation and deployment. We'll detail how this system will streamline agent development, explain the benefits over file-based agents, and show how it will enable faster customization and deployment of new agents.</p>
               </SubAccordion>
               
               <SubAccordion id="mcp-tool-integration" title="MCP Tool Integration">
-                <p>Agents using MCP tools for complex projects.</p>
+                <p>This section covers our MCP tool integration capabilities that enable agents to use external tools for complex projects. We'll explain how agents can access external APIs and services, detail our tool management system, and show how this integration expands the capabilities of individual agents.</p>
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -196,27 +236,27 @@
               </p>
               
               <SubAccordion id="frontend-technology" title="Frontend Technology">
-                <p>Vue.js, Ionic, TypeScript, and modern web technologies.</p>
+                <p>This section details our frontend technology stack and its benefits for small businesses. We'll explain why we chose Vue.js with Ionic, detail our TypeScript implementation, and show how this modern stack provides a responsive, maintainable user interface that works across all devices.</p>
               </SubAccordion>
               
               <SubAccordion id="backend-architecture" title="Backend Architecture">
-                <p>NestJS, Node.js, and API design patterns.</p>
+                <p>This section covers our backend architecture built on NestJS and Node.js. We'll explain our API design patterns, detail how our modular architecture supports agent communication, and show how this robust backend ensures reliable performance and easy maintenance.</p>
               </SubAccordion>
               
               <SubAccordion id="database-storage" title="Database & Storage">
-                <p>Supabase, PostgreSQL, and data management.</p>
+                <p>This section explains our database and storage solution using Supabase and PostgreSQL. We'll detail how this setup provides reliable data management, explain our data security measures, and show how this foundation supports all agent operations and user data.</p>
               </SubAccordion>
               
               <SubAccordion id="development-tools" title="Development Tools">
-                <p>Cursor, GitHub, and modern development workflow.</p>
+                <p>This section covers our modern development tools and workflow that we help clients set up. We'll explain our Cursor and GitHub integration, detail our AI-assisted development approach, and show how these tools accelerate development while maintaining code quality.</p>
               </SubAccordion>
               
               <SubAccordion id="fork-management" title="Fork Management">
-                <p>Understanding forks, updates, and safe agent development.</p>
+                <p>This section explains our fork management strategy and why agents are organized in safe my-org/ directories. We'll detail how fork updates work, explain our safe development practices, and show how this approach protects your custom agents while keeping you updated with improvements.</p>
               </SubAccordion>
               
               <SubAccordion id="ai-development-environment" title="AI Development Environment">
-                <p>Local LLM setup, MCP integration, and testing.</p>
+                <p>This section covers our AI development environment setup and configuration. We'll explain how to configure local LLM environments, detail our MCP integration for testing, and show how this setup enables rapid agent development and deployment in your own secure environment.</p>
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -237,31 +277,31 @@
               </p>
               
               <SubAccordion id="what-are-agents" title="What Are Agents?">
-                <p>Understanding AI agents and their capabilities.</p>
+                <p>This section provides a comprehensive introduction to AI agents and their capabilities. We'll explain what makes an agent different from simple AI tools, detail how agents work autonomously, and show how specialized agents can transform your business operations.</p>
               </SubAccordion>
               
               <SubAccordion id="context-agent-builder" title="Context Agent Builder">
-                <p>Building knowledge-based agents with rules files.</p>
+                <p>This section covers our Context Agent Builder for creating knowledge-based agents. We'll explain how to use our standardized rules files, detail the knowledge management capabilities, and show how these agents can become your business's AI-powered knowledge base.</p>
               </SubAccordion>
               
               <SubAccordion id="function-agent-builder" title="Function Agent Builder">
-                <p>Creating TypeScript and Python function agents.</p>
+                <p>This section details our Function Agent Builder for creating custom logic agents in TypeScript and Python. We'll explain how to build agents that execute specific functions, detail our development rules and patterns, and show how these agents can automate complex business processes.</p>
               </SubAccordion>
               
               <SubAccordion id="api-agent-builder" title="API Agent Builder">
-                <p>Wrapping external APIs and services.</p>
+                <p>This section covers our API Agent Builder for wrapping external APIs and services. We'll explain how to create agents that integrate with third-party services, detail our API management patterns, and show how these agents can extend your system's capabilities with external tools and data.</p>
               </SubAccordion>
               
               <SubAccordion id="orchestrator-agent-builder" title="Orchestrator Agent Builder">
-                <p>Building coordination and workflow agents.</p>
+                <p>This section details our Orchestrator Agent Builder for creating coordination and workflow agents. We'll explain how to build agents that manage complex workflows, detail our coordination patterns, and show how these agents can orchestrate multiple other agents to accomplish sophisticated business processes.</p>
               </SubAccordion>
               
               <SubAccordion id="rules-file-system" title="Rules File System">
-                <p>Using Cursor rules for consistent agent development.</p>
+                <p>This section explains our rules file system for consistent agent development. We'll detail how our standardized rules files work with Cursor, Claude, and Codex, explain the development patterns we follow, and show how this system ensures consistent, high-quality agent development across all types.</p>
               </SubAccordion>
               
               <SubAccordion id="ai-assisted-development" title="AI-Assisted Development">
-                <p>Leveraging Cursor, Claude, and other AI tools.</p>
+                <p>This section covers our AI-assisted development approach using Cursor, Claude, and other AI tools. We'll explain how these tools accelerate agent development, detail our development workflow, and show how AI assistance makes agent creation accessible to non-technical team members while maintaining high code quality.</p>
               </SubAccordion>
             </template>
           </AccordionSection>

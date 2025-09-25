@@ -9,6 +9,11 @@ const DEFAULT_VIEW_MODE: ViewMode = 'marketing';
 // Global state for the view mode
 const viewMode = ref<ViewMode>(DEFAULT_VIEW_MODE);
 
+// Reset function for testing
+export function resetViewMode() {
+  viewMode.value = DEFAULT_VIEW_MODE;
+}
+
 export function useViewToggle() {
   const route = useRoute();
   const router = useRouter();
@@ -66,6 +71,9 @@ export function useViewToggle() {
       }
     }
   );
+
+  // Auto-initialize when composable is created
+  initializeViewMode();
 
   return {
     viewMode: computed(() => viewMode.value),
