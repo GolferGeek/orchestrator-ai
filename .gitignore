@@ -51,12 +51,11 @@ apps/web/dist/
 # Environment variables
 .env
 
-# TaskMaster files - exclude from Git
-.taskmaster/ 
-
-# Task files
-# tasks.json
-# tasks/ 
+# TaskMaster files - exclude from Git (personal task management)
+.taskmaster/
+.taskmaster/tasks/
+.taskmaster/reports/
+.taskmaster/state.json 
 
 # Private agent namespaces (keep internal agents out of public forks)
 apps/api/src/agents/my-org/*
@@ -73,3 +72,7 @@ apps/web/src/components/landing/my-org/*
 !apps/web/src/components/landing/my-org/README.md
 apps/web/src/components/landing/saas/*
 !apps/web/src/components/landing/saas/README.md
+
+# Task files
+# tasks.json
+# tasks/ 

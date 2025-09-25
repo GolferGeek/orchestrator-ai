@@ -3,10 +3,12 @@
     <!-- Landing Header -->
     <LandingHeader />
     
-    <!-- Section Navigation -->
-    <SectionNavigation @section-toggled="handleSectionToggle" />
-    
-    <ion-content :fullscreen="true" class="landing-content">
+    <!-- Conditional rendering based on view mode -->
+    <template v-if="isMarketingView">
+      <!-- Section Navigation -->
+      <SectionNavigation @section-toggled="handleSectionToggle" />
+      
+      <ion-content :fullscreen="true" class="landing-content">
       <!-- Hero Section -->
       <HeroSection @open-video-modal="handleOpenVideoModal" />
       <!-- What We've Built Section -->
@@ -51,10 +53,15 @@
           See All Demos & Behind-the-Scenes Videos
         </ion-button>
       </div>
-    </ion-content>
+      </ion-content>
+    </template>
     
-    <!-- Video Modal -->
+    <!-- Technical View -->
+    <TextualLandingPage v-else />
+    
+    <!-- Video Modal (only for marketing view) -->
     <VideoModal 
+      v-if="isMarketingView"
       :is-open="isVideoModalOpen"
       :video-title="currentVideo?.title || ''"
       :video-description="currentVideo?.description || ''"
@@ -78,11 +85,17 @@ import PricingSection from '@/components/landing/PricingSection.vue';
 import PurposeSection from '@/components/landing/PurposeSection.vue';
 import CTASection from '@/components/landing/CTASection.vue';
 import VideoModal from '@/components/landing/VideoModal.vue';
+import TextualLandingPage from './TextualLandingPage.vue';
 // Landing page store
 import { useLandingStore } from '@/stores/landingStore';
 // Video service
 import { videoService, type Video } from '@/services/videoService';
+// View toggle composable
+import { useViewToggle } from '@/composables/useViewToggle';
 const landingStore = useLandingStore();
+
+// View toggle state
+const { isMarketingView, initializeViewMode } = useViewToggle();
 
 // Video modal state
 const isVideoModalOpen = ref(false);
@@ -144,11 +157,14 @@ function closeVideoModal() {
   currentVideo.value = null;
 }
 onMounted(() => {
+  // Initialize view mode
+  initializeViewMode();
+  
   // Initialize landing page analytics
   landingStore.trackPageView('landing');
   
-  // Check URL hash for direct navigation
-  if (window.location.hash) {
+  // Check URL hash for direct navigation (only for marketing view)
+  if (isMarketingView.value && window.location.hash) {
     const sectionId = window.location.hash.substring(1); // Remove the #
     setTimeout(() => {
       const element = document.getElementById(sectionId);
@@ -158,16 +174,18 @@ onMounted(() => {
     }, 100);
   }
   
-  // Listen for hash changes
-  window.addEventListener('hashchange', () => {
-    if (window.location.hash) {
+  // Listen for hash changes (only for marketing view)
+  const handleHashChange = () => {
+    if (isMarketingView.value && window.location.hash) {
       const sectionId = window.location.hash.substring(1);
       const element = document.getElementById(sectionId);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
-  });
+  };
+  
+  window.addEventListener('hashchange', handleHashChange);
 });
 </script>
 <style scoped>
