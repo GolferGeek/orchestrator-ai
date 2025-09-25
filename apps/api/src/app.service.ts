@@ -158,23 +158,26 @@ export class AppService implements OnModuleInit {
     return 'NestJS A2A Agent Framework - Ready!';
   }
 
-  async getAgentStatus(): Promise<any> {
-    // Get agent cards with execution modes information
+  async getAgentStatus(namespaces?: string[]): Promise<any> {
+    const filteredRecords = namespaces?.length
+      ? this.agentRecords.filter((record) =>
+          record.agent?.namespace
+            ? namespaces.includes(record.agent.namespace)
+            : true,
+        )
+      : this.agentRecords;
+
     const agentsWithDetails = await Promise.all(
-      this.discoveredAgents.map(async (agent) => {
+      filteredRecords.map(async ({ agent, instance }) => {
         let agentCard = null;
-        let executionModes = ['immediate']; // Default execution mode
+        let executionModes = ['immediate'];
         let executionProfile = DEFAULT_EXECUTION_PROFILE;
         let executionCapabilities = { ...DEFAULT_EXECUTION_CAPABILITIES };
 
         try {
-          if (
-            agent.serviceInstance &&
-            typeof agent.serviceInstance.getAgentCard === 'function'
-          ) {
-            agentCard = await agent.serviceInstance.getAgentCard();
+          if (instance && typeof instance.getAgentCard === 'function') {
+            agentCard = await instance.getAgentCard();
 
-            // Extract execution modes from agent card configuration
             if (agentCard?.configuration?.execution_modes) {
               executionModes = agentCard.configuration.execution_modes;
             }
@@ -199,9 +202,7 @@ export class AppService implements OnModuleInit {
             agent.name,
             agent.namespacedPath || agent.path,
           ),
-          // Preserve the discovered machine-friendly name so frontend matching works
           name: agent.name,
-          // Expose human-friendly display name separately when available
           displayName: agentCard?.name || agent.name,
           type: agent.type,
           namespace: agent.namespace,
@@ -209,18 +210,19 @@ export class AppService implements OnModuleInit {
             agentCard?.description ||
             `${agent.name} - A specialized agent for handling specific tasks`,
           serviceClass: agent.serviceClass?.name,
-          hasInstance: !!agent.serviceInstance,
+          hasInstance: !!instance,
           execution_modes: executionModes,
           execution_profile: executionProfile,
           execution_capabilities: executionCapabilities,
+          metadata: agent.metadata,
         };
       }),
     );
 
     return {
       status: 'running',
-      discoveredAgents: this.discoveredAgents.length,
-      runningInstances: this.agentInstances.length,
+      discoveredAgents: filteredRecords.length,
+      runningInstances: filteredRecords.filter((record) => !!record.instance).length,
       agents: agentsWithDetails,
     };
   }

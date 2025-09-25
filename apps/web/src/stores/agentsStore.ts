@@ -1,69 +1,199 @@
-import { defineStore } from 'pinia';
-import { AgentInfo } from '../types/chat';
-import { apiService } from '../services/apiService'; // Import the API service
-export interface AgentsState {
-  availableAgents: AgentInfo[];
-  agentHierarchy: any | null;
-  isLoading: boolean;
-  error: string | null;
+import { defineStore, storeToRefs } from 'pinia';
+import { ref, computed, watch } from 'vue';
+import type { AgentInfo } from '../types/chat';
+import { apiService } from '../services/apiService';
+import { useAuthStore } from './authStore';
+
+interface HierarchyNode {
+  id: string;
+  name: string;
+  children?: HierarchyNode[];
+  [key: string]: any;
 }
-export const useAgentsStore = defineStore('agents', {
-  state: (): AgentsState => ({
-    availableAgents: [],
-    agentHierarchy: null,
-    isLoading: false,
-    error: null,
-  }),
-  actions: {
-    // Action to set agents, e.g., after fetching from an API
-    setAgents(agents: AgentInfo[]) {
-      this.availableAgents = agents;
-      this.error = null;
-    },
-    setHierarchy(hierarchy: any) {
-      this.agentHierarchy = hierarchy;
-      this.error = null;
-    },
-    setLoading(loading: boolean) {
-      this.isLoading = loading;
-    },
-    setError(error: string | null) {
-      this.error = error;
-    },
-    // Example: Fetch agents from a (mocked) API
-    async fetchAvailableAgents() {
-      this.setLoading(true);
-      this.setError(null); // Clear previous errors
-      try {
-        const agents = await apiService.getAvailableAgents(); // Call the actual API service
-        this.setAgents(agents);
-      } catch (e) {
-        const errorMessage = e instanceof Error ? e.message : 'Failed to fetch agents';
-        this.setError(errorMessage);
-        this.setAgents([]); // Clear agents on error
-      } finally {
-        this.setLoading(false);
-      }
-    },
-    async fetchAgentHierarchy() {
-      this.setLoading(true);
-      this.setError(null); // Clear previous errors
-      try {
-        const hierarchy = await apiService.getAgentHierarchy();
-        this.setHierarchy(hierarchy);
-      } catch (e) {
-        const errorMessage = e instanceof Error ? e.message : 'Failed to fetch agent hierarchy';
-        this.setError(errorMessage);
-        this.setHierarchy(null); // Clear hierarchy on error
-      } finally {
-        this.setLoading(false);
+
+function normalizeHierarchyResponse(input: unknown) {
+  if (input && typeof input === 'object' && 'data' in input) {
+    const { data, metadata, ...rest } = input as {
+      data?: unknown;
+      metadata?: unknown;
+      [key: string]: unknown;
+    };
+
+    return {
+      data: Array.isArray(data) ? (data as HierarchyNode[]) : [],
+      metadata,
+      rest,
+    };
+  }
+
+  return {
+    data: Array.isArray(input) ? (input as HierarchyNode[]) : [],
+    metadata: undefined,
+    rest: {},
+  };
+}
+
+function filterHierarchyByNamespace(
+  hierarchy: unknown,
+  namespace: string,
+) {
+  const { data, metadata, rest } = normalizeHierarchyResponse(hierarchy);
+
+  const prune = (tree: HierarchyNode[]): HierarchyNode[] => {
+    const result: HierarchyNode[] = [];
+
+    for (const node of tree) {
+      const children = Array.isArray(node.children) ? prune(node.children) : [];
+      const nodeNamespace =
+        (node as any).namespace || (node as any).metadata?.namespace;
+
+      const matchesNamespace =
+        !nodeNamespace || nodeNamespace === namespace || children.length > 0;
+
+      if (matchesNamespace) {
+        result.push({ ...node, children });
       }
     }
-  },
-  getters: {
-    getAvailableAgents: (state): AgentInfo[] => state.availableAgents,
-    getAgentHierarchy: (state): any => state.agentHierarchy,
-    isLoadingAgents: (state): boolean => state.isLoading,
-    getAgentError: (state): string | null => state.error,
-  },
-}); 
+
+    return result;
+  };
+
+  const filtered = prune(data);
+
+  return {
+    data: filtered,
+    metadata,
+    ...rest,
+  };
+}
+
+export const useAgentsStore = defineStore('agents', () => {
+  const authStore = useAuthStore();
+  const { currentNamespace } = storeToRefs(authStore);
+  const isAuthenticated = computed(() => authStore.isAuthenticated);
+
+  const availableAgents = ref<AgentInfo[]>([]);
+  const agentHierarchy = ref<any>(null);
+  const isLoading = ref(false);
+  const error = ref<string | null>(null);
+  const lastLoadedNamespace = ref<string | null>(null);
+
+  let activeRequestId = 0;
+
+  const resetAgents = () => {
+    availableAgents.value = [];
+    agentHierarchy.value = null;
+  };
+
+  const loadAgentsForNamespace = async (namespace: string) => {
+    const requestId = ++activeRequestId;
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const [agents, hierarchy] = await Promise.all([
+        apiService.getAvailableAgents(),
+        apiService.getAgentHierarchy().catch(() => null),
+      ]);
+
+      if (requestId !== activeRequestId) {
+        return;
+      }
+
+      const filteredAgents = Array.isArray(agents)
+        ? agents.filter((agent) => {
+            if (!agent || typeof agent !== 'object') {
+              return false;
+            }
+            if (!('namespace' in agent) || !agent.namespace) {
+              // If backend doesn’t tag the agent, assume it belongs to the active namespace
+              return true;
+            }
+            return agent.namespace === namespace;
+          })
+        : [];
+
+      availableAgents.value = filteredAgents;
+
+      agentHierarchy.value = hierarchy
+        ? filterHierarchyByNamespace(hierarchy, namespace)
+        : null;
+      lastLoadedNamespace.value = namespace;
+    } catch (err) {
+      if (requestId !== activeRequestId) {
+        return;
+      }
+
+      resetAgents();
+      const message = err instanceof Error ? err.message : 'Failed to load agents.';
+      error.value = message;
+      console.error('[AgentsStore] Unable to load agents for namespace', namespace, err);
+    } finally {
+      if (requestId === activeRequestId) {
+        isLoading.value = false;
+      }
+    }
+  };
+
+  const ensureAgentsLoaded = async () => {
+    const namespace = currentNamespace.value;
+    if (!isAuthenticated.value || !namespace) {
+      activeRequestId++;
+      resetAgents();
+      lastLoadedNamespace.value = null;
+      isLoading.value = false;
+      error.value = null;
+      return;
+    }
+
+    if (namespace === lastLoadedNamespace.value && availableAgents.value.length) {
+      return;
+    }
+
+    await loadAgentsForNamespace(namespace);
+  };
+
+  watch(
+    [isAuthenticated, currentNamespace],
+    async ([authed, namespace]) => {
+      if (!authed || !namespace) {
+        activeRequestId++;
+        resetAgents();
+        lastLoadedNamespace.value = null;
+        error.value = null;
+        isLoading.value = false;
+        return;
+      }
+
+      await ensureAgentsLoaded();
+    },
+    { immediate: true }
+  );
+
+  const fetchAvailableAgents = async () => {
+    await ensureAgentsLoaded();
+    return availableAgents.value;
+  };
+
+  const fetchAgentHierarchy = async () => {
+    await ensureAgentsLoaded();
+    return agentHierarchy.value;
+  };
+
+  return {
+    // state
+    availableAgents,
+    agentHierarchy,
+    isLoading,
+    error,
+
+    // getters
+    hasAgents: computed(() => availableAgents.value.length > 0),
+    lastLoadedNamespace,
+
+    // actions
+    fetchAvailableAgents,
+    fetchAgentHierarchy,
+    ensureAgentsLoaded,
+  };
+});

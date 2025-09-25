@@ -105,18 +105,13 @@ export class AgentDiscoveryService {
    * Discover filesystem-based agents
    */
   private parseNamespaceConfigs(): AgentNamespaceConfig[] {
-    const rawConfig = process.env.AGENT_NAMESPACES || 'demo:agents/demo';
-    const entries = rawConfig.split(',').map((entry) => entry.trim()).filter(Boolean);
-
     const sourceRoot = this.resolveSourceRoot();
     const configs: AgentNamespaceConfig[] = [];
+    const seen = new Set<string>();
 
-    for (const entry of entries) {
-      const [key, relativePath] = entry.split(':').map((part) => part?.trim());
-
-      if (!key || !relativePath) {
-        this.logger.warn(`⚠️ Invalid AGENT_NAMESPACES entry: "${entry}"`);
-        continue;
+    const addConfig = (key: string, relativePath: string) => {
+      if (!key || seen.has(key)) {
+        return;
       }
 
       const normalizedRelativePath = relativePath
@@ -125,21 +120,38 @@ export class AgentDiscoveryService {
         .replace(/\/+/g, '/');
 
       const absolutePath = join(sourceRoot, normalizedRelativePath);
-      configs.push({
-        key,
-        relativePath: normalizedRelativePath,
-        absolutePath,
-      });
+      configs.push({ key, relativePath: normalizedRelativePath, absolutePath });
+      seen.add(key);
+    };
+
+    // Allow explicit overrides via env if provided
+    const rawConfig = process.env.AGENT_NAMESPACES;
+    if (rawConfig && rawConfig.trim().length > 0) {
+      const entries = rawConfig
+        .split(',')
+        .map(entry => entry.trim())
+        .filter(Boolean);
+
+      for (const entry of entries) {
+        const [key, relativePath] = entry.split(':').map(part => part?.trim());
+        if (!key || !relativePath) {
+          this.logger.warn(`⚠️ Invalid AGENT_NAMESPACES entry: "${entry}"`);
+          continue;
+        }
+        addConfig(key, relativePath);
+      }
     }
 
-    if (!configs.length) {
-      const fallbackRelative = 'agents/demo';
-      configs.push({
-        key: 'demo',
-        relativePath: fallbackRelative,
-        absolutePath: join(sourceRoot, fallbackRelative),
-      });
-    }
+    // Always include the canonical namespaces
+    addConfig('demo', 'agents/demo');
+    addConfig('my-org', 'agents/my-org');
+    addConfig('saas', 'agents/saas');
+
+    this.logger.log(
+      `🧭 Namespaces configured: ${configs
+        .map(config => `${config.key} → ${config.relativePath}`)
+        .join(', ')}`,
+    );
 
     return configs;
   }
