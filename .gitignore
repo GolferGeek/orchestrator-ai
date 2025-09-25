@@ -9,6 +9,8 @@ dev-debug.log
 # Database dumps and temporary files
 data_dump.sql
 *.dump.sql
+*.backup
+_supabase/db_cluster-*.backup
 
 # Supabase CLI working directories
 /supabase/
@@ -75,4 +77,11 @@ apps/web/src/components/landing/saas/*
 
 # Task files
 # tasks.json
-# tasks/ 
+# tasks/
+
+# Large presentation files
+docs/keynote/*.key
+docs/*.key
+
+# Large export files
+exports/clean-data/*.json 
