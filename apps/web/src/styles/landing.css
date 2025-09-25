@@ -498,3 +498,257 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+  /* Reset and base print styles */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 0.75in;
+    size: letter;
+  }
+
+  /* Hide non-essential elements */
+  .view-toggle,
+  .landing-header,
+  .hero-cta,
+  .disclosure-trigger,
+  .video-trigger,
+  .video-container,
+  .video-placeholder,
+  .floating-shapes,
+  .hero-section::before,
+  .hero-section::after,
+  .counter-container::before,
+  .progress-fill::after,
+  ion-button,
+  button:not(.print-visible),
+  .no-print {
+    display: none !important;
+  }
+
+  /* Remove animations and transitions */
+  * {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+
+  /* Typography optimization for print */
+  body {
+    font-size: 12pt !important;
+    line-height: 1.4 !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    color: #000 !important;
+    page-break-after: avoid;
+    margin-top: 1.2em !important;
+    margin-bottom: 0.6em !important;
+  }
+
+  h1 {
+    font-size: 18pt !important;
+    font-weight: bold !important;
+  }
+
+  h2 {
+    font-size: 16pt !important;
+    font-weight: bold !important;
+  }
+
+  h3 {
+    font-size: 14pt !important;
+    font-weight: bold !important;
+  }
+
+  h4 {
+    font-size: 13pt !important;
+    font-weight: bold !important;
+  }
+
+  /* Paragraphs and text */
+  p {
+    margin-bottom: 0.8em !important;
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Links */
+  a {
+    color: #000 !important;
+    text-decoration: underline !important;
+  }
+
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 10pt;
+    color: #666;
+  }
+
+  /* Accordion styles - expand all for print */
+  .accordion-section,
+  .sub-accordion,
+  .sub-sub-accordion {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .accordion-header,
+  .sub-accordion-header,
+  .sub-sub-accordion-header {
+    display: none !important;
+  }
+
+  .accordion-content,
+  .sub-accordion-content,
+  .sub-sub-accordion-content {
+    display: block !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Section styling for print */
+  .landing-section {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  .hero-section {
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
+    text-align: left !important;
+  }
+
+  .hero-title {
+    font-size: 18pt !important;
+    color: #000 !important;
+    text-shadow: none !important;
+    margin-bottom: 0.5em !important;
+  }
+
+  .hero-subtitle {
+    font-size: 12pt !important;
+    color: #000 !important;
+    margin-bottom: 1em !important;
+  }
+
+  /* Remove shadows and effects */
+  .counter-container,
+  .progress-bar,
+  .video-container {
+    box-shadow: none !important;
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+  }
+
+  /* Lists */
+  ul, ol {
+    margin-bottom: 0.8em !important;
+  }
+
+  li {
+    margin-bottom: 0.3em !important;
+  }
+
+  /* Tables */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    margin-bottom: 1em !important;
+  }
+
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 0.3em !important;
+    text-align: left !important;
+  }
+
+  th {
+    background: #f0f0f0 !important;
+    font-weight: bold !important;
+  }
+
+  /* Page breaks */
+  .page-break-before {
+    page-break-before: always !important;
+  }
+
+  .page-break-after {
+    page-break-after: always !important;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure content doesn't break awkwardly */
+  .accordion-section,
+  .sub-accordion,
+  .sub-sub-accordion {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Print-specific utility classes */
+  .print-only {
+    display: block !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure proper spacing between sections */
+  .accordion-section + .accordion-section {
+    margin-top: 1.5em !important;
+  }
+
+  .sub-accordion + .sub-accordion {
+    margin-top: 1em !important;
+  }
+
+  .sub-sub-accordion + .sub-sub-accordion {
+    margin-top: 0.8em !important;
+  }
+
+  /* Remove any remaining interactive elements */
+  [role="button"],
+  [tabindex],
+  .cursor-pointer {
+    cursor: default !important;
+  }
+
+  /* Ensure text is readable */
+  .text-gray-500,
+  .text-gray-600,
+  .text-gray-700 {
+    color: #000 !important;
+  }
+
+  /* Remove any remaining background colors that might interfere */
+  .bg-gradient-to-r,
+  .bg-gradient-to-b,
+  .bg-gradient-to-br {
+    background: #fff !important;
+  }
+}
