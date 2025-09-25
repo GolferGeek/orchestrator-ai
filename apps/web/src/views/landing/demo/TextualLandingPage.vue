@@ -31,6 +31,13 @@
                 and complete implementation support.
               </p>
               
+              <!-- Introduction Video -->
+              <VideoTrigger 
+                v-if="introductionVideo"
+                :video="introductionVideo"
+                @play="openVideoModal"
+              />
+              
               <SubAccordion id="ai-fire-hose" title="AI as a Fire Hose">
                 <p>This section explores the information overload problem that small businesses face when trying to understand AI. We'll examine how the constant stream of new tools, conflicting advice, and technical complexity creates decision paralysis, and how our approach cuts through the noise with clear, actionable guidance.</p>
                 
@@ -115,6 +122,13 @@
                 software, training, and initial configuration.
               </p>
               
+              <!-- Privacy & Security Video -->
+              <VideoTrigger 
+                v-if="privacyVideo"
+                :video="privacyVideo"
+                @play="openVideoModal"
+              />
+              
               <SubAccordion id="piloting-server" title="Piloting Server">
                 <p>This section details our hardware solution for running AI locally. We'll cover the Mac Studio 128GB specifications, why local deployment matters for privacy and performance, and how this hardware choice eliminates cloud dependency and ongoing subscription costs.</p>
               </SubAccordion>
@@ -133,6 +147,13 @@
               
               <SubAccordion id="team-building" title="Team Building">
                 <p>This section covers our team development and training programs. We'll explain how we help build AI competency within your organization, detail our leadership training approach, and describe how we create sustainable AI adoption that doesn't depend on external consultants long-term.</p>
+                
+                <!-- Collaboration Video -->
+                <VideoTrigger 
+                  v-if="collaborationVideo"
+                  :video="collaborationVideo"
+                  @play="openVideoModal"
+                />
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -150,6 +171,13 @@
                 (external service wrappers), and Orchestrator agents (workflow coordination). Agents are organized in demo/ 
                 and my-org/ directories, with file-based storage now and database-based agents coming soon for rapid creation.
               </p>
+              
+              <!-- Agent Architecture Video -->
+              <VideoTrigger 
+                v-if="agentArchitectureVideo"
+                :video="agentArchitectureVideo"
+                @play="openVideoModal"
+              />
               
               <SubAccordion id="a2a-protocol" title="A2A Protocol">
                 <p>This section explains our Agent-to-Agent communication framework. We'll cover the A2A standards we follow, detail our implementation approach, and demonstrate how this protocol ensures reliable, standardized communication between different AI agents in your system.</p>
@@ -195,12 +223,26 @@
                 Our goal is finely-tuned, single-purpose agents that work together seamlessly.
               </p>
               
+              <!-- Roadmap Video -->
+              <VideoTrigger 
+                v-if="roadmapVideo"
+                :video="roadmapVideo"
+                @play="openVideoModal"
+              />
+              
               <SubAccordion id="project-orchestration" title="Project Orchestration">
                 <p>This section explores our advanced project orchestration capabilities for managing large-scale agent activities. We'll explain how multiple agents can work together on complex projects, detail our coordination algorithms, and show how this system scales from simple tasks to enterprise-level operations.</p>
               </SubAccordion>
               
               <SubAccordion id="human-in-the-loop" title="Human-in-the-Loop">
                 <p>This section covers our human-in-the-loop evaluation system that ensures AI decisions meet your standards. We'll explain how approval workflows work, detail the evaluation criteria, and show how this system maintains human oversight while maximizing AI efficiency.</p>
+                
+                <!-- Evaluations Video -->
+                <VideoTrigger 
+                  v-if="evaluationsVideo"
+                  :video="evaluationsVideo"
+                  @play="openVideoModal"
+                />
               </SubAccordion>
               
               <SubAccordion id="ai-versioning" title="AI Versioning">
@@ -282,6 +324,13 @@
               
               <SubAccordion id="context-agent-builder" title="Context Agent Builder">
                 <p>This section covers our Context Agent Builder for creating knowledge-based agents. We'll explain how to use our standardized rules files, detail the knowledge management capabilities, and show how these agents can become your business's AI-powered knowledge base.</p>
+                
+                <!-- Context Agent Architecture Video -->
+                <VideoTrigger 
+                  v-if="contextAgentVideo"
+                  :video="contextAgentVideo"
+                  @play="openVideoModal"
+                />
               </SubAccordion>
               
               <SubAccordion id="function-agent-builder" title="Function Agent Builder">
@@ -308,19 +357,55 @@
         </div>
       </div>
     </ion-content>
+    
+    <!-- Video Modal -->
+    <VideoModal 
+      :is-open="isVideoModalOpen"
+      :video-title="currentVideo?.title || ''"
+      :video-description="currentVideo?.description || ''"
+      :video-url="currentVideo?.url"
+      @close="closeVideoModal"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { IonPage, IonContent } from '@ionic/vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
 import AccordionSection from '@/components/landing/AccordionSection.vue';
 import SubAccordion from '@/components/landing/SubAccordion.vue';
 import SubSubAccordion from '@/components/landing/SubSubAccordion.vue';
+import VideoModal from '@/components/landing/VideoModal.vue';
+import VideoTrigger from '@/components/landing/VideoTrigger.vue';
 import { useViewToggle } from '@/composables/useViewToggle';
+import { videoService, type Video } from '@/services/videoService';
 
 const { initializeViewMode } = useViewToggle();
+
+// Video modal state
+const isVideoModalOpen = ref(false);
+const currentVideo = ref<Video | null>(null);
+
+// Get videos for different sections
+const introductionVideo = videoService.getVideoById('intro-main');
+const privacyVideo = videoService.getVideoById('privacy-main');
+const collaborationVideo = videoService.getVideoById('collaboration-main');
+const evaluationsVideo = videoService.getVideoById('evaluations-main');
+const roadmapVideo = videoService.getVideoById('roadmap-main');
+const agentArchitectureVideo = videoService.getVideoById('agent-architecture-main');
+const contextAgentVideo = videoService.getVideoById('context-agent-architecture');
+
+// Video functions
+function openVideoModal(video: Video) {
+  currentVideo.value = video;
+  isVideoModalOpen.value = true;
+}
+
+function closeVideoModal() {
+  isVideoModalOpen.value = false;
+  currentVideo.value = null;
+}
 
 onMounted(() => {
   // Initialize the view mode when the component mounts
