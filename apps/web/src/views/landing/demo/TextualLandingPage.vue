@@ -33,6 +33,14 @@
               
               <SubAccordion id="ai-fire-hose" title="AI as a Fire Hose">
                 <p>The information overload problem that small businesses face when trying to understand AI.</p>
+                
+                <SubSubAccordion id="information-overload" title="Information Overload">
+                  <p>Too many AI tools, frameworks, and approaches to choose from.</p>
+                </SubSubAccordion>
+                
+                <SubSubAccordion id="decision-fatigue" title="Decision Fatigue">
+                  <p>Paralysis from too many options and conflicting advice.</p>
+                </SubSubAccordion>
               </SubAccordion>
               
               <SubAccordion id="technical-complexity" title="Technical Complexity">
@@ -105,6 +113,14 @@
               
               <SubAccordion id="a2a-protocol" title="A2A Protocol">
                 <p>Agent-to-Agent communication standards we follow.</p>
+                
+                <SubSubAccordion id="a2a-standards" title="A2A Standards" :lazy-load="true">
+                  <p>Detailed information about Agent-to-Agent communication protocols and standards.</p>
+                </SubSubAccordion>
+                
+                <SubSubAccordion id="a2a-implementation" title="A2A Implementation">
+                  <p>How we implement A2A protocols in our agent architecture.</p>
+                </SubSubAccordion>
               </SubAccordion>
               
               <SubAccordion id="mcp-integration" title="MCP Integration">
@@ -261,6 +277,7 @@ import { IonPage, IonContent } from '@ionic/vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
 import AccordionSection from '@/components/landing/AccordionSection.vue';
 import SubAccordion from '@/components/landing/SubAccordion.vue';
+import SubSubAccordion from '@/components/landing/SubSubAccordion.vue';
 import { useViewToggle } from '@/composables/useViewToggle';
 
 const { initializeViewMode } = useViewToggle();

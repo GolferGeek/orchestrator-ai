@@ -164,4 +164,89 @@ describe('AccordionSection', () => {
 
     expect(wrapper.classes()).toContain('is-expanded');
   });
+
+  it('should handle keyboard navigation', async () => {
+    const wrapper = mount(AccordionSection, {
+      props: {
+        id: 'test-section',
+        title: 'Test Section',
+        isExpanded: false,
+      },
+    });
+
+    const button = wrapper.find('button');
+    const content = wrapper.find('.accordion-content');
+
+    // Test Enter key
+    await button.trigger('keydown', { key: 'Enter' });
+    await wrapper.vm.$nextTick();
+    expect(content.isVisible()).toBe(true);
+
+    // Test Space key
+    await button.trigger('keydown', { key: ' ' });
+    await wrapper.vm.$nextTick();
+    expect(content.isVisible()).toBe(false);
+
+    // Test Arrow Down key (should expand)
+    await button.trigger('keydown', { key: 'ArrowDown' });
+    await wrapper.vm.$nextTick();
+    expect(content.isVisible()).toBe(true);
+
+    // Test Arrow Up key (should collapse)
+    await button.trigger('keydown', { key: 'ArrowUp' });
+    await wrapper.vm.$nextTick();
+    expect(content.isVisible()).toBe(false);
+
+    // Test Escape key (should collapse when expanded)
+    await button.trigger('keydown', { key: 'ArrowDown' }); // Expand first
+    await wrapper.vm.$nextTick();
+    await button.trigger('keydown', { key: 'Escape' });
+    await wrapper.vm.$nextTick();
+    expect(content.isVisible()).toBe(false);
+  });
+
+  it('should support defaultExpanded prop', () => {
+    const wrapper = mount(AccordionSection, {
+      props: {
+        id: 'test-section',
+        title: 'Test Section',
+        defaultExpanded: true,
+      },
+    });
+
+    expect(wrapper.find('.accordion-content').isVisible()).toBe(true);
+    expect(wrapper.find('button').attributes('aria-expanded')).toBe('true');
+  });
+
+  it('should have proper icon accessibility attributes', () => {
+    const wrapper = mount(AccordionSection, {
+      props: {
+        id: 'test-section',
+        title: 'Test Section',
+        isExpanded: false,
+      },
+    });
+
+    const icon = wrapper.find('[role="button"]');
+    expect(icon.attributes('aria-label')).toBe('Expand section: Test Section');
+    expect(icon.attributes('tabindex')).toBe('0');
+  });
+
+  it('should update icon aria-label when expanded', async () => {
+    const wrapper = mount(AccordionSection, {
+      props: {
+        id: 'test-section',
+        title: 'Test Section',
+        isExpanded: false,
+      },
+    });
+
+    const icon = wrapper.find('[role="button"]');
+    expect(icon.attributes('aria-label')).toBe('Expand section: Test Section');
+
+    await wrapper.setProps({ isExpanded: true });
+    await wrapper.vm.$nextTick();
+
+    expect(icon.attributes('aria-label')).toBe('Collapse section: Test Section');
+  });
 });
