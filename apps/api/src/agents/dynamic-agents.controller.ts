@@ -12,6 +12,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Req,
+  Headers,
 } from '@nestjs/common';
 import { AgentDiscoveryService } from '../agent-discovery.service';
 import { AppService } from '../app.service';
@@ -76,25 +77,38 @@ export class DynamicAgentsController {
    */
   @Get('.well-known/hierarchy')
   @Public()
-  async getAgentHierarchy() {
+  async getAgentHierarchy(
+    @Headers('x-agent-namespace') namespaceHeader?: string,
+    @Headers('X-Agent-Namespace') namespaceHeaderCaps?: string,
+  ) {
+    // Handle both lowercase and capitalized header names
+    const effectiveNamespace = namespaceHeader || namespaceHeaderCaps;
+    const namespaces = effectiveNamespace
+      ? effectiveNamespace
+          .split(',')
+          .map((ns) => ns.trim())
+          .filter(Boolean)
+      : undefined;
 
     try {
-      // Ensure agents are discovered and hierarchy is built
       await this.agentDiscovery.discoverAgents();
 
-      const hierarchy = this.agentDiscovery.getAgentHierarchy();
+      const hierarchy = this.agentDiscovery.getAgentHierarchy(namespaces);
+      const totalAgents = namespaces?.length
+        ? this.agentDiscovery.getDiscoveredAgentsForNamespaces(namespaces).length
+        : this.agentDiscovery.getDiscoveredAgents().length;
 
       return {
         success: true,
         data: hierarchy,
         metadata: {
-          totalAgents: this.agentDiscovery.getDiscoveredAgents().length,
+          totalAgents,
           rootNodes: hierarchy.length,
+          namespaces: namespaces ?? 'all',
           timestamp: new Date().toISOString(),
         },
       };
     } catch (error) {
-
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -102,6 +116,7 @@ export class DynamicAgentsController {
         metadata: {
           totalAgents: 0,
           rootNodes: 0,
+          namespaces: namespaces ?? 'all',
           timestamp: new Date().toISOString(),
         },
       };

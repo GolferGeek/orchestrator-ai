@@ -606,7 +606,7 @@ export class AgentDiscoveryService {
     const allowedAgentPaths = new Set(
       this.discoveredAgents
         .filter((agent) => allowedNamespaces.has(agent.namespace))
-        .map((agent) => agent.path),
+        .map((agent) => agent.namespacedPath || agent.path),
     );
 
     const cloneAndFilter = (nodes: AgentHierarchy[]): AgentHierarchy[] => {

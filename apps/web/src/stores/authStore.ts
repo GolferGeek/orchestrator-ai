@@ -187,19 +187,17 @@ export const useAuthStore = defineStore('auth', () => {
 
   const resolveDefaultNamespace = (namespaces: string[]): string => {
     if (!namespaces.length) {
-      if (!namespaceError.value) {
-        namespaceError.value = 'No namespaces available for the current user.';
-        console.error('[AuthStore] No namespaces granted to the current user.');
-      }
-      throw new Error('No namespaces available for the current user.');
+      const message = 'No namespaces available for the current user.';
+      namespaceError.value = message;
+      console.error('[AuthStore]', message);
+      throw new Error(message);
     }
 
     if (!defaultCodebaseLocation) {
-      if (!namespaceError.value) {
-        namespaceError.value = 'Missing VITE_CODEBASE_LOCATION configuration.';
-        console.error('[AuthStore] VITE_CODEBASE_LOCATION is not configured.');
-      }
-      throw new Error('Missing VITE_CODEBASE_LOCATION configuration.');
+      const message = 'Missing VITE_CODEBASE_LOCATION configuration.';
+      namespaceError.value = message;
+      console.error('[AuthStore]', message);
+      throw new Error(message);
     }
 
     if (!namespaces.includes(defaultCodebaseLocation)) {
@@ -219,9 +217,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (userId && storedUserId !== userId) {
       activeNamespace.value = null;
       localStorage.removeItem(ACTIVE_NAMESPACE_KEY);
-      if (storedUserId) {
-        localStorage.removeItem(ACTIVE_NAMESPACE_USER_KEY);
-      }
+      localStorage.removeItem(ACTIVE_NAMESPACE_USER_KEY);
       namespaceError.value = null;
     }
 
@@ -237,8 +233,9 @@ export const useAuthStore = defineStore('auth', () => {
 
       localStorage.setItem(ACTIVE_NAMESPACE_USER_KEY, userId);
       apiService.setActiveNamespace(null);
-      namespaceError.value = 'No namespaces available for the current user.';
-      console.error('[AuthStore] No namespaces available after user/profile load.');
+      const message = 'No namespaces available for the current user.';
+      namespaceError.value = message;
+      console.error('[AuthStore]', message);
       return;
     }
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get, Headers, Logger } from '@nestjs/common';
 import { AgentDiscoveryService } from '../agent-discovery.service';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -27,20 +27,32 @@ export class HierarchyController {
    */
   @Get('agents')
   @Public()
-  async getAgentHierarchy() {
+  async getAgentHierarchy(
+    @Headers('x-agent-namespace') namespaceHeader?: string,
+  ) {
+    const namespaces = namespaceHeader
+      ? namespaceHeader
+          .split(',')
+          .map((ns) => ns.trim())
+          .filter(Boolean)
+      : undefined;
 
     try {
       // Ensure agents are discovered and hierarchy is built
       await this.agentDiscovery.discoverAgents();
 
-      const hierarchy = this.agentDiscovery.getAgentHierarchy();
+      const hierarchy = this.agentDiscovery.getAgentHierarchy(namespaces);
+      const totalAgents = namespaces?.length
+        ? this.agentDiscovery.getDiscoveredAgentsForNamespaces(namespaces).length
+        : this.agentDiscovery.getDiscoveredAgents().length;
 
       return {
         success: true,
         data: hierarchy,
         metadata: {
-          totalAgents: this.agentDiscovery.getDiscoveredAgents().length,
+          totalAgents,
           rootNodes: hierarchy.length,
+          namespaces: namespaces ?? 'all',
           timestamp: new Date().toISOString(),
         },
       };
@@ -53,6 +65,7 @@ export class HierarchyController {
         metadata: {
           totalAgents: 0,
           rootNodes: 0,
+          namespaces: namespaces ?? 'all',
           timestamp: new Date().toISOString(),
         },
       };

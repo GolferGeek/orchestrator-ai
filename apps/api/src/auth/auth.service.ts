@@ -213,28 +213,32 @@ export class AuthService {
       if (userData) {
         const namespaceAccess = Array.isArray(userData.namespace_access)
           ? (userData.namespace_access as string[])
-          : ['my-org'];
+          : [];
 
-        // Combine auth user data with public profile data
-        return {
-          id: currentAuthUser.id,
-          email: currentAuthUser.email, // Email from auth is authoritative
-          displayName: userData.display_name,
-          roles: userData.roles || [UserRole.USER], // Default to 'user' role if none set
-          namespaceAccess,
-        };
-      } else {
-        // Fallback to auth user data if no public profile found
+        if (!namespaceAccess.length) {
+          throw new HttpException(
+            'User has no namespace access configured. Please contact an administrator.',
+            HttpStatus.FORBIDDEN,
+          );
+        }
 
         return {
           id: currentAuthUser.id,
           email: currentAuthUser.email,
-          displayName: currentAuthUser.userMetadata?.display_name,
-          roles: [UserRole.USER], // Default role for fallback
-          namespaceAccess: ['my-org'],
+          displayName: userData.display_name,
+          roles: userData.roles || [UserRole.USER],
+          namespaceAccess,
         };
       }
+
+      throw new HttpException(
+        'User profile not found in namespace directory.',
+        HttpStatus.FORBIDDEN,
+      );
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
 
       throw new HttpException(
         'Could not fetch user profile.',
@@ -309,7 +313,7 @@ export class AuthService {
         updatedAt: new Date(data.updated_at),
         namespaceAccess: Array.isArray(data.namespace_access)
           ? (data.namespace_access as string[])
-          : ['my-org'],
+          : [],
       };
     } catch (error) {
 
@@ -322,13 +326,14 @@ export class AuthService {
 
   async getNamespaceAccessForUser(userId: string): Promise<string[]> {
     const profile = await this.getUserProfile(userId);
-    if (!profile) {
-      return ['demo'];
+    if (!profile || !profile.namespaceAccess?.length) {
+      throw new HttpException(
+        'Namespace access is not configured for this user.',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
-    return profile.namespaceAccess?.length
-      ? profile.namespaceAccess
-      : ['demo'];
+    return profile.namespaceAccess;
   }
 
   /**

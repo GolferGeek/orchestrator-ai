@@ -115,9 +115,33 @@ export const useAgentsStore = defineStore('agents', () => {
 
       availableAgents.value = filteredAgents;
 
-      agentHierarchy.value = hierarchy
+      const filteredHierarchy = hierarchy
         ? filterHierarchyByNamespace(hierarchy, namespace)
         : null;
+
+      agentHierarchy.value = filteredHierarchy;
+
+      if (import.meta.env.DEV) {
+        const totalAgents = Array.isArray(agents) ? agents.length : 0;
+        const filteredCount = filteredAgents.length;
+        const hierarchySummary = filteredHierarchy?.data
+          ? filteredHierarchy.data.map((node: any) => ({
+              name: node.name,
+              children: Array.isArray(node.children)
+                ? node.children.map((child: any) => child.name)
+                : [],
+            }))
+          : [];
+        const namespaceSummary = {
+          namespace,
+          totalAgents,
+          filteredCount,
+          agentNames: filteredAgents.map((agent) => agent.name),
+          hierarchyRootCount: hierarchySummary.length,
+          hierarchy: hierarchySummary,
+        };
+        console.info('[AgentsStore] Loaded agents for namespace', namespaceSummary);
+      }
       lastLoadedNamespace.value = namespace;
     } catch (err) {
       if (requestId !== activeRequestId) {
