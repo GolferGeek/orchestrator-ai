@@ -26,6 +26,10 @@ validateSecureContext();
 // API endpoint configuration with HTTPS enforcement
 const API_BASE_URL = getSecureApiBaseUrl();
 
+if (import.meta.env.DEV) {
+  console.info('[ApiService] Using API base URL:', API_BASE_URL);
+}
+
 interface JsonRpcResponse {
   jsonrpc: '2.0';
   result?: any;
