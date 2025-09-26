@@ -41,16 +41,20 @@
           >
             <template #content>
               <p class="section-summary">
-                
+                Small businesses face overwhelming choices when adopting AI - from information overload and decision fatigue 
+                to technical complexity and security concerns. This section explores how the constant stream of AI tools 
+                creates decision paralysis, examines the technical barriers that prevent implementation, addresses legitimate 
+                security and privacy concerns, tackles financial uncertainty around ROI, and explains the development 
+                challenges that make building from scratch impractical for most small businesses.
               </p>
               
               <!-- Introduction Video -->
-              <VideoTrigger 
+              <VideoTrigger
                 v-if="introductionVideo"
                 :video="introductionVideo"
-                @play="openVideoModal"
+                @play="(video) => openVideoModal(video)"
               />
-              
+
               <SubAccordion id="ai-fire-hose" title="AI as a Fire Hose">
                 <p>This section explores the information overload problem that small businesses face when trying to understand AI. We'll examine how the constant stream of new tools, conflicting advice, and technical complexity creates decision paralysis, and how our approach cuts through the noise with clear, actionable guidance.</p>
                 
@@ -139,7 +143,7 @@
               <VideoTrigger 
                 v-if="privacyVideo"
                 :video="privacyVideo"
-                @play="openVideoModal"
+                @play="(video) => openVideoModal(video)"
               />
               
               <SubAccordion id="piloting-server" title="Piloting Server">
@@ -165,7 +169,7 @@
                 <VideoTrigger 
                   v-if="collaborationVideo"
                   :video="collaborationVideo"
-                  @play="openVideoModal"
+                  @play="(video) => openVideoModal(video)"
                 />
               </SubAccordion>
             </template>
@@ -189,7 +193,7 @@
               <VideoTrigger 
                 v-if="agentArchitectureVideo"
                 :video="agentArchitectureVideo"
-                @play="openVideoModal"
+                @play="(video) => openVideoModal(video)"
               />
               
               <SubAccordion id="a2a-protocol" title="A2A Protocol">
@@ -240,7 +244,7 @@
               <VideoTrigger 
                 v-if="roadmapVideo"
                 :video="roadmapVideo"
-                @play="openVideoModal"
+                @play="(video) => openVideoModal(video)"
               />
               
               <SubAccordion id="project-orchestration" title="Project Orchestration">
@@ -254,7 +258,7 @@
                 <VideoTrigger 
                   v-if="evaluationsVideo"
                   :video="evaluationsVideo"
-                  @play="openVideoModal"
+                  @play="(video) => openVideoModal(video)"
                 />
               </SubAccordion>
               
@@ -342,7 +346,7 @@
                 <VideoTrigger 
                   v-if="contextAgentVideo"
                   :video="contextAgentVideo"
-                  @play="openVideoModal"
+                  @play="(video) => openVideoModal(video)"
                 />
               </SubAccordion>
               
@@ -401,13 +405,13 @@ const isVideoModalOpen = ref(false);
 const currentVideo = ref<Video | null>(null);
 
 // Get videos for different sections
-const introductionVideo = videoService.getVideoById('intro-main');
-const privacyVideo = videoService.getVideoById('privacy-main');
-const collaborationVideo = videoService.getVideoById('collaboration-main');
-const evaluationsVideo = videoService.getVideoById('evaluations-main');
-const roadmapVideo = videoService.getVideoById('roadmap-main');
-const agentArchitectureVideo = videoService.getVideoById('agent-architecture-main');
-const contextAgentVideo = videoService.getVideoById('context-agent-architecture');
+const introductionVideo = videoService.getVideoById('intro-main')?.video;
+const privacyVideo = videoService.getVideoById('privacy-main')?.video;
+const collaborationVideo = videoService.getVideoById('collaboration-main')?.video;
+const evaluationsVideo = videoService.getVideoById('evaluations-main')?.video;
+const roadmapVideo = videoService.getVideoById('roadmap-main')?.video;
+const agentArchitectureVideo = videoService.getVideoById('agent-architecture-main')?.video;
+const contextAgentVideo = videoService.getVideoById('context-agent-architecture')?.video;
 
 // Video functions
 function openVideoModal(video: Video) {
