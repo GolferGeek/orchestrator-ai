@@ -31,7 +31,6 @@ describe('useViewToggle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorageMock.getItem.mockReturnValue(null);
-    mockRoute.query = {};
     resetViewMode();
   });
 
