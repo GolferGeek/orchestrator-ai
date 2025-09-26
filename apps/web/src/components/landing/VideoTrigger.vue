@@ -12,7 +12,7 @@
           <span class="duration">{{ video.duration }}</span>
         </div>
       </div>
-      <div class="video-info">
+      <div v-if="!hideInfo" class="video-info">
         <h4 class="video-title">{{ video.title }}</h4>
         <p class="video-description">{{ video.description }}</p>
       </div>
@@ -27,6 +27,7 @@ import type { Video } from '@/services/videoService';
 
 interface Props {
   video: Video;
+  hideInfo?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -57,6 +58,16 @@ function handleClick() {
   transition: all 0.3s ease;
   text-align: left;
   min-height: 44px; /* Accessibility requirement */
+}
+
+.video-trigger-button:has(.video-info) {
+  /* Default layout when video info is present */
+}
+
+.video-trigger-button:not(:has(.video-info)) {
+  /* Layout when only thumbnail is present */
+  justify-content: center;
+  padding: 0.5rem;
 }
 
 .video-trigger-button:hover {

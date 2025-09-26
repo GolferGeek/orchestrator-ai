@@ -1,5 +1,4 @@
 
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -101,6 +100,48 @@ $$;
 
 
 ALTER FUNCTION "public"."cleanup_abandoned_conversations"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."exec_sql"("query" "text" DEFAULT NULL::"text", "sql_query" "text" DEFAULT NULL::"text") RETURNS SETOF "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  q text := coalesce(query, sql_query);
+  r record;
+begin
+  if q is null or length(trim(q)) = 0 then
+    raise exception 'No SQL provided to exec_sql()';
+  end if;
+
+  -- Execute the query and stream rows as JSONB
+  for r in execute q loop
+    return next to_jsonb(r);
+  end loop;
+  return;
+
+exception when others then
+  -- Return a single JSON object describing the error (so callers get structured feedback)
+  return query select jsonb_build_object(
+    'error', true,
+    'message', sqlerrm,
+    'code', sqlstate
+  );
+end;
+$$;
+
+
+ALTER FUNCTION "public"."exec_sql"("query" "text", "sql_query" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_global_model_config"() RETURNS "jsonb"
+    LANGUAGE "sql" STABLE
+    AS $$
+  SELECT value FROM public.system_settings WHERE key = 'model_config_global';
+$$;
+
+
+ALTER FUNCTION "public"."get_global_model_config"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."log_agent_action"("p_action" character varying, "p_agent_id" "uuid", "p_details" "jsonb" DEFAULT '{}'::"jsonb", "p_previous_state" "jsonb" DEFAULT NULL::"jsonb", "p_new_state" "jsonb" DEFAULT NULL::"jsonb", "p_success" boolean DEFAULT true, "p_error_message" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -294,6 +335,19 @@ ALTER FUNCTION "public"."update_creation_metrics"("p_success" boolean, "p_creati
 
 COMMENT ON FUNCTION "public"."update_creation_metrics"("p_success" boolean, "p_creation_time_seconds" integer, "p_questions_answered" integer, "p_department" character varying) IS 'Helper function to update system creation metrics';
 
+
+
+CREATE OR REPLACE FUNCTION "public"."update_updated_at_column"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_updated_at_column"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."validate_skill_examples"("examples" "jsonb") RETURNS boolean
@@ -676,7 +730,7 @@ CREATE OR REPLACE VIEW "public"."conversations_with_stats" AS
                 END) AS "failed_tasks",
             "count"(
                 CASE
-                    WHEN (("tasks"."status")::"text" = ANY ((ARRAY['pending'::character varying, 'running'::character varying])::"text"[])) THEN 1
+                    WHEN (("tasks"."status")::"text" = ANY (ARRAY[('pending'::character varying)::"text", ('running'::character varying)::"text"])) THEN 1
                     ELSE NULL::integer
                 END) AS "active_tasks"
            FROM "public"."tasks"
@@ -870,6 +924,54 @@ CREATE TABLE IF NOT EXISTS "public"."llm_usage" (
 ALTER TABLE "public"."llm_usage" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."project_steps" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "project_id" "uuid" NOT NULL,
+    "step_id" "text" NOT NULL,
+    "step_index" integer NOT NULL,
+    "step_type" "text" NOT NULL,
+    "step_name" "text" NOT NULL,
+    "agent_name" "text",
+    "prompt" "text" NOT NULL,
+    "dependencies" "text"[] DEFAULT '{}'::"text"[],
+    "status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "result" "jsonb",
+    "error_details" "jsonb",
+    "started_at" timestamp with time zone,
+    "completed_at" timestamp with time zone,
+    "metadata" "jsonb" DEFAULT '{}'::"jsonb",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "project_steps_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'running'::"text", 'completed'::"text", 'failed'::"text", 'pending_approval'::"text", 'skipped'::"text"]))),
+    CONSTRAINT "project_steps_step_type_check" CHECK (("step_type" = ANY (ARRAY['agent_step'::"text", 'human_approval'::"text"])))
+);
+
+
+ALTER TABLE "public"."project_steps" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."projects" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "conversation_id" "uuid" NOT NULL,
+    "name" "text",
+    "description" "text",
+    "plan_json" "jsonb",
+    "status" "text" DEFAULT 'planning'::"text" NOT NULL,
+    "current_step_id" "text",
+    "error_details" "jsonb",
+    "metadata" "jsonb" DEFAULT '{}'::"jsonb",
+    "parent_project_id" "uuid",
+    "hierarchy_level" integer DEFAULT 0,
+    "subproject_count" integer DEFAULT 0,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "projects_status_check" CHECK (("status" = ANY (ARRAY['planning'::"text", 'pending_approval'::"text", 'running'::"text", 'paused_for_approval'::"text", 'paused_on_error'::"text", 'completed'::"text", 'aborted'::"text"])))
+);
+
+
+ALTER TABLE "public"."projects" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."pseudonym_dictionaries" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "original_value" "text" NOT NULL,
@@ -904,6 +1006,20 @@ CREATE TABLE IF NOT EXISTS "public"."redaction_patterns" (
 ALTER TABLE "public"."redaction_patterns" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."system_settings" (
+    "key" "text" NOT NULL,
+    "value" "jsonb" NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."system_settings" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."system_settings" IS 'System-wide settings (key/value JSON). Used for global model configuration and feature flags.';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."user_cidafm_commands" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "user_id" "uuid" NOT NULL,
@@ -924,11 +1040,17 @@ CREATE TABLE IF NOT EXISTS "public"."users" (
     "role" character varying(50),
     "roles" "jsonb" DEFAULT '["user"]'::"jsonb",
     "created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+    "updated_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    "namespace_access" "jsonb" DEFAULT '["my-org"]'::"jsonb" NOT NULL,
+    "status" "text" DEFAULT 'active'::"text"
 );
 
 
 ALTER TABLE "public"."users" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."users"."namespace_access" IS 'List of agent namespaces the user may access (e.g., ["demo","my-org"]).';
+
 
 
 ALTER TABLE ONLY "public"."agent_configurations"
@@ -1036,6 +1158,16 @@ ALTER TABLE ONLY "public"."llm_usage"
 
 
 
+ALTER TABLE ONLY "public"."project_steps"
+    ADD CONSTRAINT "project_steps_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."projects"
+    ADD CONSTRAINT "projects_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."pseudonym_dictionaries"
     ADD CONSTRAINT "pseudonym_dictionaries_original_value_key" UNIQUE ("original_value");
 
@@ -1053,6 +1185,11 @@ ALTER TABLE ONLY "public"."redaction_patterns"
 
 ALTER TABLE ONLY "public"."redaction_patterns"
     ADD CONSTRAINT "redaction_patterns_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."system_settings"
+    ADD CONSTRAINT "system_settings_pkey" PRIMARY KEY ("key");
 
 
 
@@ -1199,6 +1336,38 @@ CREATE INDEX "idx_llm_usage_created_at" ON "public"."llm_usage" USING "btree" ("
 
 
 
+CREATE INDEX "idx_project_steps_project_id" ON "public"."project_steps" USING "btree" ("project_id");
+
+
+
+CREATE INDEX "idx_project_steps_status" ON "public"."project_steps" USING "btree" ("status");
+
+
+
+CREATE INDEX "idx_project_steps_step_index" ON "public"."project_steps" USING "btree" ("step_index");
+
+
+
+CREATE INDEX "idx_projects_conversation_id" ON "public"."projects" USING "btree" ("conversation_id");
+
+
+
+CREATE INDEX "idx_projects_created_at" ON "public"."projects" USING "btree" ("created_at");
+
+
+
+CREATE INDEX "idx_projects_parent_project_id" ON "public"."projects" USING "btree" ("parent_project_id");
+
+
+
+CREATE INDEX "idx_projects_status" ON "public"."projects" USING "btree" ("status");
+
+
+
+CREATE INDEX "idx_projects_updated_at" ON "public"."projects" USING "btree" ("updated_at");
+
+
+
 CREATE INDEX "idx_pseudonym_dictionaries_original_value" ON "public"."pseudonym_dictionaries" USING "btree" ("original_value");
 
 
@@ -1240,6 +1409,14 @@ CREATE OR REPLACE TRIGGER "trigger_conversations_updated_at" BEFORE UPDATE ON "p
 
 
 CREATE OR REPLACE TRIGGER "trigger_update_completion_percentage" BEFORE UPDATE ON "public"."agent_creation_conversations" FOR EACH ROW WHEN (("old"."requirements_gathered" IS DISTINCT FROM "new"."requirements_gathered")) EXECUTE FUNCTION "public"."update_completion_percentage"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_project_steps_updated_at" BEFORE UPDATE ON "public"."project_steps" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_projects_updated_at" BEFORE UPDATE ON "public"."projects" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
@@ -1338,6 +1515,21 @@ ALTER TABLE ONLY "public"."llm_usage"
 
 
 
+ALTER TABLE ONLY "public"."project_steps"
+    ADD CONSTRAINT "project_steps_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."projects"
+    ADD CONSTRAINT "projects_conversation_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."projects"
+    ADD CONSTRAINT "projects_parent_project_id_fkey" FOREIGN KEY ("parent_project_id") REFERENCES "public"."projects"("id") ON DELETE SET NULL;
+
+
+
 ALTER TABLE ONLY "public"."tasks"
     ADD CONSTRAINT "tasks_conversation_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversations"("id");
 
@@ -1366,6 +1558,32 @@ CREATE POLICY "Users can create agents" ON "public"."agent_configurations" FOR I
 
 
 
+CREATE POLICY "Users can create their own project steps" ON "public"."project_steps" FOR INSERT WITH CHECK (("project_id" IN ( SELECT "p"."id"
+   FROM ("public"."projects" "p"
+     JOIN "public"."conversations" "c" ON (("p"."conversation_id" = "c"."id")))
+  WHERE ("c"."user_id" = "auth"."uid"()))));
+
+
+
+CREATE POLICY "Users can create their own projects" ON "public"."projects" FOR INSERT WITH CHECK (("conversation_id" IN ( SELECT "conversations"."id"
+   FROM "public"."conversations"
+  WHERE ("conversations"."user_id" = "auth"."uid"()))));
+
+
+
+CREATE POLICY "Users can delete their own project steps" ON "public"."project_steps" FOR DELETE USING (("project_id" IN ( SELECT "p"."id"
+   FROM ("public"."projects" "p"
+     JOIN "public"."conversations" "c" ON (("p"."conversation_id" = "c"."id")))
+  WHERE ("c"."user_id" = "auth"."uid"()))));
+
+
+
+CREATE POLICY "Users can delete their own projects" ON "public"."projects" FOR DELETE USING (("conversation_id" IN ( SELECT "conversations"."id"
+   FROM "public"."conversations"
+  WHERE ("conversations"."user_id" = "auth"."uid"()))));
+
+
+
 CREATE POLICY "Users can modify own agents" ON "public"."agent_configurations" USING (("auth"."uid"() = "created_by"));
 
 
@@ -1373,6 +1591,19 @@ CREATE POLICY "Users can modify own agents" ON "public"."agent_configurations" U
 CREATE POLICY "Users can modify skills for own agents" ON "public"."agent_skills" USING ((EXISTS ( SELECT 1
    FROM "public"."agent_configurations" "ac"
   WHERE (("ac"."id" = "agent_skills"."agent_configuration_id") AND ("ac"."created_by" = "auth"."uid"())))));
+
+
+
+CREATE POLICY "Users can update their own project steps" ON "public"."project_steps" FOR UPDATE USING (("project_id" IN ( SELECT "p"."id"
+   FROM ("public"."projects" "p"
+     JOIN "public"."conversations" "c" ON (("p"."conversation_id" = "c"."id")))
+  WHERE ("c"."user_id" = "auth"."uid"()))));
+
+
+
+CREATE POLICY "Users can update their own projects" ON "public"."projects" FOR UPDATE USING (("conversation_id" IN ( SELECT "conversations"."id"
+   FROM "public"."conversations"
+  WHERE ("conversations"."user_id" = "auth"."uid"()))));
 
 
 
@@ -1408,6 +1639,19 @@ CREATE POLICY "Users can view skills for active agents" ON "public"."agent_skill
 
 
 
+CREATE POLICY "Users can view their own project steps" ON "public"."project_steps" FOR SELECT USING (("project_id" IN ( SELECT "p"."id"
+   FROM ("public"."projects" "p"
+     JOIN "public"."conversations" "c" ON (("p"."conversation_id" = "c"."id")))
+  WHERE ("c"."user_id" = "auth"."uid"()))));
+
+
+
+CREATE POLICY "Users can view their own projects" ON "public"."projects" FOR SELECT USING (("conversation_id" IN ( SELECT "conversations"."id"
+   FROM "public"."conversations"
+  WHERE ("conversations"."user_id" = "auth"."uid"()))));
+
+
+
 ALTER TABLE "public"."agent_configurations" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1427,6 +1671,12 @@ ALTER TABLE "public"."agent_skills" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."agent_usage_analytics" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."project_steps" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."projects" ENABLE ROW LEVEL SECURITY;
 
 
 
@@ -1612,6 +1862,18 @@ GRANT ALL ON FUNCTION "public"."cleanup_abandoned_conversations"() TO "service_r
 
 
 
+GRANT ALL ON FUNCTION "public"."exec_sql"("query" "text", "sql_query" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."exec_sql"("query" "text", "sql_query" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."exec_sql"("query" "text", "sql_query" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_global_model_config"() TO "anon";
+GRANT ALL ON FUNCTION "public"."get_global_model_config"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_global_model_config"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."log_agent_action"("p_action" character varying, "p_agent_id" "uuid", "p_details" "jsonb", "p_previous_state" "jsonb", "p_new_state" "jsonb", "p_success" boolean, "p_error_message" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."log_agent_action"("p_action" character varying, "p_agent_id" "uuid", "p_details" "jsonb", "p_previous_state" "jsonb", "p_new_state" "jsonb", "p_success" boolean, "p_error_message" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."log_agent_action"("p_action" character varying, "p_agent_id" "uuid", "p_details" "jsonb", "p_previous_state" "jsonb", "p_new_state" "jsonb", "p_success" boolean, "p_error_message" "text") TO "service_role";
@@ -1651,6 +1913,12 @@ GRANT ALL ON FUNCTION "public"."update_conversation_timestamps"() TO "service_ro
 GRANT ALL ON FUNCTION "public"."update_creation_metrics"("p_success" boolean, "p_creation_time_seconds" integer, "p_questions_answered" integer, "p_department" character varying) TO "anon";
 GRANT ALL ON FUNCTION "public"."update_creation_metrics"("p_success" boolean, "p_creation_time_seconds" integer, "p_questions_answered" integer, "p_department" character varying) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_creation_metrics"("p_success" boolean, "p_creation_time_seconds" integer, "p_questions_answered" integer, "p_department" character varying) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."update_updated_at_column"() TO "anon";
+GRANT ALL ON FUNCTION "public"."update_updated_at_column"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_updated_at_column"() TO "service_role";
 
 
 
@@ -1801,6 +2069,18 @@ GRANT ALL ON TABLE "public"."llm_usage" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."project_steps" TO "anon";
+GRANT ALL ON TABLE "public"."project_steps" TO "authenticated";
+GRANT ALL ON TABLE "public"."project_steps" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."projects" TO "anon";
+GRANT ALL ON TABLE "public"."projects" TO "authenticated";
+GRANT ALL ON TABLE "public"."projects" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."pseudonym_dictionaries" TO "anon";
 GRANT ALL ON TABLE "public"."pseudonym_dictionaries" TO "authenticated";
 GRANT ALL ON TABLE "public"."pseudonym_dictionaries" TO "service_role";
@@ -1810,6 +2090,12 @@ GRANT ALL ON TABLE "public"."pseudonym_dictionaries" TO "service_role";
 GRANT ALL ON TABLE "public"."redaction_patterns" TO "anon";
 GRANT ALL ON TABLE "public"."redaction_patterns" TO "authenticated";
 GRANT ALL ON TABLE "public"."redaction_patterns" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."system_settings" TO "anon";
+GRANT ALL ON TABLE "public"."system_settings" TO "authenticated";
+GRANT ALL ON TABLE "public"."system_settings" TO "service_role";
 
 
 
@@ -1855,6 +2141,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+
 
 
 

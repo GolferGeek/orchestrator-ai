@@ -7,28 +7,34 @@
       <!-- Page Title -->
       <div class="page-header">
         <div class="container">
-          <h1 class="page-title">Technical Information</h1>
+          <h1 class="page-title">Without the Marketing Hype</h1>
           <p class="page-subtitle">
             Comprehensive details about OrchestratorAI's offerings, technology, and implementation
           </p>
+          
+          <!-- Demo Highlight Card -->
+          <ion-card class="demo-highlight-box">
+            <ion-card-header>
+              <ion-card-title class="demo-highlight-title">
+                🚀 Try the Full Demo Now!
+              </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <p class="demo-highlight-text">
+                <strong>Jump right in:</strong> The demo environment is a <span class="highlight">fully functional system</span>—everything you see here (and in the videos) is live and ready for you to explore.
+              </p>
+              <ul class="demo-highlight-list">
+                <li>Log in instantly with the provided demo credentials.</li>
+                <li>All agents are active and ready—ask what they do, then try them out!</li>
+                <li>Switch between LLM models to see real-time differences in performance.</li>
+                <li>This is the exact system we deploy for you, inside your own infrastructure.</li>
+              </ul>
+              <p class="demo-highlight-text">
+                <em>Experience OrchestratorAI hands-on—no waiting, no limitations.</em>
+              </p>
+            </ion-card-content>
+          </ion-card>
         </div>
-      </div>
-      <div class="demo-highlight-box">
-        <h2 class="demo-highlight-title">
-          🚀 Try the Full Demo Now!
-        </h2>
-        <p class="demo-highlight-text">
-          <strong>Jump right in:</strong> The demo environment is a <span class="highlight">fully functional system</span>—everything you see here (and in the videos) is live and ready for you to explore.
-        </p>
-        <ul class="demo-highlight-list">
-          <li>Log in instantly with the provided demo credentials.</li>
-          <li>All agents are active and ready—ask what they do, then try them out!</li>
-          <li>Switch between LLM models to see real-time differences in performance.</li>
-          <li>This is the exact system we deploy for you, inside your own infrastructure.</li>
-        </ul>
-        <p class="demo-highlight-text">
-          <em>Experience OrchestratorAI hands-on—no waiting, no limitations.</em>
-        </p>
       </div>
       <!-- Accordion Content -->
       <div class="accordion-container">
@@ -40,20 +46,62 @@
             :default-expanded="true"
           >
             <template #content>
-              <p class="section-summary">
-                Small businesses face overwhelming choices when adopting AI - from information overload and decision fatigue 
-                to technical complexity and security concerns. This section explores how the constant stream of AI tools 
-                creates decision paralysis, examines the technical barriers that prevent implementation, addresses legitimate 
-                security and privacy concerns, tackles financial uncertainty around ROI, and explains the development 
-                challenges that make building from scratch impractical for most small businesses.
-              </p>
-              
-              <!-- Introduction Video -->
-              <VideoTrigger
-                v-if="introductionVideo"
-                :video="introductionVideo"
-                @play="(video) => openVideoModal(video)"
-              />
+              <!-- Small Business Challenge Card -->
+              <ion-card class="challenge-highlight-box">
+                <ion-card-header>
+                  <ion-card-title class="challenge-highlight-title">
+                    🎯 The Small Business AI Challenge
+                  </ion-card-title>
+                </ion-card-header>
+                <ion-card-content>
+                  <p class="challenge-highlight-text">
+                    <strong>Small businesses face overwhelming choices when adopting AI.</strong> From information overload and decision fatigue 
+                    to technical complexity and security concerns, the path to AI implementation is fraught with obstacles.
+                  </p>
+                  
+                  <!-- Two Column Layout: Challenges + Videos -->
+                  <div class="challenge-content-layout">
+                    <!-- Left Column: Challenges List -->
+                    <div class="challenges-column">
+                      <ul class="challenge-highlight-list">
+                        <li>Information overload from 10,000+ AI tools</li>
+                        <li>Decision paralysis from conflicting advice</li>
+                        <li>Technical barriers requiring expertise you don't have</li>
+                        <li>Security and privacy concerns about data</li>
+                        <li>Financial uncertainty around ROI and costs</li>
+                        <li>Development challenges making DIY impractical</li>
+                      </ul>
+                      <p class="challenge-highlight-text">
+                        <em>This section explores each challenge and shows how we eliminate them.</em>
+                      </p>
+                    </div>
+                    
+                    <!-- Right Column: Videos -->
+                    <div class="videos-column">
+                      <div class="challenge-videos-container">
+                        <div class="video-with-label">
+                          <p class="video-label">Introduction</p>
+                          <VideoTrigger
+                            v-if="introductionVideo"
+                            :video="introductionVideo"
+                            :hide-info="true"
+                            @play="(video) => openVideoModal(video)"
+                          />
+                        </div>
+                        <div class="video-with-label">
+                          <p class="video-label">Client Challenges</p>
+                          <VideoTrigger
+                            v-if="clientChallengesVideo"
+                            :video="clientChallengesVideo"
+                            :hide-info="true"
+                            @play="(video) => openVideoModal(video)"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </ion-card-content>
+              </ion-card>
 
               <SubAccordion id="ai-fire-hose" title="AI as a Fire Hose">
                 <p>This section explores the information overload problem that small businesses face when trying to understand AI. We'll examine how the constant stream of new tools, conflicting advice, and technical complexity creates decision paralysis, and how our approach cuts through the noise with clear, actionable guidance.</p>
@@ -388,7 +436,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { IonPage, IonContent } from '@ionic/vue';
+import { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
 import AccordionSection from '@/components/landing/AccordionSection.vue';
 import SubAccordion from '@/components/landing/SubAccordion.vue';
@@ -406,6 +454,7 @@ const currentVideo = ref<Video | null>(null);
 
 // Get videos for different sections
 const introductionVideo = videoService.getVideoById('intro-main')?.video;
+const clientChallengesVideo = videoService.getVideoById('client-challenges')?.video;
 const privacyVideo = videoService.getVideoById('privacy-main')?.video;
 const collaborationVideo = videoService.getVideoById('collaboration-main')?.video;
 const evaluationsVideo = videoService.getVideoById('evaluations-main')?.video;
@@ -438,7 +487,7 @@ onMounted(() => {
 
 .textual-content {
   --background: var(--landing-light);
-  padding-top: 80px; /* Account for fixed header */
+  padding-top: 180px; /* Account for fixed header - increased to handle layout issues */
 }
 
 .page-header {
@@ -484,8 +533,154 @@ onMounted(() => {
   border-left: 4px solid var(--landing-primary);
 }
 
+.demo-highlight-box {
+  margin: 1rem 0;
+  --background: rgba(255, 255, 255, 0.95);
+  --color: var(--landing-dark);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(139, 90, 60, 0.2);
+}
+
+.challenge-highlight-box {
+  margin: 1rem 0;
+  --background: rgba(255, 255, 255, 0.95);
+  --color: var(--landing-dark);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.demo-highlight-title {
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--landing-primary);
+  text-align: center;
+  margin: 0;
+}
+
+.challenge-highlight-title {
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-bold);
+  color: #dc2626;
+  text-align: center;
+  margin: 0;
+}
+
+.demo-highlight-text {
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--landing-dark);
+  margin: 0.75rem 0;
+  text-align: center;
+}
+
+.challenge-highlight-text {
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--landing-dark);
+  margin: 0.75rem 0;
+  text-align: center;
+}
+
+.demo-highlight-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  text-align: left;
+  display: inline-block;
+}
+
+.demo-highlight-list li {
+  padding: 0.25rem 0;
+  position: relative;
+  padding-left: 1.5rem;
+  color: var(--landing-dark);
+}
+
+.demo-highlight-list li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--landing-primary);
+  font-weight: bold;
+}
+
+.challenge-highlight-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  text-align: left;
+  display: inline-block;
+}
+
+.challenge-highlight-list li {
+  padding: 0.25rem 0;
+  position: relative;
+  padding-left: 1.5rem;
+  color: var(--landing-dark);
+}
+
+.challenge-highlight-list li::before {
+  content: "⚠";
+  position: absolute;
+  left: 0;
+  color: #dc2626;
+  font-weight: bold;
+}
+
+.challenge-content-layout {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.5rem;
+  align-items: flex-start;
+}
+
+.challenges-column {
+  flex: 1;
+}
+
+.videos-column {
+  flex: 0 0 300px;
+  text-align: center;
+}
+
+
+.challenge-videos-container {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.video-with-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.video-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--landing-primary);
+  margin: 0;
+  text-align: center;
+}
+
+.highlight {
+  background: linear-gradient(120deg, var(--landing-accent-50) 0%, var(--landing-primary-50) 100%);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
+  .textual-content {
+    padding-top: 160px; /* Adjust for smaller mobile header - increased to handle layout issues */
+  }
+  
   .container {
     padding: 0 1rem;
   }
@@ -504,6 +699,55 @@ onMounted(() => {
   
   .accordion-container {
     padding: 1rem 0;
+  }
+  
+  .demo-highlight-box {
+    margin: 0.5rem 0;
+  }
+  
+  .demo-highlight-title {
+    font-size: 1.5rem;
+  }
+  
+  .demo-highlight-list {
+    text-align: center;
+  }
+  
+  .challenge-highlight-box {
+    margin: 0.5rem 0;
+  }
+  
+  .challenge-highlight-title {
+    font-size: 1.5rem;
+  }
+  
+  .challenge-highlight-list {
+    text-align: center;
+  }
+  
+  .challenge-content-layout {
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 1rem;
+  }
+  
+  .videos-column {
+    flex: none;
+    order: -1; /* Move videos to top on mobile */
+  }
+  
+  .challenge-videos-container {
+    flex-direction: row;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+  
+  .video-with-label {
+    gap: 0.125rem;
+  }
+  
+  .video-label {
+    font-size: 0.75rem;
   }
 }
 </style>

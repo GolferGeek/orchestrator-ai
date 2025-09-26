@@ -23,6 +23,16 @@
           "createdAt": "2024-01-15",
           "featured": true,
           "order": 1
+        },
+        {
+          "id": "client-challenges",
+          "title": "Client Challenges",
+          "description": "Understanding the challenges small businesses face when adopting AI technology.",
+          "url": "https://www.loom.com/embed/placeholder-for-client-challenges",
+          "duration": "TBD",
+          "createdAt": "2025-01-22",
+          "featured": true,
+          "order": 2
         }
       ]
     },
@@ -151,7 +161,7 @@
   },
   "metadata": {
     "lastUpdated": "2025-01-22",
-    "totalVideos": 9,
+    "totalVideos": 10,
     "categories": 7
   }
 }
