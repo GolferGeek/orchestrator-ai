@@ -104,71 +104,157 @@
               </ion-card>
 
               <SubAccordion id="ai-fire-hose" title="AI as a Fire Hose">
-                <p>This section explores the information overload problem that small businesses face when trying to understand AI. We'll examine how the constant stream of new tools, conflicting advice, and technical complexity creates decision paralysis, and how our approach cuts through the noise with clear, actionable guidance.</p>
                 
-                <SubSubAccordion id="information-overload" title="Information Overload">
-                  <div class="content-details">
-                    <p>Small businesses face an impossible choice: spend months researching AI or risk falling behind competitors.</p>
+                <ion-card class="information-overload-card">
+                  <ion-card-content>
+                    <h3 class="info-overload-title">🌊 Information Overload Challenge</h3>
                     
-                    <h4>What You're Up Against</h4>
-                    <ul>
-                      <li><strong>10,000+ AI tools</strong> available today</li>
-                      <li><strong>New tools launched daily</strong> - impossible to keep up</li>
-                      <li><strong>Conflicting reviews</strong> - every tool claims to be "the best"</li>
-                      <li><strong>Technical complexity</strong> - most require technical expertise</li>
-                      <li><strong>Integration challenges</strong> - tools don't work together</li>
-                    </ul>
+                    <p class="info-overload-intro">
+                      <strong>Nothing but promises and marketing-- and 99% directed at large companies.</strong>
+                    </p>
                     
-                    <h4>Why This Matters</h4>
-                    <p>Without proper guidance, small businesses typically:</p>
-                    <ul>
-                      <li>Waste 3-6 months trying different tools</li>
-                      <li>Spend $5,000-$15,000 on tools that don't work</li>
-                      <li>Lose confidence in AI's potential</li>
-                      <li>Fall further behind competitors</li>
-                    </ul>
-                  </div>
-                </SubSubAccordion>
-                
-                <SubSubAccordion id="decision-fatigue" title="Decision Fatigue">
-                  <div class="content-details">
-                    <p>When faced with too many options, decision-making becomes paralyzing rather than empowering.</p>
-                    
-                    <h4>The Psychology of Choice</h4>
-                    <p>Research shows that when people have too many options, they:</p>
-                    <ul>
-                      <li><strong>Experience decision paralysis</strong> - can't choose anything</li>
-                      <li><strong>Make worse decisions</strong> - overwhelmed by choice</li>
-                      <li><strong>Feel less satisfied</strong> - always wondering if they chose wrong</li>
-                      <li><strong>Give up entirely</strong> - avoid making any decision</li>
-                    </ul>
-                    
-                    <h4>Our Approach</h4>
-                    <p>We eliminate decision fatigue by providing:</p>
-                    <ul>
-                      <li><strong>One proven solution</strong> - no endless comparisons</li>
-                      <li><strong>Clear implementation path</strong> - step-by-step guidance</li>
-                      <li><strong>Complete package</strong> - everything you need in one place</li>
-                      <li><strong>Expert guidance</strong> - we make the hard decisions for you</li>
-                    </ul>
-                  </div>
-                </SubSubAccordion>
-              </SubAccordion>
-              
-              <SubAccordion id="technical-complexity" title="Technical Complexity">
-                <p>This section addresses the technical barriers that prevent small businesses from implementing AI. We'll discuss why traditional AI solutions require expertise that small businesses don't have, and how our pre-built, ready-to-use approach eliminates these technical hurdles.</p>
+                    <div class="overload-content-layout">
+                      <div class="challenge-column">
+                        <h4>What You're Up Against</h4>
+                        <ul class="challenge-list">
+                          <li><strong>10,000+ AI tools</strong> available today</li>
+                          <li><strong>New tools launched daily</strong> - impossible to keep up</li>
+                          <li><strong>Conflicting reviews</strong> - every tool claims to be "the best"</li>
+                          <li><strong>Technical complexity</strong> - most require technical expertise</li>
+                          <li><strong>Integration challenges</strong> - tools don't work together</li>
+                        </ul>
+                      </div>
+                      
+                      <div class="solution-column">
+                        <h4>Our Approach</h4>
+                        <ul class="solution-list">
+                          <li><strong>Unique Small Business Focused</strong> - simple now and will grow with you</li>
+                          <li><strong>Complete package</strong> - everything you need in one place</li>
+                          <li><strong>Already working</strong> - no long term setup</li>
+                          <li><strong>Less expensive to implement and grow</strong> - our consulting is affordable</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </ion-card-content>
+                </ion-card>
               </SubAccordion>
               
               <SubAccordion id="security-privacy" title="Security and Privacy">
-                <p>This section examines the legitimate security and privacy concerns that small businesses have about AI adoption. We'll explore common fears about data breaches, compliance issues, and third-party risks, and explain how our security-first approach addresses these concerns through local deployment and privacy by design.</p>
+                <ion-card class="security-privacy-card">
+                  <ion-card-content>
+                    <h3 class="security-title">🔒 LLM Security & Privacy Concerns</h3>
+                    
+                    <p class="security-intro">
+                      <strong>Most AI solutions expose your sensitive data to third-party servers and unknown security risks.</strong>
+                    </p>
+                    
+                    <div class="security-content-layout">
+                      <div class="risks-column">
+                        <h4>Common Security Risks</h4>
+                        <ul class="risks-list">
+                          <li><strong>Data exposure</strong> - your conversations sent to external servers</li>
+                          <li><strong>No data control</strong> - unclear where your information goes</li>
+                          <li><strong>Compliance issues</strong> - GDPR, HIPAA, SOX violations</li>
+                          <li><strong>Third-party breaches</strong> - you're at mercy of their security</li>
+                          <li><strong>Model training</strong> - your data used to improve their models</li>
+                          <li><strong>Vendor lock-in</strong> - dependent on external services</li>
+                        </ul>
+                      </div>
+                      
+                      <div class="protection-column">
+                        <h4>Our Security-First Approach</h4>
+                        <ul class="protection-list">
+                          <li><strong>Local deployment</strong> - your data never leaves your premises</li>
+                          <li><strong>Complete control</strong> - you own and control everything</li>
+                          <li><strong>Compliance ready</strong> - meets enterprise security standards</li>
+                          <li><strong>No external dependencies</strong> - defaults to offline</li>
+                          <li><strong>Private models</strong> - your conversations stay private</li>
+                          <li><strong>Audit trail</strong> - full visibility into all AI interactions</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </ion-card-content>
+                </ion-card>
               </SubAccordion>
               
               <SubAccordion id="cost-roi" title="Cost and ROI">
-                <p>This section tackles the financial uncertainty that surrounds AI implementation. We'll address the common problem of unclear costs and unpredictable ROI, and demonstrate how our transparent pricing model and proven return timeline eliminate financial guesswork.</p>
+                <ion-card class="cost-roi-card">
+                  <ion-card-content>
+                    <h3 class="cost-title">💰 Financial Uncertainty & Hidden Costs</h3>
+                    
+                    <p class="cost-intro">
+                      <strong>Most AI implementations come with unpredictable costs and unclear ROI timelines.</strong>
+                    </p>
+                    
+                    <div class="cost-content-layout">
+                      <div class="cost-problems-column">
+                        <h4>Typical Cost Problems</h4>
+                        <ul class="cost-problems-list">
+                          <li><strong>Hidden subscription fees</strong> - costs escalate with usage</li>
+                          <li><strong>Per-user pricing</strong> - expensive as team grows</li>
+                          <li><strong>API rate limits</strong> - throttling when you need it most</li>
+                          <li><strong>Integration costs</strong> - expensive custom development</li>
+                          <li><strong>Training expenses</strong> - months of learning curves</li>
+                          <li><strong>Unclear ROI</strong> - no guarantee of returns</li>
+                        </ul>
+                      </div>
+                      
+                      <div class="cost-solution-column">
+                        <h4>Our Transparent Pricing</h4>
+                        <ul class="cost-solution-list">
+                          <li><strong>Mostly local models</strong> - less cloud LLM costs</li>
+                          <li><strong>No per-user fees</strong> - unlimited team access*</li>
+                          <li><strong>No usage limits</strong> - run as much as you want</li>
+                          <li><strong>Affordable consulting</strong> - $120/hr expert, $50/hr interns</li>
+                          <li><strong>Fast implementation</strong> - working in days, not months</li>
+                          <li><strong>Proven ROI</strong> - immediate productivity gains</li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div class="cost-footnote">
+                      <p>* Growing local LLM usage may require multiple servers or a more traditional server</p>
+                    </div>
+                  </ion-card-content>
+                </ion-card>
               </SubAccordion>
               
               <SubAccordion id="development-challenges" title="Development Challenges">
-                <p>This section explores the development barriers that prevent small businesses from building their own AI solutions. We'll examine why building from scratch requires months of work and specialized expertise, and how our pre-built, tested approach eliminates these development challenges.</p>
+                <ion-card class="development-challenges-card">
+                  <ion-card-content>
+                    <h3 class="development-title">⚙️ Development Barriers & Complexity</h3>
+                    
+                    <p class="development-intro">
+                      <strong>Building AI solutions from scratch requires specialized expertise and months of development time.</strong>
+                    </p>
+                    
+                    <div class="development-content-layout">
+                      <div class="dev-challenges-column">
+                        <h4>Development Barriers</h4>
+                        <ul class="dev-challenges-list">
+                          <li><strong>Technical expertise</strong> - need AI/ML specialists</li>
+                          <li><strong>Infrastructure setup</strong> - complex server configurations</li>
+                          <li><strong>Model integration</strong> - connecting different AI services</li>
+                          <li><strong>Security implementation</strong> - building safe, compliant systems</li>
+                          <li><strong>Testing & debugging</strong> - months of trial and error</li>
+                          <li><strong>Maintenance overhead</strong> - ongoing updates and fixes</li>
+                        </ul>
+                      </div>
+                      
+                      <div class="dev-solution-column">
+                        <h4>Our Pre-Built Solution</h4>
+                        <ul class="dev-solution-list">
+                          <li><strong>Ready to deploy</strong> - tested and production-ready</li>
+                          <li><strong>Rapid implementation</strong> - coding required but we will help you</li>
+                          <li><strong>Integrated agents</strong> - multiple AI capabilities included</li>
+                          <li><strong>Security built-in</strong> - enterprise-grade from day one</li>
+                          <li><strong>Proven reliability</strong> - battle-tested in real environments</li>
+                          <li><strong>Ongoing support</strong> - we handle updates and maintenance</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </ion-card-content>
+                </ion-card>
               </SubAccordion>
             </template>
           </AccordionSection>
@@ -181,7 +267,7 @@
           >
             <template #content>
               <p class="section-summary">
-                We provide a complete AI implementation package including a piloting server (Mac Studio 128GB or equivalent), 
+                You provide a complete AI implementation package including a piloting server (Mac Studio 128GB or equivalent), 
                 our forked repository with starter agents, super cheap consulting ($120/hour for me, $50/hour for interns), 
                 team building and training, and ongoing support. Setup starts at $15k with everything included - hardware, 
                 software, training, and initial configuration.
@@ -551,6 +637,42 @@ onMounted(() => {
   border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
+.information-overload-card {
+  margin: 1rem 0;
+  --background: rgba(255, 255, 255, 0.95);
+  --color: var(--landing-dark);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+}
+
+.security-privacy-card {
+  margin: 1rem 0;
+  --background: rgba(255, 255, 255, 0.95);
+  --color: var(--landing-dark);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.cost-roi-card {
+  margin: 1rem 0;
+  --background: rgba(255, 255, 255, 0.95);
+  --color: var(--landing-dark);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+.development-challenges-card {
+  margin: 1rem 0;
+  --background: rgba(255, 255, 255, 0.95);
+  --color: var(--landing-dark);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
 .demo-highlight-title {
   font-size: 1.75rem;
   font-weight: var(--font-weight-bold);
@@ -565,6 +687,208 @@ onMounted(() => {
   color: #dc2626;
   text-align: center;
   margin: 0;
+}
+
+.info-overload-title {
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-bold);
+  color: #f97316;
+  text-align: center;
+  margin: 0;
+}
+
+.security-title {
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-bold);
+  color: #22c55e;
+  text-align: center;
+  margin: 0;
+}
+
+.cost-title {
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-bold);
+  color: #a855f7;
+  text-align: center;
+  margin: 0;
+}
+
+.development-title {
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-bold);
+  color: #3b82f6;
+  text-align: center;
+  margin: 0;
+}
+
+.info-overload-intro {
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--landing-dark);
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.overload-content-layout {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.challenge-column,
+.solution-column {
+  flex: 1;
+}
+
+.challenge-list,
+.solution-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.challenge-list li,
+.solution-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.challenge-list li:last-child,
+.solution-list li:last-child {
+  border-bottom: none;
+}
+
+.security-intro {
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--landing-dark);
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.security-content-layout {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.risks-column,
+.protection-column {
+  flex: 1;
+}
+
+.risks-list,
+.protection-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.risks-list li,
+.protection-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.risks-list li:last-child,
+.protection-list li:last-child {
+  border-bottom: none;
+}
+
+.cost-intro {
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--landing-dark);
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.cost-content-layout {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.cost-problems-column,
+.cost-solution-column {
+  flex: 1;
+}
+
+.cost-problems-list,
+.cost-solution-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.cost-problems-list li,
+.cost-solution-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.cost-problems-list li:last-child,
+.cost-solution-list li:last-child {
+  border-bottom: none;
+}
+
+.cost-footnote {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.cost-footnote p {
+  font-size: var(--text-xs);
+  color: var(--ion-color-medium);
+  margin: 0;
+  text-align: center;
+  font-style: italic;
+}
+
+.development-intro {
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--landing-dark);
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.development-content-layout {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.dev-challenges-column,
+.dev-solution-column {
+  flex: 1;
+}
+
+.dev-challenges-list,
+.dev-solution-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.dev-challenges-list li,
+.dev-solution-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.dev-challenges-list li:last-child,
+.dev-solution-list li:last-child {
+  border-bottom: none;
 }
 
 .demo-highlight-text {
@@ -748,6 +1072,46 @@ onMounted(() => {
   
   .video-label {
     font-size: 0.75rem;
+  }
+  
+  .overload-content-layout {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .challenge-column,
+  .solution-column {
+    flex: none;
+  }
+  
+  .security-content-layout {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .risks-column,
+  .protection-column {
+    flex: none;
+  }
+  
+  .cost-content-layout {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .cost-problems-column,
+  .cost-solution-column {
+    flex: none;
+  }
+  
+  .development-content-layout {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .dev-challenges-column,
+  .dev-solution-column {
+    flex: none;
   }
 }
 </style>
