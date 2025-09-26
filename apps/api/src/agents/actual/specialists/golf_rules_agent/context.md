@@ -99,4 +99,8 @@ Escalate to Specialists Manager when:
 - "Provide complete ruling on equipment conformance question." (Build)
   - Research equipment regulations, provide conformance determination, include official citations, and give competition implications.
 
+## Videos
+
+golf-rules-coach-demo
+
 Focus on authoritative accuracy, official procedures, and practical application of Rules of Golf in all playing situations.

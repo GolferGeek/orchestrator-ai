@@ -12,6 +12,7 @@ import { TaskStatusService } from '@/tasks/task-status.service';
 import { TasksService } from '@/tasks/tasks.service';
 import { DeliverablesService } from '@/deliverables/deliverables.service';
 import { AgentServicesContext } from '@agents/base/services/agent-services-context';
+import { ContextLoaderService } from '@agents/base/sub-services/context-loader/context-loader.service';
 
 /**
  * Context Agent Base Service that processes context-based requests using LLM
@@ -22,6 +23,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
   protected readonly contextLogger = new Logger(ContextAgentBaseService.name);
   private contextData: string | null = null;
   protected readonly agentContextService = new AgentContextService();
+  private readonly contextLoaderService = new ContextLoaderService();
 
   constructor(
     // Pure service container pattern - only accepts AgentServicesContext
@@ -432,6 +434,18 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       ? this.agentContextService.description
       : baseCard.description || '';
 
+    // Load video IDs from context.md if agent path is available
+    let videos: string[] | undefined;
+    if (this.agentPath) {
+      try {
+        const contextContent = await this.contextLoaderService.loadContextFile(this.agentPath);
+        videos = contextContent?.videos;
+      } catch (error) {
+        this.contextLogger.debug(`Failed to load video IDs for agent ${this.agentPath}:`, error);
+        videos = undefined;
+      }
+    }
+
     return {
       ...baseCard,
       name,
@@ -440,6 +454,7 @@ export class ContextAgentBaseService extends A2AAgentBaseService {
       contextStatus: this.contextData ? 'loaded' : 'not_loaded',
       contextLength: this.contextData?.length || 0,
       loadedAt: this.contextData ? new Date().toISOString() : null,
+      videos, // Include video IDs if available
     };
   }
 

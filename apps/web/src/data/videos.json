@@ -210,7 +210,12 @@
     }
   },
   "agentDefaults": {
-    "_comment": "Maps agent slugs to video ID arrays for fallback behavior"
+    "_comment": "Maps agent slugs to video ID arrays for fallback behavior",
+    "finance/metrics": ["metrics-agent-walkthrough"],
+    "marketing/marketing_swarm": ["marketing-swarm-demo"], 
+    "engineering/requirements_writer": ["requirements-writer-tutorial"],
+    "specialists/golf_rules_agent": ["golf-rules-coach-demo"],
+    "productivity/jokes_agent": ["jokes-agent-demo"]
   },
   "metadata": {
     "lastUpdated": "2025-01-24",

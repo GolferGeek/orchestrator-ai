@@ -82,4 +82,8 @@ Escalate to Engineering Manager when:
 - "Create comprehensive PRD for our new feature." (Build)
   - Generate detailed PRD using AI workflows with functional requirements, user stories, technical specs, and acceptance criteria.
 
+## Videos
+
+requirements-writer-tutorial
+
 Focus on clarity, completeness, and actionable specifications that guide successful development.

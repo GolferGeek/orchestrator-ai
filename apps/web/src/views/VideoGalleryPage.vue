@@ -8,6 +8,12 @@
             <ion-icon :icon="arrowBackOutline"></ion-icon>
           </ion-button>
         </ion-buttons>
+        <ion-buttons slot="end" v-if="isAdmin">
+          <ion-button @click="showAddVideoModal = true" fill="outline">
+            <ion-icon slot="start" :icon="addOutline"></ion-icon>
+            Add Video
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content class="ion-padding">
@@ -59,6 +65,10 @@
                 <span class="duration">{{ result.video.duration }}</span>
                 <span class="category">{{ result.category.title }}</span>
                 <span v-if="result.video.featured" class="featured-badge">Featured</span>
+                <span v-if="hasTranscript(result.video.id)" class="transcript-badge">
+                  <ion-icon :icon="documentTextOutline"></ion-icon>
+                  Transcript
+                </span>
               </div>
             </div>
             <div class="video-action">
@@ -92,6 +102,10 @@
                 <div class="video-meta">
                   <span class="duration">{{ video.duration }}</span>
                   <span v-if="video.featured" class="featured-badge">Featured</span>
+                  <span v-if="hasTranscript(video.id)" class="transcript-badge">
+                    <ion-icon :icon="documentTextOutline"></ion-icon>
+                    Transcript
+                  </span>
                 </div>
               </div>
               <div class="video-action">
@@ -121,14 +135,110 @@
       :video-url="currentVideo?.url"
       @close="closeVideoModal"
     />
+
+    <!-- Add Video Admin Modal -->
+    <ion-modal :is-open="showAddVideoModal" @did-dismiss="closeAddVideoModal" class="add-video-modal">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Add New Video</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="closeAddVideoModal" fill="clear">
+              <ion-icon :icon="closeOutline"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <form @submit.prevent="submitVideo">
+          <ion-item>
+            <ion-label position="stacked">Video ID*</ion-label>
+            <ion-input v-model="newVideo.id" placeholder="agent-demo-example" required></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Title*</ion-label>
+            <ion-input v-model="newVideo.title" placeholder="Demo Title" required></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Description*</ion-label>
+            <ion-textarea v-model="newVideo.description" placeholder="Video description..." required></ion-textarea>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Video URL*</ion-label>
+            <ion-input v-model="newVideo.url" placeholder="https://www.loom.com/embed/..." required></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Duration*</ion-label>
+            <ion-input v-model="newVideo.duration" placeholder="5:30" required></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Category*</ion-label>
+            <ion-select v-model="newVideo.categoryKey" placeholder="Select category" required>
+              <ion-select-option v-for="category in availableCategories" :key="category.key" :value="category.key">
+                {{ category.title }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Order</ion-label>
+            <ion-input v-model="newVideo.order" type="number" placeholder="1" required></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-checkbox v-model="newVideo.featured"></ion-checkbox>
+            <ion-label class="ion-margin-start">Featured Video</ion-label>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Transcript ID (optional)</ion-label>
+            <ion-input v-model="newVideo.transcriptId" placeholder="Same as video ID"></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Recording Status</ion-label>
+            <ion-select v-model="newVideo.recordingStatus" placeholder="Select status">
+              <ion-select-option value="ready_for_recording">Ready for Recording</ion-select-option>
+              <ion-select-option value="in_production">In Production</ion-select-option>
+              <ion-select-option value="completed">Completed</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-button expand="block" type="submit" :disabled="isSubmitting" class="submit-button">
+            <ion-spinner v-if="isSubmitting" size="small"></ion-spinner>
+            {{ isSubmitting ? 'Creating...' : 'Create Video' }}
+          </ion-button>
+        </form>
+
+        <ion-toast 
+          :is-open="showToast" 
+          :message="toastMessage" 
+          :color="toastColor"
+          :duration="3000"
+          @did-dismiss="showToast = false"
+        ></ion-toast>
+      </ion-content>
+    </ion-modal>
   </ion-page>
 </template>
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonIcon, IonButton, IonSearchbar } from '@ionic/vue';
-import { arrowBackOutline, playCircleOutline, calendarOutline } from 'ionicons/icons';
+import { ref, computed, onMounted } from 'vue';
+import { 
+  IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonIcon, IonButton, IonSearchbar,
+  IonModal, IonItem, IonLabel, IonInput, IonTextarea, IonSelect, IonSelectOption, IonCheckbox, IonSpinner, IonToast
+} from '@ionic/vue';
+import { arrowBackOutline, playCircleOutline, calendarOutline, addOutline, closeOutline, documentTextOutline } from 'ionicons/icons';
 import VideoModal from '@/components/landing/VideoModal.vue';
 import { videoService, type Video } from '@/services/videoService';
+import { useAuthStore } from '@/stores/authStore';
+import { analyticsService } from '@/services/analyticsService';
+
+// Auth store
+const authStore = useAuthStore();
 
 // Video modal state
 const isVideoModalOpen = ref(false);
@@ -138,13 +248,42 @@ const currentVideo = ref<Video | null>(null);
 const searchQuery = ref('');
 const searchResults = ref<Array<{ video: Video; category: any; categoryKey: string }>>([]);
 
+// Admin modal state
+const showAddVideoModal = ref(false);
+const isSubmitting = ref(false);
+const showToast = ref(false);
+const toastMessage = ref('');
+const toastColor = ref<'success' | 'danger'>('success');
+const availableCategories = ref<Array<{key: string, title: string}>>([]);
+
+// New video form data
+const newVideo = ref({
+  id: '',
+  title: '',
+  description: '',
+  url: '',
+  duration: '',
+  categoryKey: '',
+  order: 1,
+  featured: false,
+  transcriptId: '',
+  recordingStatus: 'ready_for_recording',
+  createdAt: new Date().toISOString().split('T')[0]
+});
+
 // Get video data from service
 const videoCategories = computed(() => videoService.getCategoriesInOrder());
 const videoStats = computed(() => videoService.getStats());
 
+// Check admin permissions
+const isAdmin = computed(() => authStore.isAdmin);
+
 function openVideoModal(video: Video) {
   currentVideo.value = video;
   isVideoModalOpen.value = true;
+  
+  // Track video modal open from gallery
+  trackVideoGalleryClick(video);
 }
 
 function closeVideoModal() {
@@ -159,6 +298,192 @@ function handleSearch() {
     searchResults.value = [];
   }
 }
+
+// Admin functionality
+function hasTranscript(videoId: string): boolean {
+  // For now, assume transcript exists for videos with IDs that match known patterns
+  // This will be enhanced when transcript API is fully integrated
+  const videoTextsPattern = [
+    'agent-default-overview',
+    'metrics-agent-walkthrough', 
+    'marketing-swarm-demo',
+    'requirements-writer-tutorial',
+    'golf-rules-coach-demo',
+    'jokes-agent-demo'
+  ];
+  return videoTextsPattern.includes(videoId);
+}
+
+async function loadCategories() {
+  try {
+    const response = await fetch('/api/videos/categories');
+    if (response.ok) {
+      availableCategories.value = await response.json();
+    } else {
+      // Fallback to service categories
+      availableCategories.value = videoService.getCategoriesInOrder().map(item => ({
+        key: item.key,
+        title: item.category.title
+      }));
+    }
+  } catch (error) {
+    console.error('Error loading categories:', error);
+    // Fallback to service categories
+    availableCategories.value = videoService.getCategoriesInOrder().map(item => ({
+      key: item.key,
+      title: item.category.title
+    }));
+  }
+}
+
+function closeAddVideoModal() {
+  showAddVideoModal.value = false;
+  resetForm();
+}
+
+function resetForm() {
+  newVideo.value = {
+    id: '',
+    title: '',
+    description: '',
+    url: '',
+    duration: '',
+    categoryKey: '',
+    order: 1,
+    featured: false,
+    transcriptId: '',
+    recordingStatus: 'ready_for_recording',
+    createdAt: new Date().toISOString().split('T')[0]
+  };
+}
+
+async function submitVideo() {
+  if (!authStore.token) {
+    showToastMessage('Authentication required', 'danger');
+    return;
+  }
+
+  isSubmitting.value = true;
+
+  try {
+    const videoData = {
+      ...newVideo.value,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    const response = await fetch('/api/videos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify(videoData)
+    });
+
+    if (response.ok) {
+      showToastMessage('Video created successfully!', 'success');
+      
+      // Track successful video creation
+      await trackVideoCreationSuccess(videoData);
+      
+      closeAddVideoModal();
+      
+      // Refresh the page to show new video
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } else {
+      const error = await response.json();
+      showToastMessage(error.message || 'Failed to create video', 'danger');
+      
+      // Track failed video creation
+      await trackVideoCreationFailure(videoData, error.message || 'Unknown error');
+    }
+  } catch (error) {
+    console.error('Error creating video:', error);
+    showToastMessage('Error creating video', 'danger');
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
+function showToastMessage(message: string, color: 'success' | 'danger') {
+  toastMessage.value = message;
+  toastColor.value = color;
+  showToast.value = true;
+}
+
+// Analytics tracking functions
+async function trackVideoGalleryClick(video: Video) {
+  try {
+    await analyticsService.trackEvent({
+      eventType: 'video_gallery_click',
+      category: 'video_gallery',
+      action: 'video_click',
+      label: video.title,
+      metadata: {
+        videoId: video.id,
+        videoTitle: video.title,
+        featured: video.featured || false,
+        source: 'video_gallery_page',
+        category: 'unknown' // Could be enhanced to include video category
+      }
+    });
+  } catch (error) {
+    console.warn('Failed to track video gallery click:', error);
+  }
+}
+
+async function trackVideoCreationSuccess(videoData: any) {
+  try {
+    await analyticsService.trackEvent({
+      eventType: 'admin_video_created',
+      category: 'admin_actions',
+      action: 'video_created',
+      label: videoData.title,
+      metadata: {
+        videoId: videoData.id,
+        videoTitle: videoData.title,
+        categoryKey: videoData.categoryKey,
+        featured: videoData.featured || false,
+        recordingStatus: videoData.recordingStatus,
+        hasTranscript: !!videoData.transcriptId,
+        source: 'admin_modal',
+        adminUserId: authStore.user?.id,
+        success: true
+      }
+    });
+  } catch (error) {
+    console.warn('Failed to track video creation success:', error);
+  }
+}
+
+async function trackVideoCreationFailure(videoData: any, errorMessage: string) {
+  try {
+    await analyticsService.trackEvent({
+      eventType: 'admin_video_creation_failed',
+      category: 'admin_actions',
+      action: 'video_creation_failed',
+      label: videoData.title,
+      metadata: {
+        videoId: videoData.id,
+        videoTitle: videoData.title,
+        categoryKey: videoData.categoryKey,
+        errorMessage: errorMessage,
+        source: 'admin_modal',
+        adminUserId: authStore.user?.id,
+        success: false
+      }
+    });
+  } catch (error) {
+    console.warn('Failed to track video creation failure:', error);
+  }
+}
+
+// Initialize categories on mount
+onMounted(() => {
+  loadCategories();
+});
 </script>
 <style scoped>
 .video-gallery-page {
@@ -374,6 +699,18 @@ function handleSearch() {
   color: white;
 }
 
+.transcript-badge {
+  background: var(--ion-color-secondary);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.transcript-badge ion-icon {
+  font-size: 0.6rem;
+}
+
 .video-action {
   display: flex;
   align-items: center;
@@ -406,6 +743,60 @@ function handleSearch() {
   --background: var(--landing-accent);
   --color: white;
   font-weight: 600;
+}
+
+/* Add Video Admin Modal */
+.add-video-modal {
+  --width: 90%;
+  --max-width: 600px;
+  --height: 80%;
+  --border-radius: 12px;
+}
+
+.add-video-modal ion-content {
+  --padding-top: 0;
+  --padding-bottom: 0;
+}
+
+.add-video-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.add-video-modal ion-item {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  --border-radius: 8px;
+  --background: var(--ion-color-light);
+  margin-bottom: 0.5rem;
+}
+
+.add-video-modal ion-label {
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin-bottom: 0.5rem;
+}
+
+.add-video-modal ion-input,
+.add-video-modal ion-textarea,
+.add-video-modal ion-select {
+  --padding-start: 12px;
+  --padding-end: 12px;
+}
+
+.submit-button {
+  margin-top: 1rem;
+  --background: var(--ion-color-primary);
+  --color: white;
+  --border-radius: 8px;
+  height: 48px;
+  font-weight: 600;
+}
+
+.submit-button:disabled {
+  --background: var(--ion-color-medium);
+  opacity: 0.6;
 }
 
 /* Mobile Responsive */
@@ -465,6 +856,24 @@ function handleSearch() {
   
   .stat-number {
     font-size: 1.4rem;
+  }
+
+  .add-video-modal {
+    --width: 95%;
+    --height: 90%;
+  }
+
+  .add-video-modal ion-item {
+    margin-bottom: 0.75rem;
+  }
+
+  .add-video-modal ion-label {
+    font-size: 0.9rem;
+  }
+
+  .submit-button {
+    height: 44px;
+    font-size: 1rem;
   }
 }
 </style>

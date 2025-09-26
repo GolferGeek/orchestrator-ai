@@ -45,6 +45,7 @@ export class ContextLoaderService {
     const instructions = '';
     const knowledgeBase = '';
     const examples: Array<{ query: string; response: string }> = [];
+    const videos: string[] = [];
 
     let currentSection = '';
     let currentContent = '';
@@ -58,6 +59,7 @@ export class ContextLoaderService {
           instructions,
           knowledgeBase,
           examples,
+          videos,
         });
 
         // Start new section
@@ -77,6 +79,7 @@ export class ContextLoaderService {
       instructions,
       knowledgeBase,
       examples,
+      videos,
     });
 
     // If no explicit sections found, treat entire content as system prompt
@@ -89,6 +92,7 @@ export class ContextLoaderService {
       instructions: instructions.trim() || undefined,
       knowledgeBase: knowledgeBase.trim() || undefined,
       examples,
+      videos: videos.length > 0 ? videos : undefined,
       rawContent,
     };
   }
@@ -104,6 +108,7 @@ export class ContextLoaderService {
       instructions: string;
       knowledgeBase: string;
       examples: Array<{ query: string; response: string }>;
+      videos: string[];
     },
   ): void {
     const trimmedContent = content.trim();
@@ -132,6 +137,10 @@ export class ContextLoaderService {
       case 'examples':
       case 'example interactions':
         this.parseExamples(trimmedContent, context.examples);
+        break;
+
+      case 'videos':
+        this.parseVideos(trimmedContent, context.videos);
         break;
     }
   }
@@ -192,6 +201,37 @@ export class ContextLoaderService {
         query: currentQuery.trim(),
         response: currentResponse.trim(),
       });
+    }
+  }
+
+  /**
+   * Parse video IDs from ## Videos section content
+   */
+  private parseVideos(content: string, videos: string[]): void {
+    if (!content || typeof content !== 'string') {
+      return;
+    }
+    
+    const lines = content.split('\n');
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      // Skip empty lines and markdown elements
+      if (!trimmedLine || trimmedLine.startsWith('#') || trimmedLine.startsWith('*')) {
+        continue;
+      }
+      
+      // Extract video IDs - expect format like "video-id-1" or "- video-id-1"
+      // Also handle bullet points and various markdown formats
+      const match = trimmedLine.match(/^[-*+]?\s*([a-zA-Z0-9\-_]+)\s*$/);
+      if (match && match[1]) {
+        const videoId = match[1].trim();
+        // Validate video ID format and avoid duplicates
+        if (videoId && videoId.length > 0 && videoId.length <= 100 && !videos.includes(videoId)) {
+          videos.push(videoId);
+        }
+      }
     }
   }
 

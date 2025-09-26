@@ -61,6 +61,7 @@ import { SystemModule } from './system/system.module';
 import { AnalyticsController } from './analytics/analytics.controller';
 import { SpeechModule } from './speech/speech.module';
 import { AgentCreatorModule } from './agents/actual/specialists/agent_creator/agent.module';
+import { VideosModule } from './videos/videos.module';
 
 @Module({
   imports: [
@@ -123,6 +124,7 @@ import { AgentCreatorModule } from './agents/actual/specialists/agent_creator/ag
     SystemModule, // System analytics and monitoring
     SpeechModule, // Speech-to-text and text-to-speech functionality
     AgentCreatorModule, // Agent configuration service for discovery
+    VideosModule, // Video management and admin endpoints
   ],
   controllers: [
     AppController,

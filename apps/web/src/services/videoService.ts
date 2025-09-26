@@ -10,6 +10,9 @@ export interface Video {
   featured: boolean;
   order: number;
   recordingStatus?: string;
+  transcriptId?: string;
+  tags?: string[];
+  agentDefaults?: string[];
 }
 
 export interface VideoCategory {
@@ -122,7 +125,7 @@ class VideoService {
   }
 
   /**
-   * Search videos by title or description
+   * Search videos by title, description, tags, or transcript ID
    */
   searchVideos(query: string): Array<{ video: Video; category: VideoCategory; categoryKey: string }> {
     const results: Array<{ video: Video; category: VideoCategory; categoryKey: string }> = [];
@@ -130,10 +133,22 @@ class VideoService {
 
     Object.entries(this.data.categories).forEach(([categoryKey, category]) => {
       category.videos.forEach(video => {
-        if (
-          video.title.toLowerCase().includes(searchTerm) ||
-          video.description.toLowerCase().includes(searchTerm)
-        ) {
+        // Search in title and description (existing functionality)
+        const titleMatch = video.title.toLowerCase().includes(searchTerm);
+        const descriptionMatch = video.description.toLowerCase().includes(searchTerm);
+        
+        // Search in tags
+        const tagMatch = video.tags?.some(tag => 
+          tag.toLowerCase().includes(searchTerm)
+        ) || false;
+        
+        // Search in transcript ID
+        const transcriptMatch = video.transcriptId?.toLowerCase().includes(searchTerm) || false;
+        
+        // Search in video ID
+        const idMatch = video.id.toLowerCase().includes(searchTerm);
+
+        if (titleMatch || descriptionMatch || tagMatch || transcriptMatch || idMatch) {
           results.push({ video, category, categoryKey });
         }
       });
@@ -147,6 +162,44 @@ class VideoService {
    */
   getMetadata() {
     return this.data.metadata;
+  }
+
+  /**
+   * Get videos by their IDs (batch retrieval for agent resources)
+   */
+  getVideosByIds(videoIds: string[]): Video[] {
+    const allVideos = this.getAllVideos();
+    return videoIds
+      .map(id => allVideos.find(video => video.id === id))
+      .filter((video): video is Video => video !== undefined)
+      .sort((a, b) => a.order - b.order);
+  }
+
+  /**
+   * Get video IDs for a specific agent based on agentDefaults mapping
+   */
+  getAgentVideoIds(agentSlug: string): string[] {
+    return this.data.agentDefaults[agentSlug] || [];
+  }
+
+  /**
+   * Get default fallback video IDs (agent-default-overview)
+   */
+  getDefaultVideoIds(): string[] {
+    return ['agent-default-overview'];
+  }
+
+  /**
+   * Get videos for an agent with fallback logic
+   */
+  getAgentVideos(agentSlug: string): Video[] {
+    const agentVideoIds = this.getAgentVideoIds(agentSlug);
+    
+    if (agentVideoIds.length > 0) {
+      return this.getVideosByIds(agentVideoIds);
+    } else {
+      return this.getVideosByIds(this.getDefaultVideoIds());
+    }
   }
 
   /**
@@ -180,6 +233,74 @@ class VideoService {
     } else {
       return `${remainingSeconds}s`;
     }
+  }
+
+  /**
+   * Check if a video has an associated transcript
+   */
+  hasTranscript(videoId: string): boolean {
+    const video = this.getAllVideos().find(v => v.id === videoId);
+    return video?.transcriptId !== undefined && video?.transcriptId !== null;
+  }
+
+  /**
+   * Get transcript ID for a video (defaults to video ID if not explicitly set)
+   */
+  getTranscriptId(videoId: string): string | null {
+    const video = this.getAllVideos().find(v => v.id === videoId);
+    if (!video) return null;
+    
+    // Return explicit transcript ID or default to video ID
+    return video.transcriptId || video.id;
+  }
+
+  /**
+   * Get videos by tags
+   */
+  getVideosByTags(tags: string[]): Video[] {
+    const allVideos = this.getAllVideos();
+    return allVideos.filter(video => 
+      video.tags && tags.some(tag => video.tags!.includes(tag))
+    );
+  }
+
+  /**
+   * Get videos by recording status
+   */
+  getVideosByRecordingStatus(status: string): Video[] {
+    const allVideos = this.getAllVideos();
+    return allVideos.filter(video => video.recordingStatus === status);
+  }
+
+  /**
+   * Get all unique tags across all videos
+   */
+  getAllTags(): string[] {
+    const allVideos = this.getAllVideos();
+    const tagSet = new Set<string>();
+    
+    allVideos.forEach(video => {
+      if (video.tags) {
+        video.tags.forEach(tag => tagSet.add(tag));
+      }
+    });
+    
+    return Array.from(tagSet).sort();
+  }
+
+  /**
+   * Get videos that need recording (status is ready_for_recording or in_production)
+   */
+  getVideosNeedingRecording(): Video[] {
+    return this.getVideosByRecordingStatus('ready_for_recording')
+      .concat(this.getVideosByRecordingStatus('in_production'));
+  }
+
+  /**
+   * Get completed videos (status is completed)
+   */
+  getCompletedVideos(): Video[] {
+    return this.getVideosByRecordingStatus('completed');
   }
 }
 

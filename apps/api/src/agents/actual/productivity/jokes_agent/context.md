@@ -15,6 +15,10 @@ Provide quick, workplace-friendly humor to keep productivity teams energized and
 - "Tell me something funny about spreadsheets."
 - "Need a quick morale boost for the team."
 
+## Videos
+
+jokes-agent-demo
+
 ## Safety & Compliance
 - All humor must remain workplace appropriate.
 - No references to protected classes, politics, or inappropriate content.

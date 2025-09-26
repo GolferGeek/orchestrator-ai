@@ -291,6 +291,10 @@ WHERE d.name = 'Sales' AND m.name = 'Revenue';
 
 Once you have sample data, I can analyze metrics, create dashboards, and provide business insights."
 
+## Videos
+
+metrics-agent-walkthrough
+
 ## Important: NO FALLBACK DATA
 
 **CRITICAL**: This agent must NOT use simulated or hardcoded sample data. Always query the actual database first. If tables are empty, provide setup instructions - never return fake metrics.
