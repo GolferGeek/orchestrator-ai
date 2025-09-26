@@ -13,7 +13,23 @@
           </p>
         </div>
       </div>
-
+      <div class="demo-highlight-box">
+        <h2 class="demo-highlight-title">
+          🚀 Try the Full Demo Now!
+        </h2>
+        <p class="demo-highlight-text">
+          <strong>Jump right in:</strong> The demo environment is a <span class="highlight">fully functional system</span>—everything you see here (and in the videos) is live and ready for you to explore.
+        </p>
+        <ul class="demo-highlight-list">
+          <li>Log in instantly with the provided demo credentials.</li>
+          <li>All agents are active and ready—ask what they do, then try them out!</li>
+          <li>Switch between LLM models to see real-time differences in performance.</li>
+          <li>This is the exact system we deploy for you, inside your own infrastructure.</li>
+        </ul>
+        <p class="demo-highlight-text">
+          <em>Experience OrchestratorAI hands-on—no waiting, no limitations.</em>
+        </p>
+      </div>
       <!-- Accordion Content -->
       <div class="accordion-container">
         <div class="container">
@@ -25,10 +41,7 @@
           >
             <template #content>
               <p class="section-summary">
-                Small businesses face overwhelming AI information, technical complexity above their expertise level, 
-                security concerns, unclear ROI, and development challenges. OrchestratorAI addresses these by providing 
-                clear guidance, accessible technology, robust privacy protection, transparent pricing with proven returns, 
-                and complete implementation support.
+                
               </p>
               
               <!-- Introduction Video -->
