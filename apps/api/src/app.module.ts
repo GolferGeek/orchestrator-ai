@@ -61,6 +61,8 @@ import { SystemModule } from './system/system.module';
 import { AnalyticsController } from './analytics/analytics.controller';
 import { SpeechModule } from './speech/speech.module';
 import { AgentCreatorModule } from './agents/demo/specialists/agent_creator/agent.module';
+import { Agent2AgentModule } from './agent2agent/agent2agent.module';
+import { AgentPlatformModule } from './agent-platform/agent-platform.module';
 
 @Module({
   imports: [
@@ -111,6 +113,8 @@ import { AgentCreatorModule } from './agents/demo/specialists/agent_creator/agen
     LangChainModule, // LangChain.js integration for agents
     ProjectsModule, // Project lifecycle management and recovery
     DeliverablesModule, // Deliverables persistence and management
+    AgentPlatformModule,
+    Agent2AgentModule,
     AgentServicesContextModule, // Service container for simplified context agent DI
     FunctionAgentServicesContextModule, // Service container for simplified function agent DI
     ApiAgentServicesContextModule, // Service container for simplified API agent DI
