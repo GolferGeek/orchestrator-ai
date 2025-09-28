@@ -1,5 +1,14 @@
 -- Agent platform base tables
 
+-- Drop legacy filesystem-driven agent tables once we move to database-backed agents
+DROP TABLE IF EXISTS public.agent_usage_analytics CASCADE;
+DROP TABLE IF EXISTS public.agent_skills CASCADE;
+DROP TABLE IF EXISTS public.agent_creation_metrics CASCADE;
+DROP TABLE IF EXISTS public.agent_creation_logs CASCADE;
+DROP TABLE IF EXISTS public.agent_creation_events CASCADE;
+DROP TABLE IF EXISTS public.agent_creation_conversations CASCADE;
+DROP TABLE IF EXISTS public.agent_configurations CASCADE;
+
 -- agents table stores metadata, yaml, and derived context/config for runtime
 CREATE TABLE IF NOT EXISTS public.agents (
     id uuid DEFAULT extensions.uuid_generate_v4() PRIMARY KEY,
