@@ -31,7 +31,8 @@
       "@shared/*": ["src/shared/*"],
       "@config/*": ["src/config/*"],
       "@common/*": ["src/common/*"],
-      "@agent-platform/*": ["src/agent-platform/*"]
+      "@agent-platform/*": ["src/agent-platform/*"],
+      "@agent2agent/*": ["src/agent2agent/*"]
     }
   }
 }
