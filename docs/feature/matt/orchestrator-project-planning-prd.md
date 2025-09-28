@@ -1,220 +1,221 @@
-# Orchestrator Agent Project Planning Enhancement PRD
+# Agent Orchestration Platform PRD
 
 ## Project Overview
 
-**Project Name:** Orchestrator Project Planning & Management  
-**Version:** 1.0  
-**Date:** January 2025  
-**Author:** Matt Weber  
+**Project Name:** Agent Orchestration Platform & Execution
+**Version:** 1.1
+**Date:** January 2025
+**Author:** Matt Weber
 
 ## Executive Summary
 
-Enhance the existing orchestrator agent system to enable autonomous project creation, planning, and management capabilities. The orchestrator will evolve from a simple task executor to a sophisticated project architect that can break down complex initiatives into structured projects with sub-projects, steps, conversations, and deliverables.
+We are replacing the legacy "project" abstraction with database-backed, agent-scoped orchestrations that can be authored, versioned, executed, and observed end-to-end. Orchestrations unify plan generation, execution coordinates, and state tracking across the agent platform while removing filesystem-driven project storage. This PRD captures the new orchestrations-first workflow, the supporting Supabase schema, and the incremental rollout plan that keeps existing conversation planning features intact.
 
 ## Problem Statement
 
-Currently, orchestrator agents can execute predefined workflows but lack the ability to:
-- Create new projects from high-level requirements
-- Plan complex multi-step initiatives
-- Break down large efforts into manageable sub-projects
-- Coordinate human-in-the-loop workflows
-- Manage project dependencies and sequencing
+The current project-centric approach suffers from several gaps:
+- Projects live outside of the agent platform data model, preventing reuse and versioning.
+- Execution state is fragmented across temporary files and ad hoc caches, limiting observability and durability.
+- Project templates are difficult to maintain or share because they are not attached to the agents that use them.
+- Human checkpoints are bolted onto project runs rather than modeled as first-class orchestration steps.
+- Migrating to database-backed agents leaves the project store disconnected from Supabase.
 
 ## Goals & Objectives
 
 ### Primary Goals
-1. **Autonomous Project Creation**: Enable orchestrators to create projects from natural language descriptions
-2. **Intelligent Planning**: Break down complex initiatives into structured project hierarchies
-3. **Workflow Orchestration**: Coordinate multiple agent types (context, tool, api, external) across project steps
-4. **Human-in-the-Loop Integration**: Seamlessly integrate human approval and intervention points
+1. **Orchestration Authoring**: Persist orchestration definitions per agent (`organization_slug`, `agent_slug`, `slug`) with history, metadata, and prompt templates.
+2. **Plan Integration**: Tie conversation plan outputs directly to saved orchestrations so approved plans can be replayed or iterated.
+3. **Execution State**: Track orchestration runs, step state, prompt inputs, and human checkpoints inside Supabase for durability and analytics.
+4. **Agent Alignment**: Centralize agent YAML, runtime config, and orchestration artifacts in the same platform tables.
 
 ### Secondary Goals
-1. **Project Memory & Learning**: Accumulate knowledge from completed projects
-2. **Template Generation**: Create reusable project templates from successful patterns
-3. **Dependency Management**: Handle complex project dependencies and sequencing
-4. **Progress Tracking**: Provide real-time project status and progress visibility
+1. **Template Reuse**: Enable organizations to version, tag, and promote orchestrations across agents.
+2. **Compliance & Auditability**: Store orchestration JSON, prompt templates, and execution trails for regulatory review.
+3. **Operational Visibility**: Provide product and support teams with insight into orchestration health and bottlenecks.
+4. **Migration Path**: Sunset project-run storage without disrupting in-flight customer workflows.
 
 ## Target Users
 
 ### Primary Users
-- **Business Stakeholders**: Need complex projects planned and executed
-- **Development Teams**: Require structured project breakdowns and coordination
-- **Project Managers**: Need intelligent project planning assistance
+- **Agent Platform Engineers**: Build and maintain orchestration runtime and storage.
+- **Solution Developers**: Author orchestrations and deploy them alongside custom agents.
+- **Operations & Support Teams**: Monitor orchestration runs, human checkpoints, and failures.
 
 ### Secondary Users
-- **End Users**: Benefit from faster, more organized project delivery
-- **System Administrators**: Manage orchestrator capabilities and permissions
+- **End Customers & Workspace Admins**: Consume orchestrations as reusable recipes for their agents.
+- **Compliance & Audit**: Review stored orchestration definitions and execution history.
 
 ## Core Features
 
-### 1. Project Creation Engine
-- **Natural Language Processing**: Convert high-level requirements into structured projects
-- **Project Hierarchy Generation**: Create projects with sub-projects, steps, and conversations
-- **Agent Type Assignment**: Automatically assign appropriate agent types to each step
-- **Human Checkpoint Definition**: Identify where human approval is needed
+### 1. Orchestration Definition & Storage
+- Author orchestrations as structured JSON (phases, steps, dependencies, checkpoints).
+- Version orchestrations per agent with unique `(organization_slug, agent_slug, slug)` keys.
+- Attach prompt templates and launch-time parameter metadata.
+- Persist orchestration metadata (tags, status, created_by) for lifecycle management.
 
-### 2. Intelligent Planning System
-- **Dependency Analysis**: Understand and map project dependencies
-- **Resource Estimation**: Estimate effort and timeline for project components
-- **Risk Assessment**: Identify potential bottlenecks and failure points
-- **Optimization Suggestions**: Recommend project structure improvements
+### 2. Conversation Plan Alignment
+- Convert conversation plans into orchestration-ready structures.
+- Reference the source plan on saved orchestrations for lineage and auditability.
+- Allow orchestrations to launch directly from a plan approval or from saved templates.
 
-### 3. Workflow Orchestration
-- **Step Sequencing**: Manage sequential and parallel step execution
-- **Agent Coordination**: Coordinate between context, tool, api, and external agents
-- **Data Flow Management**: Ensure proper data passing between project steps
-- **Error Handling**: Manage failures and retry logic across project steps
+### 3. Orchestration Execution Service
+- Launch orchestration runs with captured prompt inputs and origin context (`plan`, `saved_orchestration`, `ad_hoc`).
+- Persist run state: current step index, completed steps, step-specific metadata, and human checkpoint status.
+- Provide resumable execution with durable storage replacing filesystem caches.
 
-### 4. Human-in-the-Loop Integration
-- **Approval Workflows**: Pause projects at defined human checkpoints
-- **Bidirectional Navigation**: Allow humans to move between project steps
-- **Deliverable Review**: Present project outputs for human evaluation
-- **Decision Points**: Enable human decision-making at critical project junctures
+### 4. Credential & Agent Config Management
+- Manage organization-scoped credentials required by orchestrations via `organization_credentials`.
+- Keep agent runtime configuration (`agent_card`, `context`, `config`) co-located with orchestrations.
+- Surface encryption metadata for secret rotation and audit.
 
-### 5. Project Management Interface
-- **Project Dashboard**: Visual project status and progress tracking
-- **Step Management**: View and modify individual project steps
-- **Conversation History**: Track all project conversations and decisions
-- **Deliverable Repository**: Access all project outputs and artifacts
+### 5. Human-in-the-Loop Workflow
+- Model human checkpoints as orchestration steps that pause runs until approval.
+- Present checkpoint context, deliverables, and decisions through existing dashboards.
+- Resume orchestration execution once approvals are recorded in Supabase.
 
 ## Technical Architecture
 
-### 1. Enhanced Orchestrator Agent
+### 1. Domain Data Structures
 ```typescript
-interface OrchestratorProjectAgent {
-  // Project Creation
-  createProject(requirements: string): Promise<Project>;
-  planProject(project: Project): Promise<ProjectPlan>;
-  
-  // Project Execution
-  executeProject(projectId: string): Promise<ProjectExecution>;
-  pauseForHuman(stepId: string, reason: string): Promise<void>;
-  
-  // Project Management
-  getProjectStatus(projectId: string): Promise<ProjectStatus>;
-  updateProjectPlan(projectId: string, updates: ProjectUpdates): Promise<void>;
-}
-```
-
-### 2. Project Data Model
-```typescript
-interface Project {
+interface AgentOrchestration {
   id: string;
-  name: string;
-  parentId?: string; // For sub-projects
-  status: 'draft' | 'planning' | 'running' | 'paused_for_human' | 'completed';
-  
-  // Planning
-  requirements: string;
-  plan: ProjectPlan;
-  
-  // Execution
-  currentStep?: string;
-  completedSteps: string[];
-  
-  // Human Interaction
-  humanCheckpoints: HumanCheckpoint[];
-  pendingApprovals: PendingApproval[];
+  organizationSlug: string | null;
+  agentSlug: string;
+  slug: string;
+  displayName: string;
+  description?: string;
+  status: 'active' | 'inactive' | 'archived';
+  orchestrationJson: OrchestrationDefinition;
+  promptTemplates: PromptTemplate[];
+  tags: string[];
+  version?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface OrchestrationRun {
+  id: string;
+  planId: string;
+  originType: 'plan' | 'saved_orchestration' | 'ad_hoc';
+  originId?: string;
+  orchestrationSlug?: string;
+  organizationSlug: string | null;
+  status: 'pending' | 'running' | 'paused' | 'completed' | 'failed';
+  currentStepIndex?: number;
+  completedSteps: StepResult[];
+  stepState: Record<string, unknown>;
+  promptInputs: Record<string, unknown>;
+  humanCheckpointId?: string;
+  metadata: Record<string, unknown>;
+  startedAt: string;
+  completedAt?: string;
 }
 ```
 
-### 3. Integration Points
-- **Existing Agent Types**: Leverage context, tool, api, external agents
-- **Database Schema**: Extend existing project/step/conversation structure
-- **MCP Tools**: Utilize existing MCP tool ecosystem
-- **Human Dashboard**: Integrate with existing user interface
+### 2. Supabase Schema Updates
+- **`public.agents`**: Database-backed agent descriptors with YAML, context, and config JSON.
+- **`public.organization_credentials`**: Encrypted credential store keyed by organization + alias.
+- **`public.conversation_plans`**: Approved plan artifacts linked to conversations and agents.
+- **`public.agent_orchestrations`**: Saved orchestration recipes with prompt templates and tags.
+- **`public.orchestration_runs`**: Durable execution state for in-flight orchestrations.
+- **`public.users`**: Extended with optional `organization_slug` to align user accounts.
+- Legacy project tables are dropped as part of the migration (`agent_projects`, `project_runs`, etc.).
+
+### 3. Runtime Workflow
+1. Agent authors define orchestration JSON and prompt templates; the API persists them in Supabase.
+2. Conversation planning mode produces `conversation_plans` records that can be saved as orchestrations.
+3. Launching an orchestration creates an `orchestration_runs` row and streams execution updates.
+4. Human checkpoints write decisions back to `step_state` and resume execution.
+5. Completed runs feed analytics, deliverables, and agent memory systems.
 
 ## Success Metrics
 
 ### Primary Metrics
-- **Project Creation Success Rate**: % of successfully planned projects
-- **Human Approval Efficiency**: Time from human checkpoint to approval
-- **Project Completion Rate**: % of projects completed without major issues
-- **Agent Coordination Effectiveness**: Successful data flow between agents
+- **Orchestration Save Rate**: % of approved plans converted into reusable orchestrations.
+- **Run Completion Rate**: % of orchestration runs that complete without manual remediation.
+- **Checkpoint Latency**: Median time from human checkpoint creation to resolution.
+- **Migration Coverage**: % of legacy project workflows retired in favor of orchestrations.
 
 ### Secondary Metrics
-- **Planning Time Reduction**: Time saved vs manual project planning
-- **Human Intervention Frequency**: Number of human checkpoints per project
-- **Project Template Reuse**: Frequency of template usage
-- **User Satisfaction**: Stakeholder feedback on project outcomes
+- **Template Reuse**: Count of orchestrations launched more than once in a given period.
+- **Config Drift**: Number of agents running with outdated orchestration versions.
+- **Credential Health**: Frequency of credential rotation events recorded in metadata.
+- **Support Burden**: Volume of support tickets related to orchestration failures.
 
 ## Implementation Phases
 
-### Phase 1: Core Project Creation (4-6 weeks)
-- Implement project creation from natural language
-- Basic project hierarchy generation
-- Simple step and conversation creation
-- Integration with existing orchestrator infrastructure
+### Phase 1: Data Foundation (3-4 weeks)
+- Ship Supabase migration introducing agents, conversation plans, orchestrations, and run tables.
+- Remove legacy filesystem-backed project tables and references.
+- Backfill existing agent YAML/config into the new `public.agents` table.
 
-### Phase 2: Planning Intelligence (4-6 weeks)
-- Dependency analysis and mapping
-- Agent type assignment logic
-- Human checkpoint identification
-- Basic project optimization
+### Phase 2: Repository & API Layer (4-5 weeks)
+- Build repositories for agents, orchestrations, conversation plans, and runs.
+- Expose CRUD endpoints for orchestration definitions and prompt templates.
+- Wire organization credential usage into orchestration execution configuration.
 
-### Phase 3: Workflow Orchestration (6-8 weeks)
-- Enhanced step sequencing
-- Agent coordination improvements
-- Data flow management
-- Error handling and retry logic
+### Phase 3: Execution Runtime (5-6 weeks)
+- Replace project-run execution path with orchestration-run service.
+- Persist step state transitions, prompt payloads, and human checkpoint pauses.
+- Provide restart/resume semantics using Supabase state instead of filesystem caches.
 
-### Phase 4: Human-in-the-Loop (4-6 weeks)
-- Human approval workflows
-- Bidirectional step navigation
-- Deliverable review interface
-- Human dashboard integration
+### Phase 4: Human-in-the-Loop Experience (3-4 weeks)
+- Update dashboards to reflect orchestration runs, checkpoints, and deliverables.
+- Integrate approval actions with `orchestration_runs.step_state`.
+- Deliver notifications and status updates tied to orchestration identifiers.
 
-### Phase 5: Advanced Features (6-8 weeks)
-- Project memory and learning
-- Template generation
-- Advanced analytics
-- Performance optimization
+### Phase 5: Templates & Analytics (4-5 weeks)
+- Enable tagging, version history, and promotion workflows for orchestrations.
+- Surface orchestration health metrics and historical run analytics.
+- Document migration playbooks for remaining legacy project use cases.
 
 ## Risks & Mitigation
 
 ### Technical Risks
-- **Complexity Management**: Risk of over-engineering the planning system
-  - *Mitigation*: Start simple, iterate based on real usage
-- **Agent Coordination**: Risk of data flow issues between agents
-  - *Mitigation*: Robust testing and monitoring of agent interactions
-- **Human Workflow Integration**: Risk of disrupting existing human workflows
-  - *Mitigation*: Gradual rollout with extensive user testing
+- **Data Migration Complexity**: Moving from filesystem projects to Supabase tables may lose context.
+  - *Mitigation*: Snapshot legacy data and build conversion scripts for high-value projects.
+- **Runtime Regression**: New orchestration service must cover edge cases from project execution.
+  - *Mitigation*: Shadow-run orchestrations alongside legacy workflows before cutover.
+- **Schema Drift**: Multiple teams touching agent records could introduce conflicts.
+  - *Mitigation*: Establish contract tests and clear ownership of Supabase migrations.
 
 ### Business Risks
-- **User Adoption**: Risk of low adoption due to complexity
-  - *Mitigation*: Focus on user experience and gradual feature introduction
-- **Performance Impact**: Risk of system slowdown with complex projects
-  - *Mitigation*: Performance testing and optimization throughout development
+- **Adoption Hesitation**: Teams accustomed to "projects" may resist terminology change.
+  - *Mitigation*: Provide migration guides, updated UI copy, and cross-team training.
+- **Operational Visibility**: Lack of dashboards during migration could hurt SLAs.
+  - *Mitigation*: Prioritize basic run monitoring before deprecating legacy flows.
+- **Credential Handling**: Centralizing secrets increases blast radius if compromised.
+  - *Mitigation*: Enforce encryption metadata policies and audit logging.
 
 ## Dependencies
 
 ### Internal Dependencies
-- Existing orchestrator agent infrastructure
-- Current project/step/conversation database schema
-- MCP tool ecosystem
-- Human dashboard interface
+- Agent runtime services (planner, executor, human checkpoint dispatcher).
+- Supabase infrastructure and migration tooling.
+- MCP tool adapters that must read orchestration context.
+- Front-end surfaces consuming orchestration lists and run status.
 
 ### External Dependencies
-- LLM capabilities for natural language processing
-- Database performance for complex project queries
-- User interface framework for project management
+- LLM providers powering orchestration planning and execution.
+- Secret management for encryption keys used by `organization_credentials`.
+- Customer success teams coordinating legacy project sunset timelines.
 
 ## Future Considerations
 
 ### Potential Enhancements
-- **Multi-Project Coordination**: Coordinate across multiple simultaneous projects
-- **Resource Optimization**: Optimize agent resource usage across projects
-- **Advanced Analytics**: Deep insights into project patterns and success factors
-- **Integration APIs**: Allow external systems to create and manage projects
+- **Cross-Agent Orchestrations**: Coordinate orchestrations spanning multiple agents or organizations.
+- **Dynamic Step Generation**: Allow runs to insert steps in response to real-time insights.
+- **Marketplace Distribution**: Publish orchestrations for reuse across customer workspaces.
+- **Automated Regression Testing**: Replay orchestrations against staging environments.
 
 ### Scalability Considerations
-- **Project Volume**: Handle hundreds of concurrent projects
-- **Agent Load**: Distribute agent workload efficiently
-- **Data Management**: Efficient storage and retrieval of project data
-- **User Concurrency**: Support multiple users managing projects simultaneously
+- **Run Volume**: Support thousands of concurrent orchestration runs with streaming updates.
+- **Schema Evolution**: Maintain backwards compatibility for orchestration JSON schema changes.
+- **Observability**: Integrate tracing/metrics for orchestration lifecycle events.
+- **Multi-Tenant Isolation**: Ensure organization boundaries are enforced at the database and runtime layers.
 
 ## Conclusion
 
-This enhancement will transform the orchestrator agent from a simple workflow executor into a sophisticated project architect capable of autonomous project creation and management. The phased approach ensures manageable development while delivering value incrementally.
-
-The integration with existing human-in-the-loop workflows and the comprehensive project management capabilities will provide significant value to users while maintaining the flexibility and power of the current agent ecosystem.
+By grounding orchestrations in the agent platform data model we unlock reusable execution recipes, consistent plan integration, and production-grade observability. The phased migration retires brittle project infrastructure while giving teams a durable foundation for agent-driven work management. Once complete, orchestrations become the primary vehicle for deploying complex agent behaviors with confidence, compliance, and human oversight baked in.

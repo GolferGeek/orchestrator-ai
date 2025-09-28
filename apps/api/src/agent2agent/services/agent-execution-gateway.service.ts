@@ -1,11 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AgentsRepository } from '@agent-platform/repositories/agents.repository';
+import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
+import { AgentOrchestrationRecord } from '@agent-platform/interfaces/agent-orchestration-record.interface';
 import { AgentTaskMode, TaskRequestDto } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { AgentModeRouterService } from './agent-mode-router.service';
 import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
 import { PlanEngineService } from '@agent-platform/services/plan-engine.service';
-import { ProjectRunnerService } from '@agent-platform/services/project-runner.service';
+import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
 
 @Injectable()
 export class AgentExecutionGateway {
@@ -14,7 +16,8 @@ export class AgentExecutionGateway {
     private readonly routingPolicy: RoutingPolicyAdapterService,
     private readonly modeRouter: AgentModeRouterService,
     private readonly planEngine: PlanEngineService,
-    private readonly projectRunner: ProjectRunnerService,
+    private readonly orchestrationRunner: OrchestrationRunnerService,
+    private readonly agentOrchestrations: AgentOrchestrationsRepository,
   ) {}
 
   async execute(
@@ -47,7 +50,7 @@ export class AgentExecutionGateway {
       case AgentTaskMode.PLAN:
         return this.handlePlan(organizationSlug, agent, request);
       case AgentTaskMode.BUILD:
-        return this.handleBuild(organizationSlug, request);
+        return this.handleBuild(organizationSlug, agent.slug, request);
       case AgentTaskMode.HUMAN_RESPONSE:
         return TaskResponseDto.human('Manual confirmation required');
       default:
@@ -85,20 +88,123 @@ export class AgentExecutionGateway {
 
   private async handleBuild(
     organizationSlug: string | null,
+    agentSlug: string,
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
-    if (!request.planId) {
-      throw new BadRequestException('planId is required to start build mode');
+    const orchestrationSlug =
+      request.orchestrationSlug ?? request.payload?.orchestrationSlug ?? null;
+    const promptInputs =
+      request.promptParameters ?? request.payload?.promptParameters ?? {};
+    const metadata = request.payload?.metadata ?? {};
+
+    if (request.planId) {
+      const run = await this.orchestrationRunner.startRun({
+        planId: request.planId,
+        originType: 'plan',
+        originId: request.planId,
+        organizationSlug,
+        promptInputs,
+        metadata,
+      });
+
+      return TaskResponseDto.success(AgentTaskMode.BUILD, {
+        content: run,
+        metadata: {
+          originType: 'plan',
+          planId: request.planId,
+          promptInputs,
+        },
+      });
     }
 
-    const run = await this.projectRunner.startRun({
-      planId: request.planId,
+    if (orchestrationSlug) {
+      const orchestration = await this.agentOrchestrations.findBySlug(
+        organizationSlug,
+        agentSlug,
+        orchestrationSlug,
+      );
+
+      if (!orchestration) {
+        throw new NotFoundException('Saved orchestration not found');
+      }
+
+      const resolvedInputs = this.validatePromptInputs(
+        orchestration,
+        promptInputs,
+      );
+
+      const run = await this.orchestrationRunner.startRun({
+        organizationSlug,
+        originType: 'saved_orchestration',
+        originId: orchestration.id,
+        orchestrationSlug: orchestration.slug,
+        promptInputs: resolvedInputs,
+        metadata: {
+          ...metadata,
+          orchestrationId: orchestration.id,
+        },
+      });
+
+      return TaskResponseDto.success(AgentTaskMode.BUILD, {
+        content: run,
+        metadata: {
+          originType: 'saved_orchestration',
+          orchestration: {
+            id: orchestration.id,
+            slug: orchestration.slug,
+          },
+          promptInputs: resolvedInputs,
+        },
+      });
+    }
+
+    const run = await this.orchestrationRunner.startRun({
       organizationSlug,
-      metadata: request.payload?.metadata ?? {},
+      originType: 'ad_hoc',
+      promptInputs,
+      metadata,
     });
 
     return TaskResponseDto.success(AgentTaskMode.BUILD, {
       content: run,
+      metadata: {
+        originType: 'ad_hoc',
+        promptInputs,
+      },
     });
+  }
+
+  private validatePromptInputs(
+    orchestration: AgentOrchestrationRecord,
+    provided: Record<string, any> | undefined,
+  ): Record<string, any> {
+    const templates = orchestration.prompt_templates ?? [];
+    if (!templates.length) {
+      return provided ?? {};
+    }
+
+    const result: Record<string, any> = {};
+    for (const template of templates) {
+      const supplied = (provided ?? {})[template.name] ?? {};
+      const params = template.parameters ?? [];
+      const resolved: Record<string, any> = { ...supplied };
+
+      for (const param of params) {
+        const value = supplied[param.key];
+        if (value === undefined || value === null) {
+          if (param.defaultValue !== undefined) {
+            resolved[param.key] = param.defaultValue;
+          } else if (param.required !== false) {
+            throw new BadRequestException(
+              `Missing prompt parameter ${param.key} for template ${template.name}`,
+            );
+          }
+        }
+      }
+
+      result[template.name] = resolved;
+    }
+
+    return result;
   }
 }

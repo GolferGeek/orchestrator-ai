@@ -70,16 +70,30 @@ Design the next-generation agent system backed by database configuration (no fil
   - `created_by`, `approved_by`
   - `created_at`, `updated_at`
 
-- `project_runs`
+- `orchestration_runs`
   - `id` (uuid PK)
-  - `plan_id`
+  - `plan_id` (nullable FK → conversation_plans)
+  - `origin_type` (`plan`, `saved_orchestration`, `ad_hoc`)
+  - `origin_id` (uuid referencing plan or orchestration recipe)
+  - `orchestration_slug`
+  - `prompt_inputs` (jsonb) – resolved parameter payload used for prompts
   - `current_step_index`
   - `completed_steps` (jsonb array)
   - `human_checkpoint_id` (nullable)
   - `metadata` (jsonb)
   - `started_at`, `completed_at`
 
-Existing tables (`tasks`, `deliverables`, `deliverable_versions`) remain but add references to `plan_id` / `project_run_id` where applicable.
+- `agent_orchestrations`
+  - `id` (uuid PK)
+  - `organization_slug` (nullable for global recipes)
+  - `agent_slug`
+  - `slug`, `display_name`, `description`, `status`, `version`
+  - `orchestration_json` (jsonb) – phases, steps, dependencies, checkpoints, deliverable expectations.
+  - `prompt_templates` (jsonb) – array of templates with parameter metadata (name, description, required/default, model profile hints).
+  - `tags` (text[])
+  - `created_by`, `updated_by`, timestamps
+
+Existing tables (`tasks`, `deliverables`, `deliverable_versions`) remain but add references to `plan_id` / `orchestration_run_id` where applicable.
 
 ## 5. YAML/JSON Specifications
 YAML authoring templates drive DB content. Each type uses a dedicated schema validated before ingestion.
@@ -177,7 +191,7 @@ context_files:
 - **Orchestrator Agents**
   - `agent_type: orchestrator`
   - `supported_modes: ["converse", "plan", "build"]`
-  - YAML defines `managed_agents`, `delegation_rules`, `memory_strategy` (how plans/deliverables stored), `project_templates` references.
+  - YAML defines `managed_agents`, `delegation_rules`, `memory_strategy` (how plans/deliverables stored), `orchestration_templates` references.
 
 ## 6. Context Document Specification
 Each agent has structured markdown (or JSON) stored in `database_agent_contexts` with sections:
@@ -208,12 +222,12 @@ This enum will live in shared TypeScript so both controller and agents enforce v
 
 ### 7.3 `build` / Execution
 - Orchestrator reads approved plan and executes steps sequentially or in parallel as defined.
-- Each step produces deliverables or intermediate notes; progress tracked in `project_runs`.
+- Each step produces deliverables or intermediate notes; progress tracked in `orchestration_runs`.
 - Human checkpoints pause execution until resolved via HITL UI/API.
 - Failures trigger fallback strategy from plan; logs stored for audit.
 
 ### 7.4 Deliverable Lifecycle
-- Deliverable metadata includes `plan_id`, `project_run_id`, `step_id`, `version`, `format`.
+- Deliverable metadata includes `plan_id`, `orchestration_run_id`, `step_id`, `version`, `format`.
 - Users can request revisions; new versions linked to same deliverable ID.
 - Integration with existing deliverable tables (Supabase) to maintain continuity until new system fully replaces legacy storage.
 
@@ -227,7 +241,7 @@ This enum will live in shared TypeScript so both controller and agents enforce v
 - **Unit Tests**: YAML parser, context loader, plan generator, mode router, credential resolver.
 - **Integration Tests**: Full conversation → plan → build flow; HITL pause/resume; multi-agent orchestration; credential usage.
 - **Regression Tests**: Ensure legacy controller still operates (during coexistence) using adapter data.
-- **E2E Scenario Tests**: Simulate multi-step project (research → draft → review → publish) with human approvals and deliverable generation.
+- **E2E Scenario Tests**: Simulate multi-step orchestration (research → draft → review → publish) with human approvals and deliverable generation.
 
 ## 10. Open Questions
 - Should plan templates be editable via UI, and how to version them? (Likely yes—needs design.)

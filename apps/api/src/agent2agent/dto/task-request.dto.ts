@@ -1,4 +1,10 @@
-import { IsEnum, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export enum AgentTaskMode {
   CONVERSE = 'converse',
@@ -19,8 +25,20 @@ export class TaskRequestDto {
   planId?: string;
 
   @IsOptional()
+  @IsUUID()
+  orchestrationId?: string;
+
+  @IsOptional()
+  @IsString()
+  orchestrationSlug?: string;
+
+  @IsOptional()
   @IsObject()
   payload?: Record<string, any>;
+
+  @IsOptional()
+  @IsObject()
+  promptParameters?: Record<string, any>;
 
   @IsOptional()
   @IsString()

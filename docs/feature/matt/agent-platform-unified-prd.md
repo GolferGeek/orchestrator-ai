@@ -28,11 +28,11 @@ Comprehensive crawl summary of `apps/api/src`. Each row lists the current respon
 | LLM & routing | `llms/*` (centralized routing, local models, pseudonymization, memory manager) | Sovereign policy checks, provider selection, PII processing, pseudonymization, logging, metric controllers. | Complex constructor dependencies; Supabase coupling; multiple unused controllers; logging noise. | Retain a centralized routing service (PII + sovereign enforcement) invoked by `AgentToAgentBaseService`; service can short-circuit showstoppers and emit `human_response` guidance when policy blocks execution. |
 | PII/CIDAFM | `cidafm/*`, `services/pii.service.ts`, `services/dictionary-pseudonymizer.service.ts` | Specialized privacy tooling (CIDAFM commands, pseudonym dictionary). | Scattered across modules, limited documentation, tests but some outdated. | Consolidate under privacy submodule; new platform injects sanitized interfaces. |
 | MCP & tools | `mcp/*`, `agents/base/services/...` tool contexts | Hosts internal MCP server (Supabase, Slack, Notion tools) and generic client. | Hard-coded config, no org-specific credential isolation, controllers tied to legacy auth. | New credential store supplies secrets; tool agents declare aliases; controller exposes spec-compliant MCP endpoints. Agents can mark individual endpoints as public (no auth) for anonymous chat or integrations. |
-| Orchestration & projects | `orchestration/orchestration.types.ts`, `projects/*`, `agents/demo/.../orchestrator` | Defines orchestrator DTOs, project APIs, sample orchestrator agents. | Orchestration logic scattered among demo agents; project service minimal. | Multi-step project engine formalized; every agent can delegate via `supporting_agents`; plan execution tracked in `project_runs`. |
+| Orchestration & recipes | `orchestration/orchestration.types.ts`, `projects/*`, `agents/demo/.../orchestrator` | Defines orchestrator DTOs, legacy project APIs, sample orchestrator agents. | Orchestration logic scattered among demo agents; project service minimal. | Multi-step orchestration engine formalized; every agent can delegate via `supporting_agents`; execution tracked in `orchestration_runs` with optional saved recipes. |
 | Supabase integration | `supabase.module.ts`, `supabase.service.ts`, `supabase.config.ts`, `supabase/utils/*` | Creates Supabase clients, helper functions for tables. | Secrets from `.env`, minimal error handling, direct use across services. | Add organization credential lookup (service-level). Supabase service becomes thin wrapper used by adapter during migration; new stack interacts via repository layer. |
 | Auth & guards | `auth/*` | Supabase JWT guard, DTOs, roles. | Hardcoded to Supabase; no API-key support. | New agent-to-agent controller uses API key/mTLS; legacy guard remains for UI. |
 | Config & feature flags | `config/*` | Feature flag API, sovereign policy endpoints, model configuration. | Some unused endpoints, manual JSON management. | Integrate with organization metadata & secrets, provide admin UI as needed. |
-| Context optimization & usage analytics | `context-optimization/*`, `usage/*`, `analytics/*`, `evaluation/*` | Metrics, evaluation endpoints, usage reporting. | Mixed maturity; evaluation/analytics seldom used. | Keep as optional modules; ensure they ingest new plan/project data for dashboards. |
+| Context optimization & usage analytics | `context-optimization/*`, `usage/*`, `analytics/*`, `evaluation/*` | Metrics, evaluation endpoints, usage reporting. | Mixed maturity; evaluation/analytics seldom used. | Keep as optional modules; ensure they ingest new plan/orchestration data for dashboards. |
 | Speech & audio | `speech/*` | Deepgram/ElevenLabs integration, speech service. | Tightly coupled to dynamic controller audio path. | Move to dedicated service invoked only when speech is part of plan; remove from new agent-to-agent controller by default. |
 | Websocket notifications | `websocket/task-progress.gateway.ts` | Task progress updates for frontend. | Lives inside Nest agents module; message format ad-hoc. | New gateway (or SSE) integrated with agent-to-agent controller; legacy gateway wraps new message bus until UI migrates. |
 
@@ -65,7 +65,7 @@ Two major pillars drive the greenfield rebuild.
   - Performance: High concurrency per org.
 
 -### 3.2 Database-Based Agent Platform
-- **Schema:** `agents` (core metadata, YAML, context/config), `agent_skills`, `conversation_plans`, `project_runs`, `organization_credentials`, plus `users.organization_id` (nullable until cutover).
+- **Schema:** `agents` (core metadata, YAML, context/config), `agent_skills`, `conversation_plans`, `agent_orchestrations`, `orchestration_runs`, `organization_credentials`, plus `users.organization_id` (nullable until cutover).
 - **Agents table columns (draft):**
   - `id` (uuid PK)
   - `organization_id` (uuid FK → organizations.id, nullable for shared agents)
@@ -86,10 +86,10 @@ Two major pillars drive the greenfield rebuild.
   - Agents declare `mode_profile` (`converse_only`, `full_cycle`, `tool_call`).
   - Conversation mode maintains transcript and metadata.
   - Plan mode produces structured `plan_json` aligned with the agent’s plan rubric and `success_criteria`.
-  - Build mode executes plan steps: when execution begins we instantiate a `project_run` that references the plan and acts as the live project record (project → sub-projects → steps) while honoring HITL checkpoints.
+  - Build mode executes plan steps: when execution begins we instantiate an `orchestration_run` that references the plan or saved recipe and acts as the live orchestration record (orchestration → phases → steps) while honoring HITL checkpoints.
   - Plans displayed alongside deliverables (UI plan tab) using shared conversation store.
 - **Plan Rubrics:** Each agent defines what a good plan looks like (phases, checkpoints, deliverables, fallback strategies). Stored in context and referenced during plan generation and validation.
-- **Multi-Step Projects:** Plans can spawn multi-step execution (project → sub-projects → steps) with dependencies, parallelism, fallback trees, and deliverable mapping. Execution engine logs step events, handles human approvals, and can re-plan when steps fail. Each sub-project/step maintains its own conversation context.
+- **Multi-Step Orchestrations:** Plans can spawn multi-step execution (orchestration → phases → steps) with dependencies, parallelism, fallback strategies, and deliverable mapping. Execution engine logs step events, handles human approvals, and can re-plan when steps fail. Each phase/step maintains its own conversation context.
 
 - **Credential Management:** Secrets stored in `organization_credentials` (encrypted); YAML references aliases; runtime pulls via org-scoped resolver.
 - **Testing:** Schema validation, unit tests (parsers, context loader, plan generator, mode router), integration tests (conversation→plan→build, HITL, multi-agent orchestration), regression tests for legacy adapters, E2E multi-step scenario tests.
@@ -102,7 +102,7 @@ Two major pillars drive the greenfield rebuild.
 
 !!!! should it be the conversation that holds the status or the step?  is the step where the memory and storage are held?
 
-- **Multi-Agent Collaboration:** Plan steps map to individual agents (including tool agents). Orchestrator logs dependencies and monitors progress via `project_runs`.
+- **Multi-Agent Collaboration:** Plan steps map to individual agents (including tool agents). Orchestrator logs dependencies and monitors progress via `orchestration_runs`.
 
 ## 5. Legacy Coexistence & Cleanup
 - Legacy system remains untouched: existing file-based agents continue to use current controllers/endpoints until we choose to migrate them manually at the end of the project.
@@ -121,14 +121,14 @@ Two major pillars drive the greenfield rebuild.
 
 !!!! remember part of the agent table
 
-!!!! don't forget that we need to agree on a large set of project scenarios... these should all be tested (progressively more challenging) before i start my testing
+!!!! don't forget that we need to agree on a large set of orchestration scenarios... these should all be tested (progressively more challenging) before i start my testing
 
 ## 6. Testing & Quality Gates
 - **Agent Platform Test Suite Categories**
   1. **Schema & Config Validation** – Validate agent YAML/JSON against schema, ensure plan templates and context rubrics parse correctly, verify organization credential encryption metadata.
-  2. **Unit Tests** – Base service mode routing (including `human_response` cases), routing policy integration, plan generator, credential resolver, deliverable persistence, project-run state machine.
+  2. **Unit Tests** – Base service mode routing (including `human_response` cases), routing policy integration, plan generator, credential resolver, deliverable persistence, orchestration-run state machine.
   3. **Integration Tests** – End-to-end conversation → plan → build flows, HITL pause/resume, multi-agent orchestration (supporting agents including tool agents), deliverable/version creation, large-context transcript summarization.
-  4. **E2E Scenario Tests** – Progressive project scenarios (simple single-agent, multi-agent with tool, complex multi-phase project with human checkpoints). Scenarios agreed jointly before handoff.
+  4. **E2E Scenario Tests** – Progressive orchestration scenarios (simple single-agent, multi-agent with tool, complex multi-phase orchestration with human checkpoints). Scenarios agreed jointly before handoff.
   5. **Performance & Load Tests** – High concurrency per organization, plan regeneration under load, streaming updates.
   6. **Regression Tests** – Legacy controllers untouched; verify existing UI flows continue to function (plan/deliverable columns optional).
 - **Manual QA Checklists**
@@ -142,16 +142,16 @@ Two major pillars drive the greenfield rebuild.
 1. **Codebase Inventory (in progress):** Documented above; continue fine-grained notes during refactor planning.
 2. **Schema & Template Finalization:** Lock JSON Schemas, define ingestion pipeline; no migration of existing agents yet.
 3. **Controller Implementation:** Build greenfield controller, card builder, routing adapter, API key auth.
-4. **Agent Runtime:** Implement `AgentToAgentBaseService`, mode handlers (converse/plan/build/human_response), plan engine, project runner.
+4. **Agent Runtime:** Implement `AgentToAgentBaseService`, mode handlers (converse/plan/build/human_response), plan engine, orchestration runner.
 5. **New Agent Onboarding:** Seed initial database-based agents using new schema; existing file-based agents remain untouched on legacy endpoints/controllers.
 6. **UI Work:** Expose plan tab, approvals, multi-step progress (ensuring legacy flows unaffected).
 7. **Cutover Planning:** Once new stack is validated, plan separate effort to migrate legacy agents and retire old codepaths.
 
 ## 8. Open Questions
-- Do we provide a user-facing project UI or continue using current UI? (Review existing project UI; likely keep user interactions centered on suggesting plan changes rather than editing raw templates.)
+- Do we provide a user-facing orchestration UI or continue using current UI? (Review existing project UI; likely keep user interactions centered on suggesting plan changes rather than editing raw templates.)
 - Preferred strategy for encrypted secrets storage? (Standardize on Supabase infrastructure.)
 - Scope of supporting agents: per organization (`my-org`, `demo`, or org-specific) or global?
-- Observability: integrate new plan/project events into existing `llm_usage` & `evaluations` telemetry rather than external stacks.
+- Observability: integrate new plan/orchestration events into existing `llm_usage` & `evaluations` telemetry rather than external stacks.
 
 ## 9. High-Level Architecture & File Layout
 
@@ -183,12 +183,13 @@ apps/api/src/
       agents.repository.ts
       agent-skills.repository.ts
       conversation-plans.repository.ts
-      project-runs.repository.ts
+      orchestration-runs.repository.ts
+      agent-orchestrations.repository.ts
     entities/
       agent.entity.ts
       agent-skill.entity.ts
       conversation-plan.entity.ts
-      project-run.entity.ts
+      orchestration-run.entity.ts
     mappers/
       agent.mapper.ts
     services/
@@ -196,7 +197,7 @@ apps/api/src/
       plan-template.service.ts
       supporting-agent.service.ts
   orchestration/
-    project-runner.service.ts
+    orchestration-runner.service.ts
     plan-engine.service.ts
     step-executor.service.ts
   shared/
@@ -289,7 +290,7 @@ export class AgentModeRouterService {
 export class PlanEngineService {
   constructor(
     private readonly plansRepo: ConversationPlansRepository,
-    private readonly projectRunner: ProjectRunnerService,
+    private readonly orchestrationRunner: OrchestrationRunnerService,
   ) {}
 
   async generatePlan(agent: AgentRuntime, request: ExecutionRequest) {
@@ -301,7 +302,12 @@ export class PlanEngineService {
 
   async executePlan(agent: AgentRuntime, request: ExecutionRequest) {
     const plan = await this.plansRepo.loadApproved(request.planId);
-    const run = await this.projectRunner.startRun(plan, request.triggeredBy);
+    const run = await this.orchestrationRunner.startRun({
+      planId: plan.id,
+      organizationSlug: request.orgSlug,
+      originType: 'plan',
+      promptInputs: request.promptParameters,
+    });
     return TaskResponseDto.buildStarted(run);
   }
 }

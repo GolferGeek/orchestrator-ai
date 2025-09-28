@@ -1,27 +1,30 @@
 import { Module } from '@nestjs/common';
 import { AgentsRepository } from './repositories/agents.repository';
 import { ConversationPlansRepository } from './repositories/conversation-plans.repository';
-import { ProjectRunsRepository } from './repositories/project-runs.repository';
+import { OrchestrationRunsRepository } from './repositories/orchestration-runs.repository';
 import { OrganizationCredentialsRepository } from './repositories/organization-credentials.repository';
+import { AgentOrchestrationsRepository } from './repositories/agent-orchestrations.repository';
 import { PlanEngineService } from './services/plan-engine.service';
-import { ProjectRunnerService } from './services/project-runner.service';
+import { OrchestrationRunnerService } from './services/orchestration-runner.service';
 
 @Module({
   providers: [
     AgentsRepository,
     ConversationPlansRepository,
-    ProjectRunsRepository,
+    OrchestrationRunsRepository,
     OrganizationCredentialsRepository,
+    AgentOrchestrationsRepository,
     PlanEngineService,
-    ProjectRunnerService,
+    OrchestrationRunnerService,
   ],
   exports: [
     AgentsRepository,
     ConversationPlansRepository,
-    ProjectRunsRepository,
+    OrchestrationRunsRepository,
     OrganizationCredentialsRepository,
+    AgentOrchestrationsRepository,
     PlanEngineService,
-    ProjectRunnerService,
+    OrchestrationRunnerService,
   ],
 })
 export class AgentPlatformModule {}
