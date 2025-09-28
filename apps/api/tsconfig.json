@@ -30,7 +30,8 @@
       "@llm/*": ["src/llms/*"],
       "@shared/*": ["src/shared/*"],
       "@config/*": ["src/config/*"],
-      "@common/*": ["src/common/*"]
+      "@common/*": ["src/common/*"],
+      "@agent-platform/*": ["src/agent-platform/*"]
     }
   }
 }

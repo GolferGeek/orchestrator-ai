@@ -25,6 +25,7 @@ module.exports = {
     '^@llm/(.*)$': '<rootDir>/llms/$1',
     '^@shared/(.*)$': '<rootDir>/shared/$1',
     '^@config/(.*)$': '<rootDir>/config/$1',
-    '^@common/(.*)$': '<rootDir>/common/$1'
+    '^@common/(.*)$': '<rootDir>/common/$1',
+    '^@agent-platform/(.*)$': '<rootDir>/agent-platform/$1'
   }
 };
