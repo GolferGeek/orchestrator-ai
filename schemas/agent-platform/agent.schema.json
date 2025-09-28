@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://orchestrator.ai/schemas/agent.schema.json",
+  "title": "Agent Descriptor",
+  "type": "object",
+  "required": ["metadata", "agent_type", "mode_profile", "execution"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["name", "slug", "display_name", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "slug": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+        "display_name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "version": { "type": "string" },
+        "organization": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "hierarchy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": { "type": "string" },
+        "reports_to": { "type": "string" },
+        "department": { "type": "string" }
+      }
+    },
+    "agent_type": {
+      "type": "string",
+      "enum": ["context", "function", "tool", "orchestrator", "external"]
+    },
+    "mode_profile": {
+      "type": "string",
+      "enum": ["converse_only", "full_cycle", "tool_call"]
+    },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description", "tags"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+          "name": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "examples": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "input_modes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+          },
+          "output_modes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": ["default_mode", "supported_modes"],
+      "additionalProperties": false,
+      "properties": {
+        "default_mode": {
+          "type": "string",
+          "enum": ["converse", "plan", "build", "human_response"]
+        },
+        "supported_modes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["converse", "plan", "build", "human_response"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "requires_plan": { "type": "boolean" },
+        "deliverable_types": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "human_checkpoints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "label"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+              "label": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "supporting_agents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["agent_slug"],
+            "additionalProperties": false,
+            "properties": {
+              "agent_slug": { "type": "string" },
+              "capabilities": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "tool_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["tool_slug"],
+            "additionalProperties": false,
+            "properties": {
+              "tool_slug": { "type": "string" },
+              "alias": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "plan_template": {
+      "$ref": "./plan-template.schema.json"
+    },
+    "context_files": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "system_prompt": { "type": "string" },
+        "plan_rubric": { "type": "string" },
+        "examples": { "type": "string" },
+        "reference_data": { "type": "string" }
+      }
+    }
+  }
+}
