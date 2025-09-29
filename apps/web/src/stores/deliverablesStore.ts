@@ -400,15 +400,10 @@ export const useDeliverablesStore = defineStore('deliverables', () => {
   // Additional methods needed by useDeliverables composable
   const processAgentDeliverable = async (deliverableId: string, conversationId: string, messageId?: string, enhancedFrom?: string) => {
     // Process agent deliverable creation/update
-    try {
-      const { deliverablesService } = await import('@/services/deliverablesService');
-      const deliverable = await deliverablesService.getDeliverable(deliverableId);
-      addDeliverable(deliverable);
-      return deliverable;
-    } catch (error) {
-
-      throw error;
-    }
+    const { deliverablesService } = await import('@/services/deliverablesService');
+    const deliverable = await deliverablesService.getDeliverable(deliverableId);
+    addDeliverable(deliverable);
+    return deliverable;
   };
   const findDeliverableForEnhancement = async (conversationId: string, messageId?: string) => {
     // Find existing deliverable for enhancement context

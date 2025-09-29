@@ -213,6 +213,7 @@ export class AgentPoolService implements OnModuleDestroy {
     }
 
     if (staleAgents.length > 0) {
+      // TODO: Implement cleanup for stale agents
     }
   }
 

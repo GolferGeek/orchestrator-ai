@@ -622,8 +622,9 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     // isLoading.value = true; // Logout is usually quick, maybe not needed
     try {
-      await authService.logout(); 
+      await authService.logout();
     } catch (e: any) {
+      // Failed to logout from auth service
     }
     // Stop token monitoring before clearing auth data
     tokenManager.stopMonitoring();

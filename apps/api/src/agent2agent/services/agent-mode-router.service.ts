@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { TaskRequestDto, AgentTaskMode } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { LLMServiceFactory } from '@llm/services/llm-service-factory';
-import { LLMServiceConfig, GenerateResponseParams } from '@llm/services/llm-interfaces';
+import {
+  LLMServiceConfig,
+  GenerateResponseParams,
+} from '@llm/services/llm-interfaces';
 import { RoutingDecision } from '@llm/centralized-routing.service';
 import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
 
@@ -45,6 +48,8 @@ export class AgentModeRouterService {
       );
     }
 
+    const metadata = this.collectMetadata(context.request);
+
     try {
       const response = await this.generateLlmResponse(context, decision);
       return TaskResponseDto.success(AgentTaskMode.CONVERSE, {
@@ -56,6 +61,7 @@ export class AgentModeRouterService {
           model: response.metadata.model,
           usage: response.metadata.usage,
           routingDecision: decision,
+          metadata,
         },
       });
     } catch (error) {
@@ -89,6 +95,8 @@ export class AgentModeRouterService {
       );
     }
 
+    const metadata = this.collectMetadata(context.request);
+
     try {
       const response = await this.generateLlmResponse(context, decision, {
         mode: 'build',
@@ -103,6 +111,7 @@ export class AgentModeRouterService {
           model: response.metadata.model,
           usage: response.metadata.usage,
           routingDecision: decision,
+          metadata,
         },
       });
     } catch (error) {
@@ -156,13 +165,18 @@ export class AgentModeRouterService {
     const systemPrompt = this.resolveSystemPrompt(context.agent, opts.mode);
     const userMessage = this.composeUserMessage(context, opts.mode);
     const payload = context.request.payload ?? {};
-    const metadata = payload.metadata ?? {};
+    const metadata = this.collectMetadata(context.request);
+    const optionMetadata = {
+      ...(payload.options?.metadata ?? {}),
+      ...metadata,
+    };
 
     return {
       systemPrompt,
       userMessage,
       config,
       conversationId: context.request.conversationId,
+      sessionId: context.request.sessionId,
       userId: metadata.userId ?? payload.userId ?? null,
       options: {
         callerType: 'agent',
@@ -173,6 +187,7 @@ export class AgentModeRouterService {
         preferLocal: decision.isLocal,
         maxComplexity: this.mapComplexity(decision.complexityScore),
         ...(payload.options ?? {}),
+        metadata: optionMetadata,
       },
     };
   }
@@ -207,6 +222,17 @@ export class AgentModeRouterService {
     const payload = request.payload ?? {};
 
     const pieces: string[] = [];
+
+    if (Array.isArray(request.messages) && request.messages.length) {
+      const recent = request.messages.slice(-6);
+      const conversation = recent
+        .map((msg) => {
+          const content = this.stringify(msg.content ?? '');
+          return `[${msg.role}] ${content}`;
+        })
+        .join('\n');
+      pieces.push(`Recent conversation history:\n${conversation}`);
+    }
 
     if (typeof request.userMessage === 'string' && request.userMessage.trim()) {
       pieces.push(request.userMessage.trim());
@@ -248,5 +274,12 @@ export class AgentModeRouterService {
     } catch {
       return String(value);
     }
+  }
+
+  private collectMetadata(request: TaskRequestDto): Record<string, any> {
+    return {
+      ...(request.payload?.metadata ?? {}),
+      ...(request.metadata ?? {}),
+    };
   }
 }

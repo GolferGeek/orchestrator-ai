@@ -236,23 +236,19 @@ class TasksService {
     // Backend discovers specialists under "specialists/<name>"
     const normalizedAgentType = agentType === 'specialist' ? 'specialists' : agentType;
     const url = `/agents/${normalizedAgentType}/${agentName}/tasks`;
-    try {
-      // Sanitize the task data before sending
-      const sanitizedTaskData = this.apiSanitization.sanitizeTaskRequest(taskData);
+    // Sanitize the task data before sending
+    const sanitizedTaskData = this.apiSanitization.sanitizeTaskRequest(taskData);
 
-      // Debug: Log what's being sent to the backend
-      console.log('🚀 Sending task to backend:', {
-        url,
-        llmSelection: sanitizedTaskData.llmSelection,
-        hasLlmSelection: !!sanitizedTaskData.llmSelection,
-        method: sanitizedTaskData.method
-      });
+    // Debug: Log what's being sent to the backend
+    console.log('🚀 Sending task to backend:', {
+      url,
+      llmSelection: sanitizedTaskData.llmSelection,
+      hasLlmSelection: !!sanitizedTaskData.llmSelection,
+      method: sanitizedTaskData.method
+    });
 
-      const response = await apiService.post(url, sanitizedTaskData);
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await apiService.post(url, sanitizedTaskData);
+    return response;
   }
   /**
    * Get task by ID (alias for getTask)

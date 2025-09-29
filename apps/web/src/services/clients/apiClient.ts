@@ -20,114 +20,98 @@ export class ApiClient extends BaseApiClient {
     sessionId?: string | null,
     conversationHistory?: Array<{role: string, content: string, metadata?: any}> 
   ): Promise<TaskResponse> {
-    try {
-      // Get the current auth token from localStorage to pass to orchestrator
-      const authToken = localStorage.getItem('authToken');
-      // Get current user information for proper database RLS
-      let currentUser = null;
-      if (authToken) {
-        try {
-          // Ensure auth token is set in headers for the /auth/me request
-          const userResponse = await this.axiosInstance.get('/auth/me', {
-            headers: {
-              'Authorization': `Bearer ${authToken}`
-            }
-          });
-          currentUser = userResponse.data.user;
-        } catch (error) {
-          // Failed to fetch current user for orchestrator
-        }
+    // Get the current auth token from localStorage to pass to orchestrator
+    const authToken = localStorage.getItem('authToken');
+    // Get current user information for proper database RLS
+    let currentUser = null;
+    if (authToken) {
+      try {
+        // Ensure auth token is set in headers for the /auth/me request
+        const userResponse = await this.axiosInstance.get('/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        currentUser = userResponse.data.user;
+      } catch (error) {
+        // Failed to fetch current user for orchestrator
       }
-      // NestJS JSON-RPC 2.0 format
-      const requestPayload = {
-        jsonrpc: '2.0',
-        method: 'handle_request',
-        params: {
-          message: userInputText,
-          session_id: sessionId,
-          conversation_history: conversationHistory || [],
-          authToken: authToken, // Pass auth token to orchestrator for agent pool refresh
-          currentUser: currentUser // Pass current user for database RLS
-        },
-        id: Date.now() // Use timestamp as unique ID
-      };
-      const response = await this.axiosInstance.post<JsonRpcResponse>(
-        '/agents/orchestrator/orchestrator/tasks', 
-        requestPayload
-      );
-      // Extract the result field and convert to TaskResponse
-      const jsonRpcResponse = response.data;
-      if (jsonRpcResponse.error) {
-        throw new Error(`JSON-RPC Error ${jsonRpcResponse.error.code}: ${jsonRpcResponse.error.message}`);
-      }
-      if (jsonRpcResponse.result) {
-        const result = jsonRpcResponse.result;
-        // Extract agent name from various possible metadata fields
-        let respondingAgentName = 'Orchestrator Agent'; // default
-        if (result.metadata) {
-          // Try different fields where agent name might be
-          respondingAgentName = result.metadata.delegatedTo || 
-                              result.metadata.originalAgent?.agentName ||
-                              result.metadata.agentName ||
-                              result.metadata.respondingAgentName ||
-                              'Orchestrator Agent';
-        }
-        return {
-          id: jsonRpcResponse.id?.toString() || Date.now().toString(),
-          status: {
-            state: result.success ? 'completed' : 'failed',
-            timestamp: new Date().toISOString(),
-            message: result.success ? 'Task completed successfully' : 'Task failed'
-          },
-          result: result.response || result.result || 'Success',
-          metadata: {
-            agentName: respondingAgentName,
-            respondingAgentName: respondingAgentName,
-            ...result.metadata
-          },
-          response_message: {
-            role: 'assistant',
-            parts: [{ 
-              type: 'text',
-              text: result.response || result.message || result.result || 'Task completed' 
-            }],
-            metadata: {
-              respondingAgentName: respondingAgentName
-            }
-          },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          session_id: sessionId || null
-        };
-      }
-      throw new Error('No result received from orchestrator');
-    } catch (error) {
-      throw error; // Re-throw as it's already processed by the interceptor
     }
+    // NestJS JSON-RPC 2.0 format
+    const requestPayload = {
+      jsonrpc: '2.0',
+      method: 'handle_request',
+      params: {
+        message: userInputText,
+        session_id: sessionId,
+        conversation_history: conversationHistory || [],
+        authToken: authToken, // Pass auth token to orchestrator for agent pool refresh
+        currentUser: currentUser // Pass current user for database RLS
+      },
+      id: Date.now() // Use timestamp as unique ID
+    };
+    const response = await this.axiosInstance.post<JsonRpcResponse>(
+      '/agents/orchestrator/orchestrator/tasks',
+      requestPayload
+    );
+    // Extract the result field and convert to TaskResponse
+    const jsonRpcResponse = response.data;
+    if (jsonRpcResponse.error) {
+      throw new Error(`JSON-RPC Error ${jsonRpcResponse.error.code}: ${jsonRpcResponse.error.message}`);
+    }
+    if (jsonRpcResponse.result) {
+      const result = jsonRpcResponse.result;
+      // Extract agent name from various possible metadata fields
+      let respondingAgentName = 'Orchestrator Agent'; // default
+      if (result.metadata) {
+        // Try different fields where agent name might be
+        respondingAgentName = result.metadata.delegatedTo ||
+                            result.metadata.originalAgent?.agentName ||
+                            result.metadata.agentName ||
+                            result.metadata.respondingAgentName ||
+                            'Orchestrator Agent';
+      }
+      return {
+        id: jsonRpcResponse.id?.toString() || Date.now().toString(),
+        status: {
+          state: result.success ? 'completed' : 'failed',
+          timestamp: new Date().toISOString(),
+          message: result.success ? 'Task completed successfully' : 'Task failed'
+        },
+        result: result.response || result.result || 'Success',
+        metadata: {
+          agentName: respondingAgentName,
+          respondingAgentName: respondingAgentName,
+          ...result.metadata
+        },
+        response_message: {
+          role: 'assistant',
+          parts: [{
+            type: 'text',
+            text: result.response || result.message || result.result || 'Task completed'
+          }],
+          metadata: {
+            respondingAgentName: respondingAgentName
+          }
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        session_id: sessionId || null
+      };
+    }
+    throw new Error('No result received from orchestrator');
   }
   async getAvailableAgents(): Promise<AgentInfo[]> {
-    try {
-      const response = await this.axiosInstance.get<{ agents: AgentInfo[] }>('/agents');
-      return response.data.agents || [];
-    } catch (error) {
-      throw error; // Re-throw as it's already processed by the interceptor
-    }
+    const response = await this.axiosInstance.get<{ agents: AgentInfo[] }>('/agents');
+    return response.data.agents || [];
   }
   // V1-specific methods can be added here
   async getAgentDetails(agentId: string): Promise<AgentInfo> {
-    try {
-      const response = await this.axiosInstance.get<AgentInfo>(`/agents/${agentId}`);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await this.axiosInstance.get<AgentInfo>(`/agents/${agentId}`);
+    return response.data;
   }
   async getTaskHistory(sessionId: string): Promise<TaskResponse[]> {
-    try {
-      const response = await this.axiosInstance.get<TaskResponse[]>(`/sessions/${sessionId}/tasks`);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await this.axiosInstance.get<TaskResponse[]>(`/sessions/${sessionId}/tasks`);
+    return response.data;
   }
 } 

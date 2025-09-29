@@ -108,7 +108,7 @@ describe('AgentsRepository', () => {
 
   it('deletes agent by id', async () => {
     const { fromMock, service } = createSupabaseMock();
-    const deleteFn = jest.fn().mockResolvedValue({ error: null });
+    const _deleteFn = jest.fn().mockResolvedValue({ error: null });
     const eqMock = jest.fn().mockResolvedValue({ error: null });
 
     fromMock.mockReturnValue({ delete: jest.fn(() => ({ eq: eqMock })) });

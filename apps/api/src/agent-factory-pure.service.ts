@@ -24,10 +24,9 @@ export class AgentFactoryServicePure {
    * Instantiate agent - MUCH simpler now!
    */
   private async instantiateAgent(ServiceClass: any, config: any): Promise<any> {
-    const serviceName = ServiceClass.name;
+    const _serviceName = ServiceClass.name;
 
-    try {
-      switch (config.type) {
+    switch (config.type) {
         case 'orchestrator': {
           // Orchestrators still handled by NestJS DI (no change needed)
 
@@ -74,8 +73,6 @@ export class AgentFactoryServicePure {
           return new ServiceClass(this.agentServices.httpService);
         }
       }
-    } catch (error: any) {
-      throw error;
     }
   }
 }

@@ -46,7 +46,7 @@ import { LLMService } from '../../../../../llms/llm.service';
 import {
   AgentExecutionCapabilities,
   AgentExecutionMetadata,
-  AgentExecutionProfile,
+  AgentExecutionProfile as _AgentExecutionProfile,
   DEFAULT_EXECUTION_CAPABILITIES,
   DEFAULT_EXECUTION_PROFILE,
   buildExecutionCapabilities,

@@ -1,10 +1,13 @@
 import {
+  IsArray,
   IsEnum,
   IsObject,
   IsOptional,
   IsString,
   IsUUID,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export enum AgentTaskMode {
   CONVERSE = 'converse',
@@ -17,12 +20,25 @@ export enum AgentTaskMode {
   ORCHESTRATE_SAVE_RECIPE = 'orchestrate_save_recipe',
 }
 
+export class TaskMessageDto {
+  @IsString()
+  role!: string;
+
+  @IsOptional()
+  content?: any;
+}
+
 export class TaskRequestDto {
   @IsEnum(AgentTaskMode)
   mode!: AgentTaskMode;
 
+  @IsOptional()
   @IsUUID()
-  conversationId!: string;
+  conversationId?: string;
+
+  @IsOptional()
+  @IsString()
+  sessionId?: string;
 
   @IsOptional()
   @IsUUID()
@@ -51,4 +67,14 @@ export class TaskRequestDto {
   @IsOptional()
   @IsString()
   userMessage?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TaskMessageDto)
+  messages?: TaskMessageDto[];
+
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
 }

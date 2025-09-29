@@ -158,6 +158,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       applyPreferences();
       setupAutoSave();
     } catch (error) {
+      // Failed to load preferences, continue with defaults
     } finally {
       isLoading.value = false;
     }
@@ -217,6 +218,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
         saveUserProfile();
       }
     } catch (error) {
+      // Failed to save preferences
     }
   };
   const saveUserProfile = () => {
@@ -225,6 +227,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
         localStorage.setItem('userProfile', JSON.stringify(currentUser.value));
       }
     } catch (error) {
+      // Failed to save user profile
     }
   };
   const updatePreference = <K extends keyof UserPreferences>(
@@ -284,6 +287,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
       try {
         // Simplified for unified API - no switching needed
       } catch (error) {
+        // Failed to apply API preferences
       }
     }
   };
@@ -331,22 +335,18 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     };
   };
   const importPreferences = (data: any) => {
-    try {
-      if (data.preferences) {
-        preferences.value = { ...DEFAULT_PREFERENCES, ...data.preferences };
-      }
-      if (data.userProfile) {
-        currentUser.value = {
-          ...data.userProfile,
-          createdAt: new Date(data.userProfile.createdAt),
-          lastActive: new Date(),
-        };
-      }
-      savePreferences();
-      applyPreferences();
-    } catch (error) {
-      throw error;
+    if (data.preferences) {
+      preferences.value = { ...DEFAULT_PREFERENCES, ...data.preferences };
     }
+    if (data.userProfile) {
+      currentUser.value = {
+        ...data.userProfile,
+        createdAt: new Date(data.userProfile.createdAt),
+        lastActive: new Date(),
+      };
+    }
+    savePreferences();
+    applyPreferences();
   };
   // Quick access methods for common preferences
   const setApiVersion = async (version: ApiVersion) => {

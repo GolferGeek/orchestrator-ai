@@ -121,6 +121,7 @@ export class TaskExecutionService {
         }
       });
     } catch (error) {
+      // Failed to execute task via task stream
     }
   }
 

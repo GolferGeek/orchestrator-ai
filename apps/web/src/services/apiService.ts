@@ -610,29 +610,25 @@ class ApiService {
    * Create a new session
    */
   async createSession(name: string): Promise<any> {
-    try {
-      const authToken = localStorage.getItem('authToken');
-      
-      const response = await this.axiosInstance.post('/sessions', 
-        { name },
-        {
-          headers: {
-            'Authorization': authToken ? `Bearer ${authToken}` : undefined
-          }
+    const authToken = localStorage.getItem('authToken');
+
+    const response = await this.axiosInstance.post('/sessions',
+      { name },
+      {
+        headers: {
+          'Authorization': authToken ? `Bearer ${authToken}` : undefined
         }
-      );
-      
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+      }
+    );
+
+    return response.data;
   }
 
   /**
    * Get session messages with LLM evaluation data
    */
   async getSessionMessages(
-    sessionId: string, 
+    sessionId: string,
     options: {
       skip?: number;
       limit?: number;
@@ -640,159 +636,123 @@ class ApiService {
       includeLlmData?: boolean;
     } = {}
   ): Promise<SendMessageResponse[]> {
-    try {
-      const authToken = localStorage.getItem('authToken');
-      
-      const queryParams = new URLSearchParams();
-      if (options.skip !== undefined) queryParams.append('skip', options.skip.toString());
-      if (options.limit !== undefined) queryParams.append('limit', options.limit.toString());
-      if (options.includeEvaluations) queryParams.append('include_evaluations', 'true');
-      if (options.includeLlmData) queryParams.append('include_llm_data', 'true');
-      
-      const response = await this.axiosInstance.get(
-        `/sessions/${sessionId}/messages/enhanced?${queryParams.toString()}`,
-        {
-          headers: {
-            'Authorization': authToken ? `Bearer ${authToken}` : undefined
-          }
+    const authToken = localStorage.getItem('authToken');
+
+    const queryParams = new URLSearchParams();
+    if (options.skip !== undefined) queryParams.append('skip', options.skip.toString());
+    if (options.limit !== undefined) queryParams.append('limit', options.limit.toString());
+    if (options.includeEvaluations) queryParams.append('include_evaluations', 'true');
+    if (options.includeLlmData) queryParams.append('include_llm_data', 'true');
+
+    const response = await this.axiosInstance.get(
+      `/sessions/${sessionId}/messages/enhanced?${queryParams.toString()}`,
+      {
+        headers: {
+          'Authorization': authToken ? `Bearer ${authToken}` : undefined
         }
-      );
-      
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+      }
+    );
+
+    return response.data;
   }
 
   /**
    * Get user sessions
    */
   async getUserSessions(skip: number = 0, limit: number = 100): Promise<any> {
-    try {
-      const authToken = localStorage.getItem('authToken');
-      
-      const response = await this.axiosInstance.get(
-        `/sessions?skip=${skip}&limit=${limit}`,
-        {
-          headers: {
-            'Authorization': authToken ? `Bearer ${authToken}` : undefined
-          }
+    const authToken = localStorage.getItem('authToken');
+
+    const response = await this.axiosInstance.get(
+      `/sessions?skip=${skip}&limit=${limit}`,
+      {
+        headers: {
+          'Authorization': authToken ? `Bearer ${authToken}` : undefined
         }
-      );
-      
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+      }
+    );
+
+    return response.data;
   }
 
   /**
    * Delete a session
    */
   async deleteSession(sessionId: string): Promise<void> {
-    try {
-      const authToken = localStorage.getItem('authToken');
-      
-      await this.axiosInstance.delete(`/sessions/${sessionId}`, {
-        headers: {
-          'Authorization': authToken ? `Bearer ${authToken}` : undefined
-        }
-      });
-    } catch (error) {
-      throw error;
-    }
+    const authToken = localStorage.getItem('authToken');
+
+    await this.axiosInstance.delete(`/sessions/${sessionId}`, {
+      headers: {
+        'Authorization': authToken ? `Bearer ${authToken}` : undefined
+      }
+    });
   }
 
   /**
    * Get agents list for modal display (UI endpoint)
    */
   async getAgentsList(): Promise<any> {
-    try {
-      const authToken = localStorage.getItem('authToken');
-      const response = await this.axiosInstance.get('/orchestrator/ui/agents-list', {
-        headers: {
-          'Authorization': authToken ? `Bearer ${authToken}` : undefined
-        }
-      });
-      
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const authToken = localStorage.getItem('authToken');
+    const response = await this.axiosInstance.get('/orchestrator/ui/agents-list', {
+      headers: {
+        'Authorization': authToken ? `Bearer ${authToken}` : undefined
+      }
+    });
+
+    return response.data;
   }
 
   /**
    * Get agent capabilities for modal display (UI endpoint)
    */
   async getAgentCapabilities(agentName: string): Promise<any> {
-    try {
-      const authToken = localStorage.getItem('authToken');
-      const response = await this.axiosInstance.get(`/orchestrator/ui/agent-capabilities/${encodeURIComponent(agentName)}`, {
-        headers: {
-          'Authorization': authToken ? `Bearer ${authToken}` : undefined
-        }
-      });
-      
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const authToken = localStorage.getItem('authToken');
+    const response = await this.axiosInstance.get(`/orchestrator/ui/agent-capabilities/${encodeURIComponent(agentName)}`, {
+      headers: {
+        'Authorization': authToken ? `Bearer ${authToken}` : undefined
+      }
+    });
+
+    return response.data;
   }
 
   /**
    * Get current user profile
    */
   async getCurrentUser(): Promise<any> {
-    try {
-      const authToken = localStorage.getItem('authToken');
-      const response = await this.axiosInstance.get('/auth/me', {
-        headers: {
-          'Authorization': authToken ? `Bearer ${authToken}` : undefined
-        }
-      });
-      
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const authToken = localStorage.getItem('authToken');
+    const response = await this.axiosInstance.get('/auth/me', {
+      headers: {
+        'Authorization': authToken ? `Bearer ${authToken}` : undefined
+      }
+    });
+
+    return response.data;
   }
 
   /**
    * Login with email and password
    */
   async login(credentials: { email: string; password: string }): Promise<any> {
-    try {
-      const response = await this.axiosInstance.post('/auth/login', credentials);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await this.axiosInstance.post('/auth/login', credentials);
+    return response.data;
   }
 
   /**
    * Sign up with email and password
    */
   async signup(credentials: { email: string; password: string }): Promise<any> {
-    try {
-      const response = await this.axiosInstance.post('/auth/signup', credentials);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await this.axiosInstance.post('/auth/signup', credentials);
+    return response.data;
   }
 
   /**
    * Refresh auth token
    */
   async refreshToken(refreshToken: string): Promise<any> {
-    try {
-      const response = await this.axiosInstance.post('/auth/refresh', { 
-        refreshToken 
-      });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await this.axiosInstance.post('/auth/refresh', {
+      refreshToken
+    });
+    return response.data;
   }
 
   /**
@@ -821,13 +781,8 @@ console.error(`ApiService.get error for ${url}:`, error);
    * GET but suppress error-store logging for 404s (for optional/demo endpoints)
    */
   async getQuiet404(url: string): Promise<any> {
-    try {
-      const response = await this.axiosInstance.get(url, { _suppress404Logging: true } as any);
-      return response.data;
-    } catch (error) {
-      // Bubble up so caller can handle 404s; interceptor will skip logging
-      throw error;
-    }
+    const response = await this.axiosInstance.get(url, { _suppress404Logging: true } as any);
+    return response.data;
   }
 
   /**

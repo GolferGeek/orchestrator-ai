@@ -6,8 +6,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { timingSafeEqual, createHash } from 'crypto';
-import { OrganizationCredentialsRepository } from '@agent-platform/repositories/organization-credentials.repository';
-import { OrganizationCredentialRecord } from '@agent-platform/interfaces/organization-credential-record.interface';
+import { OrganizationCredentialsRepository } from '../../agent-platform/repositories/organization-credentials.repository';
+import { OrganizationCredentialRecord } from '../../agent-platform/interfaces/organization-credential-record.interface';
 
 type BufferEncodingOption = BufferEncoding | 'base64url';
 

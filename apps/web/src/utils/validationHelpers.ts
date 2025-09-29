@@ -87,8 +87,8 @@ export function isDangerousRegex(pattern: string): boolean {
     /\([^)]*\+[^)]*\)\+/,  // Nested quantifiers like (a+)+
     /\([^)]*\*[^)]*\)\*/,  // Nested star quantifiers like (.*)*
     /\([^)]*\+[^)]*\)\$/, // Nested quantifiers at end
-    /\(\?\!\.\*\)\+/,  // Negative lookahead with quantifiers
-    /\(\?\:\.\+\)\+/, // Non-capturing group with nested quantifiers
+    /\(\?!.*\)\+/,  // Negative lookahead with quantifiers
+    /\(\?:.\+\)\+/, // Non-capturing group with nested quantifiers
   ];
   
   return dangerousPatterns.some(dangerous => dangerous.test(pattern));
@@ -124,7 +124,7 @@ export function containsSQLInjection(value: string): boolean {
     /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b)/gi,
     /(UNION\s+SELECT)/gi,
     /(';\s*(DROP|DELETE|INSERT|UPDATE))/gi,
-    /(\|\||\-\-|\/\*|\*\/)/gi,
+    /(\|\||--|\/\*|\*\/)/gi,
     /(WAITFOR\s+DELAY)/gi,
     /(CONVERT\s*\()/gi,
   ];
@@ -137,8 +137,8 @@ export function containsSQLInjection(value: string): boolean {
  */
 export function containsPathTraversal(value: string): boolean {
   const pathTraversalPatterns = [
-    /\.\.[\/\\]/,
-    /%2e%2e[\/\\]/gi,
+    /\.\.[/\\]/,
+    /%2e%2e[/\\]/gi,
     /\.\.%2f/gi,
     /\.\.%5c/gi,
     /\.\.\\/,
@@ -178,7 +178,7 @@ export function containsPotentialPII(value: string): boolean {
     ValidationPatterns.PHONE,
     /\b\d{3}-?\d{2}-?\d{4}\b/, // SSN variations
     /\b[A-Z]{2}\d{6,8}\b/, // Government ID patterns
-    /\b\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b/, // Credit card
+    /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/, // Credit card
   ];
   
   return piiPatterns.some(pattern => pattern.test(value));
@@ -194,7 +194,7 @@ export function extractPIIMatches(value: string): Array<{ type: string; match: s
     { type: 'email', pattern: /[^\s@]+@[^\s@]+\.[^\s@]+/ }, // Remove anchors for text extraction
     { type: 'phone', pattern: /\b\d{3}-\d{3}-\d{4}\b|\b\(\d{3}\)\s?\d{3}-\d{4}\b|\b\d{3}\.\d{3}\.\d{4}\b/ }, // More specific phone patterns
     { type: 'ssn', pattern: /\b\d{3}-?\d{2}-?\d{4}\b/ }, // Remove anchors
-    { type: 'credit_card', pattern: /\b\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b/ }, // Remove anchors
+    { type: 'credit_card', pattern: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/ }, // Remove anchors
   ];
   
   patterns.forEach(({ type, pattern }) => {
@@ -234,7 +234,7 @@ export function sanitizeHTML(value: string): string {
  * Remove dangerous characters
  */
 export function removeDangerousChars(value: string): string {
-  return value.replace(/[<>\"'&]/g, '');
+  return value.replace(/[<>"'&]/g, '');
 }
 
 /**
@@ -252,7 +252,11 @@ export function normalizeWhitespace(value: string): string {
  * Remove control characters
  */
 export function removeControlChars(value: string): string {
-  return value.replace(/[\x00-\x1F\x7F]/g, '');
+  // Remove control characters (0-31 and 127) using string manipulation
+  return value.split('').filter(char => {
+    const code = char.charCodeAt(0);
+    return !(code <= 31 || code === 127);
+  }).join('');
 }
 
 // =====================================

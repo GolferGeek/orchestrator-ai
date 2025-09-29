@@ -45,6 +45,7 @@ describe('RoutingPolicyAdapterService', () => {
         mode: AgentTaskMode.CONVERSE,
         agentSlug: 'agent-1',
         conversationId: 'conv-1',
+        metadata: {},
       }),
     );
   });
@@ -81,7 +82,32 @@ describe('RoutingPolicyAdapterService', () => {
         requestId: 'req-456',
         conversationId: 'conv-42',
         organizationSlug: 'acme',
+        metadata: expect.objectContaining({ userId: 'user-123' }),
       }),
     );
+  });
+
+  it('includes recent conversation messages in routing prompt', async () => {
+    const determineRoute = jest.fn().mockResolvedValue({ routeToAgent: true });
+    const routingService = {
+      determineRoute,
+    } as unknown as CentralizedRoutingService;
+
+    const adapter = new RoutingPolicyAdapterService(routingService);
+    await adapter.evaluate(
+      {
+        mode: AgentTaskMode.CONVERSE,
+        conversationId: 'conv-99',
+        messages: [
+          { role: 'user', content: 'First message' },
+          { role: 'assistant', content: 'Reply' },
+          { role: 'user', content: 'Second question' },
+        ],
+      } as any,
+      agentRecord,
+    );
+
+    const [prompt] = determineRoute.mock.calls[0];
+    expect(prompt).toContain('Recent transcript');
   });
 });

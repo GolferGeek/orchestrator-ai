@@ -172,9 +172,6 @@ export class TasksService {
       }
 
       throw new Error(`Failed to create task after ${maxAttempts} attempts`);
-    } catch (error) {
-      throw error;
-    }
   }
 
   /**
@@ -202,9 +199,6 @@ export class TasksService {
       }
 
       return result;
-    } catch (error) {
-      throw error;
-    }
   }
 
   /**
@@ -247,9 +241,6 @@ export class TasksService {
         tasks: data.map((item) => this.mapToTask(item)),
         total: count || 0,
       };
-    } catch (error) {
-      throw error;
-    }
   }
 
   /**
@@ -347,9 +338,6 @@ export class TasksService {
       // to avoid duplicate emissions that cause multiple deliverable versions
 
       return this.mapToTask(data);
-    } catch (error) {
-      throw error;
-    }
   }
 
   /**
@@ -360,52 +348,44 @@ export class TasksService {
     progress: number,
     message?: string,
   ): Promise<void> {
-    try {
-      const { error } = await this.supabaseService
-        .getAnonClient()
-        .from('tasks')
-        .update({
-          progress,
-          progress_message: message,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', taskId);
-
-      if (error) {
-        throw new Error(`Failed to update task progress: ${error.message}`);
-      }
-
-      // We don't know the userId in this method, so we can't sync with TaskStatusService here
-      // Progress updates should go through the main updateTask method instead
-
-      // Emit progress event
-      const progressEvent: TaskProgressEvent = {
-        taskId,
+    const { error } = await this.supabaseService
+      .getAnonClient()
+      .from('tasks')
+      .update({
         progress,
-        message,
-      };
-      this.eventEmitter.emit('task.progress', progressEvent);
-    } catch (error) {
-      throw error;
+        progress_message: message,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', taskId);
+
+    if (error) {
+      throw new Error(`Failed to update task progress: ${error.message}`);
     }
+
+    // We don't know the userId in this method, so we can't sync with TaskStatusService here
+    // Progress updates should go through the main updateTask method instead
+
+    // Emit progress event
+    const progressEvent: TaskProgressEvent = {
+      taskId,
+      progress,
+      message,
+    };
+    this.eventEmitter.emit('task.progress', progressEvent);
   }
 
   /**
    * Cancel a task
    */
   async cancelTask(taskId: string, userId: string): Promise<void> {
-    try {
-      await this.updateTask(taskId, userId, {
-        status: 'cancelled',
-      });
+    await this.updateTask(taskId, userId, {
+      status: 'cancelled',
+    });
 
-      // Also cancel in lifecycle service if active
-      const lifecycleTask = this.taskLifecycleService.getTaskById(taskId);
-      if (lifecycleTask && lifecycleTask.status === TaskStatus.RUNNING) {
-        this.taskLifecycleService.cancelTask(taskId);
-      }
-    } catch (error) {
-      throw error;
+    // Also cancel in lifecycle service if active
+    const lifecycleTask = this.taskLifecycleService.getTaskById(taskId);
+    if (lifecycleTask && lifecycleTask.status === TaskStatus.RUNNING) {
+      this.taskLifecycleService.cancelTask(taskId);
     }
   }
 
@@ -413,23 +393,19 @@ export class TasksService {
    * Get active tasks for a profile
    */
   async getActiveTasks(userId: string): Promise<Task[]> {
-    try {
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from('tasks')
-        .select()
-        .eq('user_id', userId)
-        .in('status', ['pending', 'running'])
-        .order('created_at', { ascending: false });
+    const { data, error } = await this.supabaseService
+      .getAnonClient()
+      .from('tasks')
+      .select()
+      .eq('user_id', userId)
+      .in('status', ['pending', 'running'])
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        throw new Error(`Failed to fetch active tasks: ${error.message}`);
-      }
-
-      return data.map((item) => this.mapToTask(item));
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw new Error(`Failed to fetch active tasks: ${error.message}`);
     }
+
+    return data.map((item) => this.mapToTask(item));
   }
 
   /**

@@ -3,17 +3,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AgentsRepository } from '@agent-platform/repositories/agents.repository';
-import { AgentOrchestrationsRepository } from '@agent-platform/repositories/agent-orchestrations.repository';
-import { AgentOrchestrationRecord } from '@agent-platform/interfaces/agent-orchestration-record.interface';
-import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
-import { ConversationPlanRecord } from '@agent-platform/interfaces/conversation-plan-record.interface';
+import { AgentsRepository } from '../../agent-platform/repositories/agents.repository';
+import { AgentOrchestrationsRepository } from '../../agent-platform/repositories/agent-orchestrations.repository';
+import { AgentOrchestrationRecord } from '../../agent-platform/interfaces/agent-orchestration-record.interface';
+import { AgentRecord } from '../../agent-platform/interfaces/agent-record.interface';
+import { ConversationPlanRecord } from '../../agent-platform/interfaces/conversation-plan-record.interface';
 import { AgentTaskMode, TaskRequestDto } from '../dto/task-request.dto';
 import { TaskResponseDto } from '../dto/task-response.dto';
 import { AgentModeRouterService } from './agent-mode-router.service';
 import { RoutingPolicyAdapterService } from './routing-policy-adapter.service';
-import { PlanEngineService } from '@agent-platform/services/plan-engine.service';
-import { OrchestrationRunnerService } from '@agent-platform/services/orchestration-runner.service';
+import { PlanEngineService } from '../../agent-platform/services/plan-engine.service';
+import { OrchestrationRunnerService } from '../../agent-platform/services/orchestration-runner.service';
 
 @Injectable()
 export class AgentExecutionGateway {
@@ -100,13 +100,15 @@ export class AgentExecutionGateway {
       summary: request.userMessage ?? 'Plan draft not provided',
     };
 
+    const metadata = this.collectMetadata(request);
+
     const planRecord = await this.planEngine.generateDraft({
       conversationId,
       organizationSlug,
       agentSlug: agent.slug,
       summary: request.payload?.summary ?? null,
       draftPlan,
-      createdBy: request.payload?.createdBy ?? null,
+      createdBy: metadata.createdBy ?? null,
     });
 
     return TaskResponseDto.success(AgentTaskMode.PLAN, {
@@ -155,13 +157,15 @@ export class AgentExecutionGateway {
       summary: request.userMessage ?? 'Orchestration draft not provided',
     };
 
+    const metadata = this.collectMetadata(request);
+
     const planRecord = await this.planEngine.generateDraft({
       conversationId,
       organizationSlug,
       agentSlug: agent.slug,
       summary: request.payload?.summary ?? null,
       draftPlan,
-      createdBy: request.payload?.createdBy ?? null,
+      createdBy: metadata.createdBy ?? null,
     });
 
     return TaskResponseDto.success(AgentTaskMode.ORCHESTRATE_CREATE, {
@@ -233,6 +237,7 @@ export class AgentExecutionGateway {
     request: TaskRequestDto,
   ): Promise<TaskResponseDto> {
     const orchestrationPayload = request.payload?.orchestration;
+    const metadata = this.collectMetadata(request);
 
     if (!orchestrationPayload) {
       throw new BadRequestException(
@@ -255,10 +260,12 @@ export class AgentExecutionGateway {
       prompt_templates: orchestrationPayload.promptTemplates ?? [],
       tags: orchestrationPayload.tags ?? [],
       version: orchestrationPayload.version ?? null,
-      created_by:
-        orchestrationPayload.createdBy ?? request.payload?.createdBy ?? null,
+      created_by: orchestrationPayload.createdBy ?? metadata.createdBy ?? null,
       updated_by:
-        orchestrationPayload.updatedBy ?? request.payload?.updatedBy ?? null,
+        orchestrationPayload.updatedBy ??
+        metadata.updatedBy ??
+        metadata.createdBy ??
+        null,
     });
 
     return TaskResponseDto.success(AgentTaskMode.ORCHESTRATE_SAVE_RECIPE, {
@@ -278,7 +285,7 @@ export class AgentExecutionGateway {
       request.orchestrationSlug ?? request.payload?.orchestrationSlug ?? null;
     const promptInputs =
       request.promptParameters ?? request.payload?.promptParameters ?? {};
-    const metadata = request.payload?.metadata ?? {};
+    const metadata = this.collectMetadata(request);
 
     if (request.planId) {
       const plan = await this.resolvePlanForExecution(
@@ -424,5 +431,12 @@ export class AgentExecutionGateway {
     }
 
     return plan;
+  }
+
+  private collectMetadata(request: TaskRequestDto): Record<string, any> {
+    return {
+      ...(request.payload?.metadata ?? {}),
+      ...(request.metadata ?? {}),
+    };
   }
 }

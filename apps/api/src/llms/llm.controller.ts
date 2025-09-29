@@ -119,9 +119,6 @@ export class LLMController {
         );
         return response;
       }
-    } catch (error) {
-      throw error;
-    }
   }
 
   @Get('local-models/status')

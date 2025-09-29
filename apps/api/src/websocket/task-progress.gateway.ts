@@ -111,7 +111,7 @@ export class TaskProgressGateway
 
       // Join user-specific room
       client.join(`user:${client.userId}`);
-    } catch (_error) {
+    } catch {
       // Allow anonymous connection as fallback
       client.userId = 'anonymous';
       client.subscribedTasks = new Set();
@@ -152,16 +152,16 @@ export class TaskProgressGateway
         const clientCount = roomClients ? roomClients.size : 0;
 
         if (clientCount === 0) {
-          const allRooms = Array.from(
+          const _allRooms = Array.from(
             this.server?.sockets?.adapter?.rooms?.keys() || [],
           );
 
-          const clientRooms = Array.from(client.rooms || []);
+          const _clientRooms = Array.from(client.rooms || []);
         }
       }, 100); // Small delay to let room join complete
 
       client.emit('subscription_confirmed', { taskId: data.taskId });
-    } catch (error) {
+    } catch {
       client.emit('subscription_error', {
         taskId: data.taskId,
         message: 'Failed to subscribe to task',
@@ -218,11 +218,13 @@ export class TaskProgressGateway
     try {
       roomClients = this.server?.sockets?.adapter?.rooms?.get(`task:${taskId}`);
       clientCount = roomClients ? roomClients.size : 0;
-    } catch (error) {}
+    } catch {
+      // Failed to get room client count
+    }
 
     if (clientCount === 0) {
       // Log all current rooms to debug
-      const allRooms = Array.from(
+      const _allRooms = Array.from(
         this.server?.sockets?.adapter?.rooms?.keys() || [],
       );
     }
@@ -243,13 +245,15 @@ export class TaskProgressGateway
     };
 
     // Check how many clients are in the room (with null safety)
-    let clientCount = 0;
+    let _clientCount = 0;
     try {
       const roomClients = this.server?.sockets?.adapter?.rooms?.get(
         `task:${taskId}`,
       );
-      clientCount = roomClients ? roomClients.size : 0;
-    } catch (error) {}
+      _clientCount = roomClients ? roomClients.size : 0;
+    } catch {
+      // Failed to get room client count
+    }
 
     // Broadcast to all clients subscribed to this task
     this.server.to(`task:${taskId}`).emit('task_completed', event);
@@ -275,13 +279,15 @@ export class TaskProgressGateway
     };
 
     // Check how many clients are in the room (with null safety)
-    let clientCount = 0;
+    let _clientCount = 0;
     try {
       const roomClients = this.server?.sockets?.adapter?.rooms?.get(
         `task:${taskId}`,
       );
-      clientCount = roomClients ? roomClients.size : 0;
-    } catch (error) {}
+      _clientCount = roomClients ? roomClients.size : 0;
+    } catch {
+      // Failed to get room client count
+    }
 
     // Broadcast to all clients subscribed to this task with full response
     this.server
@@ -325,7 +331,7 @@ export class TaskProgressGateway
    * Note: WebSocket broadcasting is handled by broadcastTaskCompletion() method to avoid duplicates
    */
   @OnEvent('task.completed')
-  handleTaskCompleted(event: { taskId: string; userId: string }) {
+  handleTaskCompleted(_event: { taskId: string; userId: string }) {
     // Don't emit WebSocket events here - broadcastTaskCompletion() already handles this
     // to prevent duplicate task_completed events that cause multiple frontend completion handlers
   }

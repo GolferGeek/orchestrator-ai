@@ -3,6 +3,7 @@ import { Agent2AgentController } from './agent2agent.controller';
 import { AgentCardBuilderService } from './services/agent-card-builder.service';
 import { AgentExecutionGateway } from './services/agent-execution-gateway.service';
 import { AgentTaskMode } from './dto/task-request.dto';
+import { ApiKeyGuard } from './guards/api-key.guard';
 
 describe('Agent2AgentController', () => {
   let controller: Agent2AgentController;
@@ -12,15 +13,19 @@ describe('Agent2AgentController', () => {
   const gateway = {
     execute: jest.fn(),
   } as unknown as jest.Mocked<AgentExecutionGateway>;
-
   beforeEach(async () => {
+    const guard = { canActivate: jest.fn().mockResolvedValue(true) };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [Agent2AgentController],
       providers: [
         { provide: AgentCardBuilderService, useValue: cardBuilder },
         { provide: AgentExecutionGateway, useValue: gateway },
       ],
-    }).compile();
+    })
+      .overrideGuard(ApiKeyGuard)
+      .useValue(guard)
+      .compile();
 
     controller = module.get(Agent2AgentController);
     jest.clearAllMocks();

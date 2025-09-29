@@ -49,36 +49,32 @@ export class AgentConversationsService {
     userId: string,
     dto: CreateAgentConversationDto,
   ): Promise<AgentConversation> {
-    try {
-      const validatedAgentType = this.validateAgentType(dto.agentType);
+    const validatedAgentType = this.validateAgentType(dto.agentType);
 
-      const now = new Date().toISOString();
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from(getTableName('conversations'))
-        .insert({
-          user_id: userId,
-          agent_name: dto.agentName,
-          agent_type: validatedAgentType,
-          started_at: now,
-          last_active_at: now,
-          metadata: dto.metadata || {},
-          ...(dto.workProduct && {
-            primary_work_product_type: dto.workProduct.type,
-            primary_work_product_id: dto.workProduct.id,
-          }),
-        })
-        .select()
-        .single();
+    const now = new Date().toISOString();
+    const { data, error } = await this.supabaseService
+      .getAnonClient()
+      .from(getTableName('conversations'))
+      .insert({
+        user_id: userId,
+        agent_name: dto.agentName,
+        agent_type: validatedAgentType,
+        started_at: now,
+        last_active_at: now,
+        metadata: dto.metadata || {},
+        ...(dto.workProduct && {
+          primary_work_product_type: dto.workProduct.type,
+          primary_work_product_id: dto.workProduct.id,
+        }),
+      })
+      .select()
+      .single();
 
-      if (error) {
-        throw new Error(`Failed to create conversation: ${error.message}`);
-      }
-
-      return this.mapToAgentConversation(data);
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw new Error(`Failed to create conversation: ${error.message}`);
     }
+
+    return this.mapToAgentConversation(data);
   }
 
   /**
@@ -88,36 +84,32 @@ export class AgentConversationsService {
     conversationId: string,
     userId: string,
   ): Promise<AgentConversation | null> {
-    try {
-      this.logger.debug(
-        `🔍 getConversationById: Looking for conversation ${conversationId} for user ${userId}`,
-      );
+    this.logger.debug(
+      `🔍 getConversationById: Looking for conversation ${conversationId} for user ${userId}`,
+    );
 
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from(getTableName('conversations'))
-        .select()
-        .eq('id', conversationId)
-        .eq('user_id', userId)
-        .single();
+    const { data, error } = await this.supabaseService
+      .getAnonClient()
+      .from(getTableName('conversations'))
+      .select()
+      .eq('id', conversationId)
+      .eq('user_id', userId)
+      .single();
 
-      this.logger.debug(
-        `🔍 getConversationById: Query result - data:`,
-        data ? 'Found' : 'Null',
-        'error:',
-        error?.message || 'None',
-      );
+    this.logger.debug(
+      `🔍 getConversationById: Query result - data:`,
+      data ? 'Found' : 'Null',
+      'error:',
+      error?.message || 'None',
+    );
 
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 is "no rows found"
-        this.logger.error(`🔍 getConversationById: Database error:`, error);
-        throw new Error(`Failed to fetch conversation: ${error.message}`);
-      }
-
-      return data ? this.mapToAgentConversation(data) : null;
-    } catch (error) {
-      throw error;
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 is "no rows found"
+      this.logger.error(`🔍 getConversationById: Database error:`, error);
+      throw new Error(`Failed to fetch conversation: ${error.message}`);
     }
+
+    return data ? this.mapToAgentConversation(data) : null;
   }
 
   /**
@@ -129,50 +121,46 @@ export class AgentConversationsService {
     agentType: AgentType,
     existingConversationId?: string | null,
   ): Promise<AgentConversation> {
-    try {
-      // If a conversation ID was provided, validate it exists and belongs to the user
-      if (existingConversationId) {
-        const { data: existing } = await this.supabaseService
-          .getAnonClient()
-          .from(getTableName('conversations'))
-          .select()
-          .eq('id', existingConversationId)
-          .eq('user_id', userId)
-          .eq('agent_name', agentName)
-          .eq('agent_type', agentType)
-          .single();
-
-        if (existing) {
-          return this.mapToAgentConversation(existing);
-        }
-
-        // If provided conversation ID doesn't exist or doesn't match, log warning and create new
-      }
-
-      // First try to find an active conversation
+    // If a conversation ID was provided, validate it exists and belongs to the user
+    if (existingConversationId) {
       const { data: existing } = await this.supabaseService
         .getAnonClient()
         .from(getTableName('conversations'))
         .select()
+        .eq('id', existingConversationId)
         .eq('user_id', userId)
         .eq('agent_name', agentName)
         .eq('agent_type', agentType)
-        .is('ended_at', null)
-        .order('last_active_at', { ascending: false })
-        .limit(1);
+        .single();
 
-      if (existing && existing.length > 0) {
-        return this.mapToAgentConversation(existing[0]);
+      if (existing) {
+        return this.mapToAgentConversation(existing);
       }
 
-      // Create new conversation if none exists
-      return this.createConversation(userId, {
-        agentName,
-        agentType,
-      });
-    } catch (error) {
-      throw error;
+      // If provided conversation ID doesn't exist or doesn't match, log warning and create new
     }
+
+    // First try to find an active conversation
+    const { data: existing } = await this.supabaseService
+      .getAnonClient()
+      .from(getTableName('conversations'))
+      .select()
+      .eq('user_id', userId)
+      .eq('agent_name', agentName)
+      .eq('agent_type', agentType)
+      .is('ended_at', null)
+      .order('last_active_at', { ascending: false })
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return this.mapToAgentConversation(existing[0]);
+    }
+
+    // Create new conversation if none exists
+    return this.createConversation(userId, {
+      agentName,
+      agentType,
+    });
   }
 
   /**
@@ -181,70 +169,62 @@ export class AgentConversationsService {
   async listConversations(
     params: AgentConversationQueryParams,
   ): Promise<{ conversations: AgentConversationWithStats[]; total: number }> {
-    try {
-      let query = this.supabaseService
-        .getAnonClient()
-        .from(getTableName('conversations_with_stats'))
-        .select('*', { count: 'exact' });
+    let query = this.supabaseService
+      .getAnonClient()
+      .from(getTableName('conversations_with_stats'))
+      .select('*', { count: 'exact' });
 
-      // Apply filters
-      if (params.userId) {
-        query = query.eq('user_id', params.userId);
-      }
-      if (params.agentName) {
-        query = query.eq('agent_name', params.agentName);
-      }
-      if (params.agentType) {
-        query = query.eq('agent_type', params.agentType);
-      }
-      if (params.activeOnly) {
-        query = query.is('ended_at', null);
-      }
-
-      // Apply pagination
-      const limit = params.limit || 50;
-      const offset = params.offset || 0;
-      query = query
-        .order('last_active_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      const { data, error, count } = await query;
-
-      if (error) {
-        throw new Error(`Failed to list conversations: ${error.message}`);
-      }
-
-      return {
-        conversations: data.map((item) =>
-          this.mapToAgentConversationWithStats(item),
-        ),
-        total: count || 0,
-      };
-    } catch (error) {
-      throw error;
+    // Apply filters
+    if (params.userId) {
+      query = query.eq('user_id', params.userId);
     }
+    if (params.agentName) {
+      query = query.eq('agent_name', params.agentName);
+    }
+    if (params.agentType) {
+      query = query.eq('agent_type', params.agentType);
+    }
+    if (params.activeOnly) {
+      query = query.is('ended_at', null);
+    }
+
+    // Apply pagination
+    const limit = params.limit || 50;
+    const offset = params.offset || 0;
+    query = query
+      .order('last_active_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      throw new Error(`Failed to list conversations: ${error.message}`);
+    }
+
+    return {
+      conversations: data.map((item) =>
+        this.mapToAgentConversationWithStats(item),
+      ),
+      total: count || 0,
+    };
   }
 
   /**
    * End a conversation
    */
   async endConversation(conversationId: string, userId: string): Promise<void> {
-    try {
-      const { error } = await this.supabaseService
-        .getAnonClient()
-        .from(getTableName('conversations'))
-        .update({
-          ended_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', conversationId)
-        .eq('user_id', userId);
+    const { error } = await this.supabaseService
+      .getAnonClient()
+      .from(getTableName('conversations'))
+      .update({
+        ended_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', conversationId)
+      .eq('user_id', userId);
 
-      if (error) {
-        throw new Error(`Failed to end conversation: ${error.message}`);
-      }
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw new Error(`Failed to end conversation: ${error.message}`);
     }
   }
 
@@ -255,100 +235,93 @@ export class AgentConversationsService {
     conversationId: string,
     userId: string,
   ): Promise<void> {
-    try {
-      this.logger.debug(
-        `🗑️ Attempting to delete conversation: ${conversationId} for user: ${userId}`,
+    this.logger.debug(
+      `🗑️ Attempting to delete conversation: ${conversationId} for user: ${userId}`,
+    );
+
+    // First verify the conversation exists and belongs to the user
+    const conversation = await this.getConversationById(conversationId, userId);
+
+    this.logger.debug(
+      `🗑️ getConversationById result:`,
+      conversation ? 'Found' : 'Not found',
+    );
+
+    if (!conversation) {
+      this.logger.error(
+        `🗑️ Conversation not found: ${conversationId} for user: ${userId}`,
       );
+      throw new Error('Conversation not found');
+    }
 
-      // First verify the conversation exists and belongs to the user
-      const conversation = await this.getConversationById(
-        conversationId,
-        userId,
+    this.logger.debug(
+      `🗑️ Found conversation to delete: ${conversation.agentName}`,
+    );
+
+    // Delete related LLM usage records first to avoid foreign key constraint violation
+    const { error: llmUsageDeleteError } = await this.supabaseService
+      .getAnonClient()
+      .from(getTableName('llm_usage'))
+      .delete()
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId);
+
+    if (llmUsageDeleteError) {
+      this.logger.error(
+        `🗑️ Failed to delete LLM usage records:`,
+        llmUsageDeleteError,
       );
-
-      this.logger.debug(
-        `🗑️ getConversationById result:`,
-        conversation ? 'Found' : 'Not found',
+      throw new Error(
+        `Failed to delete LLM usage records: ${llmUsageDeleteError.message}`,
       );
+    }
 
-      if (!conversation) {
-        this.logger.error(
-          `🗑️ Conversation not found: ${conversationId} for user: ${userId}`,
-        );
-        throw new Error('Conversation not found');
-      }
+    this.logger.debug(
+      `🗑️ Deleted LLM usage records for conversation: ${conversationId}`,
+    );
 
-      this.logger.debug(
-        `🗑️ Found conversation to delete: ${conversation.agentName}`,
+    // Preserve agent_name in deliverables before deleting conversation
+    // The database will automatically set conversation_id to NULL due to SET NULL constraint,
+    // but we want to ensure agent_name is preserved for future editing
+    const { error: deliverablesUpdateError } = await this.supabaseService
+      .getAnonClient()
+      .from(getTableName('deliverables'))
+      .update({
+        agent_name: conversation.agentName, // Preserve the agent name
+        // conversation_id will be automatically set to NULL by the database constraint
+      })
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId)
+      .is('agent_name', null); // Only update if agent_name is not already set
+
+    if (deliverablesUpdateError) {
+      // Don't throw here - this is not critical enough to stop deletion
+    }
+
+    // Delete related tasks (if any)
+    const { error: tasksError } = await this.supabaseService
+      .getAnonClient()
+      .from(getTableName('tasks'))
+      .delete()
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId);
+
+    if (tasksError) {
+      throw new Error(
+        `Failed to delete conversation tasks: ${tasksError.message}`,
       );
+    }
 
-      // Delete related LLM usage records first to avoid foreign key constraint violation
-      const { error: llmUsageDeleteError } = await this.supabaseService
-        .getAnonClient()
-        .from(getTableName('llm_usage'))
-        .delete()
-        .eq('conversation_id', conversationId)
-        .eq('user_id', userId);
+    // Delete the conversation
+    const { error } = await this.supabaseService
+      .getAnonClient()
+      .from(getTableName('conversations'))
+      .delete()
+      .eq('id', conversationId)
+      .eq('user_id', userId);
 
-      if (llmUsageDeleteError) {
-        this.logger.error(
-          `🗑️ Failed to delete LLM usage records:`,
-          llmUsageDeleteError,
-        );
-        throw new Error(
-          `Failed to delete LLM usage records: ${llmUsageDeleteError.message}`,
-        );
-      }
-
-      this.logger.debug(
-        `🗑️ Deleted LLM usage records for conversation: ${conversationId}`,
-      );
-
-      // Preserve agent_name in deliverables before deleting conversation
-      // The database will automatically set conversation_id to NULL due to SET NULL constraint,
-      // but we want to ensure agent_name is preserved for future editing
-      const { error: deliverablesUpdateError } = await this.supabaseService
-        .getAnonClient()
-        .from(getTableName('deliverables'))
-        .update({
-          agent_name: conversation.agentName, // Preserve the agent name
-          // conversation_id will be automatically set to NULL by the database constraint
-        })
-        .eq('conversation_id', conversationId)
-        .eq('user_id', userId)
-        .is('agent_name', null); // Only update if agent_name is not already set
-
-      if (deliverablesUpdateError) {
-        // Don't throw here - this is not critical enough to stop deletion
-      }
-
-      // Delete related tasks (if any)
-      const { error: tasksError } = await this.supabaseService
-        .getAnonClient()
-        .from(getTableName('tasks'))
-        .delete()
-        .eq('conversation_id', conversationId)
-        .eq('user_id', userId);
-
-      if (tasksError) {
-        throw new Error(
-          `Failed to delete conversation tasks: ${tasksError.message}`,
-        );
-      }
-
-      // Delete the conversation
-      const { error } = await this.supabaseService
-        .getAnonClient()
-        .from(getTableName('conversations'))
-        .delete()
-        .eq('id', conversationId)
-        .eq('user_id', userId);
-
-      if (error) {
-        throw new Error(`Failed to delete conversation: ${error.message}`);
-      }
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw new Error(`Failed to delete conversation: ${error.message}`);
     }
   }
 
@@ -360,24 +333,20 @@ export class AgentConversationsService {
     userId: string,
     metadata: Record<string, any>,
   ): Promise<void> {
-    try {
-      const { error } = await this.supabaseService
-        .getAnonClient()
-        .from(getTableName('conversations'))
-        .update({
-          metadata,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', conversationId)
-        .eq('user_id', userId);
+    const { error } = await this.supabaseService
+      .getAnonClient()
+      .from(getTableName('conversations'))
+      .update({
+        metadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', conversationId)
+      .eq('user_id', userId);
 
-      if (error) {
-        throw new Error(
-          `Failed to update conversation metadata: ${error.message}`,
-        );
-      }
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw new Error(
+        `Failed to update conversation metadata: ${error.message}`,
+      );
     }
   }
 
@@ -385,25 +354,19 @@ export class AgentConversationsService {
    * Get active conversations for a user
    */
   async getActiveConversations(userId: string): Promise<AgentConversation[]> {
-    try {
-      const { data, error } = await this.supabaseService
-        .getAnonClient()
-        .from(getTableName('conversations'))
-        .select()
-        .eq('user_id', userId)
-        .is('ended_at', null)
-        .order('last_active_at', { ascending: false });
+    const { data, error } = await this.supabaseService
+      .getAnonClient()
+      .from(getTableName('conversations'))
+      .select()
+      .eq('user_id', userId)
+      .is('ended_at', null)
+      .order('last_active_at', { ascending: false });
 
-      if (error) {
-        throw new Error(
-          `Failed to fetch active conversations: ${error.message}`,
-        );
-      }
-
-      return data.map((item) => this.mapToAgentConversation(item));
-    } catch (error) {
-      throw error;
+    if (error) {
+      throw new Error(`Failed to fetch active conversations: ${error.message}`);
     }
+
+    return data.map((item) => this.mapToAgentConversation(item));
   }
 
   /**

@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { AgentsRepository } from '@agent-platform/repositories/agents.repository';
+import { ConfigService } from '@nestjs/config';
+import { AgentsRepository } from '../../agent-platform/repositories/agents.repository';
+import { AgentRecord } from '../../agent-platform/interfaces/agent-record.interface';
 
 export interface AgentCardOptions {
   includePrivateFields?: boolean;
@@ -7,7 +9,13 @@ export interface AgentCardOptions {
 
 @Injectable()
 export class AgentCardBuilderService {
-  constructor(private readonly agentsRepository: AgentsRepository) {}
+  private static readonly DEFAULT_SPEC_VERSION = '2024-08-07';
+  private static readonly DEFAULT_PROVIDER = 'Orchestrator AI';
+
+  constructor(
+    private readonly agentsRepository: AgentsRepository,
+    private readonly configService: ConfigService,
+  ) {}
 
   async build(
     organizationSlug: string | null,
@@ -23,24 +31,368 @@ export class AgentCardBuilderService {
       throw new NotFoundException('Agent not found');
     }
 
-    if (agent.agent_card && options.includePrivateFields !== false) {
-      return agent.agent_card;
-    }
+    const specCard = this.composeSpecCard(agent);
+    const combined = agent.agent_card
+      ? this.mergeCards(agent.agent_card, specCard)
+      : specCard;
 
-    // Minimal card fallback using stored metadata when cached card missing.
+    return options.includePrivateFields === false
+      ? this.stripPrivateFields(combined)
+      : combined;
+  }
+
+  private composeSpecCard(agent: AgentRecord): Record<string, any> {
+    const baseUrl = this.resolveBaseUrl();
+    const orgSegment = agent.organization_slug ?? 'global';
+    const encodedOrg = encodeURIComponent(orgSegment);
+    const encodedAgent = encodeURIComponent(agent.slug);
+    const agentUrl = `${baseUrl}/agent-to-agent/${encodedOrg}/${encodedAgent}`;
+
+    const defaultInputModes = this.ensureStringArray(
+      agent.context?.input_modes,
+    ) ?? ['text/plain'];
+    const defaultOutputModes = this.ensureStringArray(
+      agent.context?.output_modes,
+    ) ?? ['text/plain'];
+
+    const capabilities = this.deriveCapabilities(agent);
+    const skills = this.deriveSkills(agent);
+    const securitySchemes = this.buildSecuritySchemes();
+
     return {
-      name: agent.display_name,
-      description: agent.description,
       protocol: 'google/a2a',
-      version: agent.version ?? '1.0.0',
-      type: agent.agent_type,
-      capabilities: agent.config?.capabilities ?? [],
-      defaultInputModes: agent.context?.input_modes ?? ['text/plain'],
-      defaultOutputModes: agent.context?.output_modes ?? ['text/plain'],
+      version: this.resolveSpecVersion(),
+      name: agent.display_name,
+      description: agent.description ?? '',
+      url: agentUrl,
+      endpoints: {
+        health: `${agentUrl}/health`,
+        tasks: `${agentUrl}/tasks`,
+        card: `${agentUrl}/.well-known/agent.json`,
+      },
+      defaultInputModes,
+      defaultOutputModes,
+      capabilities,
+      skills,
+      securitySchemes,
+      security: [{ apiKey: [] }],
+      provider: this.deriveProvider(agent),
+      supportsAuthenticatedExtendedCard: true,
       metadata: {
         slug: agent.slug,
         organization: agent.organization_slug,
+        agentType: agent.agent_type,
+        modeProfile: agent.mode_profile,
+        status: agent.status ?? 'active',
+        version: agent.version ?? null,
+        updatedAt: agent.updated_at,
+        createdAt: agent.created_at,
       },
     };
+  }
+
+  private mergeCards(
+    existing: Record<string, any>,
+    computed: Record<string, any>,
+  ): Record<string, any> {
+    const merged: Record<string, any> = {
+      ...existing,
+      ...computed,
+      metadata: {
+        ...(existing?.metadata ?? {}),
+        ...(computed?.metadata ?? {}),
+      },
+    };
+
+    if (existing?.capabilities) {
+      merged.capabilities = this.mergeCapabilities(
+        existing.capabilities,
+        computed.capabilities,
+      );
+    }
+
+    if (existing?.skills) {
+      const existingSkills = this.ensureStringArray(existing.skills) ?? [];
+      const computedSkills = this.ensureStringArray(merged.skills) ?? [];
+      merged.skills = Array.from(
+        new Set([...computedSkills, ...existingSkills]),
+      );
+    }
+
+    return merged;
+  }
+
+  private mergeCapabilities(existing: any, computed: any): Record<string, any> {
+    if (!existing) {
+      return computed;
+    }
+
+    const normalizedExisting =
+      Array.isArray(existing) || typeof existing !== 'object'
+        ? { declared: this.ensureStringArray(existing) ?? [] }
+        : existing;
+
+    const declared = Array.from(
+      new Set(
+        [
+          ...(computed?.declared ?? []),
+          ...(this.ensureStringArray(normalizedExisting.declared) ?? []),
+        ].filter(Boolean),
+      ),
+    );
+
+    return {
+      ...computed,
+      ...normalizedExisting,
+      declared,
+      extensions: Array.from(
+        new Set(
+          [
+            ...(computed?.extensions ?? []),
+            ...(this.ensureStringArray(normalizedExisting.extensions) ?? []),
+          ].filter(Boolean),
+        ),
+      ),
+    };
+  }
+
+  private deriveCapabilities(agent: AgentRecord): Record<string, any> {
+    const config = agent.config ?? {};
+    const modes = this.deriveSupportedModes(agent);
+
+    const streamingEnabled = this.lookupBoolean(config, [
+      'streaming',
+      'enabled',
+    ]);
+    const pushNotifications = this.lookupBoolean(config, [
+      'notifications',
+      'push',
+    ]);
+    const stateHistory = this.lookupBoolean(config, [
+      'stateTracking',
+      'enabled',
+    ]);
+    const deliverables = this.lookupBoolean(config, [
+      'deliverables',
+      'enabled',
+    ]);
+
+    const declared = this.ensureStringArray(config.capabilities) ?? [];
+
+    return {
+      modes,
+      streaming: streamingEnabled,
+      pushNotifications,
+      stateTransitions: stateHistory,
+      deliverables,
+      extensions: this.ensureStringArray(config.extensions) ?? [],
+      declared,
+    };
+  }
+
+  private deriveSupportedModes(agent: AgentRecord): string[] {
+    const sources: Array<string[] | null> = [
+      this.ensureStringArray((agent.config as any)?.supported_modes),
+      this.ensureStringArray((agent.config as any)?.modes),
+      this.ensureStringArray((agent.context as any)?.supported_modes),
+      this.ensureStringArray((agent.context as any)?.modes),
+      this.modesFromProfile(agent.mode_profile),
+    ];
+
+    const values = new Set<string>();
+    for (const list of sources) {
+      if (!list) continue;
+      for (const item of list) {
+        if (item) {
+          values.add(item);
+        }
+      }
+    }
+
+    if (!values.size) {
+      values.add('converse');
+    }
+
+    return Array.from(values);
+  }
+
+  private modesFromProfile(profile: string | null): string[] | null {
+    if (!profile) {
+      return null;
+    }
+
+    switch (profile) {
+      case 'autonomous_build':
+        return ['converse', 'plan', 'build'];
+      case 'conversation_with_gate':
+        return ['converse', 'plan'];
+      case 'human_gate':
+        return ['converse'];
+      case 'conversation_only':
+      default:
+        return ['converse'];
+    }
+  }
+
+  private deriveSkills(agent: AgentRecord): string[] {
+    const contextSkills = this.ensureStringArray(agent.context?.skills) ?? [];
+    const configSkills = this.ensureStringArray(agent.config?.skills) ?? [];
+    const yamlSkills =
+      this.ensureStringArray(agent.context?.metadata?.skills) ?? [];
+
+    const combined = new Set<string>([
+      ...contextSkills,
+      ...configSkills,
+      ...yamlSkills,
+    ]);
+
+    if (!combined.size) {
+      combined.add(agent.agent_type);
+    }
+
+    return Array.from(combined);
+  }
+
+  private buildSecuritySchemes(): Record<string, any> {
+    return {
+      apiKey: {
+        type: 'apiKey',
+        name: 'X-Agent-Api-Key',
+        in: 'header',
+        description:
+          'Organization-scoped API key issued by Orchestrator AI. Contact support to rotate.',
+      },
+    };
+  }
+
+  private deriveProvider(agent: AgentRecord): Record<string, any> {
+    const configProvider = agent.config?.provider;
+    const contextProvider = agent.context?.provider;
+    const globalProvider =
+      this.configService.get<string>('AGENT_PROVIDER_NAME') ??
+      AgentCardBuilderService.DEFAULT_PROVIDER;
+
+    if (typeof configProvider === 'string') {
+      return {
+        name: configProvider,
+        slug: agent.organization_slug ?? 'global',
+      };
+    }
+
+    if (typeof contextProvider === 'string') {
+      return {
+        name: contextProvider,
+        slug: agent.organization_slug ?? 'global',
+      };
+    }
+
+    const providerObject =
+      configProvider && typeof configProvider === 'object'
+        ? configProvider
+        : contextProvider && typeof contextProvider === 'object'
+          ? contextProvider
+          : null;
+
+    if (providerObject) {
+      return {
+        name:
+          providerObject.name ?? providerObject.displayName ?? globalProvider,
+        slug:
+          providerObject.slug ??
+          providerObject.id ??
+          agent.organization_slug ??
+          'global',
+        contact: providerObject.contact ?? null,
+        url: providerObject.url ?? null,
+      };
+    }
+
+    return {
+      name: globalProvider,
+      slug: agent.organization_slug ?? 'global',
+    };
+  }
+
+  private resolveSpecVersion(): string {
+    return (
+      this.configService.get<string>('AGENT_A2A_SPEC_VERSION') ??
+      this.configService.get<string>('AGENT_SPEC_VERSION') ??
+      AgentCardBuilderService.DEFAULT_SPEC_VERSION
+    );
+  }
+
+  private resolveBaseUrl(): string {
+    const candidates = [
+      this.configService.get<string>('AGENT_PUBLIC_BASE_URL'),
+      this.configService.get<string>('PUBLIC_AGENT_BASE_URL'),
+      this.configService.get<string>('API_PUBLIC_URL'),
+      this.configService.get<string>('APP_PUBLIC_URL'),
+      this.configService.get<string>('APP_URL'),
+    ];
+
+    const selected = candidates.find(
+      (value) => typeof value === 'string' && value.trim().length,
+    );
+
+    const fallback = 'https://api.localhost';
+    const base = selected ?? fallback;
+
+    return base.replace(/\/$/, '');
+  }
+
+  private ensureStringArray(value: unknown): string[] | null {
+    if (!value) {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      const cleaned = value
+        .map((entry) => (typeof entry === 'string' ? entry.trim() : null))
+        .filter((entry): entry is string => Boolean(entry));
+      return cleaned.length ? cleaned : null;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed ? [trimmed] : null;
+    }
+
+    return null;
+  }
+
+  private lookupBoolean(source: Record<string, any>, path: string[]): boolean {
+    let cursor: any = source;
+    for (const segment of path) {
+      if (cursor == null) {
+        return false;
+      }
+      cursor = cursor[segment];
+    }
+    return Boolean(cursor);
+  }
+
+  private stripPrivateFields(card: Record<string, any>): Record<string, any> {
+    const clone = JSON.parse(JSON.stringify(card));
+
+    delete clone.internal;
+    delete clone.debug;
+    if (Array.isArray(clone.security)) {
+      clone.security = clone.security.map((entry: any) => {
+        if (!entry || typeof entry !== 'object') {
+          return entry;
+        }
+        const sanitized = { ...entry };
+        delete sanitized.private;
+        return sanitized;
+      });
+    }
+
+    if (clone.metadata && typeof clone.metadata === 'object') {
+      delete clone.metadata.internal;
+      delete clone.metadata.secrets;
+      delete clone.metadata.debug;
+    }
+
+    return clone;
   }
 }

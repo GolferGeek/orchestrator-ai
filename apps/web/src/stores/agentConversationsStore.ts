@@ -39,6 +39,7 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
       );
       // Debug: Show actual conversation data for first few conversations
       if (state.conversations.length > 0 && filtered.length === 0) {
+        // Debug: No conversations found for agent filter
       }
       return filtered;
     },
@@ -206,7 +207,7 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
         };
         const newActiveTasks = this.conversations[conversationIndex].activeTasks;
       } else {
-
+        // Conversation not found in store
       }
     },
     clearError() {
@@ -233,6 +234,7 @@ export const useAgentConversationsStore = defineStore('agentConversations', {
           };
         }
       } catch (error) {
+        // Failed to load conversation task counts
       }
     },
   },

@@ -45,6 +45,18 @@ export class RoutingPolicyAdapterService {
     }
 
     const payload = request.payload ?? {};
+    const metadata = this.collectMetadata(request);
+
+    if (Array.isArray(request.messages) && request.messages.length) {
+      const recent = request.messages.slice(-6);
+      const transcript = recent
+        .map((msg) => {
+          const content = this.stringifyObject(msg.content ?? '');
+          return `[${msg.role}] ${content}`;
+        })
+        .join('\n');
+      segments.push(`Recent transcript:\n${transcript}`);
+    }
 
     if (typeof payload.summary === 'string' && payload.summary.trim()) {
       segments.push(`Summary: ${payload.summary.trim()}`);
@@ -70,7 +82,7 @@ export class RoutingPolicyAdapterService {
 
     if (!segments.length) {
       segments.push(
-        `Mode ${request.mode} request for agent ${agent.slug} (conversation ${request.conversationId ?? 'unknown'})`,
+        `Mode ${request.mode} request for agent ${agent.slug} (conversation ${request.conversationId ?? 'unknown'}, session ${request.sessionId ?? 'n/a'})`,
       );
     }
 
@@ -82,12 +94,13 @@ export class RoutingPolicyAdapterService {
     agent: AgentRecord,
   ): Record<string, any> {
     const payload = request.payload ?? {};
-    const metadata = payload.metadata ?? {};
+    const metadata = this.collectMetadata(request);
 
     return {
       mode: request.mode,
       agentSlug: agent.slug,
       conversationId: request.conversationId,
+      sessionId: request.sessionId,
       planId: request.planId,
       orchestrationSlug: request.orchestrationSlug,
       orchestrationRunId: request.orchestrationRunId,
@@ -107,5 +120,12 @@ export class RoutingPolicyAdapterService {
     } catch {
       return String(value);
     }
+  }
+
+  private collectMetadata(request: TaskRequestDto): Record<string, any> {
+    return {
+      ...(request.payload?.metadata ?? {}),
+      ...(request.metadata ?? {}),
+    };
   }
 }

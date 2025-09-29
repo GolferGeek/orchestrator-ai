@@ -107,41 +107,31 @@ export class ProjectsService {
    * Get a specific project by ID
    */
   async getProject(projectId: string): Promise<Project> {
-    try {
-      const response = await apiService.get(`${this.baseUrl}/${projectId}`);
-      // TEMPORARY FIX: If apiService.get is returning the project directly instead of response.data
-      if (response && response.id && !response.data) {
-        return response; // Return the project object directly
-      }
-      if (response.data) {
-        return response.data;
-      }
-
-      throw new Error('Invalid API response format for getProject');
-    } catch (error) {
-
-      throw error;
+    const response = await apiService.get(`${this.baseUrl}/${projectId}`);
+    // TEMPORARY FIX: If apiService.get is returning the project directly instead of response.data
+    if (response && response.id && !response.data) {
+      return response; // Return the project object directly
     }
+    if (response.data) {
+      return response.data;
+    }
+
+    throw new Error('Invalid API response format for getProject');
   }
   /**
    * Create a new project
    */
   async createProject(data: CreateProjectDto): Promise<Project> {
-    try {
-      const response = await apiService.post(this.baseUrl, data);
-      // TEMPORARY FIX: If apiService.post is returning the project directly instead of response.data
-      if (response && response.id && !response.data) {
-        return response; // Return the project object directly
-      }
-      if (response.data) {
-        return response.data;
-      }
-
-      throw new Error('Invalid API response format');
-    } catch (error) {
-
-      throw error;
+    const response = await apiService.post(this.baseUrl, data);
+    // TEMPORARY FIX: If apiService.post is returning the project directly instead of response.data
+    if (response && response.id && !response.data) {
+      return response; // Return the project object directly
     }
+    if (response.data) {
+      return response.data;
+    }
+
+    throw new Error('Invalid API response format');
   }
   /**
    * Update a project

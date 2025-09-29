@@ -285,7 +285,9 @@ export class AgentDiscoveryService {
           this.processAgentService(fullPath, namespaceKey);
         }
       }
-    } catch (error: any) {}
+    } catch {
+      // Failed to process namespace directory
+    }
   }
 
   /**
@@ -329,10 +331,14 @@ export class AgentDiscoveryService {
 
           this.discoveredAgents.push(agent);
         } else {
+          // Agent creation failed
         }
       } else {
+        // No valid service file found
       }
-    } catch (error: any) {}
+    } catch {
+      // Failed to process agent service
+    }
   }
 
   /**
@@ -357,10 +363,12 @@ export class AgentDiscoveryService {
         if (fs.existsSync(pythonFunctionPath)) {
           agent.pythonFunctionPath = pythonFunctionPath;
         }
-      } catch (error: any) {}
+      } catch {
+        // Failed to discover agent functions
+      }
     }
 
-    const withFunctions = this.discoveredAgents.filter(
+    const _withFunctions = this.discoveredAgents.filter(
       (a) => a.functionPath || a.pythonFunctionPath,
     );
   }
@@ -473,7 +481,9 @@ export class AgentDiscoveryService {
               category: metadata.category,
               version: metadata.version,
             };
-          } catch (configError) {}
+          } catch {
+            // Failed to parse agent config
+          }
         } else {
           // Set default metadata
           agent.metadata = {
@@ -481,10 +491,12 @@ export class AgentDiscoveryService {
             description: `${agent.type} agent`,
           };
         }
-      } catch (error) {}
+      } catch {
+        // Failed to load agent configuration
+      }
     }
 
-    const withConfigs = this.discoveredAgents.filter((a) => a.configPath);
+    const _withConfigs = this.discoveredAgents.filter((a) => a.configPath);
   }
 
   /**

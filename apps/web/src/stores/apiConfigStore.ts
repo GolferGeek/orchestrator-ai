@@ -102,6 +102,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       // Start periodic health monitoring
       startHealthMonitoring();
     } catch (error) {
+      // Failed to initialize API configuration
     }
   };
   const loadSavedConfiguration = async () => {
@@ -121,6 +122,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
         }
       }
     } catch (error) {
+      // Failed to load saved configuration
     }
   };
   const saveConfiguration = () => {
@@ -134,6 +136,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       };
       localStorage.setItem('apiConfiguration', JSON.stringify(toSave));
     } catch (error) {
+      // Failed to save configuration
     }
   };
   const performHealthChecks = async () => {
@@ -152,6 +155,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       }
       saveConfiguration();
     } catch (error) {
+      // Failed to test endpoint
     }
   };
   const performHealthCheckForEndpoint = async (endpointName: string) => {
@@ -226,6 +230,7 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
       state.value.discoveredEndpoints = discovered;
       state.value.lastDiscoveryTime = new Date();
     } catch (error) {
+      // Failed to perform health checks
     } finally {
       state.value.discoveryInProgress = false;
       saveConfiguration();

@@ -77,18 +77,34 @@ describe('AgentModeRouterService', () => {
   });
 
   it('generates LLM response for converse mode', async () => {
-    llmFactory.generateResponse.mockResolvedValue(createResponse('Hello there!'));
+    llmFactory.generateResponse.mockResolvedValue(
+      createResponse('Hello there!'),
+    );
 
     const result = await service.execute(
       buildContext({
         mode: AgentTaskMode.CONVERSE,
         userMessage: 'Hi agent',
+        messages: [
+          { role: 'user', content: 'First question' },
+          { role: 'assistant', content: 'Answer' },
+          { role: 'user', content: 'Follow-up' },
+        ],
       }),
     );
 
     expect(llmFactory.generateResponse).toHaveBeenCalled();
     expect(result.success).toBe(true);
     expect(result.payload?.content?.message).toBe('Hello there!');
+    const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
+    expect(params).toBeDefined();
+    if (!params) {
+      throw new Error('LLM params not provided');
+    }
+    expect(params.conversationId).toBe('conv-1');
+    expect(params.sessionId).toBeUndefined();
+    expect(params.options?.metadata).toEqual({});
+    expect(params.userMessage).toContain('Recent conversation history');
   });
 
   it('fails when routing metadata missing for converse', async () => {
@@ -111,11 +127,15 @@ describe('AgentModeRouterService', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.payload?.metadata?.reason).toBe('Failed to generate response');
+    expect(result.payload?.metadata?.reason).toBe(
+      'Failed to generate response',
+    );
   });
 
   it('generates build output when orchestration fallback occurs', async () => {
-    llmFactory.generateResponse.mockResolvedValue(createResponse('Build output'));
+    llmFactory.generateResponse.mockResolvedValue(
+      createResponse('Build output'),
+    );
 
     const result = await service.execute(
       buildContext(
@@ -132,6 +152,45 @@ describe('AgentModeRouterService', () => {
     expect(result.success).toBe(true);
     expect(result.payload?.content?.status).toBe('build_completed');
     expect(result.payload?.content?.output).toBe('Build output');
+    const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
+    expect(params?.options?.metadata).toMatchObject({ userId: 'user-1' });
+  });
+
+  it('merges top-level metadata into LLM call', async () => {
+    llmFactory.generateResponse.mockResolvedValue(createResponse('ok'));
+
+    await service.execute(
+      buildContext({
+        mode: AgentTaskMode.CONVERSE,
+        userMessage: 'Hello',
+        metadata: { userId: 'top-user', requestId: 'top-req' },
+        payload: {
+          metadata: { userId: 'payload-user', providerName: 'provider-x' },
+        },
+      }),
+    );
+
+    const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
+    expect(params?.options?.metadata).toMatchObject({
+      userId: 'top-user',
+      requestId: 'top-req',
+      providerName: 'provider-x',
+    });
+  });
+
+  it('passes session id through to LLM params when provided', async () => {
+    llmFactory.generateResponse.mockResolvedValue(createResponse('ok'));
+
+    await service.execute(
+      buildContext({
+        mode: AgentTaskMode.CONVERSE,
+        sessionId: 'session-123',
+        userMessage: 'Hi',
+      }),
+    );
+
+    const [, params] = llmFactory.generateResponse.mock.calls[0] ?? [];
+    expect(params?.sessionId).toBe('session-123');
   });
 
   it('returns failure if build lacks routing metadata', async () => {

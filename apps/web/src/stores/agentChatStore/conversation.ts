@@ -65,7 +65,7 @@ export class ConversationService {
         deliverables.push(...conversationDeliverables);
 
       } catch (error) {
-
+        // Failed to load conversation deliverables
       }
       
       // Create maps for linking deliverables to messages
@@ -226,7 +226,7 @@ export class ConversationService {
       // Log active tasks for restoration
       const activeTasks = tasks.filter(t => ['pending', 'running'].includes(t.status));
       if (activeTasks.length > 0) {
-
+        // Log active tasks for debugging
       }
       
       return messages;
@@ -448,7 +448,7 @@ console.error(`Failed to get conversation ${conversationId}:`, error);
       // The messages are persisted separately when created
       
     } catch (error) {
-
+      // Failed to persist conversation state
     }
   }
 

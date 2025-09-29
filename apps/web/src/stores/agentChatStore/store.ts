@@ -497,9 +497,9 @@ export const useAgentChatStore = defineStore('agentChat', {
           const deliverables = await deliverablesStore.loadDeliverablesByConversation(backendConversationId);
           
           if (deliverables && deliverables.length > 0) {
-
+            // Found existing deliverables for conversation
           } else {
-
+            // No deliverables found for conversation
           }
         } catch (deliverableError) {
           console.warn('Failed to load deliverables for conversation:', deliverableError);
@@ -614,7 +614,9 @@ export const useAgentChatStore = defineStore('agentChat', {
         // Ensure system model selection is warmed for Converse/Plan
         const modeToWarm = (activeConversation.chatMode || 'converse');
         if (modeToWarm === 'converse' || modeToWarm === 'plan') {
-          try { await (useLLMStore() as any).ensureSystemModelSelection?.(); } catch {}
+          try { await (useLLMStore() as any).ensureSystemModelSelection?.(); } catch {
+            // Failed to ensure system model selection
+          }
         }
 
         if (chatMode === 'build' && activeConversation.latestPlanId) {
@@ -1132,6 +1134,7 @@ export const useAgentChatStore = defineStore('agentChat', {
             versionNumber = parsedResponse?.versionNumber;
             
           } catch (e) {
+            // Failed to parse deliverable response
           }
         }
 
@@ -1308,8 +1311,6 @@ export const useAgentChatStore = defineStore('agentChat', {
             deliverableId = parsedResponse.deliverableId;
           } else if (parsedResponse?.success?.deliverableId) {
             deliverableId = parsedResponse.success.deliverableId;
-          } else if (parsedResponse?.deliverableId) {
-            deliverableId = parsedResponse.deliverableId;
           } else if (parsedResponse?.result?.deliverableId) {
             deliverableId = parsedResponse.result.deliverableId;
           }
@@ -1544,7 +1545,7 @@ export const useAgentChatStore = defineStore('agentChat', {
               
 
             } else {
-
+              // Task is not running, no action needed
             }
           } catch (error) {
             console.error(`❌ Failed to restore WebSocket subscription for task ${task.taskId}:`, error);

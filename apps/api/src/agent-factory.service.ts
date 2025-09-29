@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -130,36 +130,28 @@ export class AgentFactoryService {
    * Create an agent instance from discovered metadata
    */
   async createAgent(discoveredAgent: DiscoveredAgent): Promise<any> {
-    try {
-      // Load agent configuration from YAML
+    // Load agent configuration from YAML
+    const config = await this.loadAgentConfig(discoveredAgent);
 
-      const config = await this.loadAgentConfig(discoveredAgent);
-
-      // Import the service class
-
-      const ServiceClass = await this.importServiceClass(discoveredAgent);
-      if (!ServiceClass) {
-        throw new Error(`No service class found for ${discoveredAgent.name}`);
-      }
-
-      // Store the service class on the discovered agent
-      discoveredAgent.serviceClass = ServiceClass;
-
-      // Create instance based on agent type
-
-      const serviceInstance = await this.instantiateAgent(ServiceClass, config);
-
-      // Set discovered path and initialize
-
-      await this.initializeAgent(serviceInstance, discoveredAgent, config);
-
-      // Store the instance
-      discoveredAgent.serviceInstance = serviceInstance;
-
-      return serviceInstance;
-    } catch (error: any) {
-      throw error;
+    // Import the service class
+    const ServiceClass = await this.importServiceClass(discoveredAgent);
+    if (!ServiceClass) {
+      throw new Error(`No service class found for ${discoveredAgent.name}`);
     }
+
+    // Store the service class on the discovered agent
+    discoveredAgent.serviceClass = ServiceClass;
+
+    // Create instance based on agent type
+    const serviceInstance = await this.instantiateAgent(ServiceClass, config);
+
+    // Set discovered path and initialize
+    await this.initializeAgent(serviceInstance, discoveredAgent, config);
+
+    // Store the instance
+    discoveredAgent.serviceInstance = serviceInstance;
+
+    return serviceInstance;
   }
 
   /**
@@ -184,7 +176,7 @@ export class AgentFactoryService {
       }
 
       return this.validateAndNormalizeConfig(yamlData, discoveredAgent);
-    } catch (error: any) {
+    } catch {
       return this.createDefaultConfig(discoveredAgent);
     }
   }
@@ -252,7 +244,7 @@ export class AgentFactoryService {
       );
 
       return ServiceClass || null;
-    } catch (error: any) {
+    } catch {
       return null;
     }
   }
@@ -264,74 +256,70 @@ export class AgentFactoryService {
     ServiceClass: ServiceClass,
     config: AgentConfig,
   ): Promise<any> {
-    const serviceName = ServiceClass.name;
+    const _serviceName = ServiceClass.name;
 
-    try {
-      switch (config.type) {
-        case 'orchestrator': {
-          if (!this.orchestratorAgentServicesContext) {
-            throw new Error(
-              'OrchestratorAgentServicesContext not available - required for orchestrator agents. Please ensure OrchestratorAgentServicesContextModule is imported.',
-            );
-          }
-
-          return new ServiceClass(this.orchestratorAgentServicesContext);
+    switch (config.type) {
+      case 'orchestrator': {
+        if (!this.orchestratorAgentServicesContext) {
+          throw new Error(
+            'OrchestratorAgentServicesContext not available - required for orchestrator agents. Please ensure OrchestratorAgentServicesContextModule is imported.',
+          );
         }
 
-        case 'function': {
-          if (!this.functionAgentServicesContext) {
-            throw new Error(
-              'FunctionAgentServicesContext not available - required for function agents. Please ensure FunctionAgentServicesContextModule is imported.',
-            );
-          }
-
-          return new ServiceClass(this.functionAgentServicesContext);
-        }
-
-        case 'python-function': {
-          if (!this.pythonFunctionAgentServicesContext) {
-            throw new Error(
-              'PythonFunctionAgentServicesContext not available - required for Python function agents. Please ensure PythonFunctionAgentServicesContextModule is imported.',
-            );
-          }
-
-          return new ServiceClass(this.pythonFunctionAgentServicesContext);
-        }
-
-        case 'context': {
-          if (!this.agentServicesContext) {
-            throw new Error(
-              'AgentServicesContext not available - required for context agents. Please ensure AgentServicesContextModule is imported.',
-            );
-          }
-
-          return new ServiceClass(this.agentServicesContext);
-        }
-
-        case 'api': {
-          if (!this.apiAgentServicesContext) {
-            throw new Error(
-              'ApiAgentServicesContext not available - required for API agents. Please ensure ApiAgentServicesContextModule is imported.',
-            );
-          }
-
-          return new ServiceClass(this.apiAgentServicesContext);
-        }
-
-        case 'external': {
-          if (!this.externalAgentServicesContext) {
-            throw new Error('ExternalAgentServicesContext not available');
-          }
-
-          return new ServiceClass(this.externalAgentServicesContext);
-        }
-
-        default: {
-          return new ServiceClass(this.httpService);
-        }
+        return new ServiceClass(this.orchestratorAgentServicesContext);
       }
-    } catch (error: any) {
-      throw error;
+
+      case 'function': {
+        if (!this.functionAgentServicesContext) {
+          throw new Error(
+            'FunctionAgentServicesContext not available - required for function agents. Please ensure FunctionAgentServicesContextModule is imported.',
+          );
+        }
+
+        return new ServiceClass(this.functionAgentServicesContext);
+      }
+
+      case 'python-function': {
+        if (!this.pythonFunctionAgentServicesContext) {
+          throw new Error(
+            'PythonFunctionAgentServicesContext not available - required for Python function agents. Please ensure PythonFunctionAgentServicesContextModule is imported.',
+          );
+        }
+
+        return new ServiceClass(this.pythonFunctionAgentServicesContext);
+      }
+
+      case 'context': {
+        if (!this.agentServicesContext) {
+          throw new Error(
+            'AgentServicesContext not available - required for context agents. Please ensure AgentServicesContextModule is imported.',
+          );
+        }
+
+        return new ServiceClass(this.agentServicesContext);
+      }
+
+      case 'api': {
+        if (!this.apiAgentServicesContext) {
+          throw new Error(
+            'ApiAgentServicesContext not available - required for API agents. Please ensure ApiAgentServicesContextModule is imported.',
+          );
+        }
+
+        return new ServiceClass(this.apiAgentServicesContext);
+      }
+
+      case 'external': {
+        if (!this.externalAgentServicesContext) {
+          throw new Error('ExternalAgentServicesContext not available');
+        }
+
+        return new ServiceClass(this.externalAgentServicesContext);
+      }
+
+      default: {
+        return new ServiceClass(this.httpService);
+      }
     }
   }
 
@@ -355,7 +343,7 @@ export class AgentFactoryService {
     if (typeof serviceInstance.onModuleInit === 'function') {
       try {
         await serviceInstance.onModuleInit();
-      } catch (initError: any) {
+      } catch {
         // Don't throw - let agent continue with fallback behavior
       }
     }
@@ -367,7 +355,7 @@ export class AgentFactoryService {
     ) {
       try {
         await this.loadContextData(serviceInstance, discoveredAgent);
-      } catch (contextError: any) {
+      } catch {
         // Don't throw - let agent continue without context
       }
     }
@@ -405,9 +393,13 @@ export class AgentFactoryService {
           if (typeof agentFunction === 'function') {
             serviceInstance.setAgentFunction(agentFunction);
           } else {
+            // TypeScript function file not found
           }
-        } catch (error: any) {}
+        } catch {
+          // Failed to set up TypeScript function
+        }
       } else {
+        // No agent directory found
       }
     }
 
@@ -418,6 +410,7 @@ export class AgentFactoryService {
       if (fs.existsSync(pythonFunctionPath)) {
         serviceInstance.setPythonScriptPath(pythonFunctionPath);
       } else {
+        // Python function file not found
       }
     }
   }

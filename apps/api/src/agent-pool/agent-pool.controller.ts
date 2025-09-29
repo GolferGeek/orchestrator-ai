@@ -41,17 +41,13 @@ export class AgentPoolController {
   })
   @ApiResponse({ status: 400, description: 'Invalid registration data' })
   async registerAgent(@Body() registration: AgentRegistration) {
-    try {
-      await this.agentPoolService.registerAgent(registration);
+    await this.agentPoolService.registerAgent(registration);
 
-      return {
-        success: true,
-        message: 'Agent registered successfully',
-        agentId: registration.id,
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      success: true,
+      message: 'Agent registered successfully',
+      agentId: registration.id,
+    };
   }
 
   @Post('heartbeat')
@@ -72,17 +68,13 @@ export class AgentPoolController {
   })
   @ApiResponse({ status: 404, description: 'Agent not found' })
   async receiveHeartbeat(@Body() heartbeat: AgentHeartbeat) {
-    try {
-      await this.agentPoolService.receiveHeartbeat(heartbeat);
+    await this.agentPoolService.receiveHeartbeat(heartbeat);
 
-      return {
-        success: true,
-        message: 'Heartbeat received',
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      success: true,
+      message: 'Heartbeat received',
+      timestamp: new Date().toISOString(),
+    };
   }
 
   @Delete('unregister/:agentId')
@@ -100,17 +92,13 @@ export class AgentPoolController {
     },
   })
   async unregisterAgent(@Param('agentId') agentId: string) {
-    try {
-      await this.agentPoolService.unregisterAgent(agentId);
+    await this.agentPoolService.unregisterAgent(agentId);
 
-      return {
-        success: true,
-        message: 'Agent unregistered successfully',
-        agentId,
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      success: true,
+      message: 'Agent unregistered successfully',
+      agentId,
+    };
   }
 
   @Get('agents')
