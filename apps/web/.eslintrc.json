@@ -28,6 +28,14 @@
     "@typescript-eslint/no-duplicate-enum-values": "off",
     "no-prototype-builtins": "warn"
   },
+  "overrides": [
+    {
+      "files": ["tests/e2e/support/commands.ts"],
+      "rules": {
+        "@typescript-eslint/no-namespace": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "dist",
     "node_modules",

@@ -11,6 +11,8 @@
 
 We are replacing the legacy "project" abstraction with database-backed, agent-scoped orchestrations that can be authored, versioned, executed, and observed end-to-end. Orchestrations unify plan generation, execution coordinates, and state tracking across the agent platform while removing filesystem-driven project storage. This PRD captures the new orchestrations-first workflow, the supporting Supabase schema, and the incremental rollout plan that keeps existing conversation planning features intact.
 
+> **Implementation Status (January 2025):** Delivery is **on hold** until the greenfield Agent-to-Agent controller, database-backed agent services, and new agent mode runtime are in place. Schema scaffolding and API stubs landed during exploration should be treated as provisional and revisited once the core platform refresh is stable.
+
 ## Problem Statement
 
 The current project-centric approach suffers from several gaps:
@@ -150,6 +152,8 @@ interface OrchestrationRun {
 - **Support Burden**: Volume of support tickets related to orchestration failures.
 
 ## Implementation Phases
+
+> **Prerequisite:** Do not begin these phases until the Agent-to-Agent modernization (new controller/service stack) and Database Agents base services are complete. Orchestration delivery depends on the new runtime owning plan/build flows.
 
 ### Phase 1: Data Foundation (3-4 weeks)
 - Ship Supabase migration introducing agents, conversation plans, orchestrations, and run tables.

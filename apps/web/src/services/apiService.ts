@@ -380,30 +380,26 @@ class ApiService {
     sessionId: string,
     messageRequest: SendMessageRequest
   ): Promise<SendMessageResponse> {
-    try {
-      const authToken = localStorage.getItem('authToken');
-      
-      // API now expects camelCase directly
-      const apiRequest = {
-        content: messageRequest.content,
-        llmSelection: messageRequest.llmSelection
-      };
-      
-      const response = await this.axiosInstance.post<any>(
-        `/sessions/${sessionId}/messages`,
-        apiRequest,
-        {
-          headers: {
-            'Authorization': authToken ? `Bearer ${authToken}` : undefined
-          }
+    const authToken = localStorage.getItem('authToken');
+
+    // API now expects camelCase directly
+    const apiRequest = {
+      content: messageRequest.content,
+      llmSelection: messageRequest.llmSelection
+    };
+
+    const response = await this.axiosInstance.post<any>(
+      `/sessions/${sessionId}/messages`,
+      apiRequest,
+      {
+        headers: {
+          'Authorization': authToken ? `Bearer ${authToken}` : undefined
         }
-      );
-      
-      // API now returns camelCase directly
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+      }
+    );
+
+    // API now returns camelCase directly
+    return response.data;
   }
 
   /**
@@ -431,6 +427,7 @@ class ApiService {
           });
           currentUser = userResponse.data;
         } catch (error) {
+          // Silently ignore user fetch errors
         }
       }
       

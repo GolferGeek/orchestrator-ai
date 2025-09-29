@@ -443,13 +443,14 @@ export function useStoreExport() {
           mimeType = 'application/json';
           fileExtension = '.json';
           break;
-        case 'csv':
+        case 'csv': {
           const csvContent = convertToCSV(data);
           blob = new Blob([csvContent], { type: 'text/csv' });
           mimeType = 'text/csv';
           fileExtension = '.csv';
           break;
-        case 'excel':
+        }
+        case 'excel': {
           // For Excel, we'd typically use a library like xlsx
           // For now, export as CSV with Excel-compatible format
           const excelCsvContent = convertToCSV(data);
@@ -457,6 +458,7 @@ export function useStoreExport() {
           mimeType = 'text/csv';
           fileExtension = '.csv';
           break;
+        }
         default:
           throw new Error(`Unsupported export format: ${format}`);
       }

@@ -459,7 +459,7 @@ export const useLLMStore = defineStore('llm', {
       this.providerError = undefined;
       try {
         // Use shared apiService to inherit base URL and auth headers
-        let response = await apiService.get('/providers');
+        const response = await apiService.get('/providers');
         // apiService returns parsed JSON
         let providers = Array.isArray(response) ? response : (response?.data ?? response ?? []);
 

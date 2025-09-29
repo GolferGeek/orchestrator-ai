@@ -139,13 +139,15 @@ Two major pillars drive the greenfield rebuild.
 - Credential rotation and API key revocation.
 
 ## 7. Implementation Path
+> **Sequencing Note:** Complete steps 1–5 before resuming any orchestration enhancements. Orchestration work (plan engine orchestration modes, UI, analytics) is intentionally deferred until the new Agent-to-Agent controller and database agent runtime are production-ready.
+
 1. **Codebase Inventory (in progress):** Documented above; continue fine-grained notes during refactor planning.
 2. **Schema & Template Finalization:** Lock JSON Schemas, define ingestion pipeline; no migration of existing agents yet.
 3. **Controller Implementation:** Build greenfield controller, card builder, routing adapter, API key auth.
-4. **Agent Runtime:** Implement `AgentToAgentBaseService`, extend mode handlers to include orchestration-specific flows (`orchestrate_create`, `orchestrate_execute`, `orchestrate_continue`, `orchestrate_save_recipe`), and wire in the plan engine + orchestration runner.
-5. **New Agent Onboarding:** Seed initial database-based agents using new schema; existing file-based agents remain untouched on legacy endpoints/controllers.
-6. **UI Work:** Expose plan tab, approvals, multi-step progress (ensuring legacy flows unaffected) and surface the new orchestration modes once API support stabilizes.
-7. **Cutover Planning:** Once new stack is validated, plan separate effort to migrate legacy agents and retire old codepaths.
+4. **Agent Runtime:** Implement the new Agent-to-Agent execution services and database agent base classes required for converse/plan/build without relying on legacy `A2AAgentBaseService`.
+5. **New Agent Onboarding:** Seed initial database-based agents using the new schema; legacy file-based agents remain on the old controller until cutover.
+6. **Orchestration Enablement (Deferred):** Once the above is stable, revisit orchestration modes, UI affordances, and analytics before final cutover.
+7. **Cutover Planning:** After validation, migrate legacy agents and retire old code paths.
 
 ## 8. Open Questions
 - Do we provide a user-facing orchestration UI or continue using current UI? (Review existing project UI; likely keep user interactions centered on suggesting plan changes rather than editing raw templates.)

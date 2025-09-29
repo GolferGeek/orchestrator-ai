@@ -156,6 +156,7 @@ export function useFeatureDetection() {
         try {
           // Since we're using a single API service now, skip dynamic feature detection
         } catch (error) {
+          // Silently ignore feature detection errors
         }
       }
       // Validate detected features against compatibility matrix

@@ -313,7 +313,7 @@ export function createApiSanitizationInterceptor(options: ApiSanitizationOptions
       const modifiedFields: string[] = [];
       let modified = false;
       
-      function sanitizeValue(value: any, key?: string): any {
+      const sanitizeValue = (value: any, key?: string): any => {
         if (typeof value === 'string') {
           const sanitized = SanitizationHelpers.sanitizeString(value, { profile: sanitizationOptions.profile || 'apiInput' });
           if (sanitized !== value) {
@@ -334,9 +334,9 @@ export function createApiSanitizationInterceptor(options: ApiSanitizationOptions
           }
           return sanitized;
         }
-        
+
         return value;
-      }
+      };
       
       const sanitizedData = sanitizeValue(config.data);
       

@@ -249,7 +249,7 @@ export function sanitizeWithProfile(
   // Handle whitespace preservation
   if (options.preserveWhitespace && sanitized !== originalValue) {
     // Preserve line breaks and spaces
-    sanitized = sanitized.replace(/\n/g, '<br>').replace(/  /g, '&nbsp;&nbsp;');
+    sanitized = sanitized.replace(/\n/g, '<br>').replace(/ {2}/g, '&nbsp;&nbsp;');
   }
 
   return {

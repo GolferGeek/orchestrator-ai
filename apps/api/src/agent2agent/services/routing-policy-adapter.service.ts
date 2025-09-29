@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CentralizedRoutingService } from '@llm/centralized-routing.service';
 import { TaskRequestDto } from '../dto/task-request.dto';
+import { AgentRecord } from '@agent-platform/interfaces/agent-record.interface';
 
 export interface RoutingAssessment {
   showstopper: boolean;
@@ -14,19 +15,18 @@ export class RoutingPolicyAdapterService {
 
   async evaluate(
     request: TaskRequestDto,
-    agent: { slug: string },
+    agent: AgentRecord,
   ): Promise<RoutingAssessment> {
-    // TODO: leverage centralized routing service with real prompt/metadata.
-    // Placeholder simply delegates to basic check without enforcing showstoppers.
-    const decision = await this.routingService.determineRoute('placeholder', {
-      agentSlug: agent.slug,
-      mode: request.mode,
-    });
+    const prompt = this.buildPrompt(request, agent);
+    const options = this.buildRoutingOptions(request, agent);
 
-    if (decision.routeToAgent === false && decision.blockingReason) {
+    const decision = await this.routingService.determineRoute(prompt, options);
+
+    if (decision.routeToAgent === false) {
       return {
         showstopper: true,
-        humanMessage: decision.blockingReason,
+        humanMessage:
+          decision.blockingReason ?? 'Routing policy requires human review.',
         metadata: decision,
       };
     }
@@ -35,5 +35,77 @@ export class RoutingPolicyAdapterService {
       showstopper: false,
       metadata: decision,
     };
+  }
+
+  private buildPrompt(request: TaskRequestDto, agent: AgentRecord): string {
+    const segments: string[] = [];
+
+    if (typeof request.userMessage === 'string' && request.userMessage.trim()) {
+      segments.push(`User message: ${request.userMessage.trim()}`);
+    }
+
+    const payload = request.payload ?? {};
+
+    if (typeof payload.summary === 'string' && payload.summary.trim()) {
+      segments.push(`Summary: ${payload.summary.trim()}`);
+    }
+
+    if (payload.planDraft) {
+      segments.push(
+        `Plan draft snippet: ${this.stringifyObject(payload.planDraft)}`,
+      );
+    }
+
+    if (payload.orchestration) {
+      segments.push(
+        `Orchestration payload snippet: ${this.stringifyObject(payload.orchestration)}`,
+      );
+    }
+
+    if (request.promptParameters) {
+      segments.push(
+        `Prompt parameters: ${this.stringifyObject(request.promptParameters)}`,
+      );
+    }
+
+    if (!segments.length) {
+      segments.push(
+        `Mode ${request.mode} request for agent ${agent.slug} (conversation ${request.conversationId ?? 'unknown'})`,
+      );
+    }
+
+    return segments.join('\n\n');
+  }
+
+  private buildRoutingOptions(
+    request: TaskRequestDto,
+    agent: AgentRecord,
+  ): Record<string, any> {
+    const payload = request.payload ?? {};
+    const metadata = payload.metadata ?? {};
+
+    return {
+      mode: request.mode,
+      agentSlug: agent.slug,
+      conversationId: request.conversationId,
+      planId: request.planId,
+      orchestrationSlug: request.orchestrationSlug,
+      orchestrationRunId: request.orchestrationRunId,
+      organizationSlug: agent.organization_slug ?? null,
+      userId: metadata.userId ?? payload.userId ?? null,
+      requestId: metadata.requestId ?? payload.requestId ?? null,
+      providerName: metadata.providerName ?? payload.providerName ?? null,
+      modelName: metadata.modelName ?? payload.modelName ?? null,
+      metadata,
+      promptInputs: request.promptParameters ?? {},
+    };
+  }
+
+  private stringifyObject(value: unknown): string {
+    try {
+      return JSON.stringify(value).slice(0, 4000);
+    } catch {
+      return String(value);
+    }
   }
 }

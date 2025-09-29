@@ -532,40 +532,45 @@ class LLMMonitoringService {
           startDate: this.formatDate(today),
           endDate: this.formatDate(now)
         };
-      case 'yesterday':
+      case 'yesterday': {
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
         return {
           startDate: this.formatDate(yesterday),
           endDate: this.formatDate(yesterday)
         };
-      case 'last7days':
+      }
+      case 'last7days': {
         const sevenDaysAgo = new Date(today);
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         return {
           startDate: this.formatDate(sevenDaysAgo),
           endDate: this.formatDate(now)
         };
-      case 'last30days':
+      }
+      case 'last30days': {
         const thirtyDaysAgo = new Date(today);
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         return {
           startDate: this.formatDate(thirtyDaysAgo),
           endDate: this.formatDate(now)
         };
-      case 'thisMonth':
+      }
+      case 'thisMonth': {
         const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         return {
           startDate: this.formatDate(firstOfMonth),
           endDate: this.formatDate(now)
         };
-      case 'lastMonth':
+      }
+      case 'lastMonth': {
         const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const lastOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
         return {
           startDate: this.formatDate(firstOfLastMonth),
           endDate: this.formatDate(lastOfLastMonth)
         };
+      }
       default:
         return this.getDateRange('last30days');
     }

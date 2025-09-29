@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AgentCardBuilderService } from './services/agent-card-builder.service';
 import { AgentExecutionGateway } from './services/agent-execution-gateway.service';
 import { TaskRequestDto } from './dto/task-request.dto';
 import { TaskResponseDto } from './dto/task-response.dto';
+import { ApiKeyGuard } from './guards/api-key.guard';
 
 @Controller()
 export class Agent2AgentController {
@@ -27,6 +28,7 @@ export class Agent2AgentController {
     'agent-to-agent/:orgSlug/:agentSlug/tasks',
     'agents/:orgSlug/:agentSlug/tasks',
   ])
+  @UseGuards(ApiKeyGuard)
   async executeTask(
     @Param('orgSlug') orgSlug: string,
     @Param('agentSlug') agentSlug: string,

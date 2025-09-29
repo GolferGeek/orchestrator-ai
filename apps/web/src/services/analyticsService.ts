@@ -703,40 +703,45 @@ class AnalyticsService {
           startDate: today.toISOString().split('T')[0],
           endDate: now.toISOString().split('T')[0]
         };
-      case 'yesterday':
+      case 'yesterday': {
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
         return {
           startDate: yesterday.toISOString().split('T')[0],
           endDate: yesterday.toISOString().split('T')[0]
         };
-      case 'last7days':
+      }
+      case 'last7days': {
         const sevenDaysAgo = new Date(today);
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         return {
           startDate: sevenDaysAgo.toISOString().split('T')[0],
           endDate: now.toISOString().split('T')[0]
         };
-      case 'last30days':
+      }
+      case 'last30days': {
         const thirtyDaysAgo = new Date(today);
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         return {
           startDate: thirtyDaysAgo.toISOString().split('T')[0],
           endDate: now.toISOString().split('T')[0]
         };
-      case 'thisMonth':
+      }
+      case 'thisMonth': {
         const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         return {
           startDate: firstOfMonth.toISOString().split('T')[0],
           endDate: now.toISOString().split('T')[0]
         };
-      case 'lastMonth':
+      }
+      case 'lastMonth': {
         const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const lastOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
         return {
           startDate: firstOfLastMonth.toISOString().split('T')[0],
           endDate: lastOfLastMonth.toISOString().split('T')[0]
         };
+      }
       default:
         return this.getDateRange('last30days');
     }

@@ -412,9 +412,7 @@ export class AgentExecutionGateway {
 
     const normalizedOrg = organizationSlug ?? null;
     if ((plan.organization_slug ?? null) !== normalizedOrg) {
-      throw new BadRequestException(
-        'Plan belongs to a different organization',
-      );
+      throw new BadRequestException('Plan belongs to a different organization');
     }
 
     if (plan.agent_slug !== agent.slug) {
@@ -422,9 +420,7 @@ export class AgentExecutionGateway {
     }
 
     if (plan.conversation_id !== request.conversationId) {
-      throw new BadRequestException(
-        'Plan is tied to a different conversation',
-      );
+      throw new BadRequestException('Plan is tied to a different conversation');
     }
 
     return plan;
