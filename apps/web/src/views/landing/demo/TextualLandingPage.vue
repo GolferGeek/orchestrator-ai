@@ -32,6 +32,14 @@
               <p class="demo-highlight-text">
                 <em>Experience OrchestratorAI hands-on—no waiting, no limitations.</em>
               </p>
+              <div class="demo-actions">
+                <ion-button color="primary" size="large" @click="goToDemo">
+                  Launch Live Demo
+                </ion-button>
+                <ion-button fill="clear" size="large" @click="scrollToSection('small-business-ai')">
+                  Learn Why It Matters
+                </ion-button>
+              </div>
             </ion-card-content>
           </ion-card>
         </div>
@@ -931,7 +939,15 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/vue';
+import {
+  IonPage,
+  IonContent,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+  IonButton,
+} from '@ionic/vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
 import AccordionSection from '@/components/landing/AccordionSection.vue';
 import SubAccordion from '@/components/landing/SubAccordion.vue';
@@ -940,8 +956,10 @@ import VideoModal from '@/components/landing/VideoModal.vue';
 import VideoTrigger from '@/components/landing/VideoTrigger.vue';
 import { useViewToggle } from '@/composables/useViewToggle';
 import { videoService, type Video } from '@/services/videoService';
+import { useRouter } from 'vue-router';
 
 const { initializeViewMode } = useViewToggle();
+const router = useRouter();
 
 // Video modal state
 const isVideoModalOpen = ref(false);
@@ -972,6 +990,17 @@ onMounted(() => {
   // Initialize the view mode when the component mounts
   initializeViewMode();
 });
+
+function goToDemo() {
+  router.push('/login');
+}
+
+function scrollToSection(id: string) {
+  const target = document.getElementById(id);
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
 </script>
 
 <style scoped>
@@ -1011,6 +1040,18 @@ onMounted(() => {
   margin: 0;
   line-height: 1.5;
   max-width: 600px;
+}
+
+.demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.75rem;
+}
+
+.demo-actions ion-button {
+  --border-radius: 999px;
+  font-weight: var(--font-weight-semibold);
 }
 
 .accordion-container {
