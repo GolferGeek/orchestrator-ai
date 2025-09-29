@@ -5,6 +5,7 @@ import { useAgentConversationsStore } from '@/stores/agentConversationsStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { formatAgentName } from '@/utils/caseConverter';
 import tasksService from '@/services/tasksService';
+import { agentExecutionService } from '@/services/agentExecutionService';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { useContextStore } from '@/stores/contextStore';
 
@@ -26,7 +27,17 @@ import analyticsService from '@/services/analyticsService';
 
 
 // Import types
-import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent, PendingAction, AgentChatMode } from './types';
+import type {
+  AgentConversation,
+  AgentChatMessage,
+  ExecutionMode,
+  Agent,
+  PendingAction,
+  AgentChatMode,
+  ConversationPlanRecord,
+  OrchestrationRunRecord,
+  AgentOrchestrationRecord,
+} from './types';
 import { DEFAULT_CHAT_MODES } from './types';
 
 // Pre-generated task ID for WebSocket mode
@@ -87,6 +98,56 @@ export const useAgentChatStore = defineStore('agentChat', {
      */
     initializeWebSocketHandler() {
       websocketHandler.setStore(this);
+    },
+
+    async ensureBackendConversation(activeConversation: AgentConversation): Promise<string> {
+      let conversationId = activeConversation.id;
+
+      const hasInitialWelcomeOnly = activeConversation.messages.length <= 1 &&
+        activeConversation.messages.every(msg => msg.metadata?.isWelcome);
+
+      const exists = await conversation.conversationExists(conversationId);
+
+      if (!exists) {
+        const backendId = await conversation.createConversation(activeConversation.agent);
+        conversationId = backendId;
+        activeConversation.id = conversationId;
+        this.activeConversationId = conversationId;
+
+        const conversationsStore = useAgentConversationsStore();
+        conversationsStore.addExistingConversation({
+          id: conversationId,
+          agentName: activeConversation.agent.name,
+          agentType: activeConversation.agent.type,
+          startedAt: new Date(),
+          lastActiveAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          taskCount: 0,
+          completedTasks: 0,
+          failedTasks: 0,
+          activeTasks: 0,
+        });
+      } else if (hasInitialWelcomeOnly) {
+        const conversationsStore = useAgentConversationsStore();
+        if (conversationsStore.getConversationById?.(conversationId) == null) {
+          conversationsStore.addExistingConversation({
+            id: conversationId,
+            agentName: activeConversation.agent.name,
+            agentType: activeConversation.agent.type,
+            startedAt: new Date(),
+            lastActiveAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            taskCount: 0,
+            completedTasks: 0,
+            failedTasks: 0,
+            activeTasks: 0,
+          });
+        }
+      }
+
+      return conversationId;
     },
     
     /**
@@ -218,6 +279,7 @@ export const useAgentChatStore = defineStore('agentChat', {
         executionMode: effectiveMode,
         agentType: activeConversation.agent.type,
         agentName: activeConversation.agent.name,
+        agentNamespace: activeConversation.agent.namespace ?? null,
         taskId: preGeneratedTaskId,
         mode,
         timeoutSeconds: mode === 'build' ? AGENT_TASK_TIMEOUT_SECONDS : 60,
@@ -473,46 +535,7 @@ export const useAgentChatStore = defineStore('agentChat', {
       activeConversation.error = undefined;
 
       try {
-        let conversationId = activeConversation.id;
-
-        // Create conversation in backend if this is a new conversation (only has initial messages)
-        const hasOnlyInitialMessages = activeConversation.messages.length <= 1 && 
-          activeConversation.messages.every(msg => msg.metadata?.isWelcome);
-          
-        if (hasOnlyInitialMessages) {
-          // Only create a backend conversation if one does not already exist
-          const exists = await conversation.conversationExists(conversationId);
-          if (!exists) {
-
-            const backendId = await conversation.createConversation(activeConversation.agent);
-            conversationId = backendId;
-            activeConversation.id = conversationId;
-            this.activeConversationId = conversationId;
-
-            
-            // Update the conversations navigation store so the new conversation appears in the tree
-            // Do this BEFORE creating tasks to avoid race conditions with WebSocket events
-            const conversationsStore = useAgentConversationsStore();
-            conversationsStore.addExistingConversation({
-              id: conversationId,
-              agentName: activeConversation.agent.name,
-              agentType: activeConversation.agent.type,
-              startedAt: new Date(),
-              lastActiveAt: new Date(),
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              taskCount: 0,
-              completedTasks: 0,
-              failedTasks: 0,
-              activeTasks: 0,
-            });
-
-          } else {
-
-          }
-        } else {
-
-        }
+        const conversationId = await this.ensureBackendConversation(activeConversation);
 
         // Add user message immediately
         const userMessage: AgentChatMessage = {
@@ -549,6 +572,7 @@ export const useAgentChatStore = defineStore('agentChat', {
           executionMode: effectiveMode,
           agentType: activeConversation.agent.type,
           agentName: activeConversation.agent.name,
+          agentNamespace: activeConversation.agent.namespace ?? null,
           taskId: preGeneratedTaskId,
           mode: chatMode,
           timeoutSeconds: chatMode === 'build' ? AGENT_TASK_TIMEOUT_SECONDS : 60,
@@ -693,6 +717,177 @@ export const useAgentChatStore = defineStore('agentChat', {
           conversation.isSendingMessage = false;
         }
       }
+    },
+
+    async createOrchestrationDraft(input: {
+      planDraft: Record<string, any>;
+      summary?: string | null;
+      metadata?: Record<string, any>;
+      createdBy?: string | null;
+    }): Promise<ConversationPlanRecord | null> {
+      const activeConversation = this.getActiveConversation();
+      if (!activeConversation) {
+        throw new Error('No active conversation available for orchestration creation');
+      }
+
+      const conversationId = await this.ensureBackendConversation(activeConversation);
+      const response = await agentExecutionService.executeAgentTask(
+        activeConversation.agent.namespace ?? null,
+        activeConversation.agent.name,
+        {
+          mode: 'orchestrate_create',
+          conversationId,
+          userMessage: input.summary ?? 'Generate orchestration plan',
+          payload: {
+            planDraft: input.planDraft,
+            summary: input.summary ?? null,
+            metadata: input.metadata ?? {},
+            createdBy: input.createdBy ?? null,
+          },
+        },
+      );
+
+      if (!response.success) {
+        throw new Error(response.humanResponse?.message ?? 'Failed to create orchestration draft');
+      }
+
+      const planRecord = response.payload?.content as ConversationPlanRecord | undefined;
+      if (planRecord) {
+        activeConversation.plans = activeConversation.plans ?? [];
+        activeConversation.plans.unshift(planRecord);
+        return planRecord;
+      }
+
+      return null;
+    },
+
+    async executeOrchestrationRun(input: {
+      planId?: string | null;
+      orchestrationSlug?: string | null;
+      promptParameters?: Record<string, any>;
+      metadata?: Record<string, any>;
+    }): Promise<OrchestrationRunRecord | null> {
+      const activeConversation = this.getActiveConversation();
+      if (!activeConversation) {
+        throw new Error('No active conversation available for orchestration execution');
+      }
+
+      if (!input.planId && !input.orchestrationSlug) {
+        throw new Error('planId or orchestrationSlug is required to execute an orchestration');
+      }
+
+      const conversationId = await this.ensureBackendConversation(activeConversation);
+      const response = await agentExecutionService.executeAgentTask(
+        activeConversation.agent.namespace ?? null,
+        activeConversation.agent.name,
+        {
+          mode: 'orchestrate_execute',
+          conversationId,
+          planId: input.planId ?? undefined,
+          orchestrationSlug: input.orchestrationSlug ?? undefined,
+          promptParameters: input.promptParameters,
+          payload: {
+            metadata: input.metadata ?? {},
+          },
+        },
+      );
+
+      if (!response.success) {
+        throw new Error(response.humanResponse?.message ?? 'Failed to execute orchestration');
+      }
+
+      const runRecord = response.payload?.content as OrchestrationRunRecord | undefined;
+      if (runRecord) {
+        activeConversation.orchestrationRuns = activeConversation.orchestrationRuns ?? [];
+        activeConversation.orchestrationRuns.unshift(runRecord);
+        return runRecord;
+      }
+
+      return null;
+    },
+
+    async continueOrchestrationRun(input: {
+      runId: string;
+      update?: Record<string, any>;
+    }): Promise<OrchestrationRunRecord | null> {
+      const activeConversation = this.getActiveConversation();
+      if (!activeConversation) {
+        throw new Error('No active conversation available to continue orchestration');
+      }
+
+      const conversationId = await this.ensureBackendConversation(activeConversation);
+      const response = await agentExecutionService.executeAgentTask(
+        activeConversation.agent.namespace ?? null,
+        activeConversation.agent.name,
+        {
+          mode: 'orchestrate_continue',
+          conversationId,
+          orchestrationRunId: input.runId,
+          payload: {
+            update: input.update ?? {},
+          },
+        },
+      );
+
+      if (!response.success) {
+        throw new Error(response.humanResponse?.message ?? 'Failed to continue orchestration run');
+      }
+
+      const runRecord = response.payload?.content as OrchestrationRunRecord | undefined;
+      if (runRecord) {
+        activeConversation.orchestrationRuns = activeConversation.orchestrationRuns ?? [];
+        const existingIndex = activeConversation.orchestrationRuns.findIndex(run => run.id === runRecord.id);
+        if (existingIndex >= 0) {
+          activeConversation.orchestrationRuns.splice(existingIndex, 1, runRecord);
+        } else {
+          activeConversation.orchestrationRuns.unshift(runRecord);
+        }
+        return runRecord;
+      }
+
+      return null;
+    },
+
+    async saveOrchestrationRecipe(input: {
+      orchestration: AgentOrchestrationRecord | Record<string, any>;
+      metadata?: Record<string, any>;
+    }): Promise<AgentOrchestrationRecord | null> {
+      const activeConversation = this.getActiveConversation();
+      if (!activeConversation) {
+        throw new Error('No active conversation available to save orchestration');
+      }
+
+      const conversationId = await this.ensureBackendConversation(activeConversation);
+      const response = await agentExecutionService.executeAgentTask(
+        activeConversation.agent.namespace ?? null,
+        activeConversation.agent.name,
+        {
+          mode: 'orchestrate_save_recipe',
+          conversationId,
+          payload: {
+            orchestration: input.orchestration,
+            metadata: input.metadata ?? {},
+          },
+        },
+      );
+
+      if (!response.success) {
+        throw new Error(response.humanResponse?.message ?? 'Failed to save orchestration recipe');
+      }
+
+      const saved = response.payload?.content as AgentOrchestrationRecord | undefined;
+      if (saved) {
+        activeConversation.savedOrchestrations = activeConversation.savedOrchestrations ?? [];
+        const existingIndex = activeConversation.savedOrchestrations.findIndex(item => item.id === saved.id);
+        if (existingIndex >= 0) {
+          activeConversation.savedOrchestrations.splice(existingIndex, 1, saved);
+        } else {
+          activeConversation.savedOrchestrations.unshift(saved);
+        }
+        return saved;
+      }
+
+      return null;
     },
 
     /**

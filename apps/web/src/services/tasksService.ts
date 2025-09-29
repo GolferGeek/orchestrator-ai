@@ -219,7 +219,8 @@ class TasksService {
   async createAgentTask(
     agentType: string,
     agentName: string,
-    taskData: CreateTaskDto
+    taskData: CreateTaskDto,
+    options?: { namespace?: string | null }
   ): Promise<{
     taskId: string;
     conversationId: string;

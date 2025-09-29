@@ -54,7 +54,8 @@ export class TaskExecutionService {
           noDeliverable: options.mode === 'converse' ? true : undefined,
         },
         metadata: options.metadata, // Pass context metadata to backend
-      }
+      },
+      { namespace: options.agentNamespace ?? null }
     );
 
     // Check if the response indicates a PII policy block (successful response but blocked)

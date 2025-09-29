@@ -404,6 +404,9 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       isLoading: false,
       isSendingMessage: false,
       isExecutionModeOverride: false,
+      plans: [],
+      orchestrationRuns: [],
+      savedOrchestrations: [],
     };
   }
 

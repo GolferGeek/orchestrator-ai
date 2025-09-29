@@ -28,9 +28,72 @@ export interface Agent {
   name: string;
   type: string;
   description?: string;
+  namespace?: string | null;
   execution_modes?: string[];
   execution_profile?: AgentExecutionProfile;
   execution_capabilities?: AgentExecutionCapabilities;
+}
+
+export interface ConversationPlanRecord {
+  id: string;
+  conversation_id: string;
+  organization_slug: string | null;
+  agent_slug: string;
+  status: string;
+  summary: string | null;
+  plan_json: Record<string, any>;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrchestrationRunRecord {
+  id: string;
+  plan_id: string | null;
+  origin_type: string;
+  origin_id: string | null;
+  orchestration_slug: string | null;
+  organization_slug: string | null;
+  status: string;
+  prompt_inputs?: Record<string, any>;
+  current_step_index?: number | null;
+  completed_steps?: any[];
+  step_state?: Record<string, any>;
+  human_checkpoint_id?: string | null;
+  metadata?: Record<string, any>;
+  started_at: string;
+  completed_at: string | null;
+}
+
+export interface AgentOrchestrationRecord {
+  id: string;
+  organization_slug: string | null;
+  agent_slug: string;
+  slug: string;
+  display_name: string;
+  description: string | null;
+  status: string;
+  orchestration_json: Record<string, any>;
+  prompt_templates?: any[];
+  tags?: string[];
+  version?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentTaskResponse {
+  success: boolean;
+  mode: string;
+  payload?: {
+    content?: any;
+    metadata?: Record<string, any>;
+  };
+  humanResponse?: {
+    message: string;
+    reason?: string;
+  };
 }
 export interface AgentChatMessage {
   id: string;
@@ -79,6 +142,9 @@ export interface AgentConversation {
   executionProfile?: AgentExecutionProfile;
   executionCapabilities?: AgentExecutionCapabilities;
   error?: string;
+  plans?: ConversationPlanRecord[];
+  orchestrationRuns?: OrchestrationRunRecord[];
+  savedOrchestrations?: AgentOrchestrationRecord[];
   // Additional properties from original interface
   title: string;
   isLoading: boolean;
@@ -98,6 +164,7 @@ export interface TaskExecutionOptions {
   mode?: AgentChatMode;
   timeoutSeconds?: number;
   metadata?: any; // Context metadata for version operations
+  agentNamespace?: string | null;
 }
 
 export interface PendingAction {
