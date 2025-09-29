@@ -301,7 +301,7 @@ export class MessageFormattingService {
   createPlanMessage(plan: ConversationPlanRecord): AgentChatMessage {
     const summary = plan.summary || 'Plan draft generated.';
     const planDetails = JSON.stringify(plan.plan_json, null, 2);
-    const content = `📋 Plan Draft (v${plan.version ?? 1})\n\n${summary}\n\n\uD83D\DCCB Plan JSON:\n${planDetails}`;
+    const content = `📋 Plan Draft (v${plan.version ?? 1})\n\n${summary}\n\n\uD83D\uDCCB Plan JSON:\n${planDetails}`;
 
     return {
       id: `plan-${plan.id}`,

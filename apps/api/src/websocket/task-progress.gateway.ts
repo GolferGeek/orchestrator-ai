@@ -9,7 +9,7 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { SupabaseService } from '../supabase/supabase.service';
 import {
@@ -73,7 +73,7 @@ export class TaskProgressGateway
 
   constructor(private readonly supabaseService: SupabaseService) {}
 
-  afterInit(server: Server) {}
+  afterInit(_server: Server) {}
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
@@ -111,7 +111,7 @@ export class TaskProgressGateway
 
       // Join user-specific room
       client.join(`user:${client.userId}`);
-    } catch (error) {
+    } catch (_error) {
       // Allow anonymous connection as fallback
       client.userId = 'anonymous';
       client.subscribedTasks = new Set();

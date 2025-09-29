@@ -406,138 +406,126 @@ class ApiService {
    * Post a task to the NestJS orchestrator (legacy method)
    */
   async postTaskToOrchestrator(
-    userInputText: string, 
+    userInputText: string,
     sessionId?: string | null,
     conversationHistory?: Array<{role: string, content: string, metadata?: any}>,
     llmSelection?: LLMSelection
   ): Promise<TaskResponse> {
-    try {
-      // Get the current auth token from localStorage to pass to orchestrator
-      const authToken = localStorage.getItem('authToken');
-      
-      // Get current user information for proper database RLS
-      let currentUser = null;
-      if (authToken) {
-        try {
-          // Ensure auth token is set in headers for the /auth/me request
-          const userResponse = await this.axiosInstance.get('/auth/me', {
-            headers: {
-              'Authorization': `Bearer ${authToken}`
-            }
-          });
-          currentUser = userResponse.data;
-        } catch (error) {
-          // Silently ignore user fetch errors
-        }
-      }
-      
-      // Create and sanitize the request payload
-      const requestPayload = {
-        jsonrpc: '2.0',
-        method: 'handle_request',
-        params: {
-          message: userInputText,
-          session_id: sessionId,
-          conversation_history: conversationHistory || [],
-          authToken: authToken, // Pass auth token to orchestrator for agent pool refresh
-          currentUser: currentUser, // Pass current user for database RLS
-          // Add LLM preferences if provided (API expects camelCase)
-          ...(llmSelection && { llmSelection })
-        },
-        id: Date.now() // Use timestamp as unique ID
-      };
+    // Get the current auth token from localStorage to pass to orchestrator
+    const authToken = localStorage.getItem('authToken');
 
-      // Sanitize the orchestrator request params
-      const paramsToSanitize = {
-        ...requestPayload.params,
-        session_id: requestPayload.params.session_id || undefined // Convert null to undefined
-      };
-      const sanitizedParams = this.apiSanitization.sanitizeOrchestratorRequest(paramsToSanitize);
-      const sanitizedPayload = { ...requestPayload, params: sanitizedParams };
-
-      const response = await this.axiosInstance.post<JsonRpcResponse>(
-        '/agents/orchestrator/orchestrator/tasks', 
-        sanitizedPayload,
-        {
+    // Get current user information for proper database RLS
+    let currentUser = null;
+    if (authToken) {
+      try {
+        // Ensure auth token is set in headers for the /auth/me request
+        const userResponse = await this.axiosInstance.get('/auth/me', {
           headers: {
-            'Authorization': authToken ? `Bearer ${authToken}` : undefined
+            'Authorization': `Bearer ${authToken}`
           }
-        }
-      );
-      
-      const jsonRpcResponse = response.data;
-      
-      if (jsonRpcResponse.error) {
-        throw new Error(`JSON-RPC Error ${jsonRpcResponse.error.code}: ${jsonRpcResponse.error.message}`);
+        });
+        currentUser = userResponse.data;
+      } catch (error) {
+        // Silently ignore user fetch errors
       }
-
-      if (jsonRpcResponse.result) {
-        const result = jsonRpcResponse.result;
-        
-        // Extract agent name from metadata
-        let respondingAgentName = 'Agent'; // default for NestJS
-        if (result.metadata) {
-          respondingAgentName = result.metadata.delegatedTo || 
-                              result.metadata.originalAgent?.agentName ||
-                              result.metadata.agentName ||
-                              result.metadata.respondingAgentName ||
-                              'Agent';
-        }
-
-        return {
-          id: jsonRpcResponse.id?.toString() || Date.now().toString(),
-          status: {
-            state: result.success ? 'completed' : 'failed',
-            timestamp: new Date().toISOString(),
-            message: result.success ? 'Task completed successfully' : 'Task failed'
-          },
-          result: result.response || result.result || 'Success',
-          metadata: {
-            agentName: respondingAgentName,
-            respondingAgentName: respondingAgentName,
-            ...result.metadata
-          },
-          response_message: {
-            role: 'assistant',
-            parts: [{ 
-              type: 'text',
-              text: result.response || result.message || result.result || 'Task completed' 
-            }],
-            metadata: {
-              respondingAgentName: respondingAgentName
-            }
-          },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          session_id: sessionId || null
-        };
-      }
-
-      throw new Error('No result in JSON-RPC response');
-    } catch (error) {
-      throw error;
     }
+
+    // Create and sanitize the request payload
+    const requestPayload = {
+      jsonrpc: '2.0',
+      method: 'handle_request',
+      params: {
+        message: userInputText,
+        session_id: sessionId,
+        conversation_history: conversationHistory || [],
+        authToken: authToken, // Pass auth token to orchestrator for agent pool refresh
+        currentUser: currentUser, // Pass current user for database RLS
+        // Add LLM preferences if provided (API expects camelCase)
+        ...(llmSelection && { llmSelection })
+      },
+      id: Date.now() // Use timestamp as unique ID
+    };
+
+    // Sanitize the orchestrator request params
+    const paramsToSanitize = {
+      ...requestPayload.params,
+      session_id: requestPayload.params.session_id || undefined // Convert null to undefined
+    };
+    const sanitizedParams = this.apiSanitization.sanitizeOrchestratorRequest(paramsToSanitize);
+    const sanitizedPayload = { ...requestPayload, params: sanitizedParams };
+
+    const response = await this.axiosInstance.post<JsonRpcResponse>(
+      '/agents/orchestrator/orchestrator/tasks',
+      sanitizedPayload,
+      {
+        headers: {
+          'Authorization': authToken ? `Bearer ${authToken}` : undefined
+        }
+      }
+    );
+
+    const jsonRpcResponse = response.data;
+
+    if (jsonRpcResponse.error) {
+      throw new Error(`JSON-RPC Error ${jsonRpcResponse.error.code}: ${jsonRpcResponse.error.message}`);
+    }
+
+    if (jsonRpcResponse.result) {
+      const result = jsonRpcResponse.result;
+
+      // Extract agent name from metadata
+      let respondingAgentName = 'Agent'; // default for NestJS
+      if (result.metadata) {
+        respondingAgentName = result.metadata.delegatedTo ||
+                            result.metadata.originalAgent?.agentName ||
+                            result.metadata.agentName ||
+                            result.metadata.respondingAgentName ||
+                            'Agent';
+      }
+
+      return {
+        id: jsonRpcResponse.id?.toString() || Date.now().toString(),
+        status: {
+          state: result.success ? 'completed' : 'failed',
+          timestamp: new Date().toISOString(),
+          message: result.success ? 'Task completed successfully' : 'Task failed'
+        },
+        result: result.response || result.result || 'Success',
+        metadata: {
+          agentName: respondingAgentName,
+          respondingAgentName: respondingAgentName,
+          ...result.metadata
+        },
+        response_message: {
+          role: 'assistant',
+          parts: [{
+            type: 'text',
+            text: result.response || result.message || result.result || 'Task completed'
+          }],
+          metadata: {
+            respondingAgentName: respondingAgentName
+          }
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        session_id: sessionId || null
+      };
+    }
+
+    throw new Error('No result in JSON-RPC response');
   }
 
   /**
    * Get available NestJS agents
    */
   async getAvailableAgents(): Promise<AgentInfo[]> {
-    try {
-      const response = await this.axiosInstance.get<{ agents: AgentInfo[] }>('/agents');
-      return response.data.agents || [];
-    } catch (error) {
-      throw error;
-    }
+    const response = await this.axiosInstance.get<{ agents: AgentInfo[] }>('/agents');
+    return response.data.agents || [];
   }
 
   async getAgentHierarchy(): Promise<any> {
-    try {
-      const response = await this.axiosInstance.get('/agents/.well-known/hierarchy');
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await this.axiosInstance.get('/agents/.well-known/hierarchy');
+    return response.data;
   }
 
   /**
@@ -556,36 +544,24 @@ class ApiService {
    * Get NestJS agent pool statistics
    */
   async getAgentPoolStats(): Promise<any> {
-    try {
-      const response = await this.axiosInstance.get('/agent-pool/stats');
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await this.axiosInstance.get('/agent-pool/stats');
+    return response.data;
   }
 
   /**
    * Get NestJS registered agents
    */
   async getRegisteredAgents(): Promise<any> {
-    try {
-      const response = await this.axiosInstance.get('/agent-pool/agents');
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await this.axiosInstance.get('/agent-pool/agents');
+    return response.data;
   }
 
   /**
    * Get agent details by ID
    */
   async getAgentDetails(agentId: string): Promise<AgentInfo> {
-    try {
-      const response = await this.axiosInstance.get<AgentInfo>(`/agents/${agentId}`);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await this.axiosInstance.get<AgentInfo>(`/agents/${agentId}`);
+    return response.data;
   }
 
   /**

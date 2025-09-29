@@ -105,7 +105,7 @@ function detectSecurityIssues(value: string): ValidationError[] {
   }
   
   // Path traversal
-  if (/\.\.[\/\\]/.test(value)) {
+  if (/\\.\\.[/\\\\]/.test(value)) {
     errors.push({
       field: 'security',
       code: ValidationCodes.PATH_TRAVERSAL,
@@ -129,7 +129,7 @@ function validateRegexPattern(pattern: string): ValidationResult {
     
     // Check for catastrophic backtracking patterns
     const dangerousPatterns = [
-      /\(\?\!\.\*\)\+/,  // Negative lookahead with quantifiers
+      /\(\?!\.\*\)\+/,  // Negative lookahead with quantifiers
       /\(\.\*\)\+\(\.\*\)\+/, // Multiple greedy quantifiers
       /\(\w\+\)\+\$/, // Nested quantifiers at end
     ];

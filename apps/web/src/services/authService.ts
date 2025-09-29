@@ -124,7 +124,6 @@ export const authService = {
     if (token) {
       // Set on API service
       apiService.setAuthToken(token);
-    } else {
     }
   }
 };

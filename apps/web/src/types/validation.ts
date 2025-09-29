@@ -237,10 +237,10 @@ export interface ValidationRuleOptions {
 
 export const ValidationPatterns = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  PHONE: /^\+?[\d\s\-\(\)]{10,}$/,
+  PHONE: /^\+?[\d\s\-()]{10,}$/,
   URL: /^https?:\/\/[^\s/$.?#].[^\s]*$/i,
   SSN: /^\d{3}-?\d{2}-?\d{4}$/,
-  CREDIT_CARD: /^\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}$/,
+  CREDIT_CARD: /^\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}$/,
   IPV4: /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
   REGEX_PATTERN: /^\/.*\/[gimuy]*$/,
   SAFE_STRING: /^[a-zA-Z0-9\s\-_.,!?()]+$/,
