@@ -101,6 +101,7 @@ import CompactLLMControl from './CompactLLMControl.vue';
 import TaskExecutionControls from './TaskExecutionControls.vue';
 import SpeechButton from './SpeechButton.vue';
 import ChatModeSendButton from './ChatModeSendButton.vue';
+import type { AgentChatMode } from '@/stores/agentChatStore/types';
 // Define emits
 interface Props {
   conversation?: any; // The conversation object from the store
@@ -148,7 +149,7 @@ const conversationId = computed(() =>
   props.conversation?.id || agentChatStore.getActiveConversation()?.id
 );
 // Methods
-const sendMessage = async (mode?: 'converse' | 'plan' | 'build') => {
+const sendMessage = async (mode?: AgentChatMode) => {
   if (!canSend.value) return;
   const text = messageText.value.trim();
   messageText.value = '';

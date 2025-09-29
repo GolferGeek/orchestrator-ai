@@ -113,6 +113,7 @@ import ConversationalSpeechButton from './ConversationalSpeechButton.vue';
 import SpeechDevModePanel from './SpeechDevModePanel.vue';
 import ChatModeSendButton from './ChatModeSendButton.vue';
 import { useValidation, ValidationRules } from '@/composables/useValidation';
+import type { AgentChatMode } from '@/stores/agentChatStore/types';
 const props = defineProps<{
   conversationId?: string;
 }>();
@@ -184,7 +185,7 @@ const estimatedCost = computed(() => {
   return totalCost > 0.001 ? totalCost.toFixed(4) : '< 0.001';
 });
 // Event handlers
-const sendMessage = async (mode?: 'converse' | 'plan' | 'build') => {
+const sendMessage = async (mode?: AgentChatMode) => {
   if (!inputText.value.trim()) return;
 
   // Validate and sanitize the message before sending

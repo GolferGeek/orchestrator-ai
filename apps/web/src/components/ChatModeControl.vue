@@ -18,25 +18,28 @@
 import { computed } from 'vue';
 import { IonItem, IonLabel, IonSelect, IonSelectOption } from '@ionic/vue';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import type { PrimaryChatMode } from '@/stores/agentChatStore/types';
+import { DEFAULT_CHAT_MODES } from '@/stores/agentChatStore/types';
 import analyticsService from '@/services/analyticsService';
 
 const chatStore = useAgentChatStore();
 
 const mode = computed(() => chatStore.getActiveChatMode());
 
-const modeOptions = [
-  { value: 'converse' as const, label: 'Converse' },
-  { value: 'plan' as const, label: 'Plan' },
-  { value: 'build' as const, label: 'Build' },
+const modeOptions: Array<{ value: PrimaryChatMode; label: string }> = [
+  { value: 'converse', label: 'Converse' },
+  { value: 'plan', label: 'Plan' },
+  { value: 'build', label: 'Build' },
 ];
 
 const selectableModes = computed(() => {
-  const allowed = chatStore.getActiveConversation()?.allowedChatModes || ['converse', 'plan', 'build'];
+  const conv = chatStore.getActiveConversation();
+  const allowed = conv?.allowedChatModes?.length ? conv.allowedChatModes : DEFAULT_CHAT_MODES;
   return modeOptions.filter(option => allowed.includes(option.value));
 });
 
 function onChange(ev: CustomEvent) {
-  const value = ev.detail.value as 'converse' | 'plan' | 'build';
+  const value = ev.detail.value as PrimaryChatMode;
   chatStore.setChatMode(value);
   // Optional: emit an event if switching to build should auto-trigger a build task later
   const conv = chatStore.getActiveConversation();

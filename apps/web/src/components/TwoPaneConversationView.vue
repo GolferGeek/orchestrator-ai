@@ -306,7 +306,7 @@ import { useSovereignPolicyStore } from '@/stores/sovereignPolicyStore';
 import { useLLMStore } from '@/stores/llmStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
-import type { AgentChatMessage } from '@/stores/agentChatStore/types';
+import type { AgentChatMessage, AgentChatMode } from '@/stores/agentChatStore/types';
 import type { AgentLLMRecommendation } from '@/types/evaluation';
 import AgentTaskItem from './AgentTaskItem.vue';
 import CompactLLMControl from './CompactLLMControl.vue';
@@ -442,7 +442,7 @@ const handleSpeechError = (error: any) => {
 };
 
 // Methods
-const sendMessage = async (mode?: 'converse' | 'plan' | 'build') => {
+const sendMessage = async (mode?: AgentChatMode) => {
   if (!canSend.value) return;
   const content = messageText.value.trim();
   messageText.value = '';

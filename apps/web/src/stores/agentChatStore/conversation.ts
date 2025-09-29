@@ -1,8 +1,8 @@
 import agentConversationsService, { type AgentType } from '@/services/agentConversationsService';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { tasksService } from '@/services/tasksService';
-import type { AgentConversation, AgentChatMessage, ExecutionMode } from './types';
-import type { Agent } from './types';
+import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent, AgentChatMode } from './types';
+import { DEFAULT_CHAT_MODES } from './types';
 import { formatAgentName } from '@/utils/caseConverter';
 
 /**
@@ -310,7 +310,7 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
 
       }
 
-      const defaultAllowed: ('converse' | 'plan' | 'build')[] = ['converse', 'plan', 'build'];
+      const defaultAllowed: AgentChatMode[] = [...DEFAULT_CHAT_MODES];
       let allowedChatModes = [...defaultAllowed];
 
       const profile = agentInfo?.execution_profile;
@@ -333,13 +333,13 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
 
       conversation.allowedChatModes = allowedChatModes;
       if (!allowedChatModes.includes(conversation.chatMode)) {
-        conversation.chatMode = allowedChatModes[0] || 'converse';
+        conversation.chatMode = allowedChatModes[0] || DEFAULT_CHAT_MODES[0];
       }
     } catch (error) {
 
       conversation.supportedExecutionModes = ['immediate'];
       if (!conversation.allowedChatModes || conversation.allowedChatModes.length === 0) {
-        conversation.allowedChatModes = ['converse', 'plan', 'build'];
+        conversation.allowedChatModes = [...DEFAULT_CHAT_MODES];
       }
     }
   }
@@ -394,8 +394,8 @@ console.error(`Failed to get active tasks for conversation ${conversationId}:`, 
       messages: [],
       createdAt,
       lastActiveAt: createdAt,
-      chatMode: 'converse',
-      allowedChatModes: ['converse', 'plan', 'build'],
+      chatMode: DEFAULT_CHAT_MODES[0],
+      allowedChatModes: [...DEFAULT_CHAT_MODES],
       executionMode: 'immediate',
       supportedExecutionModes: ['immediate'], // Will be updated by updateConversationExecutionModes
       executionProfile: agent.execution_profile,

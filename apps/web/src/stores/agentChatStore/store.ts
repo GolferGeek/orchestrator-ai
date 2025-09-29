@@ -26,7 +26,8 @@ import analyticsService from '@/services/analyticsService';
 
 
 // Import types
-import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent, PendingAction } from './types';
+import type { AgentConversation, AgentChatMessage, ExecutionMode, Agent, PendingAction, AgentChatMode } from './types';
+import { DEFAULT_CHAT_MODES } from './types';
 
 // Pre-generated task ID for WebSocket mode
 let preGeneratedTaskId: string | undefined;
@@ -98,17 +99,17 @@ export const useAgentChatStore = defineStore('agentChat', {
     /**
      * Get current chat mode for active conversation
      */
-    getActiveChatMode(): 'converse' | 'plan' | 'build' {
+    getActiveChatMode(): AgentChatMode {
       const conv = this.getActiveConversation();
       if (!conv) {
-        return 'converse';
+        return DEFAULT_CHAT_MODES[0];
       }
 
-      const current = conv.chatMode || 'converse';
-      const allowed = conv.allowedChatModes || ['converse', 'plan', 'build'];
+      const current = conv.chatMode || DEFAULT_CHAT_MODES[0];
+      const allowed = conv.allowedChatModes?.length ? conv.allowedChatModes : DEFAULT_CHAT_MODES;
 
       if (!allowed.includes(current)) {
-        return allowed[0] || 'converse';
+        return allowed[0] || DEFAULT_CHAT_MODES[0];
       }
 
       return current;
@@ -117,10 +118,10 @@ export const useAgentChatStore = defineStore('agentChat', {
     /**
      * Set chat mode for active conversation
      */
-    setChatMode(mode: 'converse' | 'plan' | 'build') {
+    setChatMode(mode: AgentChatMode) {
       const conv = this.getActiveConversation();
       if (conv) {
-        const allowed = conv.allowedChatModes || ['converse', 'plan', 'build'];
+        const allowed = conv.allowedChatModes?.length ? conv.allowedChatModes : DEFAULT_CHAT_MODES;
         if (!allowed.includes(mode)) {
           return;
         }
@@ -128,12 +129,12 @@ export const useAgentChatStore = defineStore('agentChat', {
       }
     },
 
-    isModeAllowed(mode: 'converse' | 'plan' | 'build'): boolean {
+    isModeAllowed(mode: AgentChatMode): boolean {
       const conv = this.getActiveConversation();
       if (!conv) {
-        return mode === 'converse';
+        return mode === DEFAULT_CHAT_MODES[0];
       }
-      const allowed = conv.allowedChatModes || ['converse', 'plan', 'build'];
+      const allowed = conv.allowedChatModes?.length ? conv.allowedChatModes : DEFAULT_CHAT_MODES;
       return allowed.includes(mode);
     },
 

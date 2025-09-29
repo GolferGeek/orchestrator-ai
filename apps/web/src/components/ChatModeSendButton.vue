@@ -76,19 +76,21 @@ import {
   checkmarkOutline
 } from 'ionicons/icons';
 import { useAgentChatStore } from '@/stores/agentChatStore';
+import type { PrimaryChatMode, AgentChatMode } from '@/stores/agentChatStore/types';
+import { DEFAULT_CHAT_MODES } from '@/stores/agentChatStore/types';
 
 const props = defineProps<{
   disabled?: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'send', mode: 'converse' | 'plan' | 'build'): void;
+  (e: 'send', mode: PrimaryChatMode): void;
 }>();
 
 const chatStore = useAgentChatStore();
 const showModeMenu = ref(false);
 
-const baseModes = [
+const baseModes: Array<{ value: PrimaryChatMode; name: string; icon: any; description: string }> = [
   {
     value: 'converse',
     name: 'Converse',
@@ -109,11 +111,11 @@ const baseModes = [
   }
 ];
 
-const currentMode = computed(() => chatStore.getActiveChatMode());
+const currentMode = computed<AgentChatMode>(() => chatStore.getActiveChatMode());
 
 const allowedModes = computed(() => {
   const conversation = chatStore.getActiveConversation();
-  return conversation?.allowedChatModes || ['converse', 'plan', 'build'];
+  return conversation?.allowedChatModes?.length ? conversation.allowedChatModes : DEFAULT_CHAT_MODES;
 });
 
 const modes = computed(() =>
@@ -138,12 +140,15 @@ function toggleModeMenu() {
 
 function sendWithCurrentMode() {
   if (!props.disabled) {
-    const activeMode = modes.value.find(m => m.value === currentMode.value)?.value || modes.value[0]?.value || 'converse';
+    const activeMode =
+      modes.value.find(m => m.value === currentMode.value)?.value ||
+      modes.value[0]?.value ||
+      'converse';
     emit('send', activeMode);
   }
 }
 
-function selectAndSend(mode: 'converse' | 'plan' | 'build') {
+function selectAndSend(mode: PrimaryChatMode) {
   showModeMenu.value = false;
   chatStore.setChatMode(mode);
   // Small delay to let the UI update before sending

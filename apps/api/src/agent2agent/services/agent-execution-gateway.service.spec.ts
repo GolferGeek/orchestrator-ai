@@ -401,6 +401,84 @@ describe('AgentExecutionGateway', () => {
     expect(result.mode).toBe(AgentTaskMode.ORCHESTRATE_SAVE_RECIPE);
   });
 
+  it('handles orchestration create → execute → continue flow', async () => {
+    const {
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    } = createMocks();
+
+    agentsRepo.findBySlug.mockResolvedValue({ slug: 'agent-1' } as any);
+    routing.evaluate.mockResolvedValue({ showstopper: false });
+    planEngine.generateDraft.mockResolvedValue({ id: 'plan-123', status: 'draft' } as any);
+    orchestrationRunner.startRun.mockResolvedValue({
+      id: 'run-123',
+      origin_type: 'plan',
+      plan_id: 'plan-123',
+      status: 'pending',
+    } as any);
+    orchestrationRunner.updateRun.mockResolvedValue({
+      id: 'run-123',
+      status: 'running',
+    } as any);
+
+    const gateway = new AgentExecutionGateway(
+      agentsRepo,
+      routing,
+      modeRouter,
+      planEngine,
+      orchestrationRunner,
+      agentOrchestrations,
+    );
+
+    const draft = await gateway.execute('demo', 'agent-1', {
+      mode: AgentTaskMode.ORCHESTRATE_CREATE,
+      conversationId: 'conv-123',
+      payload: { planDraft: { phases: [] } },
+    } as any);
+
+    expect(planEngine.generateDraft).toHaveBeenCalled();
+    expect(draft.mode).toBe(AgentTaskMode.ORCHESTRATE_CREATE);
+
+    const run = await gateway.execute('demo', 'agent-1', {
+      mode: AgentTaskMode.ORCHESTRATE_EXECUTE,
+      conversationId: 'conv-123',
+      planId: 'plan-123',
+    } as any);
+
+    expect(orchestrationRunner.startRun).toHaveBeenCalledWith({
+      planId: 'plan-123',
+      originType: 'plan',
+      originId: 'plan-123',
+      organizationSlug: 'demo',
+      promptInputs: {},
+      metadata: {},
+    });
+    expect(run.mode).toBe(AgentTaskMode.ORCHESTRATE_EXECUTE);
+
+    const continued = await gateway.execute('demo', 'agent-1', {
+      mode: AgentTaskMode.ORCHESTRATE_CONTINUE,
+      conversationId: 'conv-123',
+      orchestrationRunId: 'run-123',
+      payload: { update: { status: 'running' } },
+    } as any);
+
+    expect(orchestrationRunner.updateRun).toHaveBeenCalledWith({
+      runId: 'run-123',
+      status: 'running',
+      currentStepIndex: undefined,
+      completedSteps: undefined,
+      stepState: undefined,
+      humanCheckpointId: undefined,
+      metadata: undefined,
+      completedAt: undefined,
+    });
+    expect(continued.mode).toBe(AgentTaskMode.ORCHESTRATE_CONTINUE);
+  });
+
   it('throws when required prompt parameter missing', async () => {
     const {
       agentsRepo,

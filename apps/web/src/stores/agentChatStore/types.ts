@@ -1,3 +1,15 @@
+export const PRIMARY_CHAT_MODES = ['converse', 'plan', 'build'] as const;
+export type PrimaryChatMode = typeof PRIMARY_CHAT_MODES[number];
+
+export type AgentChatMode =
+  | PrimaryChatMode
+  | 'orchestrate_create'
+  | 'orchestrate_execute'
+  | 'orchestrate_continue'
+  | 'orchestrate_save_recipe';
+
+export const DEFAULT_CHAT_MODES: AgentChatMode[] = [...PRIMARY_CHAT_MODES];
+
 // Agent interface based on the original implementation
 export type AgentExecutionProfile =
   | 'conversation_only'
@@ -59,8 +71,8 @@ export interface AgentConversation {
   createdAt: Date;
   lastActiveAt: Date;
   // Conversation mode controls high-level intent
-  chatMode: 'converse' | 'plan' | 'build';
-  allowedChatModes: ('converse' | 'plan' | 'build')[];
+  chatMode: AgentChatMode;
+  allowedChatModes: AgentChatMode[];
   executionMode: 'immediate' | 'polling' | 'websocket';
   supportedExecutionModes: ('immediate' | 'polling' | 'websocket')[];
   isExecutionModeOverride?: boolean;
@@ -83,7 +95,7 @@ export interface TaskExecutionOptions {
   agentType: string;
   agentName: string;
   taskId?: string;
-  mode?: 'converse' | 'plan' | 'build';
+  mode?: AgentChatMode;
   timeoutSeconds?: number;
   metadata?: any; // Context metadata for version operations
 }
